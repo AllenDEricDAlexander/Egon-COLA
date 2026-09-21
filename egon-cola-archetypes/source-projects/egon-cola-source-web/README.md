@@ -60,13 +60,15 @@ Business-owned code puts the domain before the technical responsibility:
 
 ```text
 domain/user/entities
-application/teaching/manage
+application/teaching/manage/impl
+application/user/pojo/command
+infrastructure/teaching/po
 infrastructure/user/repo
+adapter/teaching/pojo/dto
 adapter/user/facade/impl
-adapter/teaching/controller
 ```
 
-Shared runtime concerns stay at their layer root. The external Evaluation boundary is the deliberate exception at `domain/client/evaluation` and `infrastructure/client/evaluation`.
+Shared runtime concerns stay at their layer root. The external Evaluation boundary is the deliberate exception at `infrastructure/client/evaluation`, while the Domain side only owns its `domain/teaching/service` port and value objects.
 
 ## Dependency Direction
 
@@ -209,12 +211,15 @@ Set a unique `EGON_ID_MACHINE_ID` for each runtime; production uses the existing
 
 Default tests use isolated H2 and controlled dependencies. Physical routing tests require `-Degon.pg.routing=true` and `EGON_TEST_PG_URL`; read/write tests require `-Degon.pg.readwrite=true`, `EGON_TEST_PG_PRIMARY_URL` and `EGON_TEST_PG_REPLICA_URL`, plus dedicated `EGON_TEST_PG_USER/PASSWORD`. They create/clean only their UUID schemas and do not start databases. Real PG/SS, migration and EXPLAIN acceptance remains manual; a skip is not a pass.
 
-## Two-level cache skeleton (disabled by default)
+## Two-level cache
 
-The generated project includes the cache starter with `enabled: false`. To enable it, provide a `RedissonClient`, set
-`egon.cola.component.cache.enabled=true`, and explicitly add `@EnableCaching` to a configuration class. The mp-sd-ext
+`base`, `dev` and `prod` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys with
+`enabled: false` so unit and module runs never require Redis. `infrastructure/config/OrganizationRedisConfig.java` carries
+`@EnableCaching`, so a generated project is cache-ready once a Redis connection is configured. The mp-sd-ext
 base repository no longer depends on a cache port: concrete repositories declare Spring Cache annotations. The
 repository examples use `findCachedById` / `updateCachedById` (Agent defines its own business methods). Ordinary CRUD no
-longer evicts implicitly; annotate every relevant write/delete path. See
+longer evicts implicitly; annotate every relevant write/delete path. Every profile declares the same five TTL keys
+(`l1-expire`, `l1-jitter`, `l2-expire`, `l2-jitter`, `null-expire`) plus the shared `key-prefix`, `tenant-mdc-key` and
+batch/lock budgets; only the values differ. See
 the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
 for keys, conditions, combined operations, transactions and sync limitations.

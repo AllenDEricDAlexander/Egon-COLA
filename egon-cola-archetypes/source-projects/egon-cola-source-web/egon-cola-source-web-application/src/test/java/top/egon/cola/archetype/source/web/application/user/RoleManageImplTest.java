@@ -2,12 +2,11 @@ package top.egon.cola.archetype.source.web.application.user;
 
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.user.command.AssignRoleCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.AssignRoleCommand;
 import top.egon.cola.archetype.source.web.application.user.manage.impl.RoleManageImpl;
 import top.egon.cola.archetype.source.web.application.user.validators.UserApplicationValidator;
-import top.egon.cola.archetype.source.web.domain.client.CommandIdempotencyPort;
-import top.egon.cola.archetype.source.web.domain.client.OrganizationEventPublisher;
-import top.egon.cola.archetype.source.web.domain.user.client.UserCachePort;
+import top.egon.cola.archetype.source.web.domain.service.CommandIdempotencyService;
+import top.egon.cola.archetype.source.web.domain.service.OrganizationEventService;
 import top.egon.cola.archetype.source.web.domain.user.entities.Role;
 import top.egon.cola.archetype.source.web.domain.user.entities.User;
 import top.egon.cola.archetype.source.web.domain.user.enums.RoleStatus;
@@ -30,9 +29,16 @@ import java.util.Set;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @ExtendWith(MockitoExtension.class)
 class RoleManageImplTest {
+    @Mock ValidationUtils validationUtils;
+
+    private UserApplicationValidator userValidator() {
+        return new UserApplicationValidator(validationUtils);
+    }
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -40,9 +46,8 @@ class RoleManageImplTest {
     }
 
     @Mock UserDomainService userDomainService;
-    @Mock UserCachePort userCache;
-    @Mock CommandIdempotencyPort idempotency;
-    @Mock OrganizationEventPublisher eventPublisher;
+    @Mock CommandIdempotencyService idempotency;
+    @Mock OrganizationEventService eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -55,8 +60,7 @@ class RoleManageImplTest {
         when(userDomainService.findById(new UserId(1001L))).thenReturn(Optional.of(user));
         when(userDomainService.findRoleByCode(new RoleCode("STUDENT"))).thenReturn(Optional.of(role));
         when(idempotency.claim("assign-role", "req-role")).thenReturn(true);
-        RoleManageImpl manage = new RoleManageImpl(userDomainService, new UserApplicationValidator(),
-                userCache, idempotency, eventPublisher);
+        RoleManageImpl manage = new RoleManageImpl(userDomainService, userValidator(), idempotency, eventPublisher);
 
         manage.assignRole(new AssignRoleCommand("req-role", 1001L, "student"));
 

@@ -2,13 +2,13 @@ package top.egon.cola.archetype.source.web.adapter.teaching.controller;
 
 import top.egon.cola.archetype.source.web.adapter.teaching.controller.GradeController;
 import top.egon.cola.archetype.source.web.adapter.teaching.controller.SchoolClassController;
-import top.egon.cola.archetype.source.web.adapter.teaching.converter.GradeAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.teaching.converter.SchoolClassAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor.GradeAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor.SchoolClassAdapterConverter;
 import top.egon.cola.archetype.source.web.application.teaching.manage.GradeManage;
 import top.egon.cola.archetype.source.web.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.web.application.teaching.query.SchoolClassDetailQuery;
-import top.egon.cola.archetype.source.web.application.teaching.result.GradeDetailResult;
-import top.egon.cola.archetype.source.web.application.teaching.result.SchoolClassDetailResult;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.query.SchoolClassDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.result.GradeDetailResult;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.result.SchoolClassDetailResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;

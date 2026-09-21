@@ -1,17 +1,21 @@
 package top.egon.cola.archetype.source.web.adapter.user.mq;
 
-import top.egon.cola.archetype.source.web.adapter.user.dto.CreateUserMessage;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.CreateUserMessage;
 import top.egon.cola.archetype.source.web.adapter.mq.OrganizationMessageSupport;
-import top.egon.cola.archetype.source.web.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 
-@Component
+@Component("userCreatedConsumer")
 @RequiredArgsConstructor
+@Slf4j
 public class UserCreatedConsumer {
 
+    @Qualifier("userManage")
     private final UserManage userManage;
 
     @RabbitListener(

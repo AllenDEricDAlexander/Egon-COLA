@@ -73,6 +73,68 @@ missing("${prefix}-infrastructure/src/main/java/infrastructure/teaching/repo/map
 missing("${prefix}-domain/src/main/java/domain/user/service/impl")
 missing("${prefix}-domain/src/main/java/domain/teaching/service/impl")
 
+// The converged tree is domain-first: carriers live under pojo/, the persistence roles sit beside
+// the Repository, and the retired technical-first paths must not come back through generation.
+def requiredPackagePaths = [
+    "common/constants", "common/enums", "common/exception", "common/utils",
+    "facade/user", "facade/teaching",
+    "domain/events", "domain/service", "domain/validators",
+    "application/config", "application/context", "application/support",
+    "infrastructure/aop", "infrastructure/cache", "infrastructure/client/evaluation",
+    "infrastructure/client/evaluation/impl", "infrastructure/config", "infrastructure/mq",
+    "infrastructure/mq/impl", "infrastructure/service/impl",
+    "adapter/config", "adapter/facade/impl", "adapter/filter", "adapter/graphql",
+    "adapter/handler", "adapter/mq", "adapter/pojo/convertor", "adapter/pojo/dto",
+    "starter", "starter/config", "starter/config/async", "starter/config/encryption"
+]
+["teaching", "user"].each { businessDomain ->
+    ["aggregates", "entities", "enums", "events", "service", "validators", "vos"].each { role ->
+        requiredPackagePaths << "domain/${businessDomain}/${role}"
+    }
+    ["manage", "manage/impl", "pojo/command", "pojo/convertor", "pojo/query", "pojo/result",
+     "validators"].each { role ->
+        requiredPackagePaths << "application/${businessDomain}/${role}"
+    }
+    ["converter", "dao", "po", "repo", "service/impl"].each { role ->
+        requiredPackagePaths << "infrastructure/${businessDomain}/${role}"
+    }
+    ["controller", "facade/impl", "graphql", "mq", "pojo/convertor", "pojo/dto", "pojo/vo",
+     "rpc"].each { role ->
+        requiredPackagePaths << "adapter/${businessDomain}/${role}"
+    }
+}
+requiredPackagePaths.each { packagePath ->
+    def module = packagePath.contains('/') ? packagePath.substring(0, packagePath.indexOf('/')) : packagePath
+    file("${prefix}-${module}/src/main/java/it/pkg/${packagePath}/package-info.java")
+}
+[
+    "common/exceptions",
+    "domain/client", "domain/gateway", "domain/exceptions", "domain/teaching/client",
+    "domain/teaching/cache", "domain/user/client", "domain/user/cache",
+    "domain/teaching/service/impl", "domain/user/service/impl",
+    "application/exceptions", "application/teaching/assemblers", "application/user/assemblers",
+    "application/teaching/command", "application/teaching/query", "application/teaching/result",
+    "application/teaching/converter", "application/user/command", "application/user/query",
+    "application/user/result", "application/user/converter",
+    "adapter/exceptions", "adapter/teaching/dto", "adapter/teaching/vo", "adapter/teaching/converter",
+    "adapter/user/dto", "adapter/user/vo", "adapter/user/converter",
+    "infrastructure/exceptions", "infrastructure/repo",
+    "infrastructure/teaching/cache", "infrastructure/user/cache",
+    "infrastructure/teaching/repo/dao", "infrastructure/teaching/repo/po",
+    "infrastructure/teaching/repo/converter", "infrastructure/user/repo/dao",
+    "infrastructure/user/repo/po", "infrastructure/user/repo/converter",
+    "infrastructure/cache/RedisCommandIdempotencyAdapter.java",
+    "infrastructure/cache/InMemoryCommandIdempotencyAdapter.java",
+    "infrastructure/mq/RabbitOrganizationEventPublisher.java",
+    "infrastructure/mq/LocalOrganizationEventPublisher.java",
+    "infrastructure/client/evaluation/LocalEvaluationQueryStub.java",
+    "infrastructure/client/evaluation/NativeEvaluationQueryClient.java",
+    "starter/config/encryption/ConfigDecryptException.java"
+].collect { "it/pkg/" + it }.each { path ->
+    def module = path.substring("it/pkg/".length()).split('/')[0]
+    missing("${prefix}-${module}/src/main/java/${path}")
+}
+
 def expectedFiles = [
     "${prefix}-facade/src/main/java/it/pkg/facade/user/UserFacade.java",
     "${prefix}-facade/src/main/java/it/pkg/facade/user/RoleFacade.java",
@@ -104,7 +166,24 @@ def expectedFiles = [
     "${prefix}-infrastructure/src/main/resources/mybatis/mapper/user/UserDAO.xml",
     "${prefix}-infrastructure/src/main/resources/mybatis/mapper/teaching/GradeDAO.xml",
     "${prefix}-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_003__migrate_organization_master_data_to_egon_model.sql",
-    "${prefix}-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_004__migrate_organization_sharded_to_tenant_model.sql"
+    "${prefix}-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_004__migrate_organization_sharded_to_tenant_model.sql",
+    "${prefix}-common/src/main/java/it/pkg/common/exception/BizException.java",
+    "${prefix}-common/src/main/java/it/pkg/common/enums/OrganizationFailureType.java",
+    "${prefix}-domain/src/main/java/it/pkg/domain/service/CommandIdempotencyService.java",
+    "${prefix}-domain/src/main/java/it/pkg/domain/service/OrganizationEventService.java",
+    "${prefix}-domain/src/main/java/it/pkg/domain/teaching/service/EvaluationQueryService.java",
+    "${prefix}-application/src/main/java/it/pkg/application/support/IdempotentCommand.java",
+    "${prefix}-application/src/main/java/it/pkg/application/teaching/pojo/command/CreateGradeCommand.java",
+    "${prefix}-application/src/main/java/it/pkg/application/user/pojo/result/UserDetailResult.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/user/pojo/dto/CreateUserRequest.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/teaching/pojo/vo/GradeDetailVO.java",
+    "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/teaching/dao/GradeDAO.java",
+    "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/teaching/po/GradePO.java",
+    "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/GradeRepository.java",
+    "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/mq/MqRouteEnum.java",
+    "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/mq/impl/RabbitMqMessageServiceImpl.java",
+    "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/service/impl/CommandIdempotencyServiceImpl.java",
+    "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/impl/NativeEvaluationQueryClientImpl.java"
 ]
 expectedFiles.each { file(it) }
 
@@ -157,7 +236,7 @@ facadeJavaFiles.findAll { it.name.endsWith("Facade.java") }.each { candidate ->
 
 def poSources = javaSources.findAll {
     def path = relativePath(it)
-    path.contains("/infrastructure/") && path.contains("/repo/po/") && it.name.endsWith("PO.java")
+    path.contains("/infrastructure/") && path.contains("/po/") && it.name.endsWith("PO.java")
 }
 assert poSources.size() == 8: "Expected eight infrastructure PO classes, got ${poSources.size()}"
 poSources.each { po ->
@@ -172,7 +251,7 @@ poSources.each { po ->
 
 def daoSources = javaSources.findAll {
     def path = relativePath(it)
-    path.contains("/infrastructure/") && path.contains("/repo/dao/") && it.name.endsWith("DAO.java")
+    path.contains("/infrastructure/") && path.contains("/dao/") && it.name.endsWith("DAO.java")
 }
 assert daoSources.size() == 8: "Expected eight infrastructure DAO classes, got ${daoSources.size()}"
 daoSources.each { dao ->
@@ -231,15 +310,24 @@ assert ownFacadeImports.every {
     def path = relativePath(it)
     path.startsWith("${prefix}-facade/src/") || path.startsWith("${prefix}-adapter/src/")
 }: "Own Facade contract escaped its module and the Adapter: ${ownFacadeImports.collect { relativePath(it) }}"
-def localEvaluationStub = file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStub.java").text
-assert !localEvaluationStub.contains("top.egon.cola.archetype.source.service.facade"):
-        "The test stub must stay free of the published peer contract"
+def localEvaluationClient = file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/impl/LocalEvaluationQueryClientImpl.java").text
+assert !localEvaluationClient.contains("top.egon.cola.archetype.source.service.facade"):
+        "The test-profile client must stay free of the published peer contract"
+assert localEvaluationClient.contains('@Profile("test")')
+assert localEvaluationClient.contains('@Component("evaluationQueryClient")')
 [
     "top.egon.cola.evaluation.facade", "top.egon.cola.organization.facade",
     "EvaluationRpcConverter", "OrganizationRpcConverter",
     "UserRpcService", "GradeRpcService", "RoleRpcService", "PermissionRpcService",
     "SchoolClassRpcService", "CourseRpcService", "ExamRpcService", "ScoreRpcService",
-    "RpcSchoolClassQuery"
+    "RpcSchoolClassQuery",
+    "UserCachePort", "GradeCachePort", "SchoolClassCachePort", "CachePort",
+    "RedisUserCache", "InMemoryUserCache", "RedisGradeCache", "InMemoryGradeCache",
+    "RedisSchoolClassCache", "InMemorySchoolClassCache", "RedisCommandIdempotencyAdapter",
+    "InMemoryCommandIdempotencyAdapter", "RabbitOrganizationEventPublisher",
+    "LocalOrganizationEventPublisher", "LocalEvaluationQueryStub", "QueryGateway",
+    "repo.dao", "repo.po", "repo.converter", "it.pkg.domain.client", "it.pkg.domain.gateway",
+    "it.pkg.application.exceptions", "it.pkg.common.exceptions", "Assemblers", "Assembler"
 ].each { token ->
     runtimeJava.each { candidate ->
         assert !candidate.getText("UTF-8").contains(token):
@@ -329,7 +417,8 @@ def reports = []
 projectDir.traverse(type: FileType.FILES) { candidate ->
     if (candidate.path.replace('\\', '/').contains('/target/surefire-reports/') && candidate.name.endsWith('.xml')) reports << candidate
 }
-["WebArchitectureTest", "OrganizationApplicationTest", "OrganizationFlowTest", "OrganizationRollbackTest",
+["WebArchitectureTest", "OrganizationApplicationTest",
+ "OrganizationFlowTest", "OrganizationRollbackTest",
  "OrganizationFlywayMigrationTest", "LongTenantShardingAlgorithmTest", "ReadwriteRoutingIntegrationTest"].each { testName ->
     def report = reports.find { it.name.contains(testName) }
     assert report && report.text.contains('failures="0"') && report.text.contains('errors="0"'):

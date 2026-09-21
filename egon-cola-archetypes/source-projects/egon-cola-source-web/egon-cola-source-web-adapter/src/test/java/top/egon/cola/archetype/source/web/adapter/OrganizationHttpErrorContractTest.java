@@ -1,12 +1,12 @@
 package top.egon.cola.archetype.source.web.adapter;
 
 import top.egon.cola.archetype.source.web.adapter.user.controller.UserController;
-import top.egon.cola.archetype.source.web.adapter.user.converter.UserAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.UserAdapterConverter;
 import top.egon.cola.archetype.source.web.adapter.filter.OrganizationAuthContextFilter;
 import top.egon.cola.archetype.source.web.adapter.filter.OrganizationTraceFilter;
 import top.egon.cola.archetype.source.web.adapter.handler.OrganizationGlobalExceptionHandler;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationFailureType;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

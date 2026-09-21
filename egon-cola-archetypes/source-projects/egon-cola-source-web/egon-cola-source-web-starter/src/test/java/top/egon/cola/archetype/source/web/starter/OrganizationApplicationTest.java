@@ -1,8 +1,9 @@
 package top.egon.cola.archetype.source.web.starter;
 
-import top.egon.cola.archetype.source.web.domain.client.evaluation.EvaluationQueryPort;
-import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.NativeEvaluationQueryClient;
-import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.LocalEvaluationQueryStub;
+import top.egon.cola.archetype.source.web.domain.teaching.service.EvaluationQueryService;
+import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.impl.NativeEvaluationQueryClientImpl;
+import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.impl.LocalEvaluationQueryClientImpl;
+import top.egon.cola.archetype.source.web.infrastructure.teaching.service.impl.EvaluationQueryServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ class OrganizationApplicationTest extends top.egon.cola.archetype.source.web.sup
     private Environment environment;
 
     @Autowired
-    private EvaluationQueryPort evaluationQueryPort;
+    private EvaluationQueryService evaluationQueryPort;
 
     @Test
     void testProfileIsExternalFree() {
@@ -40,7 +41,9 @@ class OrganizationApplicationTest extends top.egon.cola.archetype.source.web.sup
         assertThat(environment.getProperty("organization.integrations.redis.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.rabbit.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.evaluation.enabled")).isEqualTo("false");
-        assertThat(evaluationQueryPort).isInstanceOf(LocalEvaluationQueryStub.class);
-        assertThat(context.getBeansOfType(NativeEvaluationQueryClient.class)).isEmpty();
+        // The Domain Service always answers; only the named Client behind it is transport-specific.
+        assertThat(evaluationQueryPort).isInstanceOf(EvaluationQueryServiceImpl.class);
+        assertThat(context.getBean("evaluationQueryClient")).isInstanceOf(LocalEvaluationQueryClientImpl.class);
+        assertThat(context.getBeansOfType(NativeEvaluationQueryClientImpl.class)).isEmpty();
     }
 }

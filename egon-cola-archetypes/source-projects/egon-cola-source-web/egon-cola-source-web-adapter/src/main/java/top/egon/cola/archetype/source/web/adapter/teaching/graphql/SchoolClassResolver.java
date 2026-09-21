@@ -1,14 +1,14 @@
 package top.egon.cola.archetype.source.web.adapter.teaching.graphql;
 
-import top.egon.cola.archetype.source.web.application.teaching.command.AssignUserToClassCommand;
-import top.egon.cola.archetype.source.web.application.teaching.command.CreateGradeCommand;
-import top.egon.cola.archetype.source.web.application.teaching.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.command.AssignUserToClassCommand;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateGradeCommand;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.web.application.teaching.manage.GradeManage;
 import top.egon.cola.archetype.source.web.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.web.application.teaching.query.GradeDetailQuery;
-import top.egon.cola.archetype.source.web.application.teaching.query.SchoolClassDetailQuery;
-import top.egon.cola.archetype.source.web.application.teaching.result.GradeDetailResult;
-import top.egon.cola.archetype.source.web.application.teaching.result.SchoolClassDetailResult;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.query.GradeDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.query.SchoolClassDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.result.GradeDetailResult;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.result.SchoolClassDetailResult;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -18,12 +18,15 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Qualifier;
 
-@Controller
+@Controller("schoolClassResolver")
 @RequiredArgsConstructor
 public class SchoolClassResolver {
 
+    @Qualifier("gradeManage")
     private final GradeManage gradeManage;
+    @Qualifier("schoolClassManage")
     private final SchoolClassManage schoolClassManage;
 
     @QueryMapping

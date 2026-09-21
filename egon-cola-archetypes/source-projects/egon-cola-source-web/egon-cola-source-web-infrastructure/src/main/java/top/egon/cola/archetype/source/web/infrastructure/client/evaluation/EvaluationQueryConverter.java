@@ -13,9 +13,9 @@ import top.egon.cola.archetype.source.service.facade.proto.GetCourseRpcRequest;
 import top.egon.cola.archetype.source.service.facade.proto.GetExamRpcRequest;
 import top.egon.cola.archetype.source.service.facade.proto.GetScoreRpcRequest;
 import top.egon.cola.archetype.source.service.facade.proto.ScoreResponse;
-import top.egon.cola.archetype.source.web.domain.client.evaluation.EvaluationCourse;
-import top.egon.cola.archetype.source.web.domain.client.evaluation.EvaluationExam;
-import top.egon.cola.archetype.source.web.domain.client.evaluation.EvaluationScore;
+import top.egon.cola.archetype.source.web.domain.teaching.vos.EvaluationCourseBO;
+import top.egon.cola.archetype.source.web.domain.teaching.vos.EvaluationExamBO;
+import top.egon.cola.archetype.source.web.domain.teaching.vos.EvaluationScoreBO;
 import top.egon.cola.component.common.core.converter.BaseConverter;
 
 /**
@@ -25,7 +25,7 @@ import top.egon.cola.component.common.core.converter.BaseConverter;
  * provider payload that carries more than the port owns stays invisible to the web domain.</p>
  */
 @Mapper(unmappedTargetPolicy = ReportingPolicy.ERROR)
-public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, EvaluationCourse> {
+public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, EvaluationCourseBO> {
 
     /** Validates scalar identifiers after Protobuf presence has been decoded. */
     record CourseQuery(@NotNull @Positive Long courseId) {
@@ -40,7 +40,7 @@ public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, 
     }
 
     @Override
-    EvaluationCourse toTarget(CourseResponse source);
+    EvaluationCourseBO toTarget(CourseResponse source);
 
     @Override
     @BeanMapping(ignoreByDefault = true)
@@ -49,7 +49,7 @@ public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, 
     @Mapping(target = "name", source = "name")
     @Mapping(target = "credit", source = "credit")
     @Mapping(target = "status", source = "status")
-    CourseResponse toSource(EvaluationCourse target);
+    CourseResponse toSource(EvaluationCourseBO target);
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
@@ -58,7 +58,7 @@ public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, 
     @Mapping(target = "startsAt", source = "startsAt")
     @Mapping(target = "endsAt", source = "endsAt")
     @Mapping(target = "status", source = "status")
-    EvaluationExam toTarget(ExamResponse source);
+    EvaluationExamBO toTarget(ExamResponse source);
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
@@ -67,7 +67,7 @@ public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, 
     @Mapping(target = "startsAt", source = "startsAt")
     @Mapping(target = "endsAt", source = "endsAt")
     @Mapping(target = "status", source = "status")
-    ExamResponse toSource(EvaluationExam target);
+    ExamResponse toSource(EvaluationExamBO target);
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
@@ -76,7 +76,7 @@ public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, 
     @Mapping(target = "studentId", source = "studentId")
     @Mapping(target = "points", source = "points")
     @Mapping(target = "status", source = "status")
-    EvaluationScore toTarget(ScoreResponse source);
+    EvaluationScoreBO toTarget(ScoreResponse source);
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "id", source = "id")
@@ -85,7 +85,7 @@ public interface EvaluationQueryConverter extends BaseConverter<CourseResponse, 
     @Mapping(target = "studentId", source = "studentId")
     @Mapping(target = "points", source = "points")
     @Mapping(target = "status", source = "status")
-    ScoreResponse toSource(EvaluationScore target);
+    ScoreResponse toSource(EvaluationScoreBO target);
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "courseId", source = "courseId")

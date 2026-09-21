@@ -1,13 +1,14 @@
 package top.egon.cola.archetype.source.web.adapter.user.controller;
 
-import top.egon.cola.archetype.source.web.adapter.user.converter.UserAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.user.dto.CreateUserRequest;
-import top.egon.cola.archetype.source.web.adapter.user.vo.UserDetailVO;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.UserAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.CreateUserRequest;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.web.application.user.query.UserDetailQuery;
+import top.egon.cola.archetype.source.web.application.user.pojo.query.UserDetailQuery;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,13 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @RestController("userController")
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
+    @Qualifier("userManage")
     private final UserManage userManage;
+    @Qualifier("userAdapterConverterImpl")
     private final UserAdapterConverter converter;
 
     @PostMapping

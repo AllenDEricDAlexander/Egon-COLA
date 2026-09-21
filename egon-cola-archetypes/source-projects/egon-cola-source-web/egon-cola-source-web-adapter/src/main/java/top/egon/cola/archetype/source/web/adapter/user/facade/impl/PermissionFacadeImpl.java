@@ -9,8 +9,8 @@ import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacade
 import top.egon.cola.archetype.source.web.adapter.pojo.convertor.OrganizationFacadeConverter;
 import top.egon.cola.archetype.source.web.adapter.pojo.dto.RpcIdQuery;
 import top.egon.cola.archetype.source.web.application.user.manage.PermissionManage;
-import top.egon.cola.archetype.source.web.application.user.query.PermissionTreeQuery;
-import top.egon.cola.archetype.source.web.application.user.result.PermissionTreeResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.query.PermissionTreeQuery;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.PermissionTreeResult;
 import top.egon.cola.archetype.source.web.facade.proto.GetPermissionTreeRpcRequest;
 import top.egon.cola.archetype.source.web.facade.proto.GrantPermissionRpcRequest;
 import top.egon.cola.archetype.source.web.facade.proto.PermissionTreeRpcResponse;

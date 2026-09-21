@@ -23,11 +23,11 @@ import top.egon.cola.archetype.source.web.adapter.pojo.convertor.OrganizationFac
 import top.egon.cola.archetype.source.web.adapter.user.facade.impl.UserFacadeImpl;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationFailureType;
-import top.egon.cola.archetype.source.web.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.web.application.user.result.UserDetailResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.UserDetailResult;
 import top.egon.cola.archetype.source.web.facade.proto.CreateUserRpcRequest;
 import top.egon.cola.archetype.source.web.facade.proto.UserServiceGrpc;
 import top.egon.cola.archetype.source.web.facade.user.UserFacade;

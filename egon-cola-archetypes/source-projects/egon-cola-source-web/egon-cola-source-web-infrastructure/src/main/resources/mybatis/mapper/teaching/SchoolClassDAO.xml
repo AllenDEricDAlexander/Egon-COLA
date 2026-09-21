@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.web.infrastructure.teaching.repo.dao.SchoolClassDAO">
-    <resultMap id="SchoolClassResultMap" type="top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.SchoolClassPO">
+<mapper namespace="top.egon.cola.archetype.source.web.infrastructure.teaching.dao.SchoolClassDAO">
+    <resultMap id="SchoolClassResultMap" type="top.egon.cola.archetype.source.web.infrastructure.teaching.po.SchoolClassPO">
         <id column="id" property="id"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="create_user_id" property="createUserId"/>
@@ -24,10 +24,10 @@
         SELECT COUNT(*) FROM school_classes
         WHERE deleted_at IS NULL AND grade_id = #{gradeId} AND LOWER(name) = LOWER(#{name})
     </select>
-    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.SchoolClassPO">
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.web.infrastructure.teaching.po.SchoolClassPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, name, grade_name, grade_id, status FROM school_classes WHERE id = #{id} AND deleted_at IS NULL
     </select>
-    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.SchoolClassPO">
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.web.infrastructure.teaching.po.SchoolClassPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, name, grade_name, grade_id, status FROM school_classes WHERE deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>

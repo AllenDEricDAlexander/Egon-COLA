@@ -8,13 +8,13 @@ import top.egon.cola.archetype.source.web.application.teaching.manage.SchoolClas
 import top.egon.cola.archetype.source.web.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.web.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.web.application.user.query.UserDetailQuery;
-import top.egon.cola.archetype.source.web.application.teaching.query.SchoolClassDetailQuery;
-import top.egon.cola.archetype.source.web.application.teaching.result.GradeDetailResult;
-import top.egon.cola.archetype.source.web.application.teaching.result.SchoolClassDetailResult;
-import top.egon.cola.archetype.source.web.application.user.result.UserDetailResult;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.application.user.pojo.query.UserDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.query.SchoolClassDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.result.GradeDetailResult;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.result.SchoolClassDetailResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.UserDetailResult;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationFailureType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,15 +42,16 @@ class OrganizationGraphQlContractTest {
 
     private GraphQlTester graphQlTester;
 
-    @MockitoBean
+    // The resolvers inject by bean name, so every override has to carry that same name.
+    @MockitoBean(name = "userManage")
     private UserManage userManage;
-    @MockitoBean
+    @MockitoBean(name = "roleManage")
     private RoleManage roleManage;
-    @MockitoBean
+    @MockitoBean(name = "permissionManage")
     private PermissionManage permissionManage;
-    @MockitoBean
+    @MockitoBean(name = "gradeManage")
     private GradeManage gradeManage;
-    @MockitoBean
+    @MockitoBean(name = "schoolClassManage")
     private SchoolClassManage schoolClassManage;
 
     @BeforeEach

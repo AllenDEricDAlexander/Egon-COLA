@@ -1,9 +1,9 @@
 package top.egon.cola.archetype.source.web.adapter.user.controller;
 
 import top.egon.cola.archetype.source.web.adapter.user.controller.UserController;
-import top.egon.cola.archetype.source.web.adapter.user.converter.UserAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.UserAdapterConverter;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.web.application.user.result.UserDetailResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.UserDetailResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;

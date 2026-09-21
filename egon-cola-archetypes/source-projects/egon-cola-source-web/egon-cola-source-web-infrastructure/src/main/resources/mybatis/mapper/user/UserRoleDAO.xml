@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.web.infrastructure.user.repo.dao.UserRoleDAO">
-    <resultMap id="UserRoleResultMap" type="top.egon.cola.archetype.source.web.infrastructure.user.repo.po.UserRolePO">
+<mapper namespace="top.egon.cola.archetype.source.web.infrastructure.user.dao.UserRoleDAO">
+    <resultMap id="UserRoleResultMap" type="top.egon.cola.archetype.source.web.infrastructure.user.po.UserRolePO">
         <id column="id" property="id"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="create_user_id" property="createUserId"/>
@@ -27,10 +27,10 @@
     <select id="countByUserIdAndRoleId" resultType="long">
         SELECT COUNT(*) FROM user_roles WHERE deleted_at IS NULL AND user_id = #{userId} AND role_id = #{roleId}
     </select>
-    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.web.infrastructure.user.repo.po.UserRolePO">
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.web.infrastructure.user.po.UserRolePO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, role_id FROM user_roles WHERE id = #{id} AND deleted_at IS NULL
     </select>
-    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.web.infrastructure.user.repo.po.UserRolePO">
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.web.infrastructure.user.po.UserRolePO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, role_id FROM user_roles WHERE deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>

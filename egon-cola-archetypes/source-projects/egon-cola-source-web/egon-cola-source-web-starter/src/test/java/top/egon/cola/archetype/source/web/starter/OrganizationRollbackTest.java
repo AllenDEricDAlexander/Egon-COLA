@@ -1,16 +1,16 @@
 package top.egon.cola.archetype.source.web.starter;
 
-import top.egon.cola.archetype.source.web.application.teaching.command.AssignUserToClassCommand;
-import top.egon.cola.archetype.source.web.application.teaching.command.CreateGradeCommand;
-import top.egon.cola.archetype.source.web.application.teaching.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.command.AssignUserToClassCommand;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateGradeCommand;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
 import top.egon.cola.archetype.source.web.application.teaching.manage.GradeManage;
 import top.egon.cola.archetype.source.web.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.web.infrastructure.cache.InMemoryCommandIdempotencyAdapter;
-import top.egon.cola.archetype.source.web.infrastructure.teaching.cache.InMemorySchoolClassCache;
-import top.egon.cola.archetype.source.web.infrastructure.mq.LocalOrganizationEventPublisher;
+import top.egon.cola.archetype.source.web.infrastructure.config.OrganizationLocalFallbackConfig;
+import top.egon.cola.archetype.source.web.infrastructure.mq.MqMessageService;
+import top.egon.cola.archetype.source.web.infrastructure.service.impl.InMemoryCommandIdempotencyServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,9 +34,8 @@ class OrganizationRollbackTest extends top.egon.cola.archetype.source.web.suppor
     @Autowired private GradeManage gradeManage;
     @Autowired private SchoolClassManage schoolClassManage;
     @Autowired private JdbcTemplate jdbcTemplate;
-    @Autowired private LocalOrganizationEventPublisher localPublisher;
-    @Autowired private InMemorySchoolClassCache schoolClassCache;
-    @Autowired private InMemoryCommandIdempotencyAdapter idempotency;
+    @Autowired private MqMessageService messageService;
+    @Autowired private InMemoryCommandIdempotencyServiceImpl idempotency;
 
     @AfterEach
     void clearContext() {
@@ -64,16 +63,17 @@ class OrganizationRollbackTest extends top.egon.cola.archetype.source.web.suppor
                 disabledUserId, "Disabled User", disabledUserId + "@example.com", "DISABLED",
                 Timestamp.from(Instant.now()), 1L);
 
+        // The broker-free profile records publications instead of sending, so a rolled back
+        // transaction can be observed through the same MQ boundary.
+        var localPublisher = (OrganizationLocalFallbackConfig.LocalMqMessageService) messageService;
         localPublisher.clear();
-        schoolClassCache.clearObservations();
         idempotency.clear();
         AssignUserToClassCommand command = new AssignUserToClassCommand(
                 "rollback-1", grade.id(), schoolClass.id(), disabledUserId);
 
         assertThatThrownBy(() -> schoolClassManage.assignUser(command))
                 .isInstanceOf(OrganizationApplicationException.class);
-        assertThat(localPublisher.events()).isEmpty();
-        assertThat(schoolClassCache.evictedKeys()).isEmpty();
+        assertThat(localPublisher.publishedMessages()).isEmpty();
         assertThat(idempotency.contains("assign-user-to-school-class", "rollback-1")).isFalse();
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from school_class_users"

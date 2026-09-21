@@ -54,13 +54,15 @@ egon-cola-source-web-starter
 
 ```text
 domain/user/entities
-application/teaching/manage
+application/teaching/manage/impl
+application/user/pojo/command
+infrastructure/teaching/po
 infrastructure/user/repo
+adapter/teaching/pojo/dto
 adapter/user/facade/impl
-adapter/teaching/controller
 ```
 
-共享运行时能力保留在各自的层根包中。外部 Evaluation 边界位于 `domain/client/evaluation` 和 `infrastructure/client/evaluation`，这是有意保留的例外。
+共享运行时能力保留在各自的层根包中。外部 Evaluation 边界位于 `infrastructure/client/evaluation`，这是有意保留的例外；领域侧只持有 `domain/teaching/service` 端口与值对象。
 
 ## 依赖方向
 
@@ -194,10 +196,9 @@ SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl egon-cola-source-web-starter spring-b
 
 默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
 
-## 二级缓存骨架（默认关闭）
+## 二级缓存
 
-生成工程保留缓存 starter 依赖和默认 `enabled: false` 配置。启用时由宿主提供 `RedissonClient`，设置
-`egon.cola.component.cache.enabled=true`，并在配置类显式添加 `@EnableCaching`。mp-sd-ext 基类已移除缓存端口耦合，具体
+`base`、`dev`、`prod` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/OrganizationRedisConfig.java` 已带 `@EnableCaching`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
-不再隐式失效缓存，其他写入和删除入口也须声明失效。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。

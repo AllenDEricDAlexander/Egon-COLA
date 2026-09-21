@@ -58,21 +58,23 @@ service、method 与 field number 是冻结的线上契约，只有 `java_packag
 ### 2.3 domain
 
 domain 只表达领域实体、聚合、值对象、枚举、事件、校验器和服务契约。业务服务
-接口位于 `domain/<业务域>/service`，使用泛型形式：
+接口位于 `domain/<业务域>/service`：
 
 ```java
 public interface UserDomainService { User save(User user); }
 // Infrastructure: DomainServiceImpl -> UserRepository -> UserDAO (explicit XML)
 ```
 
-domain 不声明 DAO、PO 或技术实现；服务实现不放在 domain。domain 可以依赖
+domain 不声明 DAO、PO 或技术实现；服务实现不放在 domain。跨域的技术能力契约
+（命令幂等、事件出站）是领域无关的 `domain/service`，其领域事件载体在
+`domain/events`；domain 可以依赖
 Common MP Starter 暴露的契约类型，这是本模板为统一 Service/Model 合同保留的
 唯一持久化相关依赖。
 
 ### 2.4 application
 
 application 编排用例、事务、应用级校验、装配和结果转换。它只调用 domain
-service/client 契约，不触碰 DAO、PO、MyBatis XML、RedisTemplate、消息模板或
+service 契约，不触碰 DAO、PO、MyBatis XML、RedisTemplate、消息模板或
 外部 Facade client 实现。
 
 ### 2.5 infrastructure
@@ -81,14 +83,21 @@ infrastructure 承担所有出站技术实现。每个业务域使用以下结�
 
 ```text
 infrastructure/<domain>
-├── repo
-│   ├── dao          # EgonColaMapper 接口
-│   ├── po           # EgonModel 持久化对象
-│   └── converter    # BaseConverter / MapStruct 转换
-├── service/impl     # DomainServiceImpl
-├── cache
-└── mq               # 仅出站
+├── dao          # EgonColaMapper 接口
+├── po           # EgonModel 持久化对象
+├── converter    # BaseConverter / MapStruct 转换
+├── repo         # EgonColaRepository 技术 Repository
+└── service/impl # DomainServiceImpl
 ```
+
+`dao`、`po`、`converter`、`repo` 四者平级；`repo` 只放具体的 EgonColaRepository
+实现，不再容纳其他技术包，缓存注解（`@CacheConfig`/`@Cacheable`/`@CacheEvict`）就声明在
+该 Repository 上。领域无关的技术包位于 infrastructure 根部：`cache` 只发布缓存 Key
+契约，`config` 装配 Redisson/Redis 与组件关闭时的确定 CacheManager，`mq` 与
+`mq/impl` 是唯一的出站发送边界（`MqMessageService` + `MqRouteEnum`），
+`service/impl` 实现 `domain/service` 的幂等与事件出站契约。外部 Evaluation 边界的
+接口与实现位于 `infrastructure/client/evaluation` 与其 `impl` 子包，与
+`domain/teaching/service` 契约共同组成 Anti-Corruption Layer。
 
 每一个 `*DomainServiceImpl` 都在 Infrastructure 实现对应的 domain service，
 组合具体 Repository，Repository 继承 `EgonColaRepository<DAO, PO>`，通过 DAO 执行明确 SQL。DAO

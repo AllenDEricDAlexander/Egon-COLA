@@ -1,8 +1,8 @@
 package top.egon.cola.archetype.source.web.application.support;
 
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationFailureType;
-import top.egon.cola.archetype.source.web.domain.client.CommandIdempotencyPort;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.domain.service.CommandIdempotencyService;
 
 import java.util.function.Supplier;
 
@@ -10,7 +10,7 @@ public final class IdempotentCommand {
     private IdempotentCommand() {}
 
     public static <T> T execute(
-            CommandIdempotencyPort port, String operation, String requestId, Supplier<T> action) {
+            CommandIdempotencyService port, String operation, String requestId, Supplier<T> action) {
         if (!port.claim(operation, requestId)) {
             throw new OrganizationApplicationException(
                 OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "Duplicate command request");
@@ -24,7 +24,7 @@ public final class IdempotentCommand {
     }
 
     public static void execute(
-            CommandIdempotencyPort port, String operation, String requestId, Runnable action) {
+            CommandIdempotencyService port, String operation, String requestId, Runnable action) {
         execute(port, operation, requestId, () -> { action.run(); return null; });
     }
 }

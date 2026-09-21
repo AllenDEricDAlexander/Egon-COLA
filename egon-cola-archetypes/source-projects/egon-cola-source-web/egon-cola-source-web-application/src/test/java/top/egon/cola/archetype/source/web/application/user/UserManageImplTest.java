@@ -2,13 +2,12 @@ package top.egon.cola.archetype.source.web.application.user;
 
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.user.assemblers.UserAssembler;
-import top.egon.cola.archetype.source.web.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.convertor.UserConverter;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.web.application.user.manage.impl.UserManageImpl;
 import top.egon.cola.archetype.source.web.application.user.validators.UserApplicationValidator;
-import top.egon.cola.archetype.source.web.domain.client.CommandIdempotencyPort;
-import top.egon.cola.archetype.source.web.domain.client.OrganizationEventPublisher;
-import top.egon.cola.archetype.source.web.domain.user.client.UserCachePort;
+import top.egon.cola.archetype.source.web.domain.service.CommandIdempotencyService;
+import top.egon.cola.archetype.source.web.domain.service.OrganizationEventService;
 import top.egon.cola.archetype.source.web.domain.user.entities.User;
 import top.egon.cola.archetype.source.web.domain.user.enums.UserStatus;
 import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
@@ -29,9 +28,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @ExtendWith(MockitoExtension.class)
 class UserManageImplTest {
+    @Mock ValidationUtils validationUtils;
+
+    private UserApplicationValidator userValidator() {
+        return new UserApplicationValidator(validationUtils);
+    }
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -39,9 +45,8 @@ class UserManageImplTest {
     }
 
     @Mock private UserDomainService userDomainService;
-    @Mock private UserCachePort userCache;
-    @Mock private CommandIdempotencyPort idempotency;
-    @Mock private OrganizationEventPublisher eventPublisher;
+    @Mock private CommandIdempotencyService idempotency;
+    @Mock private OrganizationEventService eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -54,8 +59,8 @@ class UserManageImplTest {
         when(userDomainService.create(any(), any(), any())).thenReturn(user);
         doReturn(user).when(userDomainService).save(any(User.class));
         when(idempotency.claim("create-user", "req-1")).thenReturn(true);
-        UserManageImpl manage = new UserManageImpl(userDomainService, new UserApplicationValidator(),
-                new UserAssembler(), userCache, idempotency, eventPublisher);
+        UserManageImpl manage = new UserManageImpl(userDomainService, userValidator(),
+                Mappers.getMapper(UserConverter.class), idempotency, eventPublisher);
 
         assertEquals(2001L, manage.createUser(
                 new CreateUserCommand("req-1", "Mario", "MARIO@EXAMPLE.COM")).id());

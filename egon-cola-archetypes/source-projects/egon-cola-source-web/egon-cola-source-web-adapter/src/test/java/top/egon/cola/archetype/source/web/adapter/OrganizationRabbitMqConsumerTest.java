@@ -1,12 +1,12 @@
 package top.egon.cola.archetype.source.web.adapter;
 
-import top.egon.cola.archetype.source.web.adapter.user.dto.CreateUserMessage;
-import top.egon.cola.archetype.source.web.adapter.mq.RetryableOrganizationMessageException;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.CreateUserMessage;
+import top.egon.cola.archetype.source.web.common.exception.RetryableOrganizationMessageException;
 import top.egon.cola.archetype.source.web.adapter.user.mq.UserCreatedConsumer;
-import top.egon.cola.archetype.source.web.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationFailureType;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

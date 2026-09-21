@@ -1,14 +1,15 @@
 package top.egon.cola.archetype.source.web.adapter.teaching.controller;
 
-import top.egon.cola.archetype.source.web.adapter.teaching.converter.SchoolClassAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.teaching.dto.AssignUserToClassRequest;
-import top.egon.cola.archetype.source.web.adapter.teaching.dto.CreateSchoolClassRequest;
-import top.egon.cola.archetype.source.web.adapter.teaching.vo.SchoolClassDetailVO;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor.SchoolClassAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.AssignUserToClassRequest;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateSchoolClassRequest;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.vo.SchoolClassDetailVO;
 import top.egon.cola.archetype.source.web.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.web.application.teaching.query.SchoolClassDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.query.SchoolClassDetailQuery;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,12 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @RestController("schoolClassController")
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Slf4j
 public class SchoolClassController {
+    @Qualifier("schoolClassManage")
     private final SchoolClassManage schoolClassManage;
+    @Qualifier("schoolClassAdapterConverterImpl")
     private final SchoolClassAdapterConverter converter;
 
     @PostMapping("/school-classes")

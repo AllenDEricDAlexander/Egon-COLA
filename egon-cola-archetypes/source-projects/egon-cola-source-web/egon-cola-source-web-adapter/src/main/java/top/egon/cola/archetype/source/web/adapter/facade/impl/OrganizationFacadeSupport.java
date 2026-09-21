@@ -2,7 +2,7 @@ package top.egon.cola.archetype.source.web.adapter.facade.impl;
 
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
 import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
 
 import java.util.Arrays;

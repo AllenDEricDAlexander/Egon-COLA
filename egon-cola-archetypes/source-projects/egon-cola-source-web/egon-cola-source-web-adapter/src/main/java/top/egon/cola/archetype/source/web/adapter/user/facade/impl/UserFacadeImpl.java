@@ -9,8 +9,8 @@ import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacade
 import top.egon.cola.archetype.source.web.adapter.pojo.convertor.OrganizationFacadeConverter;
 import top.egon.cola.archetype.source.web.adapter.pojo.dto.RpcIdQuery;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.web.application.user.query.UserDetailQuery;
-import top.egon.cola.archetype.source.web.application.user.result.UserDetailResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.query.UserDetailQuery;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.UserDetailResult;
 import top.egon.cola.archetype.source.web.facade.proto.CreateUserRpcRequest;
 import top.egon.cola.archetype.source.web.facade.proto.GetUserRpcRequest;
 import top.egon.cola.archetype.source.web.facade.proto.UserRpcResponse;

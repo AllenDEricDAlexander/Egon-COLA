@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.web.infrastructure.user.repo;
 
-import top.egon.cola.archetype.source.web.infrastructure.user.repo.dao.PermissionDAO;
-import top.egon.cola.archetype.source.web.infrastructure.user.repo.po.PermissionPO;
+import top.egon.cola.archetype.source.web.infrastructure.user.dao.PermissionDAO;
+import top.egon.cola.archetype.source.web.infrastructure.user.po.PermissionPO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

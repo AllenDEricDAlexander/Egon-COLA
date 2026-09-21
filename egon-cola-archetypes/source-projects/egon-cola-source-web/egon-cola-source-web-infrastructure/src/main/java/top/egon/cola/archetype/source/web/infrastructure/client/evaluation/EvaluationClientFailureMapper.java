@@ -1,18 +1,18 @@
 package top.egon.cola.archetype.source.web.infrastructure.client.evaluation;
 
 import java.util.Locale;
-import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyException;
-import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyFailure;
+import top.egon.cola.archetype.source.web.common.exception.ExternalDependencyException;
+import top.egon.cola.archetype.source.web.common.enums.ExternalDependencyFailure;
 import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 
-final class EvaluationClientFailureMapper {
+public final class EvaluationClientFailureMapper {
 
     private static final String DEPENDENCY = "evaluation";
 
     private EvaluationClientFailureMapper() {
     }
 
-    static ExternalDependencyException map(RuntimeException failure) {
+    public static ExternalDependencyException map(RuntimeException failure) {
         if (failure instanceof EgonRpcException rpcFailure) {
             ExternalDependencyFailure category = switch (rpcFailure.getRpcErrorCode()) {
                 case RPC_DEADLINE_EXCEEDED -> ExternalDependencyFailure.TIMEOUT;
@@ -25,11 +25,11 @@ final class EvaluationClientFailureMapper {
     }
 
     /** A provider rejection keeps only its wire string code; remote details stay sanitized out. */
-    static ExternalDependencyException rejected(String code) {
+    public static ExternalDependencyException rejected(String code) {
         return failure(category(code), code, null);
     }
 
-    static ExternalDependencyException incompatible(String operation) {
+    public static ExternalDependencyException incompatible(String operation) {
         return new ExternalDependencyException(
                 DEPENDENCY,
                 ExternalDependencyFailure.CONTRACT_INCOMPATIBLE,

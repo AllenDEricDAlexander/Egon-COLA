@@ -1,13 +1,14 @@
 package top.egon.cola.archetype.source.web.adapter.teaching.controller;
 
-import top.egon.cola.archetype.source.web.adapter.teaching.converter.GradeAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.teaching.dto.CreateGradeRequest;
-import top.egon.cola.archetype.source.web.adapter.teaching.vo.GradeDetailVO;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor.GradeAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateGradeRequest;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.vo.GradeDetailVO;
 import top.egon.cola.archetype.source.web.application.teaching.manage.GradeManage;
-import top.egon.cola.archetype.source.web.application.teaching.query.GradeDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.query.GradeDetailQuery;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,12 +20,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @RestController("gradeController")
 @RequestMapping("/api/v1/grades")
 @RequiredArgsConstructor
+@Slf4j
 public class GradeController {
+    @Qualifier("gradeManage")
     private final GradeManage gradeManage;
+    @Qualifier("gradeAdapterConverterImpl")
     private final GradeAdapterConverter converter;
 
     @PostMapping

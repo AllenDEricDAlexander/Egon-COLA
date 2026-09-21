@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.web.domain.teaching.vos;
 
-import top.egon.cola.archetype.source.web.domain.exceptions.OrganizationDomainErrorCode;
-import top.egon.cola.archetype.source.web.domain.exceptions.OrganizationDomainException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationDomainErrorCode;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationDomainException;
 
 public record SchoolClassId(Long value) {
     public SchoolClassId {

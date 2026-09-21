@@ -2,8 +2,9 @@ package top.egon.cola.archetype.source.web.adapter.mq;
 
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.common.exception.RetryableOrganizationMessageException;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 
 import java.util.Set;

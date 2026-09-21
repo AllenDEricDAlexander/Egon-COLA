@@ -9,8 +9,8 @@ import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacade
 import top.egon.cola.archetype.source.web.adapter.pojo.convertor.OrganizationFacadeConverter;
 import top.egon.cola.archetype.source.web.adapter.pojo.dto.RpcIdQuery;
 import top.egon.cola.archetype.source.web.application.teaching.manage.GradeManage;
-import top.egon.cola.archetype.source.web.application.teaching.query.GradeDetailQuery;
-import top.egon.cola.archetype.source.web.application.teaching.result.GradeDetailResult;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.query.GradeDetailQuery;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.result.GradeDetailResult;
 import top.egon.cola.archetype.source.web.facade.proto.CreateGradeRpcRequest;
 import top.egon.cola.archetype.source.web.facade.proto.GetGradeRpcRequest;
 import top.egon.cola.archetype.source.web.facade.proto.GradeRpcResponse;

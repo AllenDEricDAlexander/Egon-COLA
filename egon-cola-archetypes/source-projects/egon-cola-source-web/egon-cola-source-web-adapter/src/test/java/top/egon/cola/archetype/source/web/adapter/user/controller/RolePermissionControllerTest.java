@@ -2,11 +2,11 @@ package top.egon.cola.archetype.source.web.adapter.user.controller;
 
 import top.egon.cola.archetype.source.web.adapter.user.controller.PermissionController;
 import top.egon.cola.archetype.source.web.adapter.user.controller.RoleController;
-import top.egon.cola.archetype.source.web.adapter.user.converter.PermissionAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.user.converter.RoleAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.PermissionAdapterConverter;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.RoleAdapterConverter;
 import top.egon.cola.archetype.source.web.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.web.application.user.manage.RoleManage;
-import top.egon.cola.archetype.source.web.application.user.result.PermissionTreeResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.PermissionTreeResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;

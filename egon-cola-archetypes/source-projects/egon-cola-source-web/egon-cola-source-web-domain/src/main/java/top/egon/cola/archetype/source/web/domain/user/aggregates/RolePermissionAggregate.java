@@ -4,8 +4,8 @@ import top.egon.cola.archetype.source.web.domain.user.entities.Permission;
 import top.egon.cola.archetype.source.web.domain.user.entities.Role;
 import top.egon.cola.archetype.source.web.domain.user.enums.PermissionStatus;
 import top.egon.cola.archetype.source.web.domain.user.enums.RoleStatus;
-import top.egon.cola.archetype.source.web.domain.exceptions.OrganizationDomainErrorCode;
-import top.egon.cola.archetype.source.web.domain.exceptions.OrganizationDomainException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationDomainErrorCode;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationDomainException;
 import top.egon.cola.archetype.source.web.domain.user.vos.PermissionCode;
 
 import java.util.List;

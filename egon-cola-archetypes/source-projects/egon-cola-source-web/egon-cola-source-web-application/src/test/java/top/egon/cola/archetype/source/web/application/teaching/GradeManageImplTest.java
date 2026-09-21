@@ -2,13 +2,13 @@ package top.egon.cola.archetype.source.web.application.teaching;
 
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.web.application.teaching.command.CreateGradeCommand;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateGradeCommand;
 import top.egon.cola.archetype.source.web.application.teaching.manage.impl.GradeManageImpl;
 import top.egon.cola.archetype.source.web.application.teaching.validators.TeachingApplicationValidator;
-import top.egon.cola.archetype.source.web.domain.client.CommandIdempotencyPort;
-import top.egon.cola.archetype.source.web.domain.client.OrganizationEventPublisher;
-import top.egon.cola.archetype.source.web.domain.teaching.client.GradeCachePort;
+import top.egon.cola.archetype.source.web.domain.service.CommandIdempotencyService;
+import top.egon.cola.archetype.source.web.domain.service.OrganizationEventService;
+import top.egon.cola.archetype.source.web.application.teaching.pojo.convertor.GradeConverter;
 import top.egon.cola.archetype.source.web.domain.teaching.service.GradeDomainService;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -24,9 +24,16 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @ExtendWith(MockitoExtension.class)
 class GradeManageImplTest {
+    @Mock ValidationUtils validationUtils;
+
+    private TeachingApplicationValidator teachingValidator() {
+        return new TeachingApplicationValidator(validationUtils);
+    }
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -34,9 +41,8 @@ class GradeManageImplTest {
     }
 
     @Mock GradeDomainService gradeDomainService;
-    @Mock GradeCachePort gradeCache;
-    @Mock CommandIdempotencyPort idempotency;
-    @Mock OrganizationEventPublisher eventPublisher;
+    @Mock CommandIdempotencyService idempotency;
+    @Mock OrganizationEventService eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -46,8 +52,8 @@ class GradeManageImplTest {
                 "teacher-1", Set.of("TEACHING_ADMIN"), "trace-1"));
         when(gradeDomainService.existsByCode(GradeCode.create("GRADE_ONE"))).thenReturn(true);
         when(idempotency.claim("create-grade", "req-1")).thenReturn(true);
-        GradeManageImpl manage = new GradeManageImpl(gradeDomainService,
-                new TeachingApplicationValidator(), gradeCache, idempotency, eventPublisher);
+        GradeManageImpl manage = new GradeManageImpl(gradeDomainService, teachingValidator(), idempotency, eventPublisher,
+                Mappers.getMapper(GradeConverter.class));
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createGrade(
                 new CreateGradeCommand("req-1", "grade_one", "Grade One")));

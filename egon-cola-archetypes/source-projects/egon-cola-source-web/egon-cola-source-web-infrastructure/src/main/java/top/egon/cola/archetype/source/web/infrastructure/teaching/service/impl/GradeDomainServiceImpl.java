@@ -4,9 +4,9 @@ import top.egon.cola.archetype.source.web.domain.teaching.entities.Grade;
 import top.egon.cola.archetype.source.web.domain.teaching.enums.GradeStatus;
 import top.egon.cola.archetype.source.web.domain.teaching.service.GradeDomainService;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
-import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.converter.GradePOConverter;
+import top.egon.cola.archetype.source.web.infrastructure.teaching.converter.GradePOConverter;
 import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.GradeRepository;
-import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.GradePO;
+import top.egon.cola.archetype.source.web.infrastructure.teaching.po.GradePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,7 +35,7 @@ public class GradeDomainServiceImpl
 
     @Override
     public Optional<Grade> findById(Long gradeId) {
-        return Optional.ofNullable(gradeRepository.getById(gradeId)).map(converter::toSource);
+        return Optional.ofNullable(gradeRepository.findCachedById(gradeId)).map(converter::toSource);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class GradeDomainServiceImpl
             saved = gradeRepository.save(po);
         } else {
             converter.updateMetadata(po, existing);
-            saved = gradeRepository.updateById(po);
+            saved = gradeRepository.updateCachedById(po);
         }
         if (!saved) {
             throw new IllegalStateException("save grade affected zero rows");

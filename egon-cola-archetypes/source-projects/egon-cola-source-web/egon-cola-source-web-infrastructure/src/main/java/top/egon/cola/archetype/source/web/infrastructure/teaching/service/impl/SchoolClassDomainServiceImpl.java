@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.web.infrastructure.teaching.service.impl;
 
-import top.egon.cola.archetype.source.web.domain.exceptions.OrganizationDomainErrorCode;
-import top.egon.cola.archetype.source.web.domain.exceptions.OrganizationDomainException;
+import top.egon.cola.archetype.source.web.common.enums.OrganizationDomainErrorCode;
+import top.egon.cola.archetype.source.web.common.exception.OrganizationDomainException;
 import top.egon.cola.archetype.source.web.domain.teaching.entities.Grade;
 import top.egon.cola.archetype.source.web.domain.teaching.entities.SchoolClass;
 import top.egon.cola.archetype.source.web.domain.teaching.enums.GradeStatus;
@@ -11,12 +11,12 @@ import top.egon.cola.archetype.source.web.domain.teaching.validators.TeachingDom
 import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
-import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
+import top.egon.cola.archetype.source.web.infrastructure.teaching.converter.SchoolClassPOConverter;
 import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.GradeRepository;
 import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.SchoolClassRepository;
 import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.SchoolClassUserRepository;
-import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.SchoolClassPO;
-import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.SchoolClassUserPO;
+import top.egon.cola.archetype.source.web.infrastructure.teaching.po.SchoolClassPO;
+import top.egon.cola.archetype.source.web.infrastructure.teaching.po.SchoolClassUserPO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;

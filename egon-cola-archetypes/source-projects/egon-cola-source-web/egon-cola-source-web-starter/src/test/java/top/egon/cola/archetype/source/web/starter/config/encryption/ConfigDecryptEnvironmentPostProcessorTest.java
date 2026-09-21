@@ -18,6 +18,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
+import top.egon.cola.archetype.source.web.common.exception.ConfigDecryptException;
 
 class ConfigDecryptEnvironmentPostProcessorTest {
 

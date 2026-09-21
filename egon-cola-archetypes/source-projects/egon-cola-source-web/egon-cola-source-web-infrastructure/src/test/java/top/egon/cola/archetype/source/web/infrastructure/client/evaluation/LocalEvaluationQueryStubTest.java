@@ -3,13 +3,14 @@ package top.egon.cola.archetype.source.web.infrastructure.client.evaluation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyException;
-import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyFailure;
+import top.egon.cola.archetype.source.web.common.exception.ExternalDependencyException;
+import top.egon.cola.archetype.source.web.common.enums.ExternalDependencyFailure;
+import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.impl.LocalEvaluationQueryClientImpl;
 import org.junit.jupiter.api.Test;
 
 class LocalEvaluationQueryStubTest {
 
-    private final LocalEvaluationQueryStub stub = new LocalEvaluationQueryStub();
+    private final LocalEvaluationQueryClientImpl stub = new LocalEvaluationQueryClientImpl();
 
     @Test
     void returnsDeterministicLocalData() {

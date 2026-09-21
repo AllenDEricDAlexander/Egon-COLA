@@ -2,12 +2,13 @@ package top.egon.cola.archetype.source.web.application.user;
 
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.web.application.user.command.GrantPermissionCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.GrantPermissionCommand;
 import top.egon.cola.archetype.source.web.application.user.manage.impl.PermissionManageImpl;
-import top.egon.cola.archetype.source.web.application.user.query.PermissionTreeQuery;
+import top.egon.cola.archetype.source.web.application.user.pojo.query.PermissionTreeQuery;
+import top.egon.cola.archetype.source.web.application.user.pojo.convertor.PermissionConverter;
 import top.egon.cola.archetype.source.web.application.user.validators.UserApplicationValidator;
-import top.egon.cola.archetype.source.web.domain.client.CommandIdempotencyPort;
-import top.egon.cola.archetype.source.web.domain.client.OrganizationEventPublisher;
+import top.egon.cola.archetype.source.web.domain.service.CommandIdempotencyService;
+import top.egon.cola.archetype.source.web.domain.service.OrganizationEventService;
 import top.egon.cola.archetype.source.web.domain.user.entities.Permission;
 import top.egon.cola.archetype.source.web.domain.user.entities.Role;
 import top.egon.cola.archetype.source.web.domain.user.enums.PermissionStatus;
@@ -34,9 +35,16 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @ExtendWith(MockitoExtension.class)
 class PermissionManageImplTest {
+    @Mock ValidationUtils validationUtils;
+
+    private UserApplicationValidator userValidator() {
+        return new UserApplicationValidator(validationUtils);
+    }
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -45,8 +53,8 @@ class PermissionManageImplTest {
 
     @Mock UserDomainService userDomainService;
     @Mock PermissionDomainService permissionDomainService;
-    @Mock CommandIdempotencyPort idempotency;
-    @Mock OrganizationEventPublisher eventPublisher;
+    @Mock CommandIdempotencyService idempotency;
+    @Mock OrganizationEventService eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -62,8 +70,8 @@ class PermissionManageImplTest {
                 .thenReturn(Optional.of(permission));
         when(permissionDomainService.findByUserId(new UserId(1001L))).thenReturn(List.of(permission));
         when(idempotency.claim("grant-permission", "req-grant")).thenReturn(true);
-        PermissionManageImpl manage = new PermissionManageImpl(userDomainService, permissionDomainService,
-                new UserApplicationValidator(), idempotency, eventPublisher);
+        PermissionManageImpl manage = new PermissionManageImpl(userDomainService, permissionDomainService, userValidator(),
+                Mappers.getMapper(PermissionConverter.class), idempotency, eventPublisher);
 
         manage.grantPermission(new GrantPermissionCommand("req-grant", "student", "class_read"));
 

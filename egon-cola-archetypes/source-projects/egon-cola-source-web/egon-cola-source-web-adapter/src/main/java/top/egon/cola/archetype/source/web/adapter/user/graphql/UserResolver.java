@@ -1,15 +1,15 @@
 package top.egon.cola.archetype.source.web.adapter.user.graphql;
 
-import top.egon.cola.archetype.source.web.application.user.command.AssignRoleCommand;
-import top.egon.cola.archetype.source.web.application.user.command.CreateUserCommand;
-import top.egon.cola.archetype.source.web.application.user.command.GrantPermissionCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.AssignRoleCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.CreateUserCommand;
+import top.egon.cola.archetype.source.web.application.user.pojo.command.GrantPermissionCommand;
 import top.egon.cola.archetype.source.web.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.web.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.web.application.user.query.PermissionTreeQuery;
-import top.egon.cola.archetype.source.web.application.user.query.UserDetailQuery;
-import top.egon.cola.archetype.source.web.application.user.result.PermissionTreeResult;
-import top.egon.cola.archetype.source.web.application.user.result.UserDetailResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.query.PermissionTreeQuery;
+import top.egon.cola.archetype.source.web.application.user.pojo.query.UserDetailQuery;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.PermissionTreeResult;
+import top.egon.cola.archetype.source.web.application.user.pojo.result.UserDetailResult;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -19,13 +19,17 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Qualifier;
 
-@Controller
+@Controller("userResolver")
 @RequiredArgsConstructor
 public class UserResolver {
 
+    @Qualifier("userManage")
     private final UserManage userManage;
+    @Qualifier("roleManage")
     private final RoleManage roleManage;
+    @Qualifier("permissionManage")
     private final PermissionManage permissionManage;
 
     @QueryMapping

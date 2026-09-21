@@ -24,9 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyException;
-import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyFailure;
-import top.egon.cola.archetype.source.web.domain.client.evaluation.*;
+import top.egon.cola.archetype.source.web.common.exception.ExternalDependencyException;
+import top.egon.cola.archetype.source.web.common.enums.ExternalDependencyFailure;
+import top.egon.cola.archetype.source.web.domain.teaching.vos.EvaluationCourseBO;
+import top.egon.cola.archetype.source.web.domain.teaching.vos.EvaluationExamBO;
+import top.egon.cola.archetype.source.web.domain.teaching.vos.EvaluationScoreBO;
+import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.impl.NativeEvaluationQueryClientImpl;
 import java.time.Instant;
 
 class NativeEvaluationQueryClientTest {
@@ -36,14 +39,14 @@ class NativeEvaluationQueryClientTest {
     private CourseFacade courseFacade;
     private ExamFacade examFacade;
     private ScoreFacade scoreFacade;
-    private NativeEvaluationQueryClient client;
+    private NativeEvaluationQueryClientImpl client;
 
     @BeforeEach
     void setUp() {
         courseFacade = mock(CourseFacade.class);
         examFacade = mock(ExamFacade.class);
         scoreFacade = mock(ScoreFacade.class);
-        client = new NativeEvaluationQueryClient(courseFacade, examFacade, scoreFacade, projection, validation);
+        client = new NativeEvaluationQueryClientImpl(courseFacade, examFacade, scoreFacade, projection, validation);
     }
 
     @AfterAll
@@ -53,7 +56,7 @@ class NativeEvaluationQueryClientTest {
     void maps_course_to_the_existing_consumer_projection() {
         when(courseFacade.getCourse(courseRequest())).thenReturn(courseSuccess(CourseResponse.newBuilder()
                 .setId(1001L).setCode("C1").setName("Course One").setCredit(3).setStatus("ACTIVE").build()));
-        assertThat(client.getCourse(1001L)).isEqualTo(new EvaluationCourse(1001L, "C1", "Course One", 3, "ACTIVE"));
+        assertThat(client.getCourse(1001L)).isEqualTo(new EvaluationCourseBO(1001L, "C1", "Course One", 3, "ACTIVE"));
         verify(courseFacade).getCourse(courseRequest());
     }
 
@@ -69,7 +72,7 @@ class NativeEvaluationQueryClientTest {
                         .setStartsAt(startsAt.toString()).setEndsAt(endsAt.toString())
                         .setStatus("PUBLISHED").build())
                 .build());
-        assertThat(client.getExam(2001L)).isEqualTo(new EvaluationExam(2001L, 1001L, "Exam One", startsAt, endsAt, "PUBLISHED"));
+        assertThat(client.getExam(2001L)).isEqualTo(new EvaluationExamBO(2001L, 1001L, "Exam One", startsAt, endsAt, "PUBLISHED"));
         verify(examFacade).getExam(request);
     }
 
@@ -83,7 +86,7 @@ class NativeEvaluationQueryClientTest {
                         .setId(3001L).setExamId(2001L).setCourseId(1001L).setStudentId(7001L)
                         .setPoints(95).setStatus("RECORDED").build())
                 .build());
-        assertThat(client.getScore(2001L, 3001L)).isEqualTo(new EvaluationScore(3001L, 2001L, 1001L, 7001L, 95, "RECORDED"));
+        assertThat(client.getScore(2001L, 3001L)).isEqualTo(new EvaluationScoreBO(3001L, 2001L, 1001L, 7001L, 95, "RECORDED"));
         verify(scoreFacade).getScore(request);
     }
 
@@ -125,9 +128,9 @@ class NativeEvaluationQueryClientTest {
 
     @Test
     void reverse_projection_round_trips_every_port_owned_field() {
-        var course = new EvaluationCourse(1001L, "C1", "Course One", 3, "ACTIVE");
+        var course = new EvaluationCourseBO(1001L, "C1", "Course One", 3, "ACTIVE");
         assertThat(projection.toTarget(projection.toSource(course))).isEqualTo(course);
-        var score = new EvaluationScore(3001L, 2001L, 1001L, 7001L, 95, "RECORDED");
+        var score = new EvaluationScoreBO(3001L, 2001L, 1001L, 7001L, 95, "RECORDED");
         assertThat(projection.toTarget(projection.toSource(score))).isEqualTo(score);
     }
 
