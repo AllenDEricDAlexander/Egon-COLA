@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import top.egon.cola.archetype.source.light.facade.rpc.LightRpcConverter;
+import top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverter;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
@@ -17,9 +17,9 @@ import java.util.Optional;
 /** Wires typed conversion and Jakarta validation into native RPC adapters. */
 @Configuration(value = "nativeRpcConfiguration", proxyBeanMethods = false)
 public class NativeRpcConfiguration {
-    @Bean("lightRpcConverter")
-    LightRpcConverter lightRpcConverter() {
-        return Mappers.getMapper(LightRpcConverter.class);
+    @Bean("lightFacadeConverter")
+    LightFacadeConverter lightFacadeConverter() {
+        return Mappers.getMapper(LightFacadeConverter.class);
     }
 
     @Bean("nativeRpcValidation")

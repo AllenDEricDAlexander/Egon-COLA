@@ -1,35 +1,44 @@
 package top.egon.cola.archetype.source.light.application.user.validators;
 
-import top.egon.cola.archetype.source.light.application.user.command.AssignRoleCommand;
-import top.egon.cola.archetype.source.light.application.user.command.CreateUserCommand;
-import top.egon.cola.archetype.source.light.application.user.command.GrantPermissionCommand;
-import top.egon.cola.archetype.source.light.application.user.manage.UserUseCaseException;
-import top.egon.cola.archetype.source.light.domain.user.client.UserCachePort;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
+import top.egon.cola.archetype.source.light.application.user.pojo.command.AssignRoleCommand;
+import top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand;
+import top.egon.cola.archetype.source.light.application.user.pojo.command.GrantPermissionCommand;
+import top.egon.cola.archetype.source.light.common.exception.UserUseCaseException;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
-import java.time.Duration;
-
-@Component
+/** User use-case rules; the claim itself belongs to the idempotency service. */
+@Component("userApplicationValidator")
 @Lazy
 @RequiredArgsConstructor
-public class UserApplicationValidator {
-    private static final Duration IDEMPOTENCY_TTL = Duration.ofMinutes(5);
+@Slf4j
+public class UserApplicationValidator extends BaseValidator {
 
-    @Qualifier("userCachePort")
-    private final UserCachePort userCachePort;
+    @Qualifier("egonColaValidationUtils")
+    private final ValidationUtils validationUtils;
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
 
     public void validate(CreateUserCommand command) {
+        validateBean(command);
         validateContext(command.operatorId(), command.idempotencyKey());
     }
 
     public void validate(AssignRoleCommand command) {
+        validateBean(command);
         validateContext(command.operatorId(), command.idempotencyKey());
     }
 
     public void validate(GrantPermissionCommand command) {
+        validateBean(command);
         validateContext(command.operatorId(), command.idempotencyKey());
     }
 
@@ -39,9 +48,6 @@ public class UserApplicationValidator {
         }
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new UserUseCaseException("MISSING_IDEMPOTENCY_KEY", "idempotency key is required");
-        }
-        if (!userCachePort.claimIdempotency(idempotencyKey, IDEMPOTENCY_TTL)) {
-            throw new UserUseCaseException("DUPLICATE_REQUEST", "request was already processed");
         }
     }
 }

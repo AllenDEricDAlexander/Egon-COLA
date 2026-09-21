@@ -1,7 +1,8 @@
 package top.egon.cola.archetype.source.light.adapter.teaching.mq;
 
+import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.archetype.source.light.adapter.teaching.validators.TeachingRequestValidator;
-import top.egon.cola.archetype.source.light.application.teaching.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateCourseCommand;
 import top.egon.cola.archetype.source.light.application.teaching.manage.CourseManage;
 import top.egon.cola.archetype.source.light.facade.teaching.dto.CreateCourseDTO;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class CourseImportedConsumer {
     private final CourseManage courseManage;
     private final TeachingRequestValidator validator;

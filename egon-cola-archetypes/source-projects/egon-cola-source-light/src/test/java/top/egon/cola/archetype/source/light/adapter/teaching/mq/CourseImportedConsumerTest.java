@@ -1,21 +1,32 @@
 package top.egon.cola.archetype.source.light.adapter.teaching.mq;
 
 import top.egon.cola.archetype.source.light.adapter.teaching.validators.TeachingRequestValidator;
-import top.egon.cola.archetype.source.light.application.teaching.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateCourseCommand;
 import top.egon.cola.archetype.source.light.application.teaching.manage.CourseManage;
 import top.egon.cola.archetype.source.light.facade.teaching.dto.CreateCourseDTO;
+import jakarta.validation.Validation;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 class CourseImportedConsumerTest {
+    private static final jakarta.validation.ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
+
+    @AfterAll
+    static void closeValidationFactory() {
+        VALIDATORS.close();
+    }
+
     @Test
     void maps_actor_and_message_id() {
         CourseManage manage = mock(CourseManage.class);
-        CourseImportedConsumer consumer = new CourseImportedConsumer(manage, new TeachingRequestValidator());
+        CourseImportedConsumer consumer = new CourseImportedConsumer(manage,
+                new TeachingRequestValidator(new ValidationUtils(VALIDATORS.getValidator())));
         consumer.consume(new CreateCourseDTO("MATH", "Math", "actor-1", "message-1"));
         ArgumentCaptor<CreateCourseCommand> captor = ArgumentCaptor.forClass(CreateCourseCommand.class);
         verify(manage).create(captor.capture());

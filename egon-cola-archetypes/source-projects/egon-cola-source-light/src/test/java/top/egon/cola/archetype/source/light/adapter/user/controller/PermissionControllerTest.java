@@ -1,10 +1,10 @@
 package top.egon.cola.archetype.source.light.adapter.user.controller;
 
-import top.egon.cola.archetype.source.light.adapter.user.convertor.UserAdapterConvertorImpl;
-import top.egon.cola.archetype.source.light.application.user.command.GrantPermissionCommand;
+import top.egon.cola.archetype.source.light.adapter.user.pojo.convertor.UserAdapterConvertorImpl;
+import top.egon.cola.archetype.source.light.application.user.pojo.command.GrantPermissionCommand;
 import top.egon.cola.archetype.source.light.application.user.manage.PermissionManage;
-import top.egon.cola.archetype.source.light.application.user.result.PermissionDetailResult;
-import top.egon.cola.archetype.source.light.application.user.result.PermissionResult;
+import top.egon.cola.archetype.source.light.application.user.pojo.result.PermissionDetailResult;
+import top.egon.cola.archetype.source.light.application.user.pojo.result.PermissionResult;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContextFilter;
 import top.egon.cola.archetype.source.light.adapter.filter.TraceIdFilter;
 import org.junit.jupiter.api.Test;

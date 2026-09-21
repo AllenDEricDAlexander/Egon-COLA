@@ -2,20 +2,20 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.light.infrastructure.user.repo.dao.RoleDAO">
+<mapper namespace="top.egon.cola.archetype.source.light.infrastructure.user.dao.RoleDAO">
     <sql id="roleColumns">
         id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
         code, name, status
     </sql>
-    <select id="selectByCode" resultType="top.egon.cola.archetype.source.light.infrastructure.user.repo.po.RolePO">
+    <select id="selectByCode" resultType="top.egon.cola.archetype.source.light.infrastructure.user.po.RolePO">
         SELECT <include refid="roleColumns"/> FROM roles
         WHERE deleted_at IS NULL AND code = #{code}
         ORDER BY id
     </select>
-    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.light.infrastructure.user.repo.po.RolePO">
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.light.infrastructure.user.po.RolePO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, code, name, status FROM roles WHERE id=#{id} AND deleted_at IS NULL
     </select>
-    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.light.infrastructure.user.repo.po.RolePO">
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.light.infrastructure.user.po.RolePO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, code, name, status FROM roles WHERE deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>

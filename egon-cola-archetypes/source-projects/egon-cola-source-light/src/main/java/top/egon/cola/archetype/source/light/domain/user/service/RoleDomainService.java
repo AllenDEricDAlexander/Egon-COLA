@@ -11,11 +11,11 @@ import jakarta.validation.constraints.NotNull;
 
 /** Persistence-owning role domain service contract. */
 public interface RoleDomainService {
-    Optional<Role> findByCode( @Valid @NotNull RoleCode roleCode);
+    Optional<Role> findByCode(@Valid @NotNull RoleCode roleCode);
 
-    Role save( @Valid @NotNull Role role);
+    Role save(@Valid @NotNull Role role);
 
-    void savePermissions( @Valid @NotNull RolePermissionAggregate aggregate);
+    void savePermissions(@Valid @NotNull RolePermissionAggregate aggregate);
 
-    UserAggregate assignRole( @Valid @NotNull UserAggregate user, @Valid @NotNull Role role);
+    UserAggregate assignRole(@Valid @NotNull UserAggregate user, @Valid @NotNull Role role);
 }

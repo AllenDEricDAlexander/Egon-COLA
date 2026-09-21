@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package top.egon.cola.archetype.source.light.facade.rpc.v1;
 
-option java_package = "top.egon.cola.archetype.source.light.facade.rpc.proto";
+option java_package = "top.egon.cola.archetype.source.light.facade.proto";
 option java_multiple_files = true;
 
 // Native transport for the existing facade operations. Business DTOs stay unchanged.

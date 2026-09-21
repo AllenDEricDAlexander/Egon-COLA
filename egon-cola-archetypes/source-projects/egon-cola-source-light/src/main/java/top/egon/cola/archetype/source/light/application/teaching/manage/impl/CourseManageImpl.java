@@ -1,27 +1,26 @@
 package top.egon.cola.archetype.source.light.application.teaching.manage.impl;
 
-import top.egon.cola.archetype.source.light.application.teaching.command.CreateCourseCommand;
-import top.egon.cola.archetype.source.light.application.teaching.convertor.TeachingApplicationConvertor;
-import top.egon.cola.archetype.source.light.application.teaching.manage.CourseManage;
-import top.egon.cola.archetype.source.light.application.teaching.manage.TeachingUseCaseException;
-import top.egon.cola.archetype.source.light.application.teaching.query.GetCourseQuery;
-import top.egon.cola.archetype.source.light.application.teaching.result.CourseResult;
-import top.egon.cola.archetype.source.light.application.teaching.validators.TeachingApplicationValidator;
-import top.egon.cola.archetype.source.light.domain.teaching.entities.Course;
-import top.egon.cola.archetype.source.light.domain.teaching.exceptions.TeachingDomainException;
-import top.egon.cola.archetype.source.light.domain.teaching.client.CourseCachePort;
-import top.egon.cola.archetype.source.light.domain.teaching.service.CourseDomainService;
-import top.egon.cola.archetype.source.light.domain.teaching.event.TeachingEventPublisher;
-import top.egon.cola.archetype.source.light.domain.teaching.gateway.TeachingQueryGateway;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseCode;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSnapshot;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.TeachingEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.archetype.source.light.application.teaching.manage.CourseManage;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.convertor.TeachingApplicationConvertor;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.query.GetCourseQuery;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.result.CourseResult;
+import top.egon.cola.archetype.source.light.application.teaching.validators.TeachingApplicationValidator;
+import top.egon.cola.archetype.source.light.common.exception.TeachingDomainException;
+import top.egon.cola.archetype.source.light.common.exception.TeachingUseCaseException;
+import top.egon.cola.archetype.source.light.domain.teaching.entities.Course;
+import top.egon.cola.archetype.source.light.domain.teaching.service.CourseDomainService;
+import top.egon.cola.archetype.source.light.domain.teaching.service.CourseIdempotencyService;
+import top.egon.cola.archetype.source.light.domain.teaching.service.TeachingEventService;
+import top.egon.cola.archetype.source.light.domain.teaching.service.TeachingQueryService;
+import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseCode;
+import top.egon.cola.archetype.source.light.domain.teaching.vos.TeachingEvent;
 
 @Service("courseManageImpl")
 @Lazy
@@ -30,30 +29,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class CourseManageImpl implements CourseManage {
     @Qualifier("courseDomainService")
     private final CourseDomainService courseDomainService;
-    @Qualifier("teachingQueryGateway")
-    private final TeachingQueryGateway teachingQueryGateway;
-    @Qualifier("courseCachePort")
-    private final CourseCachePort courseCachePort;
-    @Qualifier("teachingEventPublisher")
-    private final TeachingEventPublisher teachingEventPublisher;
+    @Qualifier("teachingQueryService")
+    private final TeachingQueryService teachingQueryService;
+    @Qualifier("teachingEventService")
+    private final TeachingEventService teachingEventService;
+    @Qualifier("courseIdempotencyService")
+    private final CourseIdempotencyService courseIdempotencyService;
     @Qualifier("teachingApplicationValidator")
     private final TeachingApplicationValidator applicationValidator;
-    @Qualifier("teachingApplicationConvertor")
+    @Qualifier("teachingApplicationConvertorImpl")
     private final TeachingApplicationConvertor convertor;
 
     @Override
     @Transactional
     public CourseResult create(CreateCourseCommand command) {
         applicationValidator.validate(command);
+        claim(command.idempotencyKey());
         CourseCode code = new CourseCode(command.code());
-        teachingQueryGateway.findExternalCourse(code)
+        teachingQueryService.findExternalCourse(code)
                 .orElseThrow(() -> new TeachingUseCaseException(
                         "EXTERNAL_COURSE_NOT_FOUND", "external course not found"));
         try {
             Course saved = courseDomainService.save(courseDomainService.createCourse(code, command.name()));
-            courseCachePort.evictCourse(saved.id());
-            teachingEventPublisher.publish(TeachingEvent.courseCreated(saved.id()));
-            return convertor.toResult(saved);
+            teachingEventService.publish(TeachingEvent.courseCreated(saved.id()));
+            return convertor.toTarget(saved);
         } catch (TeachingDomainException exception) {
             throw translate(exception);
         }
@@ -61,20 +60,18 @@ public class CourseManageImpl implements CourseManage {
 
     @Override
     public CourseResult get(GetCourseQuery query) {
-        return courseCachePort.getCourse(query.courseId())
-                .map(convertor::toResult)
-                .orElseGet(() -> loadAndCache(query.courseId()));
+        return courseDomainService.findById(query.courseId())
+                .map(convertor::toTarget)
+                .orElseThrow(() -> new TeachingUseCaseException("COURSE_NOT_FOUND", "course not found"));
     }
 
-    private CourseResult loadAndCache(Long courseId) {
-        Course course = courseDomainService.findById(courseId)
-                .orElseThrow(() -> new TeachingUseCaseException("COURSE_NOT_FOUND", "course not found"));
-        CourseSnapshot snapshot = convertor.toSnapshot(course);
-        courseCachePort.putCourse(snapshot);
-        return convertor.toResult(course);
+    private void claim(String idempotencyKey) {
+        if (!courseIdempotencyService.claim(idempotencyKey)) {
+            throw new TeachingUseCaseException("DUPLICATE_REQUEST", "request was already processed");
+        }
     }
 
     private TeachingUseCaseException translate(TeachingDomainException exception) {
-        return new TeachingUseCaseException(exception.getCode(), exception.getMessage(), exception);
+        return new TeachingUseCaseException(exception.getStatus(), exception.getMessage(), exception);
     }
 }

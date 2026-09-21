@@ -45,28 +45,31 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 src/main/java/top/egon/cola/archetype/source/light
 ├── start
 ├── adapter
-│   ├── user/{controller,mq,rpc,graphql,facade,dto,vo,convertor,validators}
-│   ├── teaching/{controller,mq,rpc,graphql,facade,dto,vo,convertor,validators}
+│   ├── user/{controller,mq,graphql,facade/impl,pojo/{dto,vo,convertor},validators}
+│   ├── teaching/{controller,mq,graphql,facade/impl,pojo/{dto,vo,convertor},validators}
+│   ├── pojo/{dto,convertor}
 │   ├── handler
 │   └── filter
 ├── facade
-│   ├── user/{dto,enums,exceptions,utils}
-│   └── teaching/{dto,enums,exceptions,utils}
+│   ├── user/{dto,enums,utils}
+│   ├── teaching/{dto,enums,utils}
+│   └── validation
 ├── application
-│   ├── user/{manage,command,query,result,convertor,validators,assemblers}
-│   └── teaching/{manage,command,query,result,convertor,validators,assemblers}
+│   ├── user/{manage/impl,pojo/{command,query,result,convertor},validators}
+│   └── teaching/{manage/impl,pojo/{command,query,result,convertor},validators}
 ├── domain
-│   ├── user/{entities,aggregates,vos,service,client,gateway,event,validators,enums,exceptions}
-│   └── teaching/{entities,aggregates,vos,service,client,gateway,event,validators,enums,exceptions}
+│   ├── user/{entities,aggregates,vos,service,validators,enums}
+│   └── teaching/{entities,aggregates,vos,service,validators,enums}
 ├── infrastructure
-│   ├── user/{repo,service,validators,client,mq,cache}
-│   ├── teaching/{repo,service,validators,client,mq,cache}
+│   ├── user/{dao,po,converter,repo,service/impl,client/impl,validators}
+│   ├── teaching/{dao,po,converter,repo,service/impl,client/impl,validators}
 │   ├── aop
+│   ├── mq/impl
 │   └── config
-└── common/{constants,utils,enums,exceptions}
+└── common/{constants,utils,enums,exception}
 ```
 
-`adapter` 负责 HTTP、GraphQL、COLA RPC provider 和 RabbitMQ consumer 相关能力。`facade` 负责稳定的外部 RPC 契约。`application` 编排用例和事务。`domain` 负责业务状态、规则、gateway/cache/event 端口和服务契约。`infrastructure` 提供 MyBatis-Plus DAO、`EgonModel` 持久化对象以及 Domain 所有端口的实现。`common` 只包含与业务无关的基础类型。`start` 负责组装和运行时配置。
+`adapter` 负责 HTTP、GraphQL、RabbitMQ consumer，以及原生 RPC provider——`@EgonRpcProvider` 直接标注在 `facade/impl` 的契约实现类上，不再有独立的 `rpc` 包装包。`facade` 负责稳定的外部契约、契约载体、契约枚举、契约断言与共享校验分组，并保持自包含以便单独发布。`application` 编排用例和事务。`domain` 负责业务状态、规则以及查询/事件/幂等领域服务契约。`infrastructure` 提供 MyBatis-Plus DAO、`EgonModel` 持久化对象、`EgonColaRepository` 子类和这些领域契约与出站客户端的实现。`common` 存放与业务无关的基础类型，以及各层共享的异常根类型。`start` 负责组装和运行时配置。
 
 ## 依赖图
 
@@ -76,15 +79,24 @@ src/main/java/top/egon/cola/archetype/source/light
 start          -> adapter, infrastructure
 adapter        -> application, facade
 application    -> domain
-domain         -> common
-infrastructure -> domain
-facade         -> no internal layer
+domain         -> common.exception
+infrastructure -> domain, facade
+facade         -> common.exception
 common         -> no business layer
 ```
 
-Domain Service 接口位于 `domain.<business>.service`，实现位于 `infrastructure.<business>.service.impl`。Application service 编排这些端口。
+只有 `common.exception` 里的异常根类型可以跨层出现，其他 `common` 类型不得离开本层。Domain Service 接口位于 `domain.<business>.service`，实现位于 `infrastructure.<business>.service.impl`；Application service 只依赖这些契约，绝不依赖 infrastructure 类型。
 
 依赖图由 `egon-cola-component-bytecode-architecture-maven-plugin` 强制检查。它绑定在 `verify` 阶段，把每个 `top.egon.cola.archetype.source.light.<layer>` 包映射到对应分层，并以 `unknownLayerPolicy=FAIL` 运行；因此落在映射之外的类会让构建失败，而不是只留下一条警告。`adapter.controller`、`infrastructure.repo` 这类技术优先的根包因为无法解析到任何分层而被拒绝。该检查只在 `verify` 阶段执行，单独运行 `./mvnw test` 不会触发它。
+
+## 公共合同
+
+各层复用 common-core 合同，不再各自造轮子：
+
+- 异常：`common/exception` 的根类型继承组件的 `BusinessException` / `CommonException` 链，对外稳定错误码是 `getStatus()` 字符串，数字型 `getCode()` 不参与传输。
+- 枚举：手写业务枚举实现 `EgonEnum`，序列化取声明的 `code` 而不是 `ordinal()`；`DeletedStatus` 与 `*FacadeStatus` 示范 `UNKNOWN` 兜底。
+- 校验：每个入站交接都经过继承 `BaseValidator` 的校验器，统一走 `egonColaValidationUtils`；一个载体服务多个操作时使用 Jakarta 分组，`facade/validation/NativeRpcValidationGroup` 只收紧原生 RPC 约束，不改动 HTTP 默认行为。
+- 转换：DTO/Command/Domain/PO 映射由 MapStruct（`@Mapper`）生成并继承 `BaseConverter` 或 `BaseForwardConverter`；只做快照投影的转换器不补反向方法。
 
 ## 主要业务流程
 
@@ -194,10 +206,9 @@ Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的
 
 默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
 
-## 二级缓存骨架（默认关闭）
+## 二级缓存
 
-生成工程保留缓存 starter 依赖和默认 `enabled: false` 配置。启用时由宿主提供 `RedissonClient`，设置
-`egon.cola.component.cache.enabled=true`，并在配置类显式添加 `@EnableCaching`。mp-sd-ext 基类已移除缓存端口耦合，具体
+`base`、`dev`、`prod` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/RedisConfig.java` 已带 `@EnableCaching`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
-不再隐式失效缓存，其他写入和删除入口也须声明失效。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。

@@ -305,7 +305,7 @@
                     <!-- MapStruct generates this contract converter; business Facade implementations remain in Adapter. -->
                     <facadeImplementationPackages>
                         <facadeImplementationPackage>..adapter..</facadeImplementationPackage>
-                        <facadeImplementationPackage>top.egon.cola.archetype.source.light.facade.rpc.LightRpcConverterImpl</facadeImplementationPackage>
+                        <facadeImplementationPackage>top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverterImpl</facadeImplementationPackage>
                     </facadeImplementationPackages>
                     <packageMappings>
                         <top.egon.cola.archetype.source.light.domain..>DOMAIN</top.egon.cola.archetype.source.light.domain..>

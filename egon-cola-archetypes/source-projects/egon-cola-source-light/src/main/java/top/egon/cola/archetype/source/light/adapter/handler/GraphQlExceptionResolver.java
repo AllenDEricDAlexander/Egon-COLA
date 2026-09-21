@@ -1,7 +1,8 @@
 package top.egon.cola.archetype.source.light.adapter.handler;
 
-import top.egon.cola.archetype.source.light.application.teaching.manage.TeachingUseCaseException;
-import top.egon.cola.archetype.source.light.application.user.manage.UserUseCaseException;
+import lombok.extern.slf4j.Slf4j;
+import top.egon.cola.archetype.source.light.common.exception.TeachingUseCaseException;
+import top.egon.cola.archetype.source.light.common.exception.UserUseCaseException;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
@@ -11,14 +12,15 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class GraphQlExceptionResolver extends DataFetcherExceptionResolverAdapter {
     @Override
     protected GraphQLError resolveToSingleError(Throwable exception, DataFetchingEnvironment environment) {
         if (exception instanceof UserUseCaseException failure) {
-            return publicError(failure.getCode(), failure.getMessage());
+            return publicError(failure.getStatus(), failure.getMessage());
         }
         if (exception instanceof TeachingUseCaseException failure) {
-            return publicError(failure.getCode(), failure.getMessage());
+            return publicError(failure.getStatus(), failure.getMessage());
         }
         return null;
     }

@@ -8,7 +8,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.light.application.user.result.UserResult;
+import top.egon.cola.archetype.source.light.application.user.pojo.result.UserResult;
 import top.egon.cola.archetype.source.light.start.StudentManagementApplication;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -37,7 +37,7 @@ class NativeHttpCompatibilityTest extends top.egon.cola.archetype.source.light.s
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("OK"))
                 .andExpect(jsonPath("$.data.id").value("1001"))
                 .andExpect(jsonPath("$.data.name").value("Mario"));
-        verify(userManage).create(new top.egon.cola.archetype.source.light.application.user.command.CreateUserCommand(
+        verify(userManage).create(new top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand(
                 "external-1", "Mario", "mario@example.com", "operator-1", "request-1"));
     }
 

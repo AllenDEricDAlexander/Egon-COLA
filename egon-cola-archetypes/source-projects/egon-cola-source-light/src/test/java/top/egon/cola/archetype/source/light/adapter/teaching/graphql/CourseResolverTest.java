@@ -1,10 +1,10 @@
 package top.egon.cola.archetype.source.light.adapter.teaching.graphql;
 
-import top.egon.cola.archetype.source.light.adapter.teaching.convertor.TeachingAdapterConvertorImpl;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.convertor.TeachingAdapterConvertorImpl;
 import top.egon.cola.archetype.source.light.application.teaching.manage.CourseManage;
 import top.egon.cola.archetype.source.light.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.light.application.teaching.result.CourseResult;
-import top.egon.cola.archetype.source.light.application.teaching.result.SchoolClassResult;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.result.CourseResult;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.result.SchoolClassResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;

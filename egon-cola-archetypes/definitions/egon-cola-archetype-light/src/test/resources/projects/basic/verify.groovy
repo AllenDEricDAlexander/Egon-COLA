@@ -581,107 +581,102 @@ def requiredPackagePaths = [
     "start/config/async",
     "start/config/encryption",
     "adapter",
-    "adapter/user",
-    "adapter/user/controller",
-    "adapter/user/mq",
-    "adapter/user/rpc",
-    "adapter/user/graphql",
-    "adapter/user/facade",
-    "adapter/user/facade/impl",
-    "adapter/user/dto",
-    "adapter/user/vo",
-    "adapter/user/convertor",
-    "adapter/user/validators",
+    "adapter/filter",
+    "adapter/handler",
+    "adapter/pojo/convertor",
+    "adapter/pojo/dto",
     "adapter/teaching",
     "adapter/teaching/controller",
-    "adapter/teaching/mq",
-    "adapter/teaching/rpc",
-    "adapter/teaching/graphql",
     "adapter/teaching/facade",
     "adapter/teaching/facade/impl",
-    "adapter/teaching/dto",
-    "adapter/teaching/vo",
-    "adapter/teaching/convertor",
+    "adapter/teaching/graphql",
+    "adapter/teaching/mq",
+    "adapter/teaching/pojo/convertor",
+    "adapter/teaching/pojo/dto",
+    "adapter/teaching/pojo/vo",
     "adapter/teaching/validators",
-    "adapter/handler",
-    "adapter/filter",
+    "adapter/user",
+    "adapter/user/controller",
+    "adapter/user/facade",
+    "adapter/user/facade/impl",
+    "adapter/user/graphql",
+    "adapter/user/mq",
+    "adapter/user/pojo/convertor",
+    "adapter/user/pojo/dto",
+    "adapter/user/pojo/vo",
+    "adapter/user/validators",
     "facade",
-    "facade/user",
-    "facade/user/dto",
-    "facade/user/enums",
-    "facade/user/exceptions",
-    "facade/user/utils",
+    "facade/validation",
     "facade/teaching",
     "facade/teaching/dto",
     "facade/teaching/enums",
-    "facade/teaching/exceptions",
     "facade/teaching/utils",
+    "facade/user",
+    "facade/user/dto",
+    "facade/user/enums",
+    "facade/user/utils",
     "application",
-    "application/user",
-    "application/user/manage",
-    "application/user/manage/impl",
-    "application/user/command",
-    "application/user/query",
-    "application/user/result",
-    "application/user/convertor",
-    "application/user/validators",
-    "application/user/assemblers",
     "application/teaching",
     "application/teaching/manage",
     "application/teaching/manage/impl",
-    "application/teaching/command",
-    "application/teaching/query",
-    "application/teaching/result",
-    "application/teaching/convertor",
+    "application/teaching/pojo/command",
+    "application/teaching/pojo/convertor",
+    "application/teaching/pojo/query",
+    "application/teaching/pojo/result",
     "application/teaching/validators",
-    "application/teaching/assemblers",
+    "application/user",
+    "application/user/manage",
+    "application/user/manage/impl",
+    "application/user/pojo/command",
+    "application/user/pojo/convertor",
+    "application/user/pojo/query",
+    "application/user/pojo/result",
+    "application/user/validators",
     "domain",
-    "domain/user",
-    "domain/user/entities",
-    "domain/user/aggregates",
-    "domain/user/vos",
-    "domain/user/service",
-    "domain/user/validators",
-    "domain/user/enums",
-    "domain/user/exceptions",
     "domain/teaching",
-    "domain/teaching/entities",
     "domain/teaching/aggregates",
-    "domain/teaching/vos",
+    "domain/teaching/entities",
+    "domain/teaching/enums",
     "domain/teaching/service",
     "domain/teaching/validators",
-    "domain/teaching/enums",
-    "domain/teaching/exceptions",
+    "domain/teaching/vos",
+    "domain/user",
+    "domain/user/aggregates",
+    "domain/user/entities",
+    "domain/user/enums",
+    "domain/user/service",
+    "domain/user/validators",
+    "domain/user/vos",
     "infrastructure",
-    "infrastructure/user",
-    "infrastructure/user/repo",
-    "infrastructure/user/repo/po",
-    "infrastructure/user/repo/converter",
-    "infrastructure/user/service",
-    "infrastructure/user/service/impl",
-    "infrastructure/user/validators",
-    "infrastructure/user/client",
-    "infrastructure/user/client/impl",
-    "infrastructure/user/mq",
-    "infrastructure/user/cache",
+    "infrastructure/aop",
+    "infrastructure/config",
+    "infrastructure/mq",
+    "infrastructure/mq/impl",
     "infrastructure/teaching",
+    "infrastructure/teaching/client",
+    "infrastructure/teaching/client/impl",
+    "infrastructure/teaching/converter",
+    "infrastructure/teaching/dao",
+    "infrastructure/teaching/po",
     "infrastructure/teaching/repo",
-    "infrastructure/teaching/repo/po",
-    "infrastructure/teaching/repo/converter",
     "infrastructure/teaching/service",
     "infrastructure/teaching/service/impl",
     "infrastructure/teaching/validators",
-    "infrastructure/teaching/client",
-    "infrastructure/teaching/client/impl",
-    "infrastructure/teaching/mq",
-    "infrastructure/teaching/cache",
-    "infrastructure/aop",
-    "infrastructure/config",
+    "infrastructure/user",
+    "infrastructure/user/client",
+    "infrastructure/user/client/impl",
+    "infrastructure/user/converter",
+    "infrastructure/user/dao",
+    "infrastructure/user/po",
+    "infrastructure/user/repo",
+    "infrastructure/user/service",
+    "infrastructure/user/service/impl",
+    "infrastructure/user/validators",
     "common",
     "common/constants",
-    "common/utils",
     "common/enums",
-    "common/exceptions"
+    "common/exception",
+    "common/utils"
 ]
 requiredPackagePaths.each { packagePath ->
     assertFile("src/main/java/it/pkg/${packagePath}/package-info.java")
@@ -692,7 +687,7 @@ assert asyncConfigurationText.contains("getAsyncUncaughtExceptionHandler")
 assert !asyncConfigurationText.contains("ThreadPoolTaskExecutorBuilder")
 assert !asyncConfigurationText.contains("applicationTaskExecutor(")
 assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptor.java")
-assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptException.java")
+assertFile("src/main/java/it/pkg/common/exception/ConfigDecryptException.java")
 assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptKeyProvider.java")
 assertFile("src/main/java/it/pkg/start/config/encryption/AesGcmConfigDecryptor.java")
 assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptEnvironmentPostProcessor.java")
@@ -709,8 +704,9 @@ assertFile("src/test/java/it/pkg/start/StudentManagementApplicationTest.java")
 assertFile("src/test/java/it/pkg/start/config/RuntimeConfigurationTest.java")
 def starterText = assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java").text
 assert !starterText.contains("@EnableDubbo")
-assert starterText.contains('"it.pkg.infrastructure.user.repo.dao"')
-assert starterText.contains('"it.pkg.infrastructure.teaching.repo.dao"')
+assert starterText.contains('"it.pkg.infrastructure.user.dao"')
+assert starterText.contains('"it.pkg.infrastructure.teaching.dao"')
+assert !starterText.contains("repo.dao")
 assertFile("src/main/resources/application.yml")
 assertFile("src/main/resources/datasource/sharding.yml")
 assertFile("src/main/resources/datasource/sharding-readwrite.yml")
@@ -757,16 +753,36 @@ assert lightReadwriteRule.contains("!SINGLE")
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 [
-    "UserDomainService",
-    "RoleDomainService",
-    "PermissionDomainService",
-    "UserCachePort",
-    "UserQueryGateway",
-    "UserEventPublisher"
-].each { serviceName ->
-    def path = serviceName in ["UserCachePort", "UserQueryGateway", "UserEventPublisher"] ?
-            (serviceName == "UserCachePort" ? "client" : serviceName == "UserQueryGateway" ? "gateway" : "event") : "service"
-    assertFile("src/main/java/it/pkg/domain/user/${path}/${serviceName}.java")
+    "service/UserDomainService",
+    "service/RoleDomainService",
+    "service/PermissionDomainService",
+    "service/UserQueryService",
+    "service/UserEventService",
+    "service/UserIdempotencyService",
+    "entities/User",
+    "entities/Role",
+    "entities/Permission",
+    "enums/UserStatus",
+    "enums/RoleStatus",
+    "enums/PermissionStatus",
+    "validators/UserDomainValidator",
+    "vos/UserId",
+    "vos/RoleCode",
+    "vos/PermissionCode",
+    "vos/UserSnapshot",
+    "vos/UserEvent",
+    "vos/ExternalUser"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/domain/user/${typePath}.java")
+}
+[
+    "client",
+    "gateway",
+    "event",
+    "exceptions",
+    "pojo"
+].each { stalePath ->
+    assertMissing("src/main/java/it/pkg/domain/user/${stalePath}")
 }
 assertFile("src/test/java/it/pkg/domain/user/aggregates/UserAggregateTest.java")
 assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateTest.java")
@@ -785,39 +801,55 @@ assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateT
     "vos/TeachingEvent",
     "enums/SchoolClassStatus",
     "enums/CourseStatus",
-    "exceptions/TeachingDomainException",
     "validators/TeachingDomainValidator",
     "service/SchoolClassDomainService",
     "service/CourseDomainService",
-    "client/CourseCachePort",
-    "gateway/TeachingQueryGateway",
-    "event/TeachingEventPublisher"
+    "service/TeachingQueryService",
+    "service/TeachingEventService",
+    "service/CourseIdempotencyService"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/domain/teaching/${typePath}.java")
+}
+[
+    "client",
+    "gateway",
+    "event",
+    "exceptions",
+    "pojo"
+].each { stalePath ->
+    assertMissing("src/main/java/it/pkg/domain/teaching/${stalePath}")
 }
 assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregateTest.java")
 
 [
-    "command/CreateUserCommand",
-    "command/AssignRoleCommand",
-    "command/GrantPermissionCommand",
-    "query/GetUserQuery",
-    "query/GetUserPermissionsQuery",
-    "result/UserResult",
-    "result/PermissionResult",
-    "result/PermissionDetailResult",
+    "pojo/command/CreateUserCommand",
+    "pojo/command/AssignRoleCommand",
+    "pojo/command/GrantPermissionCommand",
+    "pojo/query/GetUserQuery",
+    "pojo/query/GetUserPermissionsQuery",
+    "pojo/result/UserResult",
+    "pojo/result/PermissionResult",
+    "pojo/result/PermissionDetailResult",
     "manage/UserManage",
     "manage/RoleManage",
     "manage/PermissionManage",
-    "manage/UserUseCaseException",
     "manage/impl/UserManageImpl",
     "manage/impl/RoleManageImpl",
     "manage/impl/PermissionManageImpl",
-    "convertor/UserApplicationConvertor",
-    "validators/UserApplicationValidator",
-    "assemblers/UserAssembler"
+    "pojo/convertor/UserApplicationConvertor",
+    "validators/UserApplicationValidator"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/application/user/${typePath}.java")
+}
+[
+    "command",
+    "query",
+    "result",
+    "convertor",
+    "assemblers",
+    "exceptions"
+].each { stalePath ->
+    assertMissing("src/main/java/it/pkg/application/user/${stalePath}")
 }
 [
     "manage/UserManageTest",
@@ -829,23 +861,31 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
 }
 
 [
-    "command/CreateSchoolClassCommand",
-    "command/CreateCourseCommand",
-    "command/ScheduleCourseCommand",
-    "query/GetCourseQuery",
-    "query/GetSchoolClassQuery",
-    "result/SchoolClassResult",
-    "result/CourseResult",
+    "pojo/command/CreateSchoolClassCommand",
+    "pojo/command/CreateCourseCommand",
+    "pojo/command/ScheduleCourseCommand",
+    "pojo/query/GetCourseQuery",
+    "pojo/query/GetSchoolClassQuery",
+    "pojo/result/SchoolClassResult",
+    "pojo/result/CourseResult",
     "manage/SchoolClassManage",
     "manage/CourseManage",
-    "manage/TeachingUseCaseException",
     "manage/impl/SchoolClassManageImpl",
     "manage/impl/CourseManageImpl",
-    "convertor/TeachingApplicationConvertor",
-    "validators/TeachingApplicationValidator",
-    "assemblers/TeachingAssembler"
+    "pojo/convertor/TeachingApplicationConvertor",
+    "validators/TeachingApplicationValidator"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/application/teaching/${typePath}.java")
+}
+[
+    "command",
+    "query",
+    "result",
+    "convertor",
+    "assemblers",
+    "exceptions"
+].each { stalePath ->
+    assertMissing("src/main/java/it/pkg/application/teaching/${stalePath}")
 }
 [
     "manage/SchoolClassManageTest",
@@ -881,6 +921,7 @@ migrationFiles.each { migration ->
     assert text.contains("\n-- 影响范围：")
     assert text.contains("\n-- 兼容性说明：")
 }
+// Sharding topology, algorithms and bootstrap come from the component starter, never from a local copy.
 [
     "DataSourceModeProperties",
     "ShardingNodeMap",
@@ -889,52 +930,70 @@ migrationFiles.each { migration ->
     "ShardingDataSourceBootstrapper",
     "ShardingDataSourcePropertiesLoader",
     "ShardingTopologyValidator",
-    "ShardingSphereDataSourceConfiguration"
-].each { typeName ->
-    assertFile("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
-}
-[
-    "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/PostgreSqlSchemaInitializationTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/ShardingTopologyValidatorTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithmTest.java",
-    "src/test/java/it/pkg/architecture/LightPersistenceArchitectureTest.java",
-    "src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
-].each { assertFile(it) }
-[
+    "ShardingSphereDataSourceConfiguration",
     "LogicalDataSourceFlywayMigrationStrategy",
     "ShardingDataSourceModeCondition",
     "ShardingNodeMapCompatibilityValidator"
 ].each { typeName ->
     assertMissing("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
 }
+def lightPersistenceContract = assertFile(
+        "src/test/java/it/pkg/infrastructure/config/datasource/RepositoryPersistenceContractTest.java").text
+assert lightPersistenceContract.contains("selectActiveById")
+assert lightPersistenceContract.contains("deleted_at IS NULL")
 [
-    "user/repo/po/UserPO",
-    "user/repo/dao/UserDAO",
-    "user/repo/po/RolePO",
-    "user/repo/dao/RoleDAO",
-    "user/repo/po/PermissionPO",
-    "user/repo/dao/PermissionDAO",
-    "teaching/repo/po/SchoolClassPO",
-    "teaching/repo/dao/SchoolClassDAO",
-    "teaching/repo/po/CoursePO",
-    "teaching/repo/dao/CourseDAO"
+    "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
+    "src/test/java/it/pkg/architecture/LightPersistenceArchitectureTest.java",
+    "src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
+].each { assertFile(it) }
+[
+    "user/po/UserPO",
+    "user/dao/UserDAO",
+    "user/po/RolePO",
+    "user/dao/RoleDAO",
+    "user/po/PermissionPO",
+    "user/dao/PermissionDAO",
+    "user/po/UserRolePO",
+    "user/po/RolePermissionPO",
+    "teaching/po/SchoolClassPO",
+    "teaching/dao/SchoolClassDAO",
+    "teaching/po/CoursePO",
+    "teaching/dao/CourseDAO",
+    "teaching/po/ClassCourseSchedulePO"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/infrastructure/${typePath}.java")
 }
 [
-    "src/main/java/it/pkg/infrastructure/user/repo/dao/UserRoleDAO.java",
-    "src/main/java/it/pkg/infrastructure/user/repo/dao/RolePermissionDAO.java",
-    "src/main/java/it/pkg/infrastructure/teaching/repo/dao/ClassCourseScheduleDAO.java",
+    "src/main/java/it/pkg/infrastructure/user/dao/UserRoleDAO.java",
+    "src/main/java/it/pkg/infrastructure/user/dao/RolePermissionDAO.java",
+    "src/main/java/it/pkg/infrastructure/teaching/dao/ClassCourseScheduleDAO.java",
+    "src/main/java/it/pkg/infrastructure/user/converter/UserPOConverter.java",
+    "src/main/java/it/pkg/infrastructure/teaching/converter/CoursePOConverter.java",
     "src/main/resources/mybatis/mapper/user/UserDAO.xml",
     "src/main/resources/mybatis/mapper/teaching/CourseDAO.xml"
 ].each { assertFile(it) }
-assertMissing("src/main/java/it/pkg/infrastructure/user/repo/jpa")
-assertMissing("src/main/java/it/pkg/infrastructure/user/repo/impl")
-assertMissing("src/main/java/it/pkg/infrastructure/teaching/repo/jpa")
-assertMissing("src/main/java/it/pkg/infrastructure/teaching/repo/impl")
+// The MyBatis wire follows the moved DAO/PO packages; the SQL predicates themselves stay.
+def lightMapperXmls = []
+new File(generatedProjectDir, "src/main/resources/mybatis/mapper")
+        .traverse(type: FileType.FILES) { candidate ->
+            if (candidate.name.endsWith("DAO.xml")) lightMapperXmls << candidate
+        }
+assert lightMapperXmls.size() == 8: "Expected one mapper per DAO, found ${lightMapperXmls.size()}"
+lightMapperXmls.each { xml ->
+    assert xml.text.contains("namespace=\"it.pkg.infrastructure.") && xml.text.contains(".dao.")
+    assert xml.text.contains("tenant_id")
+    assert xml.text.contains("deleted_at IS NULL")
+}
+[
+    "src/main/java/it/pkg/infrastructure/user/repo/po",
+    "src/main/java/it/pkg/infrastructure/user/repo/dao",
+    "src/main/java/it/pkg/infrastructure/teaching/repo/po",
+    "src/main/java/it/pkg/infrastructure/teaching/repo/dao",
+    "src/main/java/it/pkg/infrastructure/user/repo/jpa",
+    "src/main/java/it/pkg/infrastructure/user/repo/impl",
+    "src/main/java/it/pkg/infrastructure/teaching/repo/jpa",
+    "src/main/java/it/pkg/infrastructure/teaching/repo/impl"
+].each { assertMissing(it) }
 assert !pom.contains("<id>postgres-flyway-verify</id>")
 assert !pom.contains("<artifactId>flyway-maven-plugin</artifactId>")
 
@@ -942,14 +1001,21 @@ assert !pom.contains("<artifactId>flyway-maven-plugin</artifactId>")
     "user/service/impl/UserDomainServiceImpl",
     "user/service/impl/RoleDomainServiceImpl",
     "user/service/impl/PermissionDomainServiceImpl",
+    "user/service/impl/UserQueryServiceImpl",
+    "user/service/impl/UserEventServiceImpl",
+    "user/service/impl/UserIdempotencyServiceImpl",
     "teaching/service/impl/SchoolClassDomainServiceImpl",
     "teaching/service/impl/CourseDomainServiceImpl",
-    "user/client/impl/LocalUserQueryService",
-    "teaching/client/impl/LocalTeachingQueryService",
-    "user/cache/InMemoryUserCacheService",
-    "teaching/cache/InMemoryCourseCacheService",
-    "user/mq/LocalUserEventPublisher",
-    "teaching/mq/LocalTeachingEventPublisher",
+    "teaching/service/impl/TeachingQueryServiceImpl",
+    "teaching/service/impl/TeachingEventServiceImpl",
+    "teaching/service/impl/CourseIdempotencyServiceImpl",
+    "user/client/UserQueryClient",
+    "teaching/client/TeachingQueryClient",
+    "user/client/impl/LocalUserQueryClientImpl",
+    "teaching/client/impl/LocalTeachingQueryClientImpl",
+    "mq/MqMessageService",
+    "mq/MqRouteEnum",
+    "mq/impl/RabbitMqMessageServiceImpl",
     "config/TransactionCompletionExecutor",
     "config/LocalAdapterConfiguration"
 ].each { typePath ->
@@ -958,15 +1024,11 @@ assert !pom.contains("<artifactId>flyway-maven-plugin</artifactId>")
 assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExecutorTest.java")
 
 [
-    "user/client/impl/RestUserQueryService",
-    "teaching/client/impl/RestTeachingQueryService",
-    "user/cache/RedisUserCacheService",
-    "teaching/cache/RedisCourseCacheService",
-    "user/mq/RabbitUserEventPublisher",
-    "teaching/mq/RabbitTeachingEventPublisher",
+    "user/client/impl/RestUserQueryClientImpl",
+    "teaching/client/impl/RestTeachingQueryClientImpl",
     "user/validators/UserInfrastructureValidator",
     "teaching/validators/TeachingInfrastructureValidator",
-    "aop/RepositoryMonitorAspect",
+    "aop/DaoMonitorAspect",
     "aop/InfrastructureLogAspect",
     "config/ExternalClientConfig",
     "config/RabbitMqConfig",
@@ -975,12 +1037,18 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     assertFile("src/main/java/it/pkg/infrastructure/${typePath}.java")
 }
 [
-    "user/client/RestUserQueryServiceTest",
-    "teaching/client/RestTeachingQueryServiceTest",
-    "user/mq/RabbitUserEventPublisherTest",
-    "teaching/mq/RabbitTeachingEventPublisherTest",
-    "user/cache/RedisUserCacheServiceTest",
-    "teaching/cache/RedisCourseCacheServiceTest",
+    "src/main/java/it/pkg/infrastructure/user/cache",
+    "src/main/java/it/pkg/infrastructure/teaching/cache",
+    "src/main/java/it/pkg/infrastructure/user/mq",
+    "src/main/java/it/pkg/infrastructure/teaching/mq",
+    "src/main/java/it/pkg/infrastructure/aop/RepositoryMonitorAspect.java"
+].each { assertMissing(it) }
+[
+    "user/client/RestUserQueryClientImplTest",
+    "teaching/client/RestTeachingQueryClientImplTest",
+    "user/service/UserEventServiceImplTest",
+    "teaching/service/TeachingEventServiceImplTest",
+    "mq/RabbitMqMessageServiceImplTest",
     "user/validators/UserInfrastructureValidatorTest",
     "teaching/validators/TeachingInfrastructureValidatorTest",
     "aop/InfrastructureAspectTest",
@@ -993,18 +1061,16 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     "controller/UserController",
     "controller/RoleController",
     "controller/PermissionController",
-    "dto/CreateUserRequest",
-    "dto/AssignRoleRequest",
-    "dto/GrantPermissionRequest",
-    "vo/UserDetailVO",
-    "vo/PermissionTreeVO",
-    "convertor/UserAdapterConvertor",
+    "pojo/dto/CreateUserRequest",
+    "pojo/dto/AssignRoleRequest",
+    "pojo/dto/GrantPermissionRequest",
+    "pojo/vo/UserDetailVO",
+    "pojo/vo/PermissionTreeVO",
+    "pojo/convertor/UserAdapterConvertor",
     "validators/UserRequestValidator",
     "graphql/UserResolver",
     "facade/impl/UserFacadeImpl",
     "facade/impl/PermissionFacadeImpl",
-    "rpc/UserRpcProvider",
-    "rpc/PermissionRpcProvider",
     "mq/UserImportedConsumer"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/adapter/user/${typePath}.java")
@@ -1019,7 +1085,6 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     "dto/PermissionDTO",
     "dto/PermissionDetailDTO",
     "enums/UserFacadeStatus",
-    "exceptions/UserFacadeException",
     "utils/UserFacadeAssert"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/facade/user/${typePath}.java")
@@ -1033,25 +1098,23 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     assertFile("src/main/java/it/pkg/adapter/filter/${typeName}.java")
 }
 assertFile("src/main/resources/graphql/user.graphqls")
-["controller", "mq", "rpc"].each { packageName ->
+["controller", "mq", "graphql", "facade/impl", "validators", "pojo/dto", "pojo/vo", "pojo/convertor"].each { packageName ->
     assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/user/${packageName}").isDirectory()
     assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/${packageName}/user").exists()
 }
 [
     "controller/SchoolClassController",
     "controller/CourseController",
-    "dto/CreateSchoolClassRequest",
-    "dto/CreateCourseRequest",
-    "dto/ScheduleCourseRequest",
-    "vo/SchoolClassDetailVO",
-    "vo/CourseDetailVO",
-    "convertor/TeachingAdapterConvertor",
+    "pojo/dto/CreateSchoolClassRequest",
+    "pojo/dto/CreateCourseRequest",
+    "pojo/dto/ScheduleCourseRequest",
+    "pojo/vo/SchoolClassDetailVO",
+    "pojo/vo/CourseDetailVO",
+    "pojo/convertor/TeachingAdapterConvertor",
     "validators/TeachingRequestValidator",
     "graphql/CourseResolver",
     "facade/impl/SchoolClassFacadeImpl",
     "facade/impl/CourseFacadeImpl",
-    "rpc/CourseRpcProvider",
-    "rpc/SchoolClassRpcProvider",
     "mq/CourseImportedConsumer"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/adapter/teaching/${typePath}.java")
@@ -1065,10 +1128,38 @@ assertFile("src/main/resources/graphql/user.graphqls")
     "dto/SchoolClassDetailDTO",
     "dto/CourseDTO",
     "enums/CourseFacadeStatus",
-    "exceptions/TeachingFacadeException",
     "utils/TeachingFacadeAssert"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/facade/teaching/${typePath}.java")
+}
+[
+    "src/main/java/it/pkg/adapter/user/dto",
+    "src/main/java/it/pkg/adapter/user/vo",
+    "src/main/java/it/pkg/adapter/user/convertor",
+    "src/main/java/it/pkg/adapter/user/rpc",
+    "src/main/java/it/pkg/adapter/teaching/dto",
+    "src/main/java/it/pkg/adapter/teaching/vo",
+    "src/main/java/it/pkg/adapter/teaching/convertor",
+    "src/main/java/it/pkg/adapter/teaching/rpc",
+    "src/main/java/it/pkg/adapter/rpc",
+    "src/main/java/it/pkg/facade/rpc",
+    "src/main/java/it/pkg/facade/user/exceptions",
+    "src/main/java/it/pkg/facade/teaching/exceptions"
+].each { assertMissing(it) }
+assertFile("src/main/java/it/pkg/adapter/pojo/dto/RpcIdQuery.java")
+assertFile("src/main/java/it/pkg/adapter/pojo/convertor/LightFacadeConverter.java")
+assertFile("src/main/java/it/pkg/facade/validation/NativeRpcValidationGroup.java")
+[
+    "UserFacadeException",
+    "TeachingFacadeException",
+    "UserUseCaseException",
+    "TeachingUseCaseException",
+    "UserDomainException",
+    "TeachingDomainException",
+    "BaseBusinessException",
+    "ConfigDecryptException"
+].each { typeName ->
+    assertFile("src/main/java/it/pkg/common/exception/${typeName}.java")
 }
 [
     "ApiResponse",
@@ -1080,26 +1171,28 @@ assertFile("src/main/resources/graphql/user.graphqls")
     assertFile("src/main/java/it/pkg/adapter/handler/${typeName}.java")
 }
 assertFile("src/main/resources/graphql/teaching.graphqls")
-["controller", "mq", "rpc"].each { packageName ->
+["controller", "mq", "graphql", "facade/impl", "validators", "pojo/dto", "pojo/vo", "pojo/convertor"].each { packageName ->
     assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/teaching/${packageName}").isDirectory()
 }
 
 def teachingAdapterMapper = assertFile(
-        "src/main/java/it/pkg/adapter/teaching/convertor/TeachingAdapterConvertor.java").text
+        "src/main/java/it/pkg/adapter/teaching/pojo/convertor/TeachingAdapterConvertor.java").text
 assert teachingAdapterMapper.contains("@Mapper(")
 assert teachingAdapterMapper.contains("ReportingPolicy.ERROR")
 assert teachingAdapterMapper.contains("@BeforeMapping")
+assert teachingAdapterMapper.contains("BaseForwardConverter<")
 def userAdapterMapper = assertFile(
-        "src/main/java/it/pkg/adapter/user/convertor/UserAdapterConvertor.java").text
+        "src/main/java/it/pkg/adapter/user/pojo/convertor/UserAdapterConvertor.java").text
 assert userAdapterMapper.contains("@Mapper(")
 assert userAdapterMapper.contains("ReportingPolicy.ERROR")
 assert userAdapterMapper.contains("@BeforeMapping")
+assert userAdapterMapper.contains("BaseForwardConverter<")
 def coursePoConverter = assertFile(
-        "src/main/java/it/pkg/infrastructure/teaching/repo/converter/CoursePOConverter.java").text
+        "src/main/java/it/pkg/infrastructure/teaching/converter/CoursePOConverter.java").text
 assert coursePoConverter.contains("extends BaseConverter<Course, CoursePO>")
 assert coursePoConverter.contains("@Mapper(componentModel = \"spring\"")
 def coursePo = assertFile(
-        "src/main/java/it/pkg/infrastructure/teaching/repo/po/CoursePO.java").text
+        "src/main/java/it/pkg/infrastructure/teaching/po/CoursePO.java").text
 assert coursePo.contains("@Data")
 assert coursePo.contains("@NoArgsConstructor")
 assert coursePo.contains("@AllArgsConstructor")
@@ -1134,14 +1227,28 @@ assert allApplicationJava.every { !it.text.contains("View") }
 assert allApplicationJava.every { !it.text.contains("facade.dto") }
 assert allApplicationJava.every { !it.text.contains("common.response") }
 
+// The converged exception home is shared on purpose, so only named common.exception types may cross layers.
+def assertOnlyCommonExceptions = { path ->
+    javaFileTexts(path).each { text ->
+        text.readLines().findAll { it.contains("import it.pkg.common.") }.each { line ->
+            assert line.trim() ==~ /import it\.pkg\.common\.exception\.\w+;/:
+                    "Unexpected common import under ${path}: ${line}"
+        }
+    }
+}
+
 assertNoInternalImports("src/main/java/it/pkg/start", ["application", "common", "domain", "facade"],
-        ["import it.pkg.facade.rpc.LightRpcConverter;"])
-assertNoInternalImports("src/main/java/it/pkg/adapter", ["common", "domain", "infrastructure", "start"])
-assertNoInternalImports("src/main/java/it/pkg/application", ["adapter", "common", "facade", "infrastructure", "start"])
+        ["import it.pkg.common.exception.ConfigDecryptException;"])
+assertNoInternalImports("src/main/java/it/pkg/adapter", ["domain", "infrastructure", "start"])
+assertNoInternalImports("src/main/java/it/pkg/application", ["adapter", "facade", "infrastructure", "start"])
 assertNoInternalImports("src/main/java/it/pkg/domain", ["adapter", "application", "facade", "infrastructure", "start"])
-assertNoInternalImports("src/main/java/it/pkg/infrastructure", ["adapter", "application", "common", "facade", "start"])
-assertNoInternalImports("src/main/java/it/pkg/facade", ["adapter", "application", "common", "domain", "infrastructure", "start"])
+assertNoInternalImports("src/main/java/it/pkg/infrastructure", ["adapter", "application", "facade", "start"],
+        ["import it.pkg.facade.teaching.dto.CreateCourseDTO;", "import it.pkg.facade.user.dto.CreateUserDTO;"])
+assertNoInternalImports("src/main/java/it/pkg/facade", ["adapter", "application", "domain", "infrastructure", "start"])
 assertNoInternalImports("src/main/java/it/pkg/common", ["adapter", "application", "domain", "facade", "infrastructure", "start"])
+["adapter", "application", "domain", "infrastructure", "facade"].each { layer ->
+    assertOnlyCommonExceptions("src/main/java/it/pkg/${layer}")
+}
 
 [
     "src/main/java/it/pkg/adapter/controller",
@@ -1171,8 +1278,9 @@ assertNoInternalImports("src/main/java/it/pkg/common", ["adapter", "application"
     "src/main/java/it/pkg/infrastructure/service",
     "src/main/java/it/pkg/infrastructure/validators",
     "src/main/java/it/pkg/infrastructure/client",
-    "src/main/java/it/pkg/infrastructure/mq",
     "src/main/java/it/pkg/infrastructure/cache",
+    "src/main/java/it/pkg/common/exceptions",
+    "src/main/java/it/pkg/facade/rpc",
     "src/main/java/it/pkg/domain/common",
     "src/main/java/it/pkg/domain/student",
     "src/main/java/it/pkg/domain/teaching/model"
@@ -1182,6 +1290,10 @@ assertNoInternalImports("src/main/java/it/pkg/common", ["adapter", "application"
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/client").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/user/service/impl").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/teaching/service/impl").exists()
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/teaching/gateway").exists()
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/teaching/event").exists()
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/user/gateway").exists()
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/user/event").exists()
 
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeController.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
@@ -1199,8 +1311,13 @@ assert architecturePlugin.version.text() == '${egon-cola.version}'
 assert architecturePlugin.executions.execution.goals.goal*.text().contains("check")
 assertFile("target/egon-cola-architecture/architecture-report.json")
 assert generatedPoms.every { !it.text.contains("archunit-junit5") && !it.text.contains("archunit.version") }
-assertFile("src/test/java/it/pkg/adapter/user/rpc/PermissionRpcProviderTest.java")
-assertFile("src/test/java/it/pkg/adapter/teaching/rpc/SchoolClassRpcProviderTest.java")
+assertFile("src/test/java/it/pkg/adapter/NativeRpcProviderTest.java")
+assertFile("src/test/java/it/pkg/facade/NativeRpcContractTest.java")
+assertFile("src/test/java/it/pkg/facade/NativeRpcMappingTest.java")
+assertFile("src/test/java/it/pkg/start/config/NativeRpcConfigurationTest.java")
+assertFile("src/test/java/it/pkg/start/config/NativeHttpCompatibilityTest.java")
+assertMissing("src/test/java/it/pkg/adapter/user/rpc/UserRpcProviderTest.java")
+assertMissing("src/test/java/it/pkg/adapter/teaching/rpc/CourseRpcProviderTest.java")
 
 def readme = assertFile("README.md").text
 // The generated guide must name the generated project, not the archetype's own sample.
@@ -1328,8 +1445,11 @@ generatedProjectDir.traverse(type: FileType.FILES) { candidate ->
     if (path.contains('/src/main/java/') && !path.contains('/target/') && candidate.name.endsWith('.java')) nativeJava << candidate
 }
 assert nativeJava.every { !it.text.contains('org.apache.dubbo') }
-def nativeProviders = nativeJava.findAll { it.name.endsWith('RpcProvider.java') }
-assert nativeProviders.every { it.text.contains('@EgonRpcProvider') && it.text.contains('@RequiredArgsConstructor') }
+// The facade implementation publishes the native contract directly; no wrapper provider type remains.
+def nativeProviders = nativeJava.findAll { it.text.contains('@EgonRpcProvider') }
+assert nativeProviders.size() == 4: "Expected one provider per facade, found ${nativeProviders*.name}"
+assert nativeProviders.every { it.name.endsWith('FacadeImpl.java') && it.path.contains('/adapter/') }
+assert nativeProviders.every { it.text.contains('@RequiredArgsConstructor') }
 def nativeOperations = nativeProviders.collectMany { provider ->
     (provider.text =~ /public\s+\w*Response\s+(\w+)\(/).collect { it[1] }
 }.sort()

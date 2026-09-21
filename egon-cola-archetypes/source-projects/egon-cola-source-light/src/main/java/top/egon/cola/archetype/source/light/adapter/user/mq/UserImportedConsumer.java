@@ -1,7 +1,8 @@
 package top.egon.cola.archetype.source.light.adapter.user.mq;
 
+import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.archetype.source.light.adapter.user.validators.UserRequestValidator;
-import top.egon.cola.archetype.source.light.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.light.facade.user.dto.CreateUserDTO;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class UserImportedConsumer {
     private final UserManage userManage;
     private final UserRequestValidator validator;

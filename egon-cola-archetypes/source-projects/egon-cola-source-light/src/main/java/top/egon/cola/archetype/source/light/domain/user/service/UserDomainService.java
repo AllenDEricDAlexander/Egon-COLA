@@ -12,9 +12,9 @@ import jakarta.validation.constraints.NotNull;
 public interface UserDomainService {
     User createUser(String externalId, String name, String email);
 
-    User save( @Valid @NotNull User user);
+    User save(@Valid @NotNull User user);
 
-    Optional<User> findById( @Valid @NotNull UserId userId);
+    Optional<User> findById(@Valid @NotNull UserId userId);
 
-    void saveRoles( @Valid @NotNull UserAggregate aggregate);
+    void saveRoles(@Valid @NotNull UserAggregate aggregate);
 }

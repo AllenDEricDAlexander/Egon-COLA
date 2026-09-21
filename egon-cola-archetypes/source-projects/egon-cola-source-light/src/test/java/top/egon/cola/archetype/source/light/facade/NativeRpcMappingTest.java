@@ -51,7 +51,7 @@ class NativeRpcMappingTest {
         return MODELS.stream().flatMap(pair -> Stream.of("full", "nullable", "zero")
                 .map(variant -> DynamicTest.dynamicTest(pair[0] + " / " + variant, () -> {
                     Class<?> sourceType = Class.forName(pair[0]);
-                    Class<?> protoType = Class.forName("top.egon.cola.archetype.source.light.facade.rpc.proto." + pair[1]);
+                    Class<?> protoType = Class.forName("top.egon.cola.archetype.source.light.facade.proto." + pair[1]);
                     Object source = fixture(sourceType, variant, 0);
                     Object mapper = converter();
                     Message encoded = (Message) mapping(mapper, sourceType, protoType).invoke(mapper, source);
@@ -67,14 +67,14 @@ class NativeRpcMappingTest {
         Object mapper = converter();
         for (String[] pair : MODELS) {
             Class<?> sourceType = Class.forName(pair[0]);
-            Class<?> protoType = Class.forName("top.egon.cola.archetype.source.light.facade.rpc.proto." + pair[1]);
+            Class<?> protoType = Class.forName("top.egon.cola.archetype.source.light.facade.proto." + pair[1]);
             assertNull(mapping(mapper, sourceType, protoType).invoke(mapper, new Object[]{null}));
             assertNull(mapping(mapper, protoType, sourceType).invoke(mapper, new Object[]{null}));
         }
     }
 
     private static Object converter() {
-        return assertDoesNotThrow(() -> Class.forName("top.egon.cola.archetype.source.light.facade.rpc.LightRpcConverterImpl")
+        return assertDoesNotThrow(() -> Class.forName("top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverterImpl")
                 .getDeclaredConstructor().newInstance(), "Native MapStruct converter has not been generated");
     }
 
@@ -160,7 +160,7 @@ class NativeRpcMappingTest {
 
     @Test
     void preservesFailureAbsenceAndPermissionTree() {
-        var mapper = (top.egon.cola.archetype.source.light.facade.rpc.LightRpcConverter) converter();
+        var mapper = (top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverter) converter();
         var failure = mapper.courseFailure("COURSE_NOT_FOUND", "missing course", "trace-1");
         assertFalse(failure.getSuccess());
         assertEquals("COURSE_NOT_FOUND", failure.getCode());

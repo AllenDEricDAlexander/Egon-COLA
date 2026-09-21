@@ -4,7 +4,7 @@ import top.egon.cola.archetype.source.light.domain.teaching.entities.Course;
 import top.egon.cola.archetype.source.light.domain.teaching.entities.SchoolClass;
 import top.egon.cola.archetype.source.light.domain.teaching.enums.CourseStatus;
 import top.egon.cola.archetype.source.light.domain.teaching.enums.SchoolClassStatus;
-import top.egon.cola.archetype.source.light.domain.teaching.exceptions.TeachingDomainException;
+import top.egon.cola.archetype.source.light.common.exception.TeachingDomainException;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseCode;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSchedule;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.SchoolClassId;

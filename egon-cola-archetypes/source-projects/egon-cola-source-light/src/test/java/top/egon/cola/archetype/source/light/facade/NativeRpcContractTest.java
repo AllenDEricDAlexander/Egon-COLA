@@ -3,6 +3,10 @@ package top.egon.cola.archetype.source.light.facade;
 import io.grpc.MethodDescriptor.MethodType;
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.archetype.source.light.facade.teaching.CourseFacade;
+import top.egon.cola.archetype.source.light.facade.teaching.SchoolClassFacade;
+import top.egon.cola.archetype.source.light.facade.user.PermissionFacade;
+import top.egon.cola.archetype.source.light.facade.user.UserFacade;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
@@ -21,21 +25,19 @@ class NativeRpcContractTest {
     private static final ValidationUtils VALIDATION_UTILS =
             new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
-    private static final Map<String, Set<String>> OPERATIONS = Map.of(
-            "Course", Set.of("CreateCourse", "GetCourse"),
-            "SchoolClass", Set.of("CreateSchoolClass", "ScheduleCourse", "GetSchoolClass"),
-            "User", Set.of("CreateUser", "AssignRole", "GetUser"),
-            "Permission", Set.of("GrantPermission", "GetUserPermissions")
+    private static final Map<Class<?>, Set<String>> OPERATIONS = Map.of(
+            CourseFacade.class, Set.of("CreateCourse", "GetCourse"),
+            SchoolClassFacade.class, Set.of("CreateSchoolClass", "ScheduleCourse", "GetSchoolClass"),
+            UserFacade.class, Set.of("CreateUser", "AssignRole", "GetUser"),
+            PermissionFacade.class, Set.of("GrantPermission", "GetUserPermissions")
     );
 
     @Test
     void validatesEveryNativeOperation() {
         RpcContractValidator validator = new RpcContractValidator(VALIDATION_UTILS);
-        OPERATIONS.forEach((service, methods) -> {
-            Class<?> contract = assertDoesNotThrow(
-                    () -> Class.forName("top.egon.cola.archetype.source.light.facade.rpc." + service + "RpcService"),
-                    "Native production RPC contract is missing: " + service);
-            var descriptor = validator.validate(contract);
+        OPERATIONS.forEach((contract, methods) -> {
+            var descriptor = assertDoesNotThrow(() -> validator.validate(contract),
+                    "Native production RPC contract is invalid: " + contract.getSimpleName());
             assertEquals(methods, descriptor.methods().stream()
                     .map(method -> method.methodName()).collect(Collectors.toSet()));
             assertEquals("1.0.0", descriptor.version());
@@ -67,8 +69,7 @@ class NativeRpcContractTest {
 
     @Test
     void requiresNonNullRequestsAndKeepsMutationRetriesDisabled() throws Exception {
-        for (String service : OPERATIONS.keySet()) {
-            Class<?> contract = Class.forName("top.egon.cola.archetype.source.light.facade.rpc." + service + "RpcService");
+        for (Class<?> contract : OPERATIONS.keySet()) {
             var annotation = contract.getAnnotation(top.egon.cola.component.rpc.annotation.EgonRpcService.class);
             assertEquals(0, annotation.retries());
             for (var descriptor : new RpcContractValidator(VALIDATION_UTILS).validate(contract).methods()) {
@@ -80,18 +81,18 @@ class NativeRpcContractTest {
         }
     }
 
-    @top.egon.cola.component.rpc.annotation.EgonRpcService(grpcClass = top.egon.cola.archetype.source.light.facade.rpc.proto.CourseServiceGrpc.class)
+    @top.egon.cola.component.rpc.annotation.EgonRpcService(grpcClass = top.egon.cola.archetype.source.light.facade.proto.CourseServiceGrpc.class)
     interface MismatchedRpcService {
         @top.egon.cola.component.rpc.annotation.EgonRpcMethod(name = "GetCourse")
         com.google.protobuf.Empty get(com.google.protobuf.Empty request);
     }
 
-    @top.egon.cola.component.rpc.annotation.EgonRpcService(grpcClass = top.egon.cola.archetype.source.light.facade.rpc.proto.CourseServiceGrpc.class)
+    @top.egon.cola.component.rpc.annotation.EgonRpcService(grpcClass = top.egon.cola.archetype.source.light.facade.proto.CourseServiceGrpc.class)
     interface OverloadedRpcService {
         @top.egon.cola.component.rpc.annotation.EgonRpcMethod(name = "GetCourse")
         com.google.protobuf.Empty get(com.google.protobuf.Empty request);
 
         @top.egon.cola.component.rpc.annotation.EgonRpcMethod(name = "GetCourse")
-        com.google.protobuf.Empty get(top.egon.cola.archetype.source.light.facade.rpc.proto.GetCourseRpcRequest request);
+        com.google.protobuf.Empty get(top.egon.cola.archetype.source.light.facade.proto.GetCourseRpcRequest request);
     }
 }

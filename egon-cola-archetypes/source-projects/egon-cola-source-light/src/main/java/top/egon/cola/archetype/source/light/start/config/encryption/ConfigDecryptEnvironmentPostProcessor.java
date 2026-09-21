@@ -1,5 +1,7 @@
 package top.egon.cola.archetype.source.light.start.config.encryption;
 
+import top.egon.cola.archetype.source.light.common.exception.ConfigDecryptException;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;

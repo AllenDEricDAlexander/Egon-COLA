@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.light.infrastructure.user.repo;
 
-import top.egon.cola.archetype.source.light.infrastructure.user.repo.dao.RoleDAO;
-import top.egon.cola.archetype.source.light.infrastructure.user.repo.po.RolePO;
+import top.egon.cola.archetype.source.light.infrastructure.user.dao.RoleDAO;
+import top.egon.cola.archetype.source.light.infrastructure.user.po.RolePO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

@@ -2,18 +2,22 @@ package top.egon.cola.archetype.source.light.adapter.teaching.controller;
 
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContextFilter;
 import top.egon.cola.archetype.source.light.adapter.filter.TraceIdFilter;
-import top.egon.cola.archetype.source.light.adapter.teaching.convertor.TeachingAdapterConvertorImpl;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.convertor.TeachingAdapterConvertorImpl;
 import top.egon.cola.archetype.source.light.adapter.teaching.validators.TeachingRequestValidator;
-import top.egon.cola.archetype.source.light.application.teaching.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.light.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.light.application.teaching.result.SchoolClassResult;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.result.SchoolClassResult;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import jakarta.validation.Validation;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,10 +34,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         SchoolClassController.class,
         TeachingAdapterConvertorImpl.class,
         TeachingRequestValidator.class,
+        SchoolClassControllerTest.CommonValidationConfiguration.class,
         TraceIdFilter.class,
         RequestContextFilter.class
 })
 class SchoolClassControllerTest {
+    /** The web slice has no starter auto-configuration, so it declares the common validation facade itself. */
+    @TestConfiguration
+    static class CommonValidationConfiguration {
+        @Bean("egonColaValidationUtils")
+        ValidationUtils egonColaValidationUtils() {
+            return new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+        }
+    }
+
     @Autowired
     private MockMvc mockMvc;
     @MockitoBean

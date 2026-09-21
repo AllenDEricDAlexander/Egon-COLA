@@ -1,13 +1,13 @@
 package top.egon.cola.archetype.source.light.facade.teaching.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import top.egon.cola.archetype.source.light.facade.rpc.NativeRpcValidationGroup;
+import top.egon.cola.archetype.source.light.facade.validation.NativeRpcValidationGroup;
 
-import java.io.Serializable;
+import top.egon.cola.component.common.core.pojo.BasePojo;
 
 public record CreateSchoolClassDTO(
         @NotBlank(groups = NativeRpcValidationGroup.class) String name,
         @NotBlank(groups = NativeRpcValidationGroup.class) String semester,
         @NotBlank(groups = NativeRpcValidationGroup.class) String operatorId,
-        @NotBlank(groups = NativeRpcValidationGroup.class) String requestId) implements Serializable {
+        @NotBlank(groups = NativeRpcValidationGroup.class) String requestId) implements BasePojo {
 }

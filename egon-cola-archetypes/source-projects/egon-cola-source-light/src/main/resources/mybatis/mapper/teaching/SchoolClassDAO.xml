@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.light.infrastructure.teaching.repo.dao.SchoolClassDAO">
-    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.light.infrastructure.teaching.repo.po.SchoolClassPO">
+<mapper namespace="top.egon.cola.archetype.source.light.infrastructure.teaching.dao.SchoolClassDAO">
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.light.infrastructure.teaching.po.SchoolClassPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, name, semester, status FROM school_classes WHERE id=#{id} AND deleted_at IS NULL
     </select>
-    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.light.infrastructure.teaching.repo.po.SchoolClassPO">
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.light.infrastructure.teaching.po.SchoolClassPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, name, semester, status FROM school_classes WHERE deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>

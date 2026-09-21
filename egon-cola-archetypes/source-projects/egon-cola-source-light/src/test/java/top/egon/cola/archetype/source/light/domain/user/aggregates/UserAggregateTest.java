@@ -4,7 +4,7 @@ import top.egon.cola.archetype.source.light.domain.user.entities.Role;
 import top.egon.cola.archetype.source.light.domain.user.entities.User;
 import top.egon.cola.archetype.source.light.domain.user.enums.RoleStatus;
 import top.egon.cola.archetype.source.light.domain.user.enums.UserStatus;
-import top.egon.cola.archetype.source.light.domain.user.exceptions.UserDomainException;
+import top.egon.cola.archetype.source.light.common.exception.UserDomainException;
 import top.egon.cola.archetype.source.light.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.light.domain.user.vos.UserId;
 import org.junit.jupiter.api.Test;

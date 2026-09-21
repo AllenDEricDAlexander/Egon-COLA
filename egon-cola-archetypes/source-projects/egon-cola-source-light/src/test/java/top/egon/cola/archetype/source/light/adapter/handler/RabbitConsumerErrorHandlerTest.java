@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.light.adapter.handler;
 
-import top.egon.cola.archetype.source.light.application.user.manage.UserUseCaseException;
+import top.egon.cola.archetype.source.light.common.exception.UserUseCaseException;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;

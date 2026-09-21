@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.io.ClassPathResource;
-import top.egon.cola.archetype.source.light.facade.rpc.LightRpcConverter;
+import top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverter;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
@@ -29,7 +29,7 @@ class NativeRpcConfigurationTest {
                         assertThat(context).hasNotFailed();
                         assertThat(context.getBean("nativeRpcValidation")).isSameAs(validation);
                         assertThat(context.getBean(ValidationUtils.class)).isSameAs(validation);
-                        assertThat(context.getBean("lightRpcConverter")).isInstanceOf(LightRpcConverter.class);
+                        assertThat(context.getBean("lightFacadeConverter")).isInstanceOf(LightFacadeConverter.class);
                         var mapper = context.getBean("nativeRpcValidationExceptionMapper", RpcProviderExceptionMapper.class);
                         assertThat(mapper.map(new ConstraintViolationException(Set.of())).orElseThrow()
                                 .getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);

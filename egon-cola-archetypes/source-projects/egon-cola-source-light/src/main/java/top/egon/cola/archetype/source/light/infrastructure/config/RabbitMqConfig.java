@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import top.egon.cola.archetype.source.light.infrastructure.mq.MqRouteEnum;
 
 @EnableRabbit
 @Configuration(proxyBeanMethods = false)
@@ -32,44 +33,51 @@ public class RabbitMqConfig {
 
     @Bean
     Queue userImportedQueue() {
-        String name = applicationName + ".user.imported";
-        return QueueBuilder.durable(name)
-                .deadLetterExchange("")
-                .deadLetterRoutingKey(name + ".dlq")
-                .build();
+        return consumerQueue(MqRouteEnum.USER_IMPORTED);
     }
 
     @Bean
     Queue courseImportedQueue() {
-        String name = applicationName + ".course.imported";
-        return QueueBuilder.durable(name)
-                .deadLetterExchange("")
-                .deadLetterRoutingKey(name + ".dlq")
-                .build();
+        return consumerQueue(MqRouteEnum.COURSE_IMPORTED);
     }
 
     @Bean
     Queue userImportedDeadLetterQueue() {
-        return QueueBuilder.durable(applicationName + ".user.imported.dlq").build();
+        return deadLetterQueue(MqRouteEnum.USER_IMPORTED);
     }
 
     @Bean
     Queue courseImportedDeadLetterQueue() {
-        return QueueBuilder.durable(applicationName + ".course.imported.dlq").build();
+        return deadLetterQueue(MqRouteEnum.COURSE_IMPORTED);
     }
 
     @Bean
     Binding userImportedBinding(Queue userImportedQueue, TopicExchange domainExchange) {
-        return BindingBuilder.bind(userImportedQueue).to(domainExchange).with("user.imported");
+        return consumerBinding(MqRouteEnum.USER_IMPORTED, userImportedQueue, domainExchange);
     }
 
     @Bean
     Binding courseImportedBinding(Queue courseImportedQueue, TopicExchange domainExchange) {
-        return BindingBuilder.bind(courseImportedQueue).to(domainExchange).with("course.imported");
+        return consumerBinding(MqRouteEnum.COURSE_IMPORTED, courseImportedQueue, domainExchange);
     }
 
     @Bean
     MessageConverter jacksonMessageConverter(ObjectMapper objectMapper) {
         return new Jackson2JsonMessageConverter(objectMapper);
+    }
+
+    private Queue consumerQueue(MqRouteEnum route) {
+        return QueueBuilder.durable(route.consumerQueue(applicationName))
+                .deadLetterExchange("")
+                .deadLetterRoutingKey(applicationName + "." + route.getDeadLetterRoutingKey())
+                .build();
+    }
+
+    private Queue deadLetterQueue(MqRouteEnum route) {
+        return QueueBuilder.durable(applicationName + "." + route.getDeadLetterRoutingKey()).build();
+    }
+
+    private Binding consumerBinding(MqRouteEnum route, Queue queue, TopicExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(route.getRoutingKey());
     }
 }

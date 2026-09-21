@@ -12,11 +12,11 @@ import jakarta.validation.constraints.NotNull;
 
 /** Persistence-owning permission domain service contract. */
 public interface PermissionDomainService {
-    Optional<Permission> findByCode( @Valid @NotNull PermissionCode permissionCode);
+    Optional<Permission> findByCode(@Valid @NotNull PermissionCode permissionCode);
 
-    Permission save( @Valid @NotNull Permission permission);
+    Permission save(@Valid @NotNull Permission permission);
 
-    List<Permission> findByUserId( @Valid @NotNull UserId userId);
+    List<Permission> findByUserId(@Valid @NotNull UserId userId);
 
-    RolePermissionAggregate grantPermission( @Valid @NotNull RolePermissionAggregate role, @Valid @NotNull Permission permission);
+    RolePermissionAggregate grantPermission(@Valid @NotNull RolePermissionAggregate role, @Valid @NotNull Permission permission);
 }

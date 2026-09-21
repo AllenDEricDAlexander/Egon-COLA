@@ -9,11 +9,11 @@ import jakarta.validation.constraints.NotNull;
 
 /** Persistence-owning course domain service contract. */
 public interface CourseDomainService {
-    Course createCourse( @Valid @NotNull CourseCode code, String name);
+    Course createCourse(@Valid @NotNull CourseCode code, String name);
 
-    Course save( @Valid @NotNull Course course);
+    Course save(@Valid @NotNull Course course);
 
     Optional<Course> findById(Long courseId);
 
-    Optional<Course> findByCode( @Valid @NotNull CourseCode courseCode);
+    Optional<Course> findByCode(@Valid @NotNull CourseCode courseCode);
 }

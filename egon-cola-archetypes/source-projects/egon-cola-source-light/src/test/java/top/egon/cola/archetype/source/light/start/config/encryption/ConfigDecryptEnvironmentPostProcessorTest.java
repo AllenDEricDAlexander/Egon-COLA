@@ -1,5 +1,7 @@
 package top.egon.cola.archetype.source.light.start.config.encryption;
 
+import top.egon.cola.archetype.source.light.common.exception.ConfigDecryptException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

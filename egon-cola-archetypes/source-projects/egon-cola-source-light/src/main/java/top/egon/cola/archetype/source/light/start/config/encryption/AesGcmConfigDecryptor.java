@@ -1,5 +1,7 @@
 package top.egon.cola.archetype.source.light.start.config.encryption;
 
+import top.egon.cola.archetype.source.light.common.exception.ConfigDecryptException;
+
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;

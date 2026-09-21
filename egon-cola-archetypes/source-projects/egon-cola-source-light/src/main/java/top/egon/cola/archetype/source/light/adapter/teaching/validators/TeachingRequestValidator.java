@@ -1,31 +1,38 @@
 package top.egon.cola.archetype.source.light.adapter.teaching.validators;
 
-import top.egon.cola.archetype.source.light.adapter.teaching.dto.ScheduleCourseRequest;
-import top.egon.cola.archetype.source.light.facade.teaching.dto.CreateCourseDTO;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.ScheduleCourseRequest;
+import top.egon.cola.archetype.source.light.facade.validation.NativeRpcValidationGroup;
+import top.egon.cola.archetype.source.light.facade.teaching.dto.CreateCourseDTO;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
-@Component
-public class TeachingRequestValidator {
+/** Adapter-boundary teaching rules on top of the native constraints carried by the carriers. */
+@Component("teachingRequestValidator")
+@RequiredArgsConstructor
+@Slf4j
+public class TeachingRequestValidator extends BaseValidator {
+
+    @Qualifier("egonColaValidationUtils")
+    private final ValidationUtils validationUtils;
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
+
     public void validateSchedule(ScheduleCourseRequest request) {
-        if (request == null || request.startsAt() == null || request.endsAt() == null
+        validateBean(request);
+        if (request.startsAt() == null || request.endsAt() == null
                 || !request.startsAt().isBefore(request.endsAt())) {
             throw new IllegalArgumentException("startsAt must be before endsAt");
         }
     }
 
-    public void validate(CreateCourseDTO request) {
-        if (request == null) {
-            throw new IllegalArgumentException("course import message must not be null");
-        }
-        requireText(request.code(), "code");
-        requireText(request.name(), "name");
-        requireText(request.operatorId(), "actor");
-        requireText(request.requestId(), "messageId");
-    }
-
-    private static void requireText(String value, String field) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(field + " must not be blank");
-        }
+    public CreateCourseDTO validate(CreateCourseDTO request) {
+        return validateBean(request, NativeRpcValidationGroup.class);
     }
 }
