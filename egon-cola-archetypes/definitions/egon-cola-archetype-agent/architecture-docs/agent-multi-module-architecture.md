@@ -18,7 +18,8 @@ The `domain` module owns research records, events, ports, and service contracts,
 knowledge vocabulary: bases, documents, chunks, the ingest lifecycle, and the retrieval
 and answer ports. `application` owns the `DeepResearchManage` facade, validation, the
 process-local capacity bulkheads, deadline and terminal cleanup, and the knowledge use
-cases. `infrastructure` adapts the domain gateway to the shared Agent Flow component,
+cases. `infrastructure` implements the domain service ports against the shared Agent Flow
+component,
 persists the knowledge tables, and assembles the embedding model, the vector store and
 the ingest delivery handler. `adapter` owns the API-key, trace and tenant filters, JSON
 boundary, error contract, the only `POST /api/v1/deep-research/runs` SSE command, and the

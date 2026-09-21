@@ -8,13 +8,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.AskKnowledgeBaseCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.CreateKnowledgeBaseCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.RetrieveKnowledgeCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.UpdateKnowledgeBaseCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.UploadKnowledgeDocumentCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.AskKnowledgeBaseCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.CreateKnowledgeBaseCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.RetrieveKnowledgeCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.UpdateKnowledgeBaseCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.UploadKnowledgeDocumentCommand;
 import top.egon.cola.archetype.source.agent.application.knowledge.config.KnowledgeRuntimeProperties;
-import top.egon.cola.archetype.source.agent.application.knowledge.exception.KnowledgeApplicationException;
+import top.egon.cola.archetype.source.agent.common.exception.KnowledgeApplicationException;
 import top.egon.cola.archetype.source.agent.application.knowledge.manage.impl.KnowledgeBaseManageImpl;
 import top.egon.cola.archetype.source.agent.application.knowledge.manage.impl.KnowledgeDocumentManageImpl;
 import top.egon.cola.archetype.source.agent.application.knowledge.manage.impl.KnowledgeQaManageImpl;
@@ -24,8 +24,8 @@ import top.egon.cola.archetype.source.agent.application.knowledge.service.Knowle
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.archetype.source.agent.common.error.KnowledgeErrorCodeEnum;
 import top.egon.cola.archetype.source.agent.common.knowledge.KnowledgeIngestChannel;
-import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeAnswerGateway;
-import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeVectorGateway;
+import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeAnswerService;
+import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeVectorService;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.ChunkingStrategyEnum;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.DocumentIngestStatusEnum;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeAnswerTaskBO;
@@ -273,7 +273,7 @@ class KnowledgeManageTest {
 
         assertTrue(fixture.documentRepository.stored.isEmpty());
         assertEquals(1, fixture.documentStorage.deleted.size());
-        assertEquals(List.of(String.valueOf(document.documentId())), fixture.vectorGateway.deleted);
+        assertEquals(List.of(String.valueOf(document.documentId())), fixture.vectorService.deleted);
     }
 
     @Test
@@ -305,7 +305,7 @@ class KnowledgeManageTest {
         assertTrue(fixture.documentRepository.stored.isEmpty());
         assertEquals(2, fixture.documentStorage.deleted.size());
         assertEquals(List.of(String.valueOf(first.documentId()), String.valueOf(second.documentId())),
-                fixture.vectorGateway.deleted);
+                fixture.vectorService.deleted);
     }
 
     @Test
@@ -328,7 +328,7 @@ class KnowledgeManageTest {
         Long knowledgeBaseId = fixture.createBase();
         KnowledgeDocumentBO document = fixture.documentRepository
                 .save(document(knowledgeBaseId, DocumentIngestStatusEnum.SUCCEEDED, TEXT));
-        fixture.vectorGateway.chunks = List.of(
+        fixture.vectorService.chunks = List.of(
                 new KnowledgeChunkBO(document.documentId(), 0, "hello", 0.9d),
                 new KnowledgeChunkBO(document.documentId(), 1, "world", null));
 
@@ -342,8 +342,8 @@ class KnowledgeManageTest {
                 retrieval.items().stream().map(KnowledgeRetrievedChunkBO::displayName).toList());
         assertEquals(Arrays.asList(0.9d, null),
                 retrieval.items().stream().map(KnowledgeRetrievedChunkBO::score).toList());
-        assertEquals(5, fixture.vectorGateway.topK);
-        assertTrue(fixture.vectorGateway.attributes.isEmpty());
+        assertEquals(5, fixture.vectorService.topK);
+        assertTrue(fixture.vectorService.attributes.isEmpty());
     }
 
     @Test
@@ -352,7 +352,7 @@ class KnowledgeManageTest {
         Long knowledgeBaseId = fixture.createBase();
         KnowledgeDocumentBO document = fixture.documentRepository
                 .save(document(knowledgeBaseId, DocumentIngestStatusEnum.SUCCEEDED, TEXT));
-        fixture.vectorGateway.chunks = List.of(
+        fixture.vectorService.chunks = List.of(
                 new KnowledgeChunkBO(document.documentId(), 0, "high", 0.9d),
                 new KnowledgeChunkBO(document.documentId(), 1, "low", 0.2d),
                 new KnowledgeChunkBO(document.documentId(), 2, "unknown", null));
@@ -365,7 +365,7 @@ class KnowledgeManageTest {
         assertEquals(List.of("high"), floored.items().stream().map(KnowledgeRetrievedChunkBO::content).toList());
         assertEquals(List.of("high", "low", "unknown"),
                 unfloored.items().stream().map(KnowledgeRetrievedChunkBO::content).toList());
-        assertEquals(0, fixture.vectorGateway.topK);
+        assertEquals(0, fixture.vectorService.topK);
     }
 
     @Test
@@ -374,13 +374,13 @@ class KnowledgeManageTest {
         Long knowledgeBaseId = fixture.createBase();
         KnowledgeDocumentBO document = fixture.documentRepository
                 .save(document(knowledgeBaseId, DocumentIngestStatusEnum.SUCCEEDED, TEXT));
-        fixture.vectorGateway.chunks = List.of(new KnowledgeChunkBO(document.documentId(), 0, "hello", 0.9d));
+        fixture.vectorService.chunks = List.of(new KnowledgeChunkBO(document.documentId(), 0, "hello", 0.9d));
         List<KnowledgeQaEvent> received = new ArrayList<>();
 
         fixture.qa().ask(new AskKnowledgeBaseCommand(knowledgeBaseId, "question", null, TRACE_ID), received::add);
 
-        assertEquals(1, fixture.answerGateway.tasks.size());
-        KnowledgeAnswerTaskBO task = fixture.answerGateway.tasks.getFirst();
+        assertEquals(1, fixture.answerService.tasks.size());
+        KnowledgeAnswerTaskBO task = fixture.answerService.tasks.getFirst();
         assertEquals("question", task.question());
         assertEquals(EMBEDDING_MODEL, task.logicalModelName());
         // The model answers from the chunk text, so the task carries it even though the events do not.
@@ -388,12 +388,12 @@ class KnowledgeManageTest {
                 task.references().stream().map(KnowledgeRetrievedChunkBO::content).toList());
         assertEquals(3, fixture.capacity.availablePermits());
 
-        fixture.answerGateway.emit(KnowledgeQaEvent.started(task.answerId(), 1,
+        fixture.answerService.emit(KnowledgeQaEvent.started(task.answerId(), 1,
                 task.references().stream().map(KnowledgeRetrievedChunkBO::withoutContent).toList(), NOW, TRACE_ID));
-        fixture.answerGateway.emit(KnowledgeQaEvent.progress(task.answerId(), 2, "an ", NOW));
-        fixture.answerGateway.emit(KnowledgeQaEvent.completed(task.answerId(), 3, "an answer", List.of(), NOW,
+        fixture.answerService.emit(KnowledgeQaEvent.progress(task.answerId(), 2, "an ", NOW));
+        fixture.answerService.emit(KnowledgeQaEvent.completed(task.answerId(), 3, "an answer", List.of(), NOW,
                 TRACE_ID));
-        fixture.answerGateway.emit(KnowledgeQaEvent.failed(task.answerId(), 4,
+        fixture.answerService.emit(KnowledgeQaEvent.failed(task.answerId(), 4,
                 KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, NOW, TRACE_ID));
 
         assertEquals(3, received.size());
@@ -413,7 +413,7 @@ class KnowledgeManageTest {
 
         assertEquals(KnowledgeErrorCodeEnum.KNOWLEDGE_CAPACITY_EXHAUSTED, exhausted.code());
         assertEquals(0, fixture.capacity.availablePermits());
-        assertEquals(1, fixture.answerGateway.tasks.size());
+        assertEquals(1, fixture.answerService.tasks.size());
     }
 
     @Test
@@ -428,7 +428,7 @@ class KnowledgeManageTest {
         run.cancel();
         run.cancel();
 
-        assertEquals(1, fixture.answerGateway.cancellations);
+        assertEquals(1, fixture.answerService.cancellations);
         assertEquals(1, fixture.capacity.availablePermits());
     }
 
@@ -442,11 +442,11 @@ class KnowledgeManageTest {
                     throw new IllegalStateException("the observer is gone");
                 });
 
-        String answerId = fixture.answerGateway.tasks.getFirst().answerId();
+        String answerId = fixture.answerService.tasks.getFirst().answerId();
         assertThrows(IllegalStateException.class,
-                () -> fixture.answerGateway.emit(KnowledgeQaEvent.progress(answerId, 2, "delta", NOW)));
+                () -> fixture.answerService.emit(KnowledgeQaEvent.progress(answerId, 2, "delta", NOW)));
 
-        assertEquals(1, fixture.answerGateway.cancellations);
+        assertEquals(1, fixture.answerService.cancellations);
         assertEquals(1, fixture.capacity.availablePermits());
     }
 
@@ -454,7 +454,7 @@ class KnowledgeManageTest {
     void fails_the_question_with_a_dependency_error_when_the_gateway_refuses_before_the_stream() {
         Fixture fixture = new Fixture(1);
         Long knowledgeBaseId = fixture.createBase();
-        fixture.answerGateway.failOnGenerate = true;
+        fixture.answerService.failOnGenerate = true;
 
         KnowledgeApplicationException failure = assertThrows(KnowledgeApplicationException.class,
                 () -> fixture.qa().ask(new AskKnowledgeBaseCommand(knowledgeBaseId, "question", null, TRACE_ID),
@@ -471,9 +471,9 @@ class KnowledgeManageTest {
 
         private final FakeKnowledgeDocumentRepository documentRepository = new FakeKnowledgeDocumentRepository();
 
-        private final RecordingVectorGateway vectorGateway = new RecordingVectorGateway();
+        private final RecordingVectorService vectorService = new RecordingVectorService();
 
-        private final RecordingAnswerGateway answerGateway = new RecordingAnswerGateway();
+        private final RecordingAnswerService answerService = new RecordingAnswerService();
 
         private final RecordingOutbox outbox = new RecordingOutbox();
 
@@ -504,7 +504,7 @@ class KnowledgeManageTest {
             this.qaMaxConcurrent = qaMaxConcurrent;
             this.capacity = new KnowledgeQaCapacityService(qaMaxConcurrent);
             this.ingestQueueService = new KnowledgeIngestQueueService(documentRepository, outbox);
-            this.removalService = new KnowledgeRemovalService(vectorGateway, documentRepository, baseRepository,
+            this.removalService = new KnowledgeRemovalService(vectorService, documentRepository, baseRepository,
                     documentStorage);
         }
 
@@ -520,7 +520,7 @@ class KnowledgeManageTest {
         }
 
         private KnowledgeQaManageImpl qa() {
-            return new KnowledgeQaManageImpl(baseRepository, documentRepository, vectorGateway, answerGateway,
+            return new KnowledgeQaManageImpl(baseRepository, documentRepository, vectorService, answerService,
                     capacity, validationUtils(), Clock.fixed(NOW, ZoneOffset.UTC));
         }
 
@@ -711,7 +711,7 @@ class KnowledgeManageTest {
         }
     }
 
-    private static final class RecordingVectorGateway implements KnowledgeVectorGateway {
+    private static final class RecordingVectorService implements KnowledgeVectorService {
 
         private final List<String> deleted = new ArrayList<>();
 
@@ -735,7 +735,7 @@ class KnowledgeManageTest {
         }
     }
 
-    private static final class RecordingAnswerGateway implements KnowledgeAnswerGateway {
+    private static final class RecordingAnswerService implements KnowledgeAnswerService {
 
         private final List<KnowledgeAnswerTaskBO> tasks = new ArrayList<>();
 

@@ -24,8 +24,8 @@ import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeChun
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeDocumentBO;
 import top.egon.cola.archetype.source.agent.domain.knowledge.repository.KnowledgeBaseRepository;
 import top.egon.cola.archetype.source.agent.domain.knowledge.repository.KnowledgeDocumentRepository;
-import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeBaseDAO;
-import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO;
+import top.egon.cola.archetype.source.agent.infrastructure.knowledge.dao.KnowledgeBaseDAO;
+import top.egon.cola.archetype.source.agent.infrastructure.knowledge.dao.KnowledgeDocumentDAO;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.service.KnowledgeBaseRepositoryImpl;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.service.KnowledgeDocumentRepositoryImpl;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -75,7 +75,7 @@ class KnowledgeRepositoryTest {
                     org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration.class,
                     org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration.class))
             .withPropertyValues("mybatis-plus.mapper-locations=classpath*:mybatis/mapper/**/*.xml",
-                    "egon.cola.component.mybatis-plus.local-write-guard.allowed-root-statements.[top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]=knowledge_base_id")
+                    "egon.cola.component.mybatis-plus.local-write-guard.allowed-root-statements.[top.egon.cola.archetype.source.agent.infrastructure.knowledge.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]=knowledge_base_id")
             .withUserConfiguration(KnowledgePersistenceConfiguration.class)
             .withBean(Validator.class, VALIDATOR_FACTORY::getValidator);
 

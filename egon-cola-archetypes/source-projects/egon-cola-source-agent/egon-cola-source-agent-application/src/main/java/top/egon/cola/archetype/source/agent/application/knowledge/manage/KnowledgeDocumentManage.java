@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.agent.application.knowledge.manage;
 
 import jakarta.validation.Valid;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.UploadKnowledgeDocumentCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.UploadKnowledgeDocumentCommand;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.DocumentIngestStatusEnum;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeDocumentBO;
 import top.egon.cola.component.common.core.pojo.PageResultRecord;

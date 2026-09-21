@@ -17,11 +17,11 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeVectorGateway;
+import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeVectorService;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeChunkBO;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.config.KnowledgeEmbeddingConfiguration;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.config.KnowledgeVectorConfiguration;
-import top.egon.cola.archetype.source.agent.infrastructure.knowledge.gateway.RagKnowledgeVectorGateway;
+import top.egon.cola.archetype.source.agent.infrastructure.knowledge.service.impl.RagKnowledgeVectorServiceImpl;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.metadata.KnowledgeVectorMetadata;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.rag.autoconfigure.RagAutoConfiguration;
@@ -121,10 +121,10 @@ class KnowledgeVectorConfigurationTest {
         MDC.put(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, String.valueOf(TENANT));
         try {
             runner.withBean("knowledgeRagVectorStore", VectorStore.class, () -> vectorStore)
-                    .withUserConfiguration(KnowledgeEmbeddingConfiguration.class, RagKnowledgeVectorGateway.class)
+                    .withUserConfiguration(KnowledgeEmbeddingConfiguration.class, RagKnowledgeVectorServiceImpl.class)
                     .run(context -> {
                         assertThat(context).hasNotFailed();
-                        KnowledgeVectorGateway gateway = context.getBean(KnowledgeVectorGateway.class);
+                        KnowledgeVectorService gateway = context.getBean(KnowledgeVectorService.class);
 
                         List<KnowledgeChunkBO> chunks =
                                 gateway.retrieve(COLLECTION_ID, LOGICAL_MODEL_NAME, "how does it work", 8, Map.of());

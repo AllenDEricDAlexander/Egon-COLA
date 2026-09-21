@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.archetype.source.agent.application.knowledge.exception.KnowledgeApplicationException;
+import top.egon.cola.archetype.source.agent.common.exception.KnowledgeApplicationException;
 import top.egon.cola.archetype.source.agent.common.error.KnowledgeErrorCodeEnum;
 import top.egon.cola.archetype.source.agent.common.knowledge.KnowledgeIngestChannel;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeDocumentBO;

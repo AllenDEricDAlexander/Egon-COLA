@@ -1,8 +1,8 @@
 package top.egon.cola.archetype.source.agent.application.knowledge.manage;
 
 import jakarta.validation.Valid;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.CreateKnowledgeBaseCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.UpdateKnowledgeBaseCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.CreateKnowledgeBaseCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.UpdateKnowledgeBaseCommand;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeBaseBO;
 import top.egon.cola.component.common.core.pojo.PageResultRecord;
 

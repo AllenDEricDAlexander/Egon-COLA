@@ -10,7 +10,7 @@ import top.egon.cola.archetype.source.agent.domain.research.model.DeepResearchTa
 import top.egon.cola.archetype.source.agent.domain.research.model.ReportLanguageEnum;
 import top.egon.cola.archetype.source.agent.domain.research.service.DeepResearchEventObserverService;
 import top.egon.cola.archetype.source.agent.domain.research.service.DeepResearchRunService;
-import top.egon.cola.archetype.source.agent.infrastructure.research.gateway.AgentFlowDeepResearchAgentGateway;
+import top.egon.cola.archetype.source.agent.infrastructure.research.service.impl.AgentFlowDeepResearchAgentServiceImpl;
 import top.egon.cola.component.agentflow.api.AgentFlowExecutionCommand;
 import top.egon.cola.component.agentflow.api.AgentFlowService;
 import top.egon.cola.component.agentflow.api.AgentFlowSessionCommand;
@@ -44,7 +44,7 @@ class AgentFlowDeepResearchAgentGatewayTest {
         when(flow.createSession(any(AgentFlowSessionCommand.class)))
                 .thenReturn(new AgentFlowSessionResult("deep-research", "session-1", NOW));
         when(flow.executeStream(any(AgentFlowExecutionCommand.class))).thenReturn(events);
-        AgentFlowDeepResearchAgentGateway gateway = gateway(flow);
+        AgentFlowDeepResearchAgentServiceImpl gateway = gateway(flow);
         List<DeepResearchEvent> received = new ArrayList<>();
 
         DeepResearchRunService run = gateway.start(task(), received::add);
@@ -69,7 +69,7 @@ class AgentFlowDeepResearchAgentGatewayTest {
         when(flow.createSession(any(AgentFlowSessionCommand.class)))
                 .thenReturn(new AgentFlowSessionResult("deep-research", "session-1", NOW));
         when(flow.executeStream(any(AgentFlowExecutionCommand.class))).thenReturn(events);
-        AgentFlowDeepResearchAgentGateway gateway = gateway(flow);
+        AgentFlowDeepResearchAgentServiceImpl gateway = gateway(flow);
         List<DeepResearchEvent> received = new ArrayList<>();
 
         gateway.start(task(), received::add);
@@ -89,7 +89,7 @@ class AgentFlowDeepResearchAgentGatewayTest {
         when(flow.createSession(any(AgentFlowSessionCommand.class)))
                 .thenReturn(new AgentFlowSessionResult("deep-research", "session-1", NOW));
         when(flow.executeStream(any(AgentFlowExecutionCommand.class))).thenReturn(events);
-        AgentFlowDeepResearchAgentGateway gateway = gateway(flow);
+        AgentFlowDeepResearchAgentServiceImpl gateway = gateway(flow);
 
         DeepResearchRunService run = gateway.start(task(), event -> { });
         run.cancel();
@@ -105,7 +105,7 @@ class AgentFlowDeepResearchAgentGatewayTest {
         AgentFlowService flow = mock(AgentFlowService.class);
         when(flow.createSession(any(AgentFlowSessionCommand.class)))
                 .thenThrow(new IllegalStateException("not available"));
-        AgentFlowDeepResearchAgentGateway gateway = gateway(flow);
+        AgentFlowDeepResearchAgentServiceImpl gateway = gateway(flow);
 
         assertThrows(IllegalStateException.class, () -> gateway.start(task(), event -> { }));
 
@@ -114,8 +114,8 @@ class AgentFlowDeepResearchAgentGatewayTest {
         verify(flow, never()).deleteSession(any(AgentFlowSessionCommand.class));
     }
 
-    private static AgentFlowDeepResearchAgentGateway gateway(AgentFlowService flow) {
-        return new AgentFlowDeepResearchAgentGateway(flow,
+    private static AgentFlowDeepResearchAgentServiceImpl gateway(AgentFlowService flow) {
+        return new AgentFlowDeepResearchAgentServiceImpl(flow,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 

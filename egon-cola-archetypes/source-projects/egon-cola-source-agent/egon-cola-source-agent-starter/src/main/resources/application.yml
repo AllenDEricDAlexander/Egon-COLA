@@ -106,7 +106,7 @@ egon:
         local-write-guard:
           enabled: true
           allowed-root-statements:
-            "[top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]": knowledge_base_id
+            "[top.egon.cola.archetype.source.agent.infrastructure.knowledge.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]": knowledge_base_id
         sharding:
           enabled: true
           mode: SHARDING

@@ -5,14 +5,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.AskKnowledgeBaseCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.RetrieveKnowledgeCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.exception.KnowledgeApplicationException;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.AskKnowledgeBaseCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.RetrieveKnowledgeCommand;
+import top.egon.cola.archetype.source.agent.common.exception.KnowledgeApplicationException;
 import top.egon.cola.archetype.source.agent.application.knowledge.manage.KnowledgeQaManage;
 import top.egon.cola.archetype.source.agent.application.knowledge.service.KnowledgeQaCapacityService;
 import top.egon.cola.archetype.source.agent.common.error.KnowledgeErrorCodeEnum;
-import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeAnswerGateway;
-import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeVectorGateway;
+import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeAnswerService;
+import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeVectorService;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeAnswerTaskBO;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeBaseBO;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeChunkBO;
@@ -69,9 +69,9 @@ public class KnowledgeQaManageImpl implements KnowledgeQaManage {
 
     private final @Qualifier("knowledgeDocumentRepository") KnowledgeDocumentRepository documentRepository;
 
-    private final @Qualifier("knowledgeVectorGateway") KnowledgeVectorGateway vectorGateway;
+    private final @Qualifier("knowledgeVectorService") KnowledgeVectorService vectorService;
 
-    private final @Qualifier("knowledgeAnswerGateway") KnowledgeAnswerGateway answerGateway;
+    private final @Qualifier("knowledgeAnswerService") KnowledgeAnswerService answerService;
 
     private final @Qualifier("knowledgeQaCapacityService") KnowledgeQaCapacityService capacityService;
 
@@ -124,8 +124,8 @@ public class KnowledgeQaManageImpl implements KnowledgeQaManage {
         KnowledgeQaEventObserverService guardedObserver =
                 guardedObserver(observer, terminal, downstream, lease, base, answerId, startedAt);
         try {
-            KnowledgeAnswerRunService run = Objects.requireNonNull(answerGateway.generate(task, guardedObserver),
-                    "gateway returned no run");
+            KnowledgeAnswerRunService run = Objects.requireNonNull(answerService.generate(task, guardedObserver),
+                    "the answer service returned no run");
             downstream.set(run);
             if (terminal.get()) {
                 // The generation ended while it was being set up: its events are done, so the model
@@ -199,7 +199,7 @@ public class KnowledgeQaManageImpl implements KnowledgeQaManage {
                                                    double threshold, String traceId) {
         List<KnowledgeChunkBO> chunks;
         try {
-            chunks = vectorGateway.retrieve(String.valueOf(base.knowledgeBaseId()), base.embeddingModel(), query,
+            chunks = vectorService.retrieve(String.valueOf(base.knowledgeBaseId()), base.embeddingModel(), query,
                     topK == null ? COMPONENT_DEFAULT_TOP_K : topK, Map.of());
         } catch (RagException failure) {
             throw new KnowledgeApplicationException(failureCode(failure), traceId, failure);

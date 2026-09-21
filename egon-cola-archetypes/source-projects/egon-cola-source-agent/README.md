@@ -9,7 +9,7 @@ common -> domain -> application -> adapter -> starter
              \-> infrastructure -> starter
 ```
 
-The project consumes `egon-cola-component-agent-flow-starter` for Agent Flow execution, and the RAG, transactional-outbox and MyBatis-Plus components for the knowledge domain. Provider configuration, MCP credentials, database credentials, and API secrets are supplied by environment-backed Starter configuration. It has no cache, MQ, RPC, GraphQL, UI, history, or recovery API beyond the knowledge tables.
+The project consumes `egon-cola-component-agent-flow-starter` for Agent Flow execution, and the RAG, transactional-outbox and MyBatis-Plus components for the knowledge domain. Provider configuration, MCP credentials, database credentials, and API secrets are supplied by environment-backed Starter configuration. It has no MQ, RPC, GraphQL, UI, history, or recovery API beyond the knowledge tables, and its two-level cache is wired but not yet used by a query.
 
 The source reactor is verified with Java 21, Spring Boot 3.5.16, Spring AI 1.1.8, Springdoc 2.8.17, and Google ADK 0.7.0 through the Components starter. Only the generated `egon-cola-archetype-agent` definition becomes a public Archetype family.
 
@@ -147,7 +147,7 @@ Run the source checks without starting a service:
 ./mvnw -B -ntp -f egon-cola-source-agent/pom.xml clean verify
 ```
 
-The generated family is validated separately by the repository archetype scripts. The source project contains no cache, message broker, RPC, GraphQL endpoint, or UI; its only durable surface is the knowledge schema with its migrations and the outbox queue.
+The generated family is validated separately by the repository archetype scripts. The source project contains no message broker, RPC, GraphQL endpoint, or UI; its durable surface is the knowledge schema with its migrations and the outbox queue, over the two-level cache that no query has opted into yet.
 
 ## Knowledge Repository migration
 
@@ -157,12 +157,15 @@ Agent keeps Flyway. `V20260913_001__egon_model_repository.sql` requires both kno
 
 Set `EGON_ID_MACHINE_ID` for production. Default H2/fake-model tests do not run PostgreSQL migrations or vector integrations; perform those checks manually on a dedicated database.
 
-## Two-level cache skeleton (disabled by default)
+## Two-level cache
 
-The generated project includes the cache starter with `enabled: false`. To enable it, provide a `RedissonClient`, set
-`egon.cola.component.cache.enabled=true`, and explicitly add `@EnableCaching` to a configuration class. The mp-sd-ext
-base repository no longer depends on a cache port: concrete repositories declare Spring Cache annotations. The
-repository examples use `findCachedById` / `updateCachedById` (Agent defines its own business methods). Ordinary CRUD no
-longer evicts implicitly; annotate every relevant write/delete path. See
+`base`, `dev` and `prod` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys
+with `enabled: false` so unit and module runs never require Redis. `infrastructure/config/RedisConfig.java` carries
+`@EnableCaching` and publishes the `redissonClient`, so a generated project is cache-ready once a Redis connection is
+configured. The mp-sd-ext base repository no longer depends on a cache port: concrete repositories declare Spring Cache
+annotations, and no knowledge query is annotated yet, so enabling the switch changes nothing until a read path opts in.
+Ordinary CRUD does not evict implicitly; annotate every relevant write and delete path whenever a read is cached. Every
+profile declares the same five TTL keys (`l1-expire`, `l1-jitter`, `l2-expire`, `l2-jitter`, `null-expire`) plus the
+shared `key-prefix`, `tenant-mdc-key` and batch/lock budgets; only the values differ. See
 the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
 for keys, conditions, combined operations, transactions and sync limitations.

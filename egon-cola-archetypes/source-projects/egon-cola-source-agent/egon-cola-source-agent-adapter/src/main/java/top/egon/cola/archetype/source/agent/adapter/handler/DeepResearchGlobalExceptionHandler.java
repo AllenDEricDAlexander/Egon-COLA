@@ -16,8 +16,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
-import top.egon.cola.archetype.source.agent.adapter.research.converter.DeepResearchErrorConverter;
-import top.egon.cola.archetype.source.agent.application.research.exception.DeepResearchApplicationException;
+import top.egon.cola.archetype.source.agent.adapter.research.pojo.convertor.DeepResearchErrorConverter;
+import top.egon.cola.archetype.source.agent.common.exception.DeepResearchApplicationException;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
 
 import java.time.Clock;

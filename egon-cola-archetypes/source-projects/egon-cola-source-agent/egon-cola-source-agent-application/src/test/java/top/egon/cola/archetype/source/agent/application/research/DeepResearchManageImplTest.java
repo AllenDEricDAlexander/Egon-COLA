@@ -5,13 +5,13 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.archetype.source.agent.application.research.command.StartDeepResearchCommand;
+import top.egon.cola.archetype.source.agent.application.research.pojo.command.StartDeepResearchCommand;
 import top.egon.cola.archetype.source.agent.application.research.config.DeepResearchRuntimeProperties;
-import top.egon.cola.archetype.source.agent.application.research.exception.DeepResearchApplicationException;
+import top.egon.cola.archetype.source.agent.common.exception.DeepResearchApplicationException;
 import top.egon.cola.archetype.source.agent.application.research.manage.impl.DeepResearchManageImpl;
 import top.egon.cola.archetype.source.agent.application.research.service.ResearchCapacityService;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
-import top.egon.cola.archetype.source.agent.domain.research.gateway.DeepResearchAgentGateway;
+import top.egon.cola.archetype.source.agent.domain.research.service.DeepResearchAgentService;
 import top.egon.cola.archetype.source.agent.domain.research.model.DeepResearchEvent;
 import top.egon.cola.archetype.source.agent.domain.research.model.DeepResearchTaskBO;
 import top.egon.cola.archetype.source.agent.domain.research.model.ReportLanguageEnum;
@@ -48,8 +48,8 @@ class DeepResearchManageImplTest {
 
     @Test
     void saturates_four_fair_permits_before_gateway_and_reuses_after_cancel() {
-        RecordingGateway gateway = new RecordingGateway();
-        DeepResearchManageImpl manage = manage(gateway, 4);
+        RecordingAgentService agentService = new RecordingAgentService();
+        DeepResearchManageImpl manage = manage(agentService, 4);
         List<DeepResearchRunService> runs = new ArrayList<>();
 
         for (int index = 0; index < 4; index++) {
@@ -58,23 +58,23 @@ class DeepResearchManageImplTest {
         DeepResearchApplicationException capacityFailure = assertThrows(DeepResearchApplicationException.class,
                 () -> manage.startResearch(command("fifth"), event -> { }));
         assertEquals(ResearchErrorCodeEnum.RESEARCH_CAPACITY_EXHAUSTED, capacityFailure.code());
-        assertEquals(4, gateway.starts);
+        assertEquals(4, agentService.starts);
 
         runs.getFirst().cancel();
         assertNotNull(manage.startResearch(command("after-cancel"), event -> { }));
-        assertEquals(5, gateway.starts);
+        assertEquals(5, agentService.starts);
     }
 
     @Test
     void emits_only_one_terminal_outcome_and_releases_once() {
-        RecordingGateway gateway = new RecordingGateway();
-        DeepResearchManageImpl manage = manage(gateway, 1);
+        RecordingAgentService agentService = new RecordingAgentService();
+        DeepResearchManageImpl manage = manage(agentService, 1);
         List<DeepResearchEvent> received = new ArrayList<>();
         DeepResearchRunService run = manage.startResearch(command("terminal"), received::add);
 
-        gateway.emit(DeepResearchEvent.completed(run.runId(), 1, "report",
+        agentService.emit(DeepResearchEvent.completed(run.runId(), 1, "report",
                 Instant.parse("2026-09-04T08:00:01Z"), "trace-1"));
-        gateway.emit(DeepResearchEvent.failed(run.runId(), 2, ResearchErrorCodeEnum.RESEARCH_INTERNAL_ERROR,
+        agentService.emit(DeepResearchEvent.failed(run.runId(), 2, ResearchErrorCodeEnum.RESEARCH_INTERNAL_ERROR,
                 Instant.parse("2026-09-04T08:00:02Z"), "trace-1"));
 
         assertEquals(1, received.size());
@@ -84,29 +84,29 @@ class DeepResearchManageImplTest {
 
     @Test
     void releases_capacity_when_gateway_fails_or_observer_throws() {
-        RecordingGateway failingGateway = new RecordingGateway();
-        failingGateway.failOnStart = true;
-        DeepResearchManageImpl failingManage = manage(failingGateway, 1);
+        RecordingAgentService failingService = new RecordingAgentService();
+        failingService.failOnStart = true;
+        DeepResearchManageImpl failingManage = manage(failingService, 1);
         assertThrows(DeepResearchApplicationException.class,
                 () -> failingManage.startResearch(command("sync-failure"), event -> { }));
-        failingGateway.failOnStart = false;
+        failingService.failOnStart = false;
         assertNotNull(failingManage.startResearch(command("after-failure"), event -> { }));
 
-        RecordingGateway observerGateway = new RecordingGateway();
-        DeepResearchManageImpl observerManage = manage(observerGateway, 1);
+        RecordingAgentService observerService = new RecordingAgentService();
+        DeepResearchManageImpl observerManage = manage(observerService, 1);
         DeepResearchRunService run = observerManage.startResearch(command("observer-failure"), event -> {
             throw new IllegalStateException("observer failure");
         });
-        assertThrows(IllegalStateException.class, () -> observerGateway.emit(DeepResearchEvent.progress(run.runId(), 1,
+        assertThrows(IllegalStateException.class, () -> observerService.emit(DeepResearchEvent.progress(run.runId(), 1,
                 ResearchStageEnum.PLANNING, "Planner", "planning",
                 Instant.parse("2026-09-04T08:00:01Z"), "trace-1")));
         assertNotNull(observerManage.startResearch(command("after-observer"), event -> { }));
     }
 
-    private static DeepResearchManageImpl manage(RecordingGateway gateway, int permits) {
+    private static DeepResearchManageImpl manage(RecordingAgentService agentService, int permits) {
         DeepResearchRuntimeProperties properties = new DeepResearchRuntimeProperties(
                 permits, Duration.ofMinutes(5), 20, Duration.ofSeconds(15));
-        return new DeepResearchManageImpl(gateway, new ResearchCapacityService(permits),
+        return new DeepResearchManageImpl(agentService, new ResearchCapacityService(permits),
                 new ValidationUtils(validatorFactory.getValidator()), properties,
                 Clock.fixed(Instant.parse("2026-09-04T08:00:00Z"), ZoneOffset.UTC));
     }
@@ -115,7 +115,7 @@ class DeepResearchManageImplTest {
         return new StartDeepResearchCommand(topic, ReportLanguageEnum.ZH_CN, 8, "trace-1");
     }
 
-    private static final class RecordingGateway implements DeepResearchAgentGateway {
+    private static final class RecordingAgentService implements DeepResearchAgentService {
         private final AtomicInteger nextRun = new AtomicInteger();
         private final List<DeepResearchEventObserverService> observers = new ArrayList<>();
         private int starts;
@@ -125,7 +125,7 @@ class DeepResearchManageImplTest {
         public DeepResearchRunService start(DeepResearchTaskBO task, DeepResearchEventObserverService observer) {
             starts++;
             if (failOnStart) {
-                throw new IllegalStateException("gateway unavailable");
+                throw new IllegalStateException("the agent service is unavailable");
             }
             observers.add(observer);
             return new RecordingRun(task.runId(), nextRun);

@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.agent.application.research.service;
 
 import lombok.extern.slf4j.Slf4j;
-import top.egon.cola.archetype.source.agent.application.research.exception.DeepResearchApplicationException;
+import top.egon.cola.archetype.source.agent.common.exception.DeepResearchApplicationException;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
 
 import java.util.concurrent.Semaphore;

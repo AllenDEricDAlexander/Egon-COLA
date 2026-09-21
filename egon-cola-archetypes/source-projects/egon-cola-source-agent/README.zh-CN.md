@@ -9,7 +9,7 @@ common -> domain -> application -> adapter -> starter
              \-> infrastructure -> starter
 ```
 
-项目通过 `egon-cola-component-agent-flow-starter` 消费通用 Agent Flow 能力，并通过 RAG、transactional-outbox 与 MyBatis-Plus 组件支撑 knowledge 域。provider 配置、MCP 凭据、数据库凭据和 API secret 由 Starter 的环境配置提供。除 knowledge 三张表之外，项目不包含缓存、MQ、RPC、GraphQL、UI、历史、恢复 API。
+项目通过 `egon-cola-component-agent-flow-starter` 消费通用 Agent Flow 能力，并通过 RAG、transactional-outbox 与 MyBatis-Plus 组件支撑 knowledge 域。provider 配置、MCP 凭据、数据库凭据和 API secret 由 Starter 的环境配置提供。除 knowledge 三张表之外，项目不包含 MQ、RPC、GraphQL、UI、历史、恢复 API；二级缓存已接线但尚无查询接入。
 
 source reactor 使用 Java 21、Spring Boot 3.5.16、Spring AI 1.1.8、Springdoc 2.8.17，并通过 Components starter 使用 Google ADK 0.7.0。只有生成后的 `egon-cola-archetype-agent` definition 会成为公共 Archetype family。
 
@@ -141,7 +141,7 @@ curl --fail-with-body --no-buffer \
 ./mvnw -B -ntp -f egon-cola-source-agent/pom.xml clean verify
 ```
 
-生成的 family 由仓库 archetype 脚本独立验证。该 source project 不包含缓存、消息中间件、RPC、GraphQL endpoint 或 UI；其唯一持久面是 knowledge 的库表、迁移与 outbox 队列。
+生成的 family 由仓库 archetype 脚本独立验证。该 source project 不包含消息中间件、RPC、GraphQL endpoint 或 UI；其持久面是 knowledge 的库表、迁移与 outbox 队列，以及已接线但尚无查询接入的二级缓存。
 
 ## 知识库 Repository 迁移
 
@@ -151,10 +151,8 @@ Agent 继续使用 Flyway。新增 `V20260913_001__egon_model_repository.sql` �
 
 生产配置 `EGON_ID_MACHINE_ID`。默认 H2/fake-model 测试不执行 PostgreSQL 迁移或向量集成，需在专用数据库上手动验收。
 
-## 二级缓存骨架（默认关闭）
+## 二级缓存
 
-生成工程保留缓存 starter 依赖和默认 `enabled: false` 配置。启用时由宿主提供 `RedissonClient`，设置
-`egon.cola.component.cache.enabled=true`，并在配置类显式添加 `@EnableCaching`。mp-sd-ext 基类已移除缓存端口耦合，具体
-Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
-`updateCachedById`（Agent 按业务自行声明）。普通 CRUD
-不再隐式失效缓存，其他写入和删除入口也须声明失效。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+`base`、`dev`、`prod` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/RedisConfig.java` 已带 `@EnableCaching` 并发布 `redissonClient`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
+Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；当前没有任何 knowledge 查询被注解，因此打开开关本身不会改变行为。普通 CRUD
+不再隐式失效缓存，一旦有读路径接入，其写入和删除入口也必须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。

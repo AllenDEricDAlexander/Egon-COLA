@@ -5,13 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import top.egon.cola.archetype.source.agent.application.research.command.StartDeepResearchCommand;
+import top.egon.cola.archetype.source.agent.application.research.pojo.command.StartDeepResearchCommand;
 import top.egon.cola.archetype.source.agent.application.research.config.DeepResearchRuntimeProperties;
-import top.egon.cola.archetype.source.agent.application.research.exception.DeepResearchApplicationException;
+import top.egon.cola.archetype.source.agent.common.exception.DeepResearchApplicationException;
 import top.egon.cola.archetype.source.agent.application.research.manage.DeepResearchManage;
 import top.egon.cola.archetype.source.agent.application.research.service.ResearchCapacityService;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
-import top.egon.cola.archetype.source.agent.domain.research.gateway.DeepResearchAgentGateway;
+import top.egon.cola.archetype.source.agent.domain.research.service.DeepResearchAgentService;
 import top.egon.cola.archetype.source.agent.domain.research.model.DeepResearchEvent;
 import top.egon.cola.archetype.source.agent.domain.research.model.DeepResearchTaskBO;
 import top.egon.cola.archetype.source.agent.domain.research.service.DeepResearchEventObserverService;
@@ -32,8 +32,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class DeepResearchManageImpl implements DeepResearchManage {
 
-    @Qualifier("deepResearchAgentGateway")
-    private final DeepResearchAgentGateway gateway;
+    @Qualifier("deepResearchAgentService")
+    private final DeepResearchAgentService agentService;
 
     @Qualifier("researchCapacityService")
     private final ResearchCapacityService capacityService;
@@ -96,8 +96,8 @@ public class DeepResearchManageImpl implements DeepResearchManage {
         };
 
         try {
-            DeepResearchRunService run = Objects.requireNonNull(gateway.start(task, guardedObserver),
-                    "gateway returned no run");
+            DeepResearchRunService run = Objects.requireNonNull(agentService.start(task, guardedObserver),
+                    "the agent service returned no run");
             downstream.set(run);
             if (terminal.get()) {
                 cancelDownstream(run);

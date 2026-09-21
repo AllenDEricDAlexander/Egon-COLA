@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeVectorGateway;
+import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeVectorService;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeDocumentBO;
 import top.egon.cola.archetype.source.agent.domain.knowledge.repository.KnowledgeBaseRepository;
 import top.egon.cola.archetype.source.agent.domain.knowledge.repository.KnowledgeDocumentRepository;
@@ -32,7 +32,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class KnowledgeRemovalService {
 
-    private final @Qualifier("knowledgeVectorGateway") KnowledgeVectorGateway vectorGateway;
+    private final @Qualifier("knowledgeVectorService") KnowledgeVectorService vectorService;
 
     private final @Qualifier("knowledgeDocumentRepository") KnowledgeDocumentRepository documentRepository;
 
@@ -71,7 +71,7 @@ public class KnowledgeRemovalService {
     public void removeDocument(String collectionId, Long documentId) {
         Objects.requireNonNull(collectionId, "collectionId must not be null");
         Objects.requireNonNull(documentId, "documentId must not be null");
-        vectorGateway.deleteDocument(collectionId, String.valueOf(documentId));
+        vectorService.deleteDocument(collectionId, String.valueOf(documentId));
         documentRepository.softDelete(documentId);
         log.info("knowledge document removed documentId={} knowledgeBaseId={}", documentId, collectionId);
     }
@@ -82,7 +82,7 @@ public class KnowledgeRemovalService {
         Objects.requireNonNull(collectionId, "collectionId must not be null");
         Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null");
         List<Long> documents = documentIds == null ? List.of() : List.copyOf(documentIds);
-        documents.forEach(documentId -> vectorGateway.deleteDocument(collectionId, String.valueOf(documentId)));
+        documents.forEach(documentId -> vectorService.deleteDocument(collectionId, String.valueOf(documentId)));
         documentRepository.softDeleteByKnowledgeBaseId(knowledgeBaseId);
         knowledgeBaseRepository.softDelete(knowledgeBaseId);
         log.info("knowledge base removed knowledgeBaseId={} documentCount={}",

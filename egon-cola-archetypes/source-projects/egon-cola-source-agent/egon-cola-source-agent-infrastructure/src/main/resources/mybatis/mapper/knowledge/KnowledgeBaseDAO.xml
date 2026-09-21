@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeBaseDAO">
-    <resultMap id="row" type="top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.po.KnowledgeBasePO" autoMapping="true">
+<mapper namespace="top.egon.cola.archetype.source.agent.infrastructure.knowledge.dao.KnowledgeBaseDAO">
+    <resultMap id="row" type="top.egon.cola.archetype.source.agent.infrastructure.knowledge.po.KnowledgeBasePO" autoMapping="true">
         <id column="id" property="id"/>
-        <result column="chunk_config" property="chunkConfig" typeHandler="top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.po.JsonbStringTypeHandler"/>
+        <result column="chunk_config" property="chunkConfig" typeHandler="top.egon.cola.archetype.source.agent.infrastructure.knowledge.po.JsonbStringTypeHandler"/>
     </resultMap>
     <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, code, name, description, embedding_model, chunk_strategy, chunk_config, status</sql>
     <select id="selectActiveById" resultMap="row">

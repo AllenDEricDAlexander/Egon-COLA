@@ -1,8 +1,8 @@
 package top.egon.cola.archetype.source.agent.application.knowledge.manage;
 
 import jakarta.validation.Valid;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.AskKnowledgeBaseCommand;
-import top.egon.cola.archetype.source.agent.application.knowledge.command.RetrieveKnowledgeCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.AskKnowledgeBaseCommand;
+import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.RetrieveKnowledgeCommand;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeRetrievalBO;
 import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeAnswerRunService;
 import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeQaEventObserverService;

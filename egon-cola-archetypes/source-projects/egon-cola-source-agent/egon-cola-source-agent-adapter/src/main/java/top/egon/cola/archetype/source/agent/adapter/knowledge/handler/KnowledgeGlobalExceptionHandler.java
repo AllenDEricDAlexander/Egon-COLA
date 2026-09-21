@@ -30,7 +30,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
 import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
-import top.egon.cola.archetype.source.agent.application.knowledge.exception.KnowledgeApplicationException;
+import top.egon.cola.archetype.source.agent.common.exception.KnowledgeApplicationException;
 import top.egon.cola.archetype.source.agent.common.error.KnowledgeErrorCodeEnum;
 
 import java.lang.annotation.Annotation;

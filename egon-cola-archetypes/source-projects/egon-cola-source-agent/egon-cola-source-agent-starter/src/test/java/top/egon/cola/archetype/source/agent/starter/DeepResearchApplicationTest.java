@@ -36,7 +36,7 @@ class DeepResearchApplicationTest extends PersistenceTestSupport {
         assertNotNull(context.getBean("deepResearchChatModel", ChatModel.class));
         assertNotNull(context.getBean("deepResearchSearchTools", ToolCallback[].class));
         assertNotNull(context.getBean("deepResearchManage"));
-        assertNotNull(context.getBean("deepResearchAgentGateway"));
+        assertNotNull(context.getBean("deepResearchAgentService"));
         assertNotNull(context.getBean("agentFlowService", AgentFlowService.class));
         assertFalse(context.containsBean("mcpResearchToolFactory"));
         assertTrue(context.getBean(AgentFlowService.class).listFlows().stream()

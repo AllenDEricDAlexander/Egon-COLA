@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO">
-    <resultMap id="row" type="top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.po.KnowledgeDocumentPO" autoMapping="true">
+<mapper namespace="top.egon.cola.archetype.source.agent.infrastructure.knowledge.dao.KnowledgeDocumentDAO">
+    <resultMap id="row" type="top.egon.cola.archetype.source.agent.infrastructure.knowledge.po.KnowledgeDocumentPO" autoMapping="true">
         <id column="id" property="id"/>
     </resultMap>
     <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, knowledge_base_id, display_name, file_name, mime_type, size_bytes, content_hash, storage_type, storage_key, content, status, chunk_count, attempt_count, error_code, error_message</sql>
