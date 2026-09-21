@@ -2,13 +2,13 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.dao.RolePermissionDAO">
+<mapper namespace="top.egon.cola.archetype.source.lightopen.infrastructure.user.dao.RolePermissionDAO">
     <sql id="rolePermissionColumns">
         id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
         role_code, permission_code
     </sql>
     <select id="selectByRoleCodeIn"
-            resultType="top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.RolePermissionPO">
+            resultType="top.egon.cola.archetype.source.lightopen.infrastructure.user.po.RolePermissionPO">
         SELECT <include refid="rolePermissionColumns"/> FROM light_role_permissions
         WHERE deleted_at IS NULL AND role_code IN
         <foreach collection="roleCodes" item="roleCode" open="(" separator="," close=")">
@@ -16,10 +16,10 @@
         </foreach>
         ORDER BY id
     </select>
-    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.RolePermissionPO">
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.lightopen.infrastructure.user.po.RolePermissionPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, role_code, permission_code FROM light_role_permissions WHERE id=#{id} AND deleted_at IS NULL
     </select>
-    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.RolePermissionPO">
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.lightopen.infrastructure.user.po.RolePermissionPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, role_code, permission_code FROM light_role_permissions WHERE deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>

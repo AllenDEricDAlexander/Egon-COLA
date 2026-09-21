@@ -1,13 +1,13 @@
 package top.egon.cola.archetype.source.lightopen.infrastructure.user.repo;
 
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.dao.PermissionDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.dao.RoleDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.dao.RolePermissionDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.dao.UserDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.dao.UserRoleDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.PermissionPO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.RolePO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.UserPO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.dao.PermissionDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.dao.RoleDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.dao.RolePermissionDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.dao.UserDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.dao.UserRoleDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.PermissionPO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.RolePO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.UserPO;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.common.mybatis.model.EgonModel;

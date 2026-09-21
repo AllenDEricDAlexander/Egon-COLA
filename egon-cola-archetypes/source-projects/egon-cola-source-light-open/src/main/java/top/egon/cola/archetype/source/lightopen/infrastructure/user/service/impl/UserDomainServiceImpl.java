@@ -5,11 +5,11 @@ import top.egon.cola.archetype.source.lightopen.domain.user.entities.User;
 import top.egon.cola.archetype.source.lightopen.domain.user.enums.UserStatus;
 import top.egon.cola.archetype.source.lightopen.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserId;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.converter.UserPOConverter;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.converter.UserPOConverter;
 import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.UserRepository;
 import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.UserRoleRepository;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.UserPO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.UserRolePO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.UserPO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.UserRolePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -47,7 +47,8 @@ public class UserDomainServiceImpl
         UserPO po = converter.toTarget(user);
         UserPO current = po.getId() == null ? null : userRepository.getById(po.getId());
         if (current != null) { converter.updateMetadata(po, current); }
-        boolean written = current == null ? userRepository.save(po) : userRepository.updateById(po);
+        boolean written = current == null
+                ? userRepository.save(po) : userRepository.updateCachedById(po);
         if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
 
         return converter.toSource(po);
@@ -55,7 +56,7 @@ public class UserDomainServiceImpl
 
     @Override
     public Optional<User> findById(UserId userId) {
-        return Optional.ofNullable(userRepository.getById(userId.value())).map(converter::toSource);
+        return Optional.ofNullable(userRepository.findCachedById(userId.value())).map(converter::toSource);
     }
 
     @Override

@@ -1,15 +1,22 @@
 package top.egon.cola.archetype.source.lightopen.domain.user.validators;
 
+import jakarta.validation.Validation;
+import top.egon.cola.archetype.source.lightopen.common.exception.UserDomainException;
 import top.egon.cola.archetype.source.lightopen.domain.user.entities.Permission;
 import top.egon.cola.archetype.source.lightopen.domain.user.entities.Role;
 import top.egon.cola.archetype.source.lightopen.domain.user.entities.User;
 import top.egon.cola.archetype.source.lightopen.domain.user.enums.PermissionStatus;
 import top.egon.cola.archetype.source.lightopen.domain.user.enums.RoleStatus;
 import top.egon.cola.archetype.source.lightopen.domain.user.enums.UserStatus;
-import top.egon.cola.archetype.source.lightopen.domain.user.exceptions.UserDomainException;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
-public final class UserDomainValidator {
-    private UserDomainValidator() {
+/** User invariants; the native-constraint facade is inherited from the common base. */
+public class UserDomainValidator extends BaseValidator {
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return JakartaValidation.UTILS;
     }
 
     public static void requireActive(User user) {
@@ -29,5 +36,11 @@ public final class UserDomainValidator {
         if (permission.status() != PermissionStatus.ACTIVE) {
             throw new UserDomainException("PERMISSION_NOT_ACTIVE", "Permission must be active");
         }
+    }
+
+    /** The Domain layer stays framework-free, so the Jakarta bootstrap is created on first use only. */
+    private static final class JakartaValidation {
+        private static final ValidationUtils UTILS =
+                new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
     }
 }

@@ -11,8 +11,8 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
         scanBasePackages = "top.egon.cola.archetype.source.lightopen")
 @EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)
 @MapperScan(basePackages = {
-        "top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.dao",
-        "top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.dao"
+        "top.egon.cola.archetype.source.lightopen.infrastructure.user.dao",
+        "top.egon.cola.archetype.source.lightopen.infrastructure.teaching.dao"
 })
 public class StudentManagementApplication {
 

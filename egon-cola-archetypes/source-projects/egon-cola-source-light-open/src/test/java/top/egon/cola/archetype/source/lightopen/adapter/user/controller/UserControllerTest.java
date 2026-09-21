@@ -1,9 +1,9 @@
 package top.egon.cola.archetype.source.lightopen.adapter.user.controller;
 
-import top.egon.cola.archetype.source.lightopen.adapter.user.convertor.UserAdapterConvertorImpl;
-import top.egon.cola.archetype.source.lightopen.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.convertor.UserAdapterConvertorImpl;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.lightopen.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.lightopen.application.user.result.UserResult;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.result.UserResult;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContextFilter;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.TraceIdFilter;
 import org.junit.jupiter.api.Test;

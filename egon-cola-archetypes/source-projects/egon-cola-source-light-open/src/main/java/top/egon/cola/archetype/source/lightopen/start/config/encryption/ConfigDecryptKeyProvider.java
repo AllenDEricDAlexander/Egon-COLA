@@ -1,5 +1,7 @@
 package top.egon.cola.archetype.source.lightopen.start.config.encryption;
 
+import top.egon.cola.archetype.source.lightopen.common.exception.ConfigDecryptException;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

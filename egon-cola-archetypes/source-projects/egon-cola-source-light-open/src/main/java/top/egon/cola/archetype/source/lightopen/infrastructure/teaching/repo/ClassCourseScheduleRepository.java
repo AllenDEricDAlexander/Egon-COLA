@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo;
 
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.dao.ClassCourseScheduleDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.ClassCourseSchedulePO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.dao.ClassCourseScheduleDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.ClassCourseSchedulePO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

@@ -1,27 +1,26 @@
 package top.egon.cola.archetype.source.lightopen.application.user.manage.impl;
 
-import top.egon.cola.archetype.source.lightopen.application.user.command.CreateUserCommand;
-import top.egon.cola.archetype.source.lightopen.application.user.convertor.UserApplicationConvertor;
-import top.egon.cola.archetype.source.lightopen.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.lightopen.application.user.manage.UserUseCaseException;
-import top.egon.cola.archetype.source.lightopen.application.user.query.GetUserQuery;
-import top.egon.cola.archetype.source.lightopen.application.user.result.UserResult;
-import top.egon.cola.archetype.source.lightopen.application.user.validators.UserApplicationValidator;
-import top.egon.cola.archetype.source.lightopen.domain.user.entities.User;
-import top.egon.cola.archetype.source.lightopen.domain.user.exceptions.UserDomainException;
-import top.egon.cola.archetype.source.lightopen.domain.user.client.UserCachePort;
-import top.egon.cola.archetype.source.lightopen.domain.user.event.UserEventPublisher;
-import top.egon.cola.archetype.source.lightopen.domain.user.service.UserDomainService;
-import top.egon.cola.archetype.source.lightopen.domain.user.gateway.UserQueryGateway;
-import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserEvent;
-import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserId;
-import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserSnapshot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.archetype.source.lightopen.application.user.manage.UserManage;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.CreateUserCommand;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.convertor.UserApplicationConvertor;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.query.GetUserQuery;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.result.UserResult;
+import top.egon.cola.archetype.source.lightopen.application.user.validators.UserApplicationValidator;
+import top.egon.cola.archetype.source.lightopen.common.exception.UserDomainException;
+import top.egon.cola.archetype.source.lightopen.common.exception.UserUseCaseException;
+import top.egon.cola.archetype.source.lightopen.domain.user.entities.User;
+import top.egon.cola.archetype.source.lightopen.domain.user.service.UserDomainService;
+import top.egon.cola.archetype.source.lightopen.domain.user.service.UserEventService;
+import top.egon.cola.archetype.source.lightopen.domain.user.service.UserIdempotencyService;
+import top.egon.cola.archetype.source.lightopen.domain.user.service.UserQueryService;
+import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserEvent;
+import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserId;
 
 @Service("userManageImpl")
 @Lazy
@@ -30,30 +29,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserManageImpl implements UserManage {
     @Qualifier("userDomainService")
     private final UserDomainService userDomainService;
-    @Qualifier("userQueryGateway")
-    private final UserQueryGateway userQueryGateway;
-    @Qualifier("userCachePort")
-    private final UserCachePort userCachePort;
-    @Qualifier("userEventPublisher")
-    private final UserEventPublisher userEventPublisher;
+    @Qualifier("userQueryService")
+    private final UserQueryService userQueryService;
+    @Qualifier("userEventService")
+    private final UserEventService userEventService;
+    @Qualifier("userIdempotencyService")
+    private final UserIdempotencyService userIdempotencyService;
     @Qualifier("userApplicationValidator")
     private final UserApplicationValidator applicationValidator;
-    @Qualifier("userApplicationConvertor")
+    @Qualifier("userApplicationConvertorImpl")
     private final UserApplicationConvertor convertor;
 
     @Override
     @Transactional
     public UserResult create(CreateUserCommand command) {
         applicationValidator.validate(command);
-        userQueryGateway.findExternalUser(command.externalId())
+        claim(command.idempotencyKey());
+        userQueryService.findExternalUser(command.externalId())
                 .orElseThrow(() -> new UserUseCaseException(
                         "EXTERNAL_USER_NOT_FOUND", "external user not found"));
         try {
             User saved = userDomainService.save(userDomainService.createUser(
                     command.externalId(), command.name(), command.email()));
-            userCachePort.evictUser(saved.id().value());
-            userEventPublisher.publish(UserEvent.created(saved.id().value()));
-            return convertor.toResult(saved);
+            userEventService.publish(UserEvent.created(saved.id().value()));
+            return convertor.toTarget(saved);
         } catch (UserDomainException exception) {
             throw translate(exception);
         }
@@ -61,20 +60,18 @@ public class UserManageImpl implements UserManage {
 
     @Override
     public UserResult get(GetUserQuery query) {
-        return userCachePort.getUser(query.userId())
-                .map(convertor::toResult)
-                .orElseGet(() -> loadAndCache(query.userId()));
+        return userDomainService.findById(new UserId(query.userId()))
+                .map(convertor::toTarget)
+                .orElseThrow(() -> new UserUseCaseException("USER_NOT_FOUND", "user not found"));
     }
 
-    private UserResult loadAndCache(Long userId) {
-        User user = userDomainService.findById(new UserId(userId))
-                .orElseThrow(() -> new UserUseCaseException("USER_NOT_FOUND", "user not found"));
-        UserSnapshot snapshot = convertor.toSnapshot(user);
-        userCachePort.putUser(snapshot);
-        return convertor.toResult(user);
+    private void claim(String idempotencyKey) {
+        if (!userIdempotencyService.claim(idempotencyKey)) {
+            throw new UserUseCaseException("DUPLICATE_REQUEST", "request was already processed");
+        }
     }
 
     private UserUseCaseException translate(UserDomainException exception) {
-        return new UserUseCaseException(exception.getCode(), exception.getMessage(), exception);
+        return new UserUseCaseException(exception.getStatus(), exception.getMessage(), exception);
     }
 }

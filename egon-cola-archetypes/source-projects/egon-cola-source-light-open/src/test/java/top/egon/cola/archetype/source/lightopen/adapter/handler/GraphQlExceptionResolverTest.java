@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.lightopen.adapter.handler;
 
-import top.egon.cola.archetype.source.lightopen.application.teaching.manage.TeachingUseCaseException;
+import top.egon.cola.archetype.source.lightopen.common.exception.TeachingUseCaseException;
 import graphql.GraphQLError;
 import graphql.schema.DataFetchingEnvironment;
 import org.junit.jupiter.api.Test;

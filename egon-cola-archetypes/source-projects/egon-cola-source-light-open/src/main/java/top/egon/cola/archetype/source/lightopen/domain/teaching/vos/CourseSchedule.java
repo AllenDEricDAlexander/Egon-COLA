@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.lightopen.domain.teaching.vos;
 
-import top.egon.cola.archetype.source.lightopen.domain.teaching.exceptions.TeachingDomainException;
+import top.egon.cola.archetype.source.lightopen.common.exception.TeachingDomainException;
 
 import java.time.LocalDateTime;
 import java.util.Objects;

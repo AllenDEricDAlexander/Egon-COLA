@@ -4,9 +4,9 @@ import top.egon.cola.archetype.source.lightopen.domain.teaching.entities.Course;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.enums.CourseStatus;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.service.CourseDomainService;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseCode;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.converter.CoursePOConverter;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.converter.CoursePOConverter;
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.CourseRepository;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.CoursePO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.CoursePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,7 +41,8 @@ public class CourseDomainServiceImpl
         CoursePO po = converter.toTarget(course);
         CoursePO current = po.getId() == null ? null : courseRepository.getById(po.getId());
         if (current != null) { converter.updateMetadata(po, current); }
-        boolean written = current == null ? courseRepository.save(po) : courseRepository.updateById(po);
+        boolean written = current == null
+                ? courseRepository.save(po) : courseRepository.updateCachedById(po);
         if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
 
         return converter.toSource(po);
@@ -49,7 +50,7 @@ public class CourseDomainServiceImpl
 
     @Override
     public Optional<Course> findById(Long courseId) {
-        return Optional.ofNullable(courseRepository.getById(courseId)).map(converter::toSource);
+        return Optional.ofNullable(courseRepository.findCachedById(courseId)).map(converter::toSource);
     }
 
     @Override

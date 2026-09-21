@@ -1,22 +1,29 @@
 package top.egon.cola.archetype.source.lightopen.application.user.validators;
 
-import top.egon.cola.archetype.source.lightopen.application.user.command.CreateUserCommand;
-import top.egon.cola.archetype.source.lightopen.application.user.manage.UserUseCaseException;
-import top.egon.cola.archetype.source.lightopen.domain.user.client.UserCachePort;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.AssignRoleCommand;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.CreateUserCommand;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.GrantPermissionCommand;
+import top.egon.cola.archetype.source.lightopen.common.exception.UserUseCaseException;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
+/** The claim moved to the idempotency service, so this fixture only covers stateless use-case rules. */
 class UserApplicationValidatorTest {
-    private final UserCachePort userCacheService = mock(UserCachePort.class);
-    private final UserApplicationValidator validator = new UserApplicationValidator(userCacheService);
+    private final ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
+    private final UserApplicationValidator validator =
+            new UserApplicationValidator(new ValidationUtils(validators.getValidator()));
+
+    @AfterEach
+    void closeValidationFactory() {
+        validators.close();
+    }
 
     @Test
     void rejects_missing_operator_context() {
@@ -25,31 +32,23 @@ class UserApplicationValidatorTest {
 
         UserUseCaseException error = assertThrows(UserUseCaseException.class, () -> validator.validate(command));
 
-        assertEquals("MISSING_OPERATOR", error.getCode());
+        assertEquals("MISSING_OPERATOR", error.getStatus());
     }
 
     @Test
-    void rejects_duplicate_request() {
-        CreateUserCommand command = command();
-        when(userCacheService.claimIdempotency("request-1", Duration.ofMinutes(5))).thenReturn(false);
+    void rejects_missing_request_context() {
+        AssignRoleCommand command = new AssignRoleCommand(1001L, "teacher", "operator-1", " ");
 
         UserUseCaseException error = assertThrows(UserUseCaseException.class, () -> validator.validate(command));
 
-        assertEquals("DUPLICATE_REQUEST", error.getCode());
+        assertEquals("MISSING_IDEMPOTENCY_KEY", error.getStatus());
     }
 
     @Test
-    void claims_valid_request_key() {
-        CreateUserCommand command = command();
-        when(userCacheService.claimIdempotency("request-1", Duration.ofMinutes(5))).thenReturn(true);
+    void accepts_a_well_formed_grant_request() {
+        GrantPermissionCommand command = new GrantPermissionCommand(
+                "teacher", "course:read", "operator-1", "request-1");
 
         assertDoesNotThrow(() -> validator.validate(command));
-
-        verify(userCacheService).claimIdempotency("request-1", Duration.ofMinutes(5));
-    }
-
-    private CreateUserCommand command() {
-        return new CreateUserCommand(
-                "ext-1", "Mario", "mario@example.com", "operator-1", "request-1");
     }
 }

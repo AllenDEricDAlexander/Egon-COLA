@@ -1,11 +1,11 @@
 package top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo;
 
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.dao.ClassCourseScheduleDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.dao.CourseDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.dao.SchoolClassDAO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.ClassCourseSchedulePO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.CoursePO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.SchoolClassPO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.dao.ClassCourseScheduleDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.dao.CourseDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.dao.SchoolClassDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.ClassCourseSchedulePO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.CoursePO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.SchoolClassPO;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.common.mybatis.model.EgonModel;

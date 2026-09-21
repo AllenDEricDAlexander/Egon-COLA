@@ -1,14 +1,29 @@
 package top.egon.cola.archetype.source.lightopen.infrastructure.teaching.validators;
 
-import top.egon.cola.archetype.source.lightopen.domain.teaching.exceptions.TeachingDomainException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import top.egon.cola.archetype.source.lightopen.common.exception.TeachingDomainException;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseCode;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.ExternalCourse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
+/** Infrastructure response rules for the teaching side. */
 @Component("teachingInfrastructureValidator")
+@RequiredArgsConstructor
 @Slf4j
-public class TeachingInfrastructureValidator {
+public class TeachingInfrastructureValidator extends BaseValidator {
+
+    @Qualifier("egonColaValidationUtils")
+    private final ValidationUtils validationUtils;
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
+
     public void validateExternalCourse(ExternalCourse course, CourseCode expectedCode) {
         if (course == null || !expectedCode.equals(course.code())) {
             throw new TeachingDomainException(

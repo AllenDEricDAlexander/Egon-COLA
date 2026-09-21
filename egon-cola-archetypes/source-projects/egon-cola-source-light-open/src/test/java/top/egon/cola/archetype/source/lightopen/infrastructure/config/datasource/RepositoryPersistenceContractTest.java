@@ -36,7 +36,7 @@ class RepositoryPersistenceContractTest extends top.egon.cola.archetype.source.l
     void repositoryActuallyFillsAndUpdatesThroughTheSpringProxy() {
         try (var tenant = org.slf4j.MDC.putCloseable("tenantId", "41");
              var user = org.slf4j.MDC.putCloseable("userId", "test-user")) {
-            var course = new top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.CoursePO()
+            var course = new top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.CoursePO()
                     .setCourseCode("MP_TEST").setName("Repository contract").setStatus("ACTIVE");
             assertThat(courses.save(course)).isTrue();
             assertThat(course.getId()).isPositive();

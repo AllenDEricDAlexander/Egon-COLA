@@ -1,24 +1,31 @@
 package top.egon.cola.archetype.source.lightopen.application.teaching.validators;
 
-import top.egon.cola.archetype.source.lightopen.application.teaching.command.CreateCourseCommand;
-import top.egon.cola.archetype.source.lightopen.application.teaching.command.ScheduleCourseCommand;
-import top.egon.cola.archetype.source.lightopen.application.teaching.manage.TeachingUseCaseException;
-import top.egon.cola.archetype.source.lightopen.domain.teaching.client.CourseCachePort;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.ScheduleCourseCommand;
+import top.egon.cola.archetype.source.lightopen.common.exception.TeachingUseCaseException;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
+/** The claim moved to the idempotency service, so this fixture only covers stateless use-case rules. */
 class TeachingApplicationValidatorTest {
-    private final CourseCachePort courseCacheService = mock(CourseCachePort.class);
-    private final TeachingApplicationValidator validator = new TeachingApplicationValidator(courseCacheService);
+    private final ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
+    private final TeachingApplicationValidator validator =
+            new TeachingApplicationValidator(new ValidationUtils(validators.getValidator()));
+
+    @AfterEach
+    void closeValidationFactory() {
+        validators.close();
+    }
 
     @Test
     void rejects_missing_operator_context() {
@@ -27,18 +34,17 @@ class TeachingApplicationValidatorTest {
         TeachingUseCaseException error = assertThrows(
                 TeachingUseCaseException.class, () -> validator.validate(command));
 
-        assertEquals("MISSING_OPERATOR", error.getCode());
+        assertEquals("MISSING_OPERATOR", error.getStatus());
     }
 
     @Test
-    void rejects_duplicate_request() {
-        ScheduleCourseCommand command = validCommand();
-        when(courseCacheService.claimIdempotency("request-1", Duration.ofMinutes(5))).thenReturn(false);
+    void rejects_missing_idempotency_key() {
+        CreateSchoolClassCommand command = new CreateSchoolClassCommand("Class One", "2026-FALL", "operator-1", " ");
 
         TeachingUseCaseException error = assertThrows(
                 TeachingUseCaseException.class, () -> validator.validate(command));
 
-        assertEquals("DUPLICATE_REQUEST", error.getCode());
+        assertEquals("MISSING_IDEMPOTENCY_KEY", error.getStatus());
     }
 
     @Test
@@ -50,24 +56,17 @@ class TeachingApplicationValidatorTest {
         TeachingUseCaseException error = assertThrows(
                 TeachingUseCaseException.class, () -> validator.validate(command));
 
-        assertEquals("INVALID_SCHEDULE", error.getCode());
+        assertEquals("INVALID_SCHEDULE", error.getStatus());
     }
 
     @Test
-    void claims_valid_schedule_request() {
-        ScheduleCourseCommand command = validCommand();
-        when(courseCacheService.claimIdempotency("request-1", Duration.ofMinutes(5))).thenReturn(true);
-
-        assertDoesNotThrow(() -> validator.validate(command));
-
-        verify(courseCacheService).claimIdempotency("request-1", Duration.ofMinutes(5));
-    }
-
-    private ScheduleCourseCommand validCommand() {
-        return new ScheduleCourseCommand(
+    void accepts_a_well_formed_schedule_request() {
+        ScheduleCourseCommand command = new ScheduleCourseCommand(
                 1003L, 1002L,
                 LocalDateTime.of(2026, 9, 1, 9, 0),
                 LocalDateTime.of(2026, 9, 1, 10, 0),
                 "operator-1", "request-1");
+
+        assertDoesNotThrow(() -> validator.validate(command));
     }
 }

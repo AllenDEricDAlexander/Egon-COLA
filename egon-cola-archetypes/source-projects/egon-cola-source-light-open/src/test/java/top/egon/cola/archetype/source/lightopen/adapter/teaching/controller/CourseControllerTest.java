@@ -2,9 +2,9 @@ package top.egon.cola.archetype.source.lightopen.adapter.teaching.controller;
 
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContextFilter;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.TraceIdFilter;
-import top.egon.cola.archetype.source.lightopen.adapter.teaching.convertor.TeachingAdapterConvertorImpl;
+import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.convertor.TeachingAdapterConvertorImpl;
 import top.egon.cola.archetype.source.lightopen.application.teaching.manage.CourseManage;
-import top.egon.cola.archetype.source.lightopen.application.teaching.result.CourseResult;
+import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.result.CourseResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

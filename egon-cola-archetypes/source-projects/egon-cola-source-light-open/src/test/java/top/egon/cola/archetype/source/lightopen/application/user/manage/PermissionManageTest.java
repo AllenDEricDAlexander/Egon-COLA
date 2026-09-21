@@ -1,20 +1,22 @@
 package top.egon.cola.archetype.source.lightopen.application.user.manage;
 
-import top.egon.cola.archetype.source.lightopen.application.user.command.GrantPermissionCommand;
-import top.egon.cola.archetype.source.lightopen.application.user.convertor.UserApplicationConvertor;
 import top.egon.cola.archetype.source.lightopen.application.user.manage.impl.PermissionManageImpl;
-import top.egon.cola.archetype.source.lightopen.application.user.query.GetUserPermissionsQuery;
-import top.egon.cola.archetype.source.lightopen.application.user.result.PermissionDetailResult;
-import top.egon.cola.archetype.source.lightopen.application.user.result.PermissionResult;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.GrantPermissionCommand;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.convertor.UserApplicationConvertor;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.query.GetUserPermissionsQuery;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.result.PermissionDetailResult;
+import top.egon.cola.archetype.source.lightopen.application.user.pojo.result.PermissionResult;
 import top.egon.cola.archetype.source.lightopen.application.user.validators.UserApplicationValidator;
+import top.egon.cola.archetype.source.lightopen.common.exception.UserDomainException;
+import top.egon.cola.archetype.source.lightopen.common.exception.UserUseCaseException;
 import top.egon.cola.archetype.source.lightopen.domain.user.entities.Permission;
 import top.egon.cola.archetype.source.lightopen.domain.user.entities.Role;
 import top.egon.cola.archetype.source.lightopen.domain.user.enums.PermissionStatus;
 import top.egon.cola.archetype.source.lightopen.domain.user.enums.RoleStatus;
-import top.egon.cola.archetype.source.lightopen.domain.user.event.UserEventPublisher;
-import top.egon.cola.archetype.source.lightopen.domain.user.exceptions.UserDomainException;
 import top.egon.cola.archetype.source.lightopen.domain.user.service.PermissionDomainService;
 import top.egon.cola.archetype.source.lightopen.domain.user.service.RoleDomainService;
+import top.egon.cola.archetype.source.lightopen.domain.user.service.UserEventService;
+import top.egon.cola.archetype.source.lightopen.domain.user.service.UserIdempotencyService;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.RoleCode;
 import org.junit.jupiter.api.Test;
@@ -36,7 +38,8 @@ import static org.mockito.Mockito.when;
 class PermissionManageTest {
     @Mock PermissionDomainService permissionDomainService;
     @Mock RoleDomainService roleDomainService;
-    @Mock UserEventPublisher userEventPublisher;
+    @Mock UserEventService userEventService;
+    @Mock UserIdempotencyService userIdempotencyService;
     @Mock UserApplicationValidator applicationValidator;
     @Mock UserApplicationConvertor convertor;
     @InjectMocks PermissionManageImpl manage;
@@ -45,22 +48,25 @@ class PermissionManageTest {
     void grants_permission_and_persists_aggregate() {
         Role role = role(RoleStatus.ACTIVE);
         Permission permission = permission(PermissionStatus.ACTIVE);
+        when(userIdempotencyService.claim("request-1")).thenReturn(true);
         when(roleDomainService.findByCode(new RoleCode("teacher"))).thenReturn(Optional.of(role));
         when(permissionDomainService.findByCode(new PermissionCode("course:read")))
                 .thenReturn(Optional.of(permission));
         when(permissionDomainService.grantPermission(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(convertor.toResult(role, permission)).thenReturn(new PermissionResult("teacher", "course:read", "ACTIVE"));
+        when(convertor.toPermissionResult(role, permission))
+                .thenReturn(new PermissionResult("teacher", "course:read", "ACTIVE"));
         PermissionResult result = manage.grantPermission(new GrantPermissionCommand(
                 "teacher", "course:read", "operator-1", "request-1"));
         assertEquals("course:read", result.permissionCode());
         verify(roleDomainService).savePermissions(any());
-        verify(userEventPublisher).publish(any());
+        verify(userEventService).publish(any());
     }
 
     @Test
     void translates_inactive_permission_failure() {
         Role role = role(RoleStatus.ACTIVE);
         Permission permission = permission(PermissionStatus.DISABLED);
+        when(userIdempotencyService.claim("request-1")).thenReturn(true);
         when(roleDomainService.findByCode(new RoleCode("teacher"))).thenReturn(Optional.of(role));
         when(permissionDomainService.findByCode(new PermissionCode("course:read")))
                 .thenReturn(Optional.of(permission));
@@ -68,7 +74,7 @@ class PermissionManageTest {
                 .thenThrow(new UserDomainException("PERMISSION_NOT_ACTIVE", "permission must be active"));
         UserUseCaseException error = assertThrows(UserUseCaseException.class,
                 () -> manage.grantPermission(new GrantPermissionCommand("teacher", "course:read", "operator-1", "request-1")));
-        assertEquals("PERMISSION_NOT_ACTIVE", error.getCode());
+        assertEquals("PERMISSION_NOT_ACTIVE", error.getStatus());
     }
 
     @Test

@@ -7,13 +7,13 @@ import top.egon.cola.archetype.source.lightopen.domain.teaching.service.SchoolCl
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseSchedule;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.Semester;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.converter.CoursePOConverter;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.converter.CoursePOConverter;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.converter.SchoolClassPOConverter;
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.ClassCourseScheduleRepository;
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.CourseRepository;
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.SchoolClassRepository;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.ClassCourseSchedulePO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.SchoolClassPO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.ClassCourseSchedulePO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.SchoolClassPO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -55,7 +55,8 @@ public class SchoolClassDomainServiceImpl
         SchoolClassPO po = schoolClassConverter.toTarget(schoolClass);
         SchoolClassPO current = po.getId() == null ? null : schoolClassRepository.getById(po.getId());
         if (current != null) { schoolClassConverter.updateMetadata(po, current); }
-        boolean written = current == null ? schoolClassRepository.save(po) : schoolClassRepository.updateById(po);
+        boolean written = current == null
+                ? schoolClassRepository.save(po) : schoolClassRepository.updateCachedById(po);
         if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
 
         return schoolClassConverter.toSource(po);
@@ -63,14 +64,14 @@ public class SchoolClassDomainServiceImpl
 
     @Override
     public Optional<SchoolClassAggregate> findAggregateById(SchoolClassId schoolClassId) {
-        SchoolClassPO po = schoolClassRepository.getById(schoolClassId.value());
+        SchoolClassPO po = schoolClassRepository.findCachedById(schoolClassId.value());
         if (po == null) {
             return Optional.empty();
         }
         SchoolClassAggregate aggregate = new SchoolClassAggregate(
                 schoolClassConverter.toSource(po));
         scheduleRepository.selectBySchoolClassIdOrderByStartsAt(schoolClassId.value()).forEach(schedule -> {
-            Course course = Optional.ofNullable(courseRepository.getById(schedule.getCourseId()))
+            Course course = Optional.ofNullable(courseRepository.findCachedById(schedule.getCourseId()))
                     .map(courseConverter::toSource)
                     .orElseThrow(() -> new IllegalStateException("scheduled course not found"));
             aggregate.schedule(course, new CourseSchedule(

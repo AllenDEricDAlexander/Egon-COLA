@@ -6,11 +6,11 @@ import top.egon.cola.archetype.source.lightopen.domain.user.enums.PermissionStat
 import top.egon.cola.archetype.source.lightopen.domain.user.service.PermissionDomainService;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserId;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.converter.PermissionPOConverter;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.converter.PermissionPOConverter;
 import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.PermissionRepository;
 import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.RolePermissionRepository;
 import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.UserRoleRepository;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.PermissionPO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.PermissionPO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;

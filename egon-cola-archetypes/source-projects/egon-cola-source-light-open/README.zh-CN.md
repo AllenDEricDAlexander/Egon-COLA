@@ -49,16 +49,54 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 
 ```text
 src/main/java/top/egon/cola/archetype/source/lightopen
-├── start              # 启动装配、OpenAPI、异步和数据源配置
-├── adapter            # HTTP、GraphQL、MQ 入站和 facade 实现
-├── facade             # 稳定的本地应用契约和 DTO
-├── application        # 用例编排、校验和事务
-├── domain             # 聚合、规则、服务和仓储端口
-├── infrastructure     # MyBatis-Plus DAO/PO/ServiceImpl、客户端、缓存和 MQ 适配器
-└── common             # 与业务无关的项目基础类型
+├── start              # 启动装配、OpenAPI、异步和配置解密
+├── adapter
+│   ├── user/{controller,mq,graphql,facade/impl,pojo/{dto,vo,convertor},validators}
+│   ├── teaching/{controller,mq,graphql,facade/impl,pojo/{dto,vo,convertor},validators}
+│   ├── handler
+│   └── filter
+├── facade
+│   ├── user/{dto,enums,utils}
+│   └── teaching/{dto,enums,utils}
+├── application
+│   ├── user/{manage/impl,pojo/{command,query,result,convertor},validators}
+│   └── teaching/{manage/impl,pojo/{command,query,result,convertor},validators}
+├── domain
+│   ├── user/{entities,aggregates,vos,service,validators,enums}
+│   └── teaching/{entities,aggregates,vos,service,validators,enums}
+├── infrastructure
+│   ├── user/{dao,po,converter,repo,service/impl,client/impl,validators}
+│   ├── teaching/{dao,po,converter,repo,service/impl,client/impl,validators}
+│   ├── aop
+│   ├── mq/impl
+│   └── config
+└── common/{constants,utils,enums,exception}
 ```
 
-依赖方向为 `adapter -> application -> domain -> common`；`infrastructure` 实现 Domain 端口，`start` 负责装配。生成的 `OpenArchitectureTest` 会检查向内依赖，并拒绝 Domain/Application 直接依赖持久化或传输框架。
+`adapter` 负责 HTTP、GraphQL 和 RabbitMQ consumer，以及直接调用用例 `Manage` 的对外 facade 实现。`facade` 负责稳定的外部契约、契约载体、契约枚举与契约断言，并保持自包含以便单独发布；开源变体不额外提供 RPC provider、共享 RPC 载体或 RPC 校验分组。`application` 编排用例和事务。`domain` 负责业务状态、规则以及查询/事件/幂等领域服务契约。`infrastructure` 提供 MyBatis-Plus DAO、`EgonModel` 持久化对象、`EgonColaRepository` 子类和这些领域契约与出站客户端的实现。`common` 存放与业务无关的基础类型，以及各层共享的异常根类型。`start` 负责组装和运行时配置。
+
+## 依赖图
+
+```text
+start          -> adapter, infrastructure
+adapter        -> application, facade
+application    -> domain
+domain         -> common.exception
+infrastructure -> domain, facade
+facade         -> common.exception
+common         -> no business layer
+```
+
+只有 `common.exception` 里的异常根类型可以跨层出现，其他 `common` 类型不得离开本层。生成的 `OpenArchitectureTest` 会检查向内依赖，并拒绝 Domain/Application 直接依赖持久化或传输框架。
+
+## 公共合同
+
+各层复用 common-core 合同，不再各自造轮子：
+
+- 异常：`common/exception` 的根类型继承组件的 `BusinessException` / `CommonException` 链，对外稳定错误码是 `getStatus()` 字符串，数字型 `getCode()` 不参与传输。
+- 枚举：手写业务枚举实现 `EgonEnum`，序列化取声明的 `code` 而不是 `ordinal()`。
+- 校验：每个入站交接都经过继承 `BaseValidator` 的校验器，统一走 `egonColaValidationUtils`；对外 facade 在用例运行前用同一套公共校验门面断言契约载体。
+- 转换：DTO/Command/Domain/PO 映射由 MapStruct（`@Mapper`）生成并继承 `BaseConverter` 或 `BaseForwardConverter`；只做快照投影的转换器不补反向方法。
 
 ## ID 与持久化
 
@@ -119,10 +157,9 @@ docker compose --env-file deploy/env/.env.example \
 
 默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
 
-## 二级缓存骨架（默认关闭）
+## 二级缓存
 
-生成工程保留缓存 starter 依赖和默认 `enabled: false` 配置。启用时由宿主提供 `RedissonClient`，设置
-`egon.cola.component.cache.enabled=true`，并在配置类显式添加 `@EnableCaching`。mp-sd-ext 基类已移除缓存端口耦合，具体
+`base`、`dev`、`prod` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/RedisConfig.java` 已带 `@EnableCaching`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
-不再隐式失效缓存，其他写入和删除入口也须声明失效。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。

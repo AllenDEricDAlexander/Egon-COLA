@@ -1,15 +1,14 @@
 package top.egon.cola.archetype.source.lightopen.facade.user.utils;
 
-import top.egon.cola.archetype.source.lightopen.facade.user.exceptions.UserFacadeException;
+import top.egon.cola.archetype.source.lightopen.common.exception.UserFacadeException;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
+/** Facade-boundary guard; the null check itself belongs to the common validation facade. */
 public final class UserFacadeAssert {
     private UserFacadeAssert() {
     }
 
     public static <T> T notNull(T value, String code, String message) {
-        if (value == null) {
-            throw new UserFacadeException(code, message);
-        }
-        return value;
+        return ValidationUtils.requireNotNull(value, () -> new UserFacadeException(code, message));
     }
 }

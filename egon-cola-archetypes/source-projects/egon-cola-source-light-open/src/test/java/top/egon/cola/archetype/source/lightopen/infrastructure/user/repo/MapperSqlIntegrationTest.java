@@ -20,8 +20,8 @@ class MapperSqlIntegrationTest {
                 "mybatis/mapper/user/UserRoleDAO.xml",
                 "mybatis/mapper/user/RolePermissionDAO.xml")) {
             String xml = read(resource);
-            assertThat(xml).contains("repo.dao.").contains("light_")
-                    .doesNotContain("SELECT *");
+            assertThat(xml).contains("infrastructure.user.dao.").contains("light_")
+                    .doesNotContain("repo.dao.").doesNotContain("SELECT *");
         }
     }
 

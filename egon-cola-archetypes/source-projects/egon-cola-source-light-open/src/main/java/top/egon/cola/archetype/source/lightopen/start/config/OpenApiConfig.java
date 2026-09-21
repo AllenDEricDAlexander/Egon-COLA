@@ -5,9 +5,9 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration(proxyBeanMethods = false)
+@Configuration(value = "openApiConfig", proxyBeanMethods = false)
 public class OpenApiConfig {
-    @Bean
+    @Bean("studentManagementOpenApi")
     OpenAPI studentManagementOpenApi() {
         return new OpenAPI().info(new Info()
                 .title("Student Management")

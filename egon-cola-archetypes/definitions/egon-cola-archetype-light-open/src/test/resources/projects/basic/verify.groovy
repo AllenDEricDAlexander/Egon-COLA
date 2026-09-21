@@ -268,4 +268,118 @@ repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main
     assert !it.text.contains('is_deleted')
 }
 
+// The converged layered layout and the shared common contracts must survive project generation.
+def mainRoot = 'src/main/java/it/pkg'
+[
+        "adapter", "adapter/filter", "adapter/handler", "adapter/teaching", "adapter/teaching/controller",
+        "adapter/teaching/facade", "adapter/teaching/facade/impl", "adapter/teaching/graphql", "adapter/teaching/mq",
+        "adapter/teaching/pojo/convertor", "adapter/teaching/pojo/dto", "adapter/teaching/pojo/vo",
+        "adapter/teaching/validators", "adapter/user", "adapter/user/controller", "adapter/user/facade",
+        "adapter/user/facade/impl", "adapter/user/graphql", "adapter/user/mq", "adapter/user/pojo/convertor",
+        "adapter/user/pojo/dto", "adapter/user/pojo/vo", "adapter/user/validators", "application",
+        "application/teaching", "application/teaching/manage", "application/teaching/manage/impl",
+        "application/teaching/pojo/command", "application/teaching/pojo/convertor", "application/teaching/pojo/query",
+        "application/teaching/pojo/result", "application/teaching/validators", "application/user",
+        "application/user/manage", "application/user/manage/impl", "application/user/pojo/command",
+        "application/user/pojo/convertor", "application/user/pojo/query", "application/user/pojo/result",
+        "application/user/validators", "common", "common/constants", "common/enums", "common/exception",
+        "common/utils", "domain", "domain/teaching", "domain/teaching/aggregates", "domain/teaching/entities",
+        "domain/teaching/enums", "domain/teaching/service", "domain/teaching/validators", "domain/teaching/vos",
+        "domain/user", "domain/user/aggregates", "domain/user/entities", "domain/user/enums", "domain/user/service",
+        "domain/user/validators", "domain/user/vos", "facade", "facade/teaching", "facade/teaching/dto",
+        "facade/teaching/enums", "facade/teaching/utils", "facade/user", "facade/user/dto", "facade/user/enums",
+        "facade/user/utils", "infrastructure", "infrastructure/aop", "infrastructure/config", "infrastructure/mq",
+        "infrastructure/mq/impl", "infrastructure/teaching", "infrastructure/teaching/client",
+        "infrastructure/teaching/client/impl", "infrastructure/teaching/converter", "infrastructure/teaching/dao",
+        "infrastructure/teaching/po", "infrastructure/teaching/repo", "infrastructure/teaching/service",
+        "infrastructure/teaching/service/impl", "infrastructure/teaching/validators", "infrastructure/user",
+        "infrastructure/user/client", "infrastructure/user/client/impl", "infrastructure/user/converter",
+        "infrastructure/user/dao", "infrastructure/user/po", "infrastructure/user/repo",
+        "infrastructure/user/service", "infrastructure/user/service/impl", "infrastructure/user/validators",
+        "start", "start/config", "start/config/async", "start/config/encryption"
+].each { packagePath -> file("${mainRoot}/${packagePath}/package-info.java") }
+
+[
+        "common/exception/BaseBusinessException", "common/exception/ConfigDecryptException",
+        "common/exception/TeachingDomainException", "common/exception/TeachingFacadeException",
+        "common/exception/TeachingUseCaseException", "common/exception/UserDomainException",
+        "common/exception/UserFacadeException", "common/exception/UserUseCaseException",
+        "domain/teaching/service/TeachingQueryService", "domain/teaching/service/TeachingEventService",
+        "domain/teaching/service/CourseIdempotencyService", "domain/user/service/UserQueryService",
+        "domain/user/service/UserEventService", "domain/user/service/UserIdempotencyService",
+        "infrastructure/aop/DaoMonitorAspect", "infrastructure/aop/InfrastructureLogAspect",
+        "infrastructure/config/RedisConfig", "infrastructure/config/LocalAdapterConfiguration",
+        "infrastructure/mq/impl/RabbitMqMessageServiceImpl", "infrastructure/mq/MqRouteEnum",
+        "infrastructure/teaching/client/TeachingQueryClient", "infrastructure/user/client/UserQueryClient",
+        "infrastructure/teaching/client/impl/LocalTeachingQueryClientImpl",
+        "infrastructure/user/client/impl/LocalUserQueryClientImpl",
+        "infrastructure/teaching/client/impl/RestTeachingQueryClientImpl",
+        "infrastructure/user/client/impl/RestUserQueryClientImpl",
+        "infrastructure/teaching/dao/CourseDAO", "infrastructure/teaching/po/CoursePO",
+        "infrastructure/teaching/converter/CoursePOConverter", "infrastructure/teaching/repo/CourseRepository",
+        "infrastructure/teaching/service/impl/CourseDomainServiceImpl",
+        "infrastructure/user/dao/UserDAO", "infrastructure/user/po/UserPO",
+        "infrastructure/user/converter/UserPOConverter", "infrastructure/user/repo/UserRepository",
+        "infrastructure/user/service/impl/UserDomainServiceImpl",
+        "application/teaching/pojo/command/CreateCourseCommand",
+        "application/teaching/pojo/query/GetCourseQuery", "application/teaching/pojo/result/CourseResult",
+        "application/teaching/pojo/convertor/TeachingApplicationConvertor",
+        "application/user/pojo/command/CreateUserCommand", "application/user/pojo/query/GetUserQuery",
+        "application/user/pojo/result/UserResult", "application/user/pojo/result/PermissionDetailResult",
+        "application/user/pojo/convertor/UserApplicationConvertor",
+        "adapter/teaching/pojo/dto/CreateCourseRequest", "adapter/teaching/pojo/vo/CourseDetailVO",
+        "adapter/teaching/pojo/convertor/TeachingAdapterConvertor",
+        "adapter/user/pojo/dto/CreateUserRequest", "adapter/user/pojo/vo/UserDetailVO",
+        "adapter/user/pojo/convertor/UserAdapterConvertor",
+        "adapter/teaching/facade/impl/CourseFacadeImpl", "adapter/teaching/facade/impl/SchoolClassFacadeImpl",
+        "adapter/user/facade/impl/UserFacadeImpl", "adapter/user/facade/impl/PermissionFacadeImpl"
+].each { typePath -> file("${mainRoot}/${typePath}.java") }
+
+[
+        "adapter/teaching/validators/TeachingRequestValidator", "adapter/user/validators/UserRequestValidator",
+        "application/teaching/validators/TeachingApplicationValidator",
+        "application/user/validators/UserApplicationValidator",
+        "infrastructure/teaching/validators/TeachingInfrastructureValidator",
+        "infrastructure/user/validators/UserInfrastructureValidator"
+].each { typePath ->
+    def text = file("${mainRoot}/${typePath}.java").text
+    assert text.contains("extends BaseValidator"): "${typePath} must extend the common BaseValidator contract"
+    assert text.contains("egonColaValidationUtils"): "${typePath} must inject the shared ValidationUtils bean"
+}
+[
+        "facade/teaching/utils/TeachingFacadeAssert", "facade/user/utils/UserFacadeAssert"
+].each { typePath ->
+    def text = file("${mainRoot}/${typePath}.java").text
+    assert text.contains("ValidationUtils"): "${typePath} must rely on the common validation facade"
+    assert !text.contains("if (value == null)"): "${typePath} must not own a local null check"
+}
+[
+        "facade/teaching/dto/CreateCourseDTO", "facade/teaching/dto/CreateSchoolClassDTO",
+        "facade/teaching/dto/ScheduleCourseDTO", "facade/user/dto/CreateUserDTO",
+        "facade/user/dto/AssignRoleDTO", "facade/user/dto/GrantPermissionDTO"
+].each { typePath ->
+    def text = file("${mainRoot}/${typePath}.java").text
+    assert text.contains("BasePojo"): "${typePath} must implement the common carrier contract"
+    assert text.contains("@NotNull") || text.contains("@NotBlank"): "${typePath} must carry native constraints"
+}
+
+// Pre-convergence packages and the native-only RPC surface stay out of the generated open project.
+[
+        "adapter/pojo", "facade/validation", "facade/rpc", "adapter/teaching/rpc", "adapter/user/rpc",
+        "adapter/teaching/dto", "adapter/teaching/vo", "adapter/teaching/convertor",
+        "adapter/user/dto", "adapter/user/vo", "adapter/user/convertor",
+        "application/teaching/command", "application/teaching/query", "application/teaching/result",
+        "application/teaching/convertor", "application/teaching/assemblers",
+        "application/user/command", "application/user/query", "application/user/result",
+        "application/user/convertor", "application/user/assemblers",
+        "domain/teaching/gateway", "domain/teaching/client", "domain/teaching/event", "domain/teaching/exceptions",
+        "domain/user/gateway", "domain/user/client", "domain/user/event", "domain/user/exceptions",
+        "infrastructure/teaching/cache", "infrastructure/user/cache", "infrastructure/teaching/mq",
+        "infrastructure/user/mq", "infrastructure/aop/RepositoryMonitorAspect.java",
+        "infrastructure/teaching/repo/dao", "infrastructure/teaching/repo/po",
+        "infrastructure/user/repo/converter", "facade/teaching/exceptions", "facade/user/exceptions",
+        "common/exceptions"
+].each { stalePath -> missing("${mainRoot}/${stalePath}") }
+missing("src/main/proto")
+
 return true

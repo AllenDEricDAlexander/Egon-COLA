@@ -55,16 +55,54 @@ credentials in the existing environment/secrets mechanism, never in `run.*` prop
 
 ```text
 src/main/java/top/egon/cola/archetype/source/lightopen
-├── start              # startup assembly, OpenAPI, async and datasource config
-├── adapter            # HTTP, GraphQL, MQ inbound and facade implementations
-├── facade             # stable local application contracts and DTOs
-├── application        # use-case orchestration, validation and transactions
-├── domain             # aggregates, rules, services and repository ports
-├── infrastructure     # MyBatis-Plus DAO/PO/ServiceImpl, clients, cache and MQ adapters
-└── common             # business-neutral project primitives
+├── start              # startup assembly, OpenAPI, async and config decryption
+├── adapter
+│   ├── user/{controller,mq,graphql,facade/impl,pojo/{dto,vo,convertor},validators}
+│   ├── teaching/{controller,mq,graphql,facade/impl,pojo/{dto,vo,convertor},validators}
+│   ├── handler
+│   └── filter
+├── facade
+│   ├── user/{dto,enums,utils}
+│   └── teaching/{dto,enums,utils}
+├── application
+│   ├── user/{manage/impl,pojo/{command,query,result,convertor},validators}
+│   └── teaching/{manage/impl,pojo/{command,query,result,convertor},validators}
+├── domain
+│   ├── user/{entities,aggregates,vos,service,validators,enums}
+│   └── teaching/{entities,aggregates,vos,service,validators,enums}
+├── infrastructure
+│   ├── user/{dao,po,converter,repo,service/impl,client/impl,validators}
+│   ├── teaching/{dao,po,converter,repo,service/impl,client/impl,validators}
+│   ├── aop
+│   ├── mq/impl
+│   └── config
+└── common/{constants,utils,enums,exception}
 ```
 
-The intended direction is `adapter -> application -> domain -> common`; `infrastructure` implements domain ports and `start` assembles the application. The generated `OpenArchitectureTest` enforces the inward direction and rejects persistence/transport framework dependencies from Domain and Application.
+Business domains come before protocol or technical details so `user` and `teaching` stay comparable across layers. `adapter` owns HTTP, GraphQL and RabbitMQ consumer concerns plus the published facade implementations, which call a use case `Manage` directly. `facade` owns the stable external contracts, their carriers, contract enums and contract assertions; it stays self-contained so it can be published on its own, and the open variant adds no RPC provider, shared RPC carrier or validation group. `application` coordinates use cases and transactions. `domain` owns business state, rules, and the query, event, and idempotency service contracts. `infrastructure` supplies MyBatis-Plus DAOs, `EgonModel` persistence objects, `EgonColaRepository` subclasses, and the implementations of the domain service contracts and outbound clients. `common` holds business-neutral primitives plus the exception roots every layer shares. `start` performs assembly and runtime configuration.
+
+## Dependency Graph
+
+```text
+start          -> adapter, infrastructure
+adapter        -> application, facade
+application    -> domain
+domain         -> common.exception
+infrastructure -> domain, facade
+facade         -> common.exception
+common         -> no business layer
+```
+
+Only the `common.exception` roots may cross into another layer; no other `common` type is imported outside its own layer. The generated `OpenArchitectureTest` enforces the inward direction and rejects persistence/transport framework dependencies from Domain and Application.
+
+## Shared Contracts
+
+Every layer reuses the common-core contracts instead of inventing local ones:
+
+- Exceptions: the `common/exception` roots extend the component `BusinessException` / `CommonException` chain, and the wire code is the stable `getStatus()` string; numeric `getCode()` is never published.
+- Enums: handwritten business enums implement `EgonEnum`, so the declared `code` — not `ordinal()` — is the serialized value.
+- Validation: every inbound handoff runs through a `BaseValidator` subclass over the shared `egonColaValidationUtils` facade, and each published facade asserts its carrier through the same facade before the use case runs.
+- Conversion: DTO/Command/Domain/PO mappings are MapStruct (`@Mapper`) generated and extend `BaseConverter` or `BaseForwardConverter`; a forward-only snapshot projection never gets a reverse method.
 
 ## IDs and persistence
 
@@ -125,12 +163,15 @@ Set a unique `EGON_ID_MACHINE_ID` for each runtime; production uses the existing
 
 Default tests use isolated H2 and controlled dependencies. Physical routing tests require `-Degon.pg.routing=true` and `EGON_TEST_PG_URL`; read/write tests require `-Degon.pg.readwrite=true`, `EGON_TEST_PG_PRIMARY_URL` and `EGON_TEST_PG_REPLICA_URL`, plus dedicated `EGON_TEST_PG_USER/PASSWORD`. They create/clean only their UUID schemas and do not start databases. Real PG/SS, migration and EXPLAIN acceptance remains manual; a skip is not a pass.
 
-## Two-level cache skeleton (disabled by default)
+## Two-level cache
 
-The generated project includes the cache starter with `enabled: false`. To enable it, provide a `RedissonClient`, set
-`egon.cola.component.cache.enabled=true`, and explicitly add `@EnableCaching` to a configuration class. The mp-sd-ext
+`base`, `dev` and `prod` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys with
+`enabled: false` so unit and module runs never require Redis. `infrastructure/config/RedisConfig.java` carries `@EnableCaching`,
+so a generated project is cache-ready once a Redis connection is configured. The mp-sd-ext
 base repository no longer depends on a cache port: concrete repositories declare Spring Cache annotations. The
 repository examples use `findCachedById` / `updateCachedById` (Agent defines its own business methods). Ordinary CRUD no
 longer evicts implicitly; annotate every relevant write/delete path. See
 the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
-for keys, conditions, combined operations, transactions and sync limitations.
+for keys, conditions, combined operations, transactions and sync limitations. Every profile declares the same five TTL keys
+(`l1-expire`, `l1-jitter`, `l2-expire`, `l2-jitter`, `null-expire`) plus the shared `key-prefix`, `tenant-mdc-key` and batch/lock
+budgets; only values differ per environment.

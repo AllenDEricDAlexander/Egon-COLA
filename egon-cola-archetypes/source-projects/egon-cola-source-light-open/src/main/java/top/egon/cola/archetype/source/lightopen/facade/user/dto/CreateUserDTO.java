@@ -1,11 +1,12 @@
 package top.egon.cola.archetype.source.lightopen.facade.user.dto;
 
-import java.io.Serializable;
+import jakarta.validation.constraints.NotBlank;
+import top.egon.cola.component.common.core.pojo.BasePojo;
 
 public record CreateUserDTO(
-        String externalId,
-        String name,
-        String email,
-        String operatorId,
-        String requestId) implements Serializable {
+        @NotBlank String externalId,
+        @NotBlank String name,
+        @NotBlank String email,
+        @NotBlank String operatorId,
+        @NotBlank String requestId) implements BasePojo {
 }

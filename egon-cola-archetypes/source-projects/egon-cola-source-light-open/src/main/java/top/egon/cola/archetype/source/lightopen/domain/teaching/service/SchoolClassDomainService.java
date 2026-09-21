@@ -15,11 +15,11 @@ import jakarta.validation.constraints.NotNull;
 public interface SchoolClassDomainService {
     SchoolClass createSchoolClass(String name, @Valid @NotNull Semester semester);
 
-    SchoolClass save( @Valid @NotNull SchoolClass schoolClass);
+    SchoolClass save(@Valid @NotNull SchoolClass schoolClass);
 
-    Optional<SchoolClassAggregate> findAggregateById( @Valid @NotNull SchoolClassId schoolClassId);
+    Optional<SchoolClassAggregate> findAggregateById(@Valid @NotNull SchoolClassId schoolClassId);
 
-    void saveAggregate( @Valid @NotNull SchoolClassAggregate aggregate);
+    void saveAggregate(@Valid @NotNull SchoolClassAggregate aggregate);
 
-    SchoolClassAggregate schedule( @Valid @NotNull SchoolClassAggregate schoolClass, @Valid @NotNull Course course, @Valid @NotNull CourseSchedule schedule);
+    SchoolClassAggregate schedule(@Valid @NotNull SchoolClassAggregate schoolClass, @Valid @NotNull Course course, @Valid @NotNull CourseSchedule schedule);
 }

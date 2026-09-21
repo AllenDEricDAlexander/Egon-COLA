@@ -13,44 +13,44 @@ class LocalTransactionBoundaryTest {
         assertCommand(
                 top.egon.cola.archetype.source.lightopen.application.user.manage.impl.UserManageImpl.class,
                 "create",
-                top.egon.cola.archetype.source.lightopen.application.user.command.CreateUserCommand.class);
+                top.egon.cola.archetype.source.lightopen.application.user.pojo.command.CreateUserCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.lightopen.application.user.manage.impl.RoleManageImpl.class,
                 "assignRole",
-                top.egon.cola.archetype.source.lightopen.application.user.command.AssignRoleCommand.class);
+                top.egon.cola.archetype.source.lightopen.application.user.pojo.command.AssignRoleCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.lightopen.application.user.manage.impl.PermissionManageImpl.class,
                 "grantPermission",
-                top.egon.cola.archetype.source.lightopen.application.user.command.GrantPermissionCommand.class);
+                top.egon.cola.archetype.source.lightopen.application.user.pojo.command.GrantPermissionCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.lightopen.application.teaching.manage.impl.CourseManageImpl.class,
                 "create",
-                top.egon.cola.archetype.source.lightopen.application.teaching.command.CreateCourseCommand.class);
+                top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.CreateCourseCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.lightopen.application.teaching.manage.impl.SchoolClassManageImpl.class,
                 "create",
-                top.egon.cola.archetype.source.lightopen.application.teaching.command.CreateSchoolClassCommand.class);
+                top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.CreateSchoolClassCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.lightopen.application.teaching.manage.impl.SchoolClassManageImpl.class,
                 "schedule",
-                top.egon.cola.archetype.source.lightopen.application.teaching.command.ScheduleCourseCommand.class);
+                top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.ScheduleCourseCommand.class);
 
         assertQuery(
                 top.egon.cola.archetype.source.lightopen.application.user.manage.impl.UserManageImpl.class,
                 "get",
-                top.egon.cola.archetype.source.lightopen.application.user.query.GetUserQuery.class);
+                top.egon.cola.archetype.source.lightopen.application.user.pojo.query.GetUserQuery.class);
         assertQuery(
                 top.egon.cola.archetype.source.lightopen.application.user.manage.impl.PermissionManageImpl.class,
                 "getByUser",
-                top.egon.cola.archetype.source.lightopen.application.user.query.GetUserPermissionsQuery.class);
+                top.egon.cola.archetype.source.lightopen.application.user.pojo.query.GetUserPermissionsQuery.class);
         assertQuery(
                 top.egon.cola.archetype.source.lightopen.application.teaching.manage.impl.CourseManageImpl.class,
                 "get",
-                top.egon.cola.archetype.source.lightopen.application.teaching.query.GetCourseQuery.class);
+                top.egon.cola.archetype.source.lightopen.application.teaching.pojo.query.GetCourseQuery.class);
         assertQuery(
                 top.egon.cola.archetype.source.lightopen.application.teaching.manage.impl.SchoolClassManageImpl.class,
                 "get",
-                top.egon.cola.archetype.source.lightopen.application.teaching.query.GetSchoolClassQuery.class);
+                top.egon.cola.archetype.source.lightopen.application.teaching.pojo.query.GetSchoolClassQuery.class);
     }
 
     private static void assertCommand(

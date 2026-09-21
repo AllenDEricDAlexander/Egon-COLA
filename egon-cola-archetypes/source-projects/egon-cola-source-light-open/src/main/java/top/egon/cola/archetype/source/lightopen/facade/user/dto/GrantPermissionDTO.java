@@ -1,10 +1,11 @@
 package top.egon.cola.archetype.source.lightopen.facade.user.dto;
 
-import java.io.Serializable;
+import jakarta.validation.constraints.NotBlank;
+import top.egon.cola.component.common.core.pojo.BasePojo;
 
 public record GrantPermissionDTO(
-        String roleCode,
-        String permissionCode,
-        String operatorId,
-        String requestId) implements Serializable {
+        @NotBlank String roleCode,
+        @NotBlank String permissionCode,
+        @NotBlank String operatorId,
+        @NotBlank String requestId) implements BasePojo {
 }

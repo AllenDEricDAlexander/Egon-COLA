@@ -9,14 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class InfrastructureAspectTest {
     @Test
-    void records_repository_timing() {
+    void records_dao_timing() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        AspectJProxyFactory factory = new AspectJProxyFactory(new SampleRepository());
-        factory.addAspect(new RepositoryMonitorAspect(registry));
+        AspectJProxyFactory factory = new AspectJProxyFactory(new SampleDAO());
+        factory.addAspect(new DaoMonitorAspect(registry));
         SamplePort proxy = factory.getProxy();
 
         assertEquals("ok", proxy.load());
-        assertEquals(1, registry.get("infrastructure.repository").timer().count());
+        assertEquals(1, registry.get("infrastructure.dao").timer().count());
     }
 
     @Test
@@ -29,7 +29,7 @@ class InfrastructureAspectTest {
     }
 
     interface SamplePort { String load(); }
-    static final class SampleRepository implements SamplePort {
+    static final class SampleDAO implements SamplePort {
         public String load() { return "ok"; }
     }
     static final class FailingClient implements SamplePort {
