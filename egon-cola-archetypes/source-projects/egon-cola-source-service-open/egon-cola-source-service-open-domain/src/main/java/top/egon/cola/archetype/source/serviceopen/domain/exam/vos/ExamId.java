@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.serviceopen.domain.exam.vos;
 
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainErrorCode;
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.serviceopen.common.enums.EvaluationDomainErrorCode;
+import top.egon.cola.archetype.source.serviceopen.common.exception.EvaluationDomainException;
 
 public record ExamId(Long value) {
 

@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo;
 
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.dao.ScoreDAO;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.po.ScorePO;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.dao.ScoreDAO;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.po.ScorePO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

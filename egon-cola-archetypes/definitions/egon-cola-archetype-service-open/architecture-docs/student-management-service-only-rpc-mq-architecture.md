@@ -10,13 +10,13 @@ Service Open 是基于开源 Spring Boot 3.5、Spring Cloud Alibaba、Dubbo Trip
 starter         启动与组合根
 adapter         RPC/MQ 入站适配与 Proto provider
 application     用例编排
-domain          领域模型与端口
+domain          领域模型与领域服务契约
 infrastructure  持久化、消息和出站 RPC client
 common          本地通用错误/常量/枚举
 facade          本工程自有 Evaluation Proto wire contract（仅契约，不依赖业务模块）
 ```
 
-`student-management-organization` 与 `student-management-evaluation` 仍是两个可独立构建、部署的 Project。Evaluation Project 的 Organization 目录依赖是出站 Dubbo Proto client；当前 Course、Exam、Score 用例不隐式调用该目录端口。
+`student-management-organization` 与 `student-management-evaluation` 仍是两个可独立构建、部署的 Project。Evaluation Project 的 Organization 目录依赖是出站 Dubbo Proto client；当前 Course、Exam、Score 用例不隐式调用该目录领域服务。
 
 RPC 对外契约由每个生成工程自己的 `facade` 模块持有并对外发布；跨工程调用只依赖
 对端已发布的契约工件，该工件通过生成 POM 的显式属性解析：
@@ -55,7 +55,7 @@ starter       infrastructure
 ```
 
 - `facade` 只包含本工程拥有的过滤后 `.proto`、Dubbo 3.3 `tri` 生成代码和 descriptor contract test，不反向依赖 Domain/Application，也不复制对端协议。
-- `domain` 只声明聚合、值对象、Common MyBatis-Plus service contract、事件端口和 `OrganizationDirectoryPort`，不导入 Spring、Dubbo、gRPC 或 ShardingSphere。
+- `domain` 只声明聚合、值对象、Common MyBatis-Plus service contract、领域事件服务和 `OrganizationDirectoryService` 契约，不导入 Spring、Dubbo、gRPC 或 ShardingSphere；这些能力的实现与出站 client 都位于 `infrastructure`。
 - `application` 只编排 Domain service contract 和用例，不接触 DAO、PO、Proto 或外部 RPC。
 - `adapter` 实现 Evaluation 的 11 个 Proto RPC 方法，负责校验、转换和统一 gRPC status/trailer。
 - `infrastructure` 实现 Common MyBatis-Plus DAO/PO、Egon service impl、ShardingSphere 数据源、MQ publisher 与 Organization Proto client。
@@ -81,7 +81,7 @@ wire 侧的 package、service、method 与 field 完全保持原状，只有 Jav
 
 Evaluation adapter 在同一个 Dubbo `tri` 端口上按 `course`、`exam`、`score` group 暴露 11 个方法，版本保持 `1.0.0`。测试同时通过生成的 Dubbo reference 和标准 gRPC `ManagedChannel` unary 调用验证 wire interop；不启动独立的 grpc-java server。
 
-Organization client 使用本地生成的 `UserService` 和 `SchoolClassService` 引用，映射为 Domain 的正 `Long` 投影，调用只发生在显式目录端口中。
+Organization client 使用对端 facade 工件生成的 `UserService` 和 `SchoolClassService` 引用，映射为 Domain 的正 `Long` 投影；接口与实现都在 `infrastructure/client/organization` 及其 `impl`，Domain 只看到 `OrganizationDirectoryService`。
 
 ## 4. Long ID 与 Common 组件
 
@@ -106,7 +106,7 @@ Organization client 使用本地生成的 `UserService` 和 `SchoolClassService`
   -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-生成工程测试覆盖自有 Proto descriptor（3 services/11 methods）、对端契约归属（`OpenPeerFacadeContractTest`）、Domain/Application、Common MyBatis-Plus DAO/service、typed ShardingSphere 路由合同、manual SQL convention、11 个 Triple provider 方法、标准 gRPC unary interop、Organization client/stub、DTP executor/context 和 ArchUnit。ArchUnit 规则取代内部 bytecode Maven plugin，并检查 facade/domain 方向、service-only 边界以及 JPA/Flyway/Gateway/Springdoc 禁止依赖。
+生成工程测试覆盖自有 Proto descriptor（3 services/11 methods）、对端契约归属（`OpenPeerFacadeContractTest`）、Domain/Application、Common MyBatis-Plus DAO/service、typed ShardingSphere 路由合同、manual SQL convention、11 个 Triple provider 方法、标准 gRPC unary interop、Organization client 双剖面实现、DTP executor/context 和 ArchUnit。ArchUnit 规则取代内部 bytecode Maven plugin，并检查 facade/domain 方向、service-only 边界以及 JPA/Flyway/Gateway/Springdoc 禁止依赖。
 
 测试与 `verify` 只证明源码、生成工程和本地 H2/内存 Triple 测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos topology、RabbitMQ、跨 Project provider、部署网络或生产权限。启动应用、手动验收 PG DDL、Compose、发布镜像和 live topology 验证由使用者按环境单独执行。
 

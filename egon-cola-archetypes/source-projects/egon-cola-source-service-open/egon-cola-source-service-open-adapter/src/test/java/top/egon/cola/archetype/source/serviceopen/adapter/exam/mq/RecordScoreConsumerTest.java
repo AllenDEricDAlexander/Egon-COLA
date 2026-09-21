@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.serviceopen.adapter.exam.mq;
 
-import top.egon.cola.archetype.source.serviceopen.adapter.exam.dto.RecordScoreMessage;
-import top.egon.cola.archetype.source.serviceopen.application.exam.command.RecordScoreCommand;
+import top.egon.cola.archetype.source.serviceopen.adapter.exam.pojo.dto.RecordScoreMessage;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.RecordScoreCommand;
 import top.egon.cola.archetype.source.serviceopen.application.exam.manage.ScoreManage;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;

@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
+import top.egon.cola.archetype.source.serviceopen.common.exception.ConfigDecryptException;
 
 public class ConfigDecryptKeyProvider {
 

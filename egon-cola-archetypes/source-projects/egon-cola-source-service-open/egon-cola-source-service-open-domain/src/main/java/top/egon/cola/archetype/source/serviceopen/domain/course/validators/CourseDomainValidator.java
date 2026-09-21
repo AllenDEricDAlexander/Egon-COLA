@@ -1,13 +1,28 @@
 package top.egon.cola.archetype.source.serviceopen.domain.course.validators;
 
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainErrorCode;
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.serviceopen.common.enums.EvaluationDomainErrorCode;
+import top.egon.cola.archetype.source.serviceopen.common.exception.EvaluationDomainException;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.Course;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.CourseSchedule;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+
 import java.time.Instant;
 import java.util.List;
 
-public final class CourseDomainValidator {
+/** Course relation rules; native constraints run first through the common validation facade. */
+public class CourseDomainValidator extends BaseValidator {
+
+    private final ValidationUtils validationUtils;
+
+    public CourseDomainValidator(ValidationUtils validationUtils) {
+        this.validationUtils = validationUtils;
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
 
     public void validateSchedule(
             Course course,

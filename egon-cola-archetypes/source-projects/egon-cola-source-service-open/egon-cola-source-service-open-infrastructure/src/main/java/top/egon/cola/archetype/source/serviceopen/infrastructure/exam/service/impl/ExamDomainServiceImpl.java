@@ -9,12 +9,12 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamStatus;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ExamDomainService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.validators.ExamDomainValidator;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.converter.ExamConverter;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.converter.ExamPaperConverter;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.converter.ExamConverter;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.converter.ExamPaperConverter;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.ExamRepository;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.ExamPaperRepository;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.po.ExamPO;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.po.ExamPaperPO;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.po.ExamPO;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.po.ExamPaperPO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,7 +41,8 @@ public class ExamDomainServiceImpl
     @Qualifier("examPaperConverterImpl")
     private final ExamPaperConverter examPaperConverter;
 
-    private final ExamDomainValidator validator = new ExamDomainValidator();
+    @Qualifier("examDomainValidator")
+    private final ExamDomainValidator validator;
 
     @Override
     public Exam createExam(Course course, String title, java.time.Instant startsAt, java.time.Instant endsAt) {
@@ -62,8 +63,8 @@ public class ExamDomainServiceImpl
     @Override
     public Exam publishExam(Exam exam, ExamPaper paper) {
         if (exam == null || paper == null || !paper.getExamId().equals(exam.getId())) {
-            throw new top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainException(
-                    top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainErrorCode.EXAM_NOT_PUBLISHABLE,
+            throw new top.egon.cola.archetype.source.serviceopen.common.exception.EvaluationDomainException(
+                    top.egon.cola.archetype.source.serviceopen.common.enums.EvaluationDomainErrorCode.EXAM_NOT_PUBLISHABLE,
                     "exam requires its own paper before publication");
         }
         exam.publish();

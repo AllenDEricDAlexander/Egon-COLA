@@ -1,24 +1,24 @@
 package top.egon.cola.archetype.source.serviceopen.adapter.rpc;
 
-import top.egon.cola.archetype.source.serviceopen.adapter.course.converter.CourseFacadeConverter;
+import top.egon.cola.archetype.source.serviceopen.adapter.course.pojo.convertor.CourseFacadeConverter;
 import top.egon.cola.archetype.source.serviceopen.adapter.course.facade.impl.CourseFacadeImpl;
 import top.egon.cola.archetype.source.serviceopen.adapter.course.validators.CourseFacadeValidator;
-import top.egon.cola.archetype.source.serviceopen.adapter.exam.converter.ExamFacadeConverter;
-import top.egon.cola.archetype.source.serviceopen.adapter.exam.converter.ScoreFacadeConverter;
+import top.egon.cola.archetype.source.serviceopen.adapter.exam.pojo.convertor.ExamFacadeConverter;
+import top.egon.cola.archetype.source.serviceopen.adapter.exam.pojo.convertor.ScoreFacadeConverter;
 import top.egon.cola.archetype.source.serviceopen.adapter.exam.facade.impl.ExamFacadeImpl;
 import top.egon.cola.archetype.source.serviceopen.adapter.exam.facade.impl.ScoreFacadeImpl;
 import top.egon.cola.archetype.source.serviceopen.adapter.exam.validators.ExamFacadeValidator;
 import top.egon.cola.archetype.source.serviceopen.adapter.exam.validators.ScoreFacadeValidator;
 import top.egon.cola.archetype.source.serviceopen.adapter.handler.GlobalFacadeExceptionHandler;
 import top.egon.cola.archetype.source.serviceopen.application.course.manage.CourseManage;
-import top.egon.cola.archetype.source.serviceopen.application.course.result.CourseResult;
-import top.egon.cola.archetype.source.serviceopen.application.course.result.CourseScheduleResult;
+import top.egon.cola.archetype.source.serviceopen.application.course.pojo.result.CourseResult;
+import top.egon.cola.archetype.source.serviceopen.application.course.pojo.result.CourseScheduleResult;
 import top.egon.cola.archetype.source.serviceopen.application.exam.manage.ExamManage;
 import top.egon.cola.archetype.source.serviceopen.application.exam.manage.ScoreManage;
-import top.egon.cola.archetype.source.serviceopen.application.exam.result.ExamDetailResult;
-import top.egon.cola.archetype.source.serviceopen.application.exam.result.ExamPaperResult;
-import top.egon.cola.archetype.source.serviceopen.application.exam.result.ScoreResult;
-import top.egon.cola.archetype.source.serviceopen.application.result.PageResult;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.result.ExamDetailResult;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.result.ExamPaperResult;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.result.ScoreResult;
+import top.egon.cola.archetype.source.serviceopen.application.pojo.result.PageResult;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.AttachExamPaperRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Course;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CourseSchedule;
@@ -45,6 +45,8 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.MethodDescriptor;
 import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.ClientCalls;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
 import java.net.ServerSocket;
 import java.time.Duration;
 import java.time.Instant;
@@ -54,8 +56,11 @@ import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -66,9 +71,16 @@ import static org.mockito.Mockito.when;
 
 class EvaluationDubboTripleIntegrationTest {
 
+    private static final ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
+
     @BeforeAll
     static void bindTheProcessWideEngine() {
         SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
+    @AfterAll
+    static void closeValidationFactory() {
+        VALIDATORS.close();
     }
 
     @Test
@@ -101,12 +113,16 @@ class EvaluationDubboTripleIntegrationTest {
                 1, 1, 20, 1));
 
         GlobalFacadeExceptionHandler handler = new GlobalFacadeExceptionHandler();
+        ValidationUtils validation = new ValidationUtils(VALIDATORS.getValidator());
         CourseFacadeImpl courseProvider = new CourseFacadeImpl(
-                courseManage, new CourseFacadeConverter(), new CourseFacadeValidator(), handler);
+                courseManage, Mappers.getMapper(CourseFacadeConverter.class),
+                new CourseFacadeValidator(validation), handler);
         ExamFacadeImpl examProvider = new ExamFacadeImpl(
-                examManage, new ExamFacadeConverter(), new ExamFacadeValidator(), handler);
+                examManage, Mappers.getMapper(ExamFacadeConverter.class),
+                new ExamFacadeValidator(validation), handler);
         ScoreFacadeImpl scoreProvider = new ScoreFacadeImpl(
-                scoreManage, new ScoreFacadeConverter(), new ScoreFacadeValidator(), handler);
+                scoreManage, Mappers.getMapper(ScoreFacadeConverter.class),
+                new ScoreFacadeValidator(validation), handler);
 
         ServiceConfig<CourseService> courseService = service(CourseService.class, courseProvider, "course");
         ServiceConfig<ExamService> examService = service(ExamService.class, examProvider, "exam");

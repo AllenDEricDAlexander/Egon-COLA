@@ -1,7 +1,9 @@
 package top.egon.cola.archetype.source.serviceopen.starter;
 
-import top.egon.cola.archetype.source.serviceopen.domain.client.organization.OrganizationDirectoryPort;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.client.organization.LocalOrganizationDirectoryStub;
+import top.egon.cola.archetype.source.serviceopen.domain.course.service.OrganizationDirectoryService;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.client.organization.OrganizationDirectoryClient;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.client.organization.impl.LocalOrganizationDirectoryClientImpl;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.course.service.impl.OrganizationDirectoryServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,7 +25,7 @@ class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.s
     @Autowired private top.egon.cola.archetype.source.serviceopen.domain.course.service.CourseDomainService courseDomainService;
     @Autowired private top.egon.cola.archetype.source.serviceopen.infrastructure.course.repo.CourseRepository courses;
     @Autowired private Environment environment;
-    @Autowired private OrganizationDirectoryPort organizationDirectory;
+    @Autowired private OrganizationDirectoryService organizationDirectory;
     @Autowired private DtpTaskDecorator dtpTaskDecorator;
 
     @Test
@@ -46,16 +48,19 @@ class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.s
         assertThat(context.containsBean("courseManage")).isTrue();
         assertThat(context.containsBean("evaluationExamManage")).isTrue();
         assertThat(context.containsBean("scoreManage")).isTrue();
-        assertThat(context.containsBean("rabbitCourseEventPublisher")).isFalse();
-        assertThat(context.containsBean("rabbitExamEventPublisher")).isFalse();
+        assertThat(context.containsBean("mqMessageService")).isTrue();
+        assertThat(context.containsBean("rabbitMqMessageService")).isFalse();
         assertThat(environment.getProperty("app.integrations.rabbitmq.enabled", Boolean.class))
                 .isFalse();
         assertThat(environment.getProperty(
                 "app.integrations.rabbitmq.listener-auto-startup", Boolean.class)).isFalse();
         assertThat(environment.getProperty("app.integrations.organization.enabled", Boolean.class))
                 .isFalse();
-        assertThat(organizationDirectory).isInstanceOf(LocalOrganizationDirectoryStub.class);
-        assertThat(context.containsBean("dubboOrganizationDirectoryClient")).isFalse();
+        assertThat(organizationDirectory).isInstanceOf(OrganizationDirectoryServiceImpl.class);
+        assertThat(context.getBean("organizationDirectoryClient", OrganizationDirectoryClient.class))
+                .isInstanceOf(LocalOrganizationDirectoryClientImpl.class);
+        assertThat(context.getBeanNamesForType(OrganizationDirectoryClient.class))
+                .containsExactly("organizationDirectoryClient");
         assertThat(dtpTaskDecorator).isNotNull();
         assertThat(context.getBeansOfType(org.springframework.web.bind.annotation.RestController.class))
                 .isEmpty();

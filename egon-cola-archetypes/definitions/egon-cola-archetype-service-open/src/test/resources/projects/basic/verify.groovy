@@ -114,7 +114,7 @@ assert protoFiles.sort() == [
         "google/protobuf/empty.proto"
 ]
 missing("student-management-evaluation-facade/src/main/proto/organization")
-assert file("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClient.java")
+assert file("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/DubboOrganizationDirectoryClientImpl.java")
         .text.contains("top.egon.cola.archetype.source.webopen.facade.organization.v1.UserService")
 [
         "student-management-evaluation-facade/src/test/java/it/pkg/facade/contract/ProtoDescriptorContractTest.java",
@@ -122,8 +122,9 @@ assert file("student-management-evaluation-infrastructure/src/main/java/it/pkg/i
         "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/facade/impl/ExamFacadeImpl.java",
         "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/facade/impl/ScoreFacadeImpl.java",
         "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java",
-        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClient.java",
-        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java",
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/DubboOrganizationDirectoryClientImpl.java",
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/LocalOrganizationDirectoryClientImpl.java",
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/service/impl/OrganizationDirectoryServiceImpl.java",
         "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationServiceApplicationTest.java",
         "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
         "student-management-evaluation-starter/src/test/java/it/pkg/architecture/OpenArchitectureTest.java"
@@ -209,7 +210,7 @@ def javaPath = { File candidate ->
 }
 def persistencePoSources = javaFiles.findAll { candidate ->
     def path = javaPath(candidate)
-    path.contains("/infrastructure/") && path.contains("/repo/po/")
+    path.contains("/infrastructure/") && path.contains("/po/")
             && candidate.name.endsWith("PO.java")
 }
 assert persistencePoSources.size() == 5
@@ -224,7 +225,7 @@ persistencePoSources.each { candidate ->
 }
 def daoSources = javaFiles.findAll { candidate ->
     def path = javaPath(candidate)
-    path.contains("/infrastructure/") && path.contains("/repo/dao/")
+    path.contains("/infrastructure/") && path.contains("/dao/")
             && candidate.name.endsWith("DAO.java")
 }
 assert daoSources.size() == 5

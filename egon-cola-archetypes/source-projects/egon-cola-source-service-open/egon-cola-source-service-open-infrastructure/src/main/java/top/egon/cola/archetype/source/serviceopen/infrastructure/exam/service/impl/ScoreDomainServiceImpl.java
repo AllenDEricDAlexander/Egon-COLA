@@ -9,9 +9,9 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ScoreDomai
 import top.egon.cola.archetype.source.serviceopen.domain.exam.validators.ScoreDomainValidator;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ScoreValue;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.converter.ScoreConverter;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.converter.ScoreConverter;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.ScoreRepository;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.po.ScorePO;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.po.ScorePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,7 +34,8 @@ public class ScoreDomainServiceImpl
     @Qualifier("scoreConverterImpl")
     private final ScoreConverter scoreConverter;
 
-    private final ScoreDomainValidator validator = new ScoreDomainValidator();
+    @Qualifier("scoreDomainValidator")
+    private final ScoreDomainValidator validator;
 
     @Override
     public Score recordScore(

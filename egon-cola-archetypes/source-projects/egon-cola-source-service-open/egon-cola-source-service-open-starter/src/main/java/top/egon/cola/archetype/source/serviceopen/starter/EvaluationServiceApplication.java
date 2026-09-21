@@ -16,8 +16,8 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
         "top.egon.cola.archetype.source.serviceopen.adapter.exam.facade.impl"
 })
 @MapperScan(basePackages = {
-        "top.egon.cola.archetype.source.serviceopen.infrastructure.course.repo.dao",
-        "top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.dao"
+        "top.egon.cola.archetype.source.serviceopen.infrastructure.course.dao",
+        "top.egon.cola.archetype.source.serviceopen.infrastructure.exam.dao"
 })
 public class EvaluationServiceApplication {
 

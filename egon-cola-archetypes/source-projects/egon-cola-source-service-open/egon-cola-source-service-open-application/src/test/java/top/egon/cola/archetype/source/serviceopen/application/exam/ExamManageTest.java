@@ -1,10 +1,14 @@
 package top.egon.cola.archetype.source.serviceopen.application.exam;
 
-import top.egon.cola.archetype.source.serviceopen.application.exam.command.AttachExamPaperCommand;
-import top.egon.cola.archetype.source.serviceopen.application.exam.command.CreateExamCommand;
-import top.egon.cola.archetype.source.serviceopen.application.exam.converter.ExamApplicationConverter;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.AttachExamPaperCommand;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.CreateExamCommand;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.convertor.ExamApplicationConverter;
 import top.egon.cola.archetype.source.serviceopen.application.exam.manage.impl.ExamManageImpl;
 import top.egon.cola.archetype.source.serviceopen.application.exam.validators.ExamApplicationValidator;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.Course;
 import top.egon.cola.archetype.source.serviceopen.domain.course.service.CourseDomainService;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseCode;
@@ -12,7 +16,7 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.Exam;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.ExamPaper;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamPaperStatus;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamStatus;
-import top.egon.cola.archetype.source.serviceopen.domain.exam.event.ExamEventPublisher;
+import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ExamEventService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ExamDomainService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
 import java.time.Instant;
@@ -26,6 +30,12 @@ import static org.mockito.Mockito.when;
 
 class ExamManageTest {
 
+    private final ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
+
+    private ExamApplicationValidator validator() {
+        return new ExamApplicationValidator(new ValidationUtils(validators.getValidator()));
+    }
+
     @Test
     void shouldCreateExamForExistingCourse() {
         CourseDomainService courses = mock(CourseDomainService.class);
@@ -37,8 +47,8 @@ class ExamManageTest {
         when(exams.createExam(any(), any(), any(), any())).thenReturn(exam);
         when(exams.save(exam)).thenReturn(exam);
         ExamManageImpl manage = new ExamManageImpl(
-                courses, exams, mock(ExamEventPublisher.class),
-                new ExamApplicationConverter(), new ExamApplicationValidator());
+                courses, exams, mock(ExamEventService.class),
+                Mappers.getMapper(ExamApplicationConverter.class), validator());
 
         var result = manage.create(new CreateExamCommand(
                 1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
@@ -57,8 +67,8 @@ class ExamManageTest {
         when(exams.attachPaper(any(), any(), any(Integer.class))).thenReturn(paper);
         when(exams.savePaper(paper)).thenReturn(paper);
         ExamManageImpl manage = new ExamManageImpl(
-                mock(CourseDomainService.class), exams, mock(ExamEventPublisher.class),
-                new ExamApplicationConverter(), new ExamApplicationValidator());
+                mock(CourseDomainService.class), exams, mock(ExamEventService.class),
+                Mappers.getMapper(ExamApplicationConverter.class), validator());
 
         var result = manage.attachPaper(new AttachExamPaperCommand(4001L, "Paper", 100));
 

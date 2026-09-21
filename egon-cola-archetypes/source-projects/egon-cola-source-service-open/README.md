@@ -12,7 +12,7 @@ The generated Maven reactor contains one parent POM and seven modules:
 ```text
 egon-cola-source-service-open-common       local errors/constants/enums
 egon-cola-source-service-open-facade       own Evaluation Proto wire contract and Triple codegen
-egon-cola-source-service-open-domain       aggregates, value objects, ports
+egon-cola-source-service-open-domain       aggregates, value objects, domain services
 egon-cola-source-service-open-application   use-case orchestration
 egon-cola-source-service-open-infrastructure MyBatis-Plus, sharding, MQ and RPC clients
 egon-cola-source-service-open-adapter       Proto RPC providers, converters and MQ consumers
@@ -34,7 +34,7 @@ Persistence uses Common MP repositories and explicit Mapper XML; domain service 
 The initial evaluation topology uses `master_data`, `shard_0`, and `shard_1`. The logical tables are `evaluation_course`, `evaluation_course_schedule`, `evaluation_exam`, `evaluation_exam_paper`, and `evaluation_score`; all routed tables use positive `tenant_id` for both database and table selection, so one tenant remains on one database/table slot. Non-positive tenant IDs, missing sharding keys, range routing, unknown nodes, and inconsistent node maps fail fast.
 
 
-`dev` is the default profile for a workstation and uses environment-provided PostgreSQL, Nacos, RabbitMQ, Redis, and Dubbo. `prod` uses the same contracts with operator-owned secrets. `test` uses H2 PostgreSQL compatibility mode, local Organization stubs, and no live Nacos, Redis, RabbitMQ, or external provider.
+`dev` is the default profile for a workstation and uses environment-provided PostgreSQL, Nacos, RabbitMQ, Redis, and Dubbo. `prod` uses the same contracts with operator-owned secrets. `test` uses H2 PostgreSQL compatibility mode, the local Organization client implementation, and no live Nacos, Redis, RabbitMQ, or external provider.
 
 The sole asynchronous executor is the bounded Boot `applicationTaskExecutor` (`core=8`, `max=32`, `queue=1000`, `keep-alive=60s` by default). `DtpTaskDecorator` preserves and cleans execution context; Dynamic Thread Pool governs that same executor through Redis in `dev`/`prod`. `test` disables DTP reporting and Nacos.
 
@@ -56,7 +56,7 @@ From the repository root:
   -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-The generated tests cover Proto descriptors, Long identity, Common MyBatis-Plus DAOs and services, isolated H2 persistence and typed ShardingSphere routing contracts, manual SQL conventions, 11 Triple providers, standard gRPC unary interoperability, Organization client/stub behavior, DTP executor context, and ArchUnit dependency direction. ArchUnit replaces the internal bytecode Maven plugin and enforces service-only/no-JPA/no-Flyway/no-Gateway/no-Springdoc boundaries.
+The generated tests cover Proto descriptors, Long identity, Common MyBatis-Plus DAOs and services, isolated H2 persistence and typed ShardingSphere routing contracts, manual SQL conventions, 11 Triple providers, standard gRPC unary interoperability, the dual-profile Organization client, DTP executor context, and ArchUnit dependency direction. ArchUnit replaces the internal bytecode Maven plugin and enforces service-only/no-JPA/no-Flyway/no-Gateway/no-Springdoc boundaries.
 
 These checks are source/generated-project and local-test evidence. They do not prove a live PostgreSQL schema, Redis DTP registry, Nacos topology, RabbitMQ, cross-Project provider, deployment network, or production authorization. Archetype generation and the commands above do not start the application or apply database SQL.
 

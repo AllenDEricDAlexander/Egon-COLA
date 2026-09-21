@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.serviceopen.domain.exam;
 
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.serviceopen.common.exception.EvaluationDomainException;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.Course;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.Exam;
@@ -42,7 +42,7 @@ class ExamDomainServiceTest {
         assertThrows(EvaluationDomainException.class, () -> {
             if (!paper.getExamId().equals(exam.getId())) {
                 throw new EvaluationDomainException(
-                        top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainErrorCode.EXAM_NOT_PUBLISHABLE,
+                        top.egon.cola.archetype.source.serviceopen.common.enums.EvaluationDomainErrorCode.EXAM_NOT_PUBLISHABLE,
                         "exam requires its own paper before publication");
             }
         });

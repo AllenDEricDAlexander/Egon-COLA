@@ -1,12 +1,14 @@
 package top.egon.cola.archetype.source.serviceopen.domain.course;
 
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.serviceopen.common.exception.EvaluationDomainException;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.Course;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.CourseSchedule;
 import top.egon.cola.archetype.source.serviceopen.domain.course.enums.CourseScheduleStatus;
 import top.egon.cola.archetype.source.serviceopen.domain.course.validators.CourseDomainValidator;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseId;
+import jakarta.validation.Validation;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -31,9 +33,14 @@ class CourseDomainServiceTest {
                 Instant.parse("2026-09-01T01:00:00Z"),
                 Instant.parse("2026-09-01T02:00:00Z"), CourseScheduleStatus.SCHEDULED);
 
-        assertThrows(EvaluationDomainException.class, () -> new CourseDomainValidator().validateSchedule(
+        assertThrows(EvaluationDomainException.class, () -> validator().validateSchedule(
                 course, 2001L,
                 Instant.parse("2026-09-01T01:30:00Z"),
                 Instant.parse("2026-09-01T02:30:00Z"), List.of(existing)));
+    }
+
+    private static CourseDomainValidator validator() {
+        return new CourseDomainValidator(
+                new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator()));
     }
 }

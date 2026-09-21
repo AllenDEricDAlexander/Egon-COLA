@@ -91,7 +91,7 @@ class OpenPeerFacadeContractTest {
                 .should().accessClassesThat().resideInAPackage(PEER_FACADE_ROOT + "..")
                 .check(OWN_PRODUCTION_CLASSES);
 
-        assertThat(accessedOwners("infrastructure.client.organization.DubboOrganizationDirectoryClient"))
+        assertThat(accessedOwners("infrastructure.client.organization.impl.DubboOrganizationDirectoryClientImpl"))
                 .as("the organization client must consume the peer facade services")
                 .anyMatch(type -> type.startsWith(PEER_FACADE_ROOT + "."));
     }

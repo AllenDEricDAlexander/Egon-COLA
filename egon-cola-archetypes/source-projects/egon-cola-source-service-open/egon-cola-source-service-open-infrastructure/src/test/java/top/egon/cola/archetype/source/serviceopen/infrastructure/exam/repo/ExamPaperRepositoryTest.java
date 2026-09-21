@@ -3,7 +3,7 @@ package top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.ExamPaper;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamPaperStatus;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.converter.ExamPaperConverter;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.converter.ExamPaperConverter;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 

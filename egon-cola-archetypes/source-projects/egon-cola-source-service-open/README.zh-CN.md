@@ -12,7 +12,7 @@ Evaluation 契约由本工程自己的 `-facade` 模块发布，Organization 契
 ```text
 egon-cola-source-service-open-common        本地错误/常量/枚举
 egon-cola-source-service-open-facade        本工程自有 Evaluation Proto wire contract 与 Triple codegen
-egon-cola-source-service-open-domain         聚合、值对象、端口
+egon-cola-source-service-open-domain         聚合、值对象、领域服务契约
 egon-cola-source-service-open-application    用例编排
 egon-cola-source-service-open-infrastructure MyBatis-Plus、分片、MQ、RPC client
 egon-cola-source-service-open-adapter        Proto RPC provider、转换器、MQ consumer
@@ -34,7 +34,7 @@ Evaluation 的 11 个方法在同一个 Triple 端口按 `course`、`exam`、`sc
 Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。逻辑表为 `evaluation_course`、`evaluation_course_schedule`、`evaluation_exam`、`evaluation_exam_paper`、`evaluation_score`；所有路由表都以正 `tenant_id` 同时进行分库分表，同一租户始终位于同一 database/table slot。非正 tenant ID、缺少分片键、范围路由、未知节点和不一致 node map 均快速失败。
 
 
-`dev` 是本地默认 profile，依赖环境提供的 PostgreSQL、Nacos、RabbitMQ、Redis 和 Dubbo；`prod` 使用同样的契约和由运维持有的密钥；`test` 使用 PostgreSQL 兼容模式 H2、Local Organization stub，并关闭在线 Nacos、Redis、RabbitMQ 和外部 provider。
+`dev` 是本地默认 profile，依赖环境提供的 PostgreSQL、Nacos、RabbitMQ、Redis 和 Dubbo；`prod` 使用同样的契约和由运维持有的密钥；`test` 使用 PostgreSQL 兼容模式 H2、Local Organization client 实现，并关闭在线 Nacos、Redis、RabbitMQ 和外部 provider。
 
 应用只有一个有界异步执行器 `applicationTaskExecutor`，默认 `core=8`、`max=32`、`queue=1000`、`keep-alive=60s`。`DtpTaskDecorator` 负责传递并清理执行上下文，Dynamic Thread Pool 在 `dev`/`prod` 中通过 Redis 管理同一个执行器；`test` 关闭 DTP 上报和 Nacos。
 
@@ -56,7 +56,7 @@ Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。逻辑表�
   -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-生成测试覆盖 Proto descriptor、Long identity、Common MyBatis-Plus DAO/service、隔离 H2 持久化与 typed ShardingSphere 路由合同、手工 SQL 约定、11 个 Triple provider、标准 gRPC unary interop、Organization client/stub、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
+生成测试覆盖 Proto descriptor、Long identity、Common MyBatis-Plus DAO/service、隔离 H2 持久化与 typed ShardingSphere 路由合同、手工 SQL 约定、11 个 Triple provider、标准 gRPC unary interop、Organization client 双剖面实现、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
 
 这些检查只证明源码、生成工程和本地测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos 拓扑、RabbitMQ、跨 Project provider、部署网络或生产权限。archetype 生成和上述命令不会自动启动应用，也不会执行数据库 SQL。
 

@@ -6,7 +6,9 @@ import org.redisson.config.Config;
 import org.redisson.config.SingleServerConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.common.cache.autoconfigure.EgonColaCacheProperties;
@@ -46,5 +48,15 @@ public class RedisConfig {
             server.setPassword(password);
         }
         return Redisson.create(config);
+    }
+
+    /**
+     * 组件关闭时（如无 Redis 的 test 剖面）Spring Cache 仍要有确定归属的管理器，
+     * 否则 classpath 上任意 JSR-107 provider 会抢占 Boot 的默认缓存装配。
+     */
+    @Bean("cacheManager")
+    @ConditionalOnProperty(prefix = EgonColaCacheProperties.PREFIX, name = "enabled", havingValue = "false")
+    CacheManager inMemoryCacheManager() {
+        return new ConcurrentMapCacheManager();
     }
 }

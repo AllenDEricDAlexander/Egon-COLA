@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.serviceopen.domain.exam;
 
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.serviceopen.common.exception.EvaluationDomainException;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.Course;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseId;
@@ -10,6 +10,8 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamPaperSta
 import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamStatus;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.validators.ScoreDomainValidator;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
+import jakarta.validation.Validation;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +25,8 @@ class ScoreDomainServiceTest {
         Exam exam = new Exam(new ExamId(4001L), new CourseId(course.getId()), "Midterm",
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), ExamStatus.PUBLISHED);
         ExamPaper paper = new ExamPaper(5001L, exam.getId(), "Paper", 100, ExamPaperStatus.PUBLISHED);
-        ScoreDomainValidator validator = new ScoreDomainValidator();
+        ScoreDomainValidator validator = new ScoreDomainValidator(
+                new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator()));
 
         assertThrows(EvaluationDomainException.class,
                 () -> validator.validate(exam, paper, 6001L, 101, false));

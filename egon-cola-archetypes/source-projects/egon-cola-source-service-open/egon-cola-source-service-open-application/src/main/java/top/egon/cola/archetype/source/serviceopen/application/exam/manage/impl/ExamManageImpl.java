@@ -1,36 +1,46 @@
 package top.egon.cola.archetype.source.serviceopen.application.exam.manage.impl;
 
-import top.egon.cola.archetype.source.serviceopen.application.exceptions.ApplicationErrorCode;
-import top.egon.cola.archetype.source.serviceopen.application.exceptions.ApplicationException;
-import top.egon.cola.archetype.source.serviceopen.application.exam.command.AttachExamPaperCommand;
-import top.egon.cola.archetype.source.serviceopen.application.exam.command.CreateExamCommand;
-import top.egon.cola.archetype.source.serviceopen.application.exam.command.PublishExamCommand;
-import top.egon.cola.archetype.source.serviceopen.application.exam.converter.ExamApplicationConverter;
+import top.egon.cola.archetype.source.serviceopen.common.enums.ApplicationErrorCode;
+import top.egon.cola.archetype.source.serviceopen.common.exception.ApplicationException;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.AttachExamPaperCommand;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.CreateExamCommand;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.PublishExamCommand;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.convertor.ExamApplicationConverter;
 import top.egon.cola.archetype.source.serviceopen.application.exam.manage.ExamManage;
-import top.egon.cola.archetype.source.serviceopen.application.exam.query.GetExamQuery;
-import top.egon.cola.archetype.source.serviceopen.application.exam.result.ExamDetailResult;
-import top.egon.cola.archetype.source.serviceopen.application.exam.result.ExamPaperResult;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.query.GetExamQuery;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.result.ExamDetailResult;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.result.ExamPaperResult;
 import top.egon.cola.archetype.source.serviceopen.application.exam.validators.ExamApplicationValidator;
 import top.egon.cola.archetype.source.serviceopen.domain.course.entities.Course;
 import top.egon.cola.archetype.source.serviceopen.domain.course.service.CourseDomainService;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseId;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.Exam;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.ExamPaper;
-import top.egon.cola.archetype.source.serviceopen.domain.exam.event.ExamEventPublisher;
+import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ExamEventService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ExamDomainService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service("evaluationExamManage")
+@Validated
+@Slf4j
 @RequiredArgsConstructor
 public class ExamManageImpl implements ExamManage {
 
+    @Qualifier("courseDomainService")
     private final CourseDomainService courseDomainService;
+    @Qualifier("examDomainService")
     private final ExamDomainService examDomainService;
-    private final ExamEventPublisher examEventPublisher;
+    @Qualifier("examEventService")
+    private final ExamEventService examEventService;
+    @Qualifier("examApplicationConverterImpl")
     private final ExamApplicationConverter converter;
+    @Qualifier("examApplicationValidator")
     private final ExamApplicationValidator validator;
 
     @Override
@@ -64,7 +74,7 @@ public class ExamManageImpl implements ExamManage {
         examDomainService.publishExam(exam, paper);
         Exam saved = examDomainService.save(exam);
         examDomainService.savePaper(paper);
-        examEventPublisher.examPublished(saved, paper);
+        examEventService.examPublished(saved, paper);
         return converter.toResult(saved);
     }
 

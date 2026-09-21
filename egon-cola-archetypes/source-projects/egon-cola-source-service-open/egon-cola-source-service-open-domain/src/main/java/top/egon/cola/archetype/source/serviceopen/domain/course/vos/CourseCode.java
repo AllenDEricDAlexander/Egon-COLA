@@ -1,8 +1,8 @@
 package top.egon.cola.archetype.source.serviceopen.domain.course.vos;
 
 import top.egon.cola.archetype.source.serviceopen.common.constants.EvaluationConstants;
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainErrorCode;
-import top.egon.cola.archetype.source.serviceopen.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.serviceopen.common.enums.EvaluationDomainErrorCode;
+import top.egon.cola.archetype.source.serviceopen.common.exception.EvaluationDomainException;
 import java.util.Locale;
 
 public record CourseCode(String value) {

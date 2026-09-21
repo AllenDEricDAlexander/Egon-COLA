@@ -1,4 +1,9 @@
 package top.egon.cola.archetype.source.serviceopen.infrastructure.exam.mq.message;
+
 import java.time.Instant;
+import top.egon.cola.component.common.core.pojo.BasePojo;
+
+/** Exam publication event published on the {@code EXAM_PUBLISHED} route. */
 public record ExamPublishedMessage(
-        Long examId, Long courseId, Long paperId, Instant publishedAt) { }
+        Long examId, Long courseId, Long paperId, Instant publishedAt)
+        implements BasePojo { }

@@ -1,15 +1,19 @@
 package top.egon.cola.archetype.source.serviceopen.application.exam;
 
-import top.egon.cola.archetype.source.serviceopen.application.exam.command.RecordScoreCommand;
-import top.egon.cola.archetype.source.serviceopen.application.exam.converter.ExamApplicationConverter;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.RecordScoreCommand;
+import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.convertor.ExamApplicationConverter;
 import top.egon.cola.archetype.source.serviceopen.application.exam.manage.impl.ScoreManageImpl;
 import top.egon.cola.archetype.source.serviceopen.application.exam.validators.ExamApplicationValidator;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.Exam;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.ExamPaper;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.Score;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamPaperStatus;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.enums.ExamStatus;
-import top.egon.cola.archetype.source.serviceopen.domain.exam.event.ExamEventPublisher;
+import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ExamEventService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ExamDomainService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.service.ScoreDomainService;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
@@ -26,6 +30,12 @@ import static org.mockito.Mockito.when;
 
 class ScoreManageTest {
 
+    private final ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
+
+    private ExamApplicationValidator validator() {
+        return new ExamApplicationValidator(new ValidationUtils(validators.getValidator()));
+    }
+
     @Test
     void shouldPersistAndPublishRecordedScore() {
         ExamDomainService exams = mock(ExamDomainService.class);
@@ -38,9 +48,9 @@ class ScoreManageTest {
         when(scores.recordScore(any(), any(), any(), any(Integer.class), any(Boolean.class)))
                 .thenReturn(TestEvaluationModels.recordedScore());
         when(scores.save((Score) any())).thenAnswer(invocation -> invocation.getArgument(0));
-        ExamEventPublisher events = mock(ExamEventPublisher.class);
+        ExamEventService events = mock(ExamEventService.class);
         ScoreManageImpl manage = new ScoreManageImpl(
-                exams, scores, events, new ExamApplicationConverter(), new ExamApplicationValidator());
+                exams, scores, events, Mappers.getMapper(ExamApplicationConverter.class), validator());
 
         var result = manage.record(new RecordScoreCommand(4001L, 6001L, 90));
 
