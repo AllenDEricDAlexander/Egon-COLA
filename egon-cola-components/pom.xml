@@ -64,10 +64,12 @@
         <module>egon-cola-component-transactional-outbox-starter</module>
         <module>egon-cola-component-bytecode</module>
         <module>egon-cola-component-rag-starter</module>
+        <module>egon-cola-component-code-generator</module>
     </modules>
 
     <properties>
         <java.version>21</java.version>
+        <freemarker.version>2.3.35</freemarker.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -336,6 +338,11 @@
                 <groupId>javax.annotation</groupId>
                 <artifactId>javax.annotation-api</artifactId>
                 <version>${javax.annotation.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.freemarker</groupId>
+                <artifactId>freemarker</artifactId>
+                <version>${freemarker.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
