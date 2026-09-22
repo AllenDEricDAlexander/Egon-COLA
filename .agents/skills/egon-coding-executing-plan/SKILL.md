@@ -7,7 +7,7 @@ description: Use when an approved coding Plan must be implemented one Step at a 
 
 ## Dependency approval and backend template generation
 
-After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator for supported templates; it is currently only proposed, so never invent commands or silently handwrite a replacement.
+After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement.
 
 ## Java / CQE effective contract (2026-09-22)
 

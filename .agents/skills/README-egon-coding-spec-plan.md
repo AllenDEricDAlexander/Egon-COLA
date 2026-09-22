@@ -48,4 +48,4 @@ docs/egon/plan/YYYY-MM-DD-HH-MM-ABSTRACT.md
 
 ## 后端模板生成与依赖审批
 
-三个 skill 已接入统一的 `references/backend-code-generation.md` 约束：不允许自行引入依赖，缺口必须阻断并提交用户审批方案；未来通过生成器生成已支持的后端模板，只处理获准的目录、表和产物范围。生成器目前处于方案阶段，尚无可调用命令；本次 skill 更新不代表生成器已经实现。
+三个 skill 已接入统一的 `references/backend-code-generation.md` 约束：不允许自行引入依赖，缺口必须阻断并提交用户审批方案。已验证的后端生成器入口是 `scripts/egon-codegen.sh`，说明见 `egon-cola-components/egon-cola-component-code-generator/README.md`。Spec 选择 DDL、native Light/Web/Service 和产物范围；Plan 固定配置与已有类型；Execute 先 `plan` 再只 apply 获准文件。FreeMarker 2.3.35 只属于生成器工具。Agent、Open 和传统三层不在生成范围内。人工修改过的业务代码仍归用户所有。

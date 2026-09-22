@@ -18,9 +18,11 @@ When current dependencies cannot satisfy a requirement:
 
 ## Generator availability and scope
 
-The DDL backend generator is currently a proposal, not an installed command. First discover its actual executable, supported project profiles, template inventory and component compatibility. Never execute a command copied from a proposal as though it exists. If tooling is absent, report `BLOCKED_TOOLING` for template generation and request its implementation or an explicit alternative; do not silently spend tokens recreating the covered boilerplate. Design and dependency review can continue.
+The verified offline generator is `scripts/egon-codegen.sh`. It supports native profiles `light`, `web` and `service`, FreeMarker 2.3.35, and the commands `templates`, `plan`, `check`, `apply` and `recover`. Operating notes are in the generator module README next to that script. The launcher requires an explicit local `EGON_CODEGEN_CLASSPATH`. A missing Java executable or classpath entry returns `BLOCKED_TOOLING` and does not download dependencies or start an application. Agent, open and traditional profiles remain unsupported.
 
-Once the generator is implemented and verified, generate supported repetitive backend scaffolding through it. The model supplies generation configuration and business decisions, reviews its diff, and writes only business logic/custom queries not covered by templates. Do not add empty adapters, base classes or services merely to exercise a template.
+For an approved template task, call `plan`, inspect the JSON summary, selected files and conflicts, then `apply` only the authorized actions. Read the machine summary and diff. Do not retype generated boilerplate. A missing dependency or absent classpath still blocks; do not invent a replacement generator.
+
+Generate supported repetitive backend scaffolding through that command. The model supplies generation configuration and business decisions, reviews its diff, and writes only business logic/custom queries not covered by templates. Do not add empty adapters, base classes or services merely to exercise a template.
 
 The intended initial profiles are native Light (single-module monolith), Web and Service. Agent is excluded. Existing traditional three-layer packages are preserved; never reinterpret “monolith” as permission to move a traditional project into Light DDD. A selected profile must match current POMs, packages and architecture checks. Open variants need explicit support and dependency verification, not silent fallback to native templates.
 
@@ -50,7 +52,7 @@ Map these concerns to `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-MODEL-001
 
 - 禁止自行引入、升级或下载依赖、插件、注解处理器和生成器工具；BOM 已管理不等于授权。内部依赖新增也须有明确授权，已有明确批准不重复询问。
 - 现有依赖不足时阻断受影响工作，提交能力缺口、内部复用方案、引入坐标/版本/模块/传递影响和验证方案，由用户决定；不能先改 POM 再说明。
-- 未来已支持的后端模板必须通过已验证生成器产生，模型负责配置、业务规则与差异审核。当前生成器尚是方案，不得虚构可用命令或宣称已接入。
+- 已验证命令是 `scripts/egon-codegen.sh`，支持 `templates`、`plan`、`check`、`apply`、`recover`。只对获准的 native Light/Web/Service 范围调用；先看计划摘要和冲突，再 apply。缺 classpath 返回 `BLOCKED_TOOLING`，不得下载依赖或手写替代模板。Agent、Open 和传统三层仍不支持。
 - 明确 Light/Web/Service、DDL 来源、逻辑表映射、输出根目录、精确产物范围；只生成 DAO 不得自动扩展到其他层。Agent 暂不支持，传统三层结构不迁移。
 - 重生成按基线/hash 管理，只更新未被人工修改的自有文件；不覆写自定义代码，不执行数据库 DDL，不自行添加依赖。
 
