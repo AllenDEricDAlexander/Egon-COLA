@@ -37,13 +37,21 @@ The intended initial profiles are native Light (single-module monolith), Web and
 - Renames, drops, type/nullability changes and contract changes require an explicit impact decision. Use explicit rename mappings, never infer rename from similar names. A file outside the selected output range remains untouched; report affected consumers as pending rather than claiming project-wide convergence.
 - Inherited MP Repository CRUD is reused, not copied or overridden. Generate the explicit Mapper XML required by the actual EgonColaMapper contract and typed, named query/page methods when needed. Keep optimistic version, tenant, soft deletion and routing semantics intact.
 
+## Classpath SQL journal
+
+After every skill-driven generator `apply` that succeeds, and after a `plan` when that plan is the last authorized generator action, append one entry to `docs/egon/codegen/ddl-consumption-log.md`. This records classpath SQL under `src/main/resources/db/` that the run used as generator input. It is not `ddl_history` and does not mean the SQL was executed on PostgreSQL. Do not connect to a database to fill it.
+
+For that run record, in order: the Asia/Shanghai time, profile, repository-relative output root, and the highest script version consumed (`throughVersion`). Then one block per script in manifest or filename order: version token from the filename (`V20260913_001` or the same token without the leading `V`), repository-relative path, SHA-256 of the file bytes, and the full SQL text. If the run used no `resources/db` script, record `throughVersion: none` and say so; do not invent SQL.
+
+Append only. Do not rewrite or delete earlier entries. Consuming the same version again adds a new timed entry. A missing journal file is created from the header already stored there before the first entry.
+
 ## Phase evidence
 
 | Phase | Required result |
 | --- | --- |
 | Spec | DDL source/type, supported profile, templates, generated/custom ownership, CRUD/API semantics, dependency availability and change/conflict policy |
 | Plan | Exact configuration, executable discovery, artifact scope, output paths, required existing types, expected diff, generator/component/template versions, validations and approvals |
-| Execute | Run the verified generator for approved templates, inspect scoped diff, preserve custom code, compile/test the affected output; block missing tooling/dependencies rather than inventing them |
+| Execute | Run the verified generator for approved templates, inspect scoped diff, preserve custom code, compile/test the affected output; append the classpath SQL journal; block missing tooling/dependencies rather than inventing them |
 | Final audit | Reconcile DDL diff, selected/generated files, unresolved consumers/conflicts, manifest/dependency changes, validation results and runtime limits |
 
 Map these concerns to `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-MODEL-001`, `MC-SCOPE-001` and `MC-TEST-001`. An unresolved applicable concern cannot PASS.
@@ -55,5 +63,6 @@ Map these concerns to `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-MODEL-001
 - 已验证命令是 `scripts/egon-codegen.sh`，支持 `templates`、`plan`、`check`、`apply`、`recover`。只对获准的 native Light/Web/Service 范围调用；先看计划摘要和冲突，再 apply。缺 classpath 返回 `BLOCKED_TOOLING`，不得下载依赖或手写替代模板。Agent、Open 和传统三层仍不支持。
 - 明确 Light/Web/Service、DDL 来源、逻辑表映射、输出根目录、精确产物范围；只生成 DAO 不得自动扩展到其他层。Agent 暂不支持，传统三层结构不迁移。
 - 重生成按基线/hash 管理，只更新未被人工修改的自有文件；不覆写自定义代码，不执行数据库 DDL，不自行添加依赖。
+- skill 驱动的生成在 `apply` 成功后，或本次只授权到 `plan` 时，向 `docs/egon/codegen/ddl-consumption-log.md` 追加一条。记下 Asia/Shanghai 时间、profile、输出根、用到的 `src/main/resources/db/` 脚本版本（执行到的最高版本）、路径、SHA-256 和完整 SQL。这不是数据库执行记录，不连接数据库。只追加，不改旧条目；没有 db 脚本就记 `throughVersion: none`。
 
 用户于 2026-09-22 最终明确改为 FreeMarker，替代前一条 Velocity 选型。仅授权工具依赖 org.freemarker:freemarker（方案固定2.3.35），生成业务工程不增加引擎依赖，其他依赖仍须逐项批准。

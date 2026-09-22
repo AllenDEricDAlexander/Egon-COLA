@@ -893,4 +893,4 @@ Read `references/egon-java-cqe-contract.md`. Record each applicable concern sepa
 
 ## Backend generation and dependency evidence
 
-Read `references/backend-code-generation.md`. For affected DDL/CRUD scaffolding record the verified generator, profile, DDL/manifest version, logical tables, output paths and exact artifacts; identify generated versus custom files and update/hash conflicts. Record current dependency evidence and explicit approval for each introduction. Absent tooling or unapproved missing dependencies blocks the dependent work.
+Read `references/backend-code-generation.md`. For affected DDL/CRUD scaffolding record the verified generator, profile, DDL/manifest version, logical tables, output paths and exact artifacts; identify generated versus custom files and update/hash conflicts. After a skill-driven generator apply, or a plan that is the last authorized generator action, append the classpath SQL journal defined there. Record current dependency evidence and explicit approval for each introduction. Absent tooling or unapproved missing dependencies blocks the dependent work.
