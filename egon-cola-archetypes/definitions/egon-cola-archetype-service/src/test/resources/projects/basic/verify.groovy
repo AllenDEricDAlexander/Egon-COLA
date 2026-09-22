@@ -328,7 +328,15 @@ def serviceApplication = assertFile(
 assert !serviceApplication.contains("@EnableDubbo")
 assert serviceApplication.contains('scanBasePackages = "it.pkg"')
 assert !serviceApplication.contains("enableDefaultTransactions")
-assert serviceApplication.contains("LongIdGenerator")
+// Step 2 staticizes ID issuance: the starter configuration initializes the static generator and
+// the domain implementations call it, so the Application class must not hand-wire an ID bean.
+def serviceIdBootstrapYaml = assertFile(
+        "student-management-evaluation-starter/src/main/resources/application.yml").text
+assert serviceIdBootstrapYaml.contains('machine-id: ${EGON_ID_MACHINE_ID}')
+assert !serviceApplication.contains("LongIdGenerator")
+assert assertFile(
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/service/impl/CourseDomainServiceImpl.java").text
+        .contains("SnowflakeIdGenerator.nextLongId()")
 assert serviceApplication.contains("@MapperScan")
 assert serviceApplication.contains("infrastructure.course.dao")
 assert serviceApplication.contains("infrastructure.exam.dao")
@@ -462,7 +470,7 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/impl/LocalOrganizationDirectoryClientImplTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/contract/OwnedFacadeContractTest.java",
-    "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationDataSourceModeTest.java"
+    "student-management-evaluation-starter/src/test/java/it/pkg/architecture/EvaluationPersistenceArchitectureTest.java"
 ].each { assertFile(it) }
 
 assertMissing("student-management-evaluation-starter/src/test/java/it/pkg/starter/ServiceArchitectureDependencyTest.java")
@@ -561,11 +569,14 @@ assert providerImports: "Infrastructure must consume the published peer Organiza
 def ownFacadeImports = javaFiles.findAll {
     it.getText("UTF-8").contains("import it.pkg.facade.")
 }
+// The Adapter's MapStruct provider is generated output of its own converter interface, exactly like the
+// Infrastructure peer converter above; every authored source must still stay inside these two modules.
 assert ownFacadeImports.every {
     def path = javaPath(it)
     path.startsWith("student-management-evaluation-facade/src/")
             || path.startsWith("student-management-evaluation-adapter/src/")
             || path.contains("/src/test/")
+            || path == "student-management-evaluation-adapter/target/generated-sources/annotations/it/pkg/adapter/pojo/convertor/EvaluationFacadeConverterImpl.java"
 }: "Own Facade contract escaped its module and the Adapter: ${ownFacadeImports.collect(javaPath)}"
 assert ownFacadeImports: "The generated Adapter must consume the project's own Facade module"
 
@@ -604,8 +615,12 @@ def staleTokens = [
     ".application.exceptions.", ".application.result.", ".domain.client.",
     "top.egon.cola.evaluation.facade", "top.egon.cola.organization.facade"
 ]
-// The contract test pins the frozen wire name on purpose, so only runtime sources are scanned.
-def runtimeJavaFiles = javaFiles.findAll { file -> !javaPath(file).contains('/src/test/') }
+// The contract test pins the frozen wire name on purpose, so only authored runtime sources are scanned.
+// The Facade's generated Protobuf/gRPC stubs reproduce that frozen wire package by design and are build output.
+def runtimeJavaFiles = javaFiles.findAll { file ->
+    def path = javaPath(file)
+    !path.contains('/src/test/') && !path.contains('/target/')
+}
 runtimeJavaFiles.each { file ->
     staleTokens.each { token ->
         assert !file.getText("UTF-8").contains(token): "Unexpected ${token} in ${file.name}"
@@ -692,7 +707,9 @@ assertLoggingContract(
         "student-management-evaluation-starter/src/main/resources/application.yml")
 def testYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application-test.yml").text
-assert testYaml.contains("database-name: student_management_test")
+assert testYaml.contains("jdbc-url: jdbc:postgresql://localhost:5432/evaluation_test_master_data")
+assert testYaml.contains("jdbc-url: jdbc:postgresql://localhost:5432/evaluation_test_shard_0")
+assert testYaml.contains("jdbc-url: jdbc:postgresql://localhost:5432/evaluation_test_shard_1")
 assert !testYaml.contains("DATABASE_TO_LOWER")
 assert applicationYaml.contains("default: dev")
 assert applicationYaml.contains("shutdown: graceful")
@@ -714,9 +731,7 @@ def nativeProviderTest = assertFile(
 
 [
     "application.yml", "application-dev.yml", "application-test.yml", "application-prod.yml",
-    "datasource/sharding.yml", "datasource/sharding-readwrite.yml",
-    "sharding/shardingsphere-sharding.yml",
-    "sharding/shardingsphere-sharding-readwrite.yml"
+    "egon-mybatis-plus-sharding.yml"
 ].each { name ->
     assertFile("student-management-evaluation-starter/src/main/resources/${name}")
 }
@@ -731,70 +746,54 @@ assert serviceProfileConfigNames == [
     "application-prod.yml",
     "application-test.yml"
 ]: "Only dev, test and prod profile configuration files are allowed"
-def serviceShardingApplication = assertFile(
-        "student-management-evaluation-starter/src/main/resources/datasource/sharding.yml").text
 def serviceApplicationYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application.yml").text
+assert serviceApplicationYaml.contains('classpath:egon-mybatis-plus-sharding.yml')
 assert serviceApplicationYaml.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
-assert !serviceShardingApplication.contains("mapping-version")
-assert serviceShardingApplication.contains('node-count: ${EVALUATION_SHARDING_NODE_COUNT:4}')
-assert serviceShardingApplication.contains(
-        'node-map: ${EVALUATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
-assert serviceShardingApplication.contains("EVALUATION_SHARDING_MASTER_DATA_URL")
-assert serviceShardingApplication.contains("classpath:db/egon-mp/repository-manifest.json")
-assert serviceShardingApplication.contains("role: SHARD")
+// The MP starter owns the topology: one STRATEGY document, no node-map bootstrap and no raw ShardingSphere YAML.
 def serviceShardingRule = assertFile(
-        "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
-assert serviceShardingRule.contains(
-        '${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}')
-assert serviceShardingRule.contains("shardingColumn: tenant_id")
-assert serviceShardingRule.contains("evaluation_exam,evaluation_exam_paper,evaluation_score")
-assert serviceShardingRule.contains('master_data.${EVALUATION_SHARDING_SCHEMA:public}.evaluation_course')
-assert serviceShardingRule.contains("LongTenantShardingAlgorithm")
-assert !serviceShardingRule.contains("UuidV7BucketShardingAlgorithm")
-assert !serviceShardingRule.contains(".public.")
-assert !serviceShardingRule.contains("proxy-frontend-database-protocol-type")
-assert serviceShardingRule.count("none:") == 0
-assert serviceShardingRule.count("auditStrategy:") == 4
-assert serviceShardingRule.count("allowHintDisable: false") == 4
-assert serviceShardingRule.contains("DML_SHARDING_CONDITIONS")
-assert serviceShardingRule.contains("!SINGLE")
-def serviceReadwriteRule = assertFile(
-        "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
-assert serviceReadwriteRule.contains(
-        '${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}')
-assert serviceReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
-assert serviceReadwriteRule.contains("evaluation_exam,evaluation_exam_paper,evaluation_score")
-assert serviceReadwriteRule.contains("shardingColumn: tenant_id")
-assert serviceReadwriteRule.contains("LongTenantShardingAlgorithm")
-assert serviceReadwriteRule.contains("master_data_primary")
-assert serviceReadwriteRule.contains("master_data_replica_0")
-assert serviceReadwriteRule.count("auditStrategy:") == 4
-assert !serviceReadwriteRule.contains(".public.")
-assert !serviceReadwriteRule.contains("proxy-frontend-database-protocol-type")
-assert serviceReadwriteRule.contains("!SINGLE")
+        "student-management-evaluation-starter/src/main/resources/egon-mybatis-plus-sharding.yml").text
+assert serviceShardingRule.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
+assert serviceShardingRule.contains('config-style: STRATEGY')
+assert serviceShardingRule.contains('transaction-default-type: LOCAL')
+[
+    'jdbc-url: ${EVALUATION_SHARDING_MASTER_DATA_URL}',
+    'jdbc-url: ${EVALUATION_SHARDING_SHARD_0_URL}',
+    'jdbc-url: ${EVALUATION_SHARDING_SHARD_1_URL}'
+].each { assert serviceShardingRule.contains(it) }
+assert serviceShardingRule.contains('role: PRIMARY')
+assert serviceShardingRule.contains('type: STANDARD_TENANT_ID')
+assert serviceShardingRule.contains('sharding-column: tenant_id')
+assert !serviceShardingRule.contains('mapping-version')
+assert !serviceShardingRule.contains('node-count')
+assert !serviceShardingRule.contains('node-map')
+assert !serviceShardingRule.contains('LongTenantShardingAlgorithm')
+assert !serviceShardingRule.contains('UuidV7BucketShardingAlgorithm')
+assert !serviceShardingRule.contains('.public.')
+assert !serviceShardingRule.contains('proxy-frontend-database-protocol-type')
+assert !serviceShardingRule.contains('defaultDataSource')
+assert !serviceShardingRule.contains('transactionalReadQueryStrategy')
+// Sharding topology, algorithms and bootstrap come from the component starter, never from a local copy.
+[
+    "DataSourceModeProperties",
+    "ShardingNodeMap",
+    "LongTenantShardingAlgorithm",
+    "ShardingWriteTargetResolver",
+    "ShardingDataSourceBootstrapper",
+    "ShardingDataSourcePropertiesLoader",
+    "ShardingTopologyValidator",
+    "ShardingSphereDataSourceConfiguration",
+    "LogicalDataSourceFlywayMigrationStrategy",
+    "ShardingDataSourceModeCondition",
+    "ShardingNodeMapCompatibilityValidator"
+].each { typeName ->
+    assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
+}
 [
     "student-management-evaluation-application/src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/DataSourceModeProperties.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingWriteTargetResolver.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceBootstrapper.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoader.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMap.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithm.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PostgreSqlSchemaInitializationTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithmTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/RepositoryPersistenceContractTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
 ].each { assertFile(it) }
-[
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategy.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceModeCondition.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidator.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategyTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java"
-].each { assertMissing(it) }
 assertMissing("student-management-evaluation-starter/src/main/resources/bootstrap-local.yml")
 assertMissing("student-management-evaluation-starter/src/main/resources/application-local.yml")
 assertMissing("student-management-evaluation-starter/src/main/resources/application-sharding.yml")
@@ -1121,7 +1120,9 @@ genericConverterSources.each { source ->
 def sourceBoundaryFiles = []
 projectDir.eachFileRecurse { candidate ->
     def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
-    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+    // Authored sources carry the boundary; a packaged build output embeds the resolved peer facade
+    // dependency GAV, which is a resolution input rather than a source leak.
+    if (candidate.isFile() && !candidatePath.startsWith('target/') && !candidatePath.contains('/target/')) {
         sourceBoundaryFiles << candidate
     }
 }

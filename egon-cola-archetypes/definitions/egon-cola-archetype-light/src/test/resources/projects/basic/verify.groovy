@@ -535,7 +535,8 @@ assertFile("src/test/java/it/pkg/architecture/LightPersistenceArchitectureTest.j
 assert !assertFile("src/main/resources/application-test.yml").text.contains('ENC(')
 
 def testConfig = assertFile("src/main/resources/application-test.yml").text
-assert testConfig.contains("database-name: student_management_test")
+assert testConfig.contains("jdbc-url: jdbc:postgresql://localhost:5432/light_test_shard_0")
+assert testConfig.contains("jdbc-url: jdbc:postgresql://localhost:5432/light_test_shard_1")
 assert !testConfig.contains("DATABASE_TO_LOWER")
 assert testConfig.contains("rabbitmq:\n      enabled: false")
 assert testConfig.contains("redis:\n      enabled: false")
@@ -708,48 +709,32 @@ assert starterText.contains('"it.pkg.infrastructure.user.dao"')
 assert starterText.contains('"it.pkg.infrastructure.teaching.dao"')
 assert !starterText.contains("repo.dao")
 assertFile("src/main/resources/application.yml")
-assertFile("src/main/resources/datasource/sharding.yml")
-assertFile("src/main/resources/datasource/sharding-readwrite.yml")
 assertMissing("src/main/resources/application-sharding.yml")
 assertMissing("src/main/resources/application-readwrite.yml")
-assertFile("src/main/resources/sharding/shardingsphere-sharding.yml")
-assertFile("src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
 def lightApplication = assertFile("src/main/resources/application.yml").text
+assert lightApplication.contains('classpath:egon-mybatis-plus-sharding.yml')
 assert lightApplication.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
-def lightShardingApplication = assertFile("src/main/resources/datasource/sharding.yml").text
-assert lightShardingApplication.contains('node-count: ${LIGHT_SHARDING_NODE_COUNT:4}')
-assert lightShardingApplication.contains(
-        'node-map: ${LIGHT_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
+// The MP starter owns the topology: one STRATEGY document, no node-map bootstrap and no raw ShardingSphere YAML.
+def lightShardingRule = assertFile("src/main/resources/egon-mybatis-plus-sharding.yml").text
+assert lightShardingRule.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
+assert lightShardingRule.contains('config-style: STRATEGY')
+assert lightShardingRule.contains('transaction-default-type: LOCAL')
 [
-    "classpath:db/egon-mp/repository-manifest.json",
-    "role: SHARD"
-].each { assert lightShardingApplication.contains(it) }
-def lightShardingRule = assertFile(
-        "src/main/resources/sharding/shardingsphere-sharding.yml").text
-assert lightShardingRule.contains(
-        '${app.sharding.database-name:${LIGHT_SHARDING_DATABASE_NAME:student_management}}')
-assert lightShardingRule.contains("shardingColumn: tenant_id")
-assert lightShardingRule.contains("shardingColumn: tenant_id")
-assert lightShardingRule.contains("school_classes,class_course_schedules")
-assert lightShardingRule.contains('master_data.${LIGHT_SHARDING_SCHEMA:public}.users')
-assert !lightShardingRule.contains(".public.")
-assert !lightShardingRule.contains("proxy-frontend-database-protocol-type")
-assert lightShardingRule.count("none:") == 0
-assert lightShardingRule.contains("type: DML_SHARDING_CONDITIONS")
-assert lightShardingRule.contains("allowHintDisable: false")
-assert lightShardingRule.contains("!SINGLE")
-assert !lightShardingRule.contains("defaultDataSource")
-def lightReadwriteRule = assertFile(
-        "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
-assert lightReadwriteRule.contains(
-        '${app.sharding.database-name:${LIGHT_SHARDING_DATABASE_NAME:student_management}}')
-assert lightReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
-assert lightReadwriteRule.contains("master_data_primary")
-assert lightReadwriteRule.contains("master_data_replica_0")
-assert lightReadwriteRule.contains("type: DML_SHARDING_CONDITIONS")
-assert !lightReadwriteRule.contains(".public.")
-assert !lightReadwriteRule.contains("proxy-frontend-database-protocol-type")
-assert lightReadwriteRule.contains("!SINGLE")
+    'jdbc-url: ${LIGHT_SHARDING_MASTER_DATA_URL}',
+    'jdbc-url: ${LIGHT_SHARDING_SHARD_0_URL}',
+    'jdbc-url: ${LIGHT_SHARDING_SHARD_1_URL}'
+].each { assert lightShardingRule.contains(it) }
+assert lightShardingRule.contains('role: PRIMARY')
+assert lightShardingRule.contains('data-source: master_data')
+assert lightShardingRule.contains('type: STANDARD_TENANT_ID')
+assert lightShardingRule.contains('sharding-column: tenant_id')
+assertFile("src/main/resources/db/egon-mp/repository-manifest.json")
+assert !lightShardingRule.contains('node-map')
+assert !lightShardingRule.contains('node-count')
+assert !lightShardingRule.contains('.public.')
+assert !lightShardingRule.contains('proxy-frontend-database-protocol-type')
+assert !lightShardingRule.contains('defaultDataSource')
+assert !lightShardingRule.contains('transactionalReadQueryStrategy')
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 [

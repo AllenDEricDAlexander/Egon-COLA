@@ -84,13 +84,15 @@ EOF
 }
 
 write_fake_stage() {
-  local script="$1" label="$2"
-  cat >"$script" <<EOF
+  local script="$1"
+  # The generator exposes generate/check as modes, so the fake records the invoked subcommand.
+  cat >"$script" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-printf 'stage:${label}\\n' "" >>"\${FAKE_LOG:?FAKE_LOG is required}"
-if [[ "\${FAKE_FAIL_LABEL:-}" == "${label}" ]]; then
-  printf 'fake stage: injected failure at ${label}\\n' >&2
+stage="${1:-}"
+printf 'stage:%s\n' "$stage" >>"${FAKE_LOG:?FAKE_LOG is required}"
+if [[ "${FAKE_FAIL_LABEL:-}" == "$stage" ]]; then
+  printf 'fake stage: injected failure at %s\n' "$stage" >&2
   exit 43
 fi
 EOF
@@ -130,8 +132,7 @@ setup_fixture() {
   cp "$DEPLOY_SCRIPT" "${FIXTURE_REPO}/scripts/maven-deploy.sh"
   chmod +x "${FIXTURE_REPO}/scripts/maven-deploy.sh"
   write_fake_maven_wrapper "${FIXTURE_REPO}/mvnw"
-  write_fake_stage "${FIXTURE_REPO}/scripts/generate_archetypes.sh" generate
-  write_fake_stage "${FIXTURE_REPO}/scripts/check_archetypes.sh" check
+  write_fake_stage "${FIXTURE_REPO}/scripts/generate_archetypes.sh"
   write_fixture_definitions
   git -C "$FIXTURE_REPO" init -q
   FAKE_LOG="${TEST_ROOT}/fake-call.log"
@@ -245,20 +246,27 @@ test_generated_profile_and_paths() {
   assert_file_contains "$DEPLOY_SCRIPT" '-Pgenerated-archetypes' 'deploy generated profile'
   assert_file_contains "$DEPLOY_SCRIPT" 'egon-cola-archetypes/.generated' 'deploy generated artifact root'
   assert_file_contains "$DEPLOY_SCRIPT" 'egon-cola-archetype-agent' 'deploy Agent target'
-  for workflow in "$REPO_ROOT/.github/workflows/ci.yaml" \
-      "$REPO_ROOT/.github/workflows/ci_java_compatibility.yaml" \
+  for workflow in "$REPO_ROOT/.github/workflows/ci_java_compatibility.yaml" \
       "$REPO_ROOT/.github/workflows/publish-maven-central.yml"; do
     assert_file_contains "$workflow" 'egon-cola-archetypes/definitions' \
       "${workflow} definitions inventory"
     assert_file_contains "$workflow" '.generated/' "${workflow} generated artifact root"
     assert_file_contains "$workflow" '-Pgenerated-archetypes' "${workflow} generated profile"
-    assert_file_contains "$workflow" 'scripts/check_archetypes.sh' \
+    assert_file_contains "$workflow" 'generate_archetypes.sh generate' \
+      "${workflow} generation entry point"
+    assert_file_contains "$workflow" 'generate_archetypes.sh check' \
       "${workflow} generated drift check"
     assert_file_not_contains "$workflow" 'src/main/archetype/archetype.properties' \
       "${workflow} legacy manifest path"
     assert_file_not_contains "$workflow" 'egon-cola-archetypes/${ARCHETYPE_ARTIFACT_ID}/pom.xml' \
       "${workflow} legacy package path"
   done
+  # The fast lane deliberately compiles and tests only the backend reactor; the two lanes above
+  # own the source-to-archetype pipeline.
+  assert_file_contains "$REPO_ROOT/.github/workflows/ci.yaml" 'clean test' \
+    'fast lane backend compile and test'
+  assert_file_not_contains "$REPO_ROOT/.github/workflows/ci.yaml" 'generate_archetypes.sh' \
+    'fast lane omits generation'
 }
 
 main() {

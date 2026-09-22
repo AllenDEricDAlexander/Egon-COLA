@@ -87,6 +87,15 @@ modules.each { module ->
             "spring-boot-starter-jdbc must stay forbidden in ${module} (EVD-003)"
 }
 
+// ShardingSphere 只能由 MP ext starter 传递带入；模块 POM 直接声明会绕开统一版本归属。
+modules.each { module ->
+    def pomText = file("${prefix}-${module}/pom.xml").text
+    assert !pomText.contains("<artifactId>shardingsphere-jdbc</artifactId>"):
+            "shardingsphere-jdbc must stay transitive in ${module}"
+    assert !pomText.contains("<artifactId>shardingsphere-sharding-core</artifactId>"):
+            "shardingsphere-sharding-core must stay transitive in ${module}"
+}
+
 // flyway-core 与 mybatis-plus-spring-boot3-starter 是 knowledge 域的持久化依赖，
 // 已由 Spec 2026-09-10-11-51 的 Amends 放开；其余禁项保持不变。
 def forbiddenDependencies = [
@@ -112,12 +121,13 @@ new java.util.jar.JarFile(agentArchive).withCloseable { archive ->
 }
 ["egon-cola-component-agent-flow-starter-", "spring-ai-openai-", "spring-ai-mcp-", "google-adk-",
  "egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter-", "mybatis-plus-spring-boot3-starter-",
+ "shardingsphere-jdbc-",
  "egon-cola-component-rag-starter-", "egon-cola-component-transactional-outbox-starter-",
  "spring-ai-pgvector-store-", "flyway-core-", "flyway-database-postgresql-", "postgresql-"].each { required ->
     assert agentLibraries.any { it.startsWith(required) }: "Missing Agent runtime library ${required}"
 }
 ["egon-cola-component-rpc-", "egon-cola-tianshu", "nacos-", "dubbo-",
- "shardingsphere-", "spring-cloud-starter-alibaba-nacos-"].each { forbidden ->
+ "spring-cloud-starter-alibaba-nacos-"].each { forbidden ->
     assert !agentLibraries.any { it.startsWith(forbidden) }: "Forbidden Agent runtime library ${forbidden}"
 }
 // Google ADK's gRPC/Protobuf dependencies remain allowed.

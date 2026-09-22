@@ -347,8 +347,12 @@ assert facadeConverter.contains("import it.pkg.facade.proto.")
 def application = file("${prefix}-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
 assert application.contains("@MapperScan")
 assert application.contains("@EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)")
-assert application.contains("LongIdGenerator")
-assert application.contains("@Bean")
+// Step 2 staticizes ID issuance: the starter configuration initializes the static generator and
+// the runtime calls it, so the Application class must not hand-wire an ID bean.
+assert file("${prefix}-starter/src/main/resources/application.yml").text
+        .contains('machine-id: ${EGON_ID_MACHINE_ID}')
+assert !application.contains("LongIdGenerator")
+assert runtimeText.contains("SnowflakeIdGenerator.nextLongId()")
 assert !application.contains("@EntityScan")
 assert !application.contains("@EnableJpaRepositories")
 def applicationYaml = file("${prefix}-starter/src/main/resources/application.yml").text
@@ -360,17 +364,39 @@ assert applicationYaml.contains("mdc-key: tenantId")
 assert applicationYaml.contains("user-id-mdc-key: userId")
 assert applicationYaml.contains("sql:") && applicationYaml.contains("mode: never")
 
-def sharding = [
-    file("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding.yml"),
-    file("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml"),
-    file("${prefix}-starter/src/main/resources/datasource/sharding.yml"),
-    file("${prefix}-starter/src/main/resources/datasource/sharding-readwrite.yml")
-].collect { it.text }.join("\n")
-["tenant_id", "tenant_long_database_bucket", "tenant_long_table_bucket", "LongTenantShardingAlgorithm"].each { token ->
-    assert sharding.contains(token): "Expected sharding token ${token}"
-}
-assert !sharding.contains("UuidV7")
-assert !sharding.contains("uuid_v7")
+assert applicationYaml.contains('classpath:egon-mybatis-plus-sharding.yml')
+// The MP starter owns the topology: one STRATEGY document, no node-map bootstrap and no raw ShardingSphere YAML.
+def sharding = file("${prefix}-starter/src/main/resources/egon-mybatis-plus-sharding.yml").text
+assert sharding.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
+assert sharding.contains('config-style: STRATEGY')
+assert sharding.contains('transaction-default-type: LOCAL')
+[
+    'jdbc-url: ${ORGANIZATION_SHARDING_MASTER_DATA_URL}',
+    'jdbc-url: ${ORGANIZATION_SHARDING_SHARD_0_URL}',
+    'jdbc-url: ${ORGANIZATION_SHARDING_SHARD_1_URL}'
+].each { assert sharding.contains(it) }
+assert sharding.count('role: PRIMARY') == 3
+assert sharding.contains('data-source: master_data')
+assert sharding.contains('type: STANDARD_TENANT_ID')
+assert sharding.contains('sharding-column: tenant_id')
+def webRepositoryManifest = file("${prefix}-infrastructure/src/main/resources/db/egon-mp/repository-manifest.json").text
+assert webRepositoryManifest.contains('"family": "web"')
+assert webRepositoryManifest.contains("V20260913_001__initialize_repository_schema.sql")
+assert webRepositoryManifest.contains('"sha256"')
+assert !sharding.contains('mapping-version')
+assert !sharding.contains('node-count')
+assert !sharding.contains('node-map')
+assert !sharding.contains('LongTenantShardingAlgorithm')
+assert !sharding.contains('UuidV7')
+assert !sharding.contains('uuid_v7')
+assert !sharding.contains('.public.')
+assert !sharding.contains('proxy-frontend-database-protocol-type')
+assert !sharding.contains('defaultDataSource')
+assert !sharding.contains('transactionalReadQueryStrategy')
+missing("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding.yml")
+missing("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
+missing("${prefix}-starter/src/main/resources/datasource/sharding.yml")
+missing("${prefix}-starter/src/main/resources/datasource/sharding-readwrite.yml")
 
 def migrationRoot = directory("${prefix}-infrastructure/src/main/resources/db/migration")
 def migrationPaths = []
@@ -419,7 +445,7 @@ projectDir.traverse(type: FileType.FILES) { candidate ->
 }
 ["WebArchitectureTest", "OrganizationApplicationTest",
  "OrganizationFlowTest", "OrganizationRollbackTest",
- "OrganizationFlywayMigrationTest", "LongTenantShardingAlgorithmTest", "ReadwriteRoutingIntegrationTest"].each { testName ->
+ "OrganizationFlywayMigrationTest", "RepositoryPersistenceContractTest", "LocalTransactionBoundaryTest"].each { testName ->
     def report = reports.find { it.name.contains(testName) }
     assert report && report.text.contains('failures="0"') && report.text.contains('errors="0"'):
             "Expected generated Web test report ${testName} to pass"
@@ -472,7 +498,9 @@ assert !livingText.contains("UuidV7")
 def sourceBoundaryFiles = []
 projectDir.eachFileRecurse { candidate ->
     def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
-    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+    // Authored sources carry the boundary; a packaged build output embeds the resolved peer facade
+    // dependency GAV, which is a resolution input rather than a source leak.
+    if (candidate.isFile() && !candidatePath.startsWith('target/') && !candidatePath.contains('/target/')) {
         sourceBoundaryFiles << candidate
     }
 }

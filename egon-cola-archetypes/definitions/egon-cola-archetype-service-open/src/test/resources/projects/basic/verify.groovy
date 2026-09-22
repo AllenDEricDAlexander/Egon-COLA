@@ -270,7 +270,9 @@ assert file("README.md").text.contains("Springdoc")
 def sourceBoundaryFiles = []
 projectDir.eachFileRecurse { candidate ->
     def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
-    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+    // Authored sources carry the boundary; a packaged build output embeds the resolved peer facade
+    // dependency GAV, which is a resolution input rather than a source leak.
+    if (candidate.isFile() && !candidatePath.startsWith('target/') && !candidatePath.contains('/target/')) {
         sourceBoundaryFiles << candidate
     }
 }

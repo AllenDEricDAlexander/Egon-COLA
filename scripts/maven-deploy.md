@@ -29,13 +29,17 @@ Egon-COLA
     │   ├── egon-cola-source-service
     │   ├── egon-cola-source-service-open
     │   ├── egon-cola-source-web
-    │   └── egon-cola-source-web-open
+    │   ├── egon-cola-source-web-open
+    │   └── egon-cola-source-agent
     ├── definitions                     # Archetype 打包合同（不单独作为 Maven module）
-    │   └── egon-cola-archetype-{light,light-open,service,service-open,web,web-open}
-    ├── .generated                      # 忽略的完整发布 Reactor（由脚本生成）
-    ├── egon-cola-evaluation-facade
-    └── egon-cola-organization-facade
+    │   └── egon-cola-archetype-{light,light-open,service,service-open,web,web-open,agent}
+    └── .generated                      # 忽略的完整发布 Reactor（由脚本生成）
 ```
+
+每个使用 RPC 的家族把自己的对外契约放在自己的 `<rootArtifactId>-facade` 模块里，
+随该工程一起发布；不再存在跨家族共享的 `egon-cola-evaluation-facade` 或
+`egon-cola-organization-facade` 目录。发布方必须先安装 `parent`、`common` 和 `facade`，
+对端工程才能按 peer facade 属性生成并消费该契约。
 
 推荐发布顺序：
 
@@ -110,10 +114,12 @@ git diff
 
 ### 3.1 源码依赖与 Flyway 约定
 
-六个 `source-projects` 都是可直接导入 IDE 的正常 Maven 工程，并统一继承
-Spring Boot `3.5.16` Parent。根工程、Components、Platforms 和 Archetypes 的
-共享版本来自根 POM 导入的 `spring-boot-dependencies` BOM；Light/Web 的四个源码根
-再按需导入 `springdoc-openapi-bom`，Service 不引入 Springdoc。修改依赖时只调整
+七个 `source-projects` 都是可直接导入 IDE 的正常 Maven 工程，统一继承
+`top.egon:egon-cola-archetypes-parent`；该 Parent 再继承根工程
+`egon-cola-aggregation-parent`，后者继承 Spring Boot `3.5.16` Parent 并导入
+`spring-boot-dependencies` BOM。`springdoc-openapi-bom` 只在 `egon-cola-archetypes/pom.xml`
+（以及 Platforms 的 `egon-cola-xingyuan/pom.xml`）里被导入，源码工程自身只声明不带版本的
+Springdoc Starter 依赖（Light-Open、Web-Open、Agent 按需引用）。修改依赖时只调整
 这些既定的 Parent/BOM 归属，不在生成目录里补版本。
 
 非 Open 的 Light、Service、Web 源码各自按 Flyway 物理 role 提供一个累计 baseline：
@@ -210,7 +216,7 @@ gpg --armor --export-secret-keys <KEY_ID>
 ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
 ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
 ./scripts/generate_archetypes.sh generate
-./scripts/check_archetypes.sh
+./scripts/generate_archetypes.sh check
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
   -Pgenerated-archetypes clean install
 ./mvnw -B -ntp -Pgenerated-archetypes -Prelease \
@@ -227,7 +233,7 @@ gpg --armor --export-secret-keys <KEY_ID>
 
 ### 6.2 Release Profile 验证
 
-验证六个 Archetype 的 main/sources/javadoc 形态但跳过本地 GPG：
+验证七个 Archetype 的 main/sources/javadoc 形态但跳过本地 GPG：
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \

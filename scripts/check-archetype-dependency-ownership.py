@@ -12,6 +12,16 @@ FAMILIES = ("light", "service", "web", "light-open", "service-open", "web-open",
 PARENT = "egon-cola-archetypes-parent"
 BOM = "egon-cola-components-bom"
 
+# family -> (peer family owning the consumed contract, peer facade property prefix)
+RPC_FAMILIES = {
+    "service": ("web", "organization"),
+    "web": ("service", "evaluation"),
+    "service-open": ("web-open", "organization"),
+    "web-open": ("service-open", "evaluation"),
+}
+INTERNAL_SUFFIXES = ("common", "domain", "application", "infrastructure", "adapter", "starter")
+RETIRED_FACADES = ("egon-cola-evaluation-facade", "egon-cola-organization-facade")
+
 
 def value(element, path):
     return element.findtext(path, default="", namespaces=NS).strip()
@@ -82,6 +92,55 @@ def check_commons_owner(repo, archetypes, components_bom, failures):
         failures.append("Common Core must continue providing commons-lang3 transitively")
 
 
+def check_facade_ownership(sources, failures):
+    """Every RPC family publishes its own contract module and consumes the peer by artifact reference."""
+    for family, (peer, prefix) in RPC_FAMILIES.items():
+        source = sources / f"egon-cola-source-{family}"
+        root_pom = ET.parse(source / "pom.xml").getroot()
+        own = f"egon-cola-source-{family}-facade"
+        modules = {(module.text or "").strip() for module in root_pom.findall("m:modules/m:module", NS)}
+        if own not in modules:
+            failures.append(f"{source.name}: {own} must be a root module")
+        facade_pom = source / own / "pom.xml"
+        if not facade_pom.is_file():
+            failures.append(f"{source.name}: missing own facade POM {own}")
+            continue
+        facade = ET.parse(facade_pom).getroot()
+        siblings = {f"egon-cola-source-{family}-{suffix}" for suffix in INTERNAL_SUFFIXES}
+        for dependency in facade.findall("m:dependencies/m:dependency", NS):
+            _, artifact_id = coordinate(dependency)
+            if artifact_id in siblings:
+                failures.append(f"{own}: published contract must not depend on {artifact_id}")
+        properties = root_pom.find("m:properties", NS)
+        for suffix in ("group-id", "artifact-id", "version", "package"):
+            key = f"{prefix}-facade.{suffix}"
+            if properties is None or not (properties.findtext(f"m:{key}", default="", namespaces=NS) or "").strip():
+                failures.append(f"{source.name}: missing peer facade property {key}")
+        if properties is not None:
+            declared = (properties.findtext(f"m:{prefix}-facade.artifact-id", default="",
+                                            namespaces=NS) or "").strip()
+            if declared != f"egon-cola-source-{peer}-facade":
+                failures.append(f"{source.name}: {prefix}-facade.artifact-id must resolve to the peer facade")
+            package = (properties.findtext(f"m:{prefix}-facade.package", default="",
+                                           namespaces=NS) or "").strip()
+            if not package.endswith(".facade"):
+                failures.append(f"{source.name}: {prefix}-facade.package must be a facade package")
+        managed = {(value(d, "m:groupId"), value(d, "m:artifactId"))
+                   for d in dependencies(root_pom)}
+        if (f"${{{prefix}-facade.group-id}}", f"${{{prefix}-facade.artifact-id}}") not in managed:
+            failures.append(f"{source.name}: peer facade must be version-managed by the project root")
+        infra = source / f"egon-cola-source-{family}-infrastructure" / "pom.xml"
+        infra_ids = {value(d, "m:artifactId") for d in ET.parse(infra).getroot()
+                     .findall("m:dependencies/m:dependency", NS)}
+        if f"${{{prefix}-facade.artifact-id}}" not in infra_ids:
+            failures.append(f"{infra.relative_to(sources)}: must consume the peer facade")
+    for pom in sorted(sources.rglob("pom.xml")):
+        text = pom.read_text(encoding="utf-8")
+        for retired in RETIRED_FACADES:
+            if retired in text:
+                failures.append(f"{pom.relative_to(sources.parent.parent)}: retired shared facade {retired}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
@@ -109,6 +168,7 @@ def main():
                      if value(d, "m:groupId") == "top.egon"}
     check_commons_owner(repo, archetypes, components_bom, failures)
     sources = repo / "egon-cola-archetypes/source-projects"
+    check_facade_ownership(sources, failures)
     for family in FAMILIES:
         source = sources / f"egon-cola-source-{family}"
         root_pom = ET.parse(source / "pom.xml").getroot()

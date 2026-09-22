@@ -72,7 +72,6 @@ assert rootPom.properties.'mybatis-plus.version'.isEmpty()
 assert !pomText.contains("dubbo-spring-boot-starter")
 
 [
-        "src/main/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithm.java",
         "src/main/resources/mybatis/mapper/user/UserDAO.xml",
         "src/main/resources/mybatis/mapper/user/RoleDAO.xml",
         "src/main/resources/mybatis/mapper/user/PermissionDAO.xml",
@@ -91,6 +90,22 @@ assert !pomText.contains("dubbo-spring-boot-starter")
         "src/test/java/it/pkg/start/config/RuntimeConfigurationTest.java",
         "src/test/java/it/pkg/start/config/async/AsyncConfigurationTest.java"
 ].each { path -> file(path) }
+// Sharding topology, algorithms and bootstrap come from the component starter, never from a local copy.
+[
+        "DataSourceModeProperties",
+        "ShardingNodeMap",
+        "LongTenantShardingAlgorithm",
+        "ShardingWriteTargetResolver",
+        "ShardingDataSourceBootstrapper",
+        "ShardingDataSourcePropertiesLoader",
+        "ShardingTopologyValidator",
+        "ShardingSphereDataSourceConfiguration",
+        "LogicalDataSourceFlywayMigrationStrategy",
+        "ShardingDataSourceModeCondition",
+        "ShardingNodeMapCompatibilityValidator"
+].each { typeName ->
+    missing("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
+}
 [
         "src/main/java/it/pkg/common",
         "src/main/java/it/pkg/domain",
@@ -149,7 +164,6 @@ def reportFiles = filesUnder("target") { it.path.replace('\\', '/').contains('/s
         "StudentManagementApplicationTest",
         "RuntimeConfigurationTest",
         "AsyncConfigurationTest",
-        "LongTenantShardingAlgorithmTest",
         "ManualSqlConventionTest",
         "ManualSchemaIntegrationTest"
 ].each { testName ->

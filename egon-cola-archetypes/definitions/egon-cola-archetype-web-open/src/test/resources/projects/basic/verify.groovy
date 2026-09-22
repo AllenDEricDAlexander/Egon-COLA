@@ -118,7 +118,6 @@ def expectedFiles = [
         "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/user/service/impl/PermissionDomainServiceImpl.java",
         "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/teaching/service/impl/GradeDomainServiceImpl.java",
         "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/teaching/service/impl/SchoolClassDomainServiceImpl.java",
-        "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithm.java",
         "${prefix}-starter/src/main/java/it/pkg/starter/OrganizationApplication.java",
         "${prefix}-starter/src/test/java/it/pkg/architecture/WebOpenPersistenceArchitectureTest.java",
         "${prefix}-adapter/src/main/java/it/pkg/adapter/user/facade/impl/UserFacadeImpl.java",
@@ -130,6 +129,22 @@ def expectedFiles = [
         "${prefix}-infrastructure/src/main/resources/db/manual/postgresql/shard/004__migrate_organization_sharded_to_tenant_model.sql"
 ]
 expectedFiles.each { file(it) }
+// Sharding topology, algorithms and bootstrap come from the component starter, never from a local copy.
+[
+        "DataSourceModeProperties",
+        "ShardingNodeMap",
+        "LongTenantShardingAlgorithm",
+        "ShardingWriteTargetResolver",
+        "ShardingDataSourceBootstrapper",
+        "ShardingDataSourcePropertiesLoader",
+        "ShardingTopologyValidator",
+        "ShardingSphereDataSourceConfiguration",
+        "LogicalDataSourceFlywayMigrationStrategy",
+        "ShardingDataSourceModeCondition",
+        "ShardingNodeMapCompatibilityValidator"
+].each { typeName ->
+    missing("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
+}
 
 def poms = [:]
 modules.each { module -> poms[module] = new XmlSlurper(false, false).parse(file("${prefix}-${module}/pom.xml")) }
@@ -145,11 +160,17 @@ javaModules.each { module -> javaSources.addAll(sourceFiles("${prefix}-${module}
 def runtimeText = javaSources.collect { it.getText("UTF-8") }.join("\n") +
         moduleNames.collect { file("${it}/pom.xml").getText("UTF-8") }.join("\n")
 ["spring-boot-starter-data-jpa", "jakarta.persistence", "JpaRepository", "@Entity", "@MappedSuperclass",
- "UuidV7Generator", "UUID.randomUUID", "extends BaseMapper<", "repo.mapper", "org.flywaydb", "flyway-database",
+ "UuidV7Generator", "extends BaseMapper<", "repo.mapper", "org.flywaydb", "flyway-database",
  "liquibase", "egon-cola-organization-facade", "egon-cola-evaluation-facade", "spring-cloud-starter-gateway",
  "spring.cloud.gateway"].each { token ->
     assert !runtimeText.contains(token): "Forbidden Web Open runtime token ${token}"
 }
+// Data identity stays on the static Snowflake generator. UUIDv4 is only allowed where the inbound
+// adapter mints trace, idempotency-key and message correlation ids; no other layer may use it.
+assert runtimeText.contains("SnowflakeIdGenerator.nextLongId()")
+assert javaSources.findAll { !relativePath(it).contains("-adapter/src/main/java") }
+        .every { !it.getText("UTF-8").contains("UUID") }:
+        "Only the adapter layer may mint UUID correlation ids"
 
 def poSources = javaSources.findAll {
     def path = relativePath(it)
@@ -211,9 +232,11 @@ mapperFiles.each { xml ->
 def application = file("${prefix}-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
 assert application.contains("@MapperScan")
 assert application.contains("@EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)")
-assert application.contains("LongIdGenerator")
-assert application.contains("AtomicLong")
-assert application.contains("@Bean")
+// Step 2 staticizes ID issuance: the starter configuration initializes the static generator, so the
+// Application class must not hand-wire an ID bean or its clock-rollback state.
+assert !application.contains("LongIdGenerator")
+assert !application.contains("AtomicLong")
+assert !application.contains("@Bean")
 assert !application.contains("@EntityScan")
 assert !application.contains("@EnableJpaRepositories")
 def applicationYaml = file("${prefix}-starter/src/main/resources/application.yml").text
@@ -225,17 +248,41 @@ assert applicationYaml.contains("mdc-key: tenantId")
 assert applicationYaml.contains("user-id-mdc-key: userId")
 assert applicationYaml.contains("sql:") && applicationYaml.contains("mode: never")
 
-def sharding = [
-        file("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding.yml"),
-        file("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
-].collect { it.text }.join("\n")
-["tenant_id", "tenant_long_database_bucket", "tenant_long_table_bucket", "LongTenantShardingAlgorithm"].each { token ->
-    assert sharding.contains(token): "Expected sharding token ${token}"
-}
-assert !sharding.contains("grade_id INLINE")
-assert !sharding.contains("SnowflakeLongShardingAlgorithm")
-assert !sharding.contains("UuidV7")
-assert !sharding.contains("uuid_v7")
+assert applicationYaml.contains('classpath:egon-mybatis-plus-sharding.yml')
+// The MP starter owns the topology: one STRATEGY document, no node-map bootstrap and no raw ShardingSphere YAML.
+def sharding = file("${prefix}-starter/src/main/resources/egon-mybatis-plus-sharding.yml").text
+assert sharding.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
+assert sharding.contains('config-style: STRATEGY')
+assert sharding.contains('transaction-default-type: LOCAL')
+[
+        'jdbc-url: ${ORGANIZATION_SHARDING_MASTER_DATA_URL}',
+        'jdbc-url: ${ORGANIZATION_SHARDING_SHARD_0_URL}',
+        'jdbc-url: ${ORGANIZATION_SHARDING_SHARD_1_URL}'
+].each { assert sharding.contains(it) }
+assert sharding.count('role: PRIMARY') == 3
+assert sharding.contains('data-source: master_data')
+assert sharding.contains('type: STANDARD_TENANT_ID')
+assert sharding.contains('sharding-column: tenant_id')
+def openRepositoryManifest = file("${prefix}-infrastructure/src/main/resources/db/egon-mp/repository-manifest.json").text
+assert openRepositoryManifest.contains('"family": "web-open"')
+assert openRepositoryManifest.contains("V20260913_001__initialize_repository_schema.sql")
+assert openRepositoryManifest.contains('"sha256"')
+assert !sharding.contains('mapping-version')
+assert !sharding.contains('node-count')
+assert !sharding.contains('node-map')
+assert !sharding.contains('LongTenantShardingAlgorithm')
+assert !sharding.contains('grade_id INLINE')
+assert !sharding.contains('SnowflakeLongShardingAlgorithm')
+assert !sharding.contains('UuidV7')
+assert !sharding.contains('uuid_v7')
+assert !sharding.contains('.public.')
+assert !sharding.contains('proxy-frontend-database-protocol-type')
+assert !sharding.contains('defaultDataSource')
+assert !sharding.contains('transactionalReadQueryStrategy')
+missing("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding.yml")
+missing("${prefix}-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
+missing("${prefix}-starter/src/main/resources/datasource/sharding.yml")
+missing("${prefix}-starter/src/main/resources/datasource/sharding-readwrite.yml")
 
 def manualRoot = directory("${prefix}-infrastructure/src/main/resources/db/manual/postgresql")
 def manualPaths = []
@@ -336,7 +383,9 @@ assert !livingText.contains("UuidV7")
 def sourceBoundaryFiles = []
 projectDir.eachFileRecurse { candidate ->
     def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
-    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+    // Authored sources carry the boundary; a packaged build output embeds the resolved peer facade
+    // dependency GAV, which is a resolution input rather than a source leak.
+    if (candidate.isFile() && !candidatePath.startsWith('target/') && !candidatePath.contains('/target/')) {
         sourceBoundaryFiles << candidate
     }
 }
@@ -347,9 +396,9 @@ assert sourceBoundaryFiles.every { candidate ->
 // The IT supplies the peer project's real coordinates, so the root POM's explicit
 // `evaluation-facade.*` property lines carry them by design instead of leaking a template sentinel.
 def boundaryText = { candidate ->
-    def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    def scannedPath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
     def text = candidate.getText('UTF-8')
-    relativePath == 'pom.xml'
+    scannedPath == 'pom.xml'
             ? text.readLines().findAll { !it.contains('evaluation-facade.') }.join('\n')
             : text
 }

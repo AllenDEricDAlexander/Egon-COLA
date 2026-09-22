@@ -184,8 +184,8 @@ jobs:
           ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
           ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
           ./scripts/generate_archetypes.sh generate
-          ./scripts/check_archetypes.sh
           test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
+          ./scripts/generate_archetypes.sh check
           ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
             -Pgenerated-archetypes clean install
 

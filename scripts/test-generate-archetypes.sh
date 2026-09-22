@@ -5,7 +5,6 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 GENERATOR="${SCRIPT_DIR}/generate_archetypes.sh"
-CHECK_WRAPPER="${SCRIPT_DIR}/check_archetypes.sh"
 
 fail() {
   printf 'archetype-generation-test: %s\n' "$*" >&2
@@ -198,10 +197,6 @@ setup_definition_fixture() {
   mkdir -p "$fixture_scripts" "$fixture_archetypes/definitions" "$fixture_archetypes/source-projects"
   cp "$GENERATOR" "$fixture_scripts/generate_archetypes.sh"
   chmod +x "$fixture_scripts/generate_archetypes.sh"
-  if [[ -f "$CHECK_WRAPPER" ]]; then
-    cp "$CHECK_WRAPPER" "$fixture_scripts/check_archetypes.sh"
-    chmod +x "$fixture_scripts/check_archetypes.sh"
-  fi
   write_fake_maven_wrapper "$fixture_repo/mvnw"
 
   cat >"$fixture_archetypes/pom.xml" <<'EOF'
@@ -347,17 +342,16 @@ test_generated_aggregator() {
   assert_equal "$expected_modules" "$actual_modules" 'generated aggregator module order'
 }
 
-test_check_wrapper() {
-  [[ -x "$fixture_scripts/check_archetypes.sh" ]] || fail 'check wrapper is missing'
+test_check_mode() {
+  # `check` is a mode of the generator itself, so the fixture exercises the same entry point.
   before_hash="$(hash_tree "$fixture_archetypes/.generated")"
-  "$fixture_scripts/check_archetypes.sh" >/dev/null
+  run_fixture_generator check >/dev/null
   after_hash="$(hash_tree "$fixture_archetypes/.generated")"
-  assert_equal "$before_hash" "$after_hash" 'check wrapper must not mutate generated set'
-  assert_command_fails 'Usage:' "$fixture_scripts/check_archetypes.sh" unexpected
+  assert_equal "$before_hash" "$after_hash" 'check mode must not mutate the published generated set'
+  assert_command_fails 'Usage:' run_fixture_generator unexpected
 
   printf 'mutation\n' >>"$fixture_archetypes/.generated/package-b/archetype-resources/source.txt"
-  assert_command_fails 'generated resources are not deterministic' \
-    "$fixture_scripts/check_archetypes.sh"
+  assert_command_fails 'generated resources are not deterministic' run_fixture_generator check
   run_fixture_generator generate >/dev/null
 }
 
@@ -418,18 +412,18 @@ test_generation_mode() {
 
 legacy_v_paths() {
   cat <<'EOF'
-egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_light_master_data_schema.sql
-egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/master-data/V20260825_001__migrate_light_master_data_to_egon_model.sql
-egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/shard/V20260726_002__init_light_sharded_schema.sql
-egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/shard/V20260825_002__migrate_light_sharded_to_tenant_model.sql
-egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_evaluation_master_data_schema.sql
-egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_001__migrate_evaluation_master_data_to_egon_model.sql
-egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql
-egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_002__migrate_evaluation_sharded_to_tenant_model.sql
-egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_organization_master_data_schema.sql
-egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_003__migrate_organization_master_data_to_egon_model.sql
-egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_organization_sharded_schema.sql
-egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_004__migrate_organization_sharded_to_tenant_model.sql
+egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_light_master_data_schema.sql
+egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/db/migration/sharding/master-data/V20260825_001__migrate_light_master_data_to_egon_model.sql
+egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/db/migration/sharding/shard/V20260726_002__init_light_sharded_schema.sql
+egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/db/migration/sharding/shard/V20260825_002__migrate_light_sharded_to_tenant_model.sql
+egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_evaluation_master_data_schema.sql
+egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_001__migrate_evaluation_master_data_to_egon_model.sql
+egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql
+egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_002__migrate_evaluation_sharded_to_tenant_model.sql
+egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_organization_master_data_schema.sql
+egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_003__migrate_organization_master_data_to_egon_model.sql
+egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_organization_sharded_schema.sql
+egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_004__migrate_organization_sharded_to_tenant_model.sql
 EOF
 }
 
@@ -451,15 +445,19 @@ assert_legacy_v_archive() {
 }
 
 assert_no_duplicate_business_template() {
-  local actual expected
-  expected="$(legacy_v_paths)"
-  actual="$(for family in light service web; do
-    git -C "$REPO_ROOT" ls-files "egon-cola-archetypes/egon-cola-archetype-${family}"
-  done | LC_ALL=C sort)"
-  assert_equal "$expected" "$actual" 'legacy tracked archive allowlist'
-  for family in light-open service-open web-open; do
+  # The business template is authored exactly once, under source-projects. A second tracked copy
+  # of a legacy archive would mean a retired flat archetype module survived the two-stage split.
+  local tracked path archive_name duplicates family
+  tracked="$(git -C "$REPO_ROOT" ls-files)"
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    archive_name="${path##*/}"
+    duplicates="$(printf '%s\n' "$tracked" | grep -F "/${archive_name}" | grep -Fvx "$path" || true)"
+    [[ -z "$duplicates" ]] || fail "legacy V archive ${archive_name} is duplicated: ${duplicates}"
+  done < <(legacy_v_paths)
+  for family in light light-open service service-open web web-open agent; do
     [[ -z "$(git -C "$REPO_ROOT" ls-files "egon-cola-archetypes/egon-cola-archetype-${family}")" ]] \
-      || fail "${family} legacy module still has tracked files"
+      || fail "egon-cola-archetype-${family} legacy module still has tracked files"
   done
 }
 
@@ -477,14 +475,18 @@ test_reactor_cutover_mode() {
 }
 
 test_release_wiring_mode() {
+  # The fast lane only compiles and tests the backend reactor; generation is verified by the
+  # compatibility and publish lanes, which must wire the source-to-archetype pipeline.
   local workflow
-  for workflow in "$REPO_ROOT/.github/workflows/ci.yaml" \
-      "$REPO_ROOT/.github/workflows/ci_java_compatibility.yaml" \
+  for workflow in "$REPO_ROOT/.github/workflows/ci_java_compatibility.yaml" \
       "$REPO_ROOT/.github/workflows/publish-maven-central.yml"; do
     [[ -f "$workflow" ]] || fail "missing workflow: ${workflow}"
     assert_file_contains "$workflow" 'generate_archetypes.sh' "${workflow} generation gate"
     assert_file_contains "$workflow" 'source-projects' "${workflow} source gate"
   done
+  local fast_ci="$REPO_ROOT/.github/workflows/ci.yaml"
+  [[ -f "$fast_ci" ]] || fail "missing workflow: ${fast_ci}"
+  assert_file_contains "$fast_ci" 'clean test' "${fast_ci} backend compile gate"
 }
 
 main() {
@@ -496,7 +498,7 @@ main() {
       test_definition_validation
       test_complete_child_layout
       test_generated_aggregator
-      test_check_wrapper
+      test_check_mode
       test_determinism
       test_atomic_full_reactor_failure
       test_legacy_sql_hash_boundary
