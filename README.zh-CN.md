@@ -243,7 +243,7 @@ mvn -B archetype:generate \
   -Dpackage=top.egon.orders \
   -DarchetypeGroupId=top.egon \
   -DarchetypeArtifactId=egon-cola-archetype-web-open \
-  -DarchetypeVersion=5.3.3 \
+  -DarchetypeVersion=5.4.1 \
   -DinteractiveMode=false
 ```
 
