@@ -1,23 +1,25 @@
 # 用户强制 Java 规则与执行门禁
 
+Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
+
 本参考在编码前、每个 Step、每次提交前和最终审核中都具有强制性。下方源区块逐字保留。测试全绿不能豁免任何逐字规则。
 
 ## 逐字规范源
 
 ```text
 1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
-2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
-3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+2 每层之间必须被 springboot-validation 校验，复用对象使用分组校验；基于原生和自定义约束注解、@Valid、@Validated 及 ConstraintValidator 扩展实现。ValidationUtils 只承担通用手工校验，不承载全部业务校验；电话号码复用 libphonenumber。
+3 Java POJO 默认使用 class，注解为 @Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain = true)，按构造目标选择 @Builder 或 @SuperBuilder；父类状态参与相等性时使用 @EqualsAndHashCode(callSuper = true)。只有不可变 value object 可以使用 record，并豁免 class 的 Lombok 规范；普通实体不能因简单而使用 record。使用 MapStruct、MapStructPlus 和 egon-cola-component-common-core 的 BaseConverter（双向）或 BaseForwardConverter（不可逆投影）进行转换。
 4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
 5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
-6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+6 JSON 使用 Spring Boot Jackson；持久化枚举值使用 @EnumValue，向前端输出的枚举值使用 @JsonValue，禁止 ordinal 作为业务编码。
 7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
 9 复杂业务必须引入设计模式，不允许硬编码
 10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
-11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+11 只允许现有三层结构或当前 egon-cola-archetypes 的 DDD 结构，三层结构保持现状。必须尽量复用 egon-cola-components；持久化模块必须使用 Egon COLA MP Starter，DDL 统一由 egon-mp-sdj-ext-starter 分布式管理。业务唯一键必须组合业务列与 deletedAt（数据库 deleted_at），并验证 NULL、租户及重复软删除语义。采用 CQE（Command Query Event）；Event 必须经 egon-cola-component-transactional-outbox-starter 或 MQ 中间件投递。
 ```
 
-原始拼写保持不动。执行中，`@qualify` 对应 Spring `@Qualifier`，`convertor` 对应 Egon `BaseConverter<S,T>` 体系，`SpringBoot-JackSon` 对应 Spring Boot Jackson。
+原始拼写保持不动。执行中，`@qualify` 对应 Spring `@Qualifier`，`convertor` 对应 Egon `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` 体系，`SpringBoot-JackSon` 对应 Spring Boot Jackson。
 
 ## 硬停止规则
 
@@ -35,17 +37,17 @@
 
 不能停在 Controller。分别检查/测试外部 -> Controller/Adapter、Controller/Adapter -> Service/Application、Service/Application -> Domain Service/Component、Service/Application -> DAO/Repository/Gateway，以及 Event/Job/内部重入。
 
-核对 Jakarta 注解、`@Valid`、`@Validated`、Validation Group、非 Proxy 场景 `ValidationUtils`、规范化顺序、错误和正反测试。复用对象必须在每个调用点使用场景 Group。电话输入必须走已批准 libphonenumber，包含 Region、E.164、Validity、错误和测试；拒绝未批准自定义 Validator 或重复解析。
+核对 Jakarta 注解、`@Valid`、`@Validated`、Validation Group、非 Proxy 场景 `ValidationUtils`、规范化顺序、错误和正反测试。复用对象必须在每个调用点使用场景 Group。电话输入必须走已批准 libphonenumber，包含 Region、E.164、Validity、错误和测试；使用计划内自定义约束注解及扩展，禁止重复实现电话解析。
 
 ## 规则 3——检查准确模型与 Converter
 
-- 简单对象必须 Java `record`，规范化使用紧凑构造器；方法内临时状态可用局部 `record`。
-- 不可变非 Record 必须 Lombok `@Value`。
-- 复杂对象必须普通类并完整使用 `@Data`、`@NoArgsConstructor(access = AccessLevel.PROTECTED)`、`@AllArgsConstructor`、`@RequiredArgsConstructor`、`@Builder`、`@Accessors(chain = true)`。
+- 普通 POJO/实体使用 `class`，默认 `@Data`、`@NoArgsConstructor`、`@AllArgsConstructor`、`@Accessors(chain = true)`，按构造目标选择 `@Builder` 或 `@SuperBuilder`；父类状态参与相等性时使用 `@EqualsAndHashCode(callSuper = true)`。仅不可变值对象可以用 `record`；无父类等编译边界见 `references/egon-java-cqe-contract.md`。
+- 不可变值对象可用 `record`，不套用可变 class 注解；仅字段少不能证明值对象语义。
 
-必须编译证明完整 Lombok 组合。重复构造器/框架冲突会阻断，未经用户批准不能删除注解。
 
-每个新增受影响 Converter 必须 MapStruct/MapStructPlus 且继承/实现 `BaseConverter<S,T>`。检查泛型、Mapping、Qualifier、空值/默认/枚举/时间/敏感字段、生成实现、Bean 名和测试。拒绝 Setter、`BeanUtils.copyProperties`、反射、JSON 或本地/单向 Converter 绕过。
+核对构造目标、父类链与生成签名；按 `references/egon-java-cqe-contract.md` 的场景规则处理 Builder、无父类和零字段，其他实际框架/API 冲突记录为阻断。
+
+每个新增受影响 Converter 必须 MapStruct/MapStructPlus 且继承/实现 `BaseConverter<S,T>` / `BaseForwardConverter<S,T>`。检查泛型、Mapping、Qualifier、空值/默认/枚举/时间/敏感字段、生成实现、Bean 名和测试。拒绝 Setter、`BeanUtils.copyProperties`、反射、JSON 或自建 Converter 绕过。
 
 ## 规则 4——检查每个业务类与 Bean
 

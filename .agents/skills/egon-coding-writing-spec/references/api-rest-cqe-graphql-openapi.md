@@ -1,4 +1,4 @@
-# REST, CQRS, GraphQL, and OpenAPI 3 API Design
+# REST, CQE, GraphQL, and OpenAPI 3 API Design
 
 Read this reference completely whenever an external HTTP API is `Affected`. It specializes `references/interface-contract-design.md`; both references apply. Its purpose is to make Chapter 9 an implementation-ready API contract, not a list of routes or annotations.
 
@@ -32,7 +32,7 @@ If an affected legacy module still uses Springfox, record `Legacy/Compatibility`
 
 Classify every affected external operation as exactly one of:
 
-| API style | CQRS role | Use when | Do not use merely because |
+| API style | CQE role | Use when | Do not use merely because |
 | --- | --- | --- | --- |
 | REST resource query | Query | A stable resource/collection representation fits HTTP resource semantics | GET looks familiar |
 | REST resource command | Command | Create, replace, patch, delete, or a resource lifecycle action has clear HTTP semantics | every Service method needs a URL |
@@ -45,15 +45,16 @@ The Spec must state why the chosen style fits the consumer goal and why the dire
 
 OpenAPI describes REST HTTP operations. GraphQL SDL and operation documents describe GraphQL fields. Do not pretend that Swagger annotations on GraphQL resolver methods replace SDL, and do not expand the generic `POST /graphql` transport operation into fake REST resources.
 
-## 3. CQRS semantic gate without ceremonial architecture
+## 3. CQE semantic gate without ceremonial architecture
 
-Every API operation must declare a CQRS role even in a traditional three-layer project:
+Every API operation must declare a CQE role even in a traditional three-layer project:
 
 - **Query** retrieves data and must not create durable business state, publish business events, or perform hidden commands. Incidental observability such as metrics is not a business mutation.
 - **Command** expresses a business task or resource state change. Prefer task language such as `approveInvoice` over field-setting language such as `setStatusApproved` when the business transition has guards or side effects.
+- **Event** is an occurred fact delivered by the Egon transactional outbox or MQ middleware. Document payload/version, routing, transaction relation, retries and consumer idempotency. A local notification is insufficient.
 - **Subscription** delivers an approved stream and must document source, authorization, ordering, resume/reconnect, backpressure, and termination.
 
-CQRS classification does not by itself justify separate databases, read replicas, event sourcing, buses, handler hierarchies, or new modules. Use the smallest level that satisfies current evidence:
+CQE classification does not by itself justify separate databases, read replicas, event sourcing, buses, handler hierarchies, or new modules. Use the smallest level that satisfies current evidence:
 
 | Level | Design | Adoption requirement |
 | --- | --- | --- |
@@ -182,7 +183,7 @@ If the repository is code-first, do not check in a copied JSON/YAML artifact unl
 
 Inspect the current Spring Boot generation, Web MVC versus WebFlux stack, dependency management, security, actuator/gateway topology, and existing documentation setup before proposing any dependency.
 
-Use the matching starter family:
+Use the matching starter variant:
 
 - MVC with UI: `org.springdoc:springdoc-openapi-starter-webmvc-ui`;
 - MVC API only: `org.springdoc:springdoc-openapi-starter-webmvc-api`;
@@ -292,11 +293,19 @@ The real Spec must explain whether an existing API/Facade interface owns the ann
 ### 9.3 Schema example
 
 ```java
-public record CreateOrderCommand(
-        @Schema(description = "Tenant-visible customer identifier", example = "12001")
-        @Positive Long customerId,
-        @Schema(description = "Unique order lines; one through one hundred entries")
-        @NotEmpty @Size(max = 100) List<@Valid CreateOrderItemCommand> items) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
+public class CreateOrderCommand {
+    @Schema(description = "Tenant-visible customer identifier", example = "12001")
+    @Positive
+    private Long customerId;
+    @Schema(description = "Unique order lines; one through one hundred entries")
+    @NotEmpty
+    @Size(max = 100)
+    private List<@Valid CreateOrderItemCommand> items;
 }
 ```
 
@@ -485,9 +494,9 @@ For an affected API, the general Manual Checks must include API evidence:
 
 Return `REVISE` or `BLOCKED` as appropriate when any of these occurs:
 
-- a route table exists without per-operation REST/CQRS/GraphQL and documentation design;
+- a route table exists without per-operation REST/CQE/GraphQL and documentation design;
 - a Query mutates business state or a Command is named as a generic field update despite task semantics;
-- CQRS is used to justify an unrequired bus, event store, read database, handler layer, or package structure;
+- CQE is used to justify an unrequired bus, event store, read database, handler layer, or package structure;
 - REST uses verbs for ordinary resources, wrong method semantics, generic `200` for every outcome, undocumented async behavior, or request bodies on GET;
 - OpenAPI depends on inferred `operationId`, omits material errors/security, shows a DTO class instead of the actual wrapper, or disagrees with runtime validation/Jackson;
 - new code uses Springfox/Swagger 2 annotations or mixes them with OpenAPI 3 annotations;
@@ -510,7 +519,7 @@ Checked on 2026-09-03. Protocol/framework versions in a real Spec must still be 
 - [springdoc-openapi official repository](https://github.com/springdoc/springdoc-openapi)
 - [Swagger Core OpenAPI 3 annotation guide](https://github.com/swagger-api/swagger-core/wiki/Swagger-2.X---Annotations)
 - [OpenAPI 3 bearer authentication](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/)
-- [Microsoft CQRS pattern guidance](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)
+- [Microsoft CQRS guidance (command/query background only)](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)
 - [GraphQL Specification](https://spec.graphql.org/October2021/)
 - [GraphQL over HTTP draft](https://graphql.github.io/graphql-over-http/draft/)
 - [Spring for GraphQL annotated controllers](https://docs.spring.io/spring-graphql/reference/controllers.html)
@@ -519,3 +528,5 @@ Checked on 2026-09-03. Protocol/framework versions in a real Spec must still be 
 - [Spring for GraphQL testing](https://docs.spring.io/spring-graphql/reference/testing.html)
 - [Spring Framework RFC 9457 error responses](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-ann-rest-exceptions.html)
 - [Mshuyan/swagger example repository](https://github.com/Mshuyan/swagger) — non-normative legacy/example input only
+
+For Event design and proof, read `references/egon-java-cqe-contract.md`. CQE means Command / Query / Event; subscriptions consume streams and are not a fourth business role.

@@ -66,8 +66,8 @@
 - 适用的持久化或协议映射；
 - 为什么必须独立建类，或为什么可安全复用已有类型；
 - 需要映射时的转换负责人；
-- 构造分类：简单对象用 Record、不可变非 Record 用 `@Value`、复杂类使用用户强制完整 Lombok 基线，并写适用 Validation Group；
-- 每个新增受影响 Converter 使用 MapStruct/MapStructPlus 并强制集成 `BaseConverter<S,T>`；
+- 普通 POJO/实体使用 `class`，默认 `@Data`、`@NoArgsConstructor`、`@AllArgsConstructor`、`@Accessors(chain = true)`，按构造目标选择 `@Builder` 或 `@SuperBuilder`；父类状态参与相等性时使用 `@EqualsAndHashCode(callSuper = true)`。仅不可变值对象可以用 `record`；无父类等编译边界见 `references/egon-java-cqe-contract.md`。
+- 每个新增受影响 Converter 使用 MapStruct/MapStructPlus 并强制集成 `BaseConverter<S,T>` / `BaseForwardConverter<S,T>`；
 - 对应需求编号。
 
 数据跨越三个及以上对象职责时，Spec 必须提供对象流图或映射表。

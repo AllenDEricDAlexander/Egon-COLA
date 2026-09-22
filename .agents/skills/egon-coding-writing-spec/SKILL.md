@@ -1,9 +1,13 @@
 ---
 name: egon-coding-writing-spec
-description: Use when a coding task needs a repository-grounded RFC-style specification before implementation planning, including focused layer-local changes, Java/Spring/Egon-COLA coding standards, blocking Manual Checks, architecture selection between the traditional layered profile and an exact egon-cola-archetype COLA profile, requirements/use-case analysis, detailed REST/CQRS/GraphQL and springdoc/OpenAPI 3 contracts, or database design.
+description: Use when a coding task needs a repository-grounded RFC-style specification before implementation planning, including focused layer-local changes, Java/Spring/Egon-COLA coding standards, blocking Manual Checks, architecture selection between the traditional layered profile and an exact egon-cola-archetype COLA profile, requirements/use-case analysis, detailed REST/CQE/GraphQL and springdoc/OpenAPI 3 contracts, or database design.
 ---
 
 # EGON Coding Spec Writing
+
+## Java / CQE effective contract (2026-09-22)
+
+Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.
 
 ## Purpose
 
@@ -34,21 +38,21 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 
 `<skill-root>` is notation, not literal shell text: substitute the resolved absolute directory before executing the command. All bundled paths in this skill are relative to that directory and therefore start with `references/`, `assets/`, or `scripts/`; never resolve a bare filename relative to the repository root or the currently opened reference file. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop before drafting, report the exact diagnostic to the user, and repair/reinstall the skill. Do not continue with a partial skill or silently substitute an invented resource.
 
-## User-mandated Java rules — verbatim normative source
+## User-mandated Java rules — effective normative source
 
-The following source rules are deliberately preserved exactly as provided. They are mandatory, not a summary and not optional guidance. Read `references/user-mandated-java-rules.md` for the phase-specific, non-weakened enforcement contract.
+The following source rules are the consolidated effective requirements (2026-09-22). They are mandatory, not a summary and not optional guidance. Read `references/user-mandated-java-rules.md` for the phase-specific, non-weakened enforcement contract.
 
 ```text
 1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
-2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
-3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+2 每层之间必须被 springboot-validation 校验，复用对象使用分组校验；基于原生和自定义约束注解、@Valid、@Validated 及 ConstraintValidator 扩展实现。ValidationUtils 只承担通用手工校验，不承载全部业务校验；电话号码复用 libphonenumber。
+3 Java POJO 默认使用 class，注解为 @Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain = true)，按构造目标选择 @Builder 或 @SuperBuilder；父类状态参与相等性时使用 @EqualsAndHashCode(callSuper = true)。只有不可变 value object 可以使用 record，并豁免 class 的 Lombok 规范；普通实体不能因简单而使用 record。使用 MapStruct、MapStructPlus 和 egon-cola-component-common-core 的 BaseConverter（双向）或 BaseForwardConverter（不可逆投影）进行转换。
 4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
 5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
-6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+6 JSON 使用 Spring Boot Jackson；持久化枚举值使用 @EnumValue，向前端输出的枚举值使用 @JsonValue，禁止 ordinal 作为业务编码。
 7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
 9 复杂业务必须引入设计模式，不允许硬编码
 10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
-11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+11 只允许现有三层结构或当前 egon-cola-archetypes 的 DDD 结构，三层结构保持现状。必须尽量复用 egon-cola-components；持久化模块必须使用 Egon COLA MP Starter，DDL 统一由 egon-mp-sdj-ext-starter 分布式管理。业务唯一键必须组合业务列与 deletedAt（数据库 deleted_at），并验证 NULL、租户及重复软删除语义。采用 CQE（Command Query Event）；Event 必须经 egon-cola-component-transactional-outbox-starter 或 MQ 中间件投递。
 ```
 
 Do not translate, renumber, correct, shorten, or replace this block with a paraphrase. Literal spellings such as `@qualify`, `convertor`, and `SpringBoot-JackSon` are operationally resolved by `references/user-mandated-java-rules.md` without changing the source text.
@@ -69,10 +73,10 @@ Do not translate, renumber, correct, shorten, or replace this block with a parap
 12. Review the finished Spec against the original user request and the current repository before delivery. Fix internal defects yourself; surface only unresolved major decisions.
 13. Classify Java objects by their actual boundary and lifecycle roles. Follow `references/pojo-modeling.md` and `references/java-spring-egon-coding-standards.md`. New or materially changed carriers use explicit semantic suffixes such as PO, BO, DTO, VO, Query, Command, Event, Request, Response, PageQuery, or PageResult; DAO names an access component. Do not create parallel classes by default, and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carrier names.
 14. Prevent class explosion. Require a concrete semantic reason for every distinct object and mapper. PO/ORM Entity inheritance is allowed only with repository and lifecycle justification; concrete business services default to composition and delegation rather than inheritance.
-15. Before Java package design, classify the current project as exactly one allowed profile: the traditional structure defined by `references/three-layer-architecture.md`, or the exact selected `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` family contract, including an explicitly selected open variant. Preserve the selected profile and its verifier/dependency direction. Do not invent, hybridize, or rename layers/modules. If the project matches neither profile or the evidence conflicts, treat architecture as a major blocker and ask the user.
+15. Before Java package design, classify the current project as exactly one allowed profile: the traditional structure defined by `references/three-layer-architecture.md`, or the exact selected `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` contract, including an explicitly selected open variant. Preserve the selected profile and its verifier/dependency direction. Do not invent, hybridize, or rename layers/modules. If the project matches neither profile or the evidence conflicts, treat architecture as a major blocker and ask the user.
 16. Classify every Spec as `Simple` or `Complex` using `references/complex-scenario-analysis.md`. For a Complex Spec, complete the evidence map, scenario matrix, ownership/consistency analysis, quality constraints, and evidence-to-decision conclusion chain before selecting the architecture. Do not burden a Simple Spec with ceremonial analysis.
 17. Split Chapter 7 into System Architecture Design, High-Level Design, and Detailed Design. Describe only the affected collaboration plus the context needed to prove its boundary. A Complex Spec must contain an architecture Mermaid flowchart, a separate critical business/control flowchart, and a Mermaid swimlane/sequence view covering the main participants and important failure behavior; a focused Simple Spec must not add decorative full-system diagrams.
-18. Read `references/interface-contract-design.md` when an HTTP/RPC/event/job/internal Service contract is `Affected`. When an external REST or GraphQL API is `Affected`, also read `references/api-rest-cqrs-graphql-openapi.md` completely. Assign one interface ID per atomic REST Method + URL, GraphQL root-field operation contract, or other protocol operation; never group a CRUD family and never treat `/graphql` alone as the operation. Inventory and fully expand every changed contract. Every external API must classify its REST/GraphQL style and Query/Command/Subscription role, design its OpenAPI 3 or GraphQL schema documentation, and close all `API-GATE-*` rows. When an existing interface is only `Context-only` or `Unchanged`, cite its exact current symbol/route and preserved invariant without reproducing its full request/response, annotations, or SDL.
+18. Read `references/interface-contract-design.md` when an HTTP/RPC/event/job/internal Service contract is `Affected`. When an external REST or GraphQL API is `Affected`, also read `references/api-rest-cqe-graphql-openapi.md` completely. Assign one interface ID per atomic REST Method + URL, GraphQL root-field operation contract, or other protocol operation; never group a CRUD variant and never treat `/graphql` alone as the operation. Inventory and fully expand every changed contract. Every external API must classify its REST/GraphQL style and Query/Command/Subscription role, design its OpenAPI 3 or GraphQL schema documentation, and close all `API-GATE-*` rows. When an existing interface is only `Context-only` or `Unchanged`, cite its exact current symbol/route and preserved invariant without reproducing its full request/response, annotations, or SDL.
 19. Read `references/database-design.md` when schema, data semantics, constraints, indexes, schema-change/DDL, sharding, datasource topology, transaction/locking behavior, or authoritative persistence ownership is `Affected`. Inventory and expand only those affected database elements. A DAO query-only change may record the exact SQL/access path and relevant existing index evidence without reproducing complete unchanged tables or ER relationships.
 20. Read `references/requirements-use-case-analysis.md` for every Spec. Requirements analysis must identify real actors and stable `UC-*` use cases with triggers, preconditions, main outcomes, alternatives/failures, postconditions, and traceability. Use a complete table or a Mermaid `flowchart`; prefer a Mermaid system-boundary view for complex or multi-actor behavior. Do not confuse use cases with Controller methods or architecture call chains.
 21. Whenever the relational data model, tables, keys, constraints, or relationships are `Affected`, add a Mermaid `erDiagram` covering every affected inventory table, directly relevant neighboring tables, actual cardinalities, relationship labels, and material PK/FK/UK fields. Map renderer-safe entity names to exact physical tables. Do not redraw an unchanged ER model for a DAO-only query or mapping change.
@@ -93,7 +97,7 @@ Read every applicable reference **completely before drafting the corresponding c
 | Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/change-surface-and-proportional-depth.md`, `references/minimal-design-and-interface-necessity.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
 | Every Java design | `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`; also `references/three-layer-architecture.md` and `references/pojo-modeling.md` for the traditional profile, or the exact selected repository Archetype tree/verifier for the COLA profile |
 | Any `Affected` HTTP/RPC/event/job/internal Service contract | `references/interface-contract-design.md` |
-| Any `Affected` external REST or GraphQL API | `references/interface-contract-design.md` and `references/api-rest-cqrs-graphql-openapi.md` |
+| Any `Affected` external REST or GraphQL API | `references/interface-contract-design.md` and `references/api-rest-cqe-graphql-openapi.md` |
 | Any `Affected` schema/data/constraint/index/DDL/sharding/datasource/topology/transaction/locking/persistence-ownership surface | `references/database-design.md` |
 
 For a Complex Spec, use four explicit passes. Preserve the resulting analysis in the Spec instead of collapsing it into a summary:
@@ -110,7 +114,7 @@ Minimum depth is structural, not numerical padding:
 - every Spec must contain evidenced actors and stable `UC-*` goals in either a complete table or Mermaid use-case view, with conditions, outcomes, postconditions, and forward traceability;
 - every proposed element must have an `Add/Keep/Merge/Remove` necessity verdict against a direct existing/reuse alternative; no new interface may exist only to fetch values that the caller forwards unchanged or the target can derive;
 - every affected interface inventory item must contain all required per-interface subsections, actual protocol identity, complete parameter rules, success and error outcomes, ordered consumer logic, and verification;
-- every affected external API must additionally contain a protocol/CQRS decision, REST resource/HTTP semantics or complete GraphQL SDL/operation/resolver semantics, documentation ownership, security/exposure, exact generated-contract verification, and nine closed `API-GATE-*` rows;
+- every affected external API must additionally contain a protocol/CQE decision, REST resource/HTTP semantics or complete GraphQL SDL/operation/resolver semantics, documentation ownership, security/exposure, exact generated-contract verification, and nine closed `API-GATE-*` rows;
 - every affected database inventory item must contain all required per-table subsections, a complete affected-column table, per-index justification tied to real access paths, STRATEGY type/shard key/2n topology, managed-DDL/history handling, and consistency/recovery rules;
 - every affected relational-model table inventory must be represented in a Mermaid `erDiagram` with physical-name mapping and relationship/key semantics consistent with the detailed design;
 - an `Affected` area may use `N/A`, “same as existing,” “handled by framework,” a class name, or a link in place of detail only when it cites the exact authority and proves no new decision is needed; `Context-only`, `Unchanged`, and `Not applicable` use their dedicated concise treatments instead.
@@ -132,7 +136,7 @@ Use this exact header field set in every Spec:
 | Field | Required meaning |
 | --- | --- |
 | Document | Current filename as a relative repository link or code value |
-| Template Version | `7` for the current template; existing Version 2 through Version 6 documents remain valid under their original rules |
+| Template Version | `7` for the current template; existing Version 2 through Version 6 documents remain valid under their effective rules |
 | Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
 | Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
 | Complexity | `Simple` or `Complex` |
@@ -188,7 +192,7 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
    - Explicitly consider appropriate patterns such as Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, or Specification.
    - When affected business logic is classified Complex, select and fully design an actual pattern; direct branching is prohibited. Simple logic remains direct so the pattern rule does not create ceremonial classes.
    - For Java work, apply `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`. Confirm exactly one allowed architecture profile and build a reuse ledger before designing dependencies or abstractions. For the traditional profile, also read `references/three-layer-architecture.md` and `references/pojo-modeling.md`; for COLA, inspect the exact selected Archetype tree, module dependencies, examples, and generated verifier.
-   - Read `references/interface-contract-design.md` and `references/database-design.md` only when their surfaces are `Affected`; for an affected external REST/GraphQL API, additionally read `references/api-rest-cqrs-graphql-openapi.md` and design the protocol/CQRS, documentation, generated-contract, and API blocking gates. Otherwise cite the authoritative current contract or persistence evidence and preserved invariant concisely.
+   - Read `references/interface-contract-design.md` and `references/database-design.md` only when their surfaces are `Affected`; for an affected external REST/GraphQL API, additionally read `references/api-rest-cqe-graphql-openapi.md` and design the protocol/CQE, documentation, generated-contract, and API blocking gates. Otherwise cite the authoritative current contract or persistence evidence and preserved invariant concisely.
    - For an affected relational model, derive a Mermaid `erDiagram` from evidenced table ownership, keys, and cardinalities before finalizing per-table details; do not redraw unchanged relationships for query-only work.
 7. **Write the Spec**
    - Copy `assets/spec-template.md`, keep all numbered chapters, and fill them according to the change-surface disposition. Remove optional deep subsections for `Context-only`, `Unchanged`, or `Not applicable` areas instead of filling them ceremonially.
@@ -252,11 +256,11 @@ Use exactly one:
 | Listing packages without a file tree or responsibilities | Add exact target paths, operations, symbols, ownership, and `REQ-*` mapping |
 | Interfaces, entities, schema, UI, and tests disagree | Repair through field/state/requirement traceability |
 | Providing an interface inventory without expanding each contract | Add one detailed subsection per ID with exact route/symbol, request rules, response/error payloads, logic, consumers, compatibility, and tests |
-| REST/GraphQL/CQRS appears only as a label | Classify every API operation, prove the protocol and minimum CQRS level, and define read/write/side-effect/idempotency semantics |
+| REST/GraphQL/CQE appears only as a label | Classify every API operation, prove the protocol and minimum CQE level, and define read/write/side-effect/idempotency semantics |
 | Copying the referenced Swagger repository's Springfox setup | Treat it as legacy inspiration only; use the project-compatible springdoc starter and `io.swagger.v3.oas.annotations.*`, or record a legacy compatibility blocker |
 | OpenAPI annotations are listed without generated-document behavior | Define annotation ownership and exact `operationId`, parameters, request body, statuses, headers, schemas, security, exposure, and generated OAS assertions |
 | GraphQL is documented only as `POST /graphql` or through Swagger annotations | Define one contract per root field with SDL, named operation, variables/selection, resolver, null/errors, batching/cost, field security, and schema tests |
-| CQRS creates a bus/read store/event sourcing for simple CRUD | Return to L0/L1 and require current scale, consistency, history, or security evidence before adding physical separation |
+| CQE creates a bus/read store/event sourcing for simple CRUD | Return to L0/L1 and require current scale, consistency, history, or security evidence before adding physical separation |
 | Adding an interface because another request needs a parameter | Determine parameter ownership first; derive it in the target backend, reuse current route/context/local data, or accept a stable business key. Keep a separate query only for a proven independent selection/discovery/negotiation use case |
 | Selecting a larger design because the template has more chapters | Apply the dominance rule and choose the direct option when it satisfies the same requirements with fewer contracts, states, dependencies, calls, and failure points |
 | Showing a response class name or abbreviated JSON | Show the actual full `jsonc` wire shape and add a line-end meaning comment to every field |

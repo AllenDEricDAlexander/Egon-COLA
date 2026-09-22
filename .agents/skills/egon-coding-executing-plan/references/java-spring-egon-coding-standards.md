@@ -1,5 +1,7 @@
 # Java, Spring, and Egon-COLA Execution Standards
 
+Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
+
 Read `references/user-mandated-java-rules.md` first, then this reference before the first Java Step, at every Step gate, and during the final audit. The literal rules are absolute; this reference adds execution evidence and cannot weaken them. These rules do not authorize unrelated cleanup.
 
 ## Precedence and stop boundary
@@ -21,7 +23,7 @@ Before editing the first Step, and again when a Step touches a new module:
 5. use JDK/Spring/Spring Boot first, then an existing Starter, Egon-COLA Component/common infrastructure, or module-local abstraction;
 6. permit an additional mature dependency or custom implementation only when the effective Spec/Plan records a current capability gap, alternatives, version ownership, maintenance/security/operational impact, and required approval.
 
-Do not hybridize architectures or duplicate existing capability. Repository candidates must be reverified and may include common-core `BaseConverter<S,T>` and `ValidationUtils`, MapStructPlus, starter validation, and archetype Qualifier propagation.
+Do not hybridize architectures or duplicate existing capability. Repository candidates must be reverified and may include common-core `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` and `ValidationUtils`, MapStructPlus, starter validation, and archetype Qualifier propagation.
 
 ## Touched-code execution rules
 
@@ -35,18 +37,18 @@ Do not add ambiguous `Data`, `Info`, `Param`, or `Bean` carrier names. Do not cr
 
 Every affected layer-to-layer input handoff uses Jakarta Bean Validation from `spring-boot-starter-validation`; Controller-only validation fails. Inspect external -> Controller/Adapter, Controller/Adapter -> Service/Application, Service/Application -> Domain Service/Component, Service/Application -> DAO/Repository/Gateway, and Event/Job/internal re-entry separately, including `@Valid`, `@Validated`, exact groups, `ValidationUtils`, errors, and tests.
 
-Telephone semantics use one named boundary and a mature standard such as libphonenumber for region-aware parsing, normalization, and validation. Do not write a duplicate `ConstraintValidator` unless approved evidence proves annotations, composition, groups, `ValidationUtils`, and mature libraries insufficient.
+Telephone semantics use one named boundary and a mature standard such as libphonenumber for region-aware parsing, normalization, and validation. Custom annotations and `ConstraintValidator` may delegate telephone rules to that library; do not duplicate its parser or put all business validation in `ValidationUtils`.
 
 Verify constraint selection, group invocation, normalization order, null/blank behavior, error mapping, and focused negative tests.
 
 ### Object model and conversion
 
-- simple immutable carrier: prefer `record`; compact constructors may normalize or enforce deterministic invariants; method-local temporary structures may use a local `record`;
-- immutable non-record: prefer Lombok `@Value`;
-- complex object: normal class with the complete mandated `@Data`, protected `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)` baseline;
-- compile the complete baseline; constructor/framework conflicts block and cannot be silently solved by deleting annotations.
+- Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability.
+- An immutable value object may use `record` without mutable class annotations; a small field count does not establish value-object semantics.
 
-Use MapStruct/MapStructPlus for cross-layer conversion and require every new affected Converter to implement/inherit the Egon `BaseConverter<S,T>` system. Verify exact generics, null/default/enum/time/sensitive-field mappings, generated implementation, Bean wiring, and tests. Reject setter/getter mapping, `BeanUtils.copyProperties`, reflection, JSON round trips, and one-way/local converter bypasses. A contract mismatch blocks.
+Verify construction targets, parent builders and generated signatures. Apply the scenario rules and root/empty-class exceptions in `references/egon-java-cqe-contract.md`; report remaining framework/API conflicts explicitly.
+
+Use MapStruct/MapStructPlus for cross-layer conversion and require every new affected Converter to implement/inherit the Egon `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` system. Verify exact generics, null/default/enum/time/sensitive-field mappings, generated implementation, Bean wiring, and tests. Reject setter/getter mapping, `BeanUtils.copyProperties`, reflection, JSON round trips, and custom converter bypasses. A contract mismatch blocks.
 
 ### Spring Bean, logging, and injection
 
@@ -91,7 +93,7 @@ Use the six-column table from `references/step-gate-checklist.md`. Manual inspec
 | `MC-DEP-001` | Added dependency/custom code has a proven approved gap, or none was added |
 | `MC-NAME-001` | Touched type names use semantic roles and avoid ambiguous carrier suffixes |
 | `MC-VALID-001` | Affected cross-layer inputs use Validation, groups, normalization, and tests |
-| `MC-MODEL-001` | Record/`@Value`/complete complex-class Lombok baseline is present, or conflict blocks |
+| `MC-MODEL-001` | Value-object record/ordinary class Lombok baseline is present, or conflict blocks |
 | `MC-CONVERT-001` | MapStruct/MapStructPlus and mandatory Egon `BaseConverter` own every new affected Converter |
 | `MC-LOG-001` | Touched concrete business classes use `@Slf4j` and safe logging |
 | `MC-BEAN-001` | Touched Beans have names, Lombok constructor injection, Qualifiers, and propagation |

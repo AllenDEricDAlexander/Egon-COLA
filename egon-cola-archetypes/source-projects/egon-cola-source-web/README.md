@@ -47,6 +47,7 @@ credentials in the existing environment/secrets mechanism, never in `run.*` prop
 
 ```text
 egon-cola-source-web-common
+egon-cola-source-web-facade
 egon-cola-source-web-domain
 egon-cola-source-web-application
 egon-cola-source-web-infrastructure
@@ -94,9 +95,9 @@ The complete `teaching` vertical creates and queries grades and school classes, 
 ## Integration Ownership
 
 - Adapter owns HTTP `/api/v1/**`, GraphQL `/graphql`, inbound RabbitMQ commands, COLA RPC Facade export, request validation, filters, and protocol conversion.
-- Infrastructure owns Common MyBatis-Plus persistence, Flyway, Redis adapters, outbound RabbitMQ events, the Evaluation Facade anti-corruption adapter, local fallback adapters, and Application-method logging AOP.
+- Infrastructure owns Common MyBatis-Plus persistence, managed PostgreSQL DDL, Redis adapters, outbound RabbitMQ events, the Evaluation Facade anti-corruption adapter, local fallback adapters, and Application-method logging AOP.
 - Starter owns OpenAPI assembly, runtime profiles, Actuator, Prometheus, Jackson, async execution, and configuration decryption.
-- The Organization contract is published by this project itself from `top.egon.internal.archetype.source:egon-cola-source-web-facade`; the consumed Evaluation contract stays an externally published artifact that the generated POM resolves through the explicit `evaluation-facade.group-id`, `evaluation-facade.artifact-id`, `evaluation-facade.version` and `evaluation-facade.package` properties supplied at generation time. Neither peer contract is generated as a local module.
+- The Organization contract is published by this project itself from `top.egon.internal.archetype.source:egon-cola-source-web-facade`; the consumed Evaluation contract stays an externally published artifact that the generated POM resolves through the explicit `evaluation-facade.group-id`, `evaluation-facade.artifact-id`, `evaluation-facade.version` and `evaluation-facade.package` properties supplied at generation time. Only this project’s own contract is generated as a local facade module; the peer contract is an external artifact.
 
 The generated `EvaluationQueryPort` is an unused integration foundation; no current Application use case calls it.
 
@@ -195,7 +196,7 @@ The platform OpenAPI MVC starter preserves business HTTP access. Document govern
 
 The `test` profile disables RPC provider/consumer, Tianshu config/registry/Redis, HTTP registration and remote query clients, retaining H2 and local stubs. Stock Redisson auto-configuration is excluded; Tianshu creates only its explicitly configured Redis client. Existing PostgreSQL, Redis, RabbitMQ and their data volumes remain. Configuration decryption runs after Spring Boot Config Data; explicit imports/configtree replace retired bootstrap loading while encryption and key rules remain unchanged. Static, module and in-process RPC tests do not establish live Tianshu/Tianquan-Shoubing, mTLS or container interoperability.
 
-## Repository, CQRS and PostgreSQL
+## Repository, CQE and PostgreSQL
 
 This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain semantics; concrete repositories extend `EgonColaRepository` and mappers extend `EgonColaMapper`. Queries use explicit XML. `EgonModel` owns id, tenantId, creation/update actors and times, `LocalDateTime deletedAt` and `Long version`: NULL is active, deletion writes a UTC timestamp and increments the version. AR/QueryChain are disabled; technical filling is mandatory.
 
@@ -203,7 +204,7 @@ This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain se
 
 mix64-v1 is fixed. T/B are powers of two up to 1024, with product at most 4096. Balanced databases also require a balanced slot map and tenant workload. There is no automatic redistribution. Query fanout is bounded; commands require exact keys. Changing topology requires matching DDL and a deliberate data migration/rebuild; the test example is not a drop-in production schema.
 
-`ShardingDataSourceBootstrapper` invokes Common's managed DDL runner on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
+The MP-SDJ starter owns datasource/topology setup and the managed `EgonColaPostgreDdlRunner` on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
 
 PostgreSQL owns replication. Ordinary reads use ROUND_ROBIN replicas; transaction/locking/strong reads use PRIMARY. No replica provisioning or promotion is implemented. Business, single and broadcast tables carry tenant_id. Cross-group LOCAL writes are rejected and mark rollback-only.
 
@@ -223,3 +224,7 @@ longer evicts implicitly; annotate every relevant write/delete path. Every profi
 batch/lock budgets; only the values differ. See
 the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
 for keys, conditions, combined operations, transactions and sync limitations.
+
+## 2026-09-22 Java / CQE maintenance requirements
+
+Normal entities use class; record is reserved for immutable value objects. Select @Builder for ordinary construction or compatible @SuperBuilder for inherited fields. Persisted enum codes use @EnumValue; frontend JSON codes use @JsonValue. Reuse Components and Common MP repositories. Validation uses native/custom constraint annotations, @Valid, @Validated and groups; ValidationUtils is a generic manual helper. Soft-delete business uniqueness must combine business columns + deleted_at with active-row NULL enforcement. Event delivery uses the Egon transactional outbox or actual MQ, with explicit transaction/failure and consumer-idempotency semantics. Existing source examples and old SQL must be reviewed against these new requirements; this documentation update does not migrate them.

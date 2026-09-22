@@ -1,6 +1,6 @@
 # Traditional Three-Layer Java Package Design
 
-This reference standardizes the traditional profile only. The skill also permits the exact COLA structure of the repository-selected `egon-cola-archetypes` family; use `references/java-spring-egon-coding-standards.md` to select the profile. Never mix this `biz.*` tree into an Archetype COLA project.
+This reference standardizes the traditional profile only. The skill also permits the exact COLA structure of the repository-selected `egon-cola-archetypes` variant; use `references/java-spring-egon-coding-standards.md` to select the profile. Never mix this `biz.*` tree into an Archetype COLA project.
 
 ## Applicability gate
 

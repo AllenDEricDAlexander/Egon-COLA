@@ -47,7 +47,7 @@
 - [ ] Every added dependency/custom replacement has an effective-Spec decision, proven gap, managed version/owner, impact, and validation; otherwise the Plan reuses existing capability.
 - [ ] New/changed Java type names have semantic PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior roles and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carriers.
 - [ ] Each affected cross-layer input plans Jakarta/Spring Validation, `@Valid`/`@Validated`, groups for reused objects, approved normalization, error mapping, and tests; telephone rules use an approved mature standard rather than a duplicate Validator.
-- [ ] Each object uses the mandated Record/`@Value`/complete complex-class Lombok classification; every new affected Converter uses MapStruct/MapStructPlus and mandatory Egon `BaseConverter` without manual/BeanUtils/JSON copying.
+- [ ] Each object uses the mandated Value-object record/ordinary class Lombok classification; every new affected Converter uses MapStruct/MapStructPlus and mandatory Egon `BaseConverter` without manual/BeanUtils/JSON copying.
 - [ ] Each affected Spring Bean plans a stable explicit name, `@RequiredArgsConstructor`, final qualified dependencies, verified `lombok.config` propagation, and `@Slf4j` for concrete business classes.
 - [ ] Utility, Jackson-only JSON, `java.time`, `@ConfigurationProperties`, and all-environment key-parity consequences appear in exact files/pseudocode/tests.
 - [ ] Pattern decisions assign an actual pattern to every Complex flow; only Simple flow evidence permits direct logic, and neither hard-coded complexity nor ceremonial abstraction remains.
@@ -89,3 +89,7 @@
 - [ ] Final verdict is exactly `PASS`, `BLOCKED`, or `REVISE` and matches reality.
 - [ ] A PASS verdict has no missing evidence, `FAIL`, `BLOCKED`, `UNKNOWN`, unresolved exception, or open Manual Check.
 - [ ] No source/test code, migration execution, service start, browser action, database change, or runtime claim occurred as a side effect.
+
+## Java / CQE contract review
+
+Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.

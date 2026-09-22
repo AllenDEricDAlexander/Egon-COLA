@@ -1,11 +1,15 @@
 ---
 name: egon-coding-writing-spec
-description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风格 Spec 时使用，包括局部变更、Java/Spring/Egon-COLA 编码规范、阻断型 Manual Check、传统分层与准确 egon-cola-archetype COLA 架构选择、需求/用例、REST/CQRS/GraphQL 与 springdoc/OpenAPI 3 详细契约或数据库设计。
+description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风格 Spec 时使用，包括局部变更、Java/Spring/Egon-COLA 编码规范、阻断型 Manual Check、传统分层与准确 egon-cola-archetype COLA 架构选择、需求/用例、REST/CQE/GraphQL 与 springdoc/OpenAPI 3 详细契约或数据库设计。
 ---
 
 # EGON 编码 Spec 编写
 
 > 本文件是 `SKILL.md` 的全中文审核镜像，不是 Codex 的运行入口。实际开发使用英文 `SKILL.md`；修改任一版本时必须同步另一版本，确保语义一致。
+
+## Java / CQE effective contract (2026-09-22)
+
+Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.
 
 ## 目的
 
@@ -42,15 +46,15 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 
 ```text
 1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
-2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
-3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+2 每层之间必须被 springboot-validation 校验，复用对象使用分组校验；基于原生和自定义约束注解、@Valid、@Validated 及 ConstraintValidator 扩展实现。ValidationUtils 只承担通用手工校验，不承载全部业务校验；电话号码复用 libphonenumber。
+3 Java POJO 默认使用 class，注解为 @Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain = true)，按构造目标选择 @Builder 或 @SuperBuilder；父类状态参与相等性时使用 @EqualsAndHashCode(callSuper = true)。只有不可变 value object 可以使用 record，并豁免 class 的 Lombok 规范；普通实体不能因简单而使用 record。使用 MapStruct、MapStructPlus 和 egon-cola-component-common-core 的 BaseConverter（双向）或 BaseForwardConverter（不可逆投影）进行转换。
 4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
 5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
-6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+6 JSON 使用 Spring Boot Jackson；持久化枚举值使用 @EnumValue，向前端输出的枚举值使用 @JsonValue，禁止 ordinal 作为业务编码。
 7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
 9 复杂业务必须引入设计模式，不允许硬编码
 10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
-11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+11 只允许现有三层结构或当前 egon-cola-archetypes 的 DDD 结构，三层结构保持现状。必须尽量复用 egon-cola-components；持久化模块必须使用 Egon COLA MP Starter，DDL 统一由 egon-mp-sdj-ext-starter 分布式管理。业务唯一键必须组合业务列与 deletedAt（数据库 deleted_at），并验证 NULL、租户及重复软删除语义。采用 CQE（Command Query Event）；Event 必须经 egon-cola-component-transactional-outbox-starter 或 MQ 中间件投递。
 ```
 
 禁止翻译、重新编号、纠错、缩写或用概述替换该区块。`@qualify`、`convertor`、`SpringBoot-JackSon` 等原始拼写由 `references/user-mandated-java-rules.zh-CN.md` 解释为准确代码契约，但不能修改原文。
@@ -71,10 +75,10 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 12. 交付前必须对照原始用户需求和当前仓库复核。内部缺陷自行修复，只把仍未解决的重大决策交给用户。
 13. Java 对象必须按真实边界和生命周期职责分类，遵循 `references/pojo-modeling.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。新增或实质修改载体使用 PO、BO、DTO、VO、Query、Command、Event、Request、Response、PageQuery、PageResult 等明确后缀；DAO 表示访问组件。不得默认创建平行类，禁止新增含糊的 `Data`、`Info`、`Param`、`Bean` 载体名。
 14. 防止类爆炸。每个独立对象和 Mapper 都必须有具体语义依据。PO/ORM Entity 只有在仓库惯例和生命周期依据充分时才能继承；具体业务 Service 默认采用组合与委托，不采用继承。
-15. Java 分包设计前必须把当前项目准确分类为一种允许形态：`references/three-layer-architecture.zh-CN.md` 定义的传统结构，或准确选中的 `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` 家族契约（包括明确选中的 Open 变体）。保持该形态及其 Verifier/依赖方向，禁止发明、混搭或重命名层/模块。项目不符合任一形态或证据冲突时，必须作为重大阻断询问用户。
+15. Java 分包设计前必须把当前项目准确分类为一种允许形态：`references/three-layer-architecture.zh-CN.md` 定义的传统结构，或准确选中的 `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` 脚手架契约（包括明确选中的 Open 变体）。保持该形态及其 Verifier/依赖方向，禁止发明、混搭或重命名层/模块。项目不符合任一形态或证据冲突时，必须作为重大阻断询问用户。
 16. 必须使用 `references/complex-scenario-analysis.zh-CN.md` 把 Spec 分类为 `Simple` 或 `Complex`。Complex Spec 在选择架构前必须完成证据图谱、场景矩阵、所有权/一致性分析、质量约束和“证据到决策”结论链；Simple Spec 不得为了形式套用重型分析。
 17. 第 7 章必须分为系统架构设计、概要设计和详细设计，但只描述受影响协作和证明边界所需的上下文。Complex Spec 必须包含架构 Mermaid Flowchart、独立的关键业务/控制 Flowchart，以及覆盖主要参与者/重要失败的 Mermaid 泳道图/Sequence Diagram；聚焦 Simple Spec 不得增加装饰性的全系统图。
-18. HTTP/RPC/事件/Job/内部 Service 契约为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md`。外部 REST 或 GraphQL API 为 `Affected` 时，还必须完整读取 `references/api-rest-cqrs-graphql-openapi.zh-CN.md`。一个原子 REST Method + URL、GraphQL Root Field Operation Contract 或其他协议操作分配一个接口 ID，禁止合并 CRUD 接口族，也禁止只把 `/graphql` 当成 Operation。清单和完整详情只覆盖发生变化的契约。每个外部 API 必须分类 REST/GraphQL 风格与 Query/Command/Subscription 角色，设计 OpenAPI 3 或 GraphQL Schema 文档，并关闭全部 `API-GATE-*`。已有接口只是 `Context-only` 或 `Unchanged` 时，只引用准确当前符号/路由和保持不变量，不复写完整入参/出参、注解或 SDL。
+18. HTTP/RPC/事件/Job/内部 Service 契约为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md`。外部 REST 或 GraphQL API 为 `Affected` 时，还必须完整读取 `references/api-rest-cqe-graphql-openapi.zh-CN.md`。一个原子 REST Method + URL、GraphQL Root Field Operation Contract 或其他协议操作分配一个接口 ID，禁止合并 CRUD 接口族，也禁止只把 `/graphql` 当成 Operation。清单和完整详情只覆盖发生变化的契约。每个外部 API 必须分类 REST/GraphQL 风格与 Query/Command/Subscription 角色，设计 OpenAPI 3 或 GraphQL Schema 文档，并关闭全部 `API-GATE-*`。已有接口只是 `Context-only` 或 `Unchanged` 时，只引用准确当前符号/路由和保持不变量，不复写完整入参/出参、注解或 SDL。
 19. Schema、数据语义、约束、索引、Schema 变更/DDL、分片、数据源拓扑、事务/锁行为或权威持久化所有权为 `Affected` 时才读取 `references/database-design.zh-CN.md`，且只清单和展开这些受影响数据库元素。DAO 查询单独变化时，可记录准确 SQL/访问路径和相关已有索引证据，不复写完整不变表或 ER 关系。
 20. 每份 Spec 都必须读取 `references/requirements-use-case-analysis.zh-CN.md`。需求分析必须识别真实参与者和稳定 `UC-*` 用例，写清触发、前置条件、主要结果、分支/失败、后置条件和追踪。可使用完整表格或 Mermaid `flowchart`；复杂或多参与者行为优先使用带系统边界的 Mermaid 视图。不能把 Controller 方法或架构调用链当作用例。
 21. 关系型数据模型、表、Key、约束或关系为 `Affected` 时，必须增加 Mermaid `erDiagram`，覆盖所有受影响清单表、直接相关邻表、真实基数、关系标签和重要 PK/FK/UK 字段，并映射准确物理表。DAO-only 查询或映射变更不得重画不变 ER 模型。
@@ -95,7 +99,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 所有 Spec | `references/ambiguity-policy.md`、`references/rfc-governance.md`、`references/complex-scenario-analysis.zh-CN.md`、`references/requirements-use-case-analysis.zh-CN.md`、`references/change-surface-and-proportional-depth.zh-CN.md`、`references/minimal-design-and-interface-necessity.zh-CN.md`、`references/review-checklist.md` 和 `assets/spec-template.md` |
 | 所有 Java 设计 | `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`；传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`，COLA 形态读取仓库中准确选中的 Archetype Tree/Verifier |
 | 任意 `Affected` HTTP/RPC/事件/Job/内部 Service 契约 | `references/interface-contract-design.zh-CN.md` |
-| 任意 `Affected` 外部 REST 或 GraphQL API | `references/interface-contract-design.zh-CN.md` 和 `references/api-rest-cqrs-graphql-openapi.zh-CN.md` |
+| 任意 `Affected` 外部 REST 或 GraphQL API | `references/interface-contract-design.zh-CN.md` 和 `references/api-rest-cqe-graphql-openapi.zh-CN.md` |
 | 任意 `Affected` Schema/数据/约束/索引/DDL/分片/数据源/拓扑/事务/锁/持久化所有权表面 | `references/database-design.zh-CN.md` |
 
 Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec 中，不能压缩成摘要：
@@ -112,7 +116,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 - 每份 Spec 必须使用完整表格或 Mermaid 用例视图表达有证据的参与者和稳定 `UC-*` 目标，并写清条件、结果、后置条件和向后追踪；
 - 每个拟议元素必须相对现有/复用直接方案给出 `Add/Keep/Merge/Remove` 必要性结论；不能新增只用于查询调用方原样转发值或目标端可派生值的接口；
 - 每个受影响接口清单项必须包含全部逐接口子章节、真实协议身份、完整参数规则、成功与错误结果、有序调用方逻辑和验证；
-- 每个受影响外部 API 还必须包含协议/CQRS 决策、REST 资源/HTTP 语义或完整 GraphQL SDL/Operation/Resolver 语义、文档归属、安全/暴露、准确生成契约校验，以及九行已关闭 `API-GATE-*`；
+- 每个受影响外部 API 还必须包含协议/CQE 决策、REST 资源/HTTP 语义或完整 GraphQL SDL/Operation/Resolver 语义、文档归属、安全/暴露、准确生成契约校验，以及九行已关闭 `API-GATE-*`；
 - 每个受影响数据库清单项必须包含全部逐表子章节、完整受影响字段表、绑定真实访问路径的逐索引论证、STRATEGY 类型/分片键/2n 拓扑、受管 DDL/历史数据处理和一致性/恢复规则；
 - 每张受影响关系模型清单表必须出现在 Mermaid `erDiagram` 中，物理名称映射、关系与 Key 语义必须和详细设计一致；
 - `Affected` 区域只有在引用准确权威实现/契约并证明无需新决策时，才能用 `N/A`、“沿用现有”、“框架处理”、类名或链接代替细节；`Context-only`、`Unchanged` 和 `Not applicable` 必须使用各自的简洁写法。
@@ -190,7 +194,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
    - 明确考虑 Strategy、Template Method、Factory、Adapter、Facade、State、Observer、Command、Specification 等合适模式。
    - 受影响业务逻辑被判定为 Complex 后，必须选择并完整设计实际模式，禁止直接分支；Simple 逻辑保持直接实现，避免为了规则制造仪式性类。
    - Java 工作必须执行 `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`，先确认唯一允许架构并建立复用账本，再设计依赖或抽象。传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`；COLA 形态检查准确 Archetype Tree、模块依赖、示例和生成 Verifier。
-   - 接口或数据库表面为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md` 和 `references/database-design.zh-CN.md`；外部 REST/GraphQL API 受影响时，还要读取 `references/api-rest-cqrs-graphql-openapi.zh-CN.md`，并设计协议/CQRS、文档、生成契约和 API 阻断门禁；否则只简洁引用权威当前契约/持久化证据和保持不变量。
+   - 接口或数据库表面为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md` 和 `references/database-design.zh-CN.md`；外部 REST/GraphQL API 受影响时，还要读取 `references/api-rest-cqe-graphql-openapi.zh-CN.md`，并设计协议/CQE、文档、生成契约和 API 阻断门禁；否则只简洁引用权威当前契约/持久化证据和保持不变量。
    - 关系型模型受影响时，先根据已有表所有权、Key 和基数推导 Mermaid `erDiagram`，再定案逐表详情；查询单独变化时不能重画不变关系。
 7. **编写 Spec**
    - 复制 `assets/spec-template.md`，保留所有编号章节，并按变更面处置类型填写。`Context-only`、`Unchanged` 或 `Not applicable` 区域应删除可选深度子章节，不能为了形式填满。
@@ -254,11 +258,11 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 只列包名，不列文件树与职责 | 增加精确目标路径、操作、符号、职责和 `REQ-*` 映射 |
 | 接口、实体、schema、UI 和测试不一致 | 通过字段/状态/需求追踪修复 |
 | 只有接口清单，没有逐个展开 | 每个 ID 增加独立详情，写清路由/符号、入参规则、成功/错误载荷、逻辑、消费者、兼容与测试 |
-| REST/GraphQL/CQRS 只作为标签出现 | 对每个 API Operation 分类，证明协议与最小 CQRS 级别，并定义读写、副作用和幂等语义 |
+| REST/GraphQL/CQE 只作为标签出现 | 对每个 API Operation 分类，证明协议与最小 CQE 级别，并定义读写、副作用和幂等语义 |
 | 照搬指定 Swagger 参考仓库中的 Springfox 配置 | 只吸收 Legacy 思想；使用项目兼容的 springdoc Starter 和 `io.swagger.v3.oas.annotations.*`，否则记录 Legacy 兼容阻断 |
 | 只列 OpenAPI 注解，不说明生成文档行为 | 定义注解归属以及准确 `operationId`、Parameter、Request Body、Status、Header、Schema、Security、Exposure 和生成 OAS 断言 |
 | GraphQL 只写 `POST /graphql` 或使用 Swagger 注解说明 | 每个 Root Field 单独定义 SDL、具名 Operation、Variable/Selection、Resolver、Null/Error、Batching/Cost、Field Security 和 Schema Test |
-| 简单 CRUD 因 CQRS 新增 Bus/Read Store/Event Sourcing | 回到 L0/L1；加入物理分离前必须证明当前扩展性、一致性、历史或安全需求 |
+| 简单 CRUD 因 CQE 新增 Bus/Read Store/Event Sourcing | 回到 L0/L1；加入物理分离前必须证明当前扩展性、一致性、历史或安全需求 |
 | 因另一个请求需要参数而新增接口 | 先判断参数所有权；在目标后端派生、复用当前路由/上下文/本地数据，或接受稳定业务 Key。只有已证明独立选择/发现/协商用例时才保留查询 |
 | 因模板章节多就选择更大的设计 | 执行支配规则；同样满足需求时选择契约、状态、依赖、调用和失败点更少的直接方案 |
 | 用响应类名或省略 JSON 代替响应结构 | 展示真实完整 `jsonc` 传输结构，每个字段添加行尾含义注释 |

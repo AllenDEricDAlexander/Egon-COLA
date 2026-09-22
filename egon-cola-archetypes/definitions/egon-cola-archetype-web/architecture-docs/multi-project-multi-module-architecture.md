@@ -1,206 +1,83 @@
-# 学生管理系统 Web 多工程多模块分层架构
+# web 脚手架架构
 
-## 1. 适用范围
+更新：2026-09-22。以 `egon-cola-source-web` 的 POM、Java 和架构测试为事实来源。Organization HTTP/GraphQL/MQ；Web 使用自有 Organization Facade 和外部 Evaluation Facade。
 
-本文档是 `egon-cola-archetype-web` 的生效架构合同。模板生成一个独立的
-`organization` Project，包含 `user` 和 `teaching` 两个业务领域；本工程自己的
-Organization 契约保存在 `facade` 模块并对外发布，评价工程的 Evaluation 契约作为
-已发布工件被 Infrastructure client 消费，不复制为本地 Maven 模块。
+## 项目与模块
 
 ```text
-student-management-organization
-├── common
-├── facade
-├── domain
-├── application
-├── infrastructure
-├── adapter
-└── starter
+common
+facade
+domain
+application
+infrastructure
+adapter
+starter
 ```
 
-模块依赖方向固定为：
-
-```text
-facade（仅协议，不依赖任何内部模块）
-common         <- domain <- application <- adapter <- starter
-                         \                    /
-                          -> infrastructure -/
-```
-
-更精确地说：`facade` 只有接口与 Protobuf 载体，不依赖任何其他内部模块，
-`domain -> common`，`application -> domain`，`infrastructure -> domain +
-Evaluation Facade`（对端已发布工件），`adapter -> application + 本工程自有
-Organization Facade`，`starter -> adapter + infrastructure`。Starter 只负责装配，
-两个 Facade 契约都不反向依赖生成工程。
-
-发布顺序构成单向 DAG：`parent -> common -> facade -> domain -> application ->
-infrastructure -> adapter -> starter`。对端工程只依赖已发布的 `facade` 工件，
-因此双方不存在 Maven 环。
-
-## 2. 分层职责与边界
-
-### 2.1 common
-
-common 提供工程内的异常、常量和通用工具；Common MP Starter 由 domain 依赖并
-技术持久化能力仅由 infrastructure 使用：`EgonModel`、`EgonColaIRepository`、`EgonColaRepository`、
-`EgonColaMapper`、租户线、审计填充、逻辑删除、乐观锁和校验能力。模板不复制这些
-基础类，也不在模块内声明独立的 MyBatis-Plus 版本。
-
-### 2.2 facade
-
-facade 是本工程对外发布的唯一契约模块，只包含 `*Facade` 接口和 `src/main/proto`
-中的 Protobuf 载体。接口不携带实现注解（不得出现 `@Component`、
-`@EgonRpcProvider`），也不 import application、infrastructure 或 adapter 类型；
-其 Maven 依赖只有 RPC 协议库与 `jakarta.validation-api`。Protobuf 的 `package`、
-service、method 与 field number 是冻结的线上契约，只有 `java_package` 归生成工程
-所有。
-
-### 2.3 domain
-
-domain 只表达领域实体、聚合、值对象、枚举、事件、校验器和服务契约。业务服务
-接口位于 `domain/<业务域>/service`：
-
-```java
-public interface UserDomainService { User save(User user); }
-// Infrastructure: DomainServiceImpl -> UserRepository -> UserDAO (explicit XML)
-```
-
-domain 不声明 DAO、PO 或技术实现；服务实现不放在 domain。跨域的技术能力契约
-（命令幂等、事件出站）是领域无关的 `domain/service`，其领域事件载体在
-`domain/events`；domain 可以依赖
-Common MP Starter 暴露的契约类型，这是本模板为统一 Service/Model 合同保留的
-唯一持久化相关依赖。
-
-### 2.4 application
-
-application 编排用例、事务、应用级校验、装配和结果转换。它只调用 domain
-service 契约，不触碰 DAO、PO、MyBatis XML、RedisTemplate、消息模板或
-外部 Facade client 实现。
-
-### 2.5 infrastructure
-
-infrastructure 承担所有出站技术实现。每个业务域使用以下结构：
-
-```text
-infrastructure/<domain>
-├── dao          # EgonColaMapper 接口
-├── po           # EgonModel 持久化对象
-├── converter    # BaseConverter / MapStruct 转换
-├── repo         # EgonColaRepository 技术 Repository
-└── service/impl # DomainServiceImpl
-```
-
-`dao`、`po`、`converter`、`repo` 四者平级；`repo` 只放具体的 EgonColaRepository
-实现，不再容纳其他技术包，缓存注解（`@CacheConfig`/`@Cacheable`/`@CacheEvict`）就声明在
-该 Repository 上。领域无关的技术包位于 infrastructure 根部：`cache` 只发布缓存 Key
-契约，`config` 装配 Redisson/Redis 与组件关闭时的确定 CacheManager，`mq` 与
-`mq/impl` 是唯一的出站发送边界（`MqMessageService` + `MqRouteEnum`），
-`service/impl` 实现 `domain/service` 的幂等与事件出站契约。外部 Evaluation 边界的
-接口与实现位于 `infrastructure/client/evaluation` 与其 `impl` 子包，与
-`domain/teaching/service` 契约共同组成 Anti-Corruption Layer。
-
-每一个 `*DomainServiceImpl` 都在 Infrastructure 实现对应的 domain service，
-组合具体 Repository，Repository 继承 `EgonColaRepository<DAO, PO>`，通过 DAO 执行明确 SQL。DAO
-继承 `EgonColaMapper<PO>`，XML 位于
-`src/main/resources/mybatis/mapper/{user,teaching}`，namespace 必须精确指向
-DAO。PO 必须继承 `EgonModel<PO>`，使用 MyBatis-Plus 的 `@TableName`、
-`@TableField` 等映射注解。
-
-PO 的 Lombok 约束是固定的：
-
-```text
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@Accessors(chain = true)
-```
-
-PO 不使用 `@RequiredArgsConstructor` 或 `@SuperBuilder`；Builder 只覆盖业务
-字段，EgonModel 的租户、审计、删除和版本字段由 Common MP 映射/填充维护。具体
-ServiceImpl 使用 Lombok `@RequiredArgsConstructor` 注入 DAO、校验器和配置。
-
-### 2.6 adapter
-
-adapter 是唯一入站适配层，负责 HTTP、GraphQL、入站 MQ、RPC Provider、Facade
-实现、协议 DTO/VO 转换、过滤器和错误契约。Adapter 只能调用 application 和
-本工程自有 facade 契约，不能直接访问 Infrastructure。每个契约只有一个具名
-`*FacadeImpl`，它同时携带 `@EgonRpcProvider` 与实现注解，链路固定为
-Protobuf 入参 → 校验 → Command/Query → application Manage → Result → Protobuf
-出参；业务错误继续以字符串 code 承载，不得降级为整数线上状态。
-
-HTTP/GraphQL 的 ID 字段保留十进制字符串以避免 JavaScript 精度损失；进入
-application/domain 前必须解析为正数 `Long`，非法或非正数直接拒绝。native Protobuf/Java
-Facade 契约使用 `Long`。
-
-### 2.7 starter
-
-starter 只包含启动类和运行时装配。启动类使用 `@MapperScan` 扫描 user/teaching
-DAO，使用 `@EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)`
-启用 Common MP 配置，并提供 `LongIdGenerator`。不得出现
-`@EntityScan`、`@EnableJpaRepositories` 或业务 Service。
-
-## 3. 主键、租户与持久化模型
-
-业务 ID、关联 ID 和数据库主键统一为正数 `Long`。应用通过 Common
-`LongIdGenerator` 生成新 ID；协议层只在 HTTP/GraphQL 文本边界使用十进制字符串。
-租户和审计用户来自受信任的请求上下文/MDC，不接受 body、query 或 path 中的
-调用方覆盖值；请求结束必须清理 MDC。
-
-每张表都包含 EgonModel 技术字段：`id`、`tenant_id`、`create_user_id`、
-`create_time`、`update_user_id`、`update_time`、`deleted_at` / `version`。活动值为 NULL，删除写 UTC 时间戳并递增版本，
-所有业务唯一约束都带 `tenant_id` 和 `deleted_at` / `version`。
-
-## 4. ShardingSphere 路由
-
-主数据表 `users`、`roles`、`permissions`、`user_roles`、`role_permissions` 和
-`grades` 固定在 `master_data`，显式使用 `databaseStrategy.none` 与
-`tableStrategy.none`。`school_classes` 与 `school_class_users` 使用同一
-`tenant_id` 做 database/table 双路由：
-
-```text
-tenant_long_database_bucket -> LongTenantShardingAlgorithm(target=database)
-tenant_long_table_bucket    -> LongTenantShardingAlgorithm(target=table)
-```
-
-两张绑定表启用 `DML_SHARDING_CONDITIONS` 且 `allowHintDisable=false`；批量、更新、
-删除和关联查询必须携带租户条件。`tenant_id` 缺失、非正数或范围路由一律失败，
-不回退到广播或猜测路由。读写分离配置只改变 primary/replica 拓扑，不改变租户
-路由键。
-
-## 6. 运行与验证边界
-
-`dev`、`test`、`prod` 三个 profile 的核心配置键保持一致。`test` 使用 H2
-PostgreSQL 兼容模式、typed ShardingSphere 合同、受管 DDL 资源、Common MP Mapper XML
-和本地替身；生成项目验证只证明编译、架构规则、H2/SQL 合同、路由和迁移静态
-合同，不证明真实 PostgreSQL、Redis、RabbitMQ、Tianshu 服务发现、Tianquan-Shoubing 认证或生产
-拓扑。
-
-完整验证命令为：
-
-```bash
-bash ./mvnw -B -ntp clean verify
-```
-
-架构插件以 `unknownLayerPolicy=FAIL` 执行；生成验证器还必须检查：无 Spring Data
-JPA/Hibernate 依赖和源码、八个 `EgonModel` PO、八个 `EgonColaMapper` DAO、四个
-Infrastructure ServiceImpl、四个 domain Service 契约、八份 DAO XML、Long/tenant
-迁移和四份 ShardingSphere 配置。验证期间不启动应用、不连接外部基础设施。
+| 模块 | 直接非测试内部依赖 |
+| --- | --- |
+| common | 无 |
+| facade | 无 |
+| domain | common |
+| application | domain |
+| infrastructure | domain |
+| adapter | application, facade |
+| starter | adapter, infrastructure |
 
 
+## 当前源码定位
 
-## Repository、CQRS 与 PostgreSQL
+以下入口相对正常源工程 `egon-cola-source-web`；生成工程替换项目/包名前缀。修改前重查源码，不按旧文档猜类名。
 
-本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
+| 责任 | 源码入口 |
+| --- | --- |
+| Domain 业务端口 | `egon-cola-source-web-domain/src/main/java/top/egon/cola/archetype/source/web/domain/service/CommandIdempotencyService.java` |
+| Domain 业务端口 | `egon-cola-source-web-domain/src/main/java/top/egon/cola/archetype/source/web/domain/service/OrganizationEventService.java` |
+| Domain 业务端口 | `egon-cola-source-web-domain/src/main/java/top/egon/cola/archetype/source/web/domain/teaching/service/EvaluationQueryService.java` |
+| Application 用例 | `egon-cola-source-web-application/src/main/java/top/egon/cola/archetype/source/web/application/teaching/manage/GradeManage.java` |
+| Application 用例 | `egon-cola-source-web-application/src/main/java/top/egon/cola/archetype/source/web/application/teaching/manage/SchoolClassManage.java` |
+| Application 用例 | `egon-cola-source-web-application/src/main/java/top/egon/cola/archetype/source/web/application/user/manage/PermissionManage.java` |
+| Infrastructure Repository | `egon-cola-source-web-infrastructure/src/main/java/top/egon/cola/archetype/source/web/infrastructure/teaching/repo/GradeRepository.java` |
+| Infrastructure Repository | `egon-cola-source-web-infrastructure/src/main/java/top/egon/cola/archetype/source/web/infrastructure/teaching/repo/SchoolClassRepository.java` |
+| Infrastructure Repository | `egon-cola-source-web-infrastructure/src/main/java/top/egon/cola/archetype/source/web/infrastructure/teaching/repo/SchoolClassUserRepository.java` |
+| 架构校验 | `egon-cola-source-web-starter/src/test/java/top/egon/cola/archetype/source/web/architecture/WebArchitectureTest.java` |
 
-`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。
+此表是定位入口，不是全部用例清单；完整业务契约与运行配置见生成工程 README 和对应源码/测试。
 
-算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
+## 分层与协议
 
-初始化由 `ShardingDataSourceBootstrapper` 调用 Common 受管 DDL runner，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+Domain 持有业务对象、规则和服务端口；Application 编排用例和事务；Infrastructure 实现领域端口并拥有 PO、Mapper/XML、Repository、缓存、MQ 与外部 client；Adapter 处理协议、校验和转换；starter/start 只装配。业务代码按领域优先放置，如 `infrastructure/user/dao`、`infrastructure/user/po`、`infrastructure/user/converter`、`infrastructure/user/repo`，这些技术目录平级。
 
-读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
+Domain service 不继承技术 CRUD 接口，Infrastructure 不反向依赖 Application。Facade 是当前项目自己的协议叶子；对端契约通过发布工件消费，不复制一份对端 Proto。Native/Open 保持各自当前 POM 中的平台或公共栈协议依赖，不因其他模板存在某项依赖就引入。
 
-每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
+## 持久化与数据库
 
-默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
+持久化模块必须使用 `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`。PO 继承 `EgonModel`，具体 Repository 继承 `EgonColaRepository`，DAO 继承 `EgonColaMapper`。Command 使用受守卫写入并检查版本/影响结果，Query 使用具名 Mapper XML。禁止 ActiveRecord、QueryChain 和通用 Wrapper 绕过。Domain 不暴露技术 PO 泛型。
+
+组件统一管理数据源/拓扑与 `EgonColaPostgreDdlRunner` 受管 DDL，使用 `db/egon-mp` 与 `repository-manifest.json`，仅对物理 PRIMARY 执行初始化/检查。空库初始化；受管库核对 checksum、前缀和路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 是档案，不是运行入口。`spring.sql.init.mode=never` 不会禁用该组件 runner。
+
+保留当前 Snowflake Long ID、租户路由、version 和 `LocalDateTime deletedAt`；NULL 表示有效。业务唯一键必须组合业务列与 deleted_at，租户业务键还需 tenant_id。普通含 NULL 的联合唯一键无法单独保证有效行唯一，需验证数据库 NULLS NOT DISTINCT 能力或联合键 + 有效行部分唯一索引。检查旧业务列单独唯一约束、删除后重建、重复删除时间戳、恢复、并发和分片语义。当前 SQL 尚需逐表核对；本次文档修订不改旧 migration 或 checksum。
+
+## Java 对象与校验
+
+普通 POJO/实体用 class；只有不可变值对象可用 record，且集合/元素仍需不可变。class 通用注解为 @Data、@NoArgsConstructor、@AllArgsConstructor、@Accessors(chain = true)。普通构造目标用 @Builder；需要构建父类字段时用 @SuperBuilder 并检查整条父类链，两者不能混用。父类状态参与相等性时用 @EqualsAndHashCode(callSuper = true)，直接 Object 子类不能强用。核对全参目标和零字段重复构造器，不为注解添加无意义继承。
+
+持久化枚举用 @EnumValue，前端编码用 @JsonValue，按当前 EgonEnum 和 Jackson 契约处理未知值。转换复用 MapStruct/MapStructPlus 和 BaseConverter。校验基于原生/自定义 @Constraint、ConstraintValidator、@Valid、@Validated、分组与级联；ValidationUtils 只作通用手工触发，不能集中承载全部业务校验。
+
+## CQE 与组件复用
+
+Command 是状态变更意图，Query 是无业务副作用读取，Event 是已经发生的事实。Event 必须经过 `egon-cola-component-transactional-outbox-starter` 或实际 MQ 中间件。Outbox 的 `TransactionalOutbox.enqueue(OutboxMessage)` 需要与业务事务正确绑定；直接 MQ 必须说明确认、失败重试/恢复和双写窗口。只有本地监听、异步回调或日志不算投递。afterCommit 实际调用 MQ 不能宣称原子投递或 exactly-once。
+
+事件契约明确 eventId、业务标识、schema version、路由、消费校验/幂等及重试/死信。复用 egon-cola-components 现有 Common、ID、MP、缓存、线程池、协议和观测能力；先列候选 API 与缺口，再决定是否新增实现。纯领域/协议模块不引入无关运行依赖。
+
+## 验证边界
+
+当前模块 POM、架构测试与 packaging verifier 共同限定结构。现有旧 Builder/record 和业务唯一约束不能被描述成已满足新规范；后续改代码时逐个核对。源码、H2 和进程内 RPC 测试不证明真实 PostgreSQL/ShardingSphere、MQ、注册中心、TLS 或跨进程验收。生成检查只证明包装确定性，不自动启动项目、数据库或容器。
+
+## 分布式 DDL 管理约束
+
+统一复用 `egon-mp-sdj-ext-starter` 对应的 `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`，不再选用 Flyway。使用组件 `EgonColaPostgreDdlRunner`、显式物理 PRIMARY/schema/role 目标、SQL 版本与 SHA-256 Manifest；数据源与拓扑由 Starter 管理，业务项目不得复制本地 Bootstrapper 或并行使用 MP 默认 IDdl/DdlApplicationRunner。
+
+schema advisory transaction lock 协调多实例；每份 SQL 与 ddl_history 同连接同事务提交。跨物理目标不是全局原子事务，后续目标失败不撤销前面已提交目标；必须设计续跑与幂等。未知提交结果先用新连接核实再决定重试。检查锁/语句/拓扑超时、脚本前缀、checksum 与路由指纹；非空未受管库或漂移不能自动 DROP、repair 或接管历史。
+
+一个逻辑变更新增一个下一版本 SQL 和 Manifest 条目，不改写已应用 SQL/history。配置基于 `egon.cola.component.mybatis-plus.ddl` 与现有 profile；实际接线及真实 PostgreSQL 并发/失败恢复需要独立验证，文档不声称已完成运行时迁移。

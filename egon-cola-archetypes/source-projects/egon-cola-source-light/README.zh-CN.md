@@ -95,7 +95,7 @@ common         -> no business layer
 
 - 异常：`common/exception` 的根类型继承组件的 `BusinessException` / `CommonException` 链，对外稳定错误码是 `getStatus()` 字符串，数字型 `getCode()` 不参与传输。
 - 枚举：手写业务枚举实现 `EgonEnum`，序列化取声明的 `code` 而不是 `ordinal()`；`DeletedStatus` 与 `*FacadeStatus` 示范 `UNKNOWN` 兜底。
-- 校验：每个入站交接都经过继承 `BaseValidator` 的校验器，统一走 `egonColaValidationUtils`；一个载体服务多个操作时使用 Jakarta 分组，`facade/validation/NativeRpcValidationGroup` 只收紧原生 RPC 约束，不改动 HTTP 默认行为。
+- 校验：现有 BaseValidator/egonColaValidationUtils 入口按源码识别；新增或修改边界以原生/自定义约束注解、@Valid、@Validated、分组及扩展定义规则，工具仅负责通用手工触发。保持现有协议间的分组差异。
 - 转换：DTO/Command/Domain/PO 映射由 MapStruct（`@Mapper`）生成并继承 `BaseConverter` 或 `BaseForwardConverter`；只做快照投影的转换器不补反向方法。
 
 ## 主要业务流程
@@ -190,7 +190,7 @@ Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的
 
 排除默认 Redisson 自动配置，由 Tianshu 管理显式配置的 Redis client；业务 Redis 保持 Spring 原有 connection factory。关闭 Tianshu 的测试环境不会因此自动建立 Redis 连接。
 
-## Repository、CQRS 与 PostgreSQL
+## Repository、CQE 与 PostgreSQL
 
 本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
 
@@ -198,7 +198,7 @@ Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的
 
 算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
 
-初始化由 `ShardingDataSourceBootstrapper` 调用 Common 受管 DDL runner，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+初始化由 组件统一管理数据源/拓扑与 `EgonColaPostgreDdlRunner` 受管 DDL，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
 
 读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
 
@@ -212,3 +212,7 @@ Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
 不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+
+## 2026-09-22 Java / CQE 维护规范
+
+普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。

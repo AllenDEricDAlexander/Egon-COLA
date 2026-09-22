@@ -11,7 +11,7 @@ common -> domain -> application -> adapter -> starter
 
 The project consumes `egon-cola-component-agent-flow-starter` for Agent Flow execution, and the RAG, transactional-outbox and MyBatis-Plus components for the knowledge domain. Provider configuration, MCP credentials, database credentials, and API secrets are supplied by environment-backed Starter configuration. It has no MQ, RPC, GraphQL, UI, history, or recovery API beyond the knowledge tables, and its two-level cache is wired but not yet used by a query.
 
-The source reactor is verified with Java 21, Spring Boot 3.5.16, Spring AI 1.1.8, Springdoc 2.8.17, and Google ADK 0.7.0 through the Components starter. Only the generated `egon-cola-archetype-agent` definition becomes a public Archetype family.
+The source reactor is verified with Java 21, Spring Boot 3.5.16, Spring AI 1.1.8, Springdoc 2.8.17, and Google ADK 0.7.0 through the Components starter. Only the generated `egon-cola-archetype-agent` definition becomes a public Archetype archetype.
 
 ## Maven Profiles And External Launch Arguments
 
@@ -103,7 +103,7 @@ A document in a non-terminal state is refused a reprocess with `409`. A retried 
 | Key | Environment variable | Meaning |
 | --- | --- | --- |
 | `spring.datasource.url` / `username` / `password` | `AGENT_DB_URL`, `AGENT_DB_USERNAME`, `AGENT_DB_PASSWORD` | The PostgreSQL database; `dev` and `prod` require them |
-| `spring.flyway.enabled`, `spring.flyway.locations` | `AGENT_FLYWAY_ENABLED` | Migrations in `classpath:db/migration`; the test profile disables them |
+| Legacy `spring.flyway.*` | Legacy `AGENT_FLYWAY_ENABLED` | Present in source only; replace through an authorized MP-SDJ DDL migration, not a new deployment choice |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | `AGENT_MULTIPART_MAX_FILE_SIZE`, `AGENT_MULTIPART_MAX_REQUEST_SIZE` | Container guard above the API limit (25 MB / 26 MB by default) |
 | `egon.cola.component.rag.*` | `AGENT_RAG_STORAGE_ROOT` | Dimensions, the named vector store and embedding model, the storage root, retrieval limits (default 8, maximum 50) |
 | `egon.cola.component.transactional-outbox.enabled` | — | The ingest queue and its delivery |
@@ -124,7 +124,7 @@ A deployment of the knowledge domain has four prerequisites that no configuratio
 
 ## Environment contract
 
-Development and production require externally supplied values for `DEEP_RESEARCH_MODEL_BASE_URL`, `DEEP_RESEARCH_MODEL_API_KEY`, `DEEP_RESEARCH_MODEL_NAME`, `DEEP_RESEARCH_API_KEY`, `DEEP_RESEARCH_MCP_BASE_URI`, `DEEP_RESEARCH_MCP_SSE_ENDPOINT`, and `DEEP_RESEARCH_MCP_API_KEY`, and for the knowledge domain the `AGENT_DB_*`, `AGENT_FLYWAY_ENABLED` and `AGENT_KNOWLEDGE_EMBEDDING_*` values listed above. Runtime limits use the `DEEP_RESEARCH_MAX_*`, `DEEP_RESEARCH_HEARTBEAT_INTERVAL` and `AGENT_KNOWLEDGE_*` variables. No credential, provider URL, or usable secret is committed in this source project. The test profile uses a fake `ChatModel` and fake `ToolCallback`, a closed RAG component and no Flyway run, so it never opens a network connection or touches PostgreSQL.
+Development and production require externally supplied values for `DEEP_RESEARCH_MODEL_BASE_URL`, `DEEP_RESEARCH_MODEL_API_KEY`, `DEEP_RESEARCH_MODEL_NAME`, `DEEP_RESEARCH_API_KEY`, `DEEP_RESEARCH_MCP_BASE_URI`, `DEEP_RESEARCH_MCP_SSE_ENDPOINT`, and `DEEP_RESEARCH_MCP_API_KEY`, and for the knowledge domain the `AGENT_DB_*` and `AGENT_KNOWLEDGE_EMBEDDING_*` values listed above. Runtime limits use the `DEEP_RESEARCH_MAX_*`, `DEEP_RESEARCH_HEARTBEAT_INTERVAL` and `AGENT_KNOWLEDGE_*` variables. No credential, provider URL, or usable secret is committed in this source project. The test profile uses a fake `ChatModel` and fake `ToolCallback`, a closed RAG component and no Flyway run, so it never opens a network connection or touches PostgreSQL.
 
 Example request (the shell expands the externally managed key):
 
@@ -147,13 +147,13 @@ Run the source checks without starting a service:
 ./mvnw -B -ntp -f egon-cola-source-agent/pom.xml clean verify
 ```
 
-The generated family is validated separately by the repository archetype scripts. The source project contains no message broker, RPC, GraphQL endpoint, or UI; its durable surface is the knowledge schema with its migrations and the outbox queue, over the two-level cache that no query has opted into yet.
+The generated archetype is validated separately by the repository archetype scripts. The source project contains no message broker, RPC, GraphQL endpoint, or UI; its durable surface is the knowledge schema with its migrations and the outbox queue, over the two-level cache that no query has opted into yet.
 
 ## Knowledge Repository migration
 
 Knowledge queries now use bound Mapper XML. Updates enforce tenant, active row, expected version and expected ingest status. `deleted_at` is a nullable UTC LocalDateTime and `version` starts at zero. The field-specific JSONB handler is retained.
 
-Agent keeps Flyway. `V20260913_001__egon_model_repository.sql` requires both knowledge tables to be empty, drops their identity defaults, replaces old logic-delete indexes and adds the new columns. V001/V002 remain unchanged. Outbox/vector schema ownership is unchanged. Common DDL is disabled here; only the exact knowledge-base-root bulk-delete statement is registered.
+The project standard is now MP-SDJ distributed managed DDL. Legacy source still includes Flyway dependencies, db/migration scripts and disabled Common DDL. These are migration gaps, not the supported target. Preserve historical SQL and data; a separate implementation must wire the component runner, ordered manifest and physical targets and reconcile outbox/vector ownership. This documentation update does not perform that runtime migration.
 
 Set `EGON_ID_MACHINE_ID` for production. Default H2/fake-model tests do not run PostgreSQL migrations or vector integrations; perform those checks manually on a dedicated database.
 

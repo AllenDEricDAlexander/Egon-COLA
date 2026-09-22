@@ -107,7 +107,7 @@ SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 ```
 
 The test suite includes Domain rules, Application orchestration, MyBatis-Plus DAO
-contracts, date-sequence Flyway migration contracts, broker-free MQ adapters, an actual
+contracts, managed PostgreSQL DDL contracts, broker-free MQ adapters, an actual
 COLA native unary RPC proxy call, external-free Spring context assembly, and architecture
 dependency checks. Building the image does not start the service.
 
@@ -171,7 +171,7 @@ The platform OpenAPI MVC starter preserves business HTTP access. Document govern
 
 The `test` profile disables RPC provider/consumer, Tianshu config/registry/Redis, HTTP registration and remote query clients, retaining H2 and local stubs. Stock Redisson auto-configuration is excluded; Tianshu creates only its explicitly configured Redis client. Existing PostgreSQL, Redis, RabbitMQ and their data volumes remain. Configuration decryption runs after Spring Boot Config Data; explicit imports/configtree replace retired bootstrap loading while encryption and key rules remain unchanged. Static, module and in-process RPC tests do not establish live Tianshu/Tianquan-Shoubing, mTLS or container interoperability.
 
-## Repository, CQRS and PostgreSQL
+## Repository, CQE and PostgreSQL
 
 This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain semantics; concrete repositories extend `EgonColaRepository` and mappers extend `EgonColaMapper`. Queries use explicit XML. `EgonModel` owns id, tenantId, creation/update actors and times, `LocalDateTime deletedAt` and `Long version`: NULL is active, deletion writes a UTC timestamp and increments the version. AR/QueryChain are disabled; technical filling is mandatory.
 
@@ -179,7 +179,7 @@ This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain se
 
 mix64-v1 is fixed. T/B are powers of two up to 1024, with product at most 4096. Balanced databases also require a balanced slot map and tenant workload. There is no automatic redistribution. Query fanout is bounded; commands require exact keys. Changing topology requires matching DDL and a deliberate data migration/rebuild; the test example is not a drop-in production schema.
 
-`ShardingDataSourceBootstrapper` invokes Common's managed DDL runner on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
+The MP-SDJ starter owns datasource/topology setup and the managed `EgonColaPostgreDdlRunner` on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
 
 PostgreSQL owns replication. Ordinary reads use ROUND_ROBIN replicas; transaction/locking/strong reads use PRIMARY. No replica provisioning or promotion is implemented. Business, single and broadcast tables carry tenant_id. Cross-group LOCAL writes are rejected and mark rollback-only.
 
@@ -196,3 +196,7 @@ repository examples use `findCachedById` / `updateCachedById` (Agent defines its
 longer evicts implicitly; annotate every relevant write/delete path. See
 the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
 for keys, conditions, combined operations, transactions and sync limitations.
+
+## 2026-09-22 Java / CQE maintenance requirements
+
+Normal entities use class; record is reserved for immutable value objects. Select @Builder for ordinary construction or compatible @SuperBuilder for inherited fields. Persisted enum codes use @EnumValue; frontend JSON codes use @JsonValue. Reuse Components and Common MP repositories. Validation uses native/custom constraint annotations, @Valid, @Validated and groups; ValidationUtils is a generic manual helper. Soft-delete business uniqueness must combine business columns + deleted_at with active-row NULL enforcement. Event delivery uses the Egon transactional outbox or actual MQ, with explicit transaction/failure and consumer-idempotency semantics. Existing source examples and old SQL must be reviewed against these new requirements; this documentation update does not migrate them.

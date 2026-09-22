@@ -119,7 +119,7 @@ Read `references/user-mandated-java-rules.md`. Preserve each original rule indep
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Rule 1 | `<Spec §6.2/§8/§10>` | `<all affected Java types>` | `<ordered type/consumer files>` | `<mandatory suffixes and reuse>` | `<inventory/compile/search>` | `<Step N>` | PASS / N/A / BLOCKED |
 | Rule 2 | `<Spec §6.2/§7/§9/§10>` | `<all affected layer handoffs>` | `<tests, groups, boundary files>` | `<@Valid/@Validated/group/ValidationUtils/libphonenumber>` | `<positive/negative/group tests>` | `<Step N>` | PASS / N/A / BLOCKED |
-| Rule 3 | `<Spec §6.2/§10>` | `<objects/converters/BaseConverter>` | `<tests, model, converter, consumers>` | `<record/@Value/complete Lombok baseline/MapStruct>` | `<constructor/mapping compile/tests>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 3 | `<Spec §6.2/§10>` | `<objects/converters/BaseConverter>` | `<tests, model, converter, consumers>` | `<value-object record/class Lombok baseline/MapStruct>` | `<constructor/mapping compile/tests>` | `<Step N>` | PASS / N/A / BLOCKED |
 | Rule 4 | `<Spec §6.2/§7/§13>` | `<business Beans/lombok.config>` | `<tests, business files, config>` | `<@Slf4j/name/@RequiredArgsConstructor/@Qualifier>` | `<compile/wiring/log review>` | `<Step N>` | PASS / N/A / BLOCKED |
 | Rule 5 | `<Spec §6.2/§15>` | `<imports/dependencies/helpers>` | `<affected files/manifests>` | `<closed allowlist only>` | `<dependency/import search>` | `<Step N>` | PASS / N/A / BLOCKED |
 | Rule 6 | `<Spec §6.2/§9/§10>` | `<external JSON contracts>` | `<contract/tests>` | `<Jackson annotation/default decisions>` | `<serialization/compatibility tests>` | `<Step N>` | PASS / N/A / BLOCKED |
@@ -287,7 +287,7 @@ State when to run focused, module, cross-module, full, migration, frontend, and 
 
 ## 9. Migration, Compatibility, Rollout, and Rollback
 
-Define the exact order for applicable migration files, generated contracts, data backfill, dual-read/write, API/event compatibility, configuration, feature flags, deployment, post-deploy checks, rollback, and forward-fix. For Flyway, name only the new next-version file and preserve all historical migrations.
+Define the exact order for applicable migration files, generated contracts, data backfill, dual-read/write, API/event compatibility, configuration, feature flags, deployment, post-deploy checks, rollback, and forward-fix. For MP-SDJ managed DDL, name the next SQL version, manifest entry, physical targets and partial-failure recovery; preserve applied SQL/history.
 
 Write `N/A` with a target-Spec section and repository reason when no such work applies.
 
@@ -338,7 +338,7 @@ Complete every row individually after reconciling the Plan with the effective Sp
 | `MC-DEP-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<dependency evidence or proof none added>` | `<gap/impact conclusion>` | `<None or action/owner>` |
 | `MC-NAME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<planned type inventory>` | `<semantic suffix conclusion>` | `<None or action/owner>` |
 | `MC-VALID-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<boundary/group/normalization plan>` | `<coverage conclusion>` | `<None or action/owner>` |
-| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/@Value/complete Lombok baseline>` | `<construction or blocking conflict>` | `<None or action/owner>` |
+| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<value-object record/class Lombok baseline>` | `<construction or blocking conflict>` | `<None or action/owner>` |
 | `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<MapStruct + mandatory BaseConverter plan>` | `<mapping/no-bypass conclusion>` | `<None or action/owner>` |
 | `MC-LOG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<business-class files>` | `<logging conclusion>` | `<None or action/owner>` |
 | `MC-BEAN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<Bean names/injection/Qualifier/lombok.config>` | `<DI conclusion>` | `<None or action/owner>` |
@@ -358,3 +358,7 @@ Use exactly one:
 - `PASS — Ready for user review`
 - `BLOCKED — Spec or user decision required`
 - `REVISE — Plan and Spec are inconsistent`
+
+## Java / CQE contract review
+
+Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.

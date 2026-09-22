@@ -39,7 +39,7 @@ Read `references/user-mandated-java-rules.md`. Copy all rows into the Step recor
 | --- | --- | --- | --- | --- | --- | --- |
 | Rule 1 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<type inventory and declarations>` | `<compile/name search>` | `<semantic suffix result>` | `None / action and owner` |
 | Rule 2 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<every affected handoff/groups/normalization>` | `<positive/negative/group tests>` | `<layer validation result>` | `None / action and owner` |
-| Rule 3 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<record/@Value/complete Lombok/Converter diff>` | `<compile/mapping tests/generated mapper>` | `<model/conversion result>` | `None / action and owner` |
+| Rule 3 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<value-object record/class Lombok/Converter diff>` | `<compile/mapping tests/generated mapper>` | `<model/conversion result>` | `None / action and owner` |
 | Rule 4 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<business classes/Bean names/Qualifier/lombok.config>` | `<compile/wiring/log review>` | `<logging/injection result>` | `None / action and owner` |
 | Rule 5 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<imports/manifests/helpers>` | `<dependency/import search>` | `<allowlist result>` | `None / action and owner` |
 | Rule 6 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<external contracts/Jackson annotations>` | `<serialization/compatibility tests>` | `<Jackson result>` | `None / action and owner` |
@@ -68,7 +68,7 @@ Read `references/java-spring-egon-coding-standards.md`. Copy all stable IDs belo
 | `MC-DEP-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<manifest/diff/gap approval>` | `<dependency conclusion>` | `<None or action/owner>` |
 | `MC-NAME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<touched type list/search>` | `<semantic-name conclusion>` | `<None or action/owner>` |
 | `MC-VALID-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<constraints/groups/normalizer/tests>` | `<boundary coverage>` | `<None or action/owner>` |
-| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/@Value/complete complex Lombok diff>` | `<construction/conflict conclusion>` | `<None or action/owner>` |
+| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<value-object record/class complex Lombok diff>` | `<construction/conflict conclusion>` | `<None or action/owner>` |
 | `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<MapStruct + mandatory BaseConverter diff/search>` | `<mapping/no-bypass conclusion>` | `<None or action/owner>` |
 | `MC-LOG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<business-class/log diff>` | `<logging conclusion>` | `<None or action/owner>` |
 | `MC-BEAN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<Bean names/Qualifier/lombok.config>` | `<injection conclusion>` | `<None or action/owner>` |
@@ -124,3 +124,7 @@ Manual Check verdict rules:
 - [ ] The Step is marked `Committed` before any later Step begins.
 
 If any required box cannot be checked, keep the Step `In Progress` or mark it `Blocked`; do not advance.
+
+## Java / CQE contract review
+
+Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.

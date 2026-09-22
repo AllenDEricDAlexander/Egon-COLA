@@ -11,7 +11,7 @@ common -> domain -> application -> adapter -> starter
 
 项目通过 `egon-cola-component-agent-flow-starter` 消费通用 Agent Flow 能力，并通过 RAG、transactional-outbox 与 MyBatis-Plus 组件支撑 knowledge 域。provider 配置、MCP 凭据、数据库凭据和 API secret 由 Starter 的环境配置提供。除 knowledge 三张表之外，项目不包含 MQ、RPC、GraphQL、UI、历史、恢复 API；二级缓存已接线但尚无查询接入。
 
-source reactor 使用 Java 21、Spring Boot 3.5.16、Spring AI 1.1.8、Springdoc 2.8.17，并通过 Components starter 使用 Google ADK 0.7.0。只有生成后的 `egon-cola-archetype-agent` definition 会成为公共 Archetype family。
+source reactor 使用 Java 21、Spring Boot 3.5.16、Spring AI 1.1.8、Springdoc 2.8.17，并通过 Components starter 使用 Google ADK 0.7.0。只有生成后的 `egon-cola-archetype-agent` definition 会成为公共 Archetype archetype。
 
 ## Maven Profiles 与外部启动参数
 
@@ -97,7 +97,7 @@ knowledge 域在 `/api/v1/knowledge-bases` 与 `/api/v1/knowledge-documents` 下
 | 键 | 环境变量 | 含义 |
 | --- | --- | --- |
 | `spring.datasource.url` / `username` / `password` | `AGENT_DB_URL`、`AGENT_DB_USERNAME`、`AGENT_DB_PASSWORD` | PostgreSQL 数据库；`dev`/`prod` 必填 |
-| `spring.flyway.enabled`、`spring.flyway.locations` | `AGENT_FLYWAY_ENABLED` | 迁移位于 `classpath:db/migration`；test profile 关闭 |
+| 遗留 `spring.flyway.*` | 遗留 `AGENT_FLYWAY_ENABLED` | 源码残留，需通过获批的 MP-SDJ DDL 迁移替换，不作为新部署选项 |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | `AGENT_MULTIPART_MAX_FILE_SIZE`、`AGENT_MULTIPART_MAX_REQUEST_SIZE` | 高于接口上限的容器防线（默认 25MB / 26MB） |
 | `egon.cola.component.rag.*` | `AGENT_RAG_STORAGE_ROOT` | 维度、具名向量库与嵌入模型 Bean、存储根目录、检索上限（默认 8，最大 50） |
 | `egon.cola.component.transactional-outbox.enabled` | — | 摄取队列及其投递 |
@@ -118,7 +118,7 @@ knowledge 域部署有四个配置键无法满足的前提：
 
 ## 环境配置合同
 
-开发和生产环境必须从外部提供 `DEEP_RESEARCH_MODEL_BASE_URL`、`DEEP_RESEARCH_MODEL_API_KEY`、`DEEP_RESEARCH_MODEL_NAME`、`DEEP_RESEARCH_API_KEY`、`DEEP_RESEARCH_MCP_BASE_URI`、`DEEP_RESEARCH_MCP_SSE_ENDPOINT` 与 `DEEP_RESEARCH_MCP_API_KEY`，knowledge 域还须提供上表中的 `AGENT_DB_*`、`AGENT_FLYWAY_ENABLED` 与 `AGENT_KNOWLEDGE_EMBEDDING_*`。运行限制使用 `DEEP_RESEARCH_MAX_*`、`DEEP_RESEARCH_HEARTBEAT_INTERVAL` 与 `AGENT_KNOWLEDGE_*`。source 中不提交凭据、供应商 URL 或可用 secret；test profile 使用 fake `ChatModel` 与 fake `ToolCallback`、关闭 RAG 组件且不执行 Flyway，因此既不连接网络也不访问 PostgreSQL。
+开发和生产环境必须从外部提供 `DEEP_RESEARCH_MODEL_BASE_URL`、`DEEP_RESEARCH_MODEL_API_KEY`、`DEEP_RESEARCH_MODEL_NAME`、`DEEP_RESEARCH_API_KEY`、`DEEP_RESEARCH_MCP_BASE_URI`、`DEEP_RESEARCH_MCP_SSE_ENDPOINT` 与 `DEEP_RESEARCH_MCP_API_KEY`，knowledge 域还须提供上表中的 `AGENT_DB_*` 与 `AGENT_KNOWLEDGE_EMBEDDING_*`。运行限制使用 `DEEP_RESEARCH_MAX_*`、`DEEP_RESEARCH_HEARTBEAT_INTERVAL` 与 `AGENT_KNOWLEDGE_*`。source 中不提交凭据、供应商 URL 或可用 secret；test profile 使用 fake `ChatModel` 与 fake `ToolCallback`、关闭 RAG 组件且不执行 Flyway，因此既不连接网络也不访问 PostgreSQL。
 
 请求示例（shell 从外部 secret 环境展开 key）：
 
@@ -141,13 +141,13 @@ curl --fail-with-body --no-buffer \
 ./mvnw -B -ntp -f egon-cola-source-agent/pom.xml clean verify
 ```
 
-生成的 family 由仓库 archetype 脚本独立验证。该 source project 不包含消息中间件、RPC、GraphQL endpoint 或 UI；其持久面是 knowledge 的库表、迁移与 outbox 队列，以及已接线但尚无查询接入的二级缓存。
+生成的 archetype 由仓库 archetype 脚本独立验证。该 source project 不包含消息中间件、RPC、GraphQL endpoint 或 UI；其持久面是 knowledge 的库表、迁移与 outbox 队列，以及已接线但尚无查询接入的二级缓存。
 
 ## 知识库 Repository 迁移
 
 知识库查询统一为绑定参数的 Mapper XML。更新同时限制租户、活动状态、期望版本与入库状态；`deleted_at` 使用可空 UTC LocalDateTime，`version` 从 0 递增。JSONB 保留字段专用 handler。
 
-Agent 继续使用 Flyway。新增 `V20260913_001__egon_model_repository.sql` 要求两张知识表为空，移除 identity 默认值、替换逻辑删除索引并添加新字段；原 V001/V002 保持不变。Outbox 与向量表继续由原组件管理。Common DDL 在 Agent 中关闭，只登记知识库根键批量软删的完整语句 ID。
+统一规范改为 MP-SDJ 分布式受管 DDL。当前源码仍有 Flyway 依赖、db/migration 和关闭 Common DDL 的遗留配置，这些是迁移差异而非目标选项。后续代码迁移需接入组件 Runner、Manifest 与物理目标，保持已有 SQL/数据并核对 Outbox/向量表归属；本次文档更新没有执行该运行时迁移。
 
 生产配置 `EGON_ID_MACHINE_ID`。默认 H2/fake-model 测试不执行 PostgreSQL 迁移或向量集成，需在专用数据库上手动验收。
 

@@ -49,7 +49,7 @@ starter -> application / domain / infrastructure
 common is shared by the layers where the generated project contract allows it
 ```
 
-The exact rules differ between the light, service, and web archetypes. See the architecture documents under [`egon-cola-archetypes`](egon-cola-archetypes/) and [`egon-cola-components`](egon-cola-components/) before extending a generated project. The original family follows Egon-COLA components and xingyuan; the `-open` family is the currently consumable public-stack baseline.
+The exact rules differ between the light, service, and web archetypes. See the architecture documents under [`egon-cola-archetypes`](egon-cola-archetypes/) and [`egon-cola-components`](egon-cola-components/) before extending a generated project. The native variants follows Egon-COLA components and xingyuan; the `-open` family is the currently consumable public-stack baseline.
 
 ## Requirements
 
@@ -189,7 +189,7 @@ Egon-COLA publishes two parallel archetype families. The original artifact IDs r
 | Original | `egon-cola-archetype-light` | `egon-cola-archetype-service` | `egon-cola-archetype-web` |
 | Open | `egon-cola-archetype-light-open` | `egon-cola-archetype-service-open` | `egon-cola-archetype-web-open` |
 
-The Open family uses Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba 2025.0.0.0, Nacos 3.0.3, MyBatis-Plus 3.5.17, ShardingSphere 5.5.3, the Common ID generator, and Dynamic Thread Pool. Service and Web additionally use Dubbo 3.3.6 plus gRPC/Protobuf 1.73.0; Light intentionally has no RPC or Yuheng dependency. Light and Web use Springdoc where HTTP APIs exist. The family forbids Spring Data JPA, Flyway/Liquibase, and an embedded Yuheng. IDs are `Long` internally, `int64` in Proto, and decimal strings at HTTP/GraphQL boundaries. Database DDL is supplied as manual SQL under each generated project's runbook.
+The Open archetype uses Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba 2025.0.0.0, Nacos 3.0.3, MyBatis-Plus 3.5.17, ShardingSphere 5.5.3, the Common ID generator, and Dynamic Thread Pool. Service and Web additionally use Dubbo 3.3.6 plus gRPC/Protobuf 1.73.0; Light intentionally has no RPC or Yuheng dependency. Light and Web use Springdoc where HTTP APIs exist. The family forbids Spring Data JPA, Flyway/Liquibase, and an embedded Yuheng. IDs are `Long` internally, `int64` in Proto, and decimal strings at HTTP/GraphQL boundaries. Database DDL is supplied as manual SQL under each generated project's runbook.
 
 Maintainers edit the matching normal project under `egon-cola-archetypes/source-projects`,
 not a generated directory. `definitions` owns only the six packaging contracts. Run
@@ -212,7 +212,7 @@ mvn -B archetype:generate \
 
 To generate from the locally built archetype catalog, add `-DarchetypeCatalog=local` after installing the repository with `./mvnw clean install`.
 
-See the [Open family architecture overview](egon-cola-archetypes/open-source-archetype-family-architecture.md) and [Open family code style](egon-cola-archetypes/open-source-archetype-code-style.md) for module ownership, protocol boundaries, manual SQL, and live-infrastructure limits.
+See the [Open archetype architecture overview](egon-cola-archetypes/open-source-archetype-architecture.md) and [Open archetype code style](egon-cola-archetypes/open-source-archetype-code-style.md) for module ownership, protocol boundaries, manual SQL, and live-infrastructure limits.
 
 ### Add a component
 
@@ -287,7 +287,7 @@ Egon-COLA/
 └── pom.xml                           # Root aggregation parent, version 5.3.3
 ```
 
-Useful documentation entry points include the [component architecture guide](egon-cola-components/egon-cola-components-architecture.md), [original archetype architecture diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md), [Open family architecture overview](egon-cola-archetypes/open-source-archetype-family-architecture.md), [Open family code style](egon-cola-archetypes/open-source-archetype-code-style.md), and [Maven deployment guide](scripts/maven-deploy.md).
+Useful documentation entry points include the [component architecture guide](egon-cola-components/egon-cola-components-architecture.md), [original archetype architecture diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md), [Open archetype architecture overview](egon-cola-archetypes/open-source-archetype-architecture.md), [Open archetype code style](egon-cola-archetypes/open-source-archetype-code-style.md), and [Maven deployment guide](scripts/maven-deploy.md).
 
 ## Deployment
 
@@ -345,7 +345,7 @@ No. The BOM manages public reusable component artifacts. Platform artifacts have
 
 No. Unit, module, and Docker-backed tests prove the behavior covered by those tests. They do not by themselves prove production Redis/PostgreSQL availability, DNS or VIP routing, credentials, multi-process deployment, or high-availability behavior.
 
-### Does the Open family include Yuheng or automatic database migration?
+### Does the Open archetype include Yuheng or automatic database migration?
 
 No. Yuheng is an external Spring Cloud Gateway deployment concern. Open templates provide reviewed manual PostgreSQL SQL under generated Infrastructure `src/main/resources/db/manual/postgresql`; they do not use Spring Data JPA, Flyway, Liquibase, or automatic schema updates.
 

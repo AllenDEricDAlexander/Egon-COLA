@@ -133,7 +133,7 @@ REQUIRED_CONTRACT_SUBHEADINGS_V3 = [
 ]
 REQUIRED_API_CONTRACT_SUBHEADINGS_V7 = [
     "##### Necessity and interaction-cost decision",
-    "##### API style and CQRS semantics",
+    "##### API style and CQE semantics",
     "##### Identity and purpose",
     "##### Request parameters",
     "##### Success response",
@@ -427,6 +427,8 @@ def concrete_api_gate_value(value: str) -> bool:
 
 def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> list[str]:
     """Validate Template Version 7 external API governance and blocking gates."""
+    # Existing Version 7 Specs retain their historical CQRS labels.
+    interfaces = interfaces.replace("CQRS", "CQE")
     errors: list[str] = []
     inventory_heading = "### 9.1 Interface Inventory"
     detail_heading = "### 9.2 Per-interface Detailed Contracts"
@@ -460,7 +462,7 @@ def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> lis
     errors.extend(validate_ordered_subheadings("Chapter 9 external API design", interfaces, required_global_headings))
 
     expected_inventory_header = (
-        "| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | "
+        "| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQE role | "
         "Consumer | Owner | Method + URL / GraphQL field / symbol / topic | "
         "Operation ID/schema source | Input | Output | Auth/tenant | Error model | "
         "Idempotency/version | Requirements |"
@@ -476,7 +478,7 @@ def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> lis
         documentation_source = row[8]
         if style not in API_STYLES:
             errors.append(
-                f"{contract_id} API style/CQRS role must be one of: "
+                f"{contract_id} API style/CQE role must be one of: "
                 + ", ".join(sorted(API_STYLES))
             )
         elif style.startswith("REST "):
@@ -499,7 +501,7 @@ def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> lis
     governance_by_name = {clean(row[0]): clean(row[1]) for row in governance_rows if len(row) >= 2}
     governance_concerns = [
         "Protocol selection",
-        "CQRS application level",
+        "CQE application level",
         "REST source of truth",
         "GraphQL source of truth",
         "Springdoc/OpenAPI compatibility",
@@ -522,7 +524,7 @@ def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> lis
 
     style_rows = [
         "Protocol style",
-        "CQRS role",
+        "CQE role",
         "Resource/task semantics",
         "Read/write and side effects",
         "Consistency and idempotency",
@@ -539,9 +541,9 @@ def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> lis
         contract_text = detail_contracts.get(contract_id, "")
         if not contract_text:
             continue
-        style_body = heading_body(contract_text, "##### API style and CQRS semantics")
+        style_body = heading_body(contract_text, "##### API style and CQE semantics")
         if "| Concern | Decision/evidence |" not in style_body:
-            errors.append(f"{contract_id} API style/CQRS subsection lacks the canonical table")
+            errors.append(f"{contract_id} API style/CQE subsection lacks the canonical table")
         style_decisions = {
             clean(row[0]): clean(row[1])
             for row in markdown_table_rows(style_body, "Concern")
@@ -549,10 +551,10 @@ def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> lis
         }
         for row_name in style_rows:
             if not concrete_api_gate_value(style_decisions.get(row_name, "")):
-                errors.append(f"{contract_id} API style/CQRS subsection lacks decision row: {row_name}")
+                errors.append(f"{contract_id} API style/CQE subsection lacks decision row: {row_name}")
         if inventory_row[4] not in style_body:
             errors.append(
-                f"{contract_id} detail API style/CQRS decision does not match inventory: {inventory_row[4]}"
+                f"{contract_id} detail API style/CQE decision does not match inventory: {inventory_row[4]}"
             )
 
         documentation = heading_body(contract_text, "##### Documentation contract")
@@ -679,6 +681,7 @@ def validate_v2_content(
     status: str,
     template_version: int = CURRENT_TEMPLATE_VERSION,
 ) -> list[str]:
+    text = text.replace("CQRS", "CQE")
     errors: list[str] = []
     complexity = clean(fields.get("Complexity", ""))
     drivers = clean(fields.get("Complexity Drivers", ""))
@@ -1044,7 +1047,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     if not path.is_file():
         return [f"File does not exist: {path}"], warnings
 
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8").replace("CQRS", "CQE")
     filename_match = FILENAME_RE.fullmatch(path.name)
     if not filename_match:
         errors.append("Filename must match YYYY-MM-DD-HH-MM-lowercase-kebab-abstract.md")

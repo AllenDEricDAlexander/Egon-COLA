@@ -5,6 +5,10 @@ description: Use when an approved coding Plan must be implemented one Step at a 
 
 # EGON Coding Plan Execution
 
+## Java / CQE effective contract (2026-09-22)
+
+Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.
+
 ## Purpose
 
 Execute one approved coding Plan sequentially. Complete, verify, and commit exactly one Plan Step before starting the next. After all Steps, audit the delivered repository against the effective Specs and report every unmet, partial, or runtime-unverified requirement.
@@ -21,21 +25,21 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 
 Replace `<skill-root>` with the resolved absolute directory. Bundled resources must use skill-root-relative `references/` or `scripts/` paths. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop execution, report the exact diagnostic, and repair/reinstall the skill. Never continue with an invented or partial checklist.
 
-## User-mandated Java rules — verbatim normative source
+## User-mandated Java rules — effective normative source
 
 The following rules are preserved exactly and are mandatory at coding, Step, commit, and final-audit gates. Read `references/user-mandated-java-rules.md` for the concrete inspection contract.
 
 ```text
 1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
-2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
-3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+2 每层之间必须被 springboot-validation 校验，复用对象使用分组校验；基于原生和自定义约束注解、@Valid、@Validated 及 ConstraintValidator 扩展实现。ValidationUtils 只承担通用手工校验，不承载全部业务校验；电话号码复用 libphonenumber。
+3 Java POJO 默认使用 class，注解为 @Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain = true)，按构造目标选择 @Builder 或 @SuperBuilder；父类状态参与相等性时使用 @EqualsAndHashCode(callSuper = true)。只有不可变 value object 可以使用 record，并豁免 class 的 Lombok 规范；普通实体不能因简单而使用 record。使用 MapStruct、MapStructPlus 和 egon-cola-component-common-core 的 BaseConverter（双向）或 BaseForwardConverter（不可逆投影）进行转换。
 4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
 5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
-6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+6 JSON 使用 Spring Boot Jackson；持久化枚举值使用 @EnumValue，向前端输出的枚举值使用 @JsonValue，禁止 ordinal 作为业务编码。
 7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
 9 复杂业务必须引入设计模式，不允许硬编码
 10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
-11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+11 只允许现有三层结构或当前 egon-cola-archetypes 的 DDD 结构，三层结构保持现状。必须尽量复用 egon-cola-components；持久化模块必须使用 Egon COLA MP Starter，DDL 统一由 egon-mp-sdj-ext-starter 分布式管理。业务唯一键必须组合业务列与 deletedAt（数据库 deleted_at），并验证 NULL、租户及重复软删除语义。采用 CQE（Command Query Event）；Event 必须经 egon-cola-component-transactional-outbox-starter 或 MQ 中间件投递。
 ```
 
 Do not translate, renumber, correct, shorten, summarize, or weaken this block. Literal spellings are mapped to exact code symbols by `references/user-mandated-java-rules.md` without changing the source.
@@ -93,11 +97,11 @@ Pending -> In Progress -> Verified -> Committed
 12. Never create an empty commit to simulate Step completion. If a Step is already implemented or produces no semantic diff, classify it as repository/Plan drift and stop for direction.
 13. After committing, verify the commit hash, file list, diff summary, validation evidence, and remaining worktree state. Record the commit against the Step before advancing.
 14. Do not amend, squash, reset, or rewrite committed history automatically. If a later Step exposes a defect in an earlier commit, stop advancing, make the smallest dedicated corrective commit attributed to the originating Step, rerun affected gates, and report the deviation.
-15. Never modify an existing immutable Flyway migration. Execute only the new migration file named by the approved Plan and Spec.
+15. Use MP-SDJ distributed managed DDL; execute only the planned new SQL version and manifest update. Preserve applied SQL/history and verify per-target retry semantics.
 16. Do not silently skip, reorder, merge, split, or expand Steps. Obtain user approval for a material execution-sequence change.
 17. Every coding Step has a blocking Manual Check. At Step lock, enumerate all applicable stable `MC-*` IDs from `references/java-spring-egon-coding-standards.md`; before commit, evaluate each row manually with concrete diff/path/symbol/command evidence. `MC-SCOPE-001` and `MC-TEST-001` always apply.
 18. A Step cannot become `Verified` or be committed as complete while any applicable Manual Check is `FAIL`, `BLOCKED`, `UNKNOWN`, missing, lacks evidence, or has an unresolved exception. Evidence-backed `N/A` is allowed only when the concern is truly outside the Step.
-19. For touched Java code, enforce semantic type suffixes, Jakarta/Spring Validation and groups at every affected handoff, approved normalization, the exact record/`@Value`/complete complex-class Lombok classification, MapStruct/MapStructPlus plus mandatory Egon `BaseConverter`, `@Slf4j`, explicit Bean names, qualified Lombok constructor injection, approved utilities, Jackson, `java.time`, configuration-profile parity, and a mandatory approved pattern for every Complex business flow. Do not perform unrelated broad cleanup.
+19. For touched Java code, enforce semantic type suffixes, Jakarta/Spring Validation and groups at every affected handoff, approved normalization, the exact value-object record/ordinary class Lombok classification, MapStruct/MapStructPlus plus mandatory Egon `BaseConverter`, `@Slf4j`, explicit Bean names, qualified Lombok constructor injection, approved utilities, Jackson, `java.time`, configuration-profile parity, and a mandatory approved pattern for every Complex business flow. Do not perform unrelated broad cleanup.
 20. Apply `references/user-mandated-java-rules.md` literally. At Step lock and before commit, execute separate Rule 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 rows. Rule 11 always applies. No rule may be collapsed into a generic Manual Check assertion, changed to preference language, or waived because tests pass.
 21. Complex objects must retain the complete mandated Lombok baseline and every new affected Converter must use MapStruct/MapStructPlus plus Egon `BaseConverter`; any constructor/framework/converter conflict blocks the Step. Every affected layer handoff must be validated, and every Complex business flow must implement the approved pattern rather than direct branching.
 
@@ -199,7 +203,7 @@ After every Plan Step is committed, read `references/final-spec-audit.md` and pe
    - `Runtime unverified`: source/module evidence exists, but the Spec requires user-controlled live-system proof that was not run.
 6. Check non-goals and scope boundaries for accidental behavior, dependency, migration, or refactor expansion.
 7. Check every Plan Step has a verified commit and no planned file/validation gate was silently omitted.
-8. Re-execute all ten original Literal Rules and all 17 Manual Checks against the final tree and delivery commits. Every applicable row must be `PASS`; every `N/A` needs evidence and reason; Rule 11 and `MC-BLOCKER-001` must pass and reconcile all findings.
+8. Re-execute all ten effective Literal Rules and all 17 Manual Checks against the final tree and delivery commits. Every applicable row must be `PASS`; every `N/A` needs evidence and reason; Rule 11 and `MC-BLOCKER-001` must pass and reconcile all findings.
 9. Report every `Partial`, `Not satisfied`, `Runtime unverified`, failed/blocked Literal Rule or Manual Check, and silent-exception attempt with evidence, impact, and recommended next action.
 
 Do not silently add unplanned fixes during the final audit. If the audit finds a gap, report it and wait for the user to approve a corrective Plan/Step.
@@ -241,7 +245,7 @@ Never claim full completion when any effective requirement is `Partial`, `Not sa
 | Adding a dependency/helper without current Spring/Egon/module reuse proof | Stop, rebuild the reuse ledger, and use existing capability or return to the Spec/Plan for gap approval |
 | Creating a hybrid package tree during execution | Stop; preserve the existing traditional or exact Archetype profile and request a structural Plan/Spec correction |
 | Passing final audit by summarizing Manual Checks in one sentence | Re-run and record all stable IDs individually against the final commits/tree |
-| Replacing the exact numbered rules with a general coding-standard summary | Restore the verbatim source and re-run every original Rule row independently |
+| Replacing the exact numbered rules with a general coding-standard summary | Restore the verbatim source and re-run every effective Rule row independently |
 | Tests pass while a complex class lacks the full Lombok baseline or a Converter bypasses `BaseConverter` | Keep the Step blocked; compiler/test success cannot waive Rule 3 |
 | Only Controller input is validated | Add and verify Validation/groups at every affected layer handoff before commit |
 | Complex business logic remains `if/else` or `switch` | Implement the approved design-pattern participants and tests before commit |

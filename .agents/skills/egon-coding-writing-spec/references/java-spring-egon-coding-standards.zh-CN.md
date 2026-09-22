@@ -1,5 +1,7 @@
 # Java、Spring 与 Egon-COLA 编码规范
 
+Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
+
 > 本文件是 `references/java-spring-egon-coding-standards.md` 的全中文审核镜像。每个 Java coding Spec 必须先读取 `references/user-mandated-java-rules.zh-CN.md`，再读取本文件。用户逐字规则是绝对约束；本文增加仓库证据要求，不能把“必须/只允许/不允许”改成建议。本规范不授权无关存量大重构。
 
 ## 目录
@@ -39,24 +41,18 @@
 5. 建立复用账本，写明候选项、准确路径/依赖、能力、适配或缺口和最终复用决策；
 6. 检查现有与拟新增依赖以及其归属的 Starter/Component。
 
-优先顺序固定为：
-
-1. 当前项目已具备的 JDK 和 Spring/Spring Boot 能力；
-2. 已有 Spring Boot Starter；
-3. 已有 Egon-COLA Component 或公共基础设施；
-4. 当前模块已有抽象；
-5. 只有证据证明前四项无法满足时，才允许额外成熟依赖或自行实现。
+平台能力优先复用匹配的 Egon-COLA 组件；剩余缺口检查 JDK/Spring、已有 Starter 与模块实现，再决定新增依赖或自研。
 
 新增依赖或重复抽象在 Spec 写清准确能力缺口、已检查候选及不足、版本/维护/安全/运维影响，并在影响重大时获得用户批准前，属于阻断项。不得本地重复实现 Spring 或 Egon-COLA 已有能力。
 
 当前仓库证据包括：
 
-- `egon-cola-component-common-core` 的 `BaseConverter<S,T>` 公共转换契约；
+- `egon-cola-component-common-core` 的 `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` 公共转换契约；
 - `egon-cola-component-common-core` 的 Jakarta Validation 与 Group 工具 `ValidationUtils`；
 - Egon-COLA Archetype/common core 中的 MapStructPlus 依赖与 Processor；
 - 生成项目边界/Application 模块中的 `spring-boot-starter-validation`；
 - Archetype `lombok.config` 中的 `lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier`；
-- `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` 家族和对应 Open 变体；
+- `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` 脚手架和对应 Open 变体；
 - PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC 持久化使用 `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`。拓扑、表类型、2n 布局、LOCAL 事务和受管 DDL 见 `references/database-design.zh-CN.md`。
 
 每次都必须在当前基线重新核实这些路径，不能因本参考提到某组件就假设目标项目已经可用。
@@ -97,7 +93,7 @@
 - 复用输入对象必须通过明确 Validation Group 区分操作，不能弱化约束或复制近似类；
 - 优先 Jakarta 原生约束；显式/手动校验和 Group 调用使用 Egon-COLA 已有 `ValidationUtils`；
 - 标准化数据只在一个命名边界归一化；电话号码相关变更使用 libphonenumber 等成熟方案完成解析、地区处理、规范化和有效性校验；
-- 只有原生注解、组合约束、Group、`ValidationUtils` 和已批准成熟库都无法表达时，才允许自定义 `ConstraintValidator`，并说明缺口与测试；
+- 业务约束使用自定义注解与 ConstraintValidator 扩展，通用规则复用原生约束；ValidationUtils 仅手工触发，不承载全部业务校验。
 - 写清校验顺序、规范化前后关系、错误映射、Null/Blank 语义、Group 选择和边界测试。
 - 必须分别清单并设计外部输入 -> Controller/Adapter、Controller/Adapter -> Service/Application、Service/Application -> Domain Service/Component、Service/Application -> DAO/Repository/Gateway，以及事件/Job/内部重入路径。
 
@@ -107,20 +103,20 @@
 
 必须按下列逐字分类选择表示方式，不能把复杂对象完整注解基线弱化成可选集合：
 
-- 简单不可变载体优先 Java `record`；需要确定性规范化或不变量时使用紧凑构造器；方法内部一次性结构可使用局部 `record`。
-- 不可变对象优先 `record` 或 Lombok `@Value`，只能选择一套一致模型。
-- 复杂对象使用普通 Java 类，并以 `@Data`、`@NoArgsConstructor(access = AccessLevel.PROTECTED)`、`@AllArgsConstructor`、`@RequiredArgsConstructor`、`@Builder`、`@Accessors(chain = true)` 作为强制完整基线。
-- 必须计算完整注解组合生成的构造器签名。出现重复签名或 Framework/ORM 冲突时，必须阻断并找用户决策；不能静默删除某个注解或把复杂对象改称简单对象。
+- 普通 POJO/实体使用 `class`，默认 `@Data`、`@NoArgsConstructor`、`@AllArgsConstructor`、`@Accessors(chain = true)`，按构造目标选择 `@Builder` 或 `@SuperBuilder`；父类状态参与相等性时使用 `@EqualsAndHashCode(callSuper = true)`。仅不可变值对象可以用 `record`；无父类等编译边界见 `references/egon-java-cqe-contract.md`。
+- 不可变值对象可用 `record`，不套用可变 class 注解；仅字段少不能证明值对象语义。
+
+核对构造目标、父类链与生成签名；按 `references/egon-java-cqe-contract.md` 的场景规则处理 Builder、无父类和零字段，其他实际框架/API 冲突记录为阻断。
 - 必须说明构造器可见性、必填字段、Builder/默认值、可变性、Equals/Hash、序列化、ORM/Proxy 和校验语义。
 - 拒绝冲突/重复构造器注解，禁止把可变 `@Data` 与不可变 `@Value` 语义混用。
 
 ## 对象转换
 
-跨层对象转换统一使用 MapStruct 或 MapStructPlus。每个新增受影响 Converter 必须继承或实现 `egon-cola-component-common-core` 已有 `BaseConverter<S,T>` 体系，并写清准确路径、泛型源/目标、生成实现和 Bean 名称。
+跨层对象转换统一使用 MapStruct 或 MapStructPlus。每个新增受影响 Converter 必须继承或实现 `egon-cola-component-common-core` 已有 `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` 体系，并写清准确路径、泛型源/目标、生成实现和 Bean 名称。
 
 规范化、派生字段、枚举/时间转换、敏感字段排除、默认值和空值语义放在命名 Converter 方法、MapStruct Mapping 或 Qualifier Helper 中。禁止在业务 Service 散布手工 `set/get`，禁止使用 `BeanUtils.copyProperties`、反射复制或 JSON 序列化完成映射。允许 Commons BeanUtils 作为工具依赖，不代表允许它承担业务对象转换。
 
-现有 `BaseConverter` 无法真实表达转换时，必须作为契约冲突阻断并找用户决策；不能用单向本地抽象或手工映射绕过。
+不可逆投影使用现有 Common BaseForwardConverter；两种共享契约都无法表达时报告缺口；不能用单向本地抽象或手工映射绕过。
 
 ## Spring Bean、依赖注入与日志
 
@@ -176,7 +172,7 @@
 | `MC-DEP-001` | 每个新增依赖或自研替代都有已证明能力缺口和获批影响；否则不新增 |
 | `MC-NAME-001` | 每个新增/修改 Java 类型都有强制语义后缀，且无 `Data`/`Info`/`Param`/`Bean` 含糊命名 |
 | `MC-VALID-001` | 每个受影响层间输入交接都使用 Jakarta/Spring Validation、复用 Group、获批规范化和测试 |
-| `MC-MODEL-001` | 简单对象为 Record、不可变非 Record 用 `@Value`、复杂类使用完整强制 Lombok 基线，否则阻断 |
+| `MC-MODEL-001` | Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability. |
 | `MC-CONVERT-001` | MapStruct/MapStructPlus 与 Egon `BaseConverter` 负责全部受影响跨层映射，不存在绕过或禁止复制 |
 | `MC-LOG-001` | 每个受影响具体业务类使用 `@Slf4j` 和安全可操作日志 |
 | `MC-BEAN-001` | 每个受影响 Spring Bean 有稳定名称、构造器注入、`@RequiredArgsConstructor` 和带 Lombok 传播验证的 Qualifier 依赖 |

@@ -1,5 +1,7 @@
 # Light Open 手工建库与迁移手册
 
+> 历史脚本档案：本目录不是当前启动 DDL 入口。当前规范统一采用 MP-SDJ Starter 分布式受管 DDL、版本化 SQL 与 SHA-256 Manifest；下文手工步骤仅说明历史交付物，不作为新部署或升级流程。不要修改已应用脚本或历史校验和。
+
 这些脚本是数据库运维交付物；应用启动、Maven 构建和 MyBatis-Plus 均不会执行它们，Open profile 不引入 Flyway。
 逻辑表名使用 `light_*`，实际 master/shard 物理表使用 `light_users`、`light_school_classes_0` 等名称，由 ShardingSphere 负责映射。
 

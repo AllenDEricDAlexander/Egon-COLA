@@ -1,5 +1,7 @@
 # Java, Spring, and Egon-COLA Coding Standards
 
+Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
+
 Read `references/user-mandated-java-rules.md` first, then this reference for every Java coding Spec. The literal rules are absolute; this document adds repository evidence and does not convert any “must/only/not allowed” into a preference. These are blocking design constraints for newly added or modified code, not permission to refactor unrelated legacy code.
 
 ## Contents
@@ -39,24 +41,18 @@ Before selecting an implementation:
 5. build a reuse ledger naming each candidate, exact path or dependency, capability, fit/gap, and final reuse decision;
 6. inspect all current and proposed dependencies and identify their owning starter/component.
 
-Use this preference order:
-
-1. JDK and the Spring/Spring Boot ecosystem already present in the project;
-2. an existing Spring Boot Starter;
-3. an existing Egon-COLA Component or common infrastructure;
-4. an existing module-local abstraction;
-5. an additional mature dependency or new implementation only after evidence proves the preceding options insufficient.
+For platform capabilities, reuse the matching Egon-COLA component first. For remaining gaps inspect existing JDK/Spring APIs, starters and module-local abstractions before introducing a new dependency or implementation.
 
 An additional dependency or duplicate abstraction is a blocking design decision until the Spec states the exact missing capability, candidates inspected, why each is insufficient, dependency/version/maintenance/security/operational impact, and user approval when the impact is material. Do not reproduce Spring or Egon-COLA functionality locally.
 
 Repository evidence currently includes:
 
-- `egon-cola-component-common-core` `BaseConverter<S,T>` for shared converter contracts;
+- `egon-cola-component-common-core` `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` for shared converter contracts;
 - `egon-cola-component-common-core` `ValidationUtils` for Jakarta Validation and groups;
 - MapStructPlus dependencies and processors in Egon-COLA archetypes/common core;
 - `spring-boot-starter-validation` in the generated boundary/application modules;
 - `lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier` in archetype `lombok.config` files;
-- the `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` families and their selected open variants;
+- the `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` variants and their selected open variants;
 - `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` for PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC persistence. Topology, table types, 2n layout, LOCAL transactions, and managed DDL live in `references/database-design.md`.
 
 Reverify these paths in the current baseline; do not assume a component is available merely because this reference names it.
@@ -99,7 +95,7 @@ Every affected layer-to-layer input boundary must use Jakarta Bean Validation su
 - Reusable input types must use explicit Validation Groups for different operations rather than weakening constraints or duplicating near-identical classes.
 - Prefer Jakarta's native constraints. Use the existing Egon-COLA `ValidationUtils` for explicit/manual validation and group invocation.
 - Normalize standardized data at one named boundary. Telephone numbers use a mature standard such as libphonenumber for parsing, region handling, normalization, and validity when telephone semantics are affected.
-- Create a custom `ConstraintValidator` only when native annotations, composition, groups, `ValidationUtils`, and an approved mature library cannot express the rule. Document the gap and tests.
+- Use custom annotations and `ConstraintValidator` for business-specific constraints, with focused tests; `ValidationUtils` remains a generic manual trigger.
 - Define validation order, normalization-before/after behavior, error mapping, null/blank semantics, group selection, and boundary tests.
 - Inventory and design every affected handoff separately: external input -> Controller/Adapter, Controller/Adapter -> Service/Application, Service/Application -> Domain Service/Component, Service/Application -> DAO/Repository/Gateway, and event/job/internal re-entry paths.
 
@@ -109,20 +105,20 @@ Do not handwrite repeated null/range/format validators or validate only at the C
 
 Choose the representation by the literal classification below. Do not weaken the complex-object annotation baseline into an optional palette.
 
-- Prefer a Java `record` for a simple immutable carrier. Use a compact constructor for deterministic normalization and invariant checks when appropriate. A one-method temporary structure may be a local `record`.
-- Prefer `record` or Lombok `@Value` for immutable objects; choose one coherent model.
-- Use a normal Java class for a complex object. Its mandated baseline is `@Data`, `@NoArgsConstructor(access = AccessLevel.PROTECTED)`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)`.
-- Calculate generated constructor signatures for the complete annotation baseline. A duplicate signature or framework/ORM conflict is a user-decision blocker; do not silently omit an annotation or relabel the object.
+- Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability.
+- An immutable value object may use `record` without mutable class annotations; a small field count does not establish value-object semantics.
+
+- Calculate generated constructor signatures for the complete annotation baseline. Apply the documented builder/root/empty-class adaptations; remaining framework or public-contract conflicts require an explicit decision.
 - Explain constructor visibility, required fields, builder/default behavior, mutation, equality/hash, serialization, ORM/proxy requirements, and validation.
 - Reject conflicting or redundant constructor annotations and do not combine mutable `@Data` semantics with immutable `@Value` semantics.
 
 ## Object conversion
 
-Use MapStruct or MapStructPlus for cross-layer object conversion. Every new affected Converter must extend or implement the existing `egon-cola-component-common-core` `BaseConverter<S,T>` system. Cite the exact converter path, generic types, generated implementation, and Bean name.
+Use MapStruct or MapStructPlus for cross-layer object conversion. Every new affected Converter must extend or implement the existing `egon-cola-component-common-core` `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` system. Cite the exact converter path, generic types, generated implementation, and Bean name.
 
 Keep normalization, derived fields, enum/time conversion, sensitive-field exclusion, defaults, and null semantics in named converter methods, MapStruct mappings, or qualified helpers. Do not scatter manual `set/get` mapping through business services. Do not use `BeanUtils.copyProperties`, reflection copying, or JSON serialization as an object mapper. The presence of `commons-beanutils` in the allowed utility set does not permit it for business object conversion.
 
-If the existing `BaseConverter` contract cannot truthfully express the conversion, mark a blocking contract conflict and ask the user; do not bypass it with a one-way local abstraction or manual mapping.
+For irreversible projections, use the existing Common BaseForwardConverter; if neither shared contract fits, report the gap; do not bypass it with a one-way local abstraction or manual mapping.
 
 ## Spring beans, injection, and logging
 
@@ -178,7 +174,7 @@ Every Spec, Plan, execution Step, and final execution audit must use these stabl
 | `MC-DEP-001` | Every added dependency or custom replacement has a proven capability gap and approved impact; otherwise none is added |
 | `MC-NAME-001` | Every new/changed Java type has its mandatory semantic role suffix and avoids `Data`/`Info`/`Param`/`Bean` ambiguity |
 | `MC-VALID-001` | Every affected layer-to-layer input handoff uses Jakarta/Spring Validation, explicit groups where reused, approved normalization, and tests |
-| `MC-MODEL-001` | Simple objects are records, immutable non-records use `@Value`, and complex classes use the complete mandated Lombok baseline or are blocked |
+| `MC-MODEL-001` | Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability. |
 | `MC-CONVERT-001` | MapStruct/MapStructPlus and Egon `BaseConverter` own every affected cross-layer mapping; no bypass or prohibited copying exists |
 | `MC-LOG-001` | Every affected concrete business class uses `@Slf4j` and safe actionable logging |
 | `MC-BEAN-001` | Every affected Spring Bean has a stable explicit name, constructor injection, `@RequiredArgsConstructor`, and qualified dependencies with Lombok propagation verified |

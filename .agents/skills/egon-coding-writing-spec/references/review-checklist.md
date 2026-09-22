@@ -52,12 +52,12 @@
 - [ ] Static/source evidence is not presented as live-runtime proof.
 - [ ] No unrelated refactor, new dependency, or architecture layer was smuggled into scope.
 
-## REST, CQRS, GraphQL, springdoc, and OpenAPI review
+## REST, CQE, GraphQL, springdoc, and OpenAPI review
 
 - [ ] Every affected external operation has one atomic `API-*` inventory row and detail; a GraphQL row identifies `Query.field`, `Mutation.field`, or `Subscription.field`, not only `/graphql`.
-- [ ] Every API is classified as REST/GraphQL and Query/Command/Subscription, with the smallest sufficient CQRS level and repository/use-case evidence.
+- [ ] Every API is classified as REST/GraphQL and Query/Command/Subscription, with the smallest sufficient CQE level and repository/use-case evidence.
 - [ ] Queries have no durable business mutation; Commands express a business task/change and define validation, transaction, idempotency, concurrency, side effects, and retry; subscriptions define stream lifecycle.
-- [ ] CQRS does not introduce a bus, read store, event sourcing, handler layer, or package structure without a present requirement and full consistency/operations design.
+- [ ] CQE does not introduce a bus, read store, event sourcing, handler layer, or package structure without a present requirement and full consistency/operations design.
 - [ ] REST URIs are resource-oriented; method safety/idempotency, statuses, response bodies, headers, async behavior, conditional requests, pagination/filter/sort, and compatibility agree with RFC 9110 and repository policy.
 - [ ] Request fields trace to their true owners; tenant/actor/server-derived values are not caller controlled, and no preflight API exists only to feed a Command.
 - [ ] Runtime Bean Validation/groups/normalization, Jackson, Java types, complete commented wire examples, and generated schemas describe the same fields and constraints.
@@ -76,7 +76,7 @@
 - [ ] The exact source block from `references/user-mandated-java-rules.md` remains present in both Skill entrypoints and was treated as mandatory rather than summarized guidance.
 - [ ] §6.2 contains separate Rule 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 rows in that order; no literal rule is merged, renumbered, weakened, or omitted.
 - [ ] Rule 2 inventories every affected layer-to-layer handoff, not only Controller input, and names Validation Group/`ValidationUtils`/libphonenumber behavior plus tests.
-- [ ] Rule 3 uses Record for simple objects, `@Value` for immutable non-records, the complete user-mandated Lombok baseline for complex classes, and mandatory MapStruct/MapStructPlus plus Egon `BaseConverter`; conflicts are blocked rather than silently relaxed.
+- [ ] Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability.
 - [ ] Rule 4 inventories every business class and proves `@Slf4j`, explicit Bean name, Lombok `@RequiredArgsConstructor`, per-field `@Qualifier`, and `lombok.config` propagation.
 - [ ] Rule 9 classifies affected business logic and mandates a concrete pattern for Complex logic; direct logic is accepted only for Simple logic.
 - [ ] For Java work, `references/java-spring-egon-coding-standards.md` was applied and every `MC-*` ID appears exactly once in §20.5.
@@ -85,8 +85,8 @@
 - [ ] `MC-DEP-001` proves every added dependency/custom replacement fills a documented gap with version/maintenance/security/operational impact; no duplicate Spring/Egon capability is designed.
 - [ ] `MC-NAME-001` inventories affected Java types and enforces explicit PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior suffixes; no new ambiguous `Data`, `Info`, `Param`, or `Bean` carrier exists.
 - [ ] `MC-VALID-001` maps every affected input boundary to `spring-boot-starter-validation`, Jakarta annotations, `@Valid`/`@Validated`, groups for reused inputs, `ValidationUtils`, normalization, error mapping, and tests; custom validators have a proven gap.
-- [ ] `MC-MODEL-001` requires Record for simple objects, `@Value` for immutable non-records, and the complete mandated Lombok annotation baseline for complex classes; a generated-constructor/framework conflict is blocked instead of silently relaxed.
-- [ ] `MC-CONVERT-001` assigns MapStruct/MapStructPlus conversion and mandatory Egon `BaseConverter<S,T>` integration for every new affected Converter; business code does not bypass it with manual set/get, `BeanUtils.copyProperties`, reflection, JSON mapping, or a local converter abstraction.
+- [ ] Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability.
+- [ ] `MC-CONVERT-001` assigns MapStruct/MapStructPlus conversion and mandatory Egon `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` integration for every new affected Converter; business code does not bypass it with manual set/get, `BeanUtils.copyProperties`, reflection, JSON mapping, or a local converter abstraction.
 - [ ] `MC-LOG-001` and `MC-BEAN-001` cover every affected business/Spring type with `@Slf4j`, stable Bean name, final-field constructor injection, `@RequiredArgsConstructor`, dependency `@Qualifier`, and verified Lombok annotation propagation.
 - [ ] `MC-UTIL-001`, `MC-JSON-001`, and `MC-TIME-001` enforce the approved utility set, Jackson-only external serialization, and `java.time` boundary semantics.
 - [ ] `MC-CONFIG-001` compares every environment profile's key structure and designs typed `@ConfigurationProperties` where applicable.
@@ -137,7 +137,7 @@
 
 - [ ] When §9 is `Affected`, it has a complete changed-interface inventory and exactly one detailed subsection for every `API-*`, `RPC-*`, `EVENT-*`, `JOB-*`, or `INTERNAL-*` ID; otherwise it contains only the required concise boundary record.
 - [ ] The remaining detailed interface checks in this section are applied only when §9 is `Affected`; an unchanged boundary is not expanded merely to satisfy the checklist.
-- [ ] Each ID represents one atomic Method + URL or protocol operation; CRUD families and independently callable collection/detail/status operations are not grouped.
+- [ ] Each ID represents one atomic Method + URL or protocol operation; CRUD variants and independently callable collection/detail/status operations are not grouped.
 - [ ] Every HTTP contract has a repository-verified Method and full application URL, including class/method mappings and applicable context/gateway/version prefixes.
 - [ ] Path, Query, Header, Cookie, Multipart, and Body inputs are separated; every parameter has type, required/null/default behavior, exact validation, meaning, example, and source.
 - [ ] Every HTTP Request Body and success/error Response Body uses the actual complete `jsonc` shape; every field key, including wrapper/nested/array/paging metadata, has a line-end meaning comment.
@@ -193,3 +193,7 @@
 - [ ] Every `Not applicable` mandatory chapter says `N/A` with evidence and reason; every existing but unchanged area uses `Unchanged` instead.
 - [ ] Final verdict is exactly `PASS`, `BLOCKED`, or `REVISE` and matches reality.
 - [ ] No Plan, production code, migration execution, service start, or runtime claim was produced as a side effect.
+
+## Java / CQE contract review
+
+Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.

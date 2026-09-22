@@ -11,7 +11,6 @@ from pathlib import Path
 from validate_skill_resources import validate_skill_resources
 
 SKILL_ROOT = Path(__file__).resolve().parent.parent
-FLYWAY_RE = re.compile(r"flyway", re.IGNORECASE)
 
 
 class SkillResourceValidationTest(unittest.TestCase):
@@ -78,15 +77,9 @@ class SkillResourceValidationTest(unittest.TestCase):
 
             self.assertTrue(any("broken Markdown link: missing.md" in error for error in errors))
 
-    def test_installed_skill_does_not_name_flyway(self) -> None:
-        hits: list[str] = []
-        for path in SKILL_ROOT.rglob("*.md"):
-            for line_number, line in enumerate(
-                path.read_text(encoding="utf-8").splitlines(), start=1
-            ):
-                if FLYWAY_RE.search(line):
-                    hits.append(f"{path.relative_to(SKILL_ROOT)}:{line_number}")
-        self.assertEqual([], hits)
+    def test_installed_skill_resources_resolve(self) -> None:
+        # Validate the shipped graph, including the new CQE reference and renamed API guide.
+        self.assertEqual([], self.validate(SKILL_ROOT))
 
 
 if __name__ == "__main__":

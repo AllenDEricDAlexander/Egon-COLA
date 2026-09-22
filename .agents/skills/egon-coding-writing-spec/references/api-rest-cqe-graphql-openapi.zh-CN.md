@@ -1,4 +1,4 @@
-# REST、CQRS、GraphQL 与 OpenAPI 3 API 设计规范
+# REST、CQE、GraphQL 与 OpenAPI 3 API 设计规范
 
 只要外部 HTTP API 被判定为 `Affected`，就必须完整读取本参考。本参考是 `references/interface-contract-design.zh-CN.md` 的专项深化，两份参考同时生效。目标是让第 9 章成为可直接实施的 API 契约，而不是路由或注解清单。
 
@@ -32,7 +32,7 @@
 
 每个受影响外部操作必须且只能分类为以下一种：
 
-| API 风格 | CQRS 角色 | 适用场景 | 不能仅因以下理由使用 |
+| API 风格 | CQE 角色 | 适用场景 | 不能仅因以下理由使用 |
 | --- | --- | --- | --- |
 | REST 资源查询 | Query | 稳定资源/集合表示符合 HTTP 资源语义 | GET 看起来熟悉 |
 | REST 资源命令 | Command | 创建、完整替换、局部更新、删除或资源生命周期动作具有清晰 HTTP 语义 | 每个 Service 方法都需要 URL |
@@ -45,15 +45,16 @@ Spec 必须说明所选风格为什么适合消费者目标，以及直接复用
 
 OpenAPI 描述 REST HTTP 操作；GraphQL SDL 和操作文档描述 GraphQL 字段。不得用 GraphQL Resolver 上的 Swagger 注解替代 SDL，也不得把通用 `POST /graphql` 传输操作拆成伪 REST 资源。
 
-## 3. 不制造形式主义架构的 CQRS 语义门禁
+## 3. 不制造形式主义架构的 CQE 语义门禁
 
-即使是普通三层项目，每个 API 操作也必须声明 CQRS 角色：
+即使是普通三层项目，每个 API 操作也必须声明 CQE 角色：
 
 - **Query** 只读取数据，不得创建持久业务状态、发布业务事件或暗中执行 Command。指标等附带可观测性不属于业务写入。
 - **Command** 表达业务任务或资源状态变化。当业务转换具有 Guard 或副作用时，应使用 `approveInvoice` 这类任务语言，而不是 `setStatusApproved` 这类字段赋值语言。
+- **Event** is an occurred fact delivered by the Egon transactional outbox or MQ middleware. Document payload/version, routing, transaction relation, retries and consumer idempotency. A local notification is insufficient.
 - **Subscription** 交付经过批准的数据流，必须定义数据源、授权、顺序、续传/重连、背压和终止行为。
 
-CQRS 分类本身不能证明需要拆库、只读副本、事件溯源、消息总线、Handler 继承树或新增模块。按当前证据选择最小级别：
+CQE 分类本身不能证明需要拆库、只读副本、事件溯源、消息总线、Handler 继承树或新增模块。按当前证据选择最小级别：
 
 | 级别 | 设计 | 采用条件 |
 | --- | --- | --- |
@@ -292,11 +293,19 @@ public class OrderController {
 ### 9.3 Schema 示例
 
 ```java
-public record CreateOrderCommand(
-        @Schema(description = "Tenant-visible customer identifier", example = "12001")
-        @Positive Long customerId,
-        @Schema(description = "Unique order lines; one through one hundred entries")
-        @NotEmpty @Size(max = 100) List<@Valid CreateOrderItemCommand> items) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
+public class CreateOrderCommand {
+    @Schema(description = "Tenant-visible customer identifier", example = "12001")
+    @Positive
+    private Long customerId;
+    @Schema(description = "Unique order lines; one through one hundred entries")
+    @NotEmpty
+    @Size(max = 100)
+    private List<@Valid CreateOrderItemCommand> items;
 }
 ```
 
@@ -485,9 +494,9 @@ API 受影响时，通用 Manual Check 必须包含 API 证据：
 
 以下情况按性质返回 `REVISE` 或 `BLOCKED`：
 
-- 只有路由表，没有逐操作 REST/CQRS/GraphQL 和文档设计；
+- 只有路由表，没有逐操作 REST/CQE/GraphQL 和文档设计；
 - Query 修改业务状态，或具有任务语义的 Command 仍被命名为普通字段更新；
-- 用 CQRS 为不需要的 Bus、Event Store、Read Database、Handler Layer 或 Package Structure 辩护；
+- 用 CQE 为不需要的 Bus、Event Store、Read Database、Handler Layer 或 Package Structure 辩护；
 - REST 普通资源使用动词、Method 语义错误、所有结果都用通用 `200`、异步行为未说明，或 GET 有 Body；
 - OpenAPI 依赖推导 `operationId`、遗漏实质 Error/Security、用 DTO 类名代替真实 Wrapper，或与运行时 Validation/Jackson 冲突；
 - 新代码使用 Springfox/Swagger 2 注解，或与 OpenAPI 3 注解混用；
@@ -510,7 +519,7 @@ API 受影响时，通用 Manual Check 必须包含 API 证据：
 - [springdoc-openapi 官方仓库](https://github.com/springdoc/springdoc-openapi)
 - [Swagger Core OpenAPI 3 注解指南](https://github.com/swagger-api/swagger-core/wiki/Swagger-2.X---Annotations)
 - [OpenAPI 3 Bearer Authentication](https://swagger.io/docs/specification/v3_0/authentication/bearer-authentication/)
-- [Microsoft CQRS Pattern 指南](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)
+- [Microsoft CQE Pattern 指南](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs)
 - [GraphQL Specification](https://spec.graphql.org/October2021/)
 - [GraphQL over HTTP 草案](https://graphql.github.io/graphql-over-http/draft/)
 - [Spring for GraphQL Annotated Controllers](https://docs.spring.io/spring-graphql/reference/controllers.html)
@@ -519,3 +528,5 @@ API 受影响时，通用 Manual Check 必须包含 API 证据：
 - [Spring for GraphQL Testing](https://docs.spring.io/spring-graphql/reference/testing.html)
 - [Spring Framework RFC 9457 Error Responses](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-ann-rest-exceptions.html)
 - [Mshuyan/swagger 示例仓库](https://github.com/Mshuyan/swagger) —— 仅作为非规范性 Legacy/Example 输入
+
+For Event design and proof, read `references/egon-java-cqe-contract.md`. CQE means Command / Query / Event; subscriptions consume streams and are not a fourth business role.

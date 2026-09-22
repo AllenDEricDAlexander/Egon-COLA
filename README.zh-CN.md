@@ -226,7 +226,7 @@ Egon-COLA 并行发布两族 Maven Archetype。原始 Artifact ID 继续保留�
 | 原始 | `egon-cola-archetype-light` | `egon-cola-archetype-service` | `egon-cola-archetype-web` |
 | Open | `egon-cola-archetype-light-open` | `egon-cola-archetype-service-open` | `egon-cola-archetype-web-open` |
 
-Open 族固定使用 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3、MyBatis-Plus 3.5.17、ShardingSphere 5.5.3，以及 Common ID 生成器、Dynamic Thread Pool；Service/Web 额外使用 Dubbo 3.3.6 和 gRPC/Protobuf 1.73.0，Light 刻意不引入 RPC 或 Yuheng。Light/Web 的 HTTP API 使用 Springdoc。Open 族禁止 Spring Data JPA、Flyway/Liquibase 和内置 Yuheng。内部 ID 为 `Long`，Proto 使用 `int64`，HTTP/GraphQL 边界使用十进制字符串；数据库 DDL 位于生成工程的手工 SQL Runbook 中。
+Open 脚手架固定使用 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3、MyBatis-Plus 3.5.17、ShardingSphere 5.5.3，以及 Common ID 生成器、Dynamic Thread Pool；Service/Web 额外使用 Dubbo 3.3.6 和 gRPC/Protobuf 1.73.0，Light 刻意不引入 RPC 或 Yuheng。Light/Web 的 HTTP API 使用 Springdoc。Open 脚手架禁止 Spring Data JPA、Flyway/Liquibase 和内置 Yuheng。内部 ID 为 `Long`，Proto 使用 `int64`，HTTP/GraphQL 边界使用十进制字符串；数据库 DDL 位于生成工程的手工 SQL Runbook 中。
 
 维护者只修改 `egon-cola-archetypes/source-projects` 下对应的正常 Maven 工程，不直接编辑
 生成目录。`definitions` 只负责六个 Archetype 的打包合同；修改源码后先运行
@@ -249,7 +249,7 @@ mvn -B archetype:generate \
 
 生成完成后，把目标目录作为新项目根目录，使用 IDEA 打开生成工程的 `pom.xml`。如果要使用本地构建的 Archetype，先执行 `./mvnw clean install`，再在命令中增加 `-DarchetypeCatalog=local`。
 
-请参阅 [Open 族架构总览](egon-cola-archetypes/open-source-archetype-family-architecture.md) 和 [Open 族代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)，了解模块责任、协议边界、手工 SQL 和真实基础设施验证边界。
+请参阅 [Open 脚手架架构总览](egon-cola-archetypes/open-source-archetype-architecture.md) 和 [Open 脚手架代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)，了解模块责任、协议边界、手工 SQL 和真实基础设施验证边界。
 
 ### 引入组件
 
@@ -334,8 +334,8 @@ Egon-COLA/
 
 - [组件架构指南](egon-cola-components/egon-cola-components-architecture.md)
 - [Archetype 架构 Mermaid 图](egon-cola-archetypes/architecture-mermaid-diagrams.md)
-- [Open 族架构总览](egon-cola-archetypes/open-source-archetype-family-architecture.md)
-- [Open 族代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)
+- [Open 脚手架架构总览](egon-cola-archetypes/open-source-archetype-architecture.md)
+- [Open 脚手架代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)
 - [Maven 发布指南](scripts/maven-deploy.md)
 - [统一身份与 MCP 本地 Runbook](docs/operations/unified-identity-mcp-local-runbook.md)
 
@@ -395,7 +395,7 @@ Java 源码基线是 21，CI 额外验证 JDK 25 不代表业务项目必须立�
 
 不等于。单元测试、模块测试和 Docker-backed 测试只能证明对应测试覆盖的行为，不能单独证明生产 Redis/PostgreSQL、DNS/VIP 路由、凭据、多进程部署或高可用行为。
 
-### Open 族是否内置 Yuheng 或自动更新数据库？
+### Open 脚手架是否内置 Yuheng 或自动更新数据库？
 
 不内置。Yuheng 属于外部 Spring Cloud Gateway 部署；Open 模板在生成项目 Infrastructure 的 `src/main/resources/db/manual/postgresql` 提供经过测试的 PostgreSQL 手工 SQL，不使用 Spring Data JPA、Flyway、Liquibase，也不会自动刷表。
 

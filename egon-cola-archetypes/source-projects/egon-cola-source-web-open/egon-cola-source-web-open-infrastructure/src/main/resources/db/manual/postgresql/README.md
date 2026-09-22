@@ -1,5 +1,7 @@
 # Organization Open 手工建库手册
 
+> 历史脚本档案：本目录不是当前启动 DDL 入口。当前规范统一采用 MP-SDJ Starter 分布式受管 DDL、版本化 SQL 与 SHA-256 Manifest；下文手工步骤仅说明历史交付物，不作为新部署或升级流程。不要修改已应用脚本或历史校验和。
+
 这些脚本属于 PostgreSQL 数据库运维交付物。应用启动、Spring SQL 初始化、MyBatis-Plus
 和 Maven 都不会读取或执行它们。
 

@@ -161,7 +161,7 @@ Document only the repository technologies and instructions that constrain the af
 
 ### 6.1 Java architecture profile and capability baseline
 
-Read `references/java-spring-egon-coding-standards.md`. Select exactly one allowed profile from current repository evidence: Traditional Three-Layer, or the exact selected `egon-cola-archetype` Light/Service/Web family and variant. If neither matches, record a blocking decision; do not create a hybrid structure.
+Read `references/java-spring-egon-coding-standards.md`. Select exactly one allowed profile from current repository evidence: Traditional Three-Layer, or the exact selected `egon-cola-archetype` Light/Service/Web variant and variant. If neither matches, record a blocking decision; do not create a hybrid structure.
 
 | Architecture profile | Archetype/template or base package | Exact evidence and verifier | Existing deviations | Design action |
 | --- | --- | --- | --- | --- |
@@ -181,7 +181,7 @@ Read `references/user-mandated-java-rules.md`. Keep one independent row for ever
 | --- | --- | --- | --- | --- | --- | --- |
 | Rule 1 | Yes / No | `<all new/changed Java types and nearby conventions>` | `<mandatory semantic suffix decisions>` | `<exact paths/types>` | `<naming inventory/static review>` | PASS / N/A / BLOCKED |
 | Rule 2 | Yes / No | `<every affected layer handoff>` | `<constraints/groups/ValidationUtils/libphonenumber>` | `<boundary types/methods>` | `<positive/negative/group tests>` | PASS / N/A / BLOCKED |
-| Rule 3 | Yes / No | `<affected data objects and BaseConverter>` | `<record/@Value/complete complex Lombok baseline/MapStruct>` | `<models/converters>` | `<constructor/mapping tests>` | PASS / N/A / BLOCKED |
+| Rule 3 | Yes / No | `<affected data objects and BaseConverter>` | `<value-object record/class complex Lombok baseline/MapStruct>` | `<models/converters>` | `<constructor/mapping tests>` | PASS / N/A / BLOCKED |
 | Rule 4 | Yes / No | `<business classes/Beans/lombok.config>` | `<@Slf4j/named Bean/@RequiredArgsConstructor/@Qualifier>` | `<business classes/config>` | `<wiring/logging tests or static gate>` | PASS / N/A / BLOCKED |
 | Rule 5 | Yes / No | `<imports/dependencies/existing helpers>` | `<closed utility allowlist>` | `<affected utility call sites>` | `<dependency/import search>` | PASS / N/A / BLOCKED |
 | Rule 6 | Yes / No | `<external JSON contracts>` | `<Jackson annotations/default proof>` | `<DTO/VO/Request/Response/etc.>` | `<serialization/compatibility tests>` | PASS / N/A / BLOCKED |
@@ -369,16 +369,16 @@ Explain moves or deletions, generated-file handling, registration/wiring ownersh
 
 ## 9. Interface Definitions
 
-When §9 is `Affected`, read `references/interface-contract-design.md`, inventory every changed HTTP/RPC/event/message/CLI/scheduled-job/internal Service operation, and expand each contract completely. If any external REST or GraphQL API is affected, also read `references/api-rest-cqrs-graphql-openapi.md` completely and retain §§9.0–9.4. When §9 is `Context-only` or `Unchanged`, remove §§9.0–9.4 and write only the exact existing route/symbol, consumers, preserved request/response/error/documentation invariant, stopping reason, and focused regression evidence. Do not reproduce full JSON, OpenAPI annotations, or GraphQL SDL for an unchanged boundary.
+When §9 is `Affected`, read `references/interface-contract-design.md`, inventory every changed HTTP/RPC/event/message/CLI/scheduled-job/internal Service operation, and expand each contract completely. If any external REST or GraphQL API is affected, also read `references/api-rest-cqe-graphql-openapi.md` completely and retain §§9.0–9.4. When §9 is `Context-only` or `Unchanged`, remove §§9.0–9.4 and write only the exact existing route/symbol, consumers, preserved request/response/error/documentation invariant, stopping reason, and focused regression evidence. Do not reproduce full JSON, OpenAPI annotations, or GraphQL SDL for an unchanged boundary.
 
 ### 9.0 API protocol and documentation governance
 
-Required when an external API is affected. Use repository and accepted-Spec evidence; do not choose REST, GraphQL, CQRS depth, springdoc, or documentation exposure from generic preference.
+Required when an external API is affected. Use repository and accepted-Spec evidence; do not choose REST, GraphQL, CQE depth, springdoc, or documentation exposure from generic preference.
 
 | Concern | Decision/evidence |
 | --- | --- |
 | Protocol selection | `<REST, GraphQL, or justified coexistence; named consumers/use cases and why the direct existing protocol is insufficient>` |
-| CQRS application level | `<L0/L1/L2/L3 from the API reference; Query/Command/Subscription ownership; why this is the smallest sufficient level>` |
+| CQE application level | `<L0/L1/L2/L3 from the API reference; Query/Command/Subscription ownership; why this is the smallest sufficient level>` |
 | REST source of truth | `<Code-first mappings/types/validation/Jackson/annotations, Contract-first document, or N/A with evidence>` |
 | GraphQL source of truth | `<SDL paths, resolver and consumer operation paths, or N/A with evidence>` |
 | Springdoc/OpenAPI compatibility | `<Spring Boot generation, MVC/WebFlux, managed starter/version source, OAS 3.0/3.1 compatibility, or N/A>` |
@@ -390,7 +390,7 @@ Required when an external API is affected. Use repository and accepted-Spec evid
 
 Required only when §9 is `Affected`. Use one ID per atomic REST Method + URL, GraphQL root-field operation contract, or other protocol operation. Split collection/detail/create/update/delete/status endpoints into separate IDs even when they share models or rules. A GraphQL row must identify both the transport and exact `Query.field`, `Mutation.field`, or `Subscription.field`; `/graphql` alone is not an operation.
 
-| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQE role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `API-001` | Existing/Keep or New/Add after necessity audit | `<purpose>` | HTTP | REST Query / REST Command | `<frontend/page>` | `<module>` | `POST /exact/path` | `<explicit lowerCamelCase operationId>` | `<Command/Query/Request>` | `<actual wrapper>` | `<rules>` | `<model>` | `<rules>` | `REQ-001` |
 | `API-002` | Existing/Keep or New/Add after necessity audit | `<purpose>` | GraphQL | GraphQL Query / GraphQL Mutation / GraphQL Subscription | `<frontend/page>` | `<module>` | `POST /graphql :: Query.exactField` | `<SDL path + field + named operation document>` | `<variables/input>` | `<selection/payload>` | `<rules>` | `<GraphQL errors/extensions>` | `<rules>` | `REQ-002` |
@@ -415,14 +415,14 @@ Repeat §9.2.x for every inventory ID. Inventory and detail items must be one-to
 
 Default to `Merge`, `Reuse`, or `Remove` when this interface only returns values copied unchanged into another request or values the target backend can safely derive. A separate selector/discovery contract requires an independent user-visible choice, shared dynamic catalog, or protocol-negotiation use case plus command-time revalidation.
 
-##### API style and CQRS semantics
+##### API style and CQE semantics
 
 Required for every external `API-*`; omit for a non-HTTP protocol contract.
 
 | Concern | Decision/evidence |
 | --- | --- |
 | Protocol style | `REST Query / REST Command / GraphQL Query / GraphQL Mutation / GraphQL Subscription` |
-| CQRS role | `<Query is read-only; Command task/change; Subscription stream; exact owner>` |
+| CQE role | `<Query is read-only; Command task/change; Subscription stream; exact owner>` |
 | Resource/task semantics | `<REST resource URI and method semantics, or GraphQL field/task semantics>` |
 | Read/write and side effects | `<authoritative reads, writes, events/audit; prove a Query has no business mutation>` |
 | Consistency and idempotency | `<transaction, concurrency, duplicate, retry, stale-read and eventual-consistency behavior>` |
@@ -563,7 +563,7 @@ Required when an external API is affected. Execute every row manually against th
 | Gate ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | `API-GATE-001` | Applicable | PASS / FAIL / BLOCKED | `<necessity and atomic inventory evidence>` | `<independent goal; no fetch-then-forward>` | `None / exact action` |
-| `API-GATE-002` | Applicable | PASS / FAIL / BLOCKED | `<protocol/CQRS table and repository evidence>` | `<smallest sufficient style and CQRS level>` | `None / exact action` |
+| `API-GATE-002` | Applicable | PASS / FAIL / BLOCKED | `<protocol/CQE table and repository evidence>` | `<smallest sufficient style and CQE level>` | `None / exact action` |
 | `API-GATE-003` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all affected REST details or absence evidence>` | `<resource/method/status/header/idempotency/pagination/compatibility result>` | `None / exact action` |
 | `API-GATE-004` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all affected GraphQL details or absence evidence>` | `<SDL/operation/null/resolver/batching/cost/security/error result>` | `None / exact action` |
 | `API-GATE-005` | Applicable | PASS / FAIL / BLOCKED | `<validation/Jackson/coercion/schema/examples evidence>` | `<wire and runtime constraint consistency>` | `None / exact action` |
@@ -606,11 +606,11 @@ Do not introduce Aggregate, Domain Service, Repository Port, or DDD Value Object
 | --- | --- | --- | --- | --- | --- | --- |
 | `<Type>` | `<representation>` | `<record compact constructor / @Value / complete complex-class baseline>` | `<Jakarta constraints and groups>` | `<named boundary/helper/library>` | `<reason or blocking constructor conflict>` | `TEST-001` |
 
-Simple objects use records; immutable non-record objects use `@Value`; complex objects use a normal class with the complete `@Data`, protected `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)` baseline. Calculate generated constructor signatures. Any duplicate signature or framework conflict is blocking and cannot be resolved by silently deleting an annotation.
+Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability.
 
 ### 10.4 Object flow and mapping relationships
 
-Define mappings only between semantically distinct types. Use MapStruct or MapStructPlus, and require every new affected Converter to implement/inherit the Egon `BaseConverter<S,T>` system. Name its exact generic types, Bean, generated implementation, sensitive/derived/defaulted fields, normalization, enum/time handling, and null rules. If the contract cannot represent the conversion, block for user decision; do not bypass it. Avoid no-op mapper chains, manual Service `set/get`, `BeanUtils.copyProperties`, reflection copying, and JSON round trips. When data crosses three or more roles, include an object-flow diagram or complete field-mapping table.
+Define mappings only between semantically distinct types. Use MapStruct or MapStructPlus, and require every new affected Converter to implement/inherit the Egon `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` system. Name its exact generic types, Bean, generated implementation, sensitive/derived/defaulted fields, normalization, enum/time handling, and null rules. If the contract cannot represent the conversion, block for user decision; do not bypass it. Avoid no-op mapper chains, manual Service `set/get`, `BeanUtils.copyProperties`, reflection copying, and JSON round trips. When data crosses three or more roles, include an object-flow diagram or complete field-mapping table.
 
 ### 10.5 Reuse, inheritance, and composition decisions
 
@@ -843,7 +843,7 @@ Confirm architecture, file tree, interfaces, fields, POJO/entity state, schema, 
 
 For a Complex Spec, confirm the evidence map, scenario matrix, architecture/high-level/detailed sections, Mermaid architecture/flow/swimlane diagrams, and conclusion chains cover the same critical paths and failure semantics.
 
-Confirm every interface inventory ID has one detailed contract with complete request rules, full commented success/error payloads, frontend logic, and field consistency. For affected external APIs, confirm the protocol/CQRS role, REST semantics or GraphQL SDL/operation/resolver semantics, OpenAPI/springdoc or schema documentation, security/exposure, generated-contract verification, and all `API-GATE-*` rows. Confirm every database inventory table and index is expanded and tied to real models, queries, migrations, and tests.
+Confirm every interface inventory ID has one detailed contract with complete request rules, full commented success/error payloads, frontend logic, and field consistency. For affected external APIs, confirm the protocol/CQE role, REST semantics or GraphQL SDL/operation/resolver semantics, OpenAPI/springdoc or schema documentation, security/exposure, generated-contract verification, and all `API-GATE-*` rows. Confirm every database inventory table and index is expanded and tied to real models, queries, migrations, and tests.
 
 Confirm every proposed element has a necessity verdict, the direct/no-new-element baseline was evaluated first, and no fetch-then-forward interface exists solely to return parameters for another request. Confirm each retained selector/discovery operation has independent consumer value and command-time stale-selection revalidation.
 
@@ -857,7 +857,7 @@ Confirm all predecessor links and exact sections, amendment/supersession scope, 
 
 ### 20.5 Blocking Manual Check
 
-Read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`, plus `references/api-rest-cqrs-graphql-openapi.md` when an external API is affected, then execute every row individually. `PASS` means the design and repository evidence prove the literal rule without weakening it. `N/A` requires concrete evidence that the rule is not applicable. Any other status or missing evidence blocks the final PASS verdict. When APIs are affected, relevant rows must cite the Chapter 9 `API-GATE-*` results rather than merely saying “Swagger/GraphQL checked.”
+Read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`, plus `references/api-rest-cqe-graphql-openapi.md` when an external API is affected, then execute every row individually. `PASS` means the design and repository evidence prove the literal rule without weakening it. `N/A` requires concrete evidence that the rule is not applicable. Any other status or missing evidence blocks the final PASS verdict. When APIs are affected, relevant rows must cite the Chapter 9 `API-GATE-*` results rather than merely saying “Swagger/GraphQL checked.”
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
@@ -886,3 +886,7 @@ Use exactly one:
 - `PASS — Ready for user review`
 - `BLOCKED — User decision required`
 - `REVISE — Internal inconsistency found`
+
+## Java / CQE contract review
+
+Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.

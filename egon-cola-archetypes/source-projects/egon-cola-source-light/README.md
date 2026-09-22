@@ -101,7 +101,7 @@ Every layer reuses the common-core contracts instead of inventing local ones:
 
 - Exceptions: the `common/exception` roots extend the component `BusinessException` / `CommonException` chain, and the wire code is the stable `getStatus()` string; numeric `getCode()` is never published.
 - Enums: handwritten business enums implement `EgonEnum`, so the declared `code` — not `ordinal()` — is the serialized value; `DeletedStatus` and `*FacadeStatus` show the `UNKNOWN` fallback pattern.
-- Validation: every inbound handoff runs through a `BaseValidator` subclass over the shared `egonColaValidationUtils` facade, with Jakarta groups where one carrier serves several operations. `facade/validation/NativeRpcValidationGroup` narrows RPC-only constraints without changing HTTP defaults.
+- Validation: current BaseValidator/egonColaValidationUtils entrypoints remain source facts. New or changed boundaries must express constraints through native/custom annotations, @Valid, @Validated and groups; the utility is only a generic manual trigger, not the business-rule owner.
 - Conversion: DTO/Command/Domain/PO mappings are MapStruct (`@Mapper`) generated and extend `BaseConverter` or `BaseForwardConverter`; a forward-only snapshot projection never gets a reverse method.
 
 ## Primary Workflows
@@ -203,7 +203,7 @@ Tianshu provider and HTTP registration additionally obtain an Tianquan-Shoubing 
 
 The stock Redisson auto-configuration is excluded; Tianshu owns its explicitly configured Redis client, while existing business Redis configuration remains on Spring's original connection factory. This prevents a disabled Tianshu/test profile from silently creating a Redis connection.
 
-## Repository, CQRS and PostgreSQL
+## Repository, CQE and PostgreSQL
 
 This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain semantics; concrete repositories extend `EgonColaRepository` and mappers extend `EgonColaMapper`. Queries use explicit XML. `EgonModel` owns id, tenantId, creation/update actors and times, `LocalDateTime deletedAt` and `Long version`: NULL is active, deletion writes a UTC timestamp and increments the version. AR/QueryChain are disabled; technical filling is mandatory.
 
@@ -211,7 +211,7 @@ This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain se
 
 mix64-v1 is fixed. T/B are powers of two up to 1024, with product at most 4096. Balanced databases also require a balanced slot map and tenant workload. There is no automatic redistribution. Query fanout is bounded; commands require exact keys. Changing topology requires matching DDL and a deliberate data migration/rebuild; the test example is not a drop-in production schema.
 
-`ShardingDataSourceBootstrapper` invokes Common's managed DDL runner on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
+The MP-SDJ starter owns datasource/topology setup and the managed `EgonColaPostgreDdlRunner` on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
 
 PostgreSQL owns replication. Ordinary reads use ROUND_ROBIN replicas; transaction/locking/strong reads use PRIMARY. No replica provisioning or promotion is implemented. Business, single and broadcast tables carry tenant_id. Cross-group LOCAL writes are rejected and mark rollback-only.
 
@@ -231,3 +231,7 @@ the [cache starter README](../../../egon-cola-components/egon-cola-component-com
 for keys, conditions, combined operations, transactions and sync limitations. Every profile declares the same five TTL keys
 (`l1-expire`, `l1-jitter`, `l2-expire`, `l2-jitter`, `null-expire`) plus the shared `key-prefix`, `tenant-mdc-key` and batch/lock
 budgets; only values differ per environment.
+
+## 2026-09-22 Java / CQE maintenance requirements
+
+Normal entities use class; record is reserved for immutable value objects. Select @Builder for ordinary construction or compatible @SuperBuilder for inherited fields. Persisted enum codes use @EnumValue; frontend JSON codes use @JsonValue. Reuse Components and Common MP repositories. Validation uses native/custom constraint annotations, @Valid, @Validated and groups; ValidationUtils is a generic manual helper. Soft-delete business uniqueness must combine business columns + deleted_at with active-row NULL enforcement. Event delivery uses the Egon transactional outbox or actual MQ, with explicit transaction/failure and consumer-idempotency semantics. Existing source examples and old SQL must be reviewed against these new requirements; this documentation update does not migrate them.

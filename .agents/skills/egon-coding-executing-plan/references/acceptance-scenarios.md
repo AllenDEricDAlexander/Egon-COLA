@@ -35,3 +35,9 @@ Use these scenarios to review future changes to this skill.
 31. **One-profile configuration change.** Tests use only dev configuration and pass, but another profile lacks the new key. Rule 7 and `MC-CONFIG-001` fail; the Step cannot commit as complete.
 32. **Complex logic uses direct switch.** The Plan requires a State/Strategy pattern but implementation collapses it into a switch. Rule 9 and `MC-PATTERN-001` fail; shorter code is not a waiver.
 33. **Final audit repeats only MC IDs.** The final report has 17 Manual Checks but omits the ten literal rules. Final PASS is prohibited until both matrices are independently rerun against final commits.
+
+- **Builder selection**: A root DTO and an EgonModel PO are added. Expected: choose @Builder for the root construction target and compatible @SuperBuilder across the PO hierarchy when inherited fields must be built; never mix the two.
+- **Enum boundary**: A status enum is both persisted and returned to the frontend. Expected: stable @EnumValue and @JsonValue mappings with invalid-input tests.
+- **Soft-delete key**: A nullable deleted_at is appended to business uniqueness. Expected: retain the composite key and prove active-row NULL behavior, delete/recreate and old-constraint removal.
+- **CQE event**: A local listener logs success. Expected: this is not event delivery; require actual outbox/MQ routing and describe atomicity/recovery limits.
+- **Validation extension**: A reusable cross-field rule needs a custom constraint. Expected: @Constraint/ConstraintValidator plus @Valid/@Validated/groups; no utility-only implementation.

@@ -1,5 +1,7 @@
 # 逐表逐索引数据库设计
 
+数据库变更统一复用 egon-mp-sdj-ext-starter 对应的现有 MP 扩展组件；见 `references/egon-java-cqe-contract.md` 的分布式 DDL 与联合唯一键规范。每个版本与 history 在同一物理目标事务提交，跨目标失败保留已提交进度，不是全局回滚。业务唯一键必须包含业务列与 deleted_at，并验证有效行 NULL 语义。
+
 > 本文件是 `references/database-design.md` 的全中文审核镜像。第 11 章把 Schema、数据语义、约束、索引、Schema 变更/DDL、分片、数据源拓扑、事务/锁行为或持久化所有权标记为 `Affected` 时必须读取，并使用仓库真实数据库方言、受管 DDL Runner、命名规范和访问技术。DAO 查询单独变化且数据库设计不变时，使用 `references/change-surface-and-proportional-depth.zh-CN.md` 的简洁 `Context-only`/`Unchanged` 写法，不能套用本文件的完整逐表模板。
 
 ## 目录
@@ -324,7 +326,7 @@ erDiagram
 | Key/关系 | 定义 | 业务规则 | 删除/更新行为 | 强制方式与证据 |
 | --- | --- | --- | --- | --- |
 | 主键 | `pk_orders(id)` | 稳定内部身份 | 不可变 | 数据库 PK，仓库现有惯例 |
-| 业务键 | `(tenant_id, order_no)` | 订单号在租户内唯一 | 不可变 | 唯一索引/约束；冲突映射成已定义错误 |
+| 业务键 | `(tenant_id, order_no, deleted_at)` | 订单号在租户内唯一 | 不可变 | 唯一索引/约束；冲突映射成已定义错误 |
 | 幂等键 | 非空活动 Key 的 `(tenant_id, idempotency_key)` | 每租户/Key 对应一次创建意图 | 保留/过期策略不能允许不安全重放 | Partial/Full 唯一方案取决于方言和兼容数据 |
 | 客户引用 | `(tenant_id, customer_id)` 逻辑关系 | 客户属于租户 | 订单保留不能级联删除 | 只有仓库规范和数据质量允许才用 FK，否则应用校验 + 审计 |
 | 明细 | `orders.id` -> `order_items.order_id` 一对多 | 头拥有明细生命周期 | 不得出现孤儿；删除/归档遵循策略 | 约束/Cascade 必须符合现有 Schema/DDL 证据 |
@@ -334,7 +336,7 @@ erDiagram
 | 索引 | 类型/唯一 | 有序字段/表达式 | Predicate/Include | 对应查询与操作 | 基数/选择性 | 排序/覆盖作用 | 写入/存储成本 | 决策 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `pk_orders` | btree 唯一 | `(id)` | 无 | 按 ID 详情/更新，同时做租户 Guard | ID 高选择性 | Lookup；仍需校验租户 | 已有必要 PK | 保留 |
-| `uk_orders_tenant_order_no` | btree 唯一 | `(tenant_id, order_no)` | 无 | 租户内按订单号详情 | 组合唯一 | 完整查找 | 每次写入一次唯一校验 | 只有证据支持时保留/新增 |
+| `uk_orders_tenant_order_no` | btree 唯一 | `(tenant_id, order_no, deleted_at)` | 验证 NULLS NOT DISTINCT 能力，否则增加有效行唯一约束 | 租户内按订单号详情 | 组合唯一 | 完整查找 | 每次写入一次唯一校验 | 只有证据支持时保留/新增 |
 | `uk_orders_tenant_idempotency` | btree 唯一 | `(tenant_id, idempotency_key)` | 方言/数据窗口需要时 `WHERE idempotency_key IS NOT NULL` | 创建重试与冲突查询 | 租户 + Key 预期唯一 | 完整查找，不负责排序 | 增加写入校验/存储，评估 Concurrent Build | 重复数据画像后新增 |
 | `idx_orders_tenant_status_created` | btree | `(tenant_id, status, created_at DESC, id DESC)` | 只有方言与测量收益支持时 Include | `findPage`：租户等值、可选精确状态、最新优先、稳定 ID Tie-breaker | 必须分析租户/状态选择性 | 对匹配 Query 避免排序并稳定分页 | 每次插入/状态更新增加写放大 | 检查可选状态 Query 和已有前缀后新增/修改/拒绝 |
 

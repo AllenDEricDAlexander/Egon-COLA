@@ -1,6 +1,6 @@
 # 逐接口契约设计
 
-> 本文件是 `references/interface-contract-design.md` 的全中文审核镜像。第 9 章存在 HTTP、RPC、事件/消息、CLI、定时任务或内部 Service 契约时必须读取。接口清单只是索引，清单中的每一项都必须有完整展开章节。外部 REST 或 GraphQL API 被影响时，还必须完整读取 `references/api-rest-cqrs-graphql-openapi.zh-CN.md`，并执行其中更严格的协议、CQRS、springdoc/OpenAPI 3、GraphQL、安全、生成契约和阻断门禁规则。
+> 本文件是 `references/interface-contract-design.md` 的全中文审核镜像。第 9 章存在 HTTP、RPC、事件/消息、CLI、定时任务或内部 Service 契约时必须读取。接口清单只是索引，清单中的每一项都必须有完整展开章节。外部 REST 或 GraphQL API 被影响时，还必须完整读取 `references/api-rest-cqe-graphql-openapi.zh-CN.md`，并执行其中更严格的协议、CQE、springdoc/OpenAPI 3、GraphQL、安全、生成契约和阻断门禁规则。
 
 ## 目录
 
@@ -16,11 +16,11 @@
 
 ## 外部 API 专项规则
 
-外部 API 受影响时，本参考提供原子契约通用结构，`references/api-rest-cqrs-graphql-openapi.zh-CN.md` 则是 API 风格与文档细节的权威规范。
+外部 API 受影响时，本参考提供原子契约通用结构，`references/api-rest-cqe-graphql-openapi.zh-CN.md` 则是 API 风格与文档细节的权威规范。
 
 - 每个可独立调用 REST Method + URL 或 GraphQL Root Field Operation Contract 使用一个 `API-*` ID。GraphQL 清单身份必须包含传输与准确 Field，例如 `POST /graphql :: Query.order`；只有 `/graphql` 不能算 Operation 清单。
-- 每个 API 必须分类为 `REST Query`、`REST Command`、`GraphQL Query`、`GraphQL Mutation` 或 `GraphQL Subscription`。必须做 CQRS 语义分类，但不强制拆分读写存储。
-- REST 详情增加“API 风格与 CQRS 语义”和“文档契约”，覆盖 springdoc/OpenAPI 3 注解与生成 OAS 校验。
+- 每个 API 必须分类为 `REST Query`、`REST Command`、`GraphQL Query`、`GraphQL Mutation` 或 `GraphQL Subscription`。必须做 CQE 语义分类，但不强制拆分读写存储。
+- REST 详情增加“API 风格与 CQE 语义”和“文档契约”，覆盖 springdoc/OpenAPI 3 注解与生成 OAS 校验。
 - GraphQL 详情使用相同标题，但内容为 SDL、具名 Operation Document、Spring Resolver Mapping、Coercion/Error、Batching/Cost 和 Schema 校验。Swagger 注解不能记录 GraphQL Field。
 - Spec 通过前，第 9.4 节必须关闭 API 参考中的全部 `API-GATE-*` 行。
 
@@ -30,7 +30,7 @@
 
 一个 ID 只代表一个原子协议操作：一个 HTTP Method + URL、一个 RPC Service Method、一个事件/Topic Schema 契约、一个 Job 或一个内部方法。不得把整组 CRUD、多个 URL、集合/详情/状态操作合并在一行；共同规则可以复用引用，但每个操作仍要独立定义。
 
-| ID | 变更/必要性结论 | 名称/用途 | 类型 | API 风格/CQRS 角色 | 消费者 | 所有者 | Method + URL / GraphQL Field / Symbol / Topic | Operation ID/Schema 来源 | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
+| ID | 变更/必要性结论 | 名称/用途 | 类型 | API 风格/CQE 角色 | 消费者 | 所有者 | Method + URL / GraphQL Field / Symbol / Topic | Operation ID/Schema 来源 | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 清单和详细章节必须一一对应：清单项不能缺少详情，详细契约也不能游离在清单之外。
@@ -56,7 +56,7 @@
 
 每个契约 ID 使用一个独立小节，并保持以下结构。
 
-每个外部 `API-*` 都必须在必要性小节后立即插入“API 风格与 CQRS 语义”，并在兼容性之前插入“文档契约”；两者必须使用 `assets/spec-template.md` 中的规范表格。非 HTTP 契约保留通用七个标题，不增加装饰性 API 章节。
+每个外部 `API-*` 都必须在必要性小节后立即插入“API 风格与 CQE 语义”，并在兼容性之前插入“文档契约”；两者必须使用 `assets/spec-template.md` 中的规范表格。非 HTTP 契约保留通用七个标题，不增加装饰性 API 章节。
 
 ### 0. 必要性与交互成本决策
 
@@ -182,7 +182,7 @@ Path、Query、Header、Cookie、Multipart 和 Body 分开描述。每个参数�
 
 ### 清单行
 
-| ID | 变更/必要性结论 | 名称/用途 | 类型 | API 风格/CQRS 角色 | 消费者 | 所有者 | Method + URL / GraphQL Field / Symbol / Topic | Operation ID/Schema 来源 | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
+| ID | 变更/必要性结论 | 名称/用途 | 类型 | API 风格/CQE 角色 | 消费者 | 所有者 | Method + URL / GraphQL Field / Symbol / Topic | Operation ID/Schema 来源 | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `API-021` | New/Add：直接创建是独立 Command；不新增参数预查询 | 创建订单 | HTTP | REST Command | 订单创建页 | Order Web 模块 | `POST /api/v1/orders` | `createOrder`；Controller 注解和生成 OAS | Header + `CreateOrderCommand` | `ApiResponse<OrderResponse>` | Bearer Principal；租户来自已验证上下文 | 稳定 HTTP + 业务码 | `Idempotency-Key`；v1 加法兼容 | `REQ-007`、`REQ-008` |
 
@@ -200,16 +200,16 @@ Path、Query、Header、Cookie、Multipart 和 Body 分开描述。每个参数�
 | 往返与失败点 | 一个 Command RTT；同 Key 重试处理未知结果；Command 内重校验引用/价格 |
 | 结论 | `REQ-007` 使用 `Add`；任何“获取创建参数”接口均为 `Remove` |
 
-#### API 风格与 CQRS 语义
+#### API 风格与 CQE 语义
 
 | 关注点 | 决策/证据 |
 | --- | --- |
 | 协议风格 | `REST Command` |
-| CQRS 角色 | 任务型创建 Command；不是 Query，并拥有状态变化 |
+| CQE 角色 | 任务型创建 Command；不是 Query，并拥有状态变化 |
 | 资源/任务语义 | `POST /api/v1/orders` 创建一个从属订单资源 |
 | 读写与副作用 | 读取权威引用，写订单/幂等状态，只发布已经明确设计的事件 |
 | 一致性与幂等 | 一个已定义事务；同 Key 与相同标准化 Payload 返回相同结果 |
-| 选择该风格的原因 | 已有 REST 消费者只需要一个直接创建操作；不需要额外 CQRS 基础设施或 GraphQL Facade |
+| 选择该风格的原因 | 已有 REST 消费者只需要一个直接创建操作；不需要额外 CQE 基础设施或 GraphQL Facade |
 
 #### 身份与用途
 
@@ -409,7 +409,7 @@ HTTP `201 Created`。仓库产生响应 Header 时必须写出。完整示例传
 接受一个接口详情前，逐项确认：
 
 - 七个必需标题按顺序存在，并包含仓库特定内容；
-- 外部 API 还必须具有两个 API 专项标题、准确 REST/GraphQL 与 CQRS 分类、协议专项文档产物、生成契约证明和全部九项阻断型 API 门禁；
+- 外部 API 还必须具有两个 API 专项标题、准确 REST/GraphQL 与 CQE 分类、协议专项文档产物、生成契约证明和全部九项阻断型 API 门禁；
 - 必要性/交互小节相对直接方案证明 `Add/Keep`，并拒绝不变的“先查再转发”参数；
 - HTTP 身份只包含一个 Method 和一个经验证应用路由；
 - 每个入参都包含位置、类型/格式、必填/可空/默认、准确校验、含义、示例和来源；

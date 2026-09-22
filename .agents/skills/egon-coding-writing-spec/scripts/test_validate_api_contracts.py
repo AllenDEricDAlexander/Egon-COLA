@@ -43,12 +43,12 @@ def complete_api_chapter(rest: bool = True, graphql: bool = True) -> str:
 
 Repository route serves the independent order-detail consumer without a preflight call.
 
-##### API style and CQRS semantics
+##### API style and CQE semantics
 
 | Concern | Decision/evidence |
 | --- | --- |
 | Protocol style | REST Query |
-| CQRS role | Query is read-only and owned by the order Service |
+| CQE role | Query is read-only and owned by the order Service |
 | Resource/task semantics | Existing order resource is read with HTTP GET |
 | Read/write and side effects | Reads the order projection and only records metrics |
 | Consistency and idempotency | Safe idempotent read with ETag semantics |
@@ -109,12 +109,12 @@ Existing consumer compatibility and generated OAS contract tests are explicitly 
 
 The approved GraphQL client has an independent create-order goal and no parameter preflight.
 
-##### API style and CQRS semantics
+##### API style and CQE semantics
 
 | Concern | Decision/evidence |
 | --- | --- |
 | Protocol style | GraphQL Mutation |
-| CQRS role | Command owns one order-creation task |
+| CQE role | Command owns one order-creation task |
 | Resource/task semantics | Mutation.createOrder expresses the task explicitly |
 | Read/write and side effects | Writes order state and emits the documented event |
 | Consistency and idempotency | One transaction and stable command idempotency key |
@@ -181,7 +181,7 @@ The schema, resolver, consumer operation, error, authorization, and compatibilit
 | Concern | Decision/evidence |
 | --- | --- |
 | Protocol selection | Named consumers and use cases prove the selected protocol set |
-| CQRS application level | L1 separates boundary Query and Command while sharing existing persistence |
+| CQE application level | L1 separates boundary Query and Command while sharing existing persistence |
 | REST source of truth | {rest_source} |
 | GraphQL source of truth | {graphql_source} |
 | Springdoc/OpenAPI compatibility | Current Boot MVC dependency management selects the starter and OAS version |
@@ -191,7 +191,7 @@ The schema, resolver, consumer operation, error, authorization, and compatibilit
 
 ### 9.1 Interface Inventory
 
-| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQE role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 {chr(10).join(inventory_rows)}
 
@@ -214,6 +214,10 @@ The schema, resolver, consumer operation, error, authorization, and compatibilit
 
 
 class ApiContractValidationTest(unittest.TestCase):
+    def test_legacy_cqrs_titles_remain_compatible(self) -> None:
+        chapter = complete_api_chapter().replace("CQE", "CQRS")
+        self.assertEqual([], validate_api_contracts_v7(chapter))
+
     def test_complete_rest_and_graphql_contract_passes(self) -> None:
         self.assertEqual([], validate_api_contracts_v7(complete_api_chapter()))
 

@@ -1,5 +1,7 @@
 # Per-table and Per-index Database Design
 
+Reuse the existing MP-SDJ extension starter for all database changes. Read `references/egon-java-cqe-contract.md` for distributed DDL and business-column + deleted_at uniqueness. Each version/history pair commits per physical target; later-target failure retains committed progress, not global rollback. Prove active-row NULL uniqueness.
+
 Read this reference when Chapter 11 marks schema, data semantics, constraints, indexes, schema-change/DDL, sharding, datasource topology, transaction/locking behavior, or persistence ownership as `Affected`. Use the repository's actual database dialect, managed-DDL runner, naming conventions, and access technology. For a DAO query-only change with unchanged database design, use the concise `Context-only`/`Unchanged` treatment from `references/change-surface-and-proportional-depth.md` instead of applying this full per-table template.
 
 ## Contents
@@ -324,7 +326,7 @@ Field semantics that must accompany the table:
 | Key/relationship | Definition | Business rule | Delete/update behavior | Enforcement and evidence |
 | --- | --- | --- | --- | --- |
 | Primary key | `pk_orders(id)` | Stable internal identity | Immutable | Database PK, current repository convention |
-| Business key | `(tenant_id, order_no)` | Order number unique per tenant | Immutable | Unique index/constraint; duplicate maps to documented conflict |
+| Business key | `(tenant_id, order_no, deleted_at)` | Order number unique per tenant | Immutable | Unique index/constraint; duplicate maps to documented conflict |
 | Idempotency key | `(tenant_id, idempotency_key)` for non-null active keys | One create intent per tenant/key | Retention/expiry policy must not permit unsafe replay | Unique partial/full strategy depends on dialect and compatibility data |
 | Customer reference | `(tenant_id, customer_id)` logical relationship | Customer must belong to tenant | Order retention must not cascade-delete | Database FK only if repository policy and current data allow it; otherwise application validation plus audit |
 | Items | `orders.id` -> `order_items.order_id` one-to-many | Header owns line lifecycle | No orphan line; deletion/archive follows policy | Constraint/cascade choice must match existing schema and DDL evidence |
@@ -334,7 +336,7 @@ Field semantics that must accompany the table:
 | Index | Type/unique | Ordered columns/expressions | Predicate/include | Query and operation | Cardinality/selectivity | Sort/coverage role | Write/storage cost | Decision |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `pk_orders` | btree unique | `(id)` | None | detail/update by ID with tenant guard | ID highly selective | Lookup; tenant guard still checked | Existing mandatory PK | Retain |
-| `uk_orders_tenant_order_no` | btree unique | `(tenant_id, order_no)` | None | tenant detail by order number | Composite unique | Full lookup | One uniqueness check per write | Retain/add only from evidence |
+| `uk_orders_tenant_order_no` | btree unique | `(tenant_id, order_no, deleted_at)` | NULLS NOT DISTINCT if supported; otherwise add active-row unique guard | tenant detail by order number | Composite unique | Full lookup | One uniqueness check per write | Retain/add only from evidence |
 | `uk_orders_tenant_idempotency` | btree unique | `(tenant_id, idempotency_key)` | `WHERE idempotency_key IS NOT NULL` if dialect/data window requires | create retry and conflict lookup | Tenant + key expected unique | Full lookup, not sorting | Additional write/check/storage; concurrent build options assessed | Add after duplicate profiling |
 | `idx_orders_tenant_status_created` | btree | `(tenant_id, status, created_at DESC, id DESC)` | Optional include only if dialect and measured benefit justify | `findPage`: tenant equality, optional exact status, newest first, stable ID tie-breaker | Tenant/status selectivity must be profiled | Avoid sort and stabilize pagination for matching query variant | Write amplification on every insert/state update | Add, change, or reject after checking optional-status query and existing prefixes |
 

@@ -318,7 +318,7 @@ return <OrderTable rows={query.data.items} />;
 文件顺序通常包括：
 
 1. 断言缺失字段/约束/索引或当前失败的 Migration/Schema 契约测试；
-2. 正好一个新的下一版本 Flyway 文件；
+2. 正好一个供 MP-SDJ 分布式 DDL Runner 使用的新 SQL 版本及其 SHA-256 Manifest 条目；
 3. 能兼容已批准窗口的 PO/Entity/Mapper 修改；
 4. DAO/Repository Query、影响行和锁行为；
 5. Migration、历史行、约束和 Query 集成测试。

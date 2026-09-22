@@ -318,7 +318,7 @@ Name where tenant/identity comes from. Do not plan a parameter-fetch query when 
 The file order normally includes:
 
 1. migration/schema contract test asserting the missing column/constraint/index or current failure;
-2. exactly one new next-version Flyway file;
+2. exactly one next SQL version plus its SHA-256 manifest entry for the MP-SDJ distributed DDL runner;
 3. PO/Entity/mapper changes that tolerate the approved compatibility window;
 4. DAO/repository query and affected-row/lock behavior;
 5. integration test for migration, historical rows, constraints, and query behavior.
