@@ -1,25 +1,25 @@
 package top.egon.cola.component.common.mybatis.exception;
 
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.CommonException;
+
+import java.io.Serial;
 import java.util.Objects;
 
 /**
  * Stable startup failure for an invalid Egon COLA MyBatis-Plus contract.
  */
-public final class EgonColaMybatisPlusConfigurationException extends IllegalStateException {
+public final class EgonColaMybatisPlusConfigurationException extends CommonException {
 
-    private final String code;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     public EgonColaMybatisPlusConfigurationException(String code) {
         this(code, null);
     }
 
     public EgonColaMybatisPlusConfigurationException(String code, Throwable cause) {
-        super(requireCode(code), cause);
-        this.code = code;
-    }
-
-    public String getCode() {
-        return code;
+        super(ResultCode.SYSTEM_ERROR.getCode(), requireCode(code), requireCode(code), cause);
     }
 
     private static String requireCode(String code) {

@@ -21,6 +21,7 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusA
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdTenantLineHandler;
+import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfigurationException;
 import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaModelValidationInterceptor;
@@ -217,8 +218,10 @@ class StaticTenantModelContractTest {
                 .as("repeated identical binding must be allowed")
                 .doesNotThrowAnyException();
         Throwable rejected = catchThrowable(() -> bind(canonicalReplacement(), new Object()));
-        assertThat(rejected).isInstanceOf(IllegalStateException.class)
+        assertThat(rejected).isInstanceOf(EgonColaMybatisPlusConfigurationException.class)
                 .hasMessage("MODEL_VALIDATION_BINDING_CONFLICT");
+        assertThat(((EgonColaMybatisPlusConfigurationException) rejected).getStatus())
+                .isEqualTo("MODEL_VALIDATION_BINDING_CONFLICT");
         assertThat(rejected.getCause())
                 .hasMessageContaining("already bound")
                 .hasMessageContaining("StaticTenantModelContractTest");

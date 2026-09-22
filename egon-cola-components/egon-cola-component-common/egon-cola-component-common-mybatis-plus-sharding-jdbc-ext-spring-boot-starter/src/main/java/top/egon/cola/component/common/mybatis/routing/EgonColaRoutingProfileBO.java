@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -117,8 +118,29 @@ public record EgonColaRoutingProfileBO(
         }
     }
 
-    public enum TableKindEnum {
-        SINGLE, BROADCAST_READ_ONLY, TENANT_LEGACY, TENANT_ID_TWO_LEVEL
+    public enum TableKindEnum implements EgonEnum {
+        SINGLE(0, "SINGLE"),
+        BROADCAST_READ_ONLY(1, "BROADCAST_READ_ONLY"),
+        TENANT_LEGACY(2, "TENANT_LEGACY"),
+        TENANT_ID_TWO_LEVEL(3, "TENANT_ID_TWO_LEVEL");
+
+        private final int code;
+        private final String message;
+
+        TableKindEnum(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     public record PartitionKeyBO(@Min(0) @Max(1023) int tenantSlot, @Min(0) @Max(1023) int secondaryBucket) {

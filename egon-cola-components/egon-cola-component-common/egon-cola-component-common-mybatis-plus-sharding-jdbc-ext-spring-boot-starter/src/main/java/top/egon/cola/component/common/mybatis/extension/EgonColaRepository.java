@@ -25,6 +25,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 import org.springframework.jdbc.datasource.ConnectionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
@@ -586,8 +587,28 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         }
     }
 
-    private enum BatchOperation {
-        INSERT, UPDATE, UPSERT
+    private enum BatchOperation implements EgonEnum {
+        INSERT(0, "INSERT"),
+        UPDATE(1, "UPDATE"),
+        UPSERT(2, "UPSERT");
+
+        private final int code;
+        private final String message;
+
+        BatchOperation(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     private int checkedBatchSize(int batchSize) {

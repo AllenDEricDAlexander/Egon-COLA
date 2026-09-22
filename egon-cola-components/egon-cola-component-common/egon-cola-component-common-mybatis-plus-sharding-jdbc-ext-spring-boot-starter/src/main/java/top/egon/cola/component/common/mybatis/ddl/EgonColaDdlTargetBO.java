@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -54,7 +55,26 @@ public record EgonColaDdlTargetBO(@NotBlank @Pattern(regexp = "[a-zA-Z_][a-zA-Z0
         return "EgonColaDdlTargetBO[alias=" + alias + ", schema=" + schema + ", role=" + role + ", family=" + manifest.family() + ", routeFingerprint=" + routeFingerprint + "]";
     }
 
-    public enum RoleEnum {
-        MASTER_DATA, SHARD
+    public enum RoleEnum implements EgonEnum {
+        MASTER_DATA(0, "MASTER_DATA"),
+        SHARD(1, "SHARD");
+
+        private final int code;
+        private final String message;
+
+        RoleEnum(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 }

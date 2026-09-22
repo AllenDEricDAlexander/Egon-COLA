@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -65,19 +66,73 @@ public class EgonColaShardingProperties {
     @Builder.Default
     private Map<String, TableProperties> tables = new LinkedHashMap<>();
 
-    public enum ModeEnum {
-        SHARDING,
-        SHARDING_READWRITE
+    public enum ModeEnum implements EgonEnum {
+        SHARDING(0, "SHARDING"),
+        SHARDING_READWRITE(1, "SHARDING_READWRITE");
+
+        private final int code;
+        private final String message;
+
+        ModeEnum(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
-    public enum ConfigStyleEnum {
-        STRATEGY,
-        NATIVE
+    public enum ConfigStyleEnum implements EgonEnum {
+        STRATEGY(0, "STRATEGY"),
+        NATIVE(1, "NATIVE");
+
+        private final int code;
+        private final String message;
+
+        ConfigStyleEnum(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
-    public enum DataSourceRoleEnum {
-        PRIMARY,
-        REPLICA
+    public enum DataSourceRoleEnum implements EgonEnum {
+        PRIMARY(0, "PRIMARY"),
+        REPLICA(1, "REPLICA");
+
+        private final int code;
+        private final String message;
+
+        DataSourceRoleEnum(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     public record PhysicalDataSourceProperties(
