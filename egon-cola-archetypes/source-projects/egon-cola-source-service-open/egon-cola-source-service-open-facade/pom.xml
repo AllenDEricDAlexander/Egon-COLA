@@ -12,6 +12,7 @@
     </parent>
 
     <artifactId>egon-cola-source-service-open-facade</artifactId>
+    <version>${egon-cola.version}</version>
     <packaging>jar</packaging>
 
     <dependencies>

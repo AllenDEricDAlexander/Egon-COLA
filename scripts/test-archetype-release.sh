@@ -202,8 +202,8 @@ test_fast_publish_skips_preflight() {
   : >"$FAKE_LOG"
   fixture_deploy --fast >/dev/null
   actual="$(event_labels)"
-  assert_order $'version\ndeploy' "$actual"
-  for stage in root-bootstrap archetypes-bootstrap source-install generate check generated-it release-shape; do
+  assert_order $'version\ngenerate\ndeploy' "$actual"
+  for stage in source-install check generated-it release-shape; do
     if printf '%s\n' "$actual" | grep -Fxq -- "$stage"; then
       fail "fast publish ran preflight stage: ${stage}"
     fi

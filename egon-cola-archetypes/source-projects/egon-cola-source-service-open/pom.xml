@@ -31,7 +31,7 @@
         <!-- The organization protocol is published by the peer Web Open facade artifact. -->
         <organization-facade.group-id>top.egon.internal.archetype.source</organization-facade.group-id>
         <organization-facade.artifact-id>egon-cola-source-web-open-facade</organization-facade.artifact-id>
-        <organization-facade.version>0.1.0-SNAPSHOT</organization-facade.version>
+        <organization-facade.version>${egon-cola.version}</organization-facade.version>
         <organization-facade.package>top.egon.cola.archetype.source.webopen.facade</organization-facade.package>
         <!-- Shared defaults for Maven run and the external Java argument file. -->
         <run.profile>dev</run.profile>
@@ -55,7 +55,7 @@
             <dependency>
                 <groupId>top.egon.internal.archetype.source</groupId>
                 <artifactId>egon-cola-source-service-open-facade</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>${egon-cola.version}</version>
             </dependency>
             <dependency>
                 <groupId>${organization-facade.group-id}</groupId>

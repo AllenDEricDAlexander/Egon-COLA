@@ -465,7 +465,7 @@ test_reactor_cutover_mode() {
   local archetypes_pom="$REPO_ROOT/egon-cola-archetypes/pom.xml"
   [[ -f "$archetypes_pom" ]] || fail "missing archetypes parent: ${archetypes_pom}"
   assert_module_list "$archetypes_pom" \
-    $'source-projects/egon-cola-source-service/egon-cola-source-service-facade\nsource-projects/egon-cola-source-web/egon-cola-source-web-facade'
+    $'source-projects/egon-cola-source-service/egon-cola-source-service-facade\nsource-projects/egon-cola-source-web/egon-cola-source-web-facade\nsource-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade\nsource-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade'
   assert_file_contains "$archetypes_pom" '<id>generated-archetypes</id>' 'generated profile id'
   assert_file_contains "$archetypes_pom" '<module>.generated</module>' 'generated profile module'
   assert_file_not_contains "$archetypes_pom" '<activeByDefault>true</activeByDefault>' \

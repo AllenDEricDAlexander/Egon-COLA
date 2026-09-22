@@ -38,7 +38,7 @@ assert rootPom.properties.'egon-cola.version'.text()
 assert rootPom.properties.'lombok.version'.text() == "1.18.46"
 assert rootPom.properties.'evaluation-facade.group-id'.text() == "top.egon.internal.archetype.source"
 assert rootPom.properties.'evaluation-facade.artifact-id'.text() == "egon-cola-source-service-facade"
-assert rootPom.properties.'evaluation-facade.version'.text() == "0.1.0-SNAPSHOT"
+assert rootPom.properties.'evaluation-facade.version'.text() == rootPom.properties.'egon-cola.version'.text()
 assert rootPom.properties.'evaluation-facade.package'.text() == "top.egon.cola.archetype.source.service.facade"
 ["group-id", "artifact-id", "version", "package"].each { part ->
     assert !rootPom.properties."organization-facade.${part}".text():

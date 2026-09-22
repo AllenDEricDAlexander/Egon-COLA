@@ -47,7 +47,7 @@ assert !rootPom.properties.'mybatis-plus.version'.text()
 assert rootPom.properties.'archunit.version'.text() == "1.4.2"
 assert rootPom.properties.'organization-facade.group-id'.text() == "top.egon.internal.archetype.source"
 assert rootPom.properties.'organization-facade.artifact-id'.text() == "egon-cola-source-web-open-facade"
-assert rootPom.properties.'organization-facade.version'.text() == "0.1.0-SNAPSHOT"
+assert rootPom.properties.'organization-facade.version'.text() == rootPom.properties.'egon-cola.version'.text()
 assert rootPom.properties.'organization-facade.package'.text() == "top.egon.cola.archetype.source.webopen.facade"
 moduleNames.each { name -> file("${name}/pom.xml") }
 

@@ -29,7 +29,7 @@
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
         <evaluation-facade.group-id>top.egon.internal.archetype.source</evaluation-facade.group-id>
         <evaluation-facade.artifact-id>egon-cola-source-service-facade</evaluation-facade.artifact-id>
-        <evaluation-facade.version>0.1.0-SNAPSHOT</evaluation-facade.version>
+        <evaluation-facade.version>${egon-cola.version}</evaluation-facade.version>
         <evaluation-facade.package>top.egon.cola.archetype.source.service.facade</evaluation-facade.package>
         <!-- Shared defaults for Maven run and the external Java argument file. -->
         <run.profile>dev</run.profile>
@@ -77,7 +77,7 @@
             <dependency>
                 <groupId>top.egon.internal.archetype.source</groupId>
                 <artifactId>egon-cola-source-web-facade</artifactId>
-                <version>${project.version}</version>
+                <version>${egon-cola.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.egon.internal.archetype.source</groupId>

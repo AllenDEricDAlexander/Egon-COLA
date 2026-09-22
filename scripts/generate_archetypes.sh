@@ -585,9 +585,91 @@ normalize_generated_product() {
   parameterize_peer_facade "$resources"
   normalize_text_tree "$resources"
   normalize_generated_parent "$resources"
+  align_published_facade_versions "$resources"
   escape_velocity_tree "$resources"
   validate_no_source_sentinels "$resources"
   validate_topology "$resources"
+}
+
+# Published facade contracts use the Egon release version. A generated business
+# project must still version its own facade with the project version.
+align_published_facade_versions() {
+  local resources="$1" pom relative child
+  [[ -d "$resources" ]] || return 0
+  while IFS= read -r pom; do
+    relative="${pom#"$resources"/}"
+    if [[ "$relative" == pom.xml ]]; then
+      child=0
+    else
+      child=1
+    fi
+    awk -v release="$ROOT_VERSION" -v child="$child" '
+      function trim(value) {
+        sub(/^[[:space:]]+/, "", value)
+        return value
+      }
+      function version_text(value) {
+        sub(/^[[:space:]]*<version>/, "", value)
+        sub(/<\/version>[[:space:]]*$/, "", value)
+        return value
+      }
+      function is_release(value) {
+        return value == "${egon-cola.version}" || value == release
+      }
+      function is_version_line(value) {
+        return trim(value) ~ /^<version>[^<]*<\/version>$/
+      }
+      function own_facade(value) {
+        value = trim(value)
+        return index(value, "${rootArtifactId}-facade</artifactId>") > 0 || index(value, "${artifactId}-facade</artifactId>") > 0
+      }
+      function emit_held() {
+        if (!held_set) {
+          return
+        }
+        if (own_facade(held) && is_version_line($0) && is_release(version_text($0))) {
+          indent = $0
+          sub(/[^[:space:]].*$/, "", indent)
+          print held
+          print indent "<version>${project.version}</version>"
+          held_set = 0
+          skip_current = 1
+          return
+        }
+        print held
+        held_set = 0
+      }
+      {
+        skip_current = 0
+        emit_held()
+        if (skip_current) {
+          next
+        }
+        stripped = trim($0)
+        if (child && seen_parent && !seen_body && is_version_line($0) && is_release(version_text($0))) {
+          next
+        }
+        if (stripped ~ /<\/parent>/) {
+          seen_parent = 1
+        }
+        if (stripped ~ /^<(packaging|dependencies|properties|build|modules)>/) {
+          seen_body = 1
+        }
+        if (own_facade($0)) {
+          held = $0
+          held_set = 1
+          next
+        }
+        print
+      }
+      END {
+        if (held_set) {
+          print held
+        }
+      }
+    ' "$pom" >"$pom.align.tmp"
+    mv -- "$pom.align.tmp" "$pom"
+  done < <(find "$resources" -type f -name pom.xml -print | LC_ALL=C sort)
 }
 
 copy_curated_assets() {
@@ -621,6 +703,12 @@ copy_curated_assets() {
     cp -p "$definition/src/test/resources/projects/basic/$asset" \
       "$product_root/src/test/resources/projects/basic/$asset"
   done
+  local archetype_properties="$product_root/src/test/resources/projects/basic/archetype.properties"
+  if grep -Fq '@rootVersion@' "$archetype_properties"; then
+    sed "s|@rootVersion@|$(escape_sed_replacement "$ROOT_VERSION")|g" \
+      "$archetype_properties" >"$archetype_properties.tmp"
+    mv -- "$archetype_properties.tmp" "$archetype_properties"
+  fi
   if [[ -f "$definition/src/test/resources/projects/basic/open-dependency-boundary.groovy" ]]; then
     cp -p "$definition/src/test/resources/projects/basic/open-dependency-boundary.groovy" \
       "$product_root/src/test/resources/projects/basic/open-dependency-boundary.groovy"

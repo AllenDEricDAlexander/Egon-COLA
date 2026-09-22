@@ -59,6 +59,8 @@
     <modules>
         <module>source-projects/egon-cola-source-service/egon-cola-source-service-facade</module>
         <module>source-projects/egon-cola-source-web/egon-cola-source-web-facade</module>
+        <module>source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade</module>
+        <module>source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade</module>
     </modules>
 
     <properties>

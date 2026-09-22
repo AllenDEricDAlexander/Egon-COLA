@@ -211,7 +211,7 @@ def lombokConfig = assertFile("lombok.config").text
 assert rootPom.modules.module*.text() == modules.collect { "student-management-evaluation-${it}" }
 assert rootPom.properties.'organization-facade.group-id'.text() == "top.egon.internal.archetype.source"
 assert rootPom.properties.'organization-facade.artifact-id'.text() == "egon-cola-source-web-facade"
-assert rootPom.properties.'organization-facade.version'.text() == "0.1.0-SNAPSHOT"
+assert rootPom.properties.'organization-facade.version'.text() == rootPom.properties.'egon-cola.version'.text()
 assert rootPom.properties.'organization-facade.package'.text() == "top.egon.cola.archetype.source.web.facade"
 ["group-id", "artifact-id", "version", "package"].each { part ->
     assert !rootPom.properties."evaluation-facade.${part}".text():

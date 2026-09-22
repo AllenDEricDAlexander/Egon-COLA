@@ -18,11 +18,9 @@ Targets:
 Options:
   --dry-run                         Run the mandatory preflight only (default)
   --publish                         Run preflight, then the Maven deploy lifecycle
-  --fast                            Publish immediately. Skip preflight, dry-run,
-                                    and Maven tests. Same command as:
-                                    ./mvnw -B -ntp -Pgenerated-archetypes -Prelease
-                                    -DtrimStackTrace=false -DskipTests=true
-                                    clean deploy
+  --fast                            Publish immediately. Skip tests, dry-run, and
+                                    release-shape. Still regenerates archetypes so
+                                    published coordinates match this version.
 
   --skip-tests                      Skip Maven test execution in both preflight
                                     and final deploy
@@ -39,8 +37,8 @@ Behavior:
     No deploy is performed unless --publish or --fast is specified.
 
   --fast:
-    Do not generate archetypes, install parents, or run tests.
-    Deploy the root reactor once. .generated must already exist.
+    Regenerate archetypes from the current source, then deploy once.
+    Do not run tests, archetype IT, or release-shape.
     A release version check still runs; it is not a dry-run or test.
 
   --skip-tests:
@@ -539,6 +537,15 @@ if [[ "${mode}" == deploy ]]; then
   fi
 
   echo "Release version: ${version}"
+
+  if [[ "${fast}" == true ]]; then
+    echo
+    echo "Fast publish: installing parents and regenerating archetypes..."
+    "${MVNW}" -B -ntp -N -DskipTests install
+    "${MVNW}" -B -ntp -N -f egon-cola-components/egon-cola-components-bom/pom.xml -DskipTests install
+    "${MVNW}" -B -ntp -N -f egon-cola-archetypes/pom.xml -DskipTests install
+    "${GENERATOR}" generate
+  fi
 
   # -------------------------------------------------------------------------
   # Final Maven deploy arguments

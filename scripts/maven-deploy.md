@@ -101,7 +101,7 @@ Archetype 采用两阶段所有权：维护者只在 `source-projects` 的标准
 4. 同步更新已生成 Archetype 模板根 POM 里的两个消费版本：父 POM `<version>` 和 `<egon-cola.version>`。这两个坐标不在 Reactor 里，`versions-maven-plugin` 不会改到。同时把对应 `generation-manifest.sha256` 的 `rootVersion` 和该 POM 的产品哈希改到新版本。
 5. 安装根 Parent、Components BOM 和 Archetypes Parent。源码 facade 已进入根 Reactor，且源码工程用空 `relativePath` 从本地仓库解析 `egon-cola-archetypes-parent`；父 POM 又 import Components BOM。这两样都不能从当前 Reactor 里直接解析，不先安装，最后的 `validate` 会失败。
 
-源码工程自身的 `0.1.0-SNAPSHOT` 坐标是生成器内部哨兵，不会被 bump。锁目录、`target` 和其他生成文件也不会被编辑；只有上面这两个消费版本及其清单记录会跟着发布版本走。版本以外的源码变化仍要重新执行 `./scripts/generate_archetypes.sh generate`。
+源码工程自身的 `0.1.0-SNAPSHOT` 坐标是生成器内部哨兵，不会被 bump。发布出去的四个对端 facade（service/web 及其 Open）版本是 `${egon-cola.version}`，Archetype 发布 POM 里的依赖在生成时写成同一个版本，因此不会再带 SNAPSHOT。每次 `./scripts/maven-deploy.sh --publish` 或 `--fast` 都会重新生成 Archetype。锁目录和 `target` 不会被 bump 改写。
 
 修改后建议检查：
 
@@ -265,7 +265,7 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 ./mvnw -B -ntp -Pgenerated-archetypes -Prelease -DtrimStackTrace=false -DskipTests=true clean deploy
 ```
 
-`--fast` 不安装父 POM、不生成 archetype、不跑 release-shape。`.generated` 必须已经存在，否则 Maven 会在 deploy 时失败。发布失败就不会上传，不需要先做一轮 dry-run。
+`--fast` 会先安装父 POM 并重新执行 `generate_archetypes.sh generate`，让已发布 Archetype 的父版本、`egon-cola.version` 和对端 facade 依赖都等于本次发布版本，然后再 `clean deploy`。它不跑测试、Archetype IT 和 release-shape。发布失败就不会上传，不需要先做一轮 dry-run。
 
 需要先跑完整预检再发布时，仍使用：
 
@@ -417,7 +417,7 @@ git push origin v5.x.y
 # 2. 两阶段完整预检（不发布）
 ./scripts/maven-deploy.sh --dry-run
 
-# 3. 一键发布（不跑预检和测试；.generated 需已存在）
+# 3. 一键发布（重新生成 archetype，不跑测试和 release-shape）
 ./scripts/maven-deploy.sh --fast
 
 # 需要完整预检再发布时，改用：

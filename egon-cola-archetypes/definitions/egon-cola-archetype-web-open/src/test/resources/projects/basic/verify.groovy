@@ -47,7 +47,7 @@ assert !rootPomText.contains("mybatis-plus-spring-boot3-starter")
 assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
 assert rootPom.properties.'evaluation-facade.group-id'.text() == "top.egon.internal.archetype.source"
 assert rootPom.properties.'evaluation-facade.artifact-id'.text() == "egon-cola-source-service-open-facade"
-assert rootPom.properties.'evaluation-facade.version'.text() == "0.1.0-SNAPSHOT"
+assert rootPom.properties.'evaluation-facade.version'.text() == rootPom.properties.'egon-cola.version'.text()
 assert rootPom.properties.'evaluation-facade.package'.text() == "top.egon.cola.archetype.source.serviceopen.facade"
 moduleNames.each { file("${it}/pom.xml") }
 
