@@ -18,6 +18,38 @@
       "allowedProfiles": ["light", "web", "service"],
       "targetPathPattern": "unsafe.txt",
       "requiredTypes": []
+    },
+    {
+      "id": "po",
+      "artifact": "po",
+      "templateResource": "common/po.java.ftl",
+      "allowedProfiles": ["light", "web", "service"],
+      "targetPathPattern": "{module}/src/main/java/{package}/{type}.java",
+      "requiredTypes": []
+    },
+    {
+      "id": "dao",
+      "artifact": "dao",
+      "templateResource": "common/dao.java.ftl",
+      "allowedProfiles": ["light", "web", "service"],
+      "targetPathPattern": "{module}/src/main/java/{package}/{type}.java",
+      "requiredTypes": ["po"]
+    },
+    {
+      "id": "mapper-xml",
+      "artifact": "mapper-xml",
+      "templateResource": "common/mapper.xml.ftl",
+      "allowedProfiles": ["light", "web", "service"],
+      "targetPathPattern": "{module}/src/main/resources/mybatis/mapper/{domain}/{type}.xml",
+      "requiredTypes": ["dao"]
+    },
+    {
+      "id": "repo",
+      "artifact": "repo",
+      "templateResource": "common/repository.java.ftl",
+      "allowedProfiles": ["light", "web", "service"],
+      "targetPathPattern": "{module}/src/main/java/{package}/{type}.java",
+      "requiredTypes": ["po", "dao"]
     }
   ]
 }
