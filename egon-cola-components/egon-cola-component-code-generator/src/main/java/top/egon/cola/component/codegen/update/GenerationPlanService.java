@@ -136,7 +136,7 @@ public class GenerationPlanService {
         return sha256(canonical.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
-    static String sha256(byte[] bytes) {
+    public static String sha256(byte[] bytes) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
         } catch (NoSuchAlgorithmException exception) {

@@ -1,0 +1,33 @@
+{
+  "configVersion": 1,
+  "projectType": "web",
+  "basePackage": "com.example.order",
+  "domain": "order",
+  "outputRoot": "target/codegen-web-example",
+  "modulePaths": {
+    "domain": "order-service-domain",
+    "application": "order-service-application",
+    "infrastructure": "order-service-infrastructure",
+    "adapter": "order-service-adapter"
+  },
+  "input": {
+    "mode": "schema",
+    "schemaFiles": ["src/test/resources/ddl/schema.sql"]
+  },
+  "logicalTables": ["orders"],
+  "artifacts": ["po", "dao", "mapper-xml", "repo"],
+  "existingTypeMappings": {},
+  "fieldPolicies": {
+    "create": ["code"],
+    "update": ["code"],
+    "result": ["code"],
+    "filter": ["code"],
+    "sort": ["id"]
+  },
+  "apiContract": {
+    "existingErrorMapper": "com.example.order.support.OrdersErrorMapper",
+    "contextSymbol": "com.example.order.support.OrdersContext",
+    "basePath": "/api/orders"
+  },
+  "events": {"enabled": false}
+}
