@@ -1,0 +1,23 @@
+{
+  "formatVersion": 1,
+  "engine": "freemarker",
+  "engineVersion": "2.3.35",
+  "entries": [
+    {
+      "id": "probe",
+      "artifact": "probe",
+      "templateResource": "common/probe.ftl",
+      "allowedProfiles": ["light", "web", "service"],
+      "targetPathPattern": "probe.txt",
+      "requiredTypes": []
+    },
+    {
+      "id": "unsafe",
+      "artifact": "probe",
+      "templateResource": "common/unsafe.ftl",
+      "allowedProfiles": ["light", "web", "service"],
+      "targetPathPattern": "unsafe.txt",
+      "requiredTypes": []
+    }
+  ]
+}
