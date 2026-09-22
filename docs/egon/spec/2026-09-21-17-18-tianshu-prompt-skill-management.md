@@ -4,12 +4,12 @@
 | --- | --- |
 | Document | `2026-09-21-17-18-tianshu-prompt-skill-management.md` |
 | Template Version | `7` |
-| Status | `Review` |
+| Status | `Accepted` |
 | Type | `Feature / Refactor` |
 | Complexity | `Complex` |
 | Complexity Drivers | 全量持久化迁移、多租户认证与Redis隔离、版本快照、跨namespace发布、并发与幂等、旧数据和接口兼容 |
 | Created | `2026-09-21 17:18 Asia/Shanghai` |
-| Updated | `2026-09-21 21:43 Asia/Shanghai` |
+| Updated | `2026-09-23 06:18 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢全量关系持久化和运行时租户隔离；Prompt/Skill管理、跨ns发布、starter、必要RPC适配和组件DDL family扩展 |
@@ -20,7 +20,7 @@
 | Amends | [Namespace设计](../../superpowers/specs/2026-08-01-ddc-namespace-visibility-gateway-integration-design.md) §3.2/3.3：所有天枢身份外围增加tenant；仅AI资源增加namespace归属；[Direct RPC设计](../../superpowers/specs/2026-08-09-ddc-direct-rpc-facade-migration-design.md) §1：机器传输仍Direct，签名升级v2及租户绑定 |
 | Supersedes | None |
 | Depends On | None |
-| Related Specs | [Namespace设计](../../superpowers/specs/2026-08-01-ddc-namespace-visibility-gateway-integration-design.md) §5的旧库事实；[Direct RPC设计](../../superpowers/specs/2026-08-09-ddc-direct-rpc-facade-migration-design.md) §1的传输边界 |
+| Related Specs | [Java/CQE最新规范修订](2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)；[Namespace设计](../../superpowers/specs/2026-08-01-ddc-namespace-visibility-gateway-integration-design.md) §5的旧库事实；[Direct RPC设计](../../superpowers/specs/2026-08-09-ddc-direct-rpc-facade-migration-design.md) §1的传输边界 |
 | Related Plans | None |
 
 ## 1. Summary
@@ -31,7 +31,7 @@ Prompt/Skill独立于现有YAML配置。资源身份是 **tenant + biz + namespa
 
 starter 的 Prompt、Skill 分别默认关闭；启用后按需读取指定或当前已发布版本，走既有Direct RPC。不会自动执行内容、调用模型、同步订阅或创建客户端内容缓存。全量多租户同时覆盖SQL、MDC、Redis键/Topic、本地缓存、后台任务和机器凭据，不能只加tenant_id列。
 
-本稿已吸收用户全部决策，状态为Review，等待用户审核；不是Accepted，不包含生产实现或实施Plan。文档/设计验证与后续PG/SS、RPC、浏览器和迁移运行验证明确分开。
+本稿已吸收用户全部决策，用户后续已确认，状态更新为Accepted；配套Java/CQE修订稿与实施Plan另行Review。本稿自身不包含生产实现。文档/设计验证与后续PG/SS、RPC、浏览器和迁移运行验证明确分开。
 
 审核重点可先看：[数据表、索引与ER](#11-database-design)、[租户与Redis隔离](#15-non-functional-and-cross-cutting-design)、[迁移及回退](#16-compatibility-migration-rollout-and-rollback)、[逐操作接口](#9-interface-definitions)。后续章节的详细字段与门禁用于防止实施自行补业务决策。
 
@@ -217,7 +217,7 @@ UC-007（ACTOR-001/ACTOR-002）：在所属租户独立管理和消费同名资�
 
 ### 5.4 Open major decisions
 
-None。用户已关闭业务选择；本稿仍需其整体审核，不把Review当Accepted。部署时实际tenant映射、数据库连接、旧数据行归属和Redis ACL凭据是§16规定的运维输入，缺失即阻止实际切换，不是可由模型猜测的默认值。
+None。用户已关闭业务选择；本稿已获用户确认，配套修订稿仍按Review单独审核。部署时实际tenant映射、数据库连接、旧数据行归属和Redis ACL凭据是§16规定的运维输入，缺失即阻止实际切换，不是可由模型猜测的默认值。
 
 
 ## 6. Project Technology Context
@@ -3953,7 +3953,7 @@ Redis v3保留到验收结束，不自动搬运跨tenant不明键；新v4从权�
 
 ### 20.4 Relationship and effective-design review
 
-只修订历史设计中与本次多租户及AI namespace归属相关的范围；旧YAML namespace可见性和Direct RPC传输仍有效。原规范不回写，关系使用实际相对链接。当前Review不是Accepted；用户审核后才可能进入后续Plan。
+只修订历史设计中与本次多租户及AI namespace归属相关的范围；旧YAML namespace可见性和Direct RPC传输仍有效。原规范不回写，关系使用实际相对链接。原稿已获确认并更新为Accepted；后续修订稿与Plan在各自文档中保持Review。
 
 ### 20.5 Blocking Manual Check
 
@@ -3981,7 +3981,7 @@ Redis v3保留到验收结束，不自动搬运跨tenant不明键；新v4从权�
 
 **PASS — Ready for user review**
 
-PASS仅代表规格内部完成、供用户审核，不代表实现、数据库迁移或运行验收通过。本轮实际完成的技术探针只有Java21/Lombok构造器组合和Spring局部ObjectMapper API检查；最终文档严格校验与一致性检查结果在交付说明记录。未修改生产代码、未执行迁移、未启动服务、未创建Plan/commit。
+PASS仅代表规格内部完成、供用户审核，不代表实现、数据库迁移或运行验收通过。本轮实际完成的技术探针只有Java21/Lombok构造器组合和Spring局部ObjectMapper API检查；最终文档严格校验与一致性检查结果在交付说明记录。原稿编写阶段未修改生产代码、未执行迁移、未启动服务、未创建Plan/commit；现已另写配套Review计划。
 
 
 

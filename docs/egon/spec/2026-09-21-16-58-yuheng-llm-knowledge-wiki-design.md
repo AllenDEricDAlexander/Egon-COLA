@@ -4,7 +4,7 @@
 | --- | --- |
 | Document | `docs/egon/spec/2026-09-21-16-58-yuheng-llm-knowledge-wiki-design.md` |
 | Template Version | `7` |
-| Status | `Review` |
+| Status | `Accepted` |
 | Type | `Architecture` |
 | Complexity | `Complex` |
 | Complexity Drivers | 三类业务协作、独立模型数据面、企业内容权限与出域策略、持久异步任务、向量版本一致性、流式协议、Wiki 来源追溯及发布 |
@@ -17,11 +17,13 @@
 | Affected Chapters | `§7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18` |
 | Source Requirement | 2026-09-21 用户要求研究 waliapi-java-main 与 waliapi-main，将本地/云端 LLM API 网关、企业本地知识库、LLM Wiki 融入 Yuheng；保持简单分层与单前端；只写 Spec 待审核；忽略 archetypes 改造。后续确认保留当前持久化、本地pgvector和本地embedding模型；首版需要Responses与Anthropic Messages；Wiki暂时直接发布，完整维护状态机/状态模型，审核流程后续接入。 |
 | Baseline Revision | `06f2afd5f28a9da090f4bb397892372c9e49dec2`；初始三个未跟踪项保留；研究期间archetypes出现用户并发修改，本轮不处理；只新增本文件 |
-| Amends | [双引擎隔离](2026-09-02-19-52-gateway-dual-engine-separation.md) §1、§7、§8、§15、§16 的部署数量：增加独立 LLM 数据面；原 API_RPC/MCP 的发布、一致性与角色枚举语义保持。本文尚未批准，不即时改变前文效力。 |
+| Amends | [双引擎隔离](2026-09-02-19-52-gateway-dual-engine-separation.md) §1、§7、§8、§15、§16 的部署数量：增加独立 LLM 数据面；原 API_RPC/MCP 的发布、一致性与角色枚举语义保持。本文业务方向已确认；持久化和 Java 规范以 2026-09-22 修订为准。 |
 | Supersedes | `None` |
 | Depends On | [角色目标分发](2026-09-05-17-10-gateway-role-target-distribution.md) §7、§11、§16 的双目标隔离；[Admin 领域分包](../../superpowers/specs/2026-08-13-gateway-admin-java-type-and-page-scope-design.md) §4、§7 的传统分层与页面级上下文 |
-| Related Specs | [RAG starter](2026-09-10-11-34-egon-cola-component-rag-starter.md) §7、§9、§10；[HTTP 流式传输](../../superpowers/specs/2026-07-30-gateway-openai-streaming-transport-design.md) |
-| Related Plans | `None` |
+| Related Specs | [RAG starter](2026-09-10-11-34-egon-cola-component-rag-starter.md) §7、§9、§10；[HTTP 流式传输](../../superpowers/specs/2026-07-30-gateway-openai-streaming-transport-design.md)；[2026-09-22规范修订](2026-09-22-16-30-yuheng-java-cqe-standards-amendment.md) §5–§20，优先覆盖所列规范 |
+| Related Plans | [实施计划](../plan/2026-09-22-16-30-yuheng-llm-knowledge-wiki-implementation.md) |
+
+> 阅读顺序：本文 `Accepted` 仅表示用户确认了 LLM/知识库/Wiki 业务方向。下方原稿保留当时的 `Review`、JPA/JDBC/Flyway、record、V14 等历史设计描述；这些持久化与 Java 规范内容均由[2026-09-22 规范修订](2026-09-22-16-30-yuheng-java-cqe-standards-amendment.md)覆盖。修订稿及实施计划仍为 `Review`，尚未实施。
 
 ## 1. Summary
 
