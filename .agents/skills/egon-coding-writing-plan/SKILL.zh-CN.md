@@ -7,6 +7,10 @@ description: 当编码任务已有明确且经过审核或接受的 Spec，需�
 
 > 本文件是 `SKILL.md` 的全中文审核镜像，不是 Codex 的运行入口。实际开发使用英文 `SKILL.md`；修改任一版本时必须同步另一版本，确保语义一致。
 
+## 依赖审批与后端模板生成
+
+资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用生成器；当前仅有方案，禁止虚构命令或静默手写替代。
+
 ## Java / CQE effective contract (2026-09-22)
 
 Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.

@@ -1,5 +1,7 @@
 # Java、Spring 与 Egon-COLA 执行规范
 
+Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
+
 Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
 
 > 本文件是 `references/java-spring-egon-coding-standards.md` 的全中文审核镜像。第一个 Java Step 前必须先读取 `references/user-mandated-java-rules.zh-CN.md`，再读取本文；每个 Step 门禁和最终审核都要应用。逐字规则是绝对约束，本文只能补执行证据，不能弱化，也不授权无关清理。
@@ -19,7 +21,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 3. 搜索模块和 Egon-COLA 已有 Entity/PO、BO/DTO/VO、Query/Command/Event、Converter、Validator、Component、Repository/DAO、Gateway、Service/Domain Service、Exception、Result、Enum、工具、Starter 和基础设施；
 4. 对照当前路径和解析依赖重新验证 Plan 复用账本；
 5. 优先 JDK/Spring/Spring Boot，再选已有 Starter、Egon-COLA Component/公共设施或模块内抽象；
-6. 只有有效 Spec/Plan 已记录当前能力缺口、候选、版本归属、维护/安全/运维影响和必要批准时，才允许额外成熟依赖或自研。
+6. 只有有效 Spec/Plan 已记录当前能力缺口、候选、版本归属、维护/安全/运维影响和用户明确批准时，才允许额外成熟依赖或自研。
 
 禁止混合架构或重复能力。必须重新核实 common core `BaseConverter<S,T>` / `BaseForwardConverter<S,T>`、`ValidationUtils`、MapStructPlus、Starter Validation 和 Archetype Qualifier 传播等候选。
 

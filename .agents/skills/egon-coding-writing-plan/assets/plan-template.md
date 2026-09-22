@@ -362,3 +362,7 @@ Use exactly one:
 ## Java / CQE contract review
 
 Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.
+
+## Backend generation and dependency evidence
+
+Read `references/backend-code-generation.md`. For affected DDL/CRUD scaffolding record the verified generator, profile, DDL/manifest version, logical tables, output paths and exact artifacts; identify generated versus custom files and update/hash conflicts. Record current dependency evidence and explicit approval for each introduction. Absent tooling or unapproved missing dependencies blocks the dependent work.

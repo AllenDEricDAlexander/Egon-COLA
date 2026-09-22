@@ -1,5 +1,7 @@
 # Java, Spring, and Egon-COLA Planning Standards
 
+Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
+
 Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
 
 Read `references/user-mandated-java-rules.md` first, then this reference completely for every Java Plan. The literal rules are absolute; this reference adds repository planning evidence and cannot weaken them. It does not authorize redesign or unrelated refactoring.

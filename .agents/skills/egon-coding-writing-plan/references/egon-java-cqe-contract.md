@@ -1,5 +1,7 @@
 # Egon Java / CQE effective contract · Java 与 CQE 生效规范
 
+Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
+
 Updated: 2026-09-22. Read this reference for every Java Spec, Plan and execution audit. It supersedes field-count-based records, unconditional builder choices, utility-only validation and CQRS naming. Apply only to the requested change surface; a documentation update does not authorize rewriting existing Java or SQL.
 
 ## POJO, value object and enums · 对象与枚举

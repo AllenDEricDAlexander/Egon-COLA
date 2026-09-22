@@ -101,3 +101,7 @@ Use these scenarios after changing this skill.
 - **Soft-delete key**: A nullable deleted_at is appended to business uniqueness. Expected: retain the composite key and prove active-row NULL behavior, delete/recreate and old-constraint removal.
 - **CQE event**: A local listener logs success. Expected: this is not event delivery; require actual outbox/MQ routing and describe atomicity/recovery limits.
 - **Validation extension**: A reusable cross-field rule needs a custom constraint. Expected: @Constraint/ConstraintValidator plus @Valid/@Validated/groups; no utility-only implementation.
+
+- **Unapproved managed dependency**: A needed tool is listed in the BOM but absent from the module. Expected: block and present its exact introduction plan; BOM presence is not permission.
+- **Selective regeneration conflict**: The user requests mapper XML only after a DDL change, and an existing XML contains manual edits. Expected: report the conflict, preserve that file and all unselected Java files, and request a concrete resolution.
+- **Unavailable generator**: Only a proposal exists. Expected: report tooling unavailable; do not invent a command or silently generate covered boilerplate by hand.

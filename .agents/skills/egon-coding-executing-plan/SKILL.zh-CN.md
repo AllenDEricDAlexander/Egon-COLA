@@ -2,6 +2,10 @@
 
 # EGON Coding Plan 分步执行
 
+## 依赖审批与后端模板生成
+
+资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用生成器；当前仅有方案，禁止虚构命令或静默手写替代。
+
 ## Java / CQE effective contract (2026-09-22)
 
 Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.

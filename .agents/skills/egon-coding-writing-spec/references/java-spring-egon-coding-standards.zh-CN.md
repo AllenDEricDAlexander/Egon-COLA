@@ -1,5 +1,7 @@
 # Java、Spring 与 Egon-COLA 编码规范
 
+Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
+
 Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
 
 > 本文件是 `references/java-spring-egon-coding-standards.md` 的全中文审核镜像。每个 Java coding Spec 必须先读取 `references/user-mandated-java-rules.zh-CN.md`，再读取本文件。用户逐字规则是绝对约束；本文增加仓库证据要求，不能把“必须/只允许/不允许”改成建议。本规范不授权无关存量大重构。
@@ -43,7 +45,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 平台能力优先复用匹配的 Egon-COLA 组件；剩余缺口检查 JDK/Spring、已有 Starter 与模块实现，再决定新增依赖或自研。
 
-新增依赖或重复抽象在 Spec 写清准确能力缺口、已检查候选及不足、版本/维护/安全/运维影响，并在影响重大时获得用户批准前，属于阻断项。不得本地重复实现 Spring 或 Egon-COLA 已有能力。
+新增依赖或重复抽象在 Spec 写清准确能力缺口、已检查候选及不足、版本/维护/安全/运维影响，并在任何依赖引入前获得用户明确批准前，属于阻断项。不得本地重复实现 Spring 或 Egon-COLA 已有能力。
 
 当前仓库证据包括：
 

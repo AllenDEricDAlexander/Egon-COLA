@@ -45,3 +45,7 @@ docs/egon/plan/YYYY-MM-DD-HH-MM-ABSTRACT.md
 - Execute Plan skill 使用路径受限暂存与提交，保留所有无关工作；禁止空提交、跨 Step 合并提交和自动改写历史。
 - 最终 Spec 审核必须逐项标记 `Satisfied`、`Partial`、`Not satisfied` 或 `Runtime unverified`；发现缺口只汇报，不静默追加未计划实现。
 - 除非用户明确要求，任何 skill 都不会自动启动项目、数据库、浏览器、部署或外部运行环境。
+
+## 后端模板生成与依赖审批
+
+三个 skill 已接入统一的 `references/backend-code-generation.md` 约束：不允许自行引入依赖，缺口必须阻断并提交用户审批方案；未来通过生成器生成已支持的后端模板，只处理获准的目录、表和产物范围。生成器目前处于方案阶段，尚无可调用命令；本次 skill 更新不代表生成器已经实现。

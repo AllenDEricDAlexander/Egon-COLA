@@ -1,5 +1,7 @@
 # Java, Spring, and Egon-COLA Execution Standards
 
+Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
+
 Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
 
 Read `references/user-mandated-java-rules.md` first, then this reference before the first Java Step, at every Step gate, and during the final audit. The literal rules are absolute; this reference adds execution evidence and cannot weaken them. These rules do not authorize unrelated cleanup.
@@ -21,7 +23,7 @@ Before editing the first Step, and again when a Step touches a new module:
 3. search the module and Egon-COLA for existing Entity/PO, BO/DTO/VO, Query/Command/Event, Converter, Validator, Component, Repository/DAO, Gateway, Service/Domain Service, Exception, Result, Enum, utility, Starter, and infrastructure capabilities;
 4. verify the Plan's reuse ledger against current paths and resolved dependencies;
 5. use JDK/Spring/Spring Boot first, then an existing Starter, Egon-COLA Component/common infrastructure, or module-local abstraction;
-6. permit an additional mature dependency or custom implementation only when the effective Spec/Plan records a current capability gap, alternatives, version ownership, maintenance/security/operational impact, and required approval.
+6. permit an additional mature dependency or custom implementation only when the effective Spec/Plan records a current capability gap, alternatives, version ownership, maintenance/security/operational impact, and explicit user approval before dependency introduction.
 
 Do not hybridize architectures or duplicate existing capability. Repository candidates must be reverified and may include common-core `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` and `ValidationUtils`, MapStructPlus, starter validation, and archetype Qualifier propagation.
 

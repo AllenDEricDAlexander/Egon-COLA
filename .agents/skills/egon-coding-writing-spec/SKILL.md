@@ -5,6 +5,10 @@ description: Use when a coding task needs a repository-grounded RFC-style specif
 
 # EGON Coding Spec Writing
 
+## Dependency approval and backend template generation
+
+After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator for supported templates; it is currently only proposed, so never invent commands or silently handwrite a replacement.
+
 ## Java / CQE effective contract (2026-09-22)
 
 Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.

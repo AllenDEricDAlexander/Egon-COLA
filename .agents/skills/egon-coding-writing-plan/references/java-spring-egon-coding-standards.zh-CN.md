@@ -1,5 +1,7 @@
 # Java、Spring 与 Egon-COLA Plan 规范
 
+Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
+
 Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
 
 > 本文件是 `references/java-spring-egon-coding-standards.md` 的全中文审核镜像。每个 Java Plan 必须先读取 `references/user-mandated-java-rules.zh-CN.md`，再完整读取本文。逐字规则是绝对约束；本文增加仓库规划证据，不能弱化规则，也不授权重设计或无关重构。
@@ -21,7 +23,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 5. 建立复用账本，逐项记录候选、准确路径/依赖、能力、适配/缺口、决策和所属 Step；
 6. 对每个额外依赖或自研替代证明需要、版本归属、维护/安全/运维影响和批准情况。
 
-组件已覆盖的能力必须优先复用 Egon-COLA；剩余能力检查 JDK/Spring、已有 Starter 和模块内实现，缺口有证据后才引入依赖或自研。不得重复实现 Spring/Egon-COLA 已有能力。
+组件已覆盖的能力必须优先复用 Egon-COLA；剩余能力检查 JDK/Spring、已有 Starter 和模块内实现，缺口有证据后先阻断并由用户批准具体依赖引入方案，再进行依赖修改；不得自行引入。不得重复实现 Spring/Egon-COLA 已有能力。
 
 必须在当前基线重新核实。候选包括 common core 的 `BaseConverter<S,T>` / `BaseForwardConverter<S,T>`、`ValidationUtils`、MapStructPlus、`spring-boot-starter-validation`、Archetype `lombok.config` 的 Qualifier 传播以及 light/service/web 与 Open Archetype。
 

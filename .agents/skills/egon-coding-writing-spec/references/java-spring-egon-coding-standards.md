@@ -1,5 +1,7 @@
 # Java, Spring, and Egon-COLA Coding Standards
 
+Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
+
 Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modeling, enum, MP, validation, uniqueness, CQE and architecture contract.
 
 Read `references/user-mandated-java-rules.md` first, then this reference for every Java coding Spec. The literal rules are absolute; this document adds repository evidence and does not convert any “must/only/not allowed” into a preference. These are blocking design constraints for newly added or modified code, not permission to refactor unrelated legacy code.
@@ -43,7 +45,7 @@ Before selecting an implementation:
 
 For platform capabilities, reuse the matching Egon-COLA component first. For remaining gaps inspect existing JDK/Spring APIs, starters and module-local abstractions before introducing a new dependency or implementation.
 
-An additional dependency or duplicate abstraction is a blocking design decision until the Spec states the exact missing capability, candidates inspected, why each is insufficient, dependency/version/maintenance/security/operational impact, and user approval when the impact is material. Do not reproduce Spring or Egon-COLA functionality locally.
+An additional dependency or duplicate abstraction is a blocking design decision until the Spec states the exact missing capability, candidates inspected, why each is insufficient, dependency/version/maintenance/security/operational impact, and explicit user approval before any dependency introduction. Do not reproduce Spring or Egon-COLA functionality locally.
 
 Repository evidence currently includes:
 
