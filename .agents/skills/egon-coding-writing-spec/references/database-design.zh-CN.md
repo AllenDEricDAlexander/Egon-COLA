@@ -71,7 +71,7 @@
 
 Schema 变更使用 `EgonColaPostgreDdlRunner`、SHA-256 Manifest 和 `ddl_history`。Runner 接受显式物理 PRIMARY/schema/role 目标，先拿 schema advisory lock，再在同一连接、同一事务提交脚本 SQL 和 `ddl_history`。未知提交结果用新连接核实后再决定是否重试。
 
-- 一次数据库变更只新增下一个 classpath SQL 脚本和 Manifest 条目。不得修改、重命名、重排、格式化或 Repair 已应用脚本或其校验和。
+- 一次数据库变更只新增下一个 classpath SQL 脚本和 Manifest 条目。不得修改、重命名、重排、格式化或 Repair 已应用脚本或其校验和。native light/web/service 上，这份 SQL 是生成器输入。目录内 Java 与 Mapper XML 只按 `references/backend-code-generation.md` 刷新；本章设计 Schema，不设计手写目录类。
 - 非空未受管 Schema、校验和漂移和路由指纹变化需要人工处理。没有自动 DROP、repair 或历史导入。
 - 不得把 DDL 目标注册为默认 MyBatis-Plus `IDdl` Bean，也不得与 `DdlApplicationRunner` 混用。
 

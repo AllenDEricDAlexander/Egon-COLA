@@ -7,7 +7,7 @@ description: Use when a coding task has a specific reviewed or accepted specific
 
 ## Dependency approval and backend template generation
 
-After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement. After each such apply, or after a plan that is the last authorized generator action, append the classpath SQL journal required by references/backend-code-generation.md.
+After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement. On native light, web, and service, a SQL change refreshes catalog-owned Java and Mapper XML only through that generator: the model writes the SQL, the manifest, and the generator config. A new business project is created by egon-coding-create-new-module from one non-open archetype, not by handwriting a module tree. After each such apply, or after a plan that is the last authorized generator action, append the classpath SQL journal required by references/backend-code-generation.md.
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -74,7 +74,7 @@ Do not translate, renumber, correct, shorten, or paraphrase this block. `referen
 10. Pseudocode must be implementation-bearing but not production code. Use actual class/function/component/table names, signatures, field mappings, branches, calls, state changes, error paths, transactions, and assertions in the repository's language and framework style.
 11. Determine file order from real dependencies. Do not mechanically apply a layer list when migration, generated code, contract publication, cross-module compilation, or frontend/backend compatibility requires a different order.
 12. Include all applicable migrations, configuration, permissions, observability, documentation, compatibility, rollout, rollback, and release verification files in the ordered steps.
-13. Use the MP-SDJ starter distributed DDL runner. For one database change, plan one next SQL version plus its SHA-256 manifest entry; preserve applied scripts/history and define per-target failure/retry behavior.
+13. Use the MP-SDJ starter distributed DDL runner. For one database change, plan one next SQL version plus its SHA-256 manifest entry; preserve applied scripts/history and define per-target failure/retry behavior. On native light/web/service, every catalog-owned Java or Mapper XML path touched by that SQL is a later `GENERATED` file. Its pseudocode is the generator config and `scripts/egon-codegen.sh plan`/`apply`, not a handwritten class body. Follow `references/backend-code-generation.md`.
 14. Review the finished Plan against both the original user requirements recorded by the Spec and the effective Spec design. Fix omissions and inconsistencies before delivery.
 15. Do not mark a Plan `Ready` without an explicitly accepted primary Spec and explicit user/decision-owner approval of the Plan. A complete Plan awaiting review is `Review`; a Spec or decision blocker requires `Draft` or `Blocked`.
 16. Read `references/file-by-file-planning.md` completely. Every Step must state baseline/end state, test-first applicability, exact ordered files, validation working directory, commit paths, and one semantic outcome. Every file must include current repository evidence, dependencies/consumers, input/output/state mapping, error/edge behavior, implementation-bearing pseudocode, verification contribution, and after-file state.
@@ -173,7 +173,7 @@ Each Step must use this sequence contract:
 4. State the validation working directory, exact focused verification command, exact success result, and failure return point.
 5. State completion evidence, rollback point, exact commit paths, and one semantic commit message.
 
-Good Java pseudocode names annotations, method signatures, collaborators, transaction boundaries, domain calls, mapper/repository operations, exceptions, and assertions. Good TypeScript/React pseudocode names props/types, hooks/state, API calls, render branches, events, and component tests. Good SQL pseudocode names the new migration, DDL/DML, constraints, indexes, backfill, guards, and rollback/forward-fix limits.
+Good Java pseudocode names annotations, method signatures, collaborators, transaction boundaries, domain calls, mapper/repository operations, exceptions, and assertions. Catalog-owned files are the exception: their pseudocode names the generator config and `scripts/egon-codegen.sh` command, not a class body. Follow `references/backend-code-generation.md`. Good TypeScript/React pseudocode names props/types, hooks/state, API calls, render branches, events, and component tests. Good SQL pseudocode names the new migration, DDL/DML, constraints, indexes, backfill, guards, and rollback/forward-fix limits.
 
 Avoid placeholders such as “implement service,” “handle errors,” “update frontend,” or “run tests.” The implementer must not need to invent architecture or file order.
 
@@ -228,6 +228,7 @@ Use exactly one:
 | Leaving Complex business variation as direct branching | Add the effective-Spec-selected pattern participants, wiring, orchestration, and tests |
 | Marking PASS with a missing/failed/unknown Manual Check | Close every blocker with evidence or use `BLOCKED`/`REVISE` |
 | Writing code or starting runtime after the Plan | Stop and deliver for user review |
+| Planning handwritten Java bodies for catalog-owned files after a SQL change | Mark those paths `GENERATED` and plan the generator config plus `plan`/`apply`. Handwritten Java is only for behavior the catalog does not own |
 
 ## Skill maintenance
 

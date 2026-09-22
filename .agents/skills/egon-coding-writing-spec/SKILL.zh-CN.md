@@ -9,7 +9,7 @@ description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风�
 
 ## 依赖审批与后端模板生成
 
-资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
+资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。native light、web、service 上，SQL 变动只通过该生成器刷新目录内的 Java 与 Mapper XML：模型只写 SQL、Manifest 和生成器配置。新业务项目由 egon-coding-create-new-module 按一个非 open archetype 生成，不能手写模块骨架。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -79,7 +79,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 12. 交付前必须对照原始用户需求和当前仓库复核。内部缺陷自行修复，只把仍未解决的重大决策交给用户。
 13. Java 对象必须按真实边界和生命周期职责分类，遵循 `references/pojo-modeling.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。新增或实质修改载体使用 PO、BO、DTO、VO、Query、Command、Event、Request、Response、PageQuery、PageResult 等明确后缀；DAO 表示访问组件。不得默认创建平行类，禁止新增含糊的 `Data`、`Info`、`Param`、`Bean` 载体名。
 14. 防止类爆炸。每个独立对象和 Mapper 都必须有具体语义依据。PO/ORM Entity 只有在仓库惯例和生命周期依据充分时才能继承；具体业务 Service 默认采用组合与委托，不采用继承。
-15. Java 分包设计前必须把当前项目准确分类为一种允许形态：`references/three-layer-architecture.zh-CN.md` 定义的传统结构，或准确选中的 `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` 脚手架契约（包括明确选中的 Open 变体）。保持该形态及其 Verifier/依赖方向，禁止发明、混搭或重命名层/模块。项目不符合任一形态或证据冲突时，必须作为重大阻断询问用户。
+15. Java 分包设计前必须把当前项目准确分类为一种允许形态：`references/three-layer-architecture.zh-CN.md` 定义的传统结构，或准确选中的 `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` 脚手架契约（包括明确选中的 Open 变体）。保持该形态及其 Verifier/依赖方向，禁止发明、混搭或重命名层/模块。项目不符合任一形态或证据冲突时，必须作为重大阻断询问用户。本 skill 不创建项目。新业务模块先由 `egon-coding-create-new-module` 从唯一的非 open archetype（`light`、`service`、`web` 或 `agent`）生成。新模块不得选择 `-open` 坐标，也不得复制 `source-projects`。已有 open 或传统三层保持现状。生成器仍不覆盖 open、agent 和传统三层，这些形态不能成为手写 native 目录产物的理由。
 16. 必须使用 `references/complex-scenario-analysis.zh-CN.md` 把 Spec 分类为 `Simple` 或 `Complex`。Complex Spec 在选择架构前必须完成证据图谱、场景矩阵、所有权/一致性分析、质量约束和“证据到决策”结论链；Simple Spec 不得为了形式套用重型分析。
 17. 第 7 章必须分为系统架构设计、概要设计和详细设计，但只描述受影响协作和证明边界所需的上下文。Complex Spec 必须包含架构 Mermaid Flowchart、独立的关键业务/控制 Flowchart，以及覆盖主要参与者/重要失败的 Mermaid 泳道图/Sequence Diagram；聚焦 Simple Spec 不得增加装饰性的全系统图。
 18. HTTP/RPC/事件/Job/内部 Service 契约为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md`。外部 REST 或 GraphQL API 为 `Affected` 时，还必须完整读取 `references/api-rest-cqe-graphql-openapi.zh-CN.md`。一个原子 REST Method + URL、GraphQL Root Field Operation Contract 或其他协议操作分配一个接口 ID，禁止合并 CRUD 接口族，也禁止只把 `/graphql` 当成 Operation。清单和完整详情只覆盖发生变化的契约。每个外部 API 必须分类 REST/GraphQL 风格与 Query/Command/Subscription 角色，设计 OpenAPI 3 或 GraphQL Schema 文档，并关闭全部 `API-GATE-*`。已有接口只是 `Context-only` 或 `Unchanged` 时，只引用准确当前符号/路由和保持不变量，不复写完整入参/出参、注解或 SDL。
@@ -290,6 +290,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 对已有但不变的层写 `N/A` | 使用 `Unchanged`，写准确证据、保持不变量、停止原因和聚焦验证 |
 | 删除不适用章节 | 保留章节并写有证据的 `N/A`；不能混淆 `Not applicable` 与 `Unchanged` |
 | 编写实施顺序或代码 | 停在设计阶段；审核后使用 `egon-coding-writing-plan` |
+| SQL 变更或新项目时手写目录内的 PO/DAO/XML/Repository，或手写模块树 | native light/web/service 上，按 `references/backend-code-generation.md` 把目录文件标成生成器所有。新项目用 `egon-coding-create-new-module` 从一个非 open archetype 生成 |
 
 ## Skill 维护
 

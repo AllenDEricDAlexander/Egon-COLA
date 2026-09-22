@@ -71,7 +71,7 @@ Default `transaction-default-type: LOCAL`. Design writes so all shard keys in on
 
 Schema change uses `EgonColaPostgreDdlRunner` with SHA-256 manifests and `ddl_history`. The runner takes explicit physical PRIMARY/schema/role targets, takes a schema advisory lock, and commits script SQL and `ddl_history` on one connection in one transaction. Unknown commit outcomes are checked on a new connection before any retry.
 
-- Add the next classpath SQL script and manifest entry for one schema change. Never edit, rename, reorder, reformat, or repair an already-applied script or its checksum.
+- Add the next classpath SQL script and manifest entry for one schema change. Never edit, rename, reorder, reformat, or repair an already-applied script or its checksum. On native light/web/service, that SQL is generator input. Catalog Java and Mapper XML are refreshed only through `references/backend-code-generation.md`; this chapter designs the schema, not handwritten catalog classes.
 - Non-empty unmanaged schemas, checksum drift, and route-fingerprint changes require operator action. There is no automatic DROP, repair, or history adoption.
 - Do not register DDL targets as default MyBatis-Plus `IDdl` beans or combine this runner with `DdlApplicationRunner`.
 

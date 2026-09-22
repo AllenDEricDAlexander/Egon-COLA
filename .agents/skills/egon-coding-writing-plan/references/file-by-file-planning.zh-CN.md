@@ -103,8 +103,11 @@ Java 行为：
 前端行为：
 组件/Hook 测试 -> API/Type 契约 -> Client/Query Hook -> Component/Page -> Route/接线 -> 聚焦+Typecheck
 
-数据库变更：
+已有传统三层的数据库变更：
 Migration 契约测试 -> 新 Migration -> PO/Mapper -> DAO Query -> Service 兼容 -> Migration+集成测试
+
+native light/web/service 的数据库变更：
+Migration 契约测试 -> 下一版 SQL + Manifest -> 用 scripts/egon-codegen.sh plan/apply 生成目录文件 -> 只手写目录不拥有的业务代码 -> 集成测试
 
 生成 RPC：
 Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapter -> Consumer Test
@@ -130,7 +133,7 @@ Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapt
 | Verification contribution | 哪个测试/门禁观察该文件行为 |
 | After this file | Compile/RED/GREEN/已接线状态和剩余缺口 |
 
-`DELETE` 必须说明消费者已删除、替代物、搜索证据、生成引用、兼容和如何验证不存在。`RENAME` 写明两个路径和全部引用。`GENERATED` 写明 Source of Truth 和准确生成命令，不能手改生成产物。
+`DELETE` 必须说明消费者已删除、替代物、搜索证据、生成引用、兼容和如何验证不存在。`RENAME` 写明两个路径和全部引用。`GENERATED` 写明 Source of Truth 和准确生成命令，不能手改生成产物。native light/web/service 上，目录内 Java 和 Mapper XML 使用 `GENERATED`，命令是 `scripts/egon-codegen.sh`。遵循 `references/backend-code-generation.md`。不要为这些路径规划手写类体。
 
 ## 伪代码质量标准
 
@@ -315,7 +318,9 @@ return <OrderTable rows={query.data.items} />;
 
 ## 数据库 Migration 完整 Step 示例
 
-文件顺序通常包括：
+下面的顺序是已有传统三层的示例。native light/web/service 上，用手写 PO/Mapper/DAO 的位置换成一个 `GENERATED` Step：运行 `scripts/egon-codegen.sh plan`，再 `apply`。遵循 `references/backend-code-generation.md`。不要把本示例的手写 PO 抄到 native archetype 项目上。
+
+传统三层的文件顺序通常包括：
 
 1. 断言缺失字段/约束/索引或当前失败的 Migration/Schema 契约测试；
 2. 正好一个供 MP-SDJ 分布式 DDL Runner 使用的新 SQL 版本及其 SHA-256 Manifest 条目；

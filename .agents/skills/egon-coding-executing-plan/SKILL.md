@@ -7,7 +7,7 @@ description: Use when an approved coding Plan must be implemented one Step at a 
 
 ## Dependency approval and backend template generation
 
-After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement. After each such apply, or after a plan that is the last authorized generator action, append the classpath SQL journal required by references/backend-code-generation.md.
+After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement. On native light, web, and service, a SQL change refreshes catalog-owned Java and Mapper XML only through that generator: the model writes the SQL, the manifest, and the generator config. A new business project is created by egon-coding-create-new-module from one non-open archetype, not by handwriting a module tree. After each such apply, or after a plan that is the last authorized generator action, append the classpath SQL journal required by references/backend-code-generation.md.
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -101,7 +101,7 @@ Pending -> In Progress -> Verified -> Committed
 12. Never create an empty commit to simulate Step completion. If a Step is already implemented or produces no semantic diff, classify it as repository/Plan drift and stop for direction.
 13. After committing, verify the commit hash, file list, diff summary, validation evidence, and remaining worktree state. Record the commit against the Step before advancing.
 14. Do not amend, squash, reset, or rewrite committed history automatically. If a later Step exposes a defect in an earlier commit, stop advancing, make the smallest dedicated corrective commit attributed to the originating Step, rerun affected gates, and report the deviation.
-15. Use MP-SDJ distributed managed DDL; execute only the planned new SQL version and manifest update. Preserve applied SQL/history and verify per-target retry semantics.
+15. Use MP-SDJ distributed managed DDL; execute only the planned new SQL version and manifest update. Preserve applied SQL/history and verify per-target retry semantics. On native light/web/service, do not type the catalog Java or Mapper XML that this SQL changes. Run `scripts/egon-codegen.sh plan`, then `apply` only the planned actions, and append the classpath SQL journal in `references/backend-code-generation.md`. A conflict or missing classpath blocks the Step.
 16. Do not silently skip, reorder, merge, split, or expand Steps. Obtain user approval for a material execution-sequence change.
 17. Every coding Step has a blocking Manual Check. At Step lock, enumerate all applicable stable `MC-*` IDs from `references/java-spring-egon-coding-standards.md`; before commit, evaluate each row manually with concrete diff/path/symbol/command evidence. `MC-SCOPE-001` and `MC-TEST-001` always apply.
 18. A Step cannot become `Verified` or be committed as complete while any applicable Manual Check is `FAIL`, `BLOCKED`, `UNKNOWN`, missing, lacks evidence, or has an unresolved exception. Evidence-backed `N/A` is allowed only when the concern is truly outside the Step.
@@ -254,6 +254,7 @@ Never claim full completion when any effective requirement is `Partial`, `Not sa
 | Only Controller input is validated | Add and verify Validation/groups at every affected layer handoff before commit |
 | Complex business logic remains `if/else` or `switch` | Implement the approved design-pattern participants and tests before commit |
 | Starting the project automatically | Leave runtime testing to the user unless explicitly requested |
+| Typing catalog Java or Mapper XML after a SQL change, or finishing a generator conflict by hand | Run `scripts/egon-codegen.sh` for the planned actions. Stop on `CONFLICT` or `BLOCKED_TOOLING` |
 
 ## Skill maintenance
 

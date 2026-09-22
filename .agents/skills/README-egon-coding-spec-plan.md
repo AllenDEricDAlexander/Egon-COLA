@@ -1,7 +1,8 @@
 # EGON Coding Spec / Plan / Execution Skills
 
-本目录包含三个仅面向 coding 场景的仓库级 skill：
+本目录包含四个仅面向 coding 场景的仓库级 skill：
 
+- `$egon-coding-create-new-module`：用一个非 open 的 `egon-cola-archetype-{light,service,web,agent}` 生成真实业务项目。不选手写骨架，不选 `-open`。
 - `$egon-coding-writing-spec`：基于当前仓库编写系统架构、概要设计或详细设计 Spec，输出到 `docs/egon/spec`。
 - `$egon-coding-writing-plan`：基于一份明确 Spec 编写有严格文件顺序和语言化伪代码的实施 Plan，输出到 `docs/egon/plan`。
 - `$egon-coding-executing-plan`：基于一份已获准执行的 Plan 逐 Step 修改、验证并提交代码；每个 Step 必须形成独立提交，最后独立审核实现是否满足全部有效 Spec。
@@ -14,6 +15,8 @@
 ## 典型工作流
 
 ```text
+新业务项目：$egon-coding-create-new-module 选择唯一非 open archetype 并 archetype:generate
+用户审核生成结果
 $egon-coding-writing-spec 为当前编码需求编写技术 Spec
 用户审核并明确接受 Spec
 $egon-coding-writing-plan 基于 docs/egon/spec/2026-08-15-14-30-example-design.md 编写实施 Plan
@@ -48,4 +51,4 @@ docs/egon/plan/YYYY-MM-DD-HH-MM-ABSTRACT.md
 
 ## 后端模板生成与依赖审批
 
-三个 skill 已接入统一的 `references/backend-code-generation.md` 约束：不允许自行引入依赖，缺口必须阻断并提交用户审批方案。已验证的后端生成器入口是 `scripts/egon-codegen.sh`，说明见 `egon-cola-components/egon-cola-component-code-generator/README.md`。Spec 选择 DDL、native Light/Web/Service 和产物范围；Plan 固定配置与已有类型；Execute 先 `plan` 再只 apply 获准文件。FreeMarker 2.3.35 只属于生成器工具。Agent、Open 和传统三层不在生成范围内。人工修改过的业务代码仍归用户所有。每次 skill 驱动的生成还要把用到的 `src/main/resources/db/` SQL 追加到 `docs/egon/codegen/ddl-consumption-log.md`：时间、执行到的版本、路径和完整 SQL。该文件不是数据库执行记录。
+三个设计/实施 skill 各自带一份必须保持相同的 `references/backend-code-generation.md`：不允许自行引入依赖，缺口必须阻断并提交用户审批方案。已验证的后端生成器入口是 `scripts/egon-codegen.sh`，说明见 `egon-cola-components/egon-cola-component-code-generator/README.md`。Spec 选择 DDL、native Light/Web/Service 和产物范围；Plan 把目录文件标成 `GENERATED`，伪代码是生成器配置和命令；Execute 先 `plan` 再只 apply 获准文件。native light/web/service 上，SQL 变动不能由模型改目录产物（PO、DAO、Mapper XML、Repository 以及 catalog 中的其余 CRUD 类型）。模型只写 SQL、Manifest 和生成器配置。FreeMarker 2.3.35 只属于生成器工具。Agent、Open 和传统三层不在生成范围内，也不能用手写 native 目录产物绕过。人工修改过的业务代码仍归用户所有。每次 skill 驱动的生成还要把用到的 `src/main/resources/db/` SQL 追加到 `docs/egon/codegen/ddl-consumption-log.md`：时间、执行到的版本、路径和完整 SQL。该文件不是数据库执行记录。

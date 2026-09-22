@@ -103,8 +103,11 @@ focused test -> contract/data type -> DAO/mapper -> service.impl -> controller/w
 Frontend behavior:
 component/hook test -> API/type contract -> client/query hook -> component/page -> route/wiring -> focused + typecheck
 
-Database change:
+Database change on an existing traditional tree:
 migration contract test -> new migration -> PO/mapper -> DAO query -> service compatibility -> migration + integration test
+
+Database change on native light/web/service:
+migration contract test -> next SQL version + manifest -> GENERATED catalog files via scripts/egon-codegen.sh plan/apply -> only business code the catalog does not own -> integration test
 
 Generated RPC:
 proto/IDL contract test -> IDL -> generation command/output -> provider -> client adapter -> consumer test
@@ -130,7 +133,7 @@ Every `#### File N` block must contain:
 | Verification contribution | Which test/gate observes this file's behavior |
 | After this file | Compile/RED/GREEN/wired state and known remaining gap |
 
-For `DELETE`, explain consumers already removed, replacement if any, search proof, generated references, compatibility, and how validation proves absence. For `RENAME`, name both paths and every reference update. For `GENERATED`, name the source-of-truth file and exact generation command; never hand-edit generated output.
+For `DELETE`, explain consumers already removed, replacement if any, search proof, generated references, compatibility, and how validation proves absence. For `RENAME`, name both paths and every reference update. For `GENERATED`, name the source-of-truth file and exact generation command; never hand-edit generated output. On native light/web/service, catalog Java and Mapper XML use `GENERATED` with `scripts/egon-codegen.sh`. Follow `references/backend-code-generation.md`. Do not plan a handwritten class body for those paths.
 
 ## Pseudocode quality bar
 
@@ -315,7 +318,9 @@ Name where tenant/identity comes from. Do not plan a parameter-fetch query when 
 
 ## Database migration worked Step
 
-The file order normally includes:
+The order below is the existing traditional three-layer example. On native light/web/service, replace the handwritten PO/mapper/DAO files with one `GENERATED` step that runs `scripts/egon-codegen.sh plan` then `apply`. Follow `references/backend-code-generation.md`. Do not copy this example's handwritten PO onto a native archetype project.
+
+The traditional file order normally includes:
 
 1. migration/schema contract test asserting the missing column/constraint/index or current failure;
 2. exactly one next SQL version plus its SHA-256 manifest entry for the MP-SDJ distributed DDL runner;

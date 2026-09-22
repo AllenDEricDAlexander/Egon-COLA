@@ -287,7 +287,7 @@ State when to run focused, module, cross-module, full, migration, frontend, and 
 
 ## 9. Migration, Compatibility, Rollout, and Rollback
 
-Define the exact order for applicable migration files, generated contracts, data backfill, dual-read/write, API/event compatibility, configuration, feature flags, deployment, post-deploy checks, rollback, and forward-fix. For MP-SDJ managed DDL, name the next SQL version, manifest entry, physical targets and partial-failure recovery; preserve applied SQL/history.
+Define the exact order for applicable migration files, generated contracts, data backfill, dual-read/write, API/event compatibility, configuration, feature flags, deployment, post-deploy checks, rollback, and forward-fix. For MP-SDJ managed DDL, name the next SQL version, manifest entry, physical targets and partial-failure recovery; preserve applied SQL/history. On native light/web/service, catalog Java and Mapper XML paths touched by that SQL are later `GENERATED` steps. Their pseudocode is the generator config and `scripts/egon-codegen.sh plan`/`apply`, not a class body. Follow `references/backend-code-generation.md`.
 
 Write `N/A` with a target-Spec section and repository reason when no such work applies.
 
@@ -365,4 +365,4 @@ Read `references/egon-java-cqe-contract.md`. Record each applicable concern sepa
 
 ## Backend generation and dependency evidence
 
-Read `references/backend-code-generation.md`. For affected DDL/CRUD scaffolding record the verified generator, profile, DDL/manifest version, logical tables, output paths and exact artifacts; identify generated versus custom files and update/hash conflicts. After a skill-driven generator apply, or a plan that is the last authorized generator action, append the classpath SQL journal defined there. Record current dependency evidence and explicit approval for each introduction. Absent tooling or unapproved missing dependencies blocks the dependent work.
+Read `references/backend-code-generation.md`. For affected DDL/CRUD scaffolding record the verified generator, profile, DDL/manifest version, logical tables, output paths and exact artifacts; identify generated versus custom files and update/hash conflicts. Catalog paths are `GENERATED`. Do not plan handwritten bodies for them. After a skill-driven generator apply, or a plan that is the last authorized generator action, append the classpath SQL journal defined there. Record current dependency evidence and explicit approval for each introduction. Absent tooling or unapproved missing dependencies blocks the dependent work.

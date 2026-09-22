@@ -26,6 +26,29 @@ Generate supported repetitive backend scaffolding through that command. The mode
 
 The intended initial profiles are native Light (single-module monolith), Web and Service. Agent is excluded. Existing traditional three-layer packages are preserved; never reinterpret “monolith” as permission to move a traditional project into Light DDD. A selected profile must match current POMs, packages and architecture checks. Open variants need explicit support and dependency verification, not silent fallback to native templates.
 
+## SQL changes refresh catalog output only through the generator
+
+On native `light`, `web`, and `service`, a classpath SQL change under `src/main/resources/db/` does not authorize the model to write or patch FreeMarker catalog output. The model writes the next SQL script, its MP-SDJ manifest entry, and the generator config. `scripts/egon-codegen.sh` writes the catalog files.
+
+Catalog artifacts, excluding the test-only `probe` and `unsafe` entries in `egon-cola-components/egon-cola-component-code-generator/src/main/resources/templates/backend/catalog.json`:
+
+`po`, `dao`, `mapper-xml`, `repo`, `domain-model`, `domain-query`, `command`, `query`, `result`, `converter`, `domain-service`, `domain-impl`, `manage`, `manage-impl`, and `controller` (`controller` only for `light` and `web`).
+
+`persistence-crud` stays `po,dao,mapper-xml,repo`. A wider set is allowed only when the Spec selected it. A narrower request must not be widened.
+
+Order:
+
+1. Add the next SQL version and manifest. Do not edit an applied script.
+2. Point the generator config at that schema or manifest, the logical tables, and the selected artifacts.
+3. Run `plan`. Read the JSON summary, conflicts, and destructive changes.
+4. `apply` only the authorized file actions.
+5. Append the classpath SQL journal in this reference.
+6. The model may then edit only business behavior and custom queries the catalog does not own, and only in files the generator left untouched.
+
+Do not hand-write those catalog types so the SQL will compile. Do not copy `.ftl` into the business project. Do not edit a `.ftl` to fit one schema. Do not treat Plan Java pseudocode as permission to retype generator output. `CONFLICT` or `BLOCKED_TOOLING` stops the work; it is not a cue to finish the file by hand.
+
+`agent`, every `-open` archetype, and an existing traditional three-layer tree are outside this generator. Do not imitate the catalog by hand. Keep an existing traditional tree (Rule 11). Ask before moving that work onto native `light`, `web`, or `service`. A new business project is created by `egon-coding-create-new-module` from exactly one non-open archetype (`light`, `service`, `web`, or `agent`). Do not copy `source-projects` and do not write a module skeleton.
+
 ## DDL input, selective output and change safety
 
 - DDL input is read-only. Distinguish a full schema snapshot from an ordered MP-SDJ SQL/manifest history. Preserve applied version/checksum prefixes and do not run DDL or connect to a database without separate authorization.
@@ -49,9 +72,9 @@ Append only. Do not rewrite or delete earlier entries. Consuming the same versio
 
 | Phase | Required result |
 | --- | --- |
-| Spec | DDL source/type, supported profile, templates, generated/custom ownership, CRUD/API semantics, dependency availability and change/conflict policy |
-| Plan | Exact configuration, executable discovery, artifact scope, output paths, required existing types, expected diff, generator/component/template versions, validations and approvals |
-| Execute | Run the verified generator for approved templates, inspect scoped diff, preserve custom code, compile/test the affected output; append the classpath SQL journal; block missing tooling/dependencies rather than inventing them |
+| Spec | DDL source/type, supported profile, templates, generated/custom ownership, CRUD/API semantics, dependency availability and change/conflict policy. Catalog types are generator-owned, not handwritten classes |
+| Plan | Exact configuration, executable discovery, artifact scope, output paths, required existing types, expected diff, generator/component/template versions, validations and approvals. Catalog paths are `GENERATED`; their pseudocode is the config and `plan`/`apply`, not a Java body |
+| Execute | Run the verified generator for approved templates, inspect scoped diff, preserve custom code, compile/test the affected output; append the classpath SQL journal; block missing tooling/dependencies rather than inventing them. Do not type catalog files after a SQL change |
 | Final audit | Reconcile DDL diff, selected/generated files, unresolved consumers/conflicts, manifest/dependency changes, validation results and runtime limits |
 
 Map these concerns to `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-MODEL-001`, `MC-SCOPE-001` and `MC-TEST-001`. An unresolved applicable concern cannot PASS.
@@ -61,6 +84,8 @@ Map these concerns to `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-MODEL-001
 - 禁止自行引入、升级或下载依赖、插件、注解处理器和生成器工具；BOM 已管理不等于授权。内部依赖新增也须有明确授权，已有明确批准不重复询问。
 - 现有依赖不足时阻断受影响工作，提交能力缺口、内部复用方案、引入坐标/版本/模块/传递影响和验证方案，由用户决定；不能先改 POM 再说明。
 - 已验证命令是 `scripts/egon-codegen.sh`，支持 `templates`、`plan`、`check`、`apply`、`recover`。只对获准的 native Light/Web/Service 范围调用；先看计划摘要和冲突，再 apply。缺 classpath 返回 `BLOCKED_TOOLING`，不得下载依赖或手写替代模板。Agent、Open 和传统三层仍不支持。
+- native light/web/service 上，`src/main/resources/db/` 的 SQL 变动不能由模型改目录产物。模型只写下一版 SQL、Manifest 和生成器配置；`po`、`dao`、`mapper-xml`、`repo`、`domain-model`、`domain-query`、`command`、`query`、`result`、`converter`、`domain-service`、`domain-impl`、`manage`、`manage-impl`，以及 light/web 的 `controller`，只由生成器刷新。`CONFLICT` 或 `BLOCKED_TOOLING` 时停止，不能手写补完。不要把 `.ftl` 抄进业务工程，也不要为单份 Schema 改 `.ftl`。
+- 新业务项目由 `egon-coding-create-new-module` 从唯一的非 open archetype（`light`、`service`、`web`、`agent`）生成。不要复制 `source-projects`，不要手写模块骨架。已有传统三层保持现状；agent、open、传统三层不能靠手写 native 目录产物绕过生成器。
 - 明确 Light/Web/Service、DDL 来源、逻辑表映射、输出根目录、精确产物范围；只生成 DAO 不得自动扩展到其他层。Agent 暂不支持，传统三层结构不迁移。
 - 重生成按基线/hash 管理，只更新未被人工修改的自有文件；不覆写自定义代码，不执行数据库 DDL，不自行添加依赖。
 - skill 驱动的生成在 `apply` 成功后，或本次只授权到 `plan` 时，向 `docs/egon/codegen/ddl-consumption-log.md` 追加一条。记下 Asia/Shanghai 时间、profile、输出根、用到的 `src/main/resources/db/` 脚本版本（执行到的最高版本）、路径、SHA-256 和完整 SQL。这不是数据库执行记录，不连接数据库。只追加，不改旧条目；没有 db 脚本就记 `throughVersion: none`。
