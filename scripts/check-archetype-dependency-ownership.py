@@ -45,8 +45,8 @@ def check_parent(pom, name, version, failures):
     relative = parent.find("m:relativePath", NS)
     if relative is None or (relative.text or "").strip():
         failures.append(f"{name}: parent must declare an empty relativePath")
-    if value(pom, "m:version") != "0.1.0-SNAPSHOT":
-        failures.append(f"{name}: internal source project version changed")
+    if value(pom, "m:version") != "${egon-cola.version}":
+        failures.append(f"{name}: source project version must be ${{egon-cola.version}}")
     if value(pom, "m:properties/m:egon-cola.version") != version:
         failures.append(f"{name}: egon-cola.version must match the published parent")
 

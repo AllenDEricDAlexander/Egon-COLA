@@ -13,7 +13,7 @@
 
     <groupId>top.egon.internal.archetype.source</groupId>
     <artifactId>egon-cola-source-light</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${egon-cola.version}</version>
     <packaging>jar</packaging>
     <name>egon-cola-source-light</name>
     <description>Student management sample based on Egon COLA light domain architecture</description>

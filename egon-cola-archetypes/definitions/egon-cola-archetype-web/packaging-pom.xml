@@ -60,7 +60,7 @@
         <dependency>
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-service-facade</artifactId>
-            <version>@rootVersion@</version>
+            <version>${egon-cola.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -335,7 +335,60 @@ normalize_text_file() {
     replacement="$(escape_sed_replacement '${rootArtifactId}')"
   fi
   sed "s|$pattern|$replacement|g" "$temp" >"${temp}.2"
-  mv -- "${temp}.2" "$file"
+  mv -- "${temp}.2" "$temp"
+  # Source modules are versioned with ${egon-cola.version}. A generated business
+  # project keeps that property for Egon components, but its own modules use ${version}.
+  awk '
+    function trim(value) {
+      sub(/^[[:space:]]+/, "", value)
+      return value
+    }
+    function cola_version(value) {
+      return index(value, "<version>${egon-cola.version}</version>") > 0
+    }
+    function own_module(value) {
+      return index(value, "${rootArtifactId}") > 0 || index(value, "${artifactId}") > 0
+    }
+    function rewrite(value) {
+      sub(/\$\{egon-cola\.version\}/, "${version}", value)
+      return value
+    }
+    {
+      if (held_set) {
+        if (own_module(held) && cola_version($0)) {
+          print held
+          print rewrite($0)
+          held_set = 0
+          next
+        }
+        print held
+        held_set = 0
+      }
+      stripped = trim($0)
+      if (in_parent && cola_version(stripped)) {
+        print rewrite($0)
+        next
+      }
+      if (stripped ~ /^<parent>/) {
+        in_parent = 1
+      }
+      if (stripped ~ /<\/parent>/) {
+        in_parent = 0
+      }
+      if (own_module($0)) {
+        held = $0
+        held_set = 1
+        next
+      }
+      print
+    }
+    END {
+      if (held_set) {
+        print held
+      }
+    }
+  ' "$temp" >"${temp}.3"
+  mv -- "${temp}.3" "$file"
   rm -f -- "$temp"
 }
 

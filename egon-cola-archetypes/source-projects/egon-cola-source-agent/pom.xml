@@ -13,7 +13,7 @@
 
     <groupId>top.egon.internal.archetype.source</groupId>
     <artifactId>egon-cola-source-agent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${egon-cola.version}</version>
     <packaging>pom</packaging>
     <name>egon-cola-source-agent</name>
     <description>Deep Research sample based on the Egon COLA Web architecture</description>

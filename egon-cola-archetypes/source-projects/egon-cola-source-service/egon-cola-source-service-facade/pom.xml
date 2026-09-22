@@ -7,12 +7,11 @@
     <parent>
         <groupId>top.egon.internal.archetype.source</groupId>
         <artifactId>egon-cola-source-service</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>${egon-cola.version}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>egon-cola-source-service-facade</artifactId>
-    <version>${egon-cola.version}</version>
     <packaging>jar</packaging>
 
     <dependencies>

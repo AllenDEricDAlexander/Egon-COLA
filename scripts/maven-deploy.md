@@ -101,7 +101,7 @@ Archetype 采用两阶段所有权：维护者只在 `source-projects` 的标准
 4. 同步更新已生成 Archetype 模板根 POM 里的两个消费版本：父 POM `<version>` 和 `<egon-cola.version>`。这两个坐标不在 Reactor 里，`versions-maven-plugin` 不会改到。同时把对应 `generation-manifest.sha256` 的 `rootVersion` 和该 POM 的产品哈希改到新版本。
 5. 安装根 Parent、Components BOM 和 Archetypes Parent。源码 facade 已进入根 Reactor，且源码工程用空 `relativePath` 从本地仓库解析 `egon-cola-archetypes-parent`；父 POM 又 import Components BOM。这两样都不能从当前 Reactor 里直接解析，不先安装，最后的 `validate` 会失败。
 
-源码工程自身的 `0.1.0-SNAPSHOT` 坐标是生成器内部哨兵，不会被 bump。发布出去的四个对端 facade（service/web 及其 Open）版本是 `${egon-cola.version}`，Archetype 发布 POM 里的依赖在生成时写成同一个版本，因此不会再带 SNAPSHOT。每次 `./scripts/maven-deploy.sh --publish` 或 `--fast` 都会重新生成 Archetype。锁目录和 `target` 不会被 bump 改写。
+Archetype 源码工程的自身版本整体使用 `${egon-cola.version}`，不再使用 `0.1.0-SNAPSHOT`。父 POM 里的 `<egon-cola.version>` 跟着发布版本走，因此 common、domain、facade、starter 以及发布 POM 里的对端 facade 依赖都是同一次版本。生成业务项目时，这些自身模块版本会改写成对方的 `${version}`；对 Egon 组件的 `${egon-cola.version}` 保持不变。每次 `./scripts/maven-deploy.sh --publish` 或 `--fast` 都会重新生成 Archetype。锁目录和 `target` 不会被 bump 改写。
 
 修改后建议检查：
 

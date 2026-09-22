@@ -13,7 +13,7 @@
 
     <groupId>top.egon.internal.archetype.source</groupId>
     <artifactId>egon-cola-source-service-open</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${egon-cola.version}</version>
     <packaging>pom</packaging>
     <name>egon-cola-source-service-open</name>
     <description>egon-cola-source-service-open</description>

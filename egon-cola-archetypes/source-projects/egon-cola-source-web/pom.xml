@@ -13,7 +13,7 @@
 
     <groupId>top.egon.internal.archetype.source</groupId>
     <artifactId>egon-cola-source-web</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>${egon-cola.version}</version>
     <packaging>pom</packaging>
     <name>egon-cola-source-web</name>
     <description>Student management organization sample based on Egon COLA web architecture</description>
