@@ -13,6 +13,11 @@ public interface ProjectLayoutStrategy {
 
     Set<String> PERSISTENCE = Set.of("po", "dao", "mapper-xml", "repo");
 
+    Set<String> BACKEND = Set.of(
+            "domain-model", "domain-query", "command", "query", "result", "converter",
+            "persistence-converter", "application-converter",
+            "domain-service", "domain-impl", "manage", "manage-impl");
+
     CodegenProfileEnum profile();
 
     boolean allows(String artifact);
@@ -44,7 +49,7 @@ public interface ProjectLayoutStrategy {
 
         @Override
         public boolean allows(String artifact) {
-            return PERSISTENCE.contains(artifact) || "controller".equals(artifact);
+            return PERSISTENCE.contains(artifact) || BACKEND.contains(artifact) || "controller".equals(artifact);
         }
 
         @Override
@@ -71,7 +76,7 @@ public interface ProjectLayoutStrategy {
 
         @Override
         public boolean allows(String artifact) {
-            return PERSISTENCE.contains(artifact) || "controller".equals(artifact);
+            return PERSISTENCE.contains(artifact) || BACKEND.contains(artifact) || "controller".equals(artifact);
         }
 
         @Override
@@ -81,7 +86,7 @@ public interface ProjectLayoutStrategy {
 
         @Override
         public String relativePath(CodegenConfigBO config, String artifact, String fileName) {
-            return sourcePath(modulePrefix(config), config, artifact, fileName);
+            return sourcePath(modulePrefix(config, artifact), config, artifact, fileName);
         }
     }
 
@@ -97,7 +102,7 @@ public interface ProjectLayoutStrategy {
 
         @Override
         public boolean allows(String artifact) {
-            return PERSISTENCE.contains(artifact);
+            return PERSISTENCE.contains(artifact) || BACKEND.contains(artifact);
         }
 
         @Override
@@ -107,12 +112,12 @@ public interface ProjectLayoutStrategy {
 
         @Override
         public String relativePath(CodegenConfigBO config, String artifact, String fileName) {
-            return sourcePath(modulePrefix(config), config, artifact, fileName);
+            return sourcePath(modulePrefix(config, artifact), config, artifact, fileName);
         }
     }
 
-    private static String modulePrefix(CodegenConfigBO config) {
-        String module = config.getRoots() == null ? null : config.getRoots().get("infrastructure");
+    private static String modulePrefix(CodegenConfigBO config, String artifact) {
+        String module = config.getRoots() == null ? null : config.getRoots().get(moduleKey(artifact));
         if (module == null || module.isBlank()) {
             throw new IllegalArgumentException("infrastructure module path is required");
         }
@@ -134,13 +139,26 @@ public interface ProjectLayoutStrategy {
     private static String javaPackage(CodegenConfigBO config, String artifact) {
         String base = safeSegment(config.getBasePackage(), "basePackage").replace('/', '.');
         String domain = safeSegment(config.getDomain(), "domain");
-        String layer = switch (artifact) {
-            case "po" -> "po";
-            case "dao", "mapper-xml" -> "dao";
-            case "repo" -> "repo";
-            default -> artifact;
+        return switch (artifact) {
+            case "domain-model", "domain-query", "domain-service" -> base + ".domain." + domain;
+            case "domain-impl", "persistence-converter" -> base + ".infrastructure." + domain + ".service";
+            case "po" -> base + ".infrastructure." + domain + ".po";
+            case "dao", "mapper-xml" -> base + ".infrastructure." + domain + ".dao";
+            case "repo" -> base + ".infrastructure." + domain + ".repo";
+            case "command", "query", "result", "manage", "manage-impl" -> base + ".application." + domain;
+            case "application-converter" -> base + ".application." + domain + ".converter";
+            case "controller" -> base + ".adapter." + domain;
+            default -> base + ".infrastructure." + domain + "." + artifact;
         };
-        return base + ".infrastructure." + domain + "." + layer;
+    }
+
+    private static String moduleKey(String artifact) {
+        return switch (artifact) {
+            case "domain-model", "domain-query", "domain-service" -> "domain";
+            case "command", "query", "result", "manage", "manage-impl", "application-converter" -> "application";
+            case "controller" -> "adapter";
+            default -> "infrastructure";
+        };
     }
 
     private static String safeSegment(String value, String name) {

@@ -36,4 +36,15 @@
             version = version + 1
         WHERE id = #{et.id} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+[#if includeQuery!false]
+    <select id="selectByQuery" resultMap="[=poType]ResultMap">
+        SELECT <include refid="columns"/> FROM [=tableName]
+        WHERE deleted_at IS NULL
+[#list filterFields as field]
+        <if test="query.[=field.javaName] != null">AND [=field.column] = #{query.[=field.javaName]}</if>
+[/#list]
+        ORDER BY id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+[/#if]
 </mapper>

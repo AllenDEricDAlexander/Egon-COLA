@@ -50,6 +50,17 @@
       "allowedProfiles": ["light", "web", "service"],
       "targetPathPattern": "{module}/src/main/java/{package}/{type}.java",
       "requiredTypes": ["po", "dao"]
-    }
+    },
+    {"id": "domain-model", "artifact": "domain-model", "templateResource": "common/domain-model.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": []},
+    {"id": "domain-query", "artifact": "domain-query", "templateResource": "common/domain-query.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": []},
+    {"id": "command", "artifact": "command", "templateResource": "common/command.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": []},
+    {"id": "query", "artifact": "query", "templateResource": "common/query.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": []},
+    {"id": "result", "artifact": "result", "templateResource": "common/result.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": []},
+    {"id": "converter", "artifact": "converter", "templateResource": "common/converter.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": ["po", "domain-model"]},
+    {"id": "domain-service", "artifact": "domain-service", "templateResource": "common/domain-service.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": ["domain-model"]},
+    {"id": "domain-impl", "artifact": "domain-impl", "templateResource": "common/domain-impl.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": ["repo", "po"]},
+    {"id": "manage", "artifact": "manage", "templateResource": "common/manage.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": []},
+    {"id": "manage-impl", "artifact": "manage-impl", "templateResource": "common/manage-impl.java.ftl", "allowedProfiles": ["light", "web", "service"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": ["domain-service"]},
+    {"id": "controller", "artifact": "controller", "templateResource": "common/controller.java.ftl", "allowedProfiles": ["light", "web"], "targetPathPattern": "{package}/{type}.java", "requiredTypes": ["manage"]}
   ]
 }

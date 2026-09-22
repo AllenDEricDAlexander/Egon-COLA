@@ -92,10 +92,109 @@ public class GenerationScopeValidator {
         model.put("tableName", table.getLogicalName());
         model.put("businessFields", businessFields(table));
         model.put("xmlColumns", xmlColumns(table));
+        String stem = typeName(table.getLogicalName(), "");
+        String domainType = stem + "BO";
+        String domainPackage = layout.packageName(config, "domain-model");
+        CodegenConfigBO.FieldPoliciesBO policies = config.getFieldPolicies();
         model.put("daoBean", decapitalize(daoType));
         model.put("repoBean", decapitalize(repoType));
         model.put("propertiesBean", PROPERTIES_BEAN);
+        model.put("stem", stem);
+        model.put("domainType", domainType);
+        model.put("domainPackage", domainPackage);
+        model.put("domainFqn", domainPackage + "." + domainType);
+        model.put("domainQueryType", stem + "DomainQuery");
+        model.put("domainQueryFqn", domainPackage + "." + stem + "DomainQuery");
+        model.put("domainServiceType", stem + "DomainService");
+        model.put("domainServiceFqn", layout.packageName(config, "domain-service") + "." + stem + "DomainService");
+        model.put("domainImplType", stem + "DomainServiceImpl");
+        model.put("domainImplPackage", layout.packageName(config, "domain-impl"));
+        model.put("applicationPackage", layout.packageName(config, "command"));
+        model.put("createCommandType", "Create" + stem + "Command");
+        model.put("updateCommandType", "Update" + stem + "Command");
+        model.put("deleteCommandType", "Delete" + stem + "Command");
+        model.put("detailQueryType", stem + "DetailQuery");
+        model.put("pageQueryType", stem + "PageQuery");
+        model.put("resultType", stem + "Result");
+        model.put("manageType", stem + "Manage");
+        model.put("manageImplType", stem + "ManageImpl");
+        model.put("manageBean", decapitalize(stem + "Manage"));
+        model.put("domainServiceBean", decapitalize(stem + "DomainService"));
+        model.put("controllerType", stem + "Controller");
+        model.put("controllerBean", decapitalize(stem + "Controller"));
+        model.put("controllerPackage", layout.packageName(config, "controller"));
+        model.put("persistenceConverterType", stem + "PersistenceConverter");
+        model.put("persistenceConverterFqn", layout.packageName(config, "persistence-converter") + "." + stem + "PersistenceConverter");
+        model.put("persistenceConverterBean", decapitalize(stem + "PersistenceConverterImpl"));
+        model.put("createConverterType", "Create" + stem + "CommandConverter");
+        model.put("updateConverterType", "Update" + stem + "CommandConverter");
+        model.put("deleteConverterType", "Delete" + stem + "CommandConverter");
+        model.put("resultConverterType", stem + "ResultConverter");
+        model.put("applicationConverterPackage", layout.packageName(config, "application-converter"));
+        model.put("domainFields", policyFields(table, unionPolicies(policies)));
+        model.put("createFields", policyFields(table, list(policies, "create")));
+        model.put("updateFields", policyFields(table, list(policies, "update")));
+        model.put("resultFields", policyFields(table, list(policies, "result")));
+        model.put("filterFields", policyFields(table, list(policies, "filter")));
+        model.put("sortFields", policyFields(table, list(policies, "sort")));
+        model.put("includeQuery", config.getArtifacts() != null && config.getArtifacts().contains("domain-query"));
+        model.put("errorMapper", config.getApiContract() == null ? "" : config.getApiContract().getExistingErrorMapper());
+        model.put("apiBasePath", config.getApiContract() == null || config.getApiContract().getBasePath() == null
+                ? "" : config.getApiContract().getBasePath());
+        model.put("ignoredPoFields", List.of(
+                "tenantId", "createUserId", "createTime", "updateUserId", "updateTime", "deletedAt"));
         return Map.copyOf(model);
+    }
+
+    private static List<String> unionPolicies(CodegenConfigBO.FieldPoliciesBO policies) {
+        java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+        names.addAll(list(policies, "create"));
+        names.addAll(list(policies, "update"));
+        names.addAll(list(policies, "result"));
+        names.addAll(list(policies, "filter"));
+        names.addAll(list(policies, "sort"));
+        return new ArrayList<>(names);
+    }
+
+    private static List<String> list(CodegenConfigBO.FieldPoliciesBO policies, String kind) {
+        if (policies == null) {
+            return List.of();
+        }
+        List<String> values = switch (kind) {
+            case "create" -> policies.getCreate();
+            case "update" -> policies.getUpdate();
+            case "result" -> policies.getResult();
+            case "filter" -> policies.getFilter();
+            case "sort" -> policies.getSort();
+            default -> List.of();
+        };
+        return values == null ? List.of() : values;
+    }
+
+    private static List<Map<String, String>> policyFields(CodegenSchemaBO.TableBO table, List<String> names) {
+        List<Map<String, String>> fields = new ArrayList<>();
+        for (String name : names) {
+            if (BASE_COLUMNS.contains(name)) {
+                continue;
+            }
+            CodegenSchemaBO.ColumnBO column = column(table, name);
+            if (column == null) {
+                continue;
+            }
+            String javaType = javaType(column);
+            fields.add(Map.of(
+                    "column", column.getName(),
+                    "javaName", javaName(column.getName()),
+                    "javaType", javaType == null ? "String" : simple(javaType),
+                    "nullable", String.valueOf(!Boolean.FALSE.equals(column.getNullable())),
+                    "length", column.getLength() == null ? "" : column.getLength().toString()));
+        }
+        return List.copyOf(fields);
+    }
+
+    private static String simple(String javaType) {
+        int dot = javaType.lastIndexOf('.');
+        return dot < 0 ? javaType : javaType.substring(dot + 1);
     }
 
     private List<CodegenPlanBO.DiagnosticBO> validateTable(CodegenConfigBO config, CodegenSchemaBO.TableBO table) {
