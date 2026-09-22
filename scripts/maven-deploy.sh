@@ -17,7 +17,12 @@ Targets:
 
 Options:
   --dry-run                         Run the mandatory preflight only (default)
-  --publish                         Run the Maven deploy lifecycle
+  --publish                         Run preflight, then the Maven deploy lifecycle
+  --fast                            Publish immediately. Skip preflight, dry-run,
+                                    and Maven tests. Same command as:
+                                    ./mvnw -B -ntp -Pgenerated-archetypes -Prelease
+                                    -DtrimStackTrace=false -DskipTests=true
+                                    clean deploy
 
   --skip-tests                      Skip Maven test execution in both preflight
                                     and final deploy
@@ -31,7 +36,12 @@ Behavior:
 
   Default:
     Run the complete mandatory preflight with tests.
-    No deploy is performed unless --publish is specified.
+    No deploy is performed unless --publish or --fast is specified.
+
+  --fast:
+    Do not generate archetypes, install parents, or run tests.
+    Deploy the root reactor once. .generated must already exist.
+    A release version check still runs; it is not a dry-run or test.
 
   --skip-tests:
     Skip Maven test execution throughout the script.
@@ -53,8 +63,9 @@ Mandatory preflight:
 
 The script never starts a business application or executes database SQL.
 
-A real publish is opt-in through --publish.
+A real publish is opt-in through --publish or --fast.
 Central production publishing is supported for the all target only.
+--fast is the one-command publish and does not run the preflight below.
 USAGE
 }
 
@@ -189,6 +200,8 @@ mode="verify"
 
 skip_tests=false
 skip_deploy_tests=false
+fast=false
+dry_run=false
 
 target_set=false
 
@@ -196,11 +209,18 @@ for argument in "$@"; do
   case "${argument}" in
 
     --dry-run)
+      dry_run=true
       mode="verify"
       ;;
 
     --publish)
       mode="deploy"
+      ;;
+
+    --fast)
+      fast=true
+      mode="deploy"
+      skip_tests=true
       ;;
 
     --skip-tests)
@@ -254,11 +274,6 @@ if [[ ! -x "${MVNW}" ]]; then
   exit 1
 fi
 
-if [[ ! -x "${GENERATOR}" ]]; then
-  echo "Archetype generator is not executable: ${GENERATOR}" >&2
-  exit 1
-fi
-
 # ---------------------------------------------------------------------------
 # Target configuration
 # ---------------------------------------------------------------------------
@@ -284,9 +299,14 @@ cd "${ROOT_DIR}"
 # Argument validation
 # ---------------------------------------------------------------------------
 
+if [[ "${fast}" == true && "${dry_run}" == true ]]; then
+  echo "--fast cannot be combined with --dry-run." >&2
+  exit 2
+fi
+
 if [[ "${mode}" == deploy && "${target}" != all ]]; then
   echo \
-    "The --publish option only supports the all target; use archetypes for dry-run verification." \
+    "The --publish option only supports the all target; --fast has the same limit. Use archetypes for dry-run verification." \
     >&2
   exit 2
 fi
@@ -340,6 +360,11 @@ fi
 # ---------------------------------------------------------------------------
 
 run_preflight() {
+  if [[ ! -x "${GENERATOR}" ]]; then
+    echo "Archetype generator is not executable: ${GENERATOR}" >&2
+    exit 1
+  fi
+
   echo
   echo "============================================================"
   echo "Running mandatory source-to-archetype preflight"
@@ -472,6 +497,7 @@ run_preflight() {
 
 echo "Maven target: ${target}"
 echo "Maven mode: ${mode}"
+echo "Fast publish: ${fast}"
 echo "Skip all Maven tests: ${skip_tests}"
 echo "Skip final deploy tests: ${skip_deploy_tests}"
 
@@ -479,7 +505,12 @@ echo "Skip final deploy tests: ${skip_deploy_tests}"
 # Run preflight
 # ---------------------------------------------------------------------------
 
-run_preflight
+if [[ "${fast}" == true ]]; then
+  echo
+  echo "Fast publish: skipping preflight and Maven tests."
+else
+  run_preflight
+fi
 
 # ---------------------------------------------------------------------------
 # Deploy
@@ -535,7 +566,11 @@ if [[ "${mode}" == deploy ]]; then
   echo "Starting Maven deploy"
   echo "============================================================"
 
-  if [[ "${skip_tests}" == true ]]; then
+  if [[ "${fast}" == true ]]; then
+    echo "Preflight:             SKIPPED"
+    echo "Final deploy tests:    SKIPPED"
+
+  elif [[ "${skip_tests}" == true ]]; then
     echo "Preflight Maven tests: SKIPPED"
     echo "Final deploy tests:    SKIPPED"
 

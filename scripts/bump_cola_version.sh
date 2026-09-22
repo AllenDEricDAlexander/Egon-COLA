@@ -231,6 +231,11 @@ find_tianshu_readme_files() {
     done
 }
 
+readme_has_archetype_version() {
+    local readme_file="$1"
+    grep -Eq -- "-DarchetypeVersion=('[^']*'|\"[^\"]*\"|[^'\"[:space:]]+)" "$readme_file"
+}
+
 update_readme_archetype_versions() {
     local new_version="$1"
     local readme_file
@@ -238,13 +243,18 @@ update_readme_archetype_versions() {
     local updated_count=0
 
     while IFS= read -r -d '' readme_file; do
-        if ! grep -Eq -- "-DarchetypeVersion='[^']*'" "$readme_file"; then
+        if ! readme_has_archetype_version "$readme_file"; then
             continue
         fi
 
         temp_file="$BACKUP_DIR/updated/${readme_file#"$PROJECT_ROOT"/}"
         mkdir -p "$(dirname "$temp_file")"
-        sed -E "s|-DarchetypeVersion='[^']*'|-DarchetypeVersion='$new_version'|g" \
+        # Keep the surrounding quotes when the example uses them. Root READMEs
+        # currently pass a bare -DarchetypeVersion=5.x.y token.
+        sed -E \
+            -e "s|-DarchetypeVersion='[^']*'|-DarchetypeVersion='${new_version}'|g" \
+            -e "s|-DarchetypeVersion=\"[^\"]*\"|-DarchetypeVersion=\"${new_version}\"|g" \
+            -e "s|-DarchetypeVersion=[^'\"[:space:]]+|-DarchetypeVersion=${new_version}|g" \
             "$readme_file" > "$temp_file"
         cp "$temp_file" "$readme_file"
         updated_count=$((updated_count + 1))
@@ -256,14 +266,53 @@ update_readme_archetype_versions() {
 verify_readme_archetype_versions() {
     local expected_version="$1"
     local readme_file
-    local stale
+    local token
+    local value
 
     while IFS= read -r -d '' readme_file; do
-        stale="$(grep -Eo -- "-DarchetypeVersion='[^']*'" "$readme_file" \
-            | grep -Fv -- "-DarchetypeVersion='$expected_version'" || true)"
-        [[ -z "$stale" ]] || \
-            die "$readme_file still documents $stale; expected $expected_version"
+        while IFS= read -r token; do
+            [[ -n "$token" ]] || continue
+            value="${token#-DarchetypeVersion=}"
+            value="${value#\'}"
+            value="${value#\"}"
+            value="${value%\'}"
+            value="${value%\"}"
+            [[ "$value" == "$expected_version" ]] || \
+                die "$readme_file still documents $token; expected $expected_version"
+        done < <(grep -Eo -- "-DarchetypeVersion=('[^']*'|\"[^\"]*\"|[^'\"[:space:]]+)" "$readme_file" || true)
     done < <(find_readme_files)
+}
+
+# The root reactor now builds the service and web source facades. Those facades
+# inherit source projects whose parent is egon-cola-archetypes-parent with an
+# empty relativePath, and several parents import the Components BOM. Maven does
+# not resolve either of those from the reactor, so install them before validate.
+install_version_resolution_poms() {
+    printf 'Installing POMs required to resolve version %s...\n' "$1"
+
+    "$MAVEN_WRAPPER" \
+        -B \
+        -ntp \
+        -N \
+        -f "$PROJECT_ROOT/pom.xml" \
+        -DskipTests \
+        install
+
+    "$MAVEN_WRAPPER" \
+        -B \
+        -ntp \
+        -N \
+        -f "$PROJECT_ROOT/egon-cola-components/egon-cola-components-bom/pom.xml" \
+        -DskipTests \
+        install
+
+    "$MAVEN_WRAPPER" \
+        -B \
+        -ntp \
+        -N \
+        -f "$PROJECT_ROOT/egon-cola-archetypes/pom.xml" \
+        -DskipTests \
+        install
 }
 
 update_tianshu_readme_versions() {
@@ -362,6 +411,7 @@ readonly UPDATED_VERSION
 [[ "$UPDATED_VERSION" == "$NEW_VERSION" ]] || \
     die "root POM version is $UPDATED_VERSION after update; expected $NEW_VERSION"
 
+install_version_resolution_poms "$NEW_VERSION"
 "$MAVEN_WRAPPER" -B -ntp -f "$PROJECT_ROOT/pom.xml" -DskipTests validate
 
 ROLLBACK_REQUIRED=false

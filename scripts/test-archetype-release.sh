@@ -197,6 +197,29 @@ test_mandatory_preflight_order() {
   fi
 }
 
+test_fast_publish_skips_preflight() {
+  local actual deploy_count
+  : >"$FAKE_LOG"
+  fixture_deploy --fast >/dev/null
+  actual="$(event_labels)"
+  assert_order $'version\ndeploy' "$actual"
+  for stage in root-bootstrap archetypes-bootstrap source-install generate check generated-it release-shape; do
+    if printf '%s\n' "$actual" | grep -Fxq -- "$stage"; then
+      fail "fast publish ran preflight stage: ${stage}"
+    fi
+  done
+  deploy_count="$(grep -c '^mvnw:deploy:' "$FAKE_LOG" || true)"
+  assert_equal '1' "$deploy_count" 'single fast deploy'
+  grep -Fq -- '-Pgenerated-archetypes' "$FAKE_LOG" || fail 'fast deploy omitted generated profile'
+  grep -Fq -- '-Prelease' "$FAKE_LOG" || fail 'fast deploy omitted release profile'
+  grep -Fq -- '-DskipTests=true' "$FAKE_LOG" || fail 'fast deploy did not skip tests'
+  grep -Fq -- '-DtrimStackTrace=false' "$FAKE_LOG" || fail 'fast deploy omitted trimStackTrace'
+  assert_command_fails '--fast cannot be combined with --dry-run' \
+    fixture_deploy --fast --dry-run
+  assert_command_fails 'only supports the all target' \
+    fixture_deploy archetypes --fast
+}
+
 test_single_publish_deploy() {
   local actual deploy_count
   : >"$FAKE_LOG"
@@ -274,6 +297,7 @@ main() {
   test_supported_targets
   test_mandatory_preflight_order
   test_single_publish_deploy
+  test_fast_publish_skips_preflight
   test_failure_never_reaches_deploy
   test_definition_inventory
   test_generated_profile_and_paths

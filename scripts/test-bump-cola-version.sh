@@ -91,6 +91,7 @@ write_fixture() {
 EOF
 
   printf '%s\n' "./mvnw -DarchetypeVersion='5.3.3'" >"$root/README.md"
+  printf '%s\n' "mvn -B -DarchetypeVersion=5.3.3 \\" >"$root/README.zh-CN.md"
   printf '%s\n' 'generated sentinel' \
     >"$root/egon-cola-archetypes/.generated/egon-cola-archetype-fixture/sentinel.txt"
 
@@ -112,7 +113,32 @@ EOF
     '  mv -- "$ROOT/pom.xml.tmp" "$ROOT/pom.xml"' \
     '  exit 0' \
     'fi' \
-    'if [[ " $* " == *" validate "* && "${FAIL_VALIDATE:-0}" == 1 ]]; then exit 42; fi' \
+    'if [[ " $* " == *" install "* && " $* " == *" -N "* ]]; then' \
+    '  if [[ " $* " == *"-f $ROOT/egon-cola-components/egon-cola-components-bom/pom.xml"* ]]; then' \
+    '    touch "$ROOT/.installed-bom"' \
+    '    exit 0' \
+    '  fi' \
+    '  if [[ " $* " == *"-f $ROOT/egon-cola-archetypes/pom.xml"* ]]; then' \
+    '    [[ -f "$ROOT/.installed-root" && -f "$ROOT/.installed-bom" ]] || {' \
+    '      printf "archetypes parent installed before its repository parents\\n" >&2' \
+    '      exit 41' \
+    '    }' \
+    '    touch "$ROOT/.installed-archetypes-parent"' \
+    '    exit 0' \
+    '  fi' \
+    '  if [[ " $* " == *"-f $ROOT/pom.xml"* ]]; then' \
+    '    touch "$ROOT/.installed-root"' \
+    '    exit 0' \
+    '  fi' \
+    'fi' \
+    'if [[ " $* " == *" validate "* ]]; then' \
+    '  [[ -f "$ROOT/.installed-archetypes-parent" ]] || {' \
+    '    printf "validate ran before archetype parent install\\n" >&2' \
+    '    exit 44' \
+    '  }' \
+    '  if [[ "${FAIL_VALIDATE:-0}" == 1 ]]; then exit 42; fi' \
+    '  exit 0' \
+    'fi' \
     'exit 0' >"$root/mvnw"
   chmod +x "$root/mvnw"
 
@@ -127,6 +153,7 @@ SOURCE_POM="$ROOT/egon-cola-archetypes/source-projects/egon-cola-source-fixture/
 SOURCE_REACTOR_POM="$ROOT/egon-cola-archetypes/source-projects/pom.xml"
 SOURCE_CHILD_POM="$ROOT/egon-cola-archetypes/source-projects/egon-cola-source-fixture/fixture-child/pom.xml"
 README="$ROOT/README.md"
+README_ZH="$ROOT/README.zh-CN.md"
 GENERATED="$ROOT/egon-cola-archetypes/.generated"
 
 generated_before="$(hash_tree "$GENERATED")"
@@ -140,6 +167,7 @@ assert_file_contains "$SOURCE_POM" '<version>5.3.4</version>'
 assert_file_contains "$SOURCE_POM" '<version>0.1.0-SNAPSHOT</version>'
 cmp -s "$SOURCE_CHILD_POM" "$FIXTURE_ROOT/child.original" || die 'internal child parent changed'
 assert_file_contains "$README" "-DarchetypeVersion='5.3.4'"
+assert_file_contains "$README_ZH" "-DarchetypeVersion=5.3.4"
 [[ "$(hash_tree "$GENERATED")" == "$generated_before" ]] || \
   die 'generated workspace changed during version update'
 
@@ -147,6 +175,7 @@ cp -- "$ROOT/pom.xml" "$FIXTURE_ROOT/pom.success"
 cp -- "$SOURCE_REACTOR_POM" "$FIXTURE_ROOT/source-reactor.success"
 cp -- "$SOURCE_POM" "$FIXTURE_ROOT/source.success"
 cp -- "$README" "$FIXTURE_ROOT/readme.success"
+cp -- "$README_ZH" "$FIXTURE_ROOT/readme-zh.success"
 generated_before_failure="$(hash_tree "$GENERATED")"
 
 set +e
@@ -158,6 +187,7 @@ cmp -s "$ROOT/pom.xml" "$FIXTURE_ROOT/pom.success" || die 'root POM was not roll
 cmp -s "$SOURCE_REACTOR_POM" "$FIXTURE_ROOT/source-reactor.success" || die 'source reactor POM was not rolled back'
 cmp -s "$SOURCE_POM" "$FIXTURE_ROOT/source.success" || die 'source POM was not rolled back'
 cmp -s "$README" "$FIXTURE_ROOT/readme.success" || die 'README was not rolled back'
+cmp -s "$README_ZH" "$FIXTURE_ROOT/readme-zh.success" || die 'Chinese README was not rolled back'
 [[ "$(hash_tree "$GENERATED")" == "$generated_before_failure" ]] || \
   die 'generated workspace changed during failed version update'
 

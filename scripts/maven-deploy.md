@@ -97,7 +97,8 @@ Archetype 采用两阶段所有权：维护者只在 `source-projects` 的标准
 
 1. 使用 `versions-maven-plugin` 修改 Reactor 中所有 Maven 模块版本。
 2. 动态发现 `egon-cola-archetypes/source-projects` 下声明 `<egon-cola.version>` 的正常源码根 POM 并同步更新。
-3. 同步更新 `README.md` 里的 archetype 使用示例版本。
+3. 同步更新根 `README.md` / `README.zh-CN.md` 里的 archetype 使用示例版本。示例可以写成 `-DarchetypeVersion=5.x.y`，也可以带单引号或双引号。
+4. 安装根 Parent、Components BOM 和 Archetypes Parent。源码 facade 已进入根 Reactor，且源码工程用空 `relativePath` 从本地仓库解析 `egon-cola-archetypes-parent`；父 POM 又 import Components BOM。这两样都不能从当前 Reactor 里直接解析，不先安装，最后的 `validate` 会失败。
 
 源码工程自身的 `0.1.0-SNAPSHOT` 坐标是生成器内部哨兵，不会被 bump；`.generated`、锁目录和临时派生物也不会被编辑。
 
@@ -229,7 +230,7 @@ gpg --armor --export-secret-keys <KEY_ID>
 ./scripts/maven-deploy.sh --dry-run
 ```
 
-`--skip-tests` 不会跳过上述预检；它只在预检完成后、且确实选择 `--publish` 时传给最后一次 deploy。
+`--skip-tests` 只跳过 Maven 测试执行，不跳过生成、检查和 release-shape。要完全不跑预检和测试，使用 `--fast`。
 
 ### 6.2 Release Profile 验证
 
@@ -249,15 +250,29 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 
 ## 7. 本地真实发布
 
-同一版本没有执行过任何 parent-only 或局部发布后，从根 Reactor 一次性发布：
+同一版本没有执行过任何 parent-only 或局部发布后，从根 Reactor 一次性发布。
+
+一键发布，不跑 dry-run，也不跑测试：
+
+```bash
+./scripts/maven-deploy.sh --fast
+```
+
+它只做一次非 SNAPSHOT 版本确认，然后执行：
 
 ```bash
 ./mvnw -B -ntp -Pgenerated-archetypes -Prelease -DtrimStackTrace=false -DskipTests=true clean deploy
-# 使用脚本过于麻烦，使用命令直接验证。脚本过于冗余，完全没有dry-run的必要，发布失败自然发布不上去，不需要dry-run，浪费时间。
+```
+
+`--fast` 不安装父 POM、不生成 archetype、不跑 release-shape。`.generated` 必须已经存在，否则 Maven 会在 deploy 时失败。发布失败就不会上传，不需要先做一轮 dry-run。
+
+需要先跑完整预检再发布时，仍使用：
+
+```bash
 ./scripts/maven-deploy.sh all --publish
 ```
 
-该命令会先完整执行 source → generate/check → Archetype IT → release-shape 预检，随后只执行一次根 Reactor `clean deploy`。
+`--publish` 会先完整执行 source → generate/check → Archetype IT → release-shape 预检，随后只执行一次根 Reactor `clean deploy`。
 真实发布不能传 `-Dgpg.skip=true`；Central Portal 返回 `UNKNOWN` 时必须先按 deployment id 查询状态，不能盲目重放 deploy。
 
 发布后可以验证 BOM、Tianshu 平台和 Archetype 是否可解析：
@@ -385,7 +400,7 @@ git push origin v5.x.y
 | 真实发布时使用 `-Dgpg.skip=true`        | Maven Central Release 必须有签名                 |
 | 同一版本重复发布                         | Release 版本不可覆盖                              |
 | 未验证 Parent POM 就直接发布子模块          | 子模块可能无法解析父 POM                              |
-| 绕过预检直接发布或发布非 `all` 目标          | 可能产生未验证的半套 Central 坐标                           |
+| 发布非 `all` 目标，或手写一条更短的 deploy 命令 | 非 `all` 会留下半套不可覆盖的 Central 坐标。要跳过预检和测试，用 `./scripts/maven-deploy.sh --fast` |
 | 把 Token / GPG 私钥写进文档             | 这是事故，不是配置                                   |
 
 ---
@@ -401,8 +416,11 @@ git push origin v5.x.y
 # 2. 两阶段完整预检（不发布）
 ./scripts/maven-deploy.sh --dry-run
 
-# 3. 从根 Reactor 一次性发布（仅在确认版本、凭据和预检证据后）
-./scripts/maven-deploy.sh all --publish
+# 3. 一键发布（不跑预检和测试；.generated 需已存在）
+./scripts/maven-deploy.sh --fast
+
+# 需要完整预检再发布时，改用：
+# ./scripts/maven-deploy.sh all --publish
 
 # 4. 打 Tag
 git tag -a v5.x.y -m "Release v5.x.y"
