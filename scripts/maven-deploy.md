@@ -98,9 +98,10 @@ Archetype 采用两阶段所有权：维护者只在 `source-projects` 的标准
 1. 使用 `versions-maven-plugin` 修改 Reactor 中所有 Maven 模块版本。
 2. 动态发现 `egon-cola-archetypes/source-projects` 下声明 `<egon-cola.version>` 的正常源码根 POM 并同步更新。
 3. 同步更新根 `README.md` / `README.zh-CN.md` 里的 archetype 使用示例版本。示例可以写成 `-DarchetypeVersion=5.x.y`，也可以带单引号或双引号。
-4. 安装根 Parent、Components BOM 和 Archetypes Parent。源码 facade 已进入根 Reactor，且源码工程用空 `relativePath` 从本地仓库解析 `egon-cola-archetypes-parent`；父 POM 又 import Components BOM。这两样都不能从当前 Reactor 里直接解析，不先安装，最后的 `validate` 会失败。
+4. 同步更新已生成 Archetype 模板根 POM 里的两个消费版本：父 POM `<version>` 和 `<egon-cola.version>`。这两个坐标不在 Reactor 里，`versions-maven-plugin` 不会改到。同时把对应 `generation-manifest.sha256` 的 `rootVersion` 和该 POM 的产品哈希改到新版本。
+5. 安装根 Parent、Components BOM 和 Archetypes Parent。源码 facade 已进入根 Reactor，且源码工程用空 `relativePath` 从本地仓库解析 `egon-cola-archetypes-parent`；父 POM 又 import Components BOM。这两样都不能从当前 Reactor 里直接解析，不先安装，最后的 `validate` 会失败。
 
-源码工程自身的 `0.1.0-SNAPSHOT` 坐标是生成器内部哨兵，不会被 bump；`.generated`、锁目录和临时派生物也不会被编辑。
+源码工程自身的 `0.1.0-SNAPSHOT` 坐标是生成器内部哨兵，不会被 bump。锁目录、`target` 和其他生成文件也不会被编辑；只有上面这两个消费版本及其清单记录会跟着发布版本走。版本以外的源码变化仍要重新执行 `./scripts/generate_archetypes.sh generate`。
 
 修改后建议检查：
 

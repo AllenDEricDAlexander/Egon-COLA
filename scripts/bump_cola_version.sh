@@ -53,6 +53,45 @@ find_archetype_source_poms() {
         -type f -name pom.xml -print0
 }
 
+hash_file() {
+    local file="$1"
+
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$file" | awk '{print $1}'
+        return
+    fi
+    command -v sha256sum >/dev/null 2>&1 || die 'neither shasum nor sha256sum is available'
+    sha256sum "$file" | awk '{print $1}'
+}
+
+file_mode() {
+    local file="$1"
+
+    stat -f '%Lp' "$file" 2>/dev/null || stat -c '%a' "$file"
+}
+
+find_generated_consumer_poms() {
+    local generated_root="$PROJECT_ROOT/egon-cola-archetypes/.generated"
+
+    [[ -d "$generated_root" ]] || return 0
+
+    find "$generated_root" \
+        -type d -name target -prune -o \
+        -type f -path '*/archetype-resources/pom.xml' -print0
+    return 0
+}
+
+find_generated_manifests() {
+    local generated_root="$PROJECT_ROOT/egon-cola-archetypes/.generated"
+
+    [[ -d "$generated_root" ]] || return 0
+
+    find "$generated_root" \
+        -type d -name target -prune -o \
+        -type f -name 'generation-manifest.sha256' -print0
+    return 0
+}
+
 verify_archetype_source_projects_parent_version() {
     local expected_version="$1"
     local parent_block
@@ -113,6 +152,8 @@ backup_versioned_files() {
         find_project_poms
         find_readme_files
         find_tianshu_readme_files
+        find_generated_consumer_poms
+        find_generated_manifests
     )
 
     ROLLBACK_REQUIRED=true
@@ -214,12 +255,117 @@ update_archetype_source_pom_versions() {
     printf 'Updated %d archetype source POM(s).\n' "$updated_count"
 }
 
+refresh_generated_manifest_hash() {
+    local manifest="$1"
+    local product_root="$2"
+    local relative="$3"
+    local file="$product_root/$relative"
+    local hash
+    local mode
+    local new_line
+    local temp_file
+
+    [[ -f "$file" ]] || die "generated file missing: $file"
+    hash="$(hash_file "$file")"
+    mode="$(file_mode "$file")"
+    new_line="${hash}  ${mode}  ${relative}"
+    temp_file="$BACKUP_DIR/updated/${manifest#"$PROJECT_ROOT"/}.rehash"
+    mkdir -p "$(dirname "$temp_file")"
+    awk -v suffix="  ${relative}" -v line="$new_line" '
+        {
+            if (length($0) >= length(suffix) && substr($0, length($0) - length(suffix) + 1) == suffix) {
+                print line
+                found = 1
+            } else {
+                print
+            }
+        }
+        END { if (!found) exit 2 }
+    ' "$manifest" >"$temp_file" || die "$manifest has no product entry for $relative"
+    cp "$temp_file" "$manifest"
+}
+
+# Generated archetype-resources are not reactor modules. versions-maven-plugin
+# therefore leaves the consumer parent version and egon-cola.version behind.
+# Both must follow the published Egon version; the manifest records that pair.
+update_generated_consumer_versions() {
+    local new_version="$1"
+    local pom_file
+    local manifest
+    local product_root
+    local temp_file
+    local parent_block
+    local new_version_tag="<version>$new_version</version>"
+    local new_property="<egon-cola.version>$new_version</egon-cola.version>"
+    local updated_count=0
+
+    while IFS= read -r -d '' pom_file; do
+        parent_block="$(sed -n '/<parent>/,/<\/parent>/p' "$pom_file")"
+        grep -Fq -- '<groupId>top.egon</groupId>' <<<"$parent_block" || \
+            die "$pom_file is not an egon-cola-archetypes-parent consumer root"
+        grep -Fq -- '<artifactId>egon-cola-archetypes-parent</artifactId>' <<<"$parent_block" || \
+            die "$pom_file is not an egon-cola-archetypes-parent consumer root"
+        grep -Eq -- '<egon-cola\.version>[^<]*</egon-cola\.version>' "$pom_file" || \
+            die "$pom_file does not declare egon-cola.version"
+        product_root="$(cd "$(dirname "$pom_file")/.." && pwd)"
+        manifest="$product_root/generation-manifest.sha256"
+        [[ -f "$manifest" ]] || die "generation manifest missing for $pom_file"
+
+        temp_file="$BACKUP_DIR/updated/${pom_file#"$PROJECT_ROOT"/}"
+        mkdir -p "$(dirname "$temp_file")"
+        sed -e "/<parent>/,/<\\/parent>/ s|<version>[^<]*</version>|$new_version_tag|" \
+            -e "s|<egon-cola\\.version>[^<]*</egon-cola\\.version>|$new_property|" \
+            "$pom_file" >"$temp_file"
+        cp "$temp_file" "$pom_file"
+
+        temp_file="$BACKUP_DIR/updated/${manifest#"$PROJECT_ROOT"/}"
+        mkdir -p "$(dirname "$temp_file")"
+        sed "s|^rootVersion=.*|rootVersion=${new_version}|" "$manifest" >"$temp_file"
+        cp "$temp_file" "$manifest"
+        refresh_generated_manifest_hash "$manifest" "$product_root" 'archetype-resources/pom.xml'
+        updated_count=$((updated_count + 1))
+    done < <(find_generated_consumer_poms)
+
+    printf 'Updated %d generated consumer POM(s).\n' "$updated_count"
+}
+
+verify_generated_consumer_versions() {
+    local expected_version="$1"
+    local pom_file
+    local manifest
+    local product_root
+    local parent_block
+    local hash
+    local mode
+    local expected_line
+
+    while IFS= read -r -d '' pom_file; do
+        parent_block="$(sed -n '/<parent>/,/<\/parent>/p' "$pom_file")"
+        grep -Fq -- "<version>$expected_version</version>" <<<"$parent_block" || \
+            die "$pom_file parent version is not $expected_version"
+        grep -Fq -- "<egon-cola.version>$expected_version</egon-cola.version>" "$pom_file" || \
+            die "$pom_file egon-cola.version is not $expected_version"
+        product_root="$(cd "$(dirname "$pom_file")/.." && pwd)"
+        manifest="$product_root/generation-manifest.sha256"
+        grep -Fq -- "rootVersion=$expected_version" "$manifest" || \
+            die "$manifest rootVersion is not $expected_version"
+        hash="$(hash_file "$pom_file")"
+        mode="$(file_mode "$pom_file")"
+        expected_line="${hash}  ${mode}  archetype-resources/pom.xml"
+        grep -Fxq -- "$expected_line" "$manifest" || \
+            die "$manifest hash for archetype-resources/pom.xml does not match the file"
+    done < <(find_generated_consumer_poms)
+}
+
 find_readme_files() {
     local readme
 
     for readme in "$PROJECT_ROOT/README.md" "$PROJECT_ROOT/README.zh-CN.md"; do
-        [[ -f "$readme" ]] && printf '%s\0' "$readme"
+        if [[ -f "$readme" ]]; then
+            printf '%s\0' "$readme"
+        fi
     done
+    return 0
 }
 
 find_tianshu_readme_files() {
@@ -227,8 +373,11 @@ find_tianshu_readme_files() {
     local readme
 
     for readme in "$tianshu_dir/README.md" "$tianshu_dir/README.zh-CN.md"; do
-        [[ -f "$readme" ]] && printf '%s\0' "$readme"
+        if [[ -f "$readme" ]]; then
+            printf '%s\0' "$readme"
+        fi
     done
+    return 0
 }
 
 readme_has_archetype_version() {
@@ -355,6 +504,10 @@ verify_tianshu_readme_versions() {
     done < <(find_tianshu_readme_files)
 }
 
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    return 0
+fi
+
 if [[ $# -ne 1 ]]; then
     usage >&2
     exit 2
@@ -401,6 +554,8 @@ printf 'Updating Egon-COLA from %s to %s...\n' "$CURRENT_VERSION" "$NEW_VERSION"
 update_archetype_source_projects_parent_version "$CURRENT_VERSION" "$NEW_VERSION"
 update_archetype_source_pom_versions "$CURRENT_VERSION" "$NEW_VERSION"
 verify_archetype_source_pom_versions "$NEW_VERSION"
+update_generated_consumer_versions "$NEW_VERSION"
+verify_generated_consumer_versions "$NEW_VERSION"
 update_readme_archetype_versions "$NEW_VERSION"
 verify_readme_archetype_versions "$NEW_VERSION"
 update_tianshu_readme_versions "$CURRENT_VERSION" "$NEW_VERSION"

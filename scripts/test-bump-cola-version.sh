@@ -94,6 +94,26 @@ EOF
   printf '%s\n' "mvn -B -DarchetypeVersion=5.3.3 \\" >"$root/README.zh-CN.md"
   printf '%s\n' 'generated sentinel' \
     >"$root/egon-cola-archetypes/.generated/egon-cola-archetype-fixture/sentinel.txt"
+  mkdir -p "$root/egon-cola-archetypes/.generated/egon-cola-archetype-fixture/archetype-resources"
+  cat >"$root/egon-cola-archetypes/.generated/egon-cola-archetype-fixture/archetype-resources/pom.xml" <<'EOF'
+<project>
+  <parent>
+    <groupId>top.egon</groupId>
+    <artifactId>egon-cola-archetypes-parent</artifactId>
+    <version>5.3.3</version>
+    <relativePath/>
+  </parent>
+  <properties>
+    <egon-cola.version>5.3.3</egon-cola.version>
+  </properties>
+</project>
+EOF
+  cat >"$root/egon-cola-archetypes/.generated/egon-cola-archetype-fixture/generation-manifest.sha256" <<'EOF'
+generator=test
+rootVersion=5.3.3
+[product]
+deadbeef  644  archetype-resources/pom.xml
+EOF
 
   printf '%s\n' \
     '#!/usr/bin/env bash' \
@@ -155,8 +175,11 @@ SOURCE_CHILD_POM="$ROOT/egon-cola-archetypes/source-projects/egon-cola-source-fi
 README="$ROOT/README.md"
 README_ZH="$ROOT/README.zh-CN.md"
 GENERATED="$ROOT/egon-cola-archetypes/.generated"
+CONSUMER_POM="$GENERATED/egon-cola-archetype-fixture/archetype-resources/pom.xml"
+CONSUMER_MANIFEST="$GENERATED/egon-cola-archetype-fixture/generation-manifest.sha256"
+SENTINEL="$GENERATED/egon-cola-archetype-fixture/sentinel.txt"
 
-generated_before="$(hash_tree "$GENERATED")"
+cp -- "$SENTINEL" "$FIXTURE_ROOT/sentinel.original"
 cp -- "$SOURCE_CHILD_POM" "$FIXTURE_ROOT/child.original"
 "$ROOT/scripts/bump_cola_version.sh" 5.3.4 >/dev/null
 
@@ -168,15 +191,22 @@ assert_file_contains "$SOURCE_POM" '<version>0.1.0-SNAPSHOT</version>'
 cmp -s "$SOURCE_CHILD_POM" "$FIXTURE_ROOT/child.original" || die 'internal child parent changed'
 assert_file_contains "$README" "-DarchetypeVersion='5.3.4'"
 assert_file_contains "$README_ZH" "-DarchetypeVersion=5.3.4"
-[[ "$(hash_tree "$GENERATED")" == "$generated_before" ]] || \
-  die 'generated workspace changed during version update'
+assert_file_contains "$CONSUMER_POM" '<version>5.3.4</version>'
+assert_file_contains "$CONSUMER_POM" '<egon-cola.version>5.3.4</egon-cola.version>'
+assert_file_contains "$CONSUMER_MANIFEST" 'rootVersion=5.3.4'
+consumer_hash="$(shasum -a 256 "$CONSUMER_POM" | awk '{print $1}')"
+consumer_mode="$(stat -f '%Lp' "$CONSUMER_POM" 2>/dev/null || stat -c '%a' "$CONSUMER_POM")"
+grep -Fxq -- "${consumer_hash}  ${consumer_mode}  archetype-resources/pom.xml" "$CONSUMER_MANIFEST" || \
+  die 'generated consumer manifest hash was not refreshed'
+cmp -s "$SENTINEL" "$FIXTURE_ROOT/sentinel.original" || die 'generated sentinel changed'
 
 cp -- "$ROOT/pom.xml" "$FIXTURE_ROOT/pom.success"
 cp -- "$SOURCE_REACTOR_POM" "$FIXTURE_ROOT/source-reactor.success"
 cp -- "$SOURCE_POM" "$FIXTURE_ROOT/source.success"
 cp -- "$README" "$FIXTURE_ROOT/readme.success"
 cp -- "$README_ZH" "$FIXTURE_ROOT/readme-zh.success"
-generated_before_failure="$(hash_tree "$GENERATED")"
+cp -- "$CONSUMER_POM" "$FIXTURE_ROOT/consumer.success"
+cp -- "$CONSUMER_MANIFEST" "$FIXTURE_ROOT/consumer-manifest.success"
 
 set +e
 FAIL_VALIDATE=1 "$ROOT/scripts/bump_cola_version.sh" 5.3.5 >"$FIXTURE_ROOT/failure.log" 2>&1
@@ -188,8 +218,11 @@ cmp -s "$SOURCE_REACTOR_POM" "$FIXTURE_ROOT/source-reactor.success" || die 'sour
 cmp -s "$SOURCE_POM" "$FIXTURE_ROOT/source.success" || die 'source POM was not rolled back'
 cmp -s "$README" "$FIXTURE_ROOT/readme.success" || die 'README was not rolled back'
 cmp -s "$README_ZH" "$FIXTURE_ROOT/readme-zh.success" || die 'Chinese README was not rolled back'
-[[ "$(hash_tree "$GENERATED")" == "$generated_before_failure" ]] || \
-  die 'generated workspace changed during failed version update'
+cmp -s "$CONSUMER_POM" "$FIXTURE_ROOT/consumer.success" || die 'generated consumer POM was not rolled back'
+cmp -s "$CONSUMER_MANIFEST" "$FIXTURE_ROOT/consumer-manifest.success" || \
+  die 'generated consumer manifest was not rolled back'
+cmp -s "$SENTINEL" "$FIXTURE_ROOT/sentinel.original" || \
+  die 'generated sentinel changed during failed version update'
 
 set +e
 "$ROOT/scripts/bump_cola_version.sh" 'invalid version' >/dev/null 2>&1
