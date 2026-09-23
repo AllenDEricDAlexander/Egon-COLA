@@ -235,7 +235,7 @@ public class JdbcMcpApprovalRepository
                        issued_at, expires_at
                   FROM gateway_mcp_approval
                  WHERE id = ?
-                """, (result, row) -> new McpApprovalBO(
+                """, (result, row) -> McpApprovalBO.normalized(
                 result.getString("id"),
                 result.getString("token_digest"),
                 result.getString("subject_id"),

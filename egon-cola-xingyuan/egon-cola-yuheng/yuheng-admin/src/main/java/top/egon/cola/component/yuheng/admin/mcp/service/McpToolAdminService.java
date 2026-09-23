@@ -13,9 +13,9 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpManagedToolVO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpRemoteToolVO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpManagedToolOverrideRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteProviderRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteToolDraftRepository;
 import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
@@ -84,28 +84,28 @@ public class McpToolAdminService {
     private final McpValidationService validation;
 
     /**
-     * 中文说明：保存 managedOverrides 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpManagedToolOverrideRepository}，由 {@code McpToolAdminService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by managed overrides; its type is {@code JdbcMcpManagedToolOverrideRepository}, and {@code McpToolAdminService} reads or updates it during its lifecycle.
+     * 中文说明：保存 managedOverrides 对应的状态、依赖或配置值；字段类型为 {@code McpManagedToolOverrideRepository}，由 {@code McpToolAdminService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by managed overrides; its type is {@code McpManagedToolOverrideRepository}, and {@code McpToolAdminService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpToolAdminService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpToolAdminService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpManagedToolOverrideRepository managedOverrides;
+    private final McpManagedToolOverrideRepository managedOverrides;
 
     /**
-     * 中文说明：保存 远程Tools 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpRemoteToolDraftRepository}，由 {@code McpToolAdminService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by remote tools; its type is {@code JdbcMcpRemoteToolDraftRepository}, and {@code McpToolAdminService} reads or updates it during its lifecycle.
+     * 中文说明：保存 远程Tools 对应的状态、依赖或配置值；字段类型为 {@code McpRemoteToolDraftRepository}，由 {@code McpToolAdminService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by remote tools; its type is {@code McpRemoteToolDraftRepository}, and {@code McpToolAdminService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpToolAdminService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpToolAdminService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpRemoteToolDraftRepository remoteTools;
+    private final McpRemoteToolDraftRepository remoteTools;
 
     /**
-     * 中文说明：保存 远程 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpRemoteProviderRepository}，由 {@code McpToolAdminService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by remote; its type is {@code JdbcMcpRemoteProviderRepository}, and {@code McpToolAdminService} reads or updates it during its lifecycle.
+     * 中文说明：保存 远程 对应的状态、依赖或配置值；字段类型为 {@code McpRemoteProviderRepository}，由 {@code McpToolAdminService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by remote; its type is {@code McpRemoteProviderRepository}, and {@code McpToolAdminService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpToolAdminService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpToolAdminService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpRemoteProviderRepository remote;
+    private final McpRemoteProviderRepository remote;
 
     /**
      * 中文说明：保存 servers 对应的状态、依赖或配置值；字段类型为 {@code McpServerRepository}，由 {@code McpToolAdminService} 在其生命周期内读取或更新。
@@ -184,9 +184,9 @@ public class McpToolAdminService {
     @Autowired
     public McpToolAdminService(McpReleaseContentFactory contentFactory,
             McpValidationService validation,
-            JdbcMcpManagedToolOverrideRepository managedOverrides,
-            JdbcMcpRemoteToolDraftRepository remoteTools,
-            JdbcMcpRemoteProviderRepository remote,
+            McpManagedToolOverrideRepository managedOverrides,
+            McpRemoteToolDraftRepository remoteTools,
+            McpRemoteProviderRepository remote,
             McpServerRepository servers,
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
@@ -224,9 +224,9 @@ public class McpToolAdminService {
      */
     McpToolAdminService(McpReleaseContentFactory contentFactory,
             McpValidationService validation,
-            JdbcMcpManagedToolOverrideRepository managedOverrides,
-            JdbcMcpRemoteToolDraftRepository remoteTools,
-            JdbcMcpRemoteProviderRepository remote,
+            McpManagedToolOverrideRepository managedOverrides,
+            McpRemoteToolDraftRepository remoteTools,
+            McpRemoteProviderRepository remote,
             McpServerRepository servers,
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
@@ -346,7 +346,7 @@ public class McpToolAdminService {
         );
         Instant now = clock.instant();
         var mutation = managedOverrides.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO(
+                McpManagedToolOverrideBO.normalized(
                         toolId,
                         command.gatewayGroupId(),
                         managed.tool().operationId(),
@@ -531,7 +531,7 @@ public class McpToolAdminService {
         );
         Instant now = clock.instant();
         var mutation = remoteTools.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO(
+                McpRemoteToolDraftBO.normalized(
                         resourceId,
                         command.gatewayGroupId(),
                         command.serverId(),

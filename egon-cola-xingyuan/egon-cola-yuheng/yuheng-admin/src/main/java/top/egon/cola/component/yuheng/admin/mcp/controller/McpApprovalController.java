@@ -151,7 +151,7 @@ public class McpApprovalController {
         Instant expiresAt = issuedAt.plusSeconds(request.ttlSeconds());
         String token = token();
         String id = UUID.randomUUID().toString();
-        approvals.issue(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO(
+        approvals.issue(McpApprovalBO.normalized(
                 id,
                 McpSecurityDigests.token(token),
                 owner.subjectId(),

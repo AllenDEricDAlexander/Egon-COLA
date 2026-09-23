@@ -170,6 +170,7 @@ public class JdbcMcpCapabilityDraftRepository
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 load 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpCapabilityDraftBO load(String gatewayGroupId) {
         String groupId = McpJdbcJson.required(
                 gatewayGroupId,
@@ -194,6 +195,7 @@ public class JdbcMcpCapabilityDraftRepository
      * @param now 参数 now；parameter now。
      * @return 返回 save 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpCapabilityDraftMutationDTO save(
             McpCapabilityRecordBO draft,
             long expectedRevision,
@@ -254,6 +256,7 @@ public class JdbcMcpCapabilityDraftRepository
      * @param now 参数 now；parameter now。
      * @return 返回 softDelete 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpCapabilityDraftMutationDTO softDelete(
             McpCapabilityKindEnum kind,
             String id,
@@ -308,7 +311,7 @@ public class JdbcMcpCapabilityDraftRepository
                 kind.table(),
                 kind.nameColumn()
         );
-        return jdbc.query(sql, (result, row) -> new McpCapabilityRecordBO(
+        return jdbc.query(sql, (result, row) -> McpCapabilityRecordBO.normalized(
                 kind,
                 result.getString("id"),
                 result.getString("gateway_group_id"),

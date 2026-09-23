@@ -16,10 +16,10 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpCapabilityPreviewVO
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpServerVO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpCapabilityDraftRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpTaskRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpArtifactMetadataRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpCapabilityDraftRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteProviderRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpTaskRepository;
 import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
@@ -88,28 +88,28 @@ public class McpControlPlaneService {
     private final McpServerRepository servers;
 
     /**
-     * 中文说明：保存 capabilities 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpCapabilityDraftRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by capabilities; its type is {@code JdbcMcpCapabilityDraftRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
+     * 中文说明：保存 capabilities 对应的状态、依赖或配置值；字段类型为 {@code McpCapabilityDraftRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by capabilities; its type is {@code McpCapabilityDraftRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpControlPlaneService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpControlPlaneService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpCapabilityDraftRepository capabilities;
+    private final McpCapabilityDraftRepository capabilities;
 
     /**
-     * 中文说明：保存 远程 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpRemoteProviderRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by remote; its type is {@code JdbcMcpRemoteProviderRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
+     * 中文说明：保存 远程 对应的状态、依赖或配置值；字段类型为 {@code McpRemoteProviderRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by remote; its type is {@code McpRemoteProviderRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpControlPlaneService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpControlPlaneService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpRemoteProviderRepository remote;
+    private final McpRemoteProviderRepository remote;
 
     /**
-     * 中文说明：保存 artifacts 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpArtifactMetadataRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by artifacts; its type is {@code JdbcMcpArtifactMetadataRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
+     * 中文说明：保存 artifacts 对应的状态、依赖或配置值；字段类型为 {@code McpArtifactMetadataRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by artifacts; its type is {@code McpArtifactMetadataRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpControlPlaneService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpControlPlaneService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpArtifactMetadataRepository artifacts;
+    private final McpArtifactMetadataRepository artifacts;
 
     /**
      * 中文说明：保存 制品Writer 对应的状态、依赖或配置值；字段类型为 {@code McpAppArtifactStore.Writer}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
@@ -136,12 +136,12 @@ public class McpControlPlaneService {
     private final McpAppSecurityValidator appSecurity;
 
     /**
-     * 中文说明：保存 tasks 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpTaskRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by tasks; its type is {@code JdbcMcpTaskRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
+     * 中文说明：保存 tasks 对应的状态、依赖或配置值；字段类型为 {@code McpTaskRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by tasks; its type is {@code McpTaskRepository}, and {@code McpControlPlaneService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpControlPlaneService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpControlPlaneService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpTaskRepository tasks;
+    private final McpTaskRepository tasks;
 
     /**
      * 中文说明：保存 drafts 对应的状态、依赖或配置值；字段类型为 {@code GatewayDraftRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
@@ -222,13 +222,13 @@ public class McpControlPlaneService {
 
     @Autowired
     public McpControlPlaneService(McpServerRepository servers,
-            JdbcMcpCapabilityDraftRepository capabilities,
-            JdbcMcpRemoteProviderRepository remote,
-            JdbcMcpArtifactMetadataRepository artifacts,
+            McpCapabilityDraftRepository capabilities,
+            McpRemoteProviderRepository remote,
+            McpArtifactMetadataRepository artifacts,
             McpAppArtifactStore.Writer artifactWriter,
             McpAppArtifactStore.Reader artifactReader,
             McpAppSecurityValidator appSecurity,
-            JdbcMcpTaskRepository tasks,
+            McpTaskRepository tasks,
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
@@ -271,13 +271,13 @@ public class McpControlPlaneService {
      * @param clock 参数 clock；parameter clock。
      */
     McpControlPlaneService(McpServerRepository servers,
-            JdbcMcpCapabilityDraftRepository capabilities,
-            JdbcMcpRemoteProviderRepository remote,
-            JdbcMcpArtifactMetadataRepository artifacts,
+            McpCapabilityDraftRepository capabilities,
+            McpRemoteProviderRepository remote,
+            McpArtifactMetadataRepository artifacts,
             McpAppArtifactStore.Writer artifactWriter,
             McpAppArtifactStore.Reader artifactReader,
             McpAppSecurityValidator appSecurity,
-            JdbcMcpTaskRepository tasks,
+            McpTaskRepository tasks,
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
@@ -593,7 +593,7 @@ public class McpControlPlaneService {
         );
         Instant now = clock.instant();
         var mutation = capabilities.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO(
+                McpCapabilityRecordBO.normalized(
                         kind,
                         resourceId,
                         command.gatewayGroupId(),
@@ -768,7 +768,7 @@ public class McpControlPlaneService {
         );
         Instant now = clock.instant();
         var mutation = remote.saveProvider(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO(
+                McpRemoteProviderDraftBO.normalized(
                         resourceId,
                         command.gatewayGroupId(),
                         command.providerCode(),
@@ -923,7 +923,7 @@ public class McpControlPlaneService {
         );
         Instant now = clock.instant();
         var mutation = remote.saveMount(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO(
+                McpRemoteMountDraftBO.normalized(
                         resourceId,
                         command.gatewayGroupId(),
                         command.serverId(),
@@ -1157,7 +1157,7 @@ public class McpControlPlaneService {
         );
         Instant now = clock.instant();
         String id = SnowflakeIdGenerator.nextId();
-        artifacts.save(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO(
+        artifacts.save(McpArtifactMetadataBO.normalized(
                 id,
                 command.gatewayGroupId(),
                 command.appCode(),

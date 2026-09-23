@@ -325,7 +325,7 @@ class GatewayMcpFlywayPostgresqlIT {
         );
 
         JdbcMcpApprovalRepository approvals = new JdbcMcpApprovalRepository(jdbc);
-        approvals.issue(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO(
+        approvals.issue(McpApprovalBO.normalized(
                 "approval-1",
                 "a".repeat(64),
                 "subject-1",
@@ -350,7 +350,7 @@ class GatewayMcpFlywayPostgresqlIT {
                 jdbc,
                 new ObjectMapper()
         );
-        tasks.create(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO(
+        tasks.create(McpTaskBO.normalized(
                 "task-1", "principal-1", "subject-1", "tenant-1",
                 "client-1", "billing", "invoice.export",
                 "c".repeat(64), "WORKING", Map.of("format", "csv"),

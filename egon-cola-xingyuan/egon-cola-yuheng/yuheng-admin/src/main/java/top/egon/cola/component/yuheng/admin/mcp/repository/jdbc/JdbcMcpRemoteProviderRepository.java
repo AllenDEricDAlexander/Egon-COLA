@@ -166,6 +166,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 providers 的处理结果；returns the result of the operation.
      */
+    @Override
     public List<McpRemoteProviderDraftBO> providers(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, provider_code, display_name,
@@ -195,7 +196,7 @@ public class JdbcMcpRemoteProviderRepository
                     "capability_fingerprint"
             ));
             content.put("status", result.getString("status"));
-            return new McpRemoteProviderDraftBO(
+            return McpRemoteProviderDraftBO.normalized(
                     result.getString("id"),
                     result.getString("gateway_group_id"),
                     result.getString("provider_code"),
@@ -217,6 +218,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param now 参数 now；parameter now。
      * @return 返回 save提供方 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpRemoteProviderDraftMutationDTO saveProvider(
             McpRemoteProviderDraftBO provider,
             long expectedRevision,
@@ -286,6 +288,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param providerId 参数 提供方Id；parameter provider id。
      * @return 返回 capabilities 的处理结果；returns the result of the operation.
      */
+    @Override
     public List<McpRemoteCapabilityBO> capabilities(String providerId) {
         return jdbc.query("""
                 SELECT id, provider_id, primitive_type, remote_name,
@@ -316,6 +319,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param syncedAt 参数 syncedAt；parameter synced at。
      */
     @Transactional
+    @Override
     public void replaceCapabilities(
             String providerId,
             String fingerprint,
@@ -360,6 +364,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 mounts 的处理结果；returns the result of the operation.
      */
+    @Override
     public List<McpRemoteMountDraftBO> mounts(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, server_id, provider_id,
@@ -368,7 +373,7 @@ public class JdbcMcpRemoteProviderRepository
                   FROM gateway_mcp_remote_mount_draft
                  WHERE gateway_group_id = ? AND deleted = FALSE
                  ORDER BY server_id, namespace
-                """, (result, row) -> new McpRemoteMountDraftBO(
+                """, (result, row) -> McpRemoteMountDraftBO.normalized(
                 result.getString("id"),
                 result.getString("gateway_group_id"),
                 result.getString("server_id"),
@@ -392,6 +397,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param now 参数 now；parameter now。
      * @return 返回 saveMount 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpRemoteProviderDraftMutationDTO saveMount(
             McpRemoteMountDraftBO mount,
             long expectedRevision,
@@ -465,6 +471,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param now 参数 now；parameter now。
      * @return 返回 softDelete提供方 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpRemoteProviderDraftMutationDTO softDeleteProvider(
             String id,
             long expectedRevision,
@@ -490,6 +497,7 @@ public class JdbcMcpRemoteProviderRepository
      * @param now 参数 now；parameter now。
      * @return 返回 softDeleteMount 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpRemoteProviderDraftMutationDTO softDeleteMount(
             String id,
             long expectedRevision,

@@ -163,6 +163,7 @@ public class JdbcMcpRemoteToolDraftRepository
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 load 的处理结果；returns the result of the operation.
      */
+    @Override
     public List<McpRemoteToolDraftBO> load(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, server_id, tool_name,
@@ -172,7 +173,7 @@ public class JdbcMcpRemoteToolDraftRepository
                  WHERE gateway_group_id = ?
                    AND deleted = FALSE
                  ORDER BY server_id, tool_name
-                """, (result, row) -> new McpRemoteToolDraftBO(
+                """, (result, row) -> McpRemoteToolDraftBO.normalized(
                 result.getString("id"),
                 result.getString("gateway_group_id"),
                 result.getString("server_id"),
@@ -195,6 +196,7 @@ public class JdbcMcpRemoteToolDraftRepository
      * @param now 参数 now；parameter now。
      * @return 返回 save 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpRemoteToolDraftMutationDTO save(
             McpRemoteToolDraftBO draft,
             long expectedRevision,
@@ -266,6 +268,7 @@ public class JdbcMcpRemoteToolDraftRepository
      * @param now 参数 now；parameter now。
      * @return 返回 softDelete 的处理结果；returns the result of the operation.
      */
+    @Override
     public McpRemoteToolDraftMutationDTO softDelete(
             String id,
             long expectedRevision,

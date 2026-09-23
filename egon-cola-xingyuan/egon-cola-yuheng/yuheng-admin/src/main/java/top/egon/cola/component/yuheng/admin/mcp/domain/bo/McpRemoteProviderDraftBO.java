@@ -28,4 +28,42 @@ public class McpRemoteProviderDraftBO {
     private Map<String, Object> content;
     private boolean enabled;
     private long revision;
+
+    /**
+     * 中文说明：按原持久化载体的紧凑构造器契约建立远程提供方草稿载体；Lombok 规范构造器不承担这些不变式，故读写边界必须经此工厂。
+     * English summary: Builds a remote provider draft carrier enforcing the invariants of the legacy persistence carrier's compact constructor; Lombok's canonical constructor cannot, so read/write boundaries must go through this factory.
+     *
+     * 用法 / Usage: 由 Jdbc 载入与服务写入构造草稿时调用；/ Call it when the Jdbc load path or a service writes a draft.
+     * @param id 参数 id；parameter id。
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param providerCode 参数 提供方Code；parameter provider code。
+     * @param content 参数 content；parameter content。
+     * @param enabled 参数 enabled；parameter enabled。
+     * @param revision 参数 revision；parameter revision。
+     * @return 返回已完成必填校验与防御性复制的草稿载体；returns the validated, defensively copied draft carrier.
+     */
+    public static McpRemoteProviderDraftBO normalized(
+            String id,
+            String gatewayGroupId,
+            String providerCode,
+            Map<String, Object> content,
+            boolean enabled,
+            long revision
+    ) {
+        String checkedId = McpJdbcJson.required(id, "id");
+        String checkedGatewayGroupId =
+                McpJdbcJson.required(gatewayGroupId, "gatewayGroupId");
+        String checkedProviderCode =
+                McpJdbcJson.required(providerCode, "providerCode");
+        Map<String, Object> checkedContent =
+                Map.copyOf(Objects.requireNonNull(content, "content"));
+        return new McpRemoteProviderDraftBO(
+                checkedId,
+                checkedGatewayGroupId,
+                checkedProviderCode,
+                checkedContent,
+                enabled,
+                revision
+        );
+    }
 }

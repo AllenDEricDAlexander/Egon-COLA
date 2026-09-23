@@ -233,7 +233,7 @@ public class JdbcMcpTaskRepository
                        created_at, updated_at
                   FROM gateway_mcp_task_instance
                  WHERE id = ?
-                """, (result, row) -> new McpTaskBO(
+                """, (result, row) -> McpTaskBO.normalized(
                 result.getString("id"),
                 result.getString("principal_fingerprint"),
                 result.getString("subject_id"),
@@ -412,7 +412,7 @@ public class JdbcMcpTaskRepository
      */
     private McpTaskBO map(java.sql.ResultSet result)
             throws java.sql.SQLException {
-        return new McpTaskBO(
+        return McpTaskBO.normalized(
                 result.getString("id"),
                 result.getString("principal_fingerprint"),
                 result.getString("subject_id"),
