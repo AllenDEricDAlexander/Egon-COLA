@@ -15,7 +15,7 @@
 
 适用场景包括抽奖、优惠券领取、登录防刷、支付提交、风险校验、昂贵查询、热点接口保护，以及需要在业务方法边界统一执行准入规则的场景。
 
-> 本文档对应 Egon COLA `5.3.3`、Java 21+、Spring Boot 3.5.x。
+> 本文档对应 Egon COLA `5.4.1`、Java 21+、Spring Boot 3.5.x。
 
 ---
 
@@ -63,7 +63,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
 | DenyList        | 在所有绕过逻辑之前拒绝已封禁身份。                   |
 | AllowList       | 可作为准入门禁，也可只跳过指定的下游策略。               |
 | PenaltyBox      | 将连续限流违规升级为临时处罚。                     |
-| Token Bucket 限流 | 使用本地或 Redisson 原子状态保护热点入口。          |
+| 限流              | 令牌桶、漏桶或滑动窗口算法，状态可为本地或 Redisson 原子实现。 |
 | TimeLimit       | 通过调用线程、受控线程池或虚拟线程观察或强制执行时限。         |
 | 拒绝处理            | 支持抛异常、fallback、JSON 反序列化或返回 `null`。 |
 | 隐私安全 Key        | Key 规范化后使用 HMAC-SHA-256 哈希，再进入存储。   |
@@ -95,7 +95,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-component-access-guard-starter</artifactId>
-    <version>5.3.3</version>
+    <version>5.4.1</version>
 </dependency>
 ```
 
@@ -107,7 +107,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.3.3</version>
+            <version>5.4.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -211,25 +211,18 @@ top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedExceptio
 异常中包含结构化 `GuardOutcome`：
 
 ```java
-try{
+try {
     drawApplicationService.draw(userId);
-}catch(
-AccessGuardRejectedException exception){
-GuardOutcome outcome = exception.outcome();
+} catch (AccessGuardRejectedException exception) {
+    GuardOutcome outcome = exception.outcome();
 
-    log.
-
-warn(
-        "Access rejected: rule={}, decision={}, retryAfter={}",
-        outcome.ruleId(),
-        outcome.
-
-decision(),
-        outcome.
-
-retryAfter()
+    log.warn(
+            "Access rejected: rule={}, decision={}, retryAfter={}",
+            outcome.ruleId(),
+            outcome.decision(),
+            outcome.retryAfter()
     );
-        }
+}
 ```
 
 ---
@@ -420,6 +413,8 @@ egon:
 
             rate-limit:
               enabled: true
+              # TOKEN_BUCKET、LEAKY_BUCKET、
+              # SLIDING_WINDOW
               algorithm: TOKEN_BUCKET
               capacity: 100
               refill-tokens: 100
@@ -502,7 +497,7 @@ egon:
 |--------------------------|---------:|--------------|
 | `local.max-entries`      | `100000` | 本地有界状态最大条目数。 |
 | `local.cleanup-interval` |     `1m` | 清理周期。        |
-| `local.idle-ttl`         |    `10m` | 空闲淘汰 TTL。    |
+| `local.idle-ttl`         |    `10m` | 限流状态空闲 TTL。 |
 
 ### 8.4 线程池属性
 
@@ -563,6 +558,13 @@ Store 与 Policy 使用 keyHash
 - 方法参数；
 - 参数对象字段；
 - record component。
+
+贡献者只遍历参数列表，不遍历对象图：
+
+- 带注解的参数直接贡献自身的值；
+- 不带注解且非 `null` 的参数，贡献其运行时类型中带注解的成员——record 取 record
+  component，普通对象取声明字段；
+- 参数一旦带注解就不再扫描成员，继承字段、嵌套对象和 getter 均不会被访问。
 
 参数示例：
 
@@ -961,8 +963,10 @@ rate-limit:
 
 Local 存储使用单调时钟和有界内存条目。Redisson 存储使用 Redis Server 时间和单 Key 原子
 脚本。已有 Token Bucket 保留旧 HASH Key；漏桶和滑动窗口惰性使用 `:leaky-bucket`、
-`:sliding-window` 后缀 Key，并通过 idle TTL 清理。不需要迁移或批量删除。算法参数变化会
-按 Rule 版本产生新的规范化状态。存储异常遵循 `failurePolicies.rateLimitBackend`
+`:sliding-window` 后缀 Key，并通过 idle TTL 清理。不需要迁移或批量删除。限流与处罚 Key
+内嵌计划状态版本，即已解析计划与 HMAC 密钥拼接后的 SHA-256 指纹，因此算法参数变化会
+产生新的规范化状态。存储异常遵循 `failurePolicies.rateLimitBackend`
+SHA-256 指纹，因此算法参数变化会产生新的规范化状态。存储异常遵循 `failurePolicies.rateLimitBackend`
 （`FAIL_OPEN`、`LOCAL_FALLBACK` 或 `FAIL_CLOSED`）。`retryAfter` 只是 `GuardOutcome` 中的
 运行提示，Guard 不会排队或 sleep 被拒绝的调用。
 
@@ -1024,14 +1028,16 @@ time-limit:
 
 ### 支持组合
 
+`enabled: false` 时业务方法直接执行，不套任何时限包装，配置的 `executor` 既不校验也不生效。
+否则 `mode` 与 `executor` 必须匹配：
+
 | 模式             | 执行器              | 行为              |
 |----------------|------------------|-----------------|
-| `DISABLED`     | `CALLER_THREAD`  | 不执行时限控制。        |
 | `OBSERVE_ONLY` | `CALLER_THREAD`  | 在调用线程执行，仅记录耗时。  |
 | `ENFORCE`      | `THREAD_POOL`    | 通过有界线程池执行并强制超时。 |
 | `ENFORCE`      | `VIRTUAL_THREAD` | 通过虚拟线程执行并强制超时。  |
 
-非法组合会在启动时失败。
+`DISABLED` 是“未声明模式”的默认值，与 `enabled: true` 组合会使启动失败；非法组合同样失败。
 
 ### 调用线程观察模式
 
@@ -1443,24 +1449,18 @@ private final AccessGuardClient accessGuardClient;
 
 ```java
 GuardRequest request = new GuardRequest(
-    "draw",
-    new Object[]{userId},
-    Map.of(),
-    DrawResult.class,
-    null
+        "draw",
+        new Object[]{userId},
+        Map.of(),
+        DrawResult.class,
+        null
 );
 
 GuardOutcome outcome = accessGuardClient.evaluate(request);
 
-if(outcome.
-
-type() !=GuardOutcomeType.ALLOWED
-        &&outcome.
-
-type() !=GuardOutcomeType.DEGRADED){
-    throw new
-
-IllegalStateException("Request was not admitted");
+if (outcome.type() != GuardOutcomeType.ALLOWED
+        && outcome.type() != GuardOutcomeType.DEGRADED) {
+    throw new IllegalStateException("Request was not admitted");
 }
 ```
 
@@ -1651,7 +1651,7 @@ engine: AOP
 - 方法级绑定；
 - 同步方法；
 - `CompletionStage`；
-- Reactor 方法。
+- Reactor 可用时的 Reactor 方法。
 
 限制：
 
@@ -2353,7 +2353,7 @@ class DrawGuardTest {
 - [ ] 已理解 Secret 轮换影响。
 - [ ] Trusted Proxy 范围准确。
 - [ ] LOCAL/REDISSON 选择符合部署拓扑。
-- [ ] Token Bucket 数值来源于真实流量。
+- [ ] 限流数值来源于真实流量。
 - [ ] Penalty TTL 合理。
 - [ ] 风险与可用性负责人已审核 Failure Policy。
 - [ ] Fallback 无副作用。
@@ -2368,7 +2368,7 @@ class DrawGuardTest {
 
 ## 35. 从 Access Guard V1 迁移
 
-`5.3.3` 是源码不兼容的 V2 模型，不再提供 V1 兼容门面。
+Access Guard V2 是源码不兼容模型，不再提供 V1 兼容门面。
 
 | V1 概念           | V2 替代                                                 |
 |-----------------|-------------------------------------------------------|

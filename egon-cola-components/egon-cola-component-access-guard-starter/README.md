@@ -17,7 +17,7 @@ It provides one unified runtime model for:
 The component is intended for business entry points such as coupon claims, lotteries, login attempts, payment
 operations, risk checks, expensive queries, and hot API protection.
 
-> Current document target: Egon COLA `5.3.3`, Java 21+, Spring Boot 3.5.x.
+> Current document target: Egon COLA `5.4.1`, Java 21+, Spring Boot 3.5.x.
 
 ---
 
@@ -66,7 +66,7 @@ The policy order is fixed and is part of the public contract.
 | Deny list                 | Reject known blocked identities before all bypass decisions.                                |
 | Allow list                | Work as a gate or bypass only selected downstream policies.                                 |
 | Penalty box               | Escalate repeated rate-limit violations into a temporary penalty.                           |
-| Token-bucket rate limit   | Protect hot entry points with local or Redisson-backed atomic state.                        |
+| Rate limit                | Apply token-bucket, leaky-bucket, or sliding-window limits, local or Redisson-backed.       |
 | Time limit                | Observe or enforce execution duration using caller thread, bounded pool, or virtual thread. |
 | Rejection resolution      | Throw, invoke fallback, deserialize JSON, or return `null`.                                 |
 | Privacy-safe keys         | Normalize key parts and hash them with HMAC-SHA-256 before storage.                         |
@@ -98,7 +98,7 @@ The policy order is fixed and is part of the public contract.
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-component-access-guard-starter</artifactId>
-    <version>5.3.3</version>
+    <version>5.4.1</version>
 </dependency>
 ```
 
@@ -110,7 +110,7 @@ The policy order is fixed and is part of the public contract.
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.3.3</version>
+            <version>5.4.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -408,6 +408,8 @@ egon:
 
             rate-limit:
               enabled: true
+              # TOKEN_BUCKET, LEAKY_BUCKET,
+              # SLIDING_WINDOW
               algorithm: TOKEN_BUCKET
               capacity: 100
               refill-tokens: 100
@@ -490,7 +492,7 @@ Rule-level contributors behave as follows:
 |--------------------------|---------:|-----------------------------------|
 | `local.max-entries`      | `100000` | Maximum bounded local state size. |
 | `local.cleanup-interval` |     `1m` | Cleanup cadence.                  |
-| `local.idle-ttl`         |    `10m` | Idle eviction TTL.                |
+| `local.idle-ttl`         |    `10m` | Idle rate-limit state TTL.        |
 
 ### 8.4 Thread-pool properties
 
@@ -552,6 +554,14 @@ Use `@GuardKey` on:
 - method parameters;
 - fields of an argument object;
 - record components.
+
+The contributor walks the parameter list, not the object graph:
+
+- an annotated parameter contributes its own value;
+- an unannotated, non-null parameter contributes the annotated members of its runtime
+  type — record components for a record, declared fields otherwise;
+- annotating the parameter suppresses that member scan, and inherited fields, nested
+  objects, and accessors are never visited.
 
 Parameter example:
 
@@ -951,9 +961,10 @@ Local storage uses monotonic time and a bounded in-memory entry map. Redisson
 storage uses Redis server time and atomic single-key scripts. Existing Token
 Bucket deployments retain the legacy HASH key; Leaky Bucket and Sliding Window
 use lazy `:leaky-bucket` and `:sliding-window` suffix keys with idle TTL cleanup.
-No migration or broad deletion is required. Changing algorithm parameters starts
-new normalized state according to the configured rule version. Storage errors
-follow `failurePolicies.rateLimitBackend` (`FAIL_OPEN`, `LOCAL_FALLBACK`, or
+No migration or broad deletion is required. Rate-limit and penalty keys embed the plan
+state version, which is a SHA-256 fingerprint of the resolved plan combined with the
+HMAC secret, so changing an algorithm parameter starts fresh normalized state. Storage
+errors follow `failurePolicies.rateLimitBackend` (`FAIL_OPEN`, `LOCAL_FALLBACK`, or
 `FAIL_CLOSED`). `retryAfter` is an operational hint in `GuardOutcome`; the Guard
 does not queue or sleep a rejected call.
 
@@ -1016,14 +1027,18 @@ time-limit:
 
 ### Supported combinations
 
+When `enabled: false`, the operation runs directly with no timeout wrapper, and the
+configured executor is neither validated nor used. Otherwise the mode and executor must
+match:
+
 | Mode           | Executor         | Behavior                                               |
 |----------------|------------------|--------------------------------------------------------|
-| `DISABLED`     | `CALLER_THREAD`  | No timeout behavior.                                   |
 | `OBSERVE_ONLY` | `CALLER_THREAD`  | Execute on the caller thread and measure duration.     |
 | `ENFORCE`      | `THREAD_POOL`    | Execute on a bounded managed pool and enforce timeout. |
 | `ENFORCE`      | `VIRTUAL_THREAD` | Execute on a virtual thread and enforce timeout.       |
 
-Invalid combinations fail startup.
+`DISABLED` is the "mode not declared" default, so pairing it with `enabled: true` fails
+startup. Invalid combinations fail startup.
 
 ### Caller-thread observation
 
@@ -2333,7 +2348,7 @@ Before enabling a rule in production:
 - [ ] Secret rotation impact is understood.
 - [ ] Trusted proxy ranges are exact.
 - [ ] Local versus distributed enforcement is intentional.
-- [ ] Token-bucket numbers match real traffic.
+- [ ] Rate-limit numbers match real traffic.
 - [ ] Penalty TTL is proportionate.
 - [ ] Failure policies are reviewed by risk and availability owners.
 - [ ] Fallback is side-effect free.
@@ -2348,7 +2363,7 @@ Before enabling a rule in production:
 
 ## 35. Migration from Access Guard V1
 
-Version `5.3.3` is a source-breaking V2 model. It does not package a V1 compatibility facade.
+Access Guard V2 is a source-breaking model. It does not package a V1 compatibility facade.
 
 | V1 concept                      | V2 replacement                                        |
 |---------------------------------|-------------------------------------------------------|
