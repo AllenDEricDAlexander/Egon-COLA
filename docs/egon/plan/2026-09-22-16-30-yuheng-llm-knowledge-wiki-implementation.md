@@ -867,6 +867,17 @@
 
 保留用户AGENTS的“不自动启动/不浏览器/不改无关文件/每逻辑任务最多一commit”。用户当前并发制作code-generator与修改components/pom.xml，本Plan不修改这些路径或把其未完成代码当可用工具。实施前重新记录HEAD/status和组件API hash；若公共MP合同变更，先按当前实际API复核本Plan，不用旧记忆覆盖源码。
 
+**RE-BASELINE 2026-09-23（实施轮，用户选择“先重基线再顺序执行”）**：重新记录HEAD=`5211121bf`，`git status --short`为空；原Baseline `31638eea8` 距此61个commit。复核结论：
+
+| 复核项 | 方法 | 结论 |
+| --- | --- | --- |
+| 组件公共API漂移 | `git diff --name-only 31638eea8..HEAD` 覆盖 MP Starter、common-core、rag-starter | 0 个 Java 文件变更；仅 pom 版本号与 README。`EgonModel/EgonColaMapper/EgonColaRepository/EgonColaDdlManifestBO/EgonColaPostgreDdlRunner/LogicalDataSourceFactory/三个Guard/BaseConverter/BaseForwardConverter/ValidationUtils` 全部按原语义存在 |
+| §5 文件库存 | 177 条 MODIFY/DELETE 路径逐一同 `[ -e ]` 实测；162 个 .java 声明类型逐一 grep | 0 缺失。513 条 CREATE 中仅 Step 1 的 3 个已落地（见下）。注意：`Current evidence/symbol` 列对全部 177 行只是 Path 列的逐字复制，不提供独立的符号证据 |
+| Plan 修正 | 对照实际源码 | PLAN-CLAR-002 原称 `EgonColaRepository` 为“一个PO泛型”，实际是两个类型参数 `<M extends EgonColaMapper<T>, T extends EgonModel<T>>`，已改正；父版本字面量按 `5.4.1` 读 |
+| Step 1 | RED→GREEN→path-limited commit | 已提交 `3c3a2e4c8`，并由 `95c68f16a` 纠正：rag-starter 的 PDF/Tika reader 是 `optional`，不传递给消费者，admin 必须自行声明并 import `spring-ai-bom` 1.1.8。`GatewayAiModuleContractTest` 2/2 通过。**后续实施从 Step 2 起**，重跑 Step 1 的 CREATE 会与既有三文件冲突 |
+
+用户已裁定提交契约：不采用本节末尾“全部步骤最多一个最终commit”，改为 skill 与用户既有工作流的**每 Step 一个 path-limited commit**。§4.4 与 §12.5 MC-BLOCKER-001 中与此冲突的表述按此裁定读。
+
 ### 6.2 Build, test, and environment prerequisites
 
 根mvnw存在并可执行；Java21来自xingyuan POM，Boot3.5.16；web package有Vitest/typecheck/build。依赖均来自本次明确MP指令与原已确认业务Spec，不下载/执行generator。PG/pgvector/身份/Tianshu/MCP/Kafka/浏览器为用户控制的验收环境，本次没有启动。目标必须独立空public，不能指向共享有业务数据的库；sha/fingerprint是实际部署值，不能在文档伪造。
@@ -880,14 +891,14 @@ DEC-101=全量破坏式新库，不保旧数据；旧SQL档案不可改，runtim
 | ID | Small implementation inference | Repository evidence | Why semantics are unchanged | Impact if wrong |
 | --- | --- | --- | --- | --- |
 | PLAN-CLAR-001 | 旧Service载体PO转BO，真实row同名冲突时用RecordPO（class） | 31旧PO与EgonModel生命周期不同；Spec§7.3.3 | 外部JSON/ID/businessrevision不改，内部名字可局部确定 | 源码imports/constructor调整，类型合同测试发现 |
-| PLAN-CLAR-002 | 单表guarded helper用PersistenceRepository后缀，复合业务facade用Mp前缀 | 当前EgonColaRepository一个PO泛型、旧复合JDBC多个表 | 防腐接口不变，复用guardedCRUD而不复制 | qualifier/Mapper上下文测试发现 |
+| PLAN-CLAR-002 | 单表guarded helper用PersistenceRepository后缀，复合业务facade用Mp前缀 | `EgonColaRepository<M extends EgonColaMapper<T>, T extends EgonModel<T>>` 是两个类型参数（Mapper+PO），不是原记录所称的“一个PO泛型”；旧复合JDBC访问多个表 | 防腐接口不变，复用guardedCRUD而不复制 | qualifier/Mapper上下文测试发现 |
 | PLAN-CLAR-003 | manifest family=web仅是组件允许的DDL分类 | EgonColaDdlManifestBO固定允许列表 | 不选择Web archetype、不增DDD层 | 启动/manifest合同验证 |
 
 ## 7. Ordered File-by-file Implementation Steps
 
 每Step有明确RED/GREEN与编译检查；持久化真实验收在Step9后，早期测试只证明其声明的静态/单元边界，不假称中间binary可生产启动。
 
-### Step 1 — 建立批准依赖与LLM模块编译边界
+### Step 1 — 建立批准依赖与LLM模块编译边界 【已COMMITTED 2026-09-23: 3c3a2e4c8 + 纠正 95c68f16a；勿重跑 CREATE】
 
 - Requirements: REQ-002, REQ-009, REQ-013, REQ-014, REQ-015
 - Dependencies: 用户审核后的有效Spec/Plan；无前序实现Step。
