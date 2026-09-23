@@ -24,6 +24,7 @@
         <module>yuheng-biz-gateway</module>
         <module>yuheng-mcp-gateway</module>
         <module>yuheng-admin</module>
+        <module>yuheng-llm-gateway</module>
         <module>yuheng-starter</module>
         <module>yuheng-starter-openapi</module>
         <module>yuheng-starter-openapi-webmvc</module>
@@ -66,6 +67,11 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>yuheng-admin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>yuheng-llm-gateway</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
