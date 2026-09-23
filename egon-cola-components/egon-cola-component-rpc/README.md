@@ -81,8 +81,8 @@ when no mode is written, the reference defaults to direct Provider discovery.
 - Maven Wrapper from the repository (`./mvnw`) or a compatible Maven installation.
 - Spring Boot 3.5.x when using the auto-configuration.
 - Generated Java and gRPC classes produced by `protoc` and
-  `protoc-gen-grpc-java` compatible with the versions managed by this repository:
-  Protobuf 4.32.0 and gRPC Java 1.75.0.
+  `protoc-gen-grpc-java` compatible with the versions managed by the components
+  reactor: Protobuf 4.32.0 and gRPC Java 1.75.0.
 - A reachable Tianshu direct RPC endpoint and Redis when Provider leases, Yuheng or
   Provider discovery, or Tianshu ConfigData is enabled.
 - Matching least-privilege Tianshu HMAC credentials for each enabled capability;
@@ -157,9 +157,9 @@ egon:
           development-plaintext: true
         consumer:
           enabled: true
-          yuheng-service-name: egon-yuheng-rpc
-          yuheng-group: default
-          yuheng-version: 1.0.0
+          gateway-service-name: egon-yuheng-rpc
+          gateway-group: default
+          gateway-version: 1.0.0
 ```
 
 The Tianshu Admin, Redis, production Yuheng, and Yuheng rules are outside this
@@ -178,7 +178,7 @@ repository-managed versions:
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.3.3</version>
+            <version>5.4.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -237,7 +237,7 @@ All properties in this table are under `egon.cola.component.rpc`.
 | `provider.heartbeat-interval-seconds`   |       `10` | Heartbeat interval; it must be shorter than the lease TTL.      |
 | `provider.graceful-shutdown-timeout-ms` |    `10000` | Server drain timeout.                                           |
 | `provider.metadata`                     |      empty | User metadata; reserved framework prefixes are rejected.        |
-| `provider.metadata.yuheng.weight`      | contract `weight` or `100` | Published instance capacity, valid range `1..10000`. |
+| `provider.metadata` key `yuheng.weight`  | contract `weight` or `100` | Published instance capacity, valid range `1..10000`. It is a metadata key, not a bound property. |
 
 The Provider starts its gRPC server, prepares handlers as unavailable, registers
 one Tianshu lease per service identity, and marks the matching handler available only
@@ -251,14 +251,14 @@ heartbeats, deregisters exact leases, and drains the server.
 |-----------------------------------------|-------------------:|----------------------------------------------------------|
 | `consumer.enabled`                      |            `false` | Enables Consumer proxies and discovery integration.      |
 | `consumer.default-timeout-ms`           |             `3000` | Default unary deadline ceiling.                          |
-| `consumer.yuheng-discovery-timeout-ms` |             `5000` | Yuheng discovery and channel-ready timeout.             |
-| `consumer.yuheng-service-name`         | `egon-yuheng-rpc` | Exact Yuheng service identity.                          |
-| `consumer.yuheng-group`                |          `default` | Exact Yuheng group.                                     |
-| `consumer.yuheng-version`              |            `1.0.0` | Exact Yuheng version.                                   |
-| `consumer.yuheng-biz-code`             |              empty | Optional Tianshu business-scope override.                    |
-| `consumer.yuheng-app-code`             |              empty | Optional Tianshu application-scope override.                 |
+| `consumer.gateway-discovery-timeout-ms`  |             `5000` | Yuheng discovery and channel-ready timeout.             |
+| `consumer.gateway-service-name`          | `egon-yuheng-rpc` | Exact Yuheng service identity.                          |
+| `consumer.gateway-group`                 |          `default` | Exact Yuheng group.                                     |
+| `consumer.gateway-version`               |            `1.0.0` | Exact Yuheng version.                                   |
+| `consumer.gateway-biz-code`              |              empty | Optional Tianshu business-scope override.                    |
+| `consumer.gateway-app-code`              |              empty | Optional Tianshu application-scope override.                 |
 | `consumer.channel-drain-timeout-ms`     |             `5000` | Drain timeout for replaced Provider channels.            |
-| `consumer.yuheng-max-attempts`         |                `2` | Maximum Yuheng channels considered by one logical call. |
+| `consumer.gateway-max-attempts`          |                `2` | Maximum Yuheng channels considered by one logical call. |
 | `consumer.max-retries`                  |                `3` | Default same-mode availability retry budget.             |
 | `consumer.default-load-balance`         |       `ROUND_ROBIN` | Default Consumer-side selection strategy.                |
 | `consumer.consistent-hash-virtual-nodes`|              `160` | Ring density for `CONSISTENT_HASH`.                      |
@@ -277,7 +277,8 @@ statuses such as `INVALID_ARGUMENT`, `PERMISSION_DENIED`, `NOT_FOUND`,
 `FAILED_PRECONDITION`, `ALREADY_EXISTS`, `ABORTED`, and business exceptions are
 terminal and are not retried. The framework does not infer idempotency; when
 retries are enabled the business operation must be duplicate-safe (for example,
-a unique document number with overwrite/upsert semantics).
+a unique document number with overwrite/upsert semantics). Channels are built with
+gRPC's own transport-level retry explicitly disabled.
 
 #### Reference annotation migration
 
@@ -517,7 +518,7 @@ the same unary gRPC descriptor and metadata/interceptor chain. The generic API i
 intentionally raw and bounded:
 
 ```java
-RpcGenericInvocation call = RpcGenericInvocation.yuheng(
+RpcGenericInvocation call = RpcGenericInvocation.gateway(
         "egon.rpc.test.v1.EchoService", "default", "1.0.0",
         "egon.rpc.test.v1.EchoService/Echo", requestBytes,
         3000, 1, LoadBalance.ROUND_ROBIN, FailStrategy.FAIL_CLOSED, null);
@@ -559,7 +560,7 @@ not created and no rate limit is silently assumed.
 Provider states are `NEW → STARTING → READY|DEGRADED → DRAINING → STOPPED` (or
 `FAILED`). READY is published only after the gRPC server is bound and every
 required lease is active. Provider heartbeat is an RPC-side fixed-delay scheduler;
-Tianshu only validates/renews/expirs leases and publishes changes. Consumer startup
+Tianshu only validates/renews/expires leases and publishes changes. Consumer startup
 installs all declared Directory subscriptions and the shared channel pool before
 accepting calls. Shutdown closes the admission gate, stops subscriptions and
 recovery, deregisters exact leases, drains in-flight unary calls until the
@@ -663,8 +664,10 @@ egon-cola-component-rpc/
 
 - **Java:** 21+.
 - **Spring Boot:** 3.5.x; the current parent manages 3.5.16.
-- **gRPC/Protobuf:** gRPC Java 1.75.0, Protobuf Java/protoc 4.32.0, and
-  `protoc-gen-grpc-java` 1.75.0 are the repository compatibility baseline.
+- **gRPC/Protobuf:** the components reactor manages gRPC Java 1.75.0, Protobuf
+  Java/protoc 4.32.0, and `protoc-gen-grpc-java` 1.75.0. Projects generated from the
+  native archetype family inherit those versions; the open archetype family inherits
+  gRPC Java 1.73.0 and Protobuf 3.25.8.
 - **Wire contract:** V1 accepts generated Protobuf `Message` request/response
   types and unary, non-streaming gRPC methods only.
 - **Exception and enum contract:** `EgonRpcException`,
@@ -689,7 +692,6 @@ egon-cola-component-rpc/
 The following items are not part of the current V1 runtime contract and require
 separate contract/design decisions before implementation:
 
-- Streaming RPC support and its Yuheng descriptor/reporting model.
 - Streaming RPC support and its Yuheng descriptor/reporting model.
 - Production-scale observability dashboards and fault-drill automation; the
   bounded runtime hooks and status/trailer contracts are already available.
@@ -716,5 +718,5 @@ TIANSHU_TEST_REDIS_HOST=127.0.0.1 \
 TIANSHU_TEST_REDIS_PORT=6379 \
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract \
-  -am -Pddc-live-test -Dit.test=RpcProcessIT verify
+  -am -Ptianshu-live-test -Dit.test=RpcProcessIT verify
 ```

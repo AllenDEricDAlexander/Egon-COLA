@@ -144,9 +144,9 @@ egon:
           development-plaintext: true
         consumer:
           enabled: true
-          yuheng-service-name: egon-yuheng-rpc
-          yuheng-group: default
-          yuheng-version: 1.0.0
+          gateway-service-name: egon-yuheng-rpc
+          gateway-group: default
+          gateway-version: 1.0.0
 ```
 
 Tianshu Admin、Redis、生产 Yuheng 和 Yuheng 规则不属于本组件的 Quick Start。完整多进程拓扑
@@ -162,7 +162,7 @@ Tianshu Admin、Redis、生产 Yuheng 和 Yuheng 规则不属于本组件的 Qui
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.3.3</version>
+            <version>5.4.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -219,7 +219,7 @@ Tianshu Adapter；它会传递引入 Starter 和 Tianshu SDK：
 | `provider.heartbeat-interval-seconds`   |       `10` | 心跳间隔，必须小于租约 TTL。                         |
 | `provider.graceful-shutdown-timeout-ms` |    `10000` | Server 排空超时。                             |
 | `provider.metadata`                     |          空 | 业务元数据；不能使用框架保留前缀。                        |
-| `provider.metadata.yuheng.weight`      | Contract `weight` 或 `100` | 上报实例容量，范围 `1..10000`。 |
+| `provider.metadata` 键 `yuheng.weight` | Contract `weight` 或 `100` | 上报实例容量，范围 `1..10000`；这是 metadata 键，不是绑定属性。 |
 
 Provider 先启动 gRPC Server，将 Handler 置为不可用，再为每个 Service Identity 注册一份
 Tianshu 租约，注册成功后才恢复对应 Handler 的可用状态。租约失效或心跳失败会先摘除可用性，
@@ -232,14 +232,14 @@ Tianshu 租约，注册成功后才恢复对应 Handler 的可用状态。租约
 |-----------------------------------------|-------------------:|--------------------------------|
 | `consumer.enabled`                      |            `false` | 启用 Consumer Proxy 和发现集成。       |
 | `consumer.default-timeout-ms`           |             `3000` | 默认 unary Deadline 上限。          |
-| `consumer.yuheng-discovery-timeout-ms` |             `5000` | Yuheng 发现和 Channel Ready 超时。  |
-| `consumer.yuheng-service-name`         | `egon-yuheng-rpc` | 精确 Yuheng 服务身份。               |
-| `consumer.yuheng-group`                |          `default` | 精确 Yuheng 分组。                 |
-| `consumer.yuheng-version`              |            `1.0.0` | 精确 Yuheng 版本。                 |
-| `consumer.yuheng-biz-code`             |                  空 | 可选的 Tianshu 业务作用域覆盖。               |
-| `consumer.yuheng-app-code`             |                  空 | 可选的 Tianshu 应用作用域覆盖。               |
+| `consumer.gateway-discovery-timeout-ms` |             `5000` | Yuheng 发现和 Channel Ready 超时。  |
+| `consumer.gateway-service-name`          | `egon-yuheng-rpc` | 精确 Yuheng 服务身份。               |
+| `consumer.gateway-group`                 |          `default` | 精确 Yuheng 分组。                 |
+| `consumer.gateway-version`               |            `1.0.0` | 精确 Yuheng 版本。                 |
+| `consumer.gateway-biz-code`              |                  空 | 可选的 Tianshu 业务作用域覆盖。               |
+| `consumer.gateway-app-code`              |                  空 | 可选的 Tianshu 应用作用域覆盖。               |
 | `consumer.channel-drain-timeout-ms`     |             `5000` | 替换 Provider Channel 的排空超时。     |
-| `consumer.yuheng-max-attempts`         |                `2` | 一次逻辑调用最多考虑的 Yuheng Channel 数。 |
+| `consumer.gateway-max-attempts`          |                `2` | 一次逻辑调用最多考虑的 Yuheng Channel 数。 |
 | `consumer.max-retries`                  |                `3` | 默认同模式可用性重试预算。                |
 | `consumer.default-load-balance`         |       `ROUND_ROBIN` | Consumer 默认选择策略。                  |
 | `consumer.consistent-hash-virtual-nodes`|              `160` | `CONSISTENT_HASH` 环密度。               |
@@ -345,10 +345,15 @@ public interface EchoRpc {
 }
 ```
 
-生成的 Proto Service Name、`group` 和 `version` 共同构成 Service Identity。Validator
-要求恰好一个请求参数、一个 Protobuf 响应、存在输入输出 Descriptor 匹配的生成方法，且
+生成的 Proto Service Name、`group` 和 `version` 共同构成 Service Identity。
+`RpcContractValidator` 继承 common-core 的 `BaseValidator`，并以规范的
+`egonColaValidationUtils` 门面 Bean 发布，因此所有组件共用同一套 Jakarta Validation 引擎。
+Validator 要求恰好一个请求参数、一个 Protobuf 响应、存在输入输出 Descriptor 匹配的生成方法，且
 必须是 unary 非 streaming。Java 方法名不允许重载。Contract 无效时会在启动或创建 Proxy
-时以 `RPC_INVALID_CONTRACT` 失败。
+时以 `RPC_INVALID_CONTRACT` 失败（`top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode`，
+一个 common-core `EgonEnum`），抛出的
+`top.egon.cola.component.rpc.common.exception.EgonRpcException` 通过 `getRpcErrorCode()`
+携带该类型化编码。
 
 ### 3. 暴露 Provider
 
@@ -469,7 +474,7 @@ Typed 方法可以返回 Protobuf 响应（阻塞调用），也可以返回
 Metadata/Interceptor 链路。泛化 API 仅允许受限的 raw bytes：
 
 ```java
-RpcGenericInvocation call = RpcGenericInvocation.yuheng(
+RpcGenericInvocation call = RpcGenericInvocation.gateway(
         "egon.rpc.test.v1.EchoService", "default", "1.0.0",
         "egon.rpc.test.v1.EchoService/Echo", requestBytes,
         3000, 1, LoadBalance.ROUND_ROBIN, FailStrategy.FAIL_CLOSED, null);
@@ -575,7 +580,10 @@ egon-cola-component-rpc/
 │       ├── contract/          # Descriptor、校验、Catalog 和 Snapshot
 │       ├── consumer/          # Proxy、Directory、Channel 和 Interceptor
 │       ├── context/            # 进程身份与调用 Metadata
-│       ├── exception/          # 稳定 RPC 异常与 Status 映射
+│       ├── common/
+│       │   ├── enums/          # 基于 common EgonEnum 契约的 RPC 枚举
+│       │   └── exception/      # 基于 common 异常契约的稳定 RPC 异常
+│       ├── exception/          # gRPC Status 到异常的映射
 │       └── provider/           # Binding、Server、可用性与租约
 ├── egon-cola-component-rpc-tianshu-adapter/
 │   └── src/main/java/top/egon/cola/component/rpc/tianshu/
@@ -595,10 +603,18 @@ egon-cola-component-rpc/
 
 - **Java：** 21+。
 - **Spring Boot：** 3.5.x；当前父 POM 管理 3.5.16。
-- **gRPC/Protobuf：** gRPC Java 1.75.0、Protobuf Java/protoc 4.32.0、
-  `protoc-gen-grpc-java` 1.75.0 是仓库兼容基线。
+- **gRPC/Protobuf：** components Reactor 管理 gRPC Java 1.75.0、Protobuf
+  Java/protoc 4.32.0 和 `protoc-gen-grpc-java` 1.75.0。native archetype 家族生成的
+  工程沿用这些版本；open archetype 家族继承 gRPC Java 1.73.0 与 Protobuf 3.25.8。
 - **线协议：** V1 只接受生成的 Protobuf `Message` 请求/响应类型，以及 unary、非 streaming
   gRPC 方法。
+- **异常与枚举契约：** `EgonRpcException`、`EgonRpcRejectedException` 和
+  `EgonRpcErrorCode` 位于 `top.egon.cola.component.rpc.common.exception` 与
+  `top.egon.cola.component.rpc.common.enums`；异常继承 common-core 的
+  `CommonException`，编码枚举实现 `EgonEnum`，提供稳定的整数 `getCode()`，且
+  `getMessage()` 与常量名一致。`RpcStatusExceptionMapper` 保留
+  `top.egon.cola.component.rpc.exception` 包及其
+  `EgonRpcException map(StatusRuntimeException)` 返回类型。
 - **发现协议：** Tianshu 发现依赖当前 Tianshu Registry Service Identity 和租约模型；自定义 Registry
   应实现 Starter Port，不要复制 Tianshu 内部实现。
 - **Schema 演进：** 保持生成的 Service/Method Name 与 Protobuf 字段兼容；Descriptor
@@ -632,5 +648,5 @@ TIANSHU_TEST_REDIS_HOST=127.0.0.1 \
 TIANSHU_TEST_REDIS_PORT=6379 \
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract \
-  -am -Pddc-live-test -Dit.test=RpcProcessIT verify
+  -am -Ptianshu-live-test -Dit.test=RpcProcessIT verify
 ```
