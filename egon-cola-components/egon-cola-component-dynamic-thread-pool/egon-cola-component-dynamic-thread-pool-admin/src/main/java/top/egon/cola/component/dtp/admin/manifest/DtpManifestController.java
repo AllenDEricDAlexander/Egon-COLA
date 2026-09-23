@@ -12,8 +12,11 @@ import java.util.List;
 @RequestMapping("/api/v1/dtp")
 public class DtpManifestController {
 
-    @Value("${egon.cola.component.dtp.manifest.version:5.2.1}")
-    private String version = "5.2.1";
+    /** Kept in step with the reactor version; bump it together with each release. */
+    private static final String DEFAULT_MANIFEST_VERSION = "5.4.1";
+
+    @Value("${egon.cola.component.dtp.manifest.version:" + DEFAULT_MANIFEST_VERSION + "}")
+    private String version = DEFAULT_MANIFEST_VERSION;
 
     @GetMapping("/manifest")
     public Response<DtpComponentManifest> manifest() {

@@ -20,7 +20,7 @@ The endpoint returns the standard admin response envelope. The manifest payload 
 | `data` | Manifest payload. |
 | `data.component` | Stable component key, `dynamic-thread-pool`. |
 | `data.name` | Human-readable component name. |
-| `data.version` | Manifest version reported from `egon.cola.component.dtp.manifest.version`, whose built-in default is `5.2.1`. It is not derived from the Maven artifact version. |
+| `data.version` | Manifest version reported from `egon.cola.component.dtp.manifest.version`. When the property is not set, the controller falls back to a compile-time constant that is bumped by hand together with the reactor version, so it is not derived from the Maven artifact version. |
 | `data.enabled` | Currently always `true` in the admin response. |
 | `data.baseApi` | Admin API base path. |
 | `data.frontend.module` | Frontend module key. |
