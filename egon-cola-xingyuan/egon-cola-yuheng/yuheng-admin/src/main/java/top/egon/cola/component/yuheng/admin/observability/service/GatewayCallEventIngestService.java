@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO;
 
 /**
  * 中文说明：{@code GatewayCallEventIngestService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关调用事件Ingest服务相关的职责与边界。
@@ -85,7 +86,7 @@ public class GatewayCallEventIngestService {
      */
     @Transactional
     public void poison(
-            top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayConsumeFailurePO failure) {
+            top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO failure) {
         store.recordFailure(failure);
     }
 

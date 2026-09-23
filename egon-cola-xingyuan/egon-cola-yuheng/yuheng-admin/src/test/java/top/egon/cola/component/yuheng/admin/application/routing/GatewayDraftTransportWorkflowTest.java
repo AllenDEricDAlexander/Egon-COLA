@@ -15,7 +15,7 @@ import top.egon.cola.component.yuheng.admin.shared.repository.IdempotencyReposit
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftRepository;
 import top.egon.cola.component.yuheng.admin.shared.controller.GatewayAdminExceptionHandler;
@@ -38,6 +38,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
 
 class GatewayDraftTransportWorkflowTest {
 
@@ -174,12 +177,12 @@ class GatewayDraftTransportWorkflowTest {
         IdempotencyRepository idempotency = mock(IdempotencyRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
-        GatewayDraftPO draft = new GatewayDraftPO(
+        GatewayDraftBO draft = new GatewayDraftBO(
                 "group-1",
                 "admin",
                 NOW
         );
-        AtomicReference<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO> route =
+        AtomicReference<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO> route =
                 new AtomicReference<>();
         when(drafts.findById("group-1")).thenReturn(Optional.of(draft));
         when(store.routes("group-1")).thenAnswer(ignored ->
@@ -211,8 +214,8 @@ class GatewayDraftTransportWorkflowTest {
         return new Fixture(mockMvc);
     }
 
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation() {
-        return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation() {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO(
                 "operation-1",
                 "application-1",
                 "interface-1",
@@ -237,8 +240,8 @@ class GatewayDraftTransportWorkflowTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition() {
-        return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO(
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition() {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO(
                 "definition-1",
                 "operation-1",
                 1L,

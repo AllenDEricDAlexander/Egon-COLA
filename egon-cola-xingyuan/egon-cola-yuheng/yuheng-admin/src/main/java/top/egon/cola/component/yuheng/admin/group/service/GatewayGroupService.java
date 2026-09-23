@@ -6,12 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.group.domain.dto.GatewayGroupCreateCommandDTO;
 import top.egon.cola.component.yuheng.admin.group.domain.dto.GatewayGroupUpdateCommandDTO;
-import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
+import top.egon.cola.component.yuheng.admin.group.domain.bo.GatewayGroupBO;
 import top.egon.cola.component.yuheng.admin.group.domain.vo.GatewayGroupVO;
 import top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
@@ -118,7 +118,7 @@ public class GatewayGroupService {
             RequestAuditContext request) {
         Instant now = clock.instant();
         String id = SnowflakeIdGenerator.nextId();
-        GatewayGroupPO group = new GatewayGroupPO(
+        GatewayGroupBO group = new GatewayGroupBO(
                 id,
                 command.gatewayGroupCode(),
                 command.displayName(),
@@ -129,7 +129,7 @@ public class GatewayGroupService {
                 now
         );
         groups.save(group);
-        drafts.save(new GatewayDraftPO(id, actor.actorId(), now));
+        drafts.save(new GatewayDraftBO(id, actor.actorId(), now));
         audit(
                 actor,
                 request,
@@ -194,7 +194,7 @@ public class GatewayGroupService {
             GatewayGroupUpdateCommandDTO command,
             AdminActor actor,
             RequestAuditContext request) {
-        GatewayGroupPO group = required(id);
+        GatewayGroupBO group = required(id);
         assertRevision(command.expectedRevision(), group.getRevision());
         Map<String, Object> before = Map.of(
                 "displayName",
@@ -243,7 +243,7 @@ public class GatewayGroupService {
             boolean enabled,
             AdminActor actor,
             RequestAuditContext request) {
-        GatewayGroupPO group = required(id);
+        GatewayGroupBO group = required(id);
         group.setEnabled(enabled, actor.actorId(), clock.instant());
         groups.flush();
         audit(
@@ -266,7 +266,7 @@ public class GatewayGroupService {
      * @param id 参数 id；parameter id。
      * @return 返回 required 的处理结果；returns the result of the operation.
      */
-    private GatewayGroupPO required(String id) {
+    private GatewayGroupBO required(String id) {
         return groups.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
                         "gateway group " + id + " was not found"
@@ -308,7 +308,7 @@ public class GatewayGroupService {
             String action,
             Map<String, Object> before,
             Map<String, Object> after) {
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -318,8 +318,8 @@ public class GatewayGroupService {
                 resourceType,
                 resourceId,
                 action,
-                before,
-                after,
+                GatewayAuditLogBO.sanitized(before),
+                GatewayAuditLogBO.sanitized(after),
                 null,
                 null,
                 true,
@@ -336,7 +336,7 @@ public class GatewayGroupService {
      * @param group 参数 group；parameter group。
      * @return 返回 view 的处理结果；returns the result of the operation.
      */
-    private GatewayGroupVO view(GatewayGroupPO group) {
+    private GatewayGroupVO view(GatewayGroupBO group) {
         return new GatewayGroupVO(
                 group.getId(),
                 group.getGatewayGroupCode(),

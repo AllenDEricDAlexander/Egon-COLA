@@ -107,7 +107,6 @@ import top.egon.cola.component.yuheng.admin.shared.domain.exception.GatewayAdmin
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 
 import java.security.SecureRandom;

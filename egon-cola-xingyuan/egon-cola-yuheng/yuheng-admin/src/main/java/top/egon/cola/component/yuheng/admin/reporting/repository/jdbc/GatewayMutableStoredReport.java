@@ -1,7 +1,7 @@
 package top.egon.cola.component.yuheng.admin.reporting.repository.jdbc;
 
 
-import top.egon.cola.component.yuheng.admin.reporting.domain.po.GatewayStoredReportPO;
+import top.egon.cola.component.yuheng.admin.reporting.domain.bo.GatewayStoredReportBO;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReportResult;
 
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ public final class GatewayMutableStoredReport {
      * 用法 / Usage: 调用方式 / Usage: {@code top.egon.cola.component.yuheng.admin.reporting.repository.jdbc.GatewayMutableStoredReport.freeze(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 freeze 的处理结果；returns the result of the operation.
      */
-    GatewayStoredReportPO freeze() {
-        return new GatewayStoredReportPO(created, updated, List.copyOf(refs));
+    GatewayStoredReportBO freeze() {
+        return new GatewayStoredReportBO(created, updated, List.copyOf(refs));
     }
 }

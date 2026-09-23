@@ -339,8 +339,8 @@ public class McpValidationService {
                             "apps." + app.name() + ".artifactId",
                             "MCP App artifact was not found"
                     ));
-            if (!artifact.sha256().equals(app.artifactSha256())
-                    || !artifact.resourceUri().equals(app.resourceUri())) {
+            if (!artifact.getSha256().equals(app.artifactSha256())
+                    || !artifact.getResourceUri().equals(app.resourceUri())) {
                 invalid(
                         "YUHENG_MCP_ARTIFACT_DIGEST_MISMATCH",
                         "apps." + app.name() + ".artifactSha256",
@@ -516,7 +516,7 @@ public class McpValidationService {
                         "gateway Operation " + operationId
                                 + " was not found"
                 ));
-        if (catalog.loadDefinitions(operation.id()).isEmpty()) {
+        if (catalog.loadDefinitions(operation.getId()).isEmpty()) {
             invalid(
                     "YUHENG_MCP_OPERATION_DEFINITION_NOT_FOUND",
                     path + ".operationId",

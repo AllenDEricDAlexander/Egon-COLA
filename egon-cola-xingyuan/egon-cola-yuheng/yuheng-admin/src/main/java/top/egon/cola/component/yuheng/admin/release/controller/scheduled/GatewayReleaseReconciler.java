@@ -10,11 +10,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayReleaseStatus;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleaseRepository;
 import top.egon.cola.component.yuheng.admin.release.service.GatewayReleasePublicationCoordinator;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 
 import java.time.Clock;
 import java.util.List;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
 
 /**
  * 中文说明：{@code GatewayReleaseReconciler} 是类型，位于当前 Gateway 模块的相关包中，负责网关发布Reconciler相关的职责与边界。
@@ -144,21 +146,21 @@ public class GatewayReleaseReconciler {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseReconciler.reconcile(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param attempt 参数 attempt；parameter attempt。
      */
-    private void reconcile(top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO attempt) {
+    private void reconcile(top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO attempt) {
         top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome;
         try {
             outcome = coordinator.resume(
-                    attempt.releaseId(),
-                    attempt.attemptNo()
+                    attempt.getReleaseId(),
+                    attempt.getAttemptNo()
             );
         } catch (RuntimeException unavailable) {
             return;
         }
-        List<top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO> targets = outcome.targets();
+        List<top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO> targets = outcome.targets();
         transactions.executeWithoutResult(transaction -> {
             releases.completeAttempt(
-                    attempt.releaseId(),
-                    attempt.attemptNo(),
+                    attempt.getReleaseId(),
+                    attempt.getAttemptNo(),
                     releaseStatus(outcome.status()),
                     outcome.partialApplied(),
                     outcome.changeId(),
@@ -183,15 +185,15 @@ public class GatewayReleaseReconciler {
      * @param attempt 参数 attempt；parameter attempt。
      */
     private void advanceDraft(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO attempt) {
-        GatewayDraftPO draft = drafts.findById(
-                attempt.gatewayGroupId()
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO attempt) {
+        GatewayDraftBO draft = drafts.findById(
+                attempt.getGatewayGroupId()
         ).orElse(null);
         if (draft != null
-                && !attempt.releaseId().equals(
+                && !attempt.getReleaseId().equals(
                 draft.getBasedOnReleaseId())) {
             draft.baseOn(
-                    attempt.releaseId(),
+                    attempt.getReleaseId(),
                     "gateway_release_reconciler",
                     clock.instant()
             );

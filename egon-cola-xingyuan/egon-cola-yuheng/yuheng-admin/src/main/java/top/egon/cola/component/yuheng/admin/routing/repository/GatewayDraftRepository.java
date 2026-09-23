@@ -1,8 +1,8 @@
 package top.egon.cola.component.yuheng.admin.routing.repository;
 
 
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
 
 import java.util.List;
 
@@ -22,7 +22,7 @@ public interface GatewayDraftRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 routes 的处理结果；returns the result of the operation.
      */
-    List<GatewayRouteDraftPO> routes(String gatewayGroupId);
+    List<GatewayRouteDraftBO> routes(String gatewayGroupId);
 
     /**
      * 中文说明：执行 policies 操作；该方法是 {@code GatewayDraftRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -32,7 +32,7 @@ public interface GatewayDraftRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 policies 的处理结果；returns the result of the operation.
      */
-    List<GatewayPolicyDraftPO> policies(String gatewayGroupId);
+    List<GatewayPolicyDraftBO> policies(String gatewayGroupId);
 
     /**
      * 中文说明：执行 upsert路由 操作；该方法是 {@code GatewayDraftRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -41,7 +41,7 @@ public interface GatewayDraftRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayDraftRepository.upsertRoute(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param route 参数 路由；parameter route。
      */
-    void upsertRoute(GatewayRouteDraftPO route);
+    void upsertRoute(GatewayRouteDraftBO route);
 
     /**
      * 中文说明：执行 delete路由 操作；该方法是 {@code GatewayDraftRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -60,7 +60,7 @@ public interface GatewayDraftRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayDraftRepository.upsertPolicy(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param policy 参数 策略；parameter policy。
      */
-    void upsertPolicy(GatewayPolicyDraftPO policy);
+    void upsertPolicy(GatewayPolicyDraftBO policy);
 
     /**
      * 中文说明：执行 delete策略 操作；该方法是 {@code GatewayDraftRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

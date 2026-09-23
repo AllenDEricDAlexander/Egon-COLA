@@ -21,6 +21,7 @@ import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 
 import java.util.List;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO;
 
 /**
  * 中文说明：{@code McpTaskAdminController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责MCP任务管理端控制器相关的职责与边界。
@@ -72,7 +73,7 @@ public class McpTaskAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO> list(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO> list(
             @RequestParam String tenantId,
             @RequestParam(required = false) String clientId) {
         return service.tasks(tenantId, clientId);
@@ -90,7 +91,7 @@ public class McpTaskAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}")
-    public top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO get(@PathVariable String id) {
+    public top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO get(@PathVariable String id) {
         return service.task(id);
     }
 

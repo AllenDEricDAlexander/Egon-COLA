@@ -1,8 +1,8 @@
 package top.egon.cola.component.yuheng.admin.openapi.domain;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncKeyDTO;
 
@@ -13,6 +13,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 
 class GatewayOpenApiPersistenceModelTest {
 
@@ -25,7 +27,7 @@ class GatewayOpenApiPersistenceModelTest {
         Map<String, Object> document = new HashMap<>();
         document.put("openapi", "3.1.0");
         List<String> messages = List.of("ok");
-        GatewayOpenApiSnapshotPO snapshot = new GatewayOpenApiSnapshotPO(
+        GatewayOpenApiSnapshotBO snapshot = GatewayOpenApiSnapshotBO.validated(new GatewayOpenApiSnapshotBO(
                 "snapshot-1",
                 "app-1",
                 null,
@@ -44,13 +46,13 @@ class GatewayOpenApiPersistenceModelTest {
                 NOW,
                 NOW,
                 NOW
-        );
+        ));
 
         document.put("changed", true);
 
-        assertThat(snapshot.documentJson()).doesNotContainKey("changed");
-        assertThat(snapshot.validationMessages()).containsExactly("ok");
-        assertThatThrownBy(() -> new GatewayOpenApiSnapshotPO(
+        assertThat(snapshot.getDocumentJson()).doesNotContainKey("changed");
+        assertThat(snapshot.getValidationMessages()).containsExactly("ok");
+        assertThatThrownBy(() -> GatewayOpenApiSnapshotBO.validated(new GatewayOpenApiSnapshotBO(
                 "snapshot-1",
                 "app-1",
                 null,
@@ -69,7 +71,7 @@ class GatewayOpenApiPersistenceModelTest {
                 NOW,
                 NOW,
                 NOW
-        )).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("lowercase");
     }
 
@@ -112,7 +114,7 @@ class GatewayOpenApiPersistenceModelTest {
 
     @Test
     void syncRecordRejectsInvalidRevisionAndValidReferences() {
-        assertThatThrownBy(() -> new GatewayOpenApiSyncPO(
+        assertThatThrownBy(() -> GatewayOpenApiSyncBO.validated(new GatewayOpenApiSyncBO(
                 "sync-1",
                 "app-1",
                 "build-1",
@@ -134,10 +136,10 @@ class GatewayOpenApiPersistenceModelTest {
                 null,
                 -1,
                 NOW
-        )).isInstanceOf(IllegalArgumentException.class)
+        ))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("revision");
 
-        GatewayOpenApiSyncPO valid = new GatewayOpenApiSyncPO(
+        GatewayOpenApiSyncBO valid = GatewayOpenApiSyncBO.validated(new GatewayOpenApiSyncBO(
                 "sync-1",
                 "app-1",
                 "build-1",
@@ -159,8 +161,8 @@ class GatewayOpenApiPersistenceModelTest {
                 null,
                 2,
                 NOW
-        );
-        assertThat(valid.definitionSetId()).isEqualTo("set-1");
+        ));
+        assertThat(valid.getDefinitionSetId()).isEqualTo("set-1");
     }
 
     private static String sha(char value) {

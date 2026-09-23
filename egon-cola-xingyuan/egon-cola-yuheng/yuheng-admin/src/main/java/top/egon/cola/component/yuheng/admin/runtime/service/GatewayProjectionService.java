@@ -19,12 +19,12 @@ import top.egon.cola.component.tianshu.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceSnapshot;
 import top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties;
-import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
+import top.egon.cola.component.yuheng.admin.group.domain.bo.GatewayGroupBO;
 import top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository;
 import top.egon.cola.component.yuheng.admin.release.service.GatewayReleaseService;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleasePublicationRepository;
 import top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayPublicationScopeDTO;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationPhaseEnum;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum;
 import top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum;
@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO;
 
 /**
  * 中文说明：{@code GatewayProjectionService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关投影服务相关的职责与边界。
@@ -97,9 +98,9 @@ public class GatewayProjectionService {
      */
     public GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>>
     engineNodes(@NotBlank String gatewayGroupId) {
-        GatewayGroupPO group = group(gatewayGroupId);
+        GatewayGroupBO group = group(gatewayGroupId);
         var history = releases.history(gatewayGroupId);
-        List<GatewayReleasePublicationPO> journal = history.isEmpty()
+        List<GatewayReleasePublicationBO> journal = history.isEmpty()
                 ? List.of() : journal(history.getFirst());
         return engineNodes(group, targetScopes(group, journal));
     }
@@ -211,11 +212,11 @@ public class GatewayProjectionService {
         top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO target = history.isEmpty()
                 ? null
                 : history.getFirst();
-        GatewayGroupPO group = group(gatewayGroupId);
-        List<GatewayReleasePublicationPO> journal = target == null ? List.of() : journal(target);
+        GatewayGroupBO group = group(gatewayGroupId);
+        List<GatewayReleasePublicationBO> journal = target == null ? List.of() : journal(target);
         GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> nodes =
                 engineNodes(group, targetScopes(group, journal));
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseAttemptPO attempt = latestSuccessfulAttempt(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO attempt = latestSuccessfulAttempt(
                 target
         );
         Map<GatewayEngineRoleEnum, GatewayRuleExpectation> expectations =
@@ -259,15 +260,15 @@ public class GatewayProjectionService {
      * @param release 参数 发布；parameter release。
      * @return 返回 latestSuccessfulAttempt 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseAttemptPO latestSuccessfulAttempt(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO latestSuccessfulAttempt(
             top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO release) {
         if (release == null) {
             return null;
         }
         return release.attempts().stream()
-                .filter(attempt -> "SUCCESS".equals(attempt.status()))
+                .filter(attempt -> "SUCCESS".equals(attempt.getStatus()))
                 .max(java.util.Comparator.comparingInt(
-                        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseAttemptPO::attemptNo
+                        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO::getAttemptNo
                 ))
                 .orElse(null);
     }
@@ -338,11 +339,11 @@ public class GatewayProjectionService {
      */
     private Map<GatewayEngineRoleEnum, GatewayRuleExpectation> expectations(
             top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO release,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseAttemptPO attempt,
-            List<GatewayReleasePublicationPO> journal) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO attempt,
+            List<GatewayReleasePublicationBO> journal) {
         if (release == null || attempt == null || journal.isEmpty()
-                || journal.stream().anyMatch(phase -> phase.targetScope() == null
-                || phase.status() != GatewayPublicationStatusEnum.SUCCESS)) {
+                || journal.stream().anyMatch(phase -> phase.getTargetScope() == null
+                || phase.getStatus() != GatewayPublicationStatusEnum.SUCCESS)) {
             return Map.of();
         }
         String checksum = releases.artifactSha256(release.releaseId()).orElse(null);
@@ -351,14 +352,14 @@ public class GatewayProjectionService {
         }
         Map<GatewayEngineRoleEnum, GatewayRuleExpectation> result =
                 new java.util.EnumMap<>(GatewayEngineRoleEnum.class);
-        for (GatewayReleasePublicationPO activation : journal) {
-            if (activation.phaseType() != GatewayPublicationPhaseEnum.ACTIVATION) {
+        for (GatewayReleasePublicationBO activation : journal) {
+            if (activation.getPhaseType() != GatewayPublicationPhaseEnum.ACTIVATION) {
                 continue;
             }
-            if (activation.ddcTargetVersion() == null || result.put(
-                    activation.targetScope().engineRole(),
-                    new GatewayRuleExpectation(activation.ddcTargetVersion(), checksum,
-                            activation.targetScope())) != null) {
+            if (activation.getDdcTargetVersion() == null || result.put(
+                    activation.getTargetScope().engineRole(),
+                    new GatewayRuleExpectation(activation.getDdcTargetVersion(), checksum,
+                            activation.getTargetScope())) != null) {
                 return Map.of();
             }
         }
@@ -370,22 +371,22 @@ public class GatewayProjectionService {
      * English summary: Queries both frozen release targets, or bootstrap targets before the first publication.
      */
     private List<GatewayPublicationScopeDTO> targetScopes(
-            GatewayGroupPO group, List<GatewayReleasePublicationPO> journal) {
+            GatewayGroupBO group, List<GatewayReleasePublicationBO> journal) {
         List<GatewayPublicationScopeDTO> frozen = journal.stream()
-                .map(GatewayReleasePublicationPO::targetScope).filter(Objects::nonNull).distinct().toList();
+                .map(GatewayReleasePublicationBO::getTargetScope).filter(Objects::nonNull).distinct().toList();
         return frozen.isEmpty() ? properties.getDdc().targets(group.getEnv()) : frozen;
     }
 
-    private List<GatewayReleasePublicationPO> journal(
+    private List<GatewayReleasePublicationBO> journal(
             top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO release) {
         return release.attempts().stream().max(java.util.Comparator.comparingInt(
-                top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseAttemptPO::attemptNo))
-                .map(attempt -> publications.findAttemptMetadata(release.releaseId(), attempt.attemptNo()))
+                top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO::getAttemptNo))
+                .map(attempt -> publications.findAttemptMetadata(release.releaseId(), attempt.getAttemptNo()))
                 .orElse(List.of());
     }
 
     private GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> engineNodes(
-            GatewayGroupPO group, List<GatewayPublicationScopeDTO> scopes) {
+            GatewayGroupBO group, List<GatewayPublicationScopeDTO> scopes) {
         String key = "engine:" + group.getId() + ":" + scopes;
         return load(key, "TIANSHU_CONFIG_CLIENT", () -> {
             List<DdcManagementConfigClientInstance> result = new ArrayList<>();
@@ -494,12 +495,12 @@ public class GatewayProjectionService {
         long readyEngines = 0;
         long inconsistentGroups = 0;
         boolean stale = false;
-        List<GatewayGroupPO> scopedGroups = groups
+        List<GatewayGroupBO> scopedGroups = groups
                 .findAllByEnvAndNamespaceAndDeletedFalseOrderByCreatedAtDesc(
                         env,
                         namespace
                 );
-        for (GatewayGroupPO group : scopedGroups) {
+        for (GatewayGroupBO group : scopedGroups) {
             if (!group.isEnabled()) {
                 continue;
             }
@@ -533,7 +534,7 @@ public class GatewayProjectionService {
      * @param id 参数 id；parameter id。
      * @return 返回 group 的处理结果；returns the result of the operation.
      */
-    private GatewayGroupPO group(String id) {
+    private GatewayGroupBO group(String id) {
         return groups.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
                         "gateway group " + id + " was not found"

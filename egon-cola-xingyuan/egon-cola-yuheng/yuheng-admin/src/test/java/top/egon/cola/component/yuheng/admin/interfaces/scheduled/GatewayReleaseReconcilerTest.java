@@ -12,7 +12,7 @@ import top.egon.cola.component.yuheng.admin.release.service.GatewayReleasePublic
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleasePublicationRepository;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleaseRepository;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayReleaseStatus;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 
 import java.time.Clock;
@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.FAILED;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO;
 
 class GatewayReleaseReconcilerTest {
 
@@ -42,13 +43,13 @@ class GatewayReleaseReconcilerTest {
         GatewayReleasePublicationCoordinator coordinator =
                 mock(GatewayReleasePublicationCoordinator.class);
         GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
-        GatewayDraftPO draft = new GatewayDraftPO(
+        GatewayDraftBO draft = new GatewayDraftBO(
                 "group-1",
                 "admin",
                 NOW
         );
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO attempt =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO attempt =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO(
                         "release-1",
                         "group-1",
                         2
@@ -91,7 +92,7 @@ class GatewayReleaseReconcilerTest {
                 mock(GatewayReleasePublicationCoordinator.class);
         GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
         when(releases.recoverable()).thenReturn(List.of(
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO(
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO(
                         "release-1",
                         "group-1",
                         2

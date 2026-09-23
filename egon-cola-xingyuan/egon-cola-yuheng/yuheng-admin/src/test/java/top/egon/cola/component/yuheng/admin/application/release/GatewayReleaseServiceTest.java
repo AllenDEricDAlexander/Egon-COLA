@@ -18,9 +18,9 @@ import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayReleaseStatus;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleaseRepository;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
-import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
+import top.egon.cola.component.yuheng.admin.group.domain.bo.GatewayGroupBO;
 import top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository;
 import top.egon.cola.component.yuheng.admin.mcp.service.McpReleaseContentFactory;
 import top.egon.cola.component.yuheng.admin.rule.domain.vo.CompiledGatewayRelease;
@@ -53,6 +53,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.FAILED;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
 
 class GatewayReleaseServiceTest {
 
@@ -137,7 +141,7 @@ class GatewayReleaseServiceTest {
         ArgumentCaptor<CompiledGatewayRelease> compiled =
                 ArgumentCaptor.forClass(CompiledGatewayRelease.class);
         verify(fixture.releases).insert(
-                any(top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO.class),
+                any(top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO.class),
                 compiled.capture(),
                 eq(1)
         );
@@ -235,7 +239,7 @@ class GatewayReleaseServiceTest {
         ArgumentCaptor<CompiledGatewayRelease> compiled =
                 ArgumentCaptor.forClass(CompiledGatewayRelease.class);
         verify(fixture.releases).insert(
-                any(top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO.class),
+                any(top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO.class),
                 compiled.capture(),
                 eq(1)
         );
@@ -305,7 +309,7 @@ class GatewayReleaseServiceTest {
         ArgumentCaptor<CompiledGatewayRelease> compiled =
                 ArgumentCaptor.forClass(CompiledGatewayRelease.class);
         verify(fixture.releases).insert(
-                any(top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO.class),
+                any(top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO.class),
                 compiled.capture(),
                 eq(1)
         );
@@ -336,12 +340,12 @@ class GatewayReleaseServiceTest {
         GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
-        GatewayDraftPO draft = new GatewayDraftPO(
+        GatewayDraftBO draft = new GatewayDraftBO(
                 "group-1",
                 "admin",
                 NOW
         );
-        GatewayGroupPO group = new GatewayGroupPO(
+        GatewayGroupBO group = new GatewayGroupBO(
                 "group-1",
                 "orders",
                 "Orders",
@@ -351,8 +355,8 @@ class GatewayReleaseServiceTest {
                 "admin",
                 NOW
         );
-        List<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO> routes = routeEnabled
-                ? List.of(new top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO(
+        List<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO> routes = routeEnabled
+                ? List.of(new top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO(
                         "group-1",
                         "route-1",
                         "operation-1",
@@ -420,12 +424,12 @@ class GatewayReleaseServiceTest {
         GatewayReleasePublicationCoordinator publications =
                 mock(GatewayReleasePublicationCoordinator.class);
         CompiledGatewayRelease compiled = mock(CompiledGatewayRelease.class);
-        GatewayDraftPO draft = new GatewayDraftPO(
+        GatewayDraftBO draft = new GatewayDraftBO(
                 "group-1",
                 "admin",
                 NOW
         );
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO release = release();
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO release = release();
         when(releases.find("release-1"))
                 .thenReturn(Optional.of(release));
         when(releases.nextAttempt("release-1", NOW)).thenReturn(2);
@@ -472,8 +476,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO release() {
-        return new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO release() {
+        return new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO(
                 "release-1",
                 "group-1",
                 1L,
@@ -491,8 +495,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO release(String releaseId) {
-        return new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO release(String releaseId) {
+        return new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO(
                 releaseId,
                 "group-1",
                 0L,
@@ -510,8 +514,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation() {
-        return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation() {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO(
                 "operation-1",
                 "application-1",
                 "interface-1",
@@ -538,8 +542,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition() {
-        return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO(
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition() {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO(
                 "definition-1",
                 "operation-1",
                 1L,
@@ -604,7 +608,7 @@ class GatewayReleaseServiceTest {
             GatewayReleaseService service,
             GatewayReleaseRepository releases,
             GatewayDraftJpaRepository drafts,
-            GatewayDraftPO draft
+            GatewayDraftBO draft
     ) {
     }
 

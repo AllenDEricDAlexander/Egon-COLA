@@ -7,10 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
-import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
+import top.egon.cola.component.yuheng.admin.group.domain.bo.GatewayGroupBO;
 import top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository;
 import top.egon.cola.component.yuheng.admin.mcp.service.McpReleaseContentFactory;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseCreateCommandDTO;
 import top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackCommandDTO;
@@ -18,7 +18,7 @@ import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayReleaseS
 import top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleaseRepository;
 import top.egon.cola.component.yuheng.admin.reporting.service.GatewayOperationSchemaValidator;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.routing.service.GatewayDraftService;
 import top.egon.cola.component.yuheng.admin.routing.service.GatewayRouteDraftMapper;
@@ -48,6 +48,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
 
 /**
  * 中文说明：{@code GatewayReleaseService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关发布服务相关的职责与边界。
@@ -339,12 +345,12 @@ public class GatewayReleaseService {
             AdminActor actor,
             RequestAuditContext request) {
         PreparedGatewayRelease prepared = transactions.execute(status -> {
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO release = required(releaseId);
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO release = required(releaseId);
             if (!Set.of(
                     GatewayReleaseStatus.FAILED,
                     GatewayReleaseStatus.TIMEOUT,
                     GatewayReleaseStatus.UNKNOWN
-            ).contains(release.status())) {
+            ).contains(release.getStatus())) {
                 throw new IllegalStateException(
                         "YUHENG_ADMIN_RELEASE_NOT_RETRYABLE"
                 );
@@ -356,10 +362,10 @@ public class GatewayReleaseService {
             audit(
                     actor,
                     request,
-                    release.gatewayGroupId(),
+                    release.getGatewayGroupId(),
                     releaseId,
                     "RETRY",
-                    release.draftRevision()
+                    release.getDraftRevision()
             );
             return new PreparedGatewayRelease(
                     release,
@@ -386,23 +392,23 @@ public class GatewayReleaseService {
             GatewayReleaseRollbackCommandDTO command,
             AdminActor actor,
             RequestAuditContext request) {
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO source =
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO source =
                 required(command.sourceReleaseId());
-        if (!source.gatewayGroupId().equals(gatewayGroupId)
-                || source.status() != GatewayReleaseStatus.SUCCESS) {
+        if (!source.getGatewayGroupId().equals(gatewayGroupId)
+                || source.getStatus() != GatewayReleaseStatus.SUCCESS) {
             throw new IllegalArgumentException(
                     "rollback source must be a successful release "
                             + "from the same gateway group"
             );
         }
-        GatewayRuleContent content = releases.loadCompiled(source.id())
+        GatewayRuleContent content = releases.loadCompiled(source.getId())
                 .snapshot()
                 .content();
         PreparedGatewayRelease prepared = transactions.execute(status -> prepare(
                 gatewayGroupId,
                 command.expectedDraftRevision(),
                 command.changeReason(),
-                source.id(),
+                source.getId(),
                 content,
                 actor,
                 request
@@ -454,7 +460,7 @@ public class GatewayReleaseService {
      * @return 返回 diff 的处理结果；returns the result of the operation.
      */
     public Map<String, Object> diff(String releaseId) {
-        return required(releaseId).structuredDiff();
+        return required(releaseId).getStructuredDiff();
     }
 
     /**
@@ -479,7 +485,7 @@ public class GatewayReleaseService {
             GatewayRuleContent rollbackContent,
             AdminActor actor,
             RequestAuditContext request) {
-        GatewayGroupPO group = groups.findByIdAndDeletedFalse(
+        GatewayGroupBO group = groups.findByIdAndDeletedFalse(
                 gatewayGroupId
         ).orElseThrow(() -> new GatewayAdminNotFoundException(
                 "gateway group " + gatewayGroupId + " was not found"
@@ -494,7 +500,7 @@ public class GatewayReleaseService {
                     "YUHENG_ADMIN_RELEASE_IN_PROGRESS"
             );
         }
-        GatewayDraftPO draft = drafts.findById(gatewayGroupId)
+        GatewayDraftBO draft = drafts.findById(gatewayGroupId)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
                         "gateway draft " + gatewayGroupId + " was not found"
                 ));
@@ -529,8 +535,8 @@ public class GatewayReleaseService {
                 "ruleContentSha256",
                 compiled.snapshot().ruleContentSha256()
         );
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO release =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO release =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO(
                         releaseId,
                         gatewayGroupId,
                         draft.getRevision(),
@@ -575,14 +581,14 @@ public class GatewayReleaseService {
             PreparedGatewayRelease prepared,
             AdminActor actor) {
         transactions.executeWithoutResult(status -> releases.beginAttempt(
-                prepared.release().id(),
+                prepared.release().getId(),
                 prepared.attemptNo(),
                 clock.instant()
         ));
         if (publications == null) {
             transactions.executeWithoutResult(status -> releases
                     .completeAttempt(
-                            prepared.release().id(),
+                            prepared.release().getId(),
                             prepared.attemptNo(),
                             GatewayReleaseStatus.FAILED,
                             false,
@@ -592,20 +598,20 @@ public class GatewayReleaseService {
                             List.of(),
                             clock.instant()
                     ));
-            return get(prepared.release().id());
+            return get(prepared.release().getId());
         }
         try {
             top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome =
                     publications.execute(
-                            prepared.release().id(),
+                            prepared.release().getId(),
                             prepared.attemptNo(),
                             prepared.compiled(),
                             actor.actorId()
                     );
-            List<top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO> targets = outcome.targets();
+            List<top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO> targets = outcome.targets();
             transactions.executeWithoutResult(status -> {
                 releases.completeAttempt(
-                        prepared.release().id(),
+                        prepared.release().getId(),
                         prepared.attemptNo(),
                         releaseStatus(outcome.status()),
                         outcome.partialApplied(),
@@ -618,11 +624,11 @@ public class GatewayReleaseService {
                         clock.instant()
                 );
                 if (outcome.successful()) {
-                    GatewayDraftPO draft = drafts.findById(
-                            prepared.release().gatewayGroupId()
+                    GatewayDraftBO draft = drafts.findById(
+                            prepared.release().getGatewayGroupId()
                     ).orElseThrow();
                     draft.baseOn(
-                            prepared.release().id(),
+                            prepared.release().getId(),
                             actor.actorId(),
                             clock.instant()
                     );
@@ -632,7 +638,7 @@ public class GatewayReleaseService {
         } catch (RuntimeException failure) {
             transactions.executeWithoutResult(status -> releases
                     .completeAttempt(
-                            prepared.release().id(),
+                            prepared.release().getId(),
                             prepared.attemptNo(),
                             GatewayReleaseStatus.UNKNOWN,
                             false,
@@ -643,7 +649,7 @@ public class GatewayReleaseService {
                             clock.instant()
                     ));
         }
-        return get(prepared.release().id());
+        return get(prepared.release().getId());
     }
 
     /**
@@ -675,7 +681,7 @@ public class GatewayReleaseService {
      * @return 返回 content 的处理结果；returns the result of the operation.
      */
     private GatewayRuleContent content(
-            GatewayGroupPO group,
+            GatewayGroupBO group,
             top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO draft) {
         McpRuleContent mcp = mcpContentFactory == null
                 ? McpRuleContent.empty()
@@ -685,8 +691,8 @@ public class GatewayReleaseService {
                 );
         Set<String> referencedOperationIds = new LinkedHashSet<>();
         draft.routes().stream()
-                .filter(top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO::enabled)
-                .map(top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO::operationId)
+                .filter(top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO::isEnabled)
+                .map(top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO::getOperationId)
                 .forEach(referencedOperationIds::add);
         mcp.tools().stream()
                 .filter(tool -> tool.enabled()
@@ -708,7 +714,7 @@ public class GatewayReleaseService {
                         && "LOCAL_OPERATION".equals(prompt.sourceType()))
                 .map(prompt -> prompt.operationId())
                 .forEach(referencedOperationIds::add);
-        Map<String, top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO> operations =
+        Map<String, top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO> operations =
                 new LinkedHashMap<>();
         referencedOperationIds.forEach(operationId -> operations.put(
                 operationId,
@@ -721,19 +727,19 @@ public class GatewayReleaseService {
         ));
         List<GatewayRuntimePolicy> policies = draft.policies()
                 .stream()
-                .filter(top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO::enabled)
+                .filter(top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO::isEnabled)
                 .map(policy -> new GatewayRuntimePolicy(
-                        policy.policyId(),
-                        policy.policyType(),
-                        policy.policyScope(),
-                        policy.content()
+                        policy.getPolicyId(),
+                        policy.getPolicyType(),
+                        policy.getPolicyScope(),
+                        policy.getContent()
                 ))
                 .toList();
         List<GatewayRuntimeOperation> runtimeOperations = operations.values()
                 .stream()
                 .map(operation -> operation(
                         operation,
-                        policyRefs(operation.id(), policies)
+                        policyRefs(operation.getId(), policies)
                 ))
                 .toList();
         Map<String, GatewayRuntimeOperation> runtimeOperationsById =
@@ -745,10 +751,10 @@ public class GatewayReleaseService {
                 );
         List<GatewayRuntimeRoute> runtimeRoutes = draft.routes()
                 .stream()
-                .filter(top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO::enabled)
+                .filter(top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO::isEnabled)
                 .map(route -> route(
                         route,
-                        runtimeOperationsById.get(route.operationId())
+                        runtimeOperationsById.get(route.getOperationId())
                 ))
                 .toList();
         List<GatewayRuntimePolicy> provider = policies.stream()
@@ -804,22 +810,22 @@ public class GatewayReleaseService {
      * @return 返回 操作 的处理结果；returns the result of the operation.
      */
     private GatewayRuntimeOperation operation(
-            top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation,
+            top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation,
             Set<String> policyRefs) {
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition =
-                catalog.loadDefinitions(operation.id())
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition =
+                catalog.loadDefinitions(operation.getId())
                         .stream()
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "operation has no definition: "
-                                        + operation.id()
+                                        + operation.getId()
                         ));
-        Map<String, Object> reported = definition.attributes();
+        Map<String, Object> reported = definition.getAttributes();
         schemaValidator.validate(
-                operation.operationKey(),
-                operation.protocol(),
-                definition.requestSchema(),
-                definition.responseSchema(),
+                operation.getOperationKey(),
+                operation.getProtocol(),
+                definition.getRequestSchema(),
+                definition.getResponseSchema(),
                 reported
         );
         Map<String, String> attributes = new LinkedHashMap<>();
@@ -828,33 +834,33 @@ public class GatewayReleaseService {
                 attributes.put(key, value.toString());
             }
         });
-        if (operation.protocol().equals("RPC")
-                && definition.descriptorSnapshot() != null) {
+        if (operation.getProtocol().equals("RPC")
+                && definition.getDescriptorSnapshot() != null) {
             attributes.put(
                     "descriptorSha256",
-                    definition.descriptorSnapshot()
+                    definition.getDescriptorSnapshot()
                             .get("sha256")
                             .toString()
             );
         }
-        Map<String, Object> provider = operation.providerServiceIdentity();
+        Map<String, Object> provider = operation.getProviderServiceIdentity();
         GatewayProtocol protocol = GatewayProtocol.valueOf(
-                operation.protocol()
+                operation.getProtocol()
         );
         String requestSchema = protocol == GatewayProtocol.RPC
-                ? text(definition.requestSchema(), "messageType")
-                : canonicalizer.json(definition.requestSchema());
+                ? text(definition.getRequestSchema(), "messageType")
+                : canonicalizer.json(definition.getRequestSchema());
         String responseSchema = protocol == GatewayProtocol.RPC
-                ? text(definition.responseSchema(), "messageType")
-                : canonicalizer.json(definition.responseSchema());
+                ? text(definition.getResponseSchema(), "messageType")
+                : canonicalizer.json(definition.getResponseSchema());
         return new GatewayRuntimeOperation(
-                operation.id(),
-                operation.operationKey(),
+                operation.getId(),
+                operation.getOperationKey(),
                 protocol,
-                operation.methodIdentity(),
+                operation.getMethodIdentity(),
                 requestSchema,
                 responseSchema,
-                operation.externalAccessible(),
+                operation.isExternalAccessible(),
                 new GatewayProviderServiceRef(
                         text(provider, "bizCode"),
                         text(provider, "appCode"),
@@ -872,7 +878,7 @@ public class GatewayReleaseService {
                 ),
                 policyRefs,
                 attributes,
-                "DEPRECATED".equals(operation.lifecycleStatus())
+                "DEPRECATED".equals(operation.getLifecycleStatus())
         );
     }
 
@@ -886,10 +892,10 @@ public class GatewayReleaseService {
      * @return 返回 路由 的处理结果；returns the result of the operation.
      */
     private GatewayRuntimeRoute route(
-            top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO route,
+            top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO route,
             GatewayRuntimeOperation operation) {
         Map<String, Object> content = routeMapper.canonicalize(
-                route.content()
+                route.getContent()
         );
         List<top.egon.cola.component.yuheng.admin.routing.service.GatewayTransportValidationIssue> issues =
                 transportValidator.validate(
@@ -910,8 +916,8 @@ public class GatewayReleaseService {
             );
         }
         return new GatewayRuntimeRoute(
-                route.routeId(),
-                route.operationId(),
+                route.getRouteId(),
+                route.getOperationId(),
                 text(content, "host"),
                 text(content, "httpMethod"),
                 text(content, "pathPattern"),
@@ -921,7 +927,7 @@ public class GatewayReleaseService {
                         ))
                         .collect(java.util.stream.Collectors.toUnmodifiableSet()),
                 number(content.get("priority"), 0),
-                route.enabled(),
+                route.isEnabled(),
                 routeMapper.transportPolicy(content)
         );
     }
@@ -935,10 +941,10 @@ public class GatewayReleaseService {
      * @return 返回 descriptor 的处理结果；returns the result of the operation.
      */
     private GatewayRpcDescriptor descriptor(
-            top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation) {
+            top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation) {
         Map<String, Object> descriptor = catalog.loadDefinitions(
-                operation.id()
-        ).getFirst().descriptorSnapshot();
+                operation.getId()
+        ).getFirst().getDescriptorSnapshot();
         if (descriptor == null) {
             throw new IllegalArgumentException(
                     "RPC operation has no descriptor snapshot"
@@ -996,7 +1002,7 @@ public class GatewayReleaseService {
      * @param releaseId 参数 发布Id；parameter release id。
      * @return 返回 required 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO required(String releaseId) {
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO required(String releaseId) {
         return releases.find(releaseId)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
                         "gateway release " + releaseId + " was not found"
@@ -1022,7 +1028,7 @@ public class GatewayReleaseService {
             String releaseId,
             String action,
             long revision) {
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -1032,8 +1038,8 @@ public class GatewayReleaseService {
                 "YUHENG_RELEASE",
                 releaseId,
                 action,
-                null,
-                Map.of("gatewayGroupId", gatewayGroupId),
+                GatewayAuditLogBO.sanitized(null),
+                GatewayAuditLogBO.sanitized(Map.of("gatewayGroupId", gatewayGroupId)),
                 revision,
                 releaseId,
                 true,
@@ -1050,22 +1056,22 @@ public class GatewayReleaseService {
      * @param release 参数 发布；parameter release。
      * @return 返回 view 的处理结果；returns the result of the operation.
      */
-    private GatewayReleaseVO view(top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO release) {
+    private GatewayReleaseVO view(top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO release) {
         return new GatewayReleaseVO(
-                release.id(),
-                release.gatewayGroupId(),
-                release.draftRevision(),
-                release.basedOnReleaseId(),
-                release.rollbackOfReleaseId(),
-                release.status(),
-                release.partialApplied(),
-                release.changeId(),
-                release.validationReport(),
-                release.structuredDiff(),
-                release.changeReason(),
-                release.createdAt(),
-                release.updatedAt(),
-                releases.attempts(release.id())
+                release.getId(),
+                release.getGatewayGroupId(),
+                release.getDraftRevision(),
+                release.getBasedOnReleaseId(),
+                release.getRollbackOfReleaseId(),
+                release.getStatus(),
+                release.isPartialApplied(),
+                release.getChangeId(),
+                release.getValidationReport(),
+                release.getStructuredDiff(),
+                release.getChangeReason(),
+                release.getCreatedAt(),
+                release.getUpdatedAt(),
+                releases.attempts(release.getId())
         );
     }
 

@@ -9,16 +9,16 @@ import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpManagedToolOverrideMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteToolMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpToolMutationControlDTO;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpManagedToolVO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpRemoteToolVO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.rule.service.GatewayRuleCanonicalizer;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
@@ -36,6 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO;
 
 /**
  * 中文说明：{@code McpToolAdminService} 是服务组件，位于当前 Gateway 模块的相关包中，负责MCP工具管理端服务相关的职责与边界。
@@ -337,13 +340,13 @@ public class McpToolAdminService {
                             + "its override"
             );
         }
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
         var mutation = managedOverrides.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO(
                         toolId,
                         command.gatewayGroupId(),
                         managed.tool().operationId(),
@@ -409,7 +412,7 @@ public class McpToolAdminService {
         }
         top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpManagedToolProjectionVO managed =
                 requiredManaged(control.gatewayGroupId(), toolId);
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 control.gatewayGroupId(),
                 control.expectedDraftRevision()
         );
@@ -453,11 +456,11 @@ public class McpToolAdminService {
             String gatewayGroupId,
             String serverId) {
         String groupId = required(gatewayGroupId, "gatewayGroupId");
-        Map<String, McpServerPO> serverById = servers
+        Map<String, McpServerBO> serverById = servers
                 .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
                         groupId
                 ).stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
-                        McpServerPO::getId,
+                        McpServerBO::getId,
                         java.util.function.Function.identity()
                 ));
         if (serverId != null && !serverById.containsKey(serverId)) {
@@ -465,8 +468,8 @@ public class McpToolAdminService {
         }
         return remoteTools.load(groupId).stream()
                 .filter(item -> serverId == null
-                        || serverId.equals(item.serverId()))
-                .map(item -> remoteView(item, serverById.get(item.serverId())))
+                        || serverId.equals(item.getServerId()))
+                .map(item -> remoteView(item, serverById.get(item.getServerId())))
                 .toList();
     }
 
@@ -515,20 +518,20 @@ public class McpToolAdminService {
                     command.gatewayGroupId(),
                     id
             );
-            if (!existing.serverId().equals(command.serverId())) {
+            if (!existing.getServerId().equals(command.serverId())) {
                 throw new IllegalArgumentException(
                         "remote MCP Tool cannot move between Servers"
                 );
             }
         }
         risk(defaulted(command.riskLevel(), "LOW"));
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
         var mutation = remoteTools.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO(
                         resourceId,
                         command.gatewayGroupId(),
                         command.serverId(),
@@ -593,7 +596,7 @@ public class McpToolAdminService {
             return replay;
         }
         var existing = requiredRemoteTool(control.gatewayGroupId(), id);
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 control.gatewayGroupId(),
                 control.expectedDraftRevision()
         );
@@ -618,7 +621,7 @@ public class McpToolAdminService {
                 digest,
                 actor,
                 request,
-                Map.of("name", existing.name()),
+                Map.of("name", existing.getName()),
                 now
         );
     }
@@ -670,28 +673,28 @@ public class McpToolAdminService {
      * @return 返回 远程View 的处理结果；returns the result of the operation.
      */
     private McpRemoteToolVO remoteView(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO value,
-            McpServerPO server) {
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO value,
+            McpServerBO server) {
         if (server == null) {
-            throw notFound("MCP Server", value.serverId());
+            throw notFound("MCP Server", value.getServerId());
         }
-        Map<String, Object> content = value.content();
+        Map<String, Object> content = value.getContent();
         return new McpRemoteToolVO(
-                value.id(),
-                value.gatewayGroupId(),
-                value.serverId(),
+                value.getId(),
+                value.getGatewayGroupId(),
+                value.getServerId(),
                 server.getServerCode(),
-                value.name(),
+                value.getName(),
                 optionalText(content.get("description")),
-                value.remoteMountId(),
+                value.getRemoteMountId(),
                 content.get("inputSchema"),
                 content.get("outputSchema"),
                 stringMap(content.get("annotations")),
                 clean(content.get("requiredPermissions")),
                 defaulted(optionalText(content.get("riskLevel")), "LOW"),
                 flag(content.get("idempotent")),
-                value.enabled(),
-                value.revision()
+                value.isEnabled(),
+                value.getRevision()
         );
     }
 
@@ -734,10 +737,10 @@ public class McpToolAdminService {
             String gatewayGroupId,
             String serverId) {
         var mount = remote.mounts(gatewayGroupId).stream()
-                .filter(item -> item.id().equals(mountId))
+                .filter(item -> item.getId().equals(mountId))
                 .findFirst()
                 .orElseThrow(() -> notFound("MCP Remote Mount", mountId));
-        if (!mount.serverId().equals(serverId)) {
+        if (!mount.getServerId().equals(serverId)) {
             throw new IllegalArgumentException(
                     "remote MCP Tool mount belongs to another Server"
             );
@@ -771,11 +774,11 @@ public class McpToolAdminService {
      * @param id 参数 id；parameter id。
      * @return 返回 required远程工具 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO requiredRemoteTool(
+    private top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO requiredRemoteTool(
             String gatewayGroupId,
             String id) {
         return remoteTools.load(gatewayGroupId).stream()
-                .filter(item -> item.id().equals(id))
+                .filter(item -> item.getId().equals(id))
                 .findFirst()
                 .orElseThrow(() -> notFound("MCP Remote Tool", id));
     }
@@ -789,10 +792,10 @@ public class McpToolAdminService {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 required服务器InGroup 的处理结果；returns the result of the operation.
      */
-    private McpServerPO requiredServerInGroup(
+    private McpServerBO requiredServerInGroup(
             String id,
             String gatewayGroupId) {
-        McpServerPO server = servers.findByIdAndDeletedFalse(id)
+        McpServerBO server = servers.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> notFound("MCP Server", id));
         if (!server.getGatewayGroupId().equals(gatewayGroupId)) {
             throw new IllegalArgumentException(
@@ -811,10 +814,10 @@ public class McpToolAdminService {
      * @param expectedRevision 参数 expectedRevision；parameter expected revision。
      * @return 返回 editable 的处理结果；returns the result of the operation.
      */
-    private GatewayDraftPO editable(
+    private GatewayDraftBO editable(
             String gatewayGroupId,
             long expectedRevision) {
-        GatewayDraftPO draft = drafts.findById(gatewayGroupId)
+        GatewayDraftBO draft = drafts.findById(gatewayGroupId)
                 .orElseThrow(() -> notFound("Gateway Draft", gatewayGroupId));
         draft.assertEditable(expectedRevision);
         return draft;
@@ -840,7 +843,7 @@ public class McpToolAdminService {
      * @return 返回 finish 的处理结果；returns the result of the operation.
      */
     private top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO finish(
-            GatewayDraftPO draft,
+            GatewayDraftBO draft,
             String resourceId,
             long resourceRevision,
             String resourceType,
@@ -860,7 +863,7 @@ public class McpToolAdminService {
                 resourceRevision,
                 false
         );
-        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO(
+        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO(
                 IDEMPOTENCY_SCOPE,
                 draft.getGatewayGroupId(),
                 required(idempotencyKey, "idempotencyKey"),
@@ -873,7 +876,7 @@ public class McpToolAdminService {
                 now,
                 now.plus(Duration.ofDays(7))
         ));
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -883,8 +886,8 @@ public class McpToolAdminService {
                 resourceType,
                 resourceId,
                 action,
-                null,
-                summary,
+                GatewayAuditLogBO.sanitized(null),
+                GatewayAuditLogBO.sanitized(summary),
                 null,
                 null,
                 true,
@@ -908,7 +911,7 @@ public class McpToolAdminService {
             String gatewayGroupId,
             String idempotencyKey,
             String payloadDigest) {
-        top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO existing = idempotency.find(
+        top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO existing = idempotency.find(
                 IDEMPOTENCY_SCOPE,
                 gatewayGroupId,
                 required(idempotencyKey, "idempotencyKey")
@@ -916,13 +919,13 @@ public class McpToolAdminService {
         if (existing == null) {
             return null;
         }
-        if (!existing.payloadSha256().equals(payloadDigest)) {
+        if (!existing.getPayloadSha256().equals(payloadDigest)) {
             throw new GatewayAdminIdempotencyConflictException();
         }
         return new top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO(
-                number(existing.response(), "draftRevision"),
-                existing.resourceId(),
-                number(existing.response(), "resourceRevision"),
+                number(existing.getResponse(), "draftRevision"),
+                existing.getResourceId(),
+                number(existing.getResponse(), "resourceRevision"),
                 true
         );
     }

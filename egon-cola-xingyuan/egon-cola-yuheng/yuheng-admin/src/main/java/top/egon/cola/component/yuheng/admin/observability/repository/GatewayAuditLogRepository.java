@@ -2,7 +2,7 @@ package top.egon.cola.component.yuheng.admin.observability.repository;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 
 /**
  * 中文说明：{@code GatewayAuditLogRepository} 是接口契约，位于当前 Gateway 模块的相关包中，负责网关审计LogRepository相关的职责与边界。
@@ -11,5 +11,5 @@ import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAudit
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 public interface GatewayAuditLogRepository
-        extends JpaRepository<GatewayAuditLogPO, String> {
+        extends JpaRepository<GatewayAuditLogBO, String> {
 }

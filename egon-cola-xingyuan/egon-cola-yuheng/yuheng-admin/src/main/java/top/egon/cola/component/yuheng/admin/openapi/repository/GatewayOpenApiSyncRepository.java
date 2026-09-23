@@ -2,7 +2,7 @@ package top.egon.cola.component.yuheng.admin.openapi.repository;
 
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncKeyDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,7 +22,7 @@ public interface GatewayOpenApiSyncRepository {
      * @param key application/build/Group key
      * @return an existing row when present
      */
-    Optional<GatewayOpenApiSyncPO> findByKey(GatewayOpenApiSyncKeyDTO key);
+    Optional<GatewayOpenApiSyncBO> findByKey(GatewayOpenApiSyncKeyDTO key);
 
     /**
      * Finds a synchronization row by identifier.
@@ -30,7 +30,7 @@ public interface GatewayOpenApiSyncRepository {
      * @param syncId state row identifier
      * @return an existing row when present
      */
-    Optional<GatewayOpenApiSyncPO> findById(String syncId);
+    Optional<GatewayOpenApiSyncBO> findById(String syncId);
 
     /**
      * Lists synchronization rows owned by one Gateway application.
@@ -38,7 +38,7 @@ public interface GatewayOpenApiSyncRepository {
      * @param applicationId physical Gateway application identifier
      * @return rows in stable build/group order
      */
-    default List<GatewayOpenApiSyncPO> findByApplicationId(
+    default List<GatewayOpenApiSyncBO> findByApplicationId(
             String applicationId) {
         return List.of();
     }
@@ -49,7 +49,7 @@ public interface GatewayOpenApiSyncRepository {
      * @param state state to query
      * @return rows in stable update order
      */
-    default List<GatewayOpenApiSyncPO> findByStatus(
+    default List<GatewayOpenApiSyncBO> findByStatus(
             GatewayOpenApiSyncStateEnum state) {
         return List.of();
     }
@@ -61,7 +61,7 @@ public interface GatewayOpenApiSyncRepository {
      * @param state discovered observation
      * @return current persisted row
      */
-    GatewayOpenApiSyncPO upsertDiscovered(GatewayOpenApiSyncPO state);
+    GatewayOpenApiSyncBO upsertDiscovered(GatewayOpenApiSyncBO state);
 
     /**
      * Loads due rows in a bounded stable order.
@@ -70,7 +70,7 @@ public interface GatewayOpenApiSyncRepository {
      * @param limit maximum number of rows
      * @return due rows
      */
-    List<GatewayOpenApiSyncPO> findDue(Instant now, int limit);
+    List<GatewayOpenApiSyncBO> findDue(Instant now, int limit);
 
     /**
      * Claims a due row with an optimistic revision check.

@@ -10,8 +10,8 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.jdbc.JdbcGatewayOpenApiSnapshotRepository;
 import top.egon.cola.component.yuheng.admin.openapi.repository.jdbc.JdbcGatewayOpenApiSyncRepository;
 
@@ -98,13 +98,13 @@ class GatewayOpenApiFlywayPostgresqlIT {
                         jdbc,
                         new ObjectMapper()
                 );
-        GatewayOpenApiSnapshotPO orders = snapshot(
+        GatewayOpenApiSnapshotBO orders = snapshot(
                 "snapshot-orders",
                 "orders",
                 'a',
                 'b'
         );
-        GatewayOpenApiSnapshotPO inventory = snapshot(
+        GatewayOpenApiSnapshotBO inventory = snapshot(
                 "snapshot-inventory",
                 "inventory",
                 'c',
@@ -112,10 +112,10 @@ class GatewayOpenApiFlywayPostgresqlIT {
         );
         snapshots.insertOrReuse(orders);
         snapshots.insertOrReuse(inventory);
-        assertThat(snapshots.insertOrReuse(orders).id())
-                .isEqualTo(orders.id());
+        assertThat(snapshots.insertOrReuse(orders).getId())
+                .isEqualTo(orders.getId());
         assertThat(snapshots.linkAllToDefinitionSet(
-                List.of(orders.id(), inventory.id()),
+                List.of(orders.getId(), inventory.getId()),
                 "set-http-1"
         )).isEqualTo(2);
         assertThat(jdbc.queryForObject(
@@ -127,14 +127,14 @@ class GatewayOpenApiFlywayPostgresqlIT {
 
         JdbcGatewayOpenApiSyncRepository sync =
                 new JdbcGatewayOpenApiSyncRepository(jdbc);
-        GatewayOpenApiSyncPO syncRow = syncRow("sync-orders", "orders");
-        assertThat(sync.upsertDiscovered(syncRow).id())
+        GatewayOpenApiSyncBO syncRow = syncRow("sync-orders", "orders");
+        assertThat(sync.upsertDiscovered(syncRow).getId())
                 .isEqualTo("sync-orders");
         assertThat(sync.upsertDiscovered(syncRow("sync-orders-retry", "orders"))
-                .id())
+                .getId())
                 .isEqualTo("sync-orders");
         assertThat(sync.upsertDiscovered(syncRow("sync-inventory", "inventory"))
-                .id())
+                .getId())
                 .isEqualTo("sync-inventory");
         assertThat(jdbc.queryForObject(
                 "SELECT count(*) FROM gateway_openapi_sync_state",
@@ -158,12 +158,12 @@ class GatewayOpenApiFlywayPostgresqlIT {
         )).isFalse();
     }
 
-    private GatewayOpenApiSnapshotPO snapshot(
+    private GatewayOpenApiSnapshotBO snapshot(
             String id,
             String group,
             char documentHash,
             char canonicalHash) {
-        return new GatewayOpenApiSnapshotPO(
+        return new GatewayOpenApiSnapshotBO(
                 id,
                 "app-1",
                 null,
@@ -185,8 +185,8 @@ class GatewayOpenApiFlywayPostgresqlIT {
         );
     }
 
-    private GatewayOpenApiSyncPO syncRow(String id, String group) {
-        return new GatewayOpenApiSyncPO(
+    private GatewayOpenApiSyncBO syncRow(String id, String group) {
+        return new GatewayOpenApiSyncBO(
                 id,
                 "app-1",
                 "build-1",

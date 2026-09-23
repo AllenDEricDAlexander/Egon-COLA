@@ -1,7 +1,7 @@
 package top.egon.cola.component.yuheng.admin.reporting.repository;
 
 
-import top.egon.cola.component.yuheng.admin.reporting.domain.po.GatewayStoredReportPO;
+import top.egon.cola.component.yuheng.admin.reporting.domain.bo.GatewayStoredReportBO;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport;
 
 import java.time.Instant;
@@ -74,7 +74,7 @@ public interface GatewayDefinitionReportRepository {
      * @param now 参数 now；parameter now。
      * @return 返回 ingest 的处理结果；returns the result of the operation.
      */
-    GatewayStoredReportPO ingest(
+    GatewayStoredReportBO ingest(
             String applicationId,
             GatewayInterfaceDefinitionReport report,
             Instant now);

@@ -31,6 +31,7 @@ import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO;
 
 /**
  * 中文说明：{@code McpAppAdminController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责MCPApp管理端控制器相关的职责与边界。
@@ -81,7 +82,7 @@ public class McpAppAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/artifacts")
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO> list(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO> list(
             @RequestParam String gatewayGroupId) {
         return service.artifacts(gatewayGroupId);
     }
@@ -195,7 +196,7 @@ public class McpAppAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/artifacts/{id}")
-    public top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO get(
+    public top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO get(
             @PathVariable String id) {
         return service.artifact(id);
     }

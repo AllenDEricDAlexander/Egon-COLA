@@ -26,6 +26,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
 
 class GatewayCatalogServiceTest {
 
@@ -51,15 +53,15 @@ class GatewayCatalogServiceTest {
                         audit()
                 );
 
-        assertThat(created.operation().operationKey())
+        assertThat(created.operation().getOperationKey())
                 .isEqualTo("orders:http:GET:/orders/{id}");
-        assertThat(Long.parseLong(created.operation().id())).isPositive();
-        assertThat(created.operation().externalAccessible()).isFalse();
-        assertThat(created.operation().sourceType()).isEqualTo("MANUAL");
+        assertThat(Long.parseLong(created.operation().getId())).isPositive();
+        assertThat(created.operation().isExternalAccessible()).isFalse();
+        assertThat(created.operation().getSourceType()).isEqualTo("MANUAL");
         assertThat(created.definitions()).singleElement()
                 .satisfies(definition -> {
-                    assertThat(definition.definitionVersion()).isOne();
-                    assertThat(definition.externalAccessible()).isFalse();
+                    assertThat(definition.getDefinitionVersion()).isOne();
+                    assertThat(definition.isExternalAccessible()).isFalse();
                 });
     }
 
@@ -72,7 +74,7 @@ class GatewayCatalogServiceTest {
                 operation(false),
                 actor(),
                 audit()
-        ).operation().id();
+        ).operation().getId();
 
         top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO updated =
                 service.updateManualDefinition(
@@ -82,19 +84,19 @@ class GatewayCatalogServiceTest {
                         audit()
                 );
 
-        assertThat(updated.operation().operationKey())
+        assertThat(updated.operation().getOperationKey())
                 .isEqualTo("orders:http:GET:/orders/{id}");
-        assertThat(updated.operation().externalAccessible()).isTrue();
+        assertThat(updated.operation().isExternalAccessible()).isTrue();
         assertThat(updated.definitions())
-                .extracting(top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO
-                        ::definitionVersion)
+                .extracting(top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO
+                        ::getDefinitionVersion)
                 .containsExactly(2L, 1L);
     }
 
     @Test
     void refusesManualOverwriteOfStarterOperation() {
         FakeStore store = new FakeStore();
-        store.operation = new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
+        store.operation = new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO(
                 "starter-operation",
                 "application-1",
                 "group-1",
@@ -177,10 +179,10 @@ class GatewayCatalogServiceTest {
 
     private static final class FakeStore implements GatewayCatalogRepository {
 
-        private final List<GatewayOperationDefinitionPO> definitions =
+        private final List<GatewayOperationDefinitionBO> definitions =
                 new ArrayList<>();
 
-        private GatewayOperationPO operation;
+        private GatewayOperationBO operation;
 
         @Override
         public GatewayCatalogTreeVO loadCatalog(String applicationId) {
@@ -208,24 +210,24 @@ class GatewayCatalogServiceTest {
         }
 
         @Override
-        public Optional<GatewayOperationPO> findOperation(String operationId) {
-            return operation == null || !operation.id().equals(operationId)
+        public Optional<GatewayOperationBO> findOperation(String operationId) {
+            return operation == null || !operation.getId().equals(operationId)
                     ? Optional.empty()
                     : Optional.of(operation);
         }
 
         @Override
-        public Optional<GatewayOperationPO> findOperation(
+        public Optional<GatewayOperationBO> findOperation(
                 String applicationId,
                 String operationKey) {
             return operation == null
-                    || !operation.operationKey().equals(operationKey)
+                    || !operation.getOperationKey().equals(operationKey)
                     ? Optional.empty()
                     : Optional.of(operation);
         }
 
         @Override
-        public List<GatewayOperationDefinitionPO> loadDefinitions(String operationId) {
+        public List<GatewayOperationDefinitionBO> loadDefinitions(String operationId) {
             return definitions.reversed();
         }
 
@@ -236,12 +238,12 @@ class GatewayCatalogServiceTest {
         }
 
         @Override
-        public void insertOperation(GatewayOperationPO value) {
+        public void insertOperation(GatewayOperationBO value) {
             operation = value;
         }
 
         @Override
-        public void appendDefinition(GatewayOperationDefinitionPO definition) {
+        public void appendDefinition(GatewayOperationDefinitionBO definition) {
             definitions.add(definition);
         }
 
@@ -251,22 +253,22 @@ class GatewayCatalogServiceTest {
                 String definitionId,
                 boolean externalAccessible,
                 Instant now) {
-            operation = new GatewayOperationPO(
-                    operation.id(),
-                    operation.applicationId(),
-                    operation.interfaceGroupId(),
-                    operation.operationKey(),
-                    operation.protocol(),
-                    operation.methodIdentity(),
+            operation = new GatewayOperationBO(
+                    operation.getId(),
+                    operation.getApplicationId(),
+                    operation.getInterfaceGroupId(),
+                    operation.getOperationKey(),
+                    operation.getProtocol(),
+                    operation.getMethodIdentity(),
                     externalAccessible,
                     new LinkedHashMap<>(
-                            operation.providerServiceIdentity()
+                            operation.getProviderServiceIdentity()
                     ),
-                    operation.sourceType(),
+                    operation.getSourceType(),
                     "ACTIVE",
                     definitionId,
-                    operation.revision() + 1,
-                    operation.createdAt(),
+                    operation.getRevision() + 1,
+                    operation.getCreatedAt(),
                     now
             );
         }

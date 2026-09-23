@@ -22,6 +22,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO;
 
 class McpApprovalControllerTest {
 
@@ -60,24 +61,24 @@ class McpApprovalControllerTest {
                 authentication
         );
 
-        ArgumentCaptor<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalPO> captured =
-                ArgumentCaptor.forClass(top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalPO.class);
+        ArgumentCaptor<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO> captured =
+                ArgumentCaptor.forClass(top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO.class);
         verify(store).issue(captured.capture());
-        top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalPO approval = captured.getValue();
-        assertThat(approval.subjectId()).isEqualTo("alice-sub");
-        assertThat(approval.tenantId()).isEqualTo("tenant-a");
-        assertThat(approval.clientId()).isEqualTo("finance-web");
-        assertThat(approval.serverCode()).isEqualTo("billing");
-        assertThat(approval.toolName()).isEqualTo("pay_invoice");
-        assertThat(approval.tokenDigest())
+        top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO approval = captured.getValue();
+        assertThat(approval.getSubjectId()).isEqualTo("alice-sub");
+        assertThat(approval.getTenantId()).isEqualTo("tenant-a");
+        assertThat(approval.getClientId()).isEqualTo("finance-web");
+        assertThat(approval.getServerCode()).isEqualTo("billing");
+        assertThat(approval.getToolName()).isEqualTo("pay_invoice");
+        assertThat(approval.getTokenDigest())
                 .isEqualTo(McpSecurityDigests.token(
                         response.approvalToken()
                 ))
                 .doesNotContain(response.approvalToken());
-        assertThat(approval.argumentDigest()).isEqualTo(
+        assertThat(approval.getArgumentDigest()).isEqualTo(
                 McpSecurityDigests.arguments(objectMapper, arguments)
         );
-        assertThat(approval.expiresAt()).isEqualTo(NOW.plusSeconds(90));
+        assertThat(approval.getExpiresAt()).isEqualTo(NOW.plusSeconds(90));
         assertThat(response.toString()).contains("<redacted>")
                 .doesNotContain(response.approvalToken());
     }

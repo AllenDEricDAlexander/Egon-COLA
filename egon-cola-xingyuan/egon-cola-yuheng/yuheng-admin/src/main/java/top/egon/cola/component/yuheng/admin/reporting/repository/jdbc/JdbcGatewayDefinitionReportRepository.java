@@ -125,6 +125,8 @@ import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.Gatewa
 import top.egon.cola.component.yuheng.admin.reporting.repository.jdbc.GatewayDefinitionGroupRow;
 import top.egon.cola.component.yuheng.admin.reporting.repository.jdbc.GatewayDefinitionOperationRow;
 import top.egon.cola.component.yuheng.admin.reporting.repository.jdbc.GatewayMutableStoredReport;
+
+import top.egon.cola.component.yuheng.admin.reporting.domain.bo.GatewayStoredReportBO;
 /**
  * 中文说明：{@code JdbcGatewayDefinitionReportRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关定义报告存储相关的职责与边界。
  * English summary: {@code JdbcGatewayDefinitionReportRepository} is a jdbc gateway definition report store store in the current Gateway module; it owns the jdbc gateway definition report store-related responsibility and boundary.
@@ -271,7 +273,7 @@ public class JdbcGatewayDefinitionReportRepository
      * @return 返回 ingest 的处理结果；returns the result of the operation.
      */
     @Override
-    public GatewayStoredReportPO ingest(
+    public GatewayStoredReportBO ingest(
             String applicationId,
             GatewayInterfaceDefinitionReport report,
             Instant now) {

@@ -3,7 +3,7 @@ package top.egon.cola.component.yuheng.admin.runtime.service;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleasePublicationRepository;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
 import top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayPublicationScopeDTO;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationPhaseEnum;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum;
@@ -27,7 +27,7 @@ import top.egon.cola.component.tianshu.model.management.DdcManagementServiceSnap
 import top.egon.cola.component.yuheng.admin.release.service.GatewayReleaseService;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleaseRepository;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayReleaseStatus;
-import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
+import top.egon.cola.component.yuheng.admin.group.domain.bo.GatewayGroupBO;
 import top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository;
 
 import java.time.Clock;
@@ -42,6 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
 
 class GatewayProjectionServiceTest {
 
@@ -101,9 +103,9 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         var groups = mock(GatewayGroupRepository.class);
         var releases = mock(GatewayReleaseService.class);
-        when(groups.findByIdAndDeletedFalse("group-1")).thenReturn(Optional.of(new GatewayGroupPO(
+        when(groups.findByIdAndDeletedFalse("group-1")).thenReturn(Optional.of(new GatewayGroupBO(
                 "group-1", "edge", "Edge", "test", "yuheng", null, "admin", now)));
-        var target = new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO(
+        var target = new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO(
                 "old-node", "old-lease", "SUCCESS", 12L, "artifact-sha", null, now.minusSeconds(5), GatewayEngineRoleEnum.API_RPC);
         when(releases.history("group-1")).thenReturn(List.of(release("release-1", target, now)));
         return projectionService(groups, releases, new StubClient(now, null, null, nodes),
@@ -281,7 +283,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupPO group = new GatewayGroupPO(
+        GatewayGroupBO group = new GatewayGroupBO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -293,8 +295,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO target =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO target =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO(
                         "engine-1",
                         "lease-1",
                         "SUCCESS",
@@ -353,7 +355,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupPO group = new GatewayGroupPO(
+        GatewayGroupBO group = new GatewayGroupBO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -365,8 +367,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO historicalTarget =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO historicalTarget =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO(
                         "engine-1",
                         "lease-1",
                         "SUCCESS",
@@ -448,7 +450,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupPO group = new GatewayGroupPO(
+        GatewayGroupBO group = new GatewayGroupBO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -460,8 +462,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO target =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO target =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO(
                         "engine-current",
                         "lease-current",
                         "SUCCESS",
@@ -528,7 +530,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupPO group = new GatewayGroupPO(
+        GatewayGroupBO group = new GatewayGroupBO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -540,8 +542,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO target =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO target =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO(
                         "engine-1",
                         "lease-1",
                         "SUCCESS",
@@ -596,7 +598,7 @@ class GatewayProjectionServiceTest {
 
     private top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO release(
             String releaseId,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO target,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO target,
             Instant now) {
         return new top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO(
                 releaseId,
@@ -612,7 +614,7 @@ class GatewayProjectionServiceTest {
                 "test",
                 now.minusSeconds(10),
                 now.minusSeconds(5),
-                List.of(new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseAttemptPO(
+                List.of(new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO(
                         1,
                         "SUCCESS",
                         "change-1",
@@ -645,8 +647,8 @@ class GatewayProjectionServiceTest {
         return service;
     }
 
-    private GatewayReleasePublicationPO activation(GatewayEngineRoleEnum role, long version, Instant now) {
-        return new GatewayReleasePublicationPO("release-1", 1, role.ordinal(),
+    private GatewayReleasePublicationBO activation(GatewayEngineRoleEnum role, long version, Instant now) {
+        return new GatewayReleasePublicationBO("release-1", 1, role.ordinal(),
                 GatewayPublicationPhaseEnum.ACTIVATION, "yuheng.rules.active", null, "sha",
                 version - 1, "change-" + role, version, GatewayPublicationStatusEnum.SUCCESS,
                 null, null, now.minusSeconds(10), now.minusSeconds(5),

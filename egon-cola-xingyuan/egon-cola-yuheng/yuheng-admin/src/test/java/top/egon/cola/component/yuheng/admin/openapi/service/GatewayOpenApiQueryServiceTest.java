@@ -2,14 +2,14 @@ package top.egon.cola.component.yuheng.admin.openapi.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO;
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSnapshotRepository;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSyncRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.exception.GatewayOpenApiSourceNotAvailableException;
@@ -39,7 +39,7 @@ class GatewayOpenApiQueryServiceTest {
         GatewayOpenApiSyncRepository syncStates = mock(GatewayOpenApiSyncRepository.class);
         GatewayOpenApiSnapshotRepository snapshots = mock(GatewayOpenApiSnapshotRepository.class);
         GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
-        GatewayApplicationPO application = application();
+        GatewayApplicationBO application = application();
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
                 .thenReturn(List.of(application));
         when(syncStates.findByApplicationId("application-1"))
@@ -72,8 +72,8 @@ class GatewayOpenApiQueryServiceTest {
         GatewayOpenApiSyncRepository syncStates = mock(GatewayOpenApiSyncRepository.class);
         GatewayOpenApiSnapshotRepository snapshots = mock(GatewayOpenApiSnapshotRepository.class);
         GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
-        GatewayOperationPO operation = operation("OPENAPI31");
-        GatewayOperationDefinitionPO definition = definition();
+        GatewayOperationBO operation = operation("OPENAPI31");
+        GatewayOperationDefinitionBO definition = definition();
         when(catalog.findOperation("operation-1")).thenReturn(Optional.of(operation));
         when(catalog.loadDefinitions("operation-1")).thenReturn(List.of(definition));
         when(snapshots.findByApplicationGroupAndCanonicalSha256(
@@ -99,7 +99,7 @@ class GatewayOpenApiQueryServiceTest {
     @Test
     void doesNotPretendRpcOrManualDefinitionsHaveOpenApiFragments() {
         GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
-        GatewayOperationPO operation = operation("RPC_DESCRIPTOR");
+        GatewayOperationBO operation = operation("RPC_DESCRIPTOR");
         when(catalog.findOperation("operation-1")).thenReturn(Optional.of(operation));
         GatewayOpenApiQueryService service = service(
                 mock(GatewayOpenApiSyncRepository.class),
@@ -159,17 +159,17 @@ class GatewayOpenApiQueryServiceTest {
                 new ObjectMapper());
     }
 
-    private GatewayApplicationPO application() {
-        return new GatewayApplicationPO(
+    private GatewayApplicationBO application() {
+        return new GatewayApplicationBO(
                 "application-1", "platform", "orders", "Orders", "test",
                 "yuheng", null, "admin", NOW);
     }
 
-    private GatewayOpenApiSyncPO row(
+    private GatewayOpenApiSyncBO row(
             String group,
             String build,
             GatewayOpenApiSyncStateEnum state) {
-        return new GatewayOpenApiSyncPO(
+        return new GatewayOpenApiSyncBO(
                 "sync-" + group,
                 "application-1",
                 build,
@@ -193,11 +193,11 @@ class GatewayOpenApiQueryServiceTest {
                 NOW);
     }
 
-    private GatewayOpenApiSnapshotPO snapshot(
+    private GatewayOpenApiSnapshotBO snapshot(
             String id,
             String group,
             String status) {
-        return new GatewayOpenApiSnapshotPO(
+        return new GatewayOpenApiSnapshotBO(
                 id,
                 "application-1",
                 status.equals("VALID") ? "set-1" : null,
@@ -227,8 +227,8 @@ class GatewayOpenApiQueryServiceTest {
                 NOW);
     }
 
-    private GatewayOperationPO operation(String sourceType) {
-        return new GatewayOperationPO(
+    private GatewayOperationBO operation(String sourceType) {
+        return new GatewayOperationBO(
                 "operation-1",
                 "application-1",
                 "group-1",
@@ -245,8 +245,8 @@ class GatewayOpenApiQueryServiceTest {
                 NOW);
     }
 
-    private GatewayOperationDefinitionPO definition() {
-        return new GatewayOperationDefinitionPO(
+    private GatewayOperationDefinitionBO definition() {
+        return new GatewayOperationDefinitionBO(
                 "definition-1",
                 "operation-1",
                 1,

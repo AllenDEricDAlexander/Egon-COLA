@@ -10,8 +10,8 @@ import top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayPublicatio
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationPhaseEnum;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum;
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayReleaseStatus;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
 import top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum;
 
 import java.nio.file.Files;
@@ -64,7 +64,7 @@ class GatewayPublicationTargetsPostgresqlIT {
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
             var journal = new JdbcGatewayReleasePublicationRepository(jdbc);
             assertThat(journal.findAttempt("release-1", 1)).singleElement()
-                    .satisfies(phase -> assertThat(phase.targetScope()).isNull());
+                    .satisfies(phase -> assertThat(phase.getTargetScope()).isNull());
 
             Instant now = Instant.parse("2026-09-06T04:00:00Z");
             var api = scope(GatewayEngineRoleEnum.API_RPC);
@@ -79,13 +79,13 @@ class GatewayPublicationTargetsPostgresqlIT {
                         "retry", "retry", now);
                 journal.markResult(changeId, version + 1, GatewayPublicationStatusEnum.SUCCESS, null, null, now);
             }
-            assertThat(journal.findOperation("release-1", 1, 1).orElseThrow().targetScope()).isEqualTo(api);
+            assertThat(journal.findOperation("release-1", 1, 1).orElseThrow().getTargetScope()).isEqualTo(api);
             assertThat(journal.findAttemptMetadata("release-1", 1).subList(1, 3))
-                    .extracting(GatewayReleasePublicationPO::targetScope).containsExactly(api, mcp);
+                    .extracting(GatewayReleasePublicationBO::getTargetScope).containsExactly(api, mcp);
             assertThat(journal.findAttemptMetadata("release-1", 1).subList(1, 3))
-                    .extracting(GatewayReleasePublicationPO::ddcTargetVersion).containsExactly(4L, 41L);
+                    .extracting(GatewayReleasePublicationBO::getDdcTargetVersion).containsExactly(4L, 41L);
             assertThat(journal.findAttemptMetadata("release-1", 1))
-                    .allSatisfy(phase -> assertThat(phase.contentValue()).isNull());
+                    .allSatisfy(phase -> assertThat(phase.getContentValue()).isNull());
             assertThatThrownBy(() -> jdbc.update("""
                     UPDATE gateway_release_publication SET target_app_code = ''
                      WHERE change_id = 'MCP'
@@ -95,12 +95,12 @@ class GatewayPublicationTargetsPostgresqlIT {
 
             var releases = new JdbcGatewayReleaseRepository(jdbc, new ObjectMapper());
             releases.completeAttempt("release-1", 1, GatewayReleaseStatus.SUCCESS, false, "MCP", null, null,
-                    List.of(new GatewayReleaseTargetPO("api", "api-lease", "SUCCESS", 4L, "sha",
+                    List.of(new GatewayReleaseTargetBO("api", "api-lease", "SUCCESS", 4L, "sha",
                                     null, now, GatewayEngineRoleEnum.API_RPC),
-                            new GatewayReleaseTargetPO("mcp", "mcp-lease", "SUCCESS", 41L, "sha",
+                            new GatewayReleaseTargetBO("mcp", "mcp-lease", "SUCCESS", 41L, "sha",
                                     null, now, GatewayEngineRoleEnum.MCP)), now);
-            assertThat(releases.attempts("release-1").getFirst().targets())
-                    .extracting(GatewayReleaseTargetPO::engineRole)
+            assertThat(releases.attempts("release-1").getFirst().getTargets())
+                    .extracting(GatewayReleaseTargetBO::getEngineRole)
                     .containsExactly(GatewayEngineRoleEnum.API_RPC, GatewayEngineRoleEnum.MCP);
         } finally {
             if (created && schema.matches("gateway_targets_it_[a-z0-9]+")) {
@@ -117,8 +117,8 @@ class GatewayPublicationTargetsPostgresqlIT {
                 role == GatewayEngineRoleEnum.API_RPC ? "ge" : "gme", role);
     }
 
-    private GatewayReleasePublicationPO phase(GatewayPublicationScopeDTO scope, int order, Instant now) {
-        return new GatewayReleasePublicationPO("release-1", 1, order, GatewayPublicationPhaseEnum.ACTIVATION,
+    private GatewayReleasePublicationBO phase(GatewayPublicationScopeDTO scope, int order, Instant now) {
+        return new GatewayReleasePublicationBO("release-1", 1, order, GatewayPublicationPhaseEnum.ACTIVATION,
                 "yuheng.rules.active", "{}", "a".repeat(64), null, scope.engineRole().name(), null,
                 GatewayPublicationStatusEnum.PLANNED, null, null, now, now, scope);
     }

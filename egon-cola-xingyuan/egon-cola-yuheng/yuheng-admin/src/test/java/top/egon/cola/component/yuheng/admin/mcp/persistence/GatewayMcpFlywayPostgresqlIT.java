@@ -27,6 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class GatewayMcpFlywayPostgresqlIT {
@@ -298,7 +301,7 @@ class GatewayMcpFlywayPostgresqlIT {
 
         JdbcMcpCapabilityDraftRepository capabilities =
                 new JdbcMcpCapabilityDraftRepository(jdbc, new ObjectMapper());
-        var policy = new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO(
+        var policy = new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO(
                 top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum.TASK_POLICY,
                 "policy-1",
                 "group-1",
@@ -322,7 +325,7 @@ class GatewayMcpFlywayPostgresqlIT {
         );
 
         JdbcMcpApprovalRepository approvals = new JdbcMcpApprovalRepository(jdbc);
-        approvals.issue(new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalPO(
+        approvals.issue(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO(
                 "approval-1",
                 "a".repeat(64),
                 "subject-1",
@@ -347,7 +350,7 @@ class GatewayMcpFlywayPostgresqlIT {
                 jdbc,
                 new ObjectMapper()
         );
-        tasks.create(new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO(
+        tasks.create(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO(
                 "task-1", "principal-1", "subject-1", "tenant-1",
                 "client-1", "billing", "invoice.export",
                 "c".repeat(64), "WORKING", Map.of("format", "csv"),

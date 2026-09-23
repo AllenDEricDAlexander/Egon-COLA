@@ -113,6 +113,9 @@ import java.util.Optional;
 
 import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.GatewayJdbcParameters.timestamp;
 
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
+
 /**
  * 中文说明：{@code JdbcGatewayReleasePublicationRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关发布Publication存储相关的职责与边界。
  * English summary: {@code JdbcGatewayReleasePublicationRepository} is a jdbc gateway release publication store store in the current Gateway module; it owns the jdbc gateway release publication store-related responsibility and boundary.
@@ -151,7 +154,7 @@ public class JdbcGatewayReleasePublicationRepository
      */
     @Override
     @Transactional
-    public void insertAll(List<GatewayReleasePublicationPO> operations) {
+    public void insertAll(List<GatewayReleasePublicationBO> operations) {
         if (operations == null || operations.isEmpty()) {
             throw new IllegalArgumentException(
                     "publication operations must not be empty"
@@ -170,7 +173,7 @@ public class JdbcGatewayReleasePublicationRepository
      * @return 返回 findAttempt 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayReleasePublicationPO> findAttempt(
+    public List<GatewayReleasePublicationBO> findAttempt(
             String releaseId,
             int attemptNo) {
         return jdbc.query("""
@@ -193,7 +196,7 @@ public class JdbcGatewayReleasePublicationRepository
      * every phase's full YAML document.
      */
     @Override
-    public List<GatewayReleasePublicationPO> findAttemptMetadata(
+    public List<GatewayReleasePublicationBO> findAttemptMetadata(
             String releaseId,
             int attemptNo) {
         return jdbc.query("""
@@ -212,7 +215,7 @@ public class JdbcGatewayReleasePublicationRepository
 
     /** Reads one full publication phase by its stable phase order. */
     @Override
-    public Optional<GatewayReleasePublicationPO> findOperation(
+    public Optional<GatewayReleasePublicationBO> findOperation(
             String releaseId,
             int attemptNo,
             int phaseOrder) {
@@ -240,7 +243,7 @@ public class JdbcGatewayReleasePublicationRepository
      * @return 返回 nextIncomplete 的处理结果；returns the result of the operation.
      */
     @Override
-    public Optional<GatewayReleasePublicationPO> nextIncomplete(
+    public Optional<GatewayReleasePublicationBO> nextIncomplete(
             String releaseId,
             int attemptNo) {
         return jdbc.query("""
@@ -268,7 +271,7 @@ public class JdbcGatewayReleasePublicationRepository
      * @return 返回 findChunkCleanupCandidates 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayChunkCleanupCandidatePO> findChunkCleanupCandidates(
+    public List<GatewayChunkCleanupCandidateBO> findChunkCleanupCandidates(
             Instant successorActivatedBefore) {
         return jdbc.query("""
                 SELECT publication.change_id,
@@ -320,7 +323,7 @@ public class JdbcGatewayReleasePublicationRepository
                           AND activation.updated_at <= ?
                    )
                  ORDER BY old_release.created_at, publication.phase_order
-                """, (result, row) -> new GatewayChunkCleanupCandidatePO(
+                """, (result, row) -> new GatewayChunkCleanupCandidateBO(
                 result.getString("change_id"),
                 result.getString("release_id"),
                 result.getString("app_code"),
@@ -474,7 +477,7 @@ public class JdbcGatewayReleasePublicationRepository
      * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationRepository.insert(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param operation 参数 操作；parameter operation。
      */
-    private void insert(GatewayReleasePublicationPO operation) {
+    private void insert(GatewayReleasePublicationBO operation) {
         if (operation == null) {
             throw new IllegalArgumentException(
                     "publication operation must not be null"
@@ -490,25 +493,25 @@ public class JdbcGatewayReleasePublicationRepository
                        target_role, target_biz_code, target_env, target_app_code
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                operation.releaseId(),
-                operation.attemptNo(),
-                operation.phaseOrder(),
-                operation.phaseType().name(),
-                operation.configKey(),
-                operation.contentValue(),
-                operation.contentSha256(),
-                operation.expectedVersion(),
-                operation.changeId(),
-                operation.ddcTargetVersion(),
-                operation.status().name(),
-                operation.errorCode(),
-                operation.errorMessage(),
-                timestamp(operation.createdAt()),
-                timestamp(operation.updatedAt()),
-                operation.targetScope().engineRole().name(),
-                operation.targetScope().bizCode(),
-                operation.targetScope().env(),
-                operation.targetScope().appCode()
+                operation.getReleaseId(),
+                operation.getAttemptNo(),
+                operation.getPhaseOrder(),
+                operation.getPhaseType().name(),
+                operation.getConfigKey(),
+                operation.getContentValue(),
+                operation.getContentSha256(),
+                operation.getExpectedVersion(),
+                operation.getChangeId(),
+                operation.getDdcTargetVersion(),
+                operation.getStatus().name(),
+                operation.getErrorCode(),
+                operation.getErrorMessage(),
+                timestamp(operation.getCreatedAt()),
+                timestamp(operation.getUpdatedAt()),
+                operation.getTargetScope().engineRole().name(),
+                operation.getTargetScope().bizCode(),
+                operation.getTargetScope().env(),
+                operation.getTargetScope().appCode()
         );
     }
 
@@ -520,9 +523,9 @@ public class JdbcGatewayReleasePublicationRepository
      * @param result 参数 result；parameter result。
      * @return 返回 publication 的处理结果；returns the result of the operation.
      */
-    private GatewayReleasePublicationPO publication(ResultSet result)
+    private GatewayReleasePublicationBO publication(ResultSet result)
             throws SQLException {
-        return new GatewayReleasePublicationPO(
+        return new GatewayReleasePublicationBO(
                 result.getString("release_id"),
                 result.getInt("attempt_no"),
                 result.getInt("phase_order"),

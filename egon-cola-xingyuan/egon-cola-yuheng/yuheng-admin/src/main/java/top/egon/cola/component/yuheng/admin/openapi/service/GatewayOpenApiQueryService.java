@@ -8,14 +8,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO;
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.openapi.converter.GatewayOpenApi31ContractAdapter;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.vo.GatewayOpenApiDocumentVO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.vo.GatewayOpenApiSyncStateVO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.vo.GatewayOperationOpenApiVO;
@@ -106,7 +106,7 @@ public class GatewayOpenApiQueryService {
                 128);
 
         List<GatewayOpenApiSyncStateVO> result = new ArrayList<>();
-        for (GatewayApplicationPO application
+        for (GatewayApplicationBO application
                 : applications.findAllByDeletedFalseOrderByCreatedAtDesc()) {
             if (!matches(application,
                     normalizedBizCode,
@@ -115,12 +115,12 @@ public class GatewayOpenApiQueryService {
                     normalizedAppCode)) {
                 continue;
             }
-            List<GatewayOpenApiSyncPO> rows = syncStates.findByApplicationId(
+            List<GatewayOpenApiSyncBO> rows = syncStates.findByApplicationId(
                     application.getId());
             if (rows == null) {
                 continue;
             }
-            for (GatewayOpenApiSyncPO row : rows) {
+            for (GatewayOpenApiSyncBO row : rows) {
                 result.add(toSyncState(row));
             }
         }
@@ -144,27 +144,27 @@ public class GatewayOpenApiQueryService {
                 operationId,
                 "operationId",
                 64);
-        GatewayOperationPO operation = catalog.findOperation(
+        GatewayOperationBO operation = catalog.findOperation(
                         normalizedOperationId)
                 .orElseThrow(() -> notFound(
                         "Gateway operation was not found"));
         if (!GatewayDefinitionSourceTypeEnum.OPENAPI31.name().equals(
-                operation.sourceType())) {
+                operation.getSourceType())) {
             throw new GatewayOpenApiSourceNotAvailableException();
         }
 
-        GatewayOperationDefinitionPO definition = currentDefinition(
+        GatewayOperationDefinitionBO definition = currentDefinition(
                 operation,
-                catalog.loadDefinitions(operation.id()));
-        Map<String, Object> attributes = definition.attributes() == null
+                catalog.loadDefinitions(operation.getId()));
+        Map<String, Object> attributes = definition.getAttributes() == null
                 ? Map.of()
-                : definition.attributes();
+                : definition.getAttributes();
         String group = attribute(attributes, "openapiGroup");
         String canonicalSha256 = attribute(
                 attributes,
                 "openapiCanonicalSha256");
         if (canonicalSha256 == null || canonicalSha256.isBlank()) {
-            canonicalSha256 = definition.definitionSha256();
+            canonicalSha256 = definition.getDefinitionSha256();
         }
         String path = attribute(attributes, "path");
         String method = attribute(attributes, "httpMethod");
@@ -174,24 +174,24 @@ public class GatewayOpenApiQueryService {
             throw notFound("OpenAPI operation provenance was not found");
         }
 
-        GatewayOpenApiSnapshotPO snapshot = snapshots
+        GatewayOpenApiSnapshotBO snapshot = snapshots
                 .findByApplicationGroupAndCanonicalSha256(
-                        operation.applicationId(),
+                        operation.getApplicationId(),
                         group,
                         canonicalSha256)
                 .orElseThrow(() -> notFound(
                         "OpenAPI snapshot was not found"));
         Map<String, Object> operationJson = operationJson(
-                snapshot.documentJson(),
+                snapshot.getDocumentJson(),
                 path,
                 method);
         String normalizedMethod = required(method, "httpMethod", 16)
                 .toUpperCase(Locale.ROOT);
         return new GatewayOperationOpenApiVO(
-                operation.id(),
-                operation.operationKey(),
-                snapshot.id(),
-                snapshot.openapiVersion(),
+                operation.getId(),
+                operation.getOperationKey(),
+                snapshot.getId(),
+                snapshot.getOpenapiVersion(),
                 group,
                 path,
                 normalizedMethod,
@@ -199,7 +199,7 @@ public class GatewayOpenApiQueryService {
                 stringList(attributes.get("consumes")),
                 stringList(attributes.get("produces")),
                 operationJson,
-                snapshot.validatedAt());
+                snapshot.getValidatedAt());
     }
 
     /**
@@ -211,59 +211,59 @@ public class GatewayOpenApiQueryService {
     @Transactional(readOnly = true)
     public GatewayOpenApiDocumentVO getSnapshotDocument(String snapshotId) {
         String normalizedSnapshotId = required(snapshotId, "snapshotId", 64);
-        GatewayOpenApiSnapshotPO snapshot = snapshots.findById(
+        GatewayOpenApiSnapshotBO snapshot = snapshots.findById(
                         normalizedSnapshotId)
                 .orElseThrow(() -> notFound(
                         "OpenAPI snapshot was not found"));
         return new GatewayOpenApiDocumentVO(
-                snapshot.id(),
-                snapshot.applicationId(),
-                snapshot.buildId(),
-                snapshot.openapiVersion(),
-                snapshot.documentSha256(),
-                snapshot.canonicalSha256(),
-                snapshot.documentJson(),
-                snapshot.fetchedAt(),
-                snapshot.validatedAt());
+                snapshot.getId(),
+                snapshot.getApplicationId(),
+                snapshot.getBuildId(),
+                snapshot.getOpenapiVersion(),
+                snapshot.getDocumentSha256(),
+                snapshot.getCanonicalSha256(),
+                snapshot.getDocumentJson(),
+                snapshot.getFetchedAt(),
+                snapshot.getValidatedAt());
     }
 
     private GatewayOpenApiSyncStateVO toSyncState(
-            GatewayOpenApiSyncPO row) {
-        GatewayOpenApiSnapshotPO snapshot = row.latestSnapshotId() == null
+            GatewayOpenApiSyncBO row) {
+        GatewayOpenApiSnapshotBO snapshot = row.getLatestSnapshotId() == null
                 ? null
-                : snapshots.findById(row.latestSnapshotId()).orElse(null);
+                : snapshots.findById(row.getLatestSnapshotId()).orElse(null);
         return new GatewayOpenApiSyncStateVO(
-                row.id(),
-                row.applicationId(),
-                row.buildId(),
-                row.artifactVersion(),
-                row.openapiGroup(),
-                row.status().name(),
-                row.latestSnapshotId(),
-                row.definitionSetId(),
+                row.getId(),
+                row.getApplicationId(),
+                row.getBuildId(),
+                row.getArtifactVersion(),
+                row.getOpenapiGroup(),
+                row.getStatus().name(),
+                row.getLatestSnapshotId(),
+                row.getDefinitionSetId(),
                 snapshot == null ? null : GatewayOpenApi31ContractAdapter.operationCount(
-                        objectMapper.valueToTree(snapshot.documentJson())),
-                snapshot == null ? null : snapshot.schemaCount(),
-                snapshot == null ? null : snapshot.canonicalSha256(),
-                row.lastErrorCode(),
-                row.lastErrorMessage(),
+                        objectMapper.valueToTree(snapshot.getDocumentJson())),
+                snapshot == null ? null : snapshot.getSchemaCount(),
+                snapshot == null ? null : snapshot.getCanonicalSha256(),
+                row.getLastErrorCode(),
+                row.getLastErrorMessage(),
                 GatewayDefinitionSourceTypeEnum.OPENAPI31.name(),
-                row.lastAttemptAt(),
-                row.lastSuccessAt(),
-                row.nextRetryAt());
+                row.getLastAttemptAt(),
+                row.getLastSuccessAt(),
+                row.getNextRetryAt());
     }
 
-    private GatewayOperationDefinitionPO currentDefinition(
-            GatewayOperationPO operation,
-            List<GatewayOperationDefinitionPO> definitions) {
+    private GatewayOperationDefinitionBO currentDefinition(
+            GatewayOperationBO operation,
+            List<GatewayOperationDefinitionBO> definitions) {
         if (definitions == null || definitions.isEmpty()
-                || operation.currentDefinitionId() == null) {
+                || operation.getCurrentDefinitionId() == null) {
             throw notFound("Current operation definition was not found");
         }
         return definitions.stream()
                 .filter(Objects::nonNull)
-                .filter(definition -> definition.id().equals(
-                        operation.currentDefinitionId()))
+                .filter(definition -> definition.getId().equals(
+                        operation.getCurrentDefinitionId()))
                 .findFirst()
                 .orElseThrow(() -> notFound(
                         "Current operation definition was not found"));
@@ -325,7 +325,7 @@ public class GatewayOpenApiQueryService {
     }
 
     private boolean matches(
-            GatewayApplicationPO application,
+            GatewayApplicationBO application,
             String bizCode,
             String namespace,
             String env,

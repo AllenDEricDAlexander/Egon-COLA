@@ -25,6 +25,9 @@ import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 
 import java.util.List;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteCapabilityBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO;
 
 /**
  * 中文说明：{@code McpRemoteProviderController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责MCP远程提供方控制器相关的职责与边界。
@@ -75,7 +78,7 @@ public class McpRemoteProviderController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/providers")
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO> providers(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO> providers(
             @RequestParam String gatewayGroupId) {
         return service.providers(gatewayGroupId);
     }
@@ -182,7 +185,7 @@ public class McpRemoteProviderController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/providers/{id}/discover")
     @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:test','CAP_*')")
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteCapabilityPO> discover(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteCapabilityBO> discover(
             @PathVariable String id) {
         return service.remoteCapabilities(id);
     }
@@ -199,7 +202,7 @@ public class McpRemoteProviderController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/mounts")
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteMountDraftPO> mounts(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO> mounts(
             @RequestParam String gatewayGroupId) {
         return service.mounts(gatewayGroupId);
     }

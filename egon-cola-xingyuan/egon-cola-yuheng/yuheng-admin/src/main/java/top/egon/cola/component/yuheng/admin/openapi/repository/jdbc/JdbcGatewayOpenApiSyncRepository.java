@@ -5,7 +5,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncKeyDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSyncRepository;
 
 import java.sql.ResultSet;
@@ -53,7 +53,7 @@ public class JdbcGatewayOpenApiSyncRepository
     }
 
     @Override
-    public Optional<GatewayOpenApiSyncPO> findByKey(
+    public Optional<GatewayOpenApiSyncBO> findByKey(
             GatewayOpenApiSyncKeyDTO key) {
         Objects.requireNonNull(key, "key");
         return jdbc.query(
@@ -72,7 +72,7 @@ public class JdbcGatewayOpenApiSyncRepository
     }
 
     @Override
-    public Optional<GatewayOpenApiSyncPO> findById(String syncId) {
+    public Optional<GatewayOpenApiSyncBO> findById(String syncId) {
         return jdbc.query(
                         SELECT_COLUMNS + " WHERE id = ?",
                         rowMapper(),
@@ -83,7 +83,7 @@ public class JdbcGatewayOpenApiSyncRepository
     }
 
     @Override
-    public List<GatewayOpenApiSyncPO> findByApplicationId(
+    public List<GatewayOpenApiSyncBO> findByApplicationId(
             String applicationId) {
         return jdbc.query(
                 SELECT_COLUMNS + " WHERE application_id = ?"
@@ -94,7 +94,7 @@ public class JdbcGatewayOpenApiSyncRepository
     }
 
     @Override
-    public List<GatewayOpenApiSyncPO> findByStatus(
+    public List<GatewayOpenApiSyncBO> findByStatus(
             GatewayOpenApiSyncStateEnum state) {
         Objects.requireNonNull(state, "state");
         return jdbc.query(
@@ -106,10 +106,10 @@ public class JdbcGatewayOpenApiSyncRepository
     }
 
     @Override
-    public GatewayOpenApiSyncPO upsertDiscovered(
-            GatewayOpenApiSyncPO state) {
+    public GatewayOpenApiSyncBO upsertDiscovered(
+            GatewayOpenApiSyncBO state) {
         Objects.requireNonNull(state, "state");
-        if (state.status() != GatewayOpenApiSyncStateEnum.DISCOVERED) {
+        if (state.getStatus() != GatewayOpenApiSyncStateEnum.DISCOVERED) {
             throw new IllegalArgumentException(
                     "upsertDiscovered requires DISCOVERED state"
             );
@@ -133,39 +133,39 @@ public class JdbcGatewayOpenApiSyncRepository
                     provider_version = EXCLUDED.provider_version,
                     updated_at = EXCLUDED.updated_at
                 """,
-                state.id(),
-                state.applicationId(),
-                state.buildId(),
-                state.artifactVersion(),
-                state.openapiGroup(),
-                state.providerServiceName(),
-                state.providerGroup(),
-                state.providerVersion(),
-                state.status().name(),
-                state.latestSnapshotId(),
-                state.definitionSetId(),
-                state.lastInstanceId(),
-                state.attemptCount(),
-                state.lastErrorCode(),
-                state.lastErrorMessage(),
-                timestamp(state.firstDiscoveredAt()),
-                optionalTimestamp(state.lastAttemptAt()),
-                optionalTimestamp(state.lastSuccessAt()),
-                optionalTimestamp(state.nextRetryAt()),
-                state.revision(),
-                timestamp(state.updatedAt())
+                state.getId(),
+                state.getApplicationId(),
+                state.getBuildId(),
+                state.getArtifactVersion(),
+                state.getOpenapiGroup(),
+                state.getProviderServiceName(),
+                state.getProviderGroup(),
+                state.getProviderVersion(),
+                state.getStatus().name(),
+                state.getLatestSnapshotId(),
+                state.getDefinitionSetId(),
+                state.getLastInstanceId(),
+                state.getAttemptCount(),
+                state.getLastErrorCode(),
+                state.getLastErrorMessage(),
+                timestamp(state.getFirstDiscoveredAt()),
+                optionalTimestamp(state.getLastAttemptAt()),
+                optionalTimestamp(state.getLastSuccessAt()),
+                optionalTimestamp(state.getNextRetryAt()),
+                state.getRevision(),
+                timestamp(state.getUpdatedAt())
         );
         return findByKey(new GatewayOpenApiSyncKeyDTO(
-                state.applicationId(),
-                state.buildId(),
-                state.openapiGroup()
+                state.getApplicationId(),
+                state.getBuildId(),
+                state.getOpenapiGroup()
         )).orElseThrow(() -> new IllegalStateException(
                 "OpenAPI sync row disappeared after upsert"
         ));
     }
 
     @Override
-    public List<GatewayOpenApiSyncPO> findDue(Instant now, int limit) {
+    public List<GatewayOpenApiSyncBO> findDue(Instant now, int limit) {
         Objects.requireNonNull(now, "now");
         if (limit <= 0) {
             return List.of();
@@ -345,8 +345,8 @@ public class JdbcGatewayOpenApiSyncRepository
         };
     }
 
-    private RowMapper<GatewayOpenApiSyncPO> rowMapper() {
-        return (result, row) -> new GatewayOpenApiSyncPO(
+    private RowMapper<GatewayOpenApiSyncBO> rowMapper() {
+        return (result, row) -> GatewayOpenApiSyncBO.validated(new GatewayOpenApiSyncBO(
                 result.getString("id"),
                 result.getString("application_id"),
                 result.getString("build_id"),
@@ -370,7 +370,7 @@ public class JdbcGatewayOpenApiSyncRepository
                 optionalInstant(result, "next_retry_at"),
                 result.getLong("revision"),
                 instant(result, "updated_at")
-        );
+        ));
     }
 
     private static Timestamp timestamp(Instant instant) {

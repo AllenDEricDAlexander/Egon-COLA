@@ -2,8 +2,8 @@ package top.egon.cola.component.yuheng.admin.release.repository;
 
 
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,7 +24,7 @@ public interface GatewayReleasePublicationRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.insertAll(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param operations 参数 operations；parameter operations。
      */
-    void insertAll(List<GatewayReleasePublicationPO> operations);
+    void insertAll(List<GatewayReleasePublicationBO> operations);
 
     /**
      * 中文说明：执行 findAttempt 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -35,7 +35,7 @@ public interface GatewayReleasePublicationRepository {
      * @param attemptNo 参数 attemptNo；parameter attempt no。
      * @return 返回 findAttempt 的处理结果；returns the result of the operation.
      */
-    List<GatewayReleasePublicationPO> findAttempt(String releaseId, int attemptNo);
+    List<GatewayReleasePublicationBO> findAttempt(String releaseId, int attemptNo);
 
     /**
      * 读取发布阶段元数据而不加载历史完整文档。
@@ -45,7 +45,7 @@ public interface GatewayReleasePublicationRepository {
      * @param attemptNo attempt编号 / attempt number
      * @return 发布阶段元数据 / publication metadata
      */
-    default List<GatewayReleasePublicationPO> findAttemptMetadata(
+    default List<GatewayReleasePublicationBO> findAttemptMetadata(
             String releaseId,
             int attemptNo) {
         return findAttempt(releaseId, attemptNo);
@@ -60,12 +60,12 @@ public interface GatewayReleasePublicationRepository {
      * @param phaseOrder 阶段序号 / phase order
      * @return 匹配的发布阶段 / matching publication phase
      */
-    default Optional<GatewayReleasePublicationPO> findOperation(
+    default Optional<GatewayReleasePublicationBO> findOperation(
             String releaseId,
             int attemptNo,
             int phaseOrder) {
         return findAttempt(releaseId, attemptNo).stream()
-                .filter(operation -> operation.phaseOrder() == phaseOrder)
+                .filter(operation -> operation.getPhaseOrder() == phaseOrder)
                 .findFirst();
     }
 
@@ -78,7 +78,7 @@ public interface GatewayReleasePublicationRepository {
      * @param attemptNo 参数 attemptNo；parameter attempt no。
      * @return 返回 nextIncomplete 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayReleasePublicationPO> nextIncomplete(
+    Optional<GatewayReleasePublicationBO> nextIncomplete(
             String releaseId,
             int attemptNo);
 
@@ -90,7 +90,7 @@ public interface GatewayReleasePublicationRepository {
      * @param successorActivatedBefore 参数 successorActivatedBefore；parameter successor activated before。
      * @return 返回 findChunkCleanupCandidates 的处理结果；returns the result of the operation.
      */
-    List<GatewayChunkCleanupCandidatePO> findChunkCleanupCandidates(
+    List<GatewayChunkCleanupCandidateBO> findChunkCleanupCandidates(
             Instant successorActivatedBefore);
 
     /**

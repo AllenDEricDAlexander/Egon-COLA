@@ -56,6 +56,9 @@ import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayP
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.PLANNED;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.TIMEOUT;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
 
 class GatewayReleasePublicationCoordinatorTest {
 
@@ -124,13 +127,13 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(journal.findAttempt("release-1", 1))
                 .hasSize(6)
                 .extracting(
-                        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO
-                                ::status
+                        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO
+                                ::getStatus
                 ).containsExactly(SUCCESS, SUCCESS, FAILED, PLANNED, PLANNED, PLANNED);
         assertThat(journal.insertCount).isEqualTo(1);
         assertThat(journal.findAttempt("release-1", 1))
                 .allSatisfy(operation -> assertSnowflakeId(
-                        operation.changeId()
+                        operation.getChangeId()
                 ));
     }
 
@@ -157,13 +160,13 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(client.taskQueries).containsExactly(
                 client.publishRequests.getFirst().changeId()
         );
-        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::engineRole)
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetBO::getEngineRole)
                 .containsExactly(GatewayEngineRoleEnum.API_RPC, GatewayEngineRoleEnum.MCP);
         assertThat(journal.findAttempt("release-inline", 1))
                 .hasSize(2)
                 .extracting(
-                        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO
-                                ::status
+                        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO
+                                ::getStatus
                 ).containsExactly(SUCCESS, SUCCESS);
     }
 
@@ -181,7 +184,7 @@ class GatewayReleasePublicationCoordinatorTest {
                         compiled,
                         "admin"
                 );
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO persisted =
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO persisted =
                 journal.findAttempt("release-inline", 1).getFirst();
         client.statuses.put("yuheng.rules.active", SUCCESS);
 
@@ -198,13 +201,13 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(journal.insertCount).isEqualTo(1);
         assertThat(journal.findAttempt("release-inline", 1).getFirst())
                 .satisfies(operation -> {
-                    assertThat(operation.changeId())
-                            .isEqualTo(persisted.changeId());
-                    assertThat(operation.expectedVersion())
-                            .isEqualTo(persisted.expectedVersion());
+                    assertThat(operation.getChangeId())
+                            .isEqualTo(persisted.getChangeId());
+                    assertThat(operation.getExpectedVersion())
+                            .isEqualTo(persisted.getExpectedVersion());
                 });
         assertThat(client.retryChangeIds)
-                .containsExactly(persisted.changeId());
+                .containsExactly(persisted.getChangeId());
     }
 
     @Test
@@ -223,7 +226,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 );
         String changeId = journal.findAttempt("release-inline", 1)
                 .getFirst()
-                .changeId();
+                .getChangeId();
         client.configs.put(
                 "infra/test/ge",
                 new DdcManagementConfig(
@@ -313,8 +316,8 @@ class GatewayReleasePublicationCoordinatorTest {
                 );
         List<String> identities = journal.findAttempt("release-1", 1)
                 .stream()
-                .map(top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO
-                        ::changeId)
+                .map(top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO
+                        ::getChangeId)
                 .toList();
         top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO resumed =
                 coordinator(journal, client).execute(
@@ -329,8 +332,8 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(resumed.successful()).isTrue();
         assertThat(journal.insertCount).isEqualTo(1);
         assertThat(journal.findAttempt("release-1", 1))
-                .extracting(top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO
-                        ::changeId)
+                .extracting(top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO
+                        ::getChangeId)
                 .containsExactlyElementsOf(identities);
         assertThat(client.publishRequests)
                 .filteredOn(request -> request.changeId().equals(
@@ -366,11 +369,11 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(outcome.successful()).isFalse();
         assertThat(outcome.status()).isEqualTo(TIMEOUT);
         assertThat(outcome.partialApplied()).isTrue();
-        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::engineRole)
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetBO::getEngineRole)
                 .containsExactly(GatewayEngineRoleEnum.API_RPC, GatewayEngineRoleEnum.MCP);
-        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::status)
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetBO::getStatus)
                 .containsExactly("SUCCESS", "TIMEOUT");
-        assertThat(journal.findAttempt("release-inline", 1)).extracting(GatewayReleasePublicationPO::status)
+        assertThat(journal.findAttempt("release-inline", 1)).extracting(GatewayReleasePublicationBO::getStatus)
                 .containsExactly(SUCCESS, TIMEOUT);
     }
 
@@ -381,7 +384,7 @@ class GatewayReleasePublicationCoordinatorTest {
         client.failBeforeTaskAt = 1;
         var compiled = compiledInline();
         coordinator(journal, client).execute("release-inline", 1, compiled, "admin");
-        String originalChangeId = journal.findAttempt("release-inline", 1).getLast().changeId();
+        String originalChangeId = journal.findAttempt("release-inline", 1).getLast().getChangeId();
         var changed = new GatewayAdminDdcProperties();
         changed.setApiRpcBizCode("changed");
         changed.setApiRpcAppCode("changed-api");
@@ -398,9 +401,9 @@ class GatewayReleasePublicationCoordinatorTest {
             assertThat(request.bizCode()).isEqualTo("infra");
             assertThat(request.appCode()).isIn("ge", "gme");
         });
-        assertThat(journal.findAttempt("release-inline", 2)).extracting(GatewayReleasePublicationPO::targetScope)
+        assertThat(journal.findAttempt("release-inline", 2)).extracting(GatewayReleasePublicationBO::getTargetScope)
                 .containsExactlyElementsOf(journal.findAttempt("release-inline", 1).stream()
-                        .map(GatewayReleasePublicationPO::targetScope).toList());
+                        .map(GatewayReleasePublicationBO::getTargetScope).toList());
     }
 
     @Test
@@ -433,9 +436,9 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(outcome.successful()).isTrue();
         assertThat(client.publishRequests).extracting(DdcManagementPublishRequest::expectedVersion)
                 .containsExactly(1L, 40L);
-        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::appliedVersion)
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetBO::getAppliedVersion)
                 .containsExactly(2L, 41L);
-        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::appliedArtifactSha256)
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetBO::getAppliedArtifactSha256)
                 .containsOnly(compiledInline().activation().artifactSha256());
         assertThat(client.publishRequests.getFirst().content()).doesNotContain("mcpFeature");
         assertThat(client.publishRequests.getLast().content()).contains("mcpFeature: preserved");
@@ -567,44 +570,44 @@ class GatewayReleasePublicationCoordinatorTest {
     private static final class InMemoryPublicationStore
             implements GatewayReleasePublicationRepository {
 
-        private final Map<String, GatewayReleasePublicationPO> records =
+        private final Map<String, GatewayReleasePublicationBO> records =
                 new LinkedHashMap<>();
 
         private int insertCount;
 
         @Override
-        public void insertAll(List<GatewayReleasePublicationPO> operations) {
+        public void insertAll(List<GatewayReleasePublicationBO> operations) {
             insertCount++;
             operations.forEach(operation -> records.put(
-                    operation.changeId(),
+                    operation.getChangeId(),
                     operation
             ));
         }
 
         @Override
-        public List<GatewayReleasePublicationPO> findAttempt(
+        public List<GatewayReleasePublicationBO> findAttempt(
                 String releaseId,
                 int attemptNo) {
             return records.values().stream()
-                    .filter(record -> record.releaseId().equals(releaseId))
-                    .filter(record -> record.attemptNo() == attemptNo)
+                    .filter(record -> record.getReleaseId().equals(releaseId))
+                    .filter(record -> record.getAttemptNo() == attemptNo)
                     .sorted(Comparator.comparingInt(
-                            GatewayReleasePublicationPO::phaseOrder
+                            GatewayReleasePublicationBO::getPhaseOrder
                     ))
                     .toList();
         }
 
         @Override
-        public Optional<GatewayReleasePublicationPO> nextIncomplete(
+        public Optional<GatewayReleasePublicationBO> nextIncomplete(
                 String releaseId,
                 int attemptNo) {
             return findAttempt(releaseId, attemptNo).stream()
-                    .filter(record -> record.status() != SUCCESS)
+                    .filter(record -> record.getStatus() != SUCCESS)
                     .findFirst();
         }
 
         @Override
-        public List<GatewayChunkCleanupCandidatePO> findChunkCleanupCandidates(
+        public List<GatewayChunkCleanupCandidateBO> findChunkCleanupCandidates(
                 Instant successorActivatedBefore) {
             return List.of();
         }
@@ -619,7 +622,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     record,
                     documentContent,
                     expectedVersion,
-                    record.ddcTargetVersion(),
+                    record.getDdcTargetVersion(),
                     GatewayPublicationStatusEnum.RESOLVED,
                     null,
                     null,
@@ -631,9 +634,9 @@ class GatewayReleasePublicationCoordinatorTest {
         public void markSubmitted(String changeId, Instant now) {
             update(changeId, record -> copy(
                     record,
-                    record.contentValue(),
-                    record.expectedVersion(),
-                    record.ddcTargetVersion(),
+                    record.getContentValue(),
+                    record.getExpectedVersion(),
+                    record.getDdcTargetVersion(),
                     GatewayPublicationStatusEnum.SUBMITTED,
                     null,
                     null,
@@ -651,8 +654,8 @@ class GatewayReleasePublicationCoordinatorTest {
                 Instant now) {
             update(changeId, record -> copy(
                     record,
-                    record.contentValue(),
-                    record.expectedVersion(),
+                    record.getContentValue(),
+                    record.getExpectedVersion(),
                     targetVersion,
                     status,
                     errorCode,
@@ -668,12 +671,12 @@ class GatewayReleasePublicationCoordinatorTest {
 
         private void update(
                 String changeId,
-                java.util.function.UnaryOperator<GatewayReleasePublicationPO> change) {
+                java.util.function.UnaryOperator<GatewayReleasePublicationBO> change) {
             records.compute(changeId, (key, value) -> change.apply(value));
         }
 
-        private GatewayReleasePublicationPO copy(
-                GatewayReleasePublicationPO source,
+        private GatewayReleasePublicationBO copy(
+                GatewayReleasePublicationBO source,
                 String contentValue,
                 Long expectedVersion,
                 Long targetVersion,
@@ -681,23 +684,23 @@ class GatewayReleasePublicationCoordinatorTest {
                 String errorCode,
                 String errorMessage,
                 Instant updatedAt) {
-            return new GatewayReleasePublicationPO(
-                    source.releaseId(),
-                    source.attemptNo(),
-                    source.phaseOrder(),
-                    source.phaseType(),
-                    source.configKey(),
+            return new GatewayReleasePublicationBO(
+                    source.getReleaseId(),
+                    source.getAttemptNo(),
+                    source.getPhaseOrder(),
+                    source.getPhaseType(),
+                    source.getConfigKey(),
                     contentValue,
-                    source.contentSha256(),
+                    source.getContentSha256(),
                     expectedVersion,
-                    source.changeId(),
+                    source.getChangeId(),
                     targetVersion,
                     status,
                     errorCode,
                     errorMessage,
-                    source.createdAt(),
+                    source.getCreatedAt(),
                     updatedAt,
-                    source.targetScope()
+                    source.getTargetScope()
             );
         }
     }
@@ -809,17 +812,17 @@ class GatewayReleasePublicationCoordinatorTest {
         @Override
         public DdcManagementPublishResult publish(
                 DdcManagementPublishRequest request) {
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation =
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation =
                     journal.records.get(request.changeId());
             assertThat(operation).isNotNull();
-            publishedKeys.add(operation.configKey());
+            publishedKeys.add(operation.getConfigKey());
             publishRequests.add(request);
             if (publishInvocation++ == failBeforeTaskAt) {
                 throw new IllegalStateException("request not sent");
             }
             DdcManagementPublishStatus status = ddcStatus(
                     request.appCode().equals(failedApp) ? TIMEOUT
-                            : statuses.getOrDefault(operation.configKey(), SUCCESS)
+                            : statuses.getOrDefault(operation.getConfigKey(), SUCCESS)
             );
             configs.put(scope(
                     request.bizCode(),
@@ -866,10 +869,10 @@ class GatewayReleasePublicationCoordinatorTest {
         public DdcManagementPublishResult retry(String changeId) {
             retryChangeIds.add(changeId);
             DdcManagementPublishTask current = tasks.get(changeId);
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation =
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation =
                     journal.records.get(changeId);
             DdcManagementPublishStatus status = ddcStatus(
-                    statuses.get(operation.configKey())
+                    statuses.get(operation.getConfigKey())
             );
             DdcManagementPublishResult result = new DdcManagementPublishResult(
                     changeId,

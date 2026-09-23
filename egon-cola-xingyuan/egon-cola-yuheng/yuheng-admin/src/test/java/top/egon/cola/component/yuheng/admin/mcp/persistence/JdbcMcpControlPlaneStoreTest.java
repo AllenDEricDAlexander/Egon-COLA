@@ -16,6 +16,10 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO;
 
 class JdbcMcpControlPlaneStoreTest {
 
@@ -43,7 +47,7 @@ class JdbcMcpControlPlaneStoreTest {
                 new JdbcMcpRemoteProviderRepository(jdbc, new ObjectMapper());
 
         var mutation = managed.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO(
                         "tool-1",
                         "group-1",
                         "operation-1",
@@ -58,7 +62,7 @@ class JdbcMcpControlPlaneStoreTest {
                 NOW
         );
         remoteTools.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO(
                         "remote-tool-1",
                         "group-1",
                         "server-1",
@@ -73,7 +77,7 @@ class JdbcMcpControlPlaneStoreTest {
                 NOW
         );
         remote.saveProvider(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO(
                         "provider-1",
                         "group-1",
                         "billing",
@@ -115,7 +119,7 @@ class JdbcMcpControlPlaneStoreTest {
                 new JdbcMcpArtifactMetadataRepository(jdbc, new ObjectMapper());
         JdbcMcpApprovalRepository approvals = new JdbcMcpApprovalRepository(jdbc);
 
-        artifacts.save(new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO(
+        artifacts.save(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO(
                 "artifact-1",
                 "group-1",
                 "billing-ui",

@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.util.HexFormat;
 import java.util.Objects;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO;
 
 /**
  * 中文说明：{@code GatewayCallEventConsumerHandler} 是处理器，位于当前 Gateway 模块的相关包中，负责网关调用事件消费者处理器相关的职责与边界。
@@ -120,7 +121,7 @@ public final class GatewayCallEventConsumerHandler {
                 ? new byte[0]
                 : record.value();
         ingestService.poison(
-                new top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayConsumeFailurePO(
+                new top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO(
                         SnowflakeIdGenerator.nextId(),
                         record.topic(),
                         record.partition(),

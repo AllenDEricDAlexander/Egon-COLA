@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO;
 
 /**
  * 中文说明：{@code GatewayRuleChunkGarbageCollector} 是类型，位于当前 Gateway 模块的相关包中，负责网关规则ChunkGarbageCollector相关的职责与边界。
@@ -221,7 +222,7 @@ public class GatewayRuleChunkGarbageCollector {
      * @param candidate 参数 candidate；parameter candidate。
      */
     private void delete(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate) {
         String changeId = SnowflakeIdGenerator.nextId();
         try {
             DdcManagementConfig config = current(candidate).orElse(null);
@@ -233,7 +234,7 @@ public class GatewayRuleChunkGarbageCollector {
             top.egon.cola.component.yuheng.admin.rule.service.GatewayYamlRemoval removal =
                     yamlDocument.removeLeaf(
                             config.content(),
-                            candidate.configKey()
+                            candidate.getConfigKey()
                     );
             if (!removal.removed()) {
                 markCleaned(candidate);
@@ -241,9 +242,9 @@ public class GatewayRuleChunkGarbageCollector {
             }
             DdcManagementPublishResult result = client.publish(
                     new DdcManagementPublishRequest(
-                            candidate.targetScope().bizCode(),
-                            candidate.targetScope().env(),
-                            candidate.targetScope().appCode(),
+                            candidate.getTargetScope().bizCode(),
+                            candidate.getTargetScope().env(),
+                            candidate.getTargetScope().appCode(),
                             config.resourceName(),
                             removal.content(),
                             config.format(),
@@ -284,10 +285,10 @@ public class GatewayRuleChunkGarbageCollector {
      * @param candidate 参数 candidate；parameter candidate。
      */
     private void markCleaned(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate) {
         try {
             journal.markChunkCleaned(
-                    candidate.changeId(),
+                    candidate.getChangeId(),
                     clock.instant()
             );
             deleted.incrementAndGet();
@@ -305,13 +306,13 @@ public class GatewayRuleChunkGarbageCollector {
      * @return 返回 alreadyDeleted 的处理结果；returns the result of the operation.
      */
     private boolean alreadyDeleted(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate) {
         try {
             return current(candidate)
                     .map(config -> config.deleted()
                             || yamlDocument.leafValue(
                                     config.content(),
-                                    candidate.configKey()
+                                    candidate.getConfigKey()
                             ).isEmpty())
                     .orElse(true);
         } catch (RuntimeException unavailable) {
@@ -328,11 +329,11 @@ public class GatewayRuleChunkGarbageCollector {
      * @return 返回 current 的处理结果；returns the result of the operation.
      */
     private Optional<DdcManagementConfig> current(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate) {
         return client.findConfig(new DdcManagementConfigQuery(
-                candidate.targetScope().bizCode(),
-                candidate.targetScope().env(),
-                candidate.targetScope().appCode()
+                candidate.getTargetScope().bizCode(),
+                candidate.getTargetScope().env(),
+                candidate.getTargetScope().appCode()
         ));
     }
 
@@ -385,15 +386,15 @@ public class GatewayRuleChunkGarbageCollector {
      * @param failure 参数 failure；parameter failure。
      */
     private void recordFailure(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate,
             RuntimeException failure) {
         failed.incrementAndGet();
         LOGGER.warn(
                 "Gateway rule chunk cleanup failed releaseId={} "
                         + "configKey={} targetVersion={} cause={}",
-                candidate.releaseId(),
-                candidate.configKey(),
-                candidate.targetVersion(),
+                candidate.getReleaseId(),
+                candidate.getConfigKey(),
+                candidate.getTargetVersion(),
                 failure.getClass().getSimpleName()
         );
     }

@@ -18,7 +18,7 @@ import top.egon.cola.component.tianshu.model.management.DdcManagementServiceInst
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceSnapshot;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminOpenApiProperties;
 import top.egon.cola.component.yuheng.admin.openapi.client.GatewayOpenApiFetchException;
@@ -29,8 +29,8 @@ import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiDoc
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncCandidateDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncKeyDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSnapshotRepository;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSyncRepository;
 import top.egon.cola.component.yuheng.admin.openapi.validation.GatewayOpenApiValidationChain;
@@ -198,13 +198,13 @@ public class GatewayOpenApiSyncService {
 
         Map<BuildKey, List<ClaimedWork>> workByBuild = new LinkedHashMap<>();
         int claimed = 0;
-        for (GatewayOpenApiSyncPO state
+        for (GatewayOpenApiSyncBO state
                 : syncStates.findDue(now, properties.getBatchSize())) {
             GroupContext context = discovery.contexts().get(
                     new GroupKey(
-                            state.applicationId(),
-                            state.buildId(),
-                            state.openapiGroup()
+                            state.getApplicationId(),
+                            state.getBuildId(),
+                            state.getOpenapiGroup()
                     )
             );
             if (context == null) {
@@ -216,16 +216,16 @@ public class GatewayOpenApiSyncService {
             try {
                 work = process(
                         state,
-                        context.candidates(state.openapiGroup()),
+                        context.candidates(state.getOpenapiGroup()),
                         now
                 );
             } catch (RuntimeException failure) {
                 log.warn(
                         "OpenAPI synchronization candidate failed safely "
                                 + "app={} build={} group={}",
-                        state.applicationId(),
-                        state.buildId(),
-                        state.openapiGroup()
+                        state.getApplicationId(),
+                        state.getBuildId(),
+                        state.getOpenapiGroup()
                 );
                 count("FAILED", "CANDIDATE_EXCEPTION");
                 work = Optional.empty();
@@ -233,7 +233,7 @@ public class GatewayOpenApiSyncService {
             if (work.isPresent()) {
                 claimed++;
                 workByBuild.computeIfAbsent(
-                        new BuildKey(state.applicationId(), state.buildId()),
+                        new BuildKey(state.getApplicationId(), state.getBuildId()),
                         ignored -> new ArrayList<>()
                 ).add(work.get());
             }
@@ -265,7 +265,7 @@ public class GatewayOpenApiSyncService {
                 candidate.buildId(),
                 candidate.openapiGroup()
         );
-        Optional<GatewayOpenApiSyncPO> state = syncStates.findByKey(key);
+        Optional<GatewayOpenApiSyncBO> state = syncStates.findByKey(key);
         if (state.isEmpty()) {
             return;
         }
@@ -294,7 +294,7 @@ public class GatewayOpenApiSyncService {
         Map<GroupKey, GroupContext> contexts = new LinkedHashMap<>();
         Map<BuildKey, GroupContext> byBuild = new LinkedHashMap<>();
         boolean aborted = false;
-        for (GatewayApplicationPO application
+        for (GatewayApplicationBO application
                 : applications.findAllByDeletedFalseOrderByCreatedAtDesc()) {
             boolean applicationAborted = false;
             DdcManagementServiceCatalog catalog;
@@ -399,7 +399,7 @@ public class GatewayOpenApiSyncService {
     }
 
     private void buildContexts(
-            GatewayApplicationPO application,
+            GatewayApplicationBO application,
             List<Observation> observations,
             Map<GroupKey, GroupContext> contexts,
             Map<BuildKey, GroupContext> byBuild,
@@ -462,18 +462,18 @@ public class GatewayOpenApiSyncService {
     }
 
     private Optional<ClaimedWork> process(
-            GatewayOpenApiSyncPO observed,
+            GatewayOpenApiSyncBO observed,
             List<GatewayOpenApiSyncCandidateDTO> candidates,
             Instant now) {
         if (!syncStates.claim(
-                observed.id(),
-                observed.revision(),
+                observed.getId(),
+                observed.getRevision(),
                 now
         )) {
             count("SKIPPED", "CLAIM_LOST");
             return Optional.empty();
         }
-        long revision = observed.revision() + 1;
+        long revision = observed.getRevision() + 1;
         GatewayOpenApiFetchException lastFailure = null;
         GatewayOpenApiDocumentDTO document = null;
         GatewayOpenApiSyncCandidateDTO selected = null;
@@ -508,7 +508,7 @@ public class GatewayOpenApiSyncService {
                     ? "no healthy OpenAPI provider instance was available"
                     : safeMessage(lastFailure.getMessage());
             syncStates.markFailure(
-                    observed.id(),
+                    observed.getId(),
                     revision,
                     GatewayOpenApiSyncStateEnum.FETCH_FAILED,
                     errorCode,
@@ -520,7 +520,7 @@ public class GatewayOpenApiSyncService {
             return Optional.empty();
         }
         if (!syncStates.transition(
-                observed.id(),
+                observed.getId(),
                 revision,
                 GatewayOpenApiSyncStateEnum.FETCHING,
                 GatewayOpenApiSyncStateEnum.VALIDATING,
@@ -541,7 +541,7 @@ public class GatewayOpenApiSyncService {
             );
         }
         if (!result.valid()) {
-            Optional<GatewayOpenApiSnapshotPO> invalidSnapshot;
+            Optional<GatewayOpenApiSnapshotBO> invalidSnapshot;
             try {
                 invalidSnapshot = persistSnapshot(
                         document,
@@ -550,7 +550,7 @@ public class GatewayOpenApiSyncService {
                 );
             } catch (RuntimeException failure) {
                 transitionToIngestFailure(
-                        observed.id(),
+                        observed.getId(),
                         revision,
                         now,
                         "YUHENG_OPENAPI_SNAPSHOT_FAILED",
@@ -562,7 +562,7 @@ public class GatewayOpenApiSyncService {
             }
             if (invalidSnapshot.isPresent()) {
                 syncStates.markFailure(
-                    observed.id(),
+                    observed.getId(),
                     revision,
                     GatewayOpenApiSyncStateEnum.INVALID,
                     result.code(),
@@ -575,7 +575,7 @@ public class GatewayOpenApiSyncService {
             return Optional.empty();
         }
 
-        GatewayOpenApiSnapshotPO snapshot;
+        GatewayOpenApiSnapshotBO snapshot;
         try {
             snapshot = persistSnapshot(
                     document,
@@ -586,7 +586,7 @@ public class GatewayOpenApiSyncService {
             ));
         } catch (RuntimeException failure) {
             transitionToIngestFailure(
-                    observed.id(),
+                    observed.getId(),
                     revision,
                     now,
                     "YUHENG_OPENAPI_SNAPSHOT_FAILED",
@@ -597,7 +597,7 @@ public class GatewayOpenApiSyncService {
             return Optional.empty();
         }
         if (!syncStates.transition(
-                observed.id(),
+                observed.getId(),
                 revision,
                 GatewayOpenApiSyncStateEnum.VALIDATING,
                 GatewayOpenApiSyncStateEnum.INGESTING,
@@ -640,7 +640,7 @@ public class GatewayOpenApiSyncService {
         for (String group : context.manifest().groups()) {
             ClaimedWork value = byGroup.get(group);
             documents.put(group, value.document());
-            snapshotIds.put(group, value.snapshot().id());
+            snapshotIds.put(group, value.snapshot().getId());
         }
         GatewayOpenApiAggregateDTO aggregate = GatewayOpenApiAggregateDTO.of(
                 build.applicationId(),
@@ -664,7 +664,7 @@ public class GatewayOpenApiSyncService {
                     context.manifest().groups().size()
             );
             work.forEach(value -> syncStates.markFailure(
-                    value.observed().id(),
+                    value.observed().getId(),
                     value.revision(),
                     GatewayOpenApiSyncStateEnum.INGEST_FAILED,
                     "YUHENG_OPENAPI_INGEST_FAILED",
@@ -678,7 +678,7 @@ public class GatewayOpenApiSyncService {
         if (result == null || result.definitionSetId() == null
                 || result.definitionSetId().isBlank()) {
             work.forEach(value -> syncStates.markFailure(
-                    value.observed().id(),
+                    value.observed().getId(),
                     value.revision(),
                     GatewayOpenApiSyncStateEnum.INGEST_FAILED,
                     "YUHENG_OPENAPI_INGEST_RESULT_INVALID",
@@ -692,9 +692,9 @@ public class GatewayOpenApiSyncService {
         for (String group : context.manifest().groups()) {
             ClaimedWork value = byGroup.get(group);
             if (!syncStates.setValid(
-                    value.observed().id(),
+                    value.observed().getId(),
                     value.revision(),
-                    value.snapshot().id(),
+                    value.snapshot().getId(),
                     result.definitionSetId(),
                     now
             )) {
@@ -709,7 +709,7 @@ public class GatewayOpenApiSyncService {
             ClaimedWork work,
             Instant now) {
         syncStates.markFailure(
-                work.observed().id(),
+                work.observed().getId(),
                 work.revision(),
                 GatewayOpenApiSyncStateEnum.INGEST_FAILED,
                 "YUHENG_OPENAPI_GROUP_SET_INCOMPLETE",
@@ -721,24 +721,24 @@ public class GatewayOpenApiSyncService {
     }
 
     private void repairLinkedRows(Instant now) {
-        for (GatewayOpenApiSyncPO row
+        for (GatewayOpenApiSyncBO row
                 : syncStates.findByStatus(
                 GatewayOpenApiSyncStateEnum.INGESTING
         )) {
-            if (row.latestSnapshotId() == null) {
+            if (row.getLatestSnapshotId() == null) {
                 continue;
             }
-            Optional<GatewayOpenApiSnapshotPO> snapshot = snapshots.findById(
-                    row.latestSnapshotId()
+            Optional<GatewayOpenApiSnapshotBO> snapshot = snapshots.findById(
+                    row.getLatestSnapshotId()
             );
-            if (snapshot.isEmpty() || snapshot.get().definitionSetId() == null) {
+            if (snapshot.isEmpty() || snapshot.get().getDefinitionSetId() == null) {
                 continue;
             }
             if (syncStates.setValid(
-                    row.id(),
-                    row.revision(),
-                    snapshot.get().id(),
-                    snapshot.get().definitionSetId(),
+                    row.getId(),
+                    row.getRevision(),
+                    snapshot.get().getId(),
+                    snapshot.get().getDefinitionSetId(),
                     now
             )) {
                 count("VALID", "LINKED_SET_REPAIRED");
@@ -753,14 +753,14 @@ public class GatewayOpenApiSyncService {
      */
     private void recoverExpiredClaims(Instant now) {
         Instant cutoff = now.minus(properties.getClaimTimeout());
-        for (GatewayOpenApiSyncPO row
+        for (GatewayOpenApiSyncBO row
                 : syncStates.findByStatus(
                 GatewayOpenApiSyncStateEnum.FETCHING
         )) {
-            if (row.updatedAt().isBefore(cutoff)) {
+            if (row.getUpdatedAt().isBefore(cutoff)) {
                 syncStates.markFailure(
-                        row.id(),
-                        row.revision(),
+                        row.getId(),
+                        row.getRevision(),
                         GatewayOpenApiSyncStateEnum.FETCH_FAILED,
                         "YUHENG_OPENAPI_CLAIM_EXPIRED",
                         "OpenAPI synchronization claim expired",
@@ -770,15 +770,15 @@ public class GatewayOpenApiSyncService {
                 count("FETCH_FAILED", "YUHENG_OPENAPI_CLAIM_EXPIRED");
             }
         }
-        for (GatewayOpenApiSyncPO row
+        for (GatewayOpenApiSyncBO row
                 : syncStates.findByStatus(
                 GatewayOpenApiSyncStateEnum.INGESTING
         )) {
-            if (row.updatedAt().isBefore(cutoff)
-                    && row.latestSnapshotId() == null) {
+            if (row.getUpdatedAt().isBefore(cutoff)
+                    && row.getLatestSnapshotId() == null) {
                 syncStates.markFailure(
-                        row.id(),
-                        row.revision(),
+                        row.getId(),
+                        row.getRevision(),
                         GatewayOpenApiSyncStateEnum.INGEST_FAILED,
                         "YUHENG_OPENAPI_CLAIM_EXPIRED",
                         "OpenAPI ingestion claim expired",
@@ -809,7 +809,7 @@ public class GatewayOpenApiSyncService {
         if (syncStates.findByKey(key).isPresent()) {
             return;
         }
-        syncStates.upsertDiscovered(new GatewayOpenApiSyncPO(
+        syncStates.upsertDiscovered(new GatewayOpenApiSyncBO(
                 SnowflakeIdGenerator.nextId(),
                 context.application().getId(),
                 context.manifest().buildId(),
@@ -838,18 +838,18 @@ public class GatewayOpenApiSyncService {
             String applicationId,
             Set<GroupKey> discovered,
             Instant now) {
-        for (GatewayOpenApiSyncPO row
+        for (GatewayOpenApiSyncBO row
                 : syncStates.findByApplicationId(applicationId)) {
             GroupKey key = new GroupKey(
-                    row.applicationId(),
-                    row.buildId(),
-                    row.openapiGroup()
+                    row.getApplicationId(),
+                    row.getBuildId(),
+                    row.getOpenapiGroup()
             );
             if (!discovered.contains(key)
-                    && row.status() != GatewayOpenApiSyncStateEnum.STALE) {
+                    && row.getStatus() != GatewayOpenApiSyncStateEnum.STALE) {
                 syncStates.markFailure(
-                        row.id(),
-                        row.revision(),
+                        row.getId(),
+                        row.getRevision(),
                         GatewayOpenApiSyncStateEnum.STALE,
                         "YUHENG_OPENAPI_PROVIDER_STALE",
                         "OpenAPI provider observation is no longer healthy",
@@ -864,17 +864,17 @@ public class GatewayOpenApiSyncService {
             String applicationId,
             String buildId,
             Instant now) {
-        for (GatewayOpenApiSyncPO row
+        for (GatewayOpenApiSyncBO row
                 : syncStates.findByApplicationId(applicationId)) {
-            if (!row.buildId().equals(buildId)
-                    || row.status() == GatewayOpenApiSyncStateEnum.VALID
-                    || row.status() == GatewayOpenApiSyncStateEnum.STALE) {
+            if (!row.getBuildId().equals(buildId)
+                    || row.getStatus() == GatewayOpenApiSyncStateEnum.VALID
+                    || row.getStatus() == GatewayOpenApiSyncStateEnum.STALE) {
                 continue;
             }
-            if (row.status() == GatewayOpenApiSyncStateEnum.VALIDATING) {
+            if (row.getStatus() == GatewayOpenApiSyncStateEnum.VALIDATING) {
                 syncStates.markFailure(
-                        row.id(),
-                        row.revision(),
+                        row.getId(),
+                        row.getRevision(),
                         GatewayOpenApiSyncStateEnum.INCONSISTENT_BUILD,
                         "YUHENG_OPENAPI_MANIFEST_DRIFT",
                         "same-build OpenAPI Group manifest drifted",
@@ -891,7 +891,7 @@ public class GatewayOpenApiSyncService {
             Instant now,
             String errorCode,
             String message,
-            GatewayOpenApiSyncPO observed) {
+            GatewayOpenApiSyncBO observed) {
         if (syncStates.transition(
                 id,
                 revision,
@@ -911,7 +911,7 @@ public class GatewayOpenApiSyncService {
         }
     }
 
-    private Optional<GatewayOpenApiSnapshotPO> persistSnapshot(
+    private Optional<GatewayOpenApiSnapshotBO> persistSnapshot(
             GatewayOpenApiDocumentDTO document,
             String status,
             List<String> messages) {
@@ -929,7 +929,7 @@ public class GatewayOpenApiSyncService {
             int schemas = root.path("components").path("schemas").isObject()
                     ? root.path("components").path("schemas").size()
                     : 0;
-            GatewayOpenApiSnapshotPO snapshot = new GatewayOpenApiSnapshotPO(
+            GatewayOpenApiSnapshotBO snapshot = new GatewayOpenApiSnapshotBO(
                     SnowflakeIdGenerator.nextId(),
                     document.candidate().applicationId(),
                     null,
@@ -959,7 +959,7 @@ public class GatewayOpenApiSyncService {
     }
 
     private List<GatewayOpenApiSyncCandidateDTO> candidates(
-            GatewayApplicationPO application,
+            GatewayApplicationBO application,
             DdcManagementServiceSnapshot snapshot,
             DdcManagementServiceInstance instance,
             GatewayOpenApiGroupManifestDTO manifest) {
@@ -1014,12 +1014,12 @@ public class GatewayOpenApiSyncService {
         }
     }
 
-    private Optional<GatewayApplicationPO> application(String id) {
+    private Optional<GatewayApplicationBO> application(String id) {
         return applications.findByIdAndDeletedFalse(id);
     }
 
     private GatewayInterfaceDefinitionReport.Application reportApplication(
-            GatewayApplicationPO application) {
+            GatewayApplicationBO application) {
         return new GatewayInterfaceDefinitionReport.Application(
                 application.getBizCode(),
                 application.getApplicationCode(),
@@ -1047,10 +1047,10 @@ public class GatewayOpenApiSyncService {
         );
     }
 
-    private Instant retryAt(GatewayOpenApiSyncPO row, Instant now) {
+    private Instant retryAt(GatewayOpenApiSyncBO row, Instant now) {
         long initial = properties.getRetryInitialDelay().toMillis();
         long maximum = properties.getRetryMaximumDelay().toMillis();
-        int attempt = Math.max(1, row.attemptCount());
+        int attempt = Math.max(1, row.getAttemptCount());
         long multiplier = 1L;
         for (int index = 1; index < attempt; index++) {
             if (multiplier > maximum / 2L) {
@@ -1061,7 +1061,7 @@ public class GatewayOpenApiSyncService {
         }
         long base = Math.min(maximum, Math.max(1L, initial * multiplier));
         long hash = Math.floorMod(
-                Objects.hash(row.id(), attempt),
+                Objects.hash(row.getId(), attempt),
                 10_001
         );
         double normalized = hash / 10_000.0d;
@@ -1127,23 +1127,23 @@ public class GatewayOpenApiSyncService {
     }
 
     private record ClaimedWork(
-            GatewayOpenApiSyncPO observed,
+            GatewayOpenApiSyncBO observed,
             GatewayOpenApiSyncCandidateDTO candidate,
             GatewayOpenApiDocumentDTO document,
-            GatewayOpenApiSnapshotPO snapshot,
+            GatewayOpenApiSnapshotBO snapshot,
             long revision) {
     }
 
     private static final class GroupContext {
 
-        private final GatewayApplicationPO application;
+        private final GatewayApplicationBO application;
 
         private final GatewayOpenApiGroupManifestDTO manifest;
 
         private final Map<String, List<GatewayOpenApiSyncCandidateDTO>> candidates;
 
         private GroupContext(
-                GatewayApplicationPO application,
+                GatewayApplicationBO application,
                 GatewayOpenApiGroupManifestDTO manifest,
                 Map<String, List<GatewayOpenApiSyncCandidateDTO>> candidates) {
             this.application = Objects.requireNonNull(application, "application");
@@ -1157,7 +1157,7 @@ public class GatewayOpenApiSyncService {
         }
 
         private static GroupContext single(
-                GatewayApplicationPO application,
+                GatewayApplicationBO application,
                 GatewayOpenApiSyncCandidateDTO candidate) {
             GatewayOpenApiGroupManifestDTO manifest =
                     new GatewayOpenApiGroupManifestDTO(
@@ -1178,7 +1178,7 @@ public class GatewayOpenApiSyncService {
             return candidates.getOrDefault(group, List.of());
         }
 
-        private GatewayApplicationPO application() {
+        private GatewayApplicationBO application() {
             return application;
         }
 

@@ -8,10 +8,10 @@ import top.egon.cola.component.tianshu.model.management.DdcManagementScopeBindin
 import top.egon.cola.component.yuheng.admin.application.domain.dto.GatewayApplicationCreateCommandDTO;
 import top.egon.cola.component.yuheng.admin.application.domain.dto.GatewayApplicationUpdateCommandDTO;
 import top.egon.cola.component.yuheng.admin.application.domain.exception.GatewayApplicationAlreadyExistsException;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.domain.vo.GatewayApplicationVO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.scope.service.GatewayScopeService;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
@@ -127,7 +127,7 @@ public class GatewayApplicationService {
                         required(command.applicationCode(), "applicationCode")
                 );
         DdcManagementScopeBinding binding = scopes.requireEnabled(scope);
-        GatewayApplicationPO existing = applications
+        GatewayApplicationBO existing = applications
                 .findByBizCodeAndApplicationCodeAndEnvAndDeletedFalse(
                         scope.bizCode(),
                         scope.appCode(),
@@ -140,7 +140,7 @@ public class GatewayApplicationService {
             );
         }
         Instant now = clock.instant();
-        GatewayApplicationPO application = new GatewayApplicationPO(
+        GatewayApplicationBO application = new GatewayApplicationBO(
                 SnowflakeIdGenerator.nextId(),
                 scope.bizCode(),
                 scope.appCode(),
@@ -244,7 +244,7 @@ public class GatewayApplicationService {
             GatewayApplicationUpdateCommandDTO command,
             AdminActor actor,
             RequestAuditContext request) {
-        GatewayApplicationPO application = required(id);
+        GatewayApplicationBO application = required(id);
         if (application.getRevision() != command.expectedRevision()) {
             throw new GatewayAdminRevisionConflictException(
                     application.getRevision()
@@ -272,7 +272,7 @@ public class GatewayApplicationService {
      * @param id 参数 id；parameter id。
      * @return 返回 required 的处理结果；returns the result of the operation.
      */
-    private GatewayApplicationPO required(String id) {
+    private GatewayApplicationBO required(String id) {
         return applications.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
                         "gateway application " + id + " was not found"
@@ -296,7 +296,7 @@ public class GatewayApplicationService {
             String id,
             String action,
             Map<String, Object> after) {
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -306,8 +306,8 @@ public class GatewayApplicationService {
                 "YUHENG_APPLICATION",
                 id,
                 action,
-                null,
-                after,
+                GatewayAuditLogBO.sanitized(null),
+                GatewayAuditLogBO.sanitized(after),
                 null,
                 null,
                 true,
@@ -327,7 +327,7 @@ public class GatewayApplicationService {
      * @return 返回 scopedView 的处理结果；returns the result of the operation.
      */
     private GatewayApplicationVO scopedView(
-            GatewayApplicationPO application,
+            GatewayApplicationBO application,
             top.egon.cola.component.yuheng.admin.scope.domain.dto.GatewayScopeQueryDTO query,
             List<DdcManagementScopeBinding> bindings) {
         String namespace = application.getNamespace();
@@ -350,7 +350,7 @@ public class GatewayApplicationService {
      * @return 返回 matched命名空间 的处理结果；returns the result of the operation.
      */
     private String matchedNamespace(
-            GatewayApplicationPO application,
+            GatewayApplicationBO application,
             List<DdcManagementScopeBinding> bindings) {
         return bindings.stream()
                 .map(DdcManagementScopeBinding::namespaceCode)
@@ -372,7 +372,7 @@ public class GatewayApplicationService {
      * @return 返回 view 的处理结果；returns the result of the operation.
      */
     private GatewayApplicationVO view(
-            GatewayApplicationPO application,
+            GatewayApplicationBO application,
             String namespace,
             boolean ddcMatched) {
         return new GatewayApplicationVO(
@@ -416,7 +416,7 @@ public class GatewayApplicationService {
      * @return 返回 physical键 的处理结果；returns the result of the operation.
      */
     private static top.egon.cola.component.yuheng.admin.scope.domain.GatewayPhysicalApplicationKey physicalKey(
-            GatewayApplicationPO application) {
+            GatewayApplicationBO application) {
         return new top.egon.cola.component.yuheng.admin.scope.domain.GatewayPhysicalApplicationKey(
                 application.getBizCode(),
                 application.getEnv(),

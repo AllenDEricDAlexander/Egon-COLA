@@ -109,6 +109,8 @@ import java.util.Optional;
 
 import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.GatewayJdbcParameters.timestamp;
 
+import top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO;
+
 /**
  * 中文说明：{@code JdbcGatewayCredentialRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关凭证存储相关的职责与边界。
  * English summary: {@code JdbcGatewayCredentialRepository} is a jdbc gateway credential store store in the current Gateway module; it owns the jdbc gateway credential store-related responsibility and boundary.
@@ -145,7 +147,7 @@ public class JdbcGatewayCredentialRepository implements GatewayCredentialReposit
      * @param credential 参数 凭证；parameter credential。
      */
     @Override
-    public void insert(GatewayCredentialPO credential) {
+    public void insert(GatewayCredentialBO credential) {
         jdbc.update("""
                 INSERT INTO gateway_application_credential(
                     id, application_id, access_key, secret_ciphertext,
@@ -153,16 +155,16 @@ public class JdbcGatewayCredentialRepository implements GatewayCredentialReposit
                     valid_until, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
                 """,
-                credential.id(),
-                credential.applicationId(),
-                credential.accessKey(),
-                credential.secretCiphertext(),
-                credential.keyVersion(),
-                credential.status(),
-                timestamp(credential.validFrom()),
-                timestamp(credential.validUntil()),
-                timestamp(credential.createdAt()),
-                timestamp(credential.updatedAt())
+                credential.getId(),
+                credential.getApplicationId(),
+                credential.getAccessKey(),
+                credential.getSecretCiphertext(),
+                credential.getKeyVersion(),
+                credential.getStatus(),
+                timestamp(credential.getValidFrom()),
+                timestamp(credential.getValidUntil()),
+                timestamp(credential.getCreatedAt()),
+                timestamp(credential.getUpdatedAt())
         );
     }
 
@@ -176,7 +178,7 @@ public class JdbcGatewayCredentialRepository implements GatewayCredentialReposit
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
     @Override
-    public Optional<GatewayCredentialPO> find(
+    public Optional<GatewayCredentialBO> find(
             String applicationId,
             String keyId) {
         return query("""
@@ -198,7 +200,7 @@ public class JdbcGatewayCredentialRepository implements GatewayCredentialReposit
      * @return 返回 findByAccess键 的处理结果；returns the result of the operation.
      */
     @Override
-    public Optional<GatewayCredentialPO> findByAccessKey(String accessKey) {
+    public Optional<GatewayCredentialBO> findByAccessKey(String accessKey) {
         return query("""
                 SELECT id, application_id, access_key, secret_ciphertext,
                        key_version, status, valid_from, valid_until,
@@ -217,7 +219,7 @@ public class JdbcGatewayCredentialRepository implements GatewayCredentialReposit
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayCredentialPO> list(String applicationId) {
+    public List<GatewayCredentialBO> list(String applicationId) {
         return queryAll("""
                 SELECT id, application_id, access_key, secret_ciphertext,
                        key_version, status, valid_from, valid_until,
@@ -237,7 +239,7 @@ public class JdbcGatewayCredentialRepository implements GatewayCredentialReposit
      * @param arguments 参数 arguments；parameter arguments。
      * @return 返回 query 的处理结果；returns the result of the operation.
      */
-    private Optional<GatewayCredentialPO> query(
+    private Optional<GatewayCredentialBO> query(
             String sql,
             Object... arguments) {
         return queryAll(sql, arguments).stream().findFirst();
@@ -252,10 +254,10 @@ public class JdbcGatewayCredentialRepository implements GatewayCredentialReposit
      * @param arguments 参数 arguments；parameter arguments。
      * @return 返回 queryAll 的处理结果；returns the result of the operation.
      */
-    private List<GatewayCredentialPO> queryAll(
+    private List<GatewayCredentialBO> queryAll(
             String sql,
             Object... arguments) {
-        return jdbc.query(sql, (result, row) -> new GatewayCredentialPO(
+        return jdbc.query(sql, (result, row) -> new GatewayCredentialBO(
                 result.getString("id"),
                 result.getString("application_id"),
                 result.getString("access_key"),

@@ -3,7 +3,7 @@ package top.egon.cola.component.yuheng.admin.observability.repository;
 
 import top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayAuditQueryDTO;
 import top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayTraceQueryDTO;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayConsumeFailurePO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO;
 import top.egon.cola.component.yuheng.admin.observability.domain.vo.GatewayAuditVO;
 import top.egon.cola.component.yuheng.admin.observability.domain.vo.GatewayDashboardVO;
 import top.egon.cola.component.yuheng.admin.observability.domain.vo.GatewayPageVO;
@@ -38,7 +38,7 @@ public interface GatewayObservabilityRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayObservabilityRepository.recordFailure(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param failure 参数 failure；parameter failure。
      */
-    void recordFailure(GatewayConsumeFailurePO failure);
+    void recordFailure(GatewayConsumeFailureBO failure);
 
     /**
      * 中文说明：执行 traces 操作；该方法是 {@code GatewayObservabilityRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

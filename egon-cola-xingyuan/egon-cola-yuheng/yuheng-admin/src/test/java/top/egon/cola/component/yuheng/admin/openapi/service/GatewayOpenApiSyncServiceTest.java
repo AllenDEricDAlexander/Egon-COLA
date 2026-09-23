@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminOpenApiProperties;
 import top.egon.cola.component.yuheng.admin.openapi.client.GatewayOpenApiFetchException;
@@ -14,8 +14,8 @@ import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiDoc
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncCandidateDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncKeyDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSyncPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSyncBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSnapshotRepository;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSyncRepository;
 import top.egon.cola.component.yuheng.admin.openapi.validation.GatewayOpenApiValidationChain;
@@ -67,9 +67,9 @@ class GatewayOpenApiSyncServiceTest {
         GatewayOpenApiSyncCandidateDTO candidate = candidate("orders", "instance-1");
         GatewayOpenApiSyncKeyDTO key = new GatewayOpenApiSyncKeyDTO(
                 "application-1", "build-1", "orders");
-        GatewayOpenApiSyncPO row = row(GatewayOpenApiSyncStateEnum.DISCOVERED, 0);
+        GatewayOpenApiSyncBO row = row(GatewayOpenApiSyncStateEnum.DISCOVERED, 0);
         GatewayOpenApiDocumentDTO document = document(candidate);
-        GatewayOpenApiSnapshotPO snapshot = snapshot(document, "snapshot-1");
+        GatewayOpenApiSnapshotBO snapshot = snapshot(document, "snapshot-1");
 
         when(syncStates.findByKey(key)).thenReturn(Optional.of(row));
         when(syncStates.claim("sync-1", 0, NOW)).thenReturn(true);
@@ -105,12 +105,12 @@ class GatewayOpenApiSyncServiceTest {
 
         verify(syncStates).claim("sync-1", 0, NOW);
         verify(client).fetch(candidate);
-        ArgumentCaptor<GatewayOpenApiSnapshotPO> persisted = ArgumentCaptor.forClass(GatewayOpenApiSnapshotPO.class);
+        ArgumentCaptor<GatewayOpenApiSnapshotBO> persisted = ArgumentCaptor.forClass(GatewayOpenApiSnapshotBO.class);
         verify(snapshots).insertOrReuse(persisted.capture());
-        assertThat(persisted.getValue().canonicalSha256())
+        assertThat(persisted.getValue().getCanonicalSha256())
                 .isEqualTo(new GatewayOpenApi31ContractAdapter().canonicalSha256(document));
-        assertThat(persisted.getValue().documentJson()).containsKey("servers");
-        assertThat(persisted.getValue().operationCount()).isEqualTo(2);
+        assertThat(persisted.getValue().getDocumentJson()).containsKey("servers");
+        assertThat(persisted.getValue().getOperationCount()).isEqualTo(2);
         verify(coordinator).aggregateAndIngest(
                 any(top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiAggregateDTO.class),
                 any(top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport.Application.class));
@@ -208,8 +208,8 @@ class GatewayOpenApiSyncServiceTest {
         when(syncStates.findByKey(any())).thenReturn(Optional.empty());
         when(syncStates.upsertDiscovered(any())).thenAnswer(invocation ->
                 invocation.getArgument(0));
-        GatewayOpenApiSyncPO ordersRow = rowFor("orders", "sync-orders");
-        GatewayOpenApiSyncPO inventoryRow = rowFor("inventory", "sync-inventory");
+        GatewayOpenApiSyncBO ordersRow = rowFor("orders", "sync-orders");
+        GatewayOpenApiSyncBO inventoryRow = rowFor("inventory", "sync-inventory");
         when(syncStates.findDue(eq(NOW), eq(50)))
                 .thenReturn(List.of(ordersRow, inventoryRow));
         when(syncStates.claim(any(), any(Long.TYPE), eq(NOW))).thenReturn(true);
@@ -313,12 +313,12 @@ class GatewayOpenApiSyncServiceTest {
         when(ddc.getServiceKeys(any())).thenReturn(
                 new DdcManagementServiceCatalog(4, NOW, List.of()));
         GatewayOpenApiSyncRepository syncStates = mock(GatewayOpenApiSyncRepository.class);
-        GatewayOpenApiSyncPO ingesting = rowFor(
+        GatewayOpenApiSyncBO ingesting = rowFor(
                 "orders", "sync-orders", GatewayOpenApiSyncStateEnum.INGESTING);
         when(syncStates.findByStatus(GatewayOpenApiSyncStateEnum.INGESTING))
                 .thenReturn(List.of(ingesting));
         GatewayOpenApiDocumentDTO document = document(candidate("orders", "instance-1"));
-        GatewayOpenApiSnapshotPO linked = new GatewayOpenApiSnapshotPO(
+        GatewayOpenApiSnapshotBO linked = new GatewayOpenApiSnapshotBO(
                 "snapshot-1",
                 "application-1",
                 "set-1",
@@ -413,10 +413,10 @@ class GatewayOpenApiSyncServiceTest {
                 NOW);
     }
 
-    private GatewayOpenApiSnapshotPO snapshot(
+    private GatewayOpenApiSnapshotBO snapshot(
             GatewayOpenApiDocumentDTO document,
             String id) {
-        return new GatewayOpenApiSnapshotPO(
+        return new GatewayOpenApiSnapshotBO(
                 id,
                 "application-1",
                 null,
@@ -437,53 +437,53 @@ class GatewayOpenApiSyncServiceTest {
                 NOW);
     }
 
-    private GatewayOpenApiSyncPO row(
+    private GatewayOpenApiSyncBO row(
             GatewayOpenApiSyncStateEnum status,
             long revision) {
-        return new GatewayOpenApiSyncPO(
+        return new GatewayOpenApiSyncBO(
                 "sync-1", "application-1", "build-1", "1.0.0", "orders",
                 "orders-http", "default", "1.0.0", status, null, null,
                 null, 0, null, null, NOW.minusSeconds(10), null, null,
                 null, revision, NOW.minusSeconds(10));
     }
 
-    private GatewayOpenApiSyncPO rowFor(String group, String id) {
+    private GatewayOpenApiSyncBO rowFor(String group, String id) {
         return rowFor(group, id, GatewayOpenApiSyncStateEnum.DISCOVERED);
     }
 
-    private GatewayOpenApiSyncPO rowFor(
+    private GatewayOpenApiSyncBO rowFor(
             String group,
             String id,
             GatewayOpenApiSyncStateEnum status) {
-        GatewayOpenApiSyncPO base = row(
+        GatewayOpenApiSyncBO base = row(
                 status,
                 0
         );
         String snapshotId = status == GatewayOpenApiSyncStateEnum.INGESTING
                 ? "snapshot-1"
-                : base.latestSnapshotId();
-        return new GatewayOpenApiSyncPO(
+                : base.getLatestSnapshotId();
+        return new GatewayOpenApiSyncBO(
                 id,
-                base.applicationId(),
-                base.buildId(),
-                base.artifactVersion(),
+                base.getApplicationId(),
+                base.getBuildId(),
+                base.getArtifactVersion(),
                 group,
-                base.providerServiceName(),
-                base.providerGroup(),
-                base.providerVersion(),
-                base.status(),
+                base.getProviderServiceName(),
+                base.getProviderGroup(),
+                base.getProviderVersion(),
+                base.getStatus(),
                 snapshotId,
-                base.definitionSetId(),
-                base.lastInstanceId(),
-                base.attemptCount(),
-                base.lastErrorCode(),
-                base.lastErrorMessage(),
-                base.firstDiscoveredAt(),
-                base.lastAttemptAt(),
-                base.lastSuccessAt(),
-                base.nextRetryAt(),
-                base.revision(),
-                base.updatedAt());
+                base.getDefinitionSetId(),
+                base.getLastInstanceId(),
+                base.getAttemptCount(),
+                base.getLastErrorCode(),
+                base.getLastErrorMessage(),
+                base.getFirstDiscoveredAt(),
+                base.getLastAttemptAt(),
+                base.getLastSuccessAt(),
+                base.getNextRetryAt(),
+                base.getRevision(),
+                base.getUpdatedAt());
     }
 
     private DdcManagementServiceInstance instance() {
@@ -508,8 +508,8 @@ class GatewayOpenApiSyncServiceTest {
                 NOW.plusSeconds(60));
     }
 
-    private GatewayApplicationPO application() {
-        return new GatewayApplicationPO(
+    private GatewayApplicationBO application() {
+        return new GatewayApplicationBO(
                 "application-1", "platform", "orders", "Orders", "test",
                 "yuheng", null, "admin", NOW.minusSeconds(100));
     }

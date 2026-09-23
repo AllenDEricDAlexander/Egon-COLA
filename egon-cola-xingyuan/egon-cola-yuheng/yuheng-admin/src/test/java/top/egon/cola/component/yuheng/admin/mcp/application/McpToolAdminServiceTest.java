@@ -9,12 +9,12 @@ import top.egon.cola.component.yuheng.admin.shared.repository.IdempotencyReposit
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeTool;
 import java.time.Clock;
@@ -36,6 +36,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO;
 
 class McpToolAdminServiceTest {
 
@@ -97,7 +100,7 @@ class McpToolAdminServiceTest {
 
     @Test
     void createRemoteToolReplaysWithTheOriginalGeneratedId() {
-        AtomicReference<top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO> saved =
+        AtomicReference<top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO> saved =
                 new AtomicReference<>();
         when(idempotency.find(anyString(), anyString(), anyString()))
                 .thenAnswer(invocation -> Optional.ofNullable(saved.get()));
@@ -107,15 +110,15 @@ class McpToolAdminServiceTest {
         }).when(idempotency).save(any());
         prepareRemoteToolDependencies("server-1");
         when(remoteTools.save(
-                any(top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO.class),
+                any(top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO.class),
                 eq(0L),
                 eq(ACTOR),
                 eq(NOW)
         )).thenAnswer(invocation -> {
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO draft =
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO draft =
                     invocation.getArgument(0);
             return new top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteToolDraftMutationDTO(
-                    draft.id(),
+                    draft.getId(),
                     0
             );
         });
@@ -142,7 +145,7 @@ class McpToolAdminServiceTest {
         assertThat(replayed.resourceRevision())
                 .isEqualTo(created.resourceRevision());
         verify(remoteTools).save(
-                any(top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO.class),
+                any(top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO.class),
                 eq(0L),
                 eq(ACTOR),
                 eq(NOW)
@@ -218,7 +221,7 @@ class McpToolAdminServiceTest {
     }
 
     private void prepareRemoteToolDependencies(String mountServerId) {
-        McpServerPO server = new McpServerPO(
+        McpServerBO server = new McpServerBO(
                 "server-1",
                 "group-1",
                 "orders",
@@ -234,7 +237,7 @@ class McpToolAdminServiceTest {
         when(servers.findByIdAndDeletedFalse("server-1"))
                 .thenReturn(Optional.of(server));
         when(remote.mounts("group-1")).thenReturn(List.of(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteMountDraftPO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO(
                         "mount-1",
                         "group-1",
                         mountServerId,
@@ -247,7 +250,7 @@ class McpToolAdminServiceTest {
                 )
         ));
         when(drafts.findById("group-1")).thenReturn(Optional.of(
-                new GatewayDraftPO("group-1", ACTOR.actorId(), NOW)
+                new GatewayDraftBO("group-1", ACTOR.actorId(), NOW)
         ));
     }
 

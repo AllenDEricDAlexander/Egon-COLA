@@ -110,7 +110,8 @@ import java.util.Optional;
 import java.util.Set;
 
 
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpArtifactMetadataRepository;
 /**
  * 中文说明：{@code JdbcMcpArtifactMetadataRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcMCP制品元数据存储相关的职责与边界。
  * English summary: {@code JdbcMcpArtifactMetadataRepository} is a jdbc mcp artifact metadata store store in the current Gateway module; it owns the jdbc mcp artifact metadata store-related responsibility and boundary.
@@ -118,7 +119,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Repository
-public class JdbcMcpArtifactMetadataRepository {
+public class JdbcMcpArtifactMetadataRepository
+        implements McpArtifactMetadataRepository {
 
     /**
      * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcMcpArtifactMetadataRepository} 在其生命周期内读取或更新。
@@ -158,7 +160,7 @@ public class JdbcMcpArtifactMetadataRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code JdbcMcpArtifactMetadataRepository.save(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param artifact 参数 制品；parameter artifact。
      */
-    public void save(McpArtifactMetadataPO artifact) {
+    public void save(McpArtifactMetadataBO artifact) {
         Objects.requireNonNull(artifact, "artifact");
         jdbc.update("""
                 INSERT INTO gateway_mcp_app_artifact(
@@ -172,21 +174,21 @@ public class JdbcMcpArtifactMetadataRepository {
                     ?::jsonb, ?::jsonb, 'ACTIVE', ?, ?
                 )
                 """,
-                artifact.id(),
-                artifact.gatewayGroupId(),
-                artifact.appCode(),
-                artifact.version(),
-                artifact.displayName(),
-                artifact.resourceUri(),
-                artifact.artifactReference(),
-                artifact.sha256(),
-                artifact.sizeBytes(),
-                artifact.mimeType(),
-                artifact.contentSecurityPolicy(),
-                json.write(artifact.permissions()),
-                json.write(artifact.allowedOrigins()),
-                McpJdbcJson.timestamp(artifact.createdAt()),
-                artifact.createdBy()
+                artifact.getId(),
+                artifact.getGatewayGroupId(),
+                artifact.getAppCode(),
+                artifact.getVersion(),
+                artifact.getDisplayName(),
+                artifact.getResourceUri(),
+                artifact.getArtifactReference(),
+                artifact.getSha256(),
+                artifact.getSizeBytes(),
+                artifact.getMimeType(),
+                artifact.getContentSecurityPolicy(),
+                json.write(artifact.getPermissions()),
+                json.write(artifact.getAllowedOrigins()),
+                McpJdbcJson.timestamp(artifact.getCreatedAt()),
+                artifact.getCreatedBy()
         );
     }
 
@@ -198,8 +200,8 @@ public class JdbcMcpArtifactMetadataRepository {
      * @param id 参数 id；parameter id。
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
-    public Optional<McpArtifactMetadataPO> find(String id) {
-        List<McpArtifactMetadataPO> values = jdbc.query("""
+    public Optional<McpArtifactMetadataBO> find(String id) {
+        List<McpArtifactMetadataBO> values = jdbc.query("""
                 SELECT id, gateway_group_id, app_code, app_version,
                        display_name, resource_uri, artifact_reference,
                        artifact_sha256, size_bytes, mime_type,
@@ -221,7 +223,7 @@ public class JdbcMcpArtifactMetadataRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    public List<McpArtifactMetadataPO> list(String gatewayGroupId) {
+    public List<McpArtifactMetadataBO> list(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, app_code, app_version,
                        display_name, resource_uri, artifact_reference,
@@ -260,9 +262,9 @@ public class JdbcMcpArtifactMetadataRepository {
      * @param result 参数 result；parameter result。
      * @return 返回 map 的处理结果；returns the result of the operation.
      */
-    private McpArtifactMetadataPO map(java.sql.ResultSet result)
+    private McpArtifactMetadataBO map(java.sql.ResultSet result)
             throws java.sql.SQLException {
-        return new McpArtifactMetadataPO(
+        return new McpArtifactMetadataBO(
                 result.getString("id"),
                 result.getString("gateway_group_id"),
                 result.getString("app_code"),

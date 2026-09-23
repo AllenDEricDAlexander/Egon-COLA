@@ -2,8 +2,8 @@ package top.egon.cola.component.yuheng.admin.catalog.repository;
 
 
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualHierarchyDTO;
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO;
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCatalogTreeVO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayInterfaceGroupScopeVO;
@@ -63,7 +63,7 @@ public interface GatewayCatalogRepository {
      * @param operationId 参数 操作Id；parameter operation id。
      * @return 返回 find操作 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayOperationPO> findOperation(String operationId);
+    Optional<GatewayOperationBO> findOperation(String operationId);
 
     /**
      * 中文说明：执行 find操作 操作；该方法是 {@code GatewayCatalogRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -74,7 +74,7 @@ public interface GatewayCatalogRepository {
      * @param operationKey 参数 操作键；parameter operation key。
      * @return 返回 find操作 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayOperationPO> findOperation(
+    Optional<GatewayOperationBO> findOperation(
             String applicationId,
             String operationKey);
 
@@ -86,7 +86,7 @@ public interface GatewayCatalogRepository {
      * @param operationId 参数 操作Id；parameter operation id。
      * @return 返回 loadDefinitions 的处理结果；returns the result of the operation.
      */
-    List<GatewayOperationDefinitionPO> loadDefinitions(String operationId);
+    List<GatewayOperationDefinitionBO> loadDefinitions(String operationId);
 
     /**
      * 中文说明：执行 loadCurrent操作Definitions 操作；该方法是 {@code GatewayCatalogRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -106,7 +106,7 @@ public interface GatewayCatalogRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayCatalogRepository.insertOperation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param operation 参数 操作；parameter operation。
      */
-    void insertOperation(GatewayOperationPO operation);
+    void insertOperation(GatewayOperationBO operation);
 
     /**
      * 中文说明：执行 append定义 操作；该方法是 {@code GatewayCatalogRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -115,7 +115,7 @@ public interface GatewayCatalogRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayCatalogRepository.appendDefinition(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param definition 参数 定义；parameter definition。
      */
-    void appendDefinition(GatewayOperationDefinitionPO definition);
+    void appendDefinition(GatewayOperationDefinitionBO definition);
 
     /**
      * 中文说明：执行 pointTo定义 操作；该方法是 {@code GatewayCatalogRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

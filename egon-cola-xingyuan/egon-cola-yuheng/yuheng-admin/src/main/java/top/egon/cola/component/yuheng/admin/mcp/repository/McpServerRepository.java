@@ -2,7 +2,7 @@ package top.egon.cola.component.yuheng.admin.mcp.repository;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +14,7 @@ import java.util.Optional;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 public interface McpServerRepository
-        extends JpaRepository<McpServerPO, String> {
+        extends JpaRepository<McpServerBO, String> {
 
     /**
      * 中文说明：执行 findAllBy网关GroupIdAndDeletedFalseOrderBy服务器Code 操作；该方法是 {@code McpServerRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -24,7 +24,7 @@ public interface McpServerRepository
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 findAllBy网关GroupIdAndDeletedFalseOrderBy服务器Code 的处理结果；returns the result of the operation.
      */
-    List<McpServerPO> findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
+    List<McpServerBO> findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
             String gatewayGroupId);
 
     /**
@@ -36,7 +36,7 @@ public interface McpServerRepository
      * @param serverCode 参数 服务器Code；parameter server code。
      * @return 返回 findBy网关GroupIdAnd服务器CodeAndDeletedFalse 的处理结果；returns the result of the operation.
      */
-    Optional<McpServerPO> findByGatewayGroupIdAndServerCodeAndDeletedFalse(
+    Optional<McpServerBO> findByGatewayGroupIdAndServerCodeAndDeletedFalse(
             String gatewayGroupId,
             String serverCode);
 
@@ -48,5 +48,5 @@ public interface McpServerRepository
      * @param id 参数 id；parameter id。
      * @return 返回 findByIdAndDeletedFalse 的处理结果；returns the result of the operation.
      */
-    Optional<McpServerPO> findByIdAndDeletedFalse(String id);
+    Optional<McpServerBO> findByIdAndDeletedFalse(String id);
 }

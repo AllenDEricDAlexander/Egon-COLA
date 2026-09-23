@@ -12,7 +12,7 @@ import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpCapabilit
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpManagedToolProjectionVO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeTool;
@@ -25,6 +25,9 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO;
 
 class McpReleaseContentFactoryTest {
 
@@ -253,22 +256,22 @@ class McpReleaseContentFactoryTest {
                 Map.of("type", "object"),
                 Map.of("type", "object")
         );
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO manualOperation =
-                new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
-                        starter.operation().id(),
-                        starter.operation().applicationId(),
-                        starter.operation().interfaceGroupId(),
-                        starter.operation().operationKey(),
-                        starter.operation().protocol(),
-                        starter.operation().methodIdentity(),
-                        starter.operation().externalAccessible(),
-                        starter.operation().providerServiceIdentity(),
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO manualOperation =
+                new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO(
+                        starter.operation().getId(),
+                        starter.operation().getApplicationId(),
+                        starter.operation().getInterfaceGroupId(),
+                        starter.operation().getOperationKey(),
+                        starter.operation().getProtocol(),
+                        starter.operation().getMethodIdentity(),
+                        starter.operation().isExternalAccessible(),
+                        starter.operation().getProviderServiceIdentity(),
                         "MANUAL",
-                        starter.operation().lifecycleStatus(),
-                        starter.operation().currentDefinitionId(),
-                        starter.operation().revision(),
-                        starter.operation().createdAt(),
-                        starter.operation().updatedAt()
+                        starter.operation().getLifecycleStatus(),
+                        starter.operation().getCurrentDefinitionId(),
+                        starter.operation().getRevision(),
+                        starter.operation().getCreatedAt(),
+                        starter.operation().getUpdatedAt()
                 );
         when(catalog.loadCurrentOperationDefinitions("group-1"))
                 .thenReturn(List.of(
@@ -307,8 +310,8 @@ class McpReleaseContentFactoryTest {
 
     @Test
     void overrideCanOnlyTightenPermissionsRiskAndEnabledState() {
-        McpServerPO codeServer = server("server-1", "orders");
-        McpServerPO strictServer = server("server-2", "restricted");
+        McpServerBO codeServer = server("server-1", "orders");
+        McpServerBO strictServer = server("server-2", "restricted");
         when(servers
                 .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
                         "group-1"
@@ -335,12 +338,12 @@ class McpReleaseContentFactoryTest {
         );
         String toolId = McpReleaseContentFactory.managedToolId(
                 "orders",
-                current.operation().operationKey()
+                current.operation().getOperationKey()
         );
         when(catalog.loadCurrentOperationDefinitions("group-1"))
                 .thenReturn(List.of(current));
         when(overrides.load("group-1")).thenReturn(List.of(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO(
                         toolId,
                         "group-1",
                         "operation-1",
@@ -392,7 +395,7 @@ class McpReleaseContentFactoryTest {
             Map<String, Object> requestSchema,
             Map<String, Object> responseSchema,
             String sourceType) {
-        var operation = new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
+        var operation = new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO(
                 operationId,
                 "app-1",
                 "interface-1",
@@ -408,7 +411,7 @@ class McpReleaseContentFactoryTest {
                 NOW,
                 NOW
         );
-        var definition = new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO(
+        var definition = new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO(
                 "definition-1",
                 operationId,
                 1,
@@ -444,8 +447,8 @@ class McpReleaseContentFactoryTest {
         );
     }
 
-    private McpServerPO server(String id, String code) {
-        return new McpServerPO(
+    private McpServerBO server(String id, String code) {
+        return new McpServerBO(
                 id,
                 "group-1",
                 code,

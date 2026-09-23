@@ -120,6 +120,9 @@ import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.Gatewa
 import top.egon.cola.component.yuheng.admin.catalog.repository.jdbc.GatewayCatalogMutableBusiness;
 import top.egon.cola.component.yuheng.admin.catalog.repository.jdbc.GatewayCatalogMutableEntity;
 import top.egon.cola.component.yuheng.admin.catalog.repository.jdbc.GatewayCatalogMutableGroup;
+
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
 /**
  * 中文说明：{@code JdbcGatewayCatalogRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关目录存储相关的职责与边界。
  * English summary: {@code JdbcGatewayCatalogRepository} is a jdbc gateway catalog store store in the current Gateway module; it owns the jdbc gateway catalog store-related responsibility and boundary.
@@ -298,7 +301,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @return 返回 find操作 的处理结果；returns the result of the operation.
      */
     @Override
-    public Optional<GatewayOperationPO> findOperation(String operationId) {
+    public Optional<GatewayOperationBO> findOperation(String operationId) {
         return queryOperation("WHERE o.id = ?", operationId);
     }
 
@@ -312,7 +315,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @return 返回 find操作 的处理结果；returns the result of the operation.
      */
     @Override
-    public Optional<GatewayOperationPO> findOperation(
+    public Optional<GatewayOperationBO> findOperation(
             String applicationId,
             String operationKey) {
         return queryOperation(
@@ -331,7 +334,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @return 返回 loadDefinitions 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayOperationDefinitionPO> loadDefinitions(String operationId) {
+    public List<GatewayOperationDefinitionBO> loadDefinitions(String operationId) {
         return jdbc.query("""
                 SELECT id, operation_id, definition_version,
                        definition_sha256, summary, tags::text AS tags,
@@ -344,7 +347,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
                   FROM gateway_operation_definition
                  WHERE operation_id = ?
                  ORDER BY definition_version DESC
-                """, (result, row) -> new GatewayOperationDefinitionPO(
+                """, (result, row) -> new GatewayOperationDefinitionBO(
                 result.getString("id"),
                 result.getString("operation_id"),
                 result.getLong("definition_version"),
@@ -409,7 +412,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
                  ORDER BY a.application_code, o.operation_key
                 """, (result, row) -> new GatewayCurrentOperationDefinitionVO(
                 operation(result),
-                new GatewayOperationDefinitionPO(
+                new GatewayOperationDefinitionBO(
                         result.getString("definition_id"),
                         result.getString("id"),
                         result.getLong("definition_version"),
@@ -445,7 +448,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @param operation 参数 操作；parameter operation。
      */
     @Override
-    public void insertOperation(GatewayOperationPO operation) {
+    public void insertOperation(GatewayOperationBO operation) {
         jdbc.update("""
                 INSERT INTO gateway_operation(
                     id, application_id, interface_group_id, operation_key,
@@ -454,18 +457,18 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
                     current_definition_id, revision, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, NULL, 0, ?, ?)
                 """,
-                operation.id(),
-                operation.applicationId(),
-                operation.interfaceGroupId(),
-                operation.operationKey(),
-                operation.protocol(),
-                operation.methodIdentity(),
-                operation.externalAccessible(),
-                json(operation.providerServiceIdentity()),
-                operation.sourceType(),
-                operation.lifecycleStatus(),
-                timestamp(operation.createdAt()),
-                timestamp(operation.updatedAt())
+                operation.getId(),
+                operation.getApplicationId(),
+                operation.getInterfaceGroupId(),
+                operation.getOperationKey(),
+                operation.getProtocol(),
+                operation.getMethodIdentity(),
+                operation.isExternalAccessible(),
+                json(operation.getProviderServiceIdentity()),
+                operation.getSourceType(),
+                operation.getLifecycleStatus(),
+                timestamp(operation.getCreatedAt()),
+                timestamp(operation.getUpdatedAt())
         );
     }
 
@@ -477,7 +480,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @param definition 参数 定义；parameter definition。
      */
     @Override
-    public void appendDefinition(GatewayOperationDefinitionPO definition) {
+    public void appendDefinition(GatewayOperationDefinitionBO definition) {
         jdbc.update("""
                 INSERT INTO gateway_operation_definition(
                     id, operation_id, definition_set_id, definition_version,
@@ -487,22 +490,22 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
                 ) VALUES (?, ?, NULL, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb,
                           ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?)
                 """,
-                definition.id(),
-                definition.operationId(),
-                definition.definitionVersion(),
-                definition.definitionSha256(),
-                definition.summary(),
-                json(definition.tags()),
-                json(definition.requestSchema()),
-                json(definition.responseSchema()),
-                json(definition.errorSchema()),
-                definition.descriptorSnapshot() == null
+                definition.getId(),
+                definition.getOperationId(),
+                definition.getDefinitionVersion(),
+                definition.getDefinitionSha256(),
+                definition.getSummary(),
+                json(definition.getTags()),
+                json(definition.getRequestSchema()),
+                json(definition.getResponseSchema()),
+                json(definition.getErrorSchema()),
+                definition.getDescriptorSnapshot() == null
                         ? null
-                        : json(definition.descriptorSnapshot()),
-                json(definition.attributes()),
-                definition.externalAccessible(),
-                timestamp(definition.createdAt()),
-                definition.createdBy()
+                        : json(definition.getDescriptorSnapshot()),
+                json(definition.getAttributes()),
+                definition.isExternalAccessible(),
+                timestamp(definition.getCreatedAt()),
+                definition.getCreatedBy()
         );
     }
 
@@ -573,7 +576,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @param arguments 参数 arguments；parameter arguments。
      * @return 返回 query操作 的处理结果；returns the result of the operation.
      */
-    private Optional<GatewayOperationPO> queryOperation(
+    private Optional<GatewayOperationBO> queryOperation(
             String where,
             Object... arguments) {
         return jdbc.query("""
@@ -598,8 +601,8 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @param result 参数 result；parameter result。
      * @return 返回 操作 的处理结果；returns the result of the operation.
      */
-    private GatewayOperationPO operation(ResultSet result) throws SQLException {
-        return new GatewayOperationPO(
+    private GatewayOperationBO operation(ResultSet result) throws SQLException {
+        return new GatewayOperationBO(
                 result.getString("id"),
                 result.getString("application_id"),
                 result.getString("interface_group_id"),

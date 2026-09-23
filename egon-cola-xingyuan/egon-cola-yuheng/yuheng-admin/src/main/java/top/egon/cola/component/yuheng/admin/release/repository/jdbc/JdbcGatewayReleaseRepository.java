@@ -118,6 +118,11 @@ import java.util.Optional;
 
 import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.GatewayJdbcParameters.timestamp;
 
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
+
 /**
  * 中文说明：{@code JdbcGatewayReleaseRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关发布存储相关的职责与边界。
  * English summary: {@code JdbcGatewayReleaseRepository} is a jdbc gateway release store store in the current Gateway module; it owns the jdbc gateway release store-related responsibility and boundary.
@@ -169,7 +174,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
      */
     @Override
     public void insert(
-            GatewayReleasePO release,
+            GatewayReleaseBO release,
             CompiledGatewayRelease compiled,
             int attemptNo) {
         jdbc.update("""
@@ -182,18 +187,18 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                 ) VALUES (?, ?, ?, ?, ?, ?, FALSE, NULL, ?::jsonb,
                           ?::jsonb, ?, ?, ?, ?)
                 """,
-                release.id(),
-                release.gatewayGroupId(),
-                release.draftRevision(),
-                release.basedOnReleaseId(),
-                release.rollbackOfReleaseId(),
-                release.status().name(),
-                json(release.validationReport()),
-                json(release.structuredDiff()),
-                release.changeReason(),
-                timestamp(release.createdAt()),
-                release.createdBy(),
-                timestamp(release.updatedAt())
+                release.getId(),
+                release.getGatewayGroupId(),
+                release.getDraftRevision(),
+                release.getBasedOnReleaseId(),
+                release.getRollbackOfReleaseId(),
+                release.getStatus().name(),
+                json(release.getValidationReport()),
+                json(release.getStructuredDiff()),
+                release.getChangeReason(),
+                timestamp(release.getCreatedAt()),
+                release.getCreatedBy(),
+                timestamp(release.getUpdatedAt())
         );
         jdbc.update("""
                 INSERT INTO gateway_release_content(
@@ -202,7 +207,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                     snapshot_size, created_at
                 ) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?)
                 """,
-                release.id(),
+                release.getId(),
                 compiled.snapshot().ruleContentSha256(),
                 compiled.snapshot().artifactSha256(),
                 compiled.snapshotJson(),
@@ -211,13 +216,13 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                 compiled.snapshotJson().getBytes(
                         java.nio.charset.StandardCharsets.UTF_8
                 ).length,
-                timestamp(release.createdAt())
+                timestamp(release.getCreatedAt())
         );
         insertAttempt(
-                release.id(),
+                release.getId(),
                 attemptNo,
                 "PENDING",
-                release.createdAt()
+                release.getCreatedAt()
         );
     }
 
@@ -230,7 +235,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
     @Override
-    public Optional<GatewayReleasePO> find(String releaseId) {
+    public Optional<GatewayReleaseBO> find(String releaseId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, draft_revision,
                        based_on_release_id, rollback_of_release_id, status,
@@ -240,7 +245,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                        change_reason, created_at, created_by, updated_at
                   FROM gateway_release
                  WHERE id = ?
-                """, (result, row) -> new GatewayReleasePO(
+                """, (result, row) -> new GatewayReleaseBO(
                 result.getString("id"),
                 result.getString("gateway_group_id"),
                 result.getLong("draft_revision"),
@@ -267,7 +272,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
      * @return 返回 history 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayReleasePO> history(String gatewayGroupId) {
+    public List<GatewayReleaseBO> history(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, draft_revision,
                        based_on_release_id, rollback_of_release_id, status,
@@ -289,7 +294,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
      * @return 返回 recoverable 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayRecoverableReleaseAttemptPO> recoverable() {
+    public List<GatewayRecoverableReleaseAttemptBO> recoverable() {
         return jdbc.query("""
                 SELECT r.id AS release_id,
                        r.gateway_group_id,
@@ -306,7 +311,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                  GROUP BY r.id, r.gateway_group_id,
                           p.attempt_no, r.updated_at
                  ORDER BY r.updated_at
-                """, (result, row) -> new GatewayRecoverableReleaseAttemptPO(
+                """, (result, row) -> new GatewayRecoverableReleaseAttemptBO(
                 result.getString("release_id"),
                 result.getString("gateway_group_id"),
                 result.getInt("attempt_no")
@@ -322,8 +327,8 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
      * @return 返回 attempts 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayReleaseAttemptPO> attempts(String releaseId) {
-        Map<Integer, List<GatewayReleaseTargetPO>> targets =
+    public List<GatewayReleaseAttemptBO> attempts(String releaseId) {
+        Map<Integer, List<GatewayReleaseTargetBO>> targets =
                 new java.util.LinkedHashMap<>();
         jdbc.query("""
                 SELECT attempt_no, instance_id, lease_id, status,
@@ -336,7 +341,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
             targets.computeIfAbsent(
                     result.getInt("attempt_no"),
                     ignored -> new java.util.ArrayList<>()
-            ).add(new GatewayReleaseTargetPO(
+            ).add(new GatewayReleaseTargetBO(
                     result.getString("instance_id"),
                     result.getString("lease_id"),
                     result.getString("status"),
@@ -353,7 +358,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                   FROM gateway_release_attempt
                  WHERE release_id = ?
                  ORDER BY attempt_no DESC
-                """, (result, row) -> new GatewayReleaseAttemptPO(
+                """, (result, row) -> new GatewayReleaseAttemptBO(
                 result.getInt("attempt_no"),
                 result.getString("status"),
                 result.getString("change_id"),
@@ -500,7 +505,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
             String changeId,
             String errorCode,
             String errorMessage,
-            List<GatewayReleaseTargetPO> targets,
+            List<GatewayReleaseTargetBO> targets,
             Instant now) {
         jdbc.update("""
                 UPDATE gateway_release_attempt
@@ -546,14 +551,14 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                 """,
                 releaseId,
                 attemptNo,
-                target.instanceId(),
-                target.leaseId(),
-                target.status(),
-                target.appliedVersion(),
-                target.appliedArtifactSha256(),
-                target.errorCode(),
-                timestamp(target.observedAt()),
-                target.engineRole() == null ? null : target.engineRole().name()
+                target.getInstanceId(),
+                target.getLeaseId(),
+                target.getStatus(),
+                target.getAppliedVersion(),
+                target.getAppliedArtifactSha256(),
+                target.getErrorCode(),
+                timestamp(target.getObservedAt()),
+                target.getEngineRole() == null ? null : target.getEngineRole().name()
         ));
     }
 
@@ -613,9 +618,9 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
      * @param result 参数 result；parameter result。
      * @return 返回 发布 的处理结果；returns the result of the operation.
      */
-    private GatewayReleasePO release(java.sql.ResultSet result)
+    private GatewayReleaseBO release(java.sql.ResultSet result)
             throws java.sql.SQLException {
-        return new GatewayReleasePO(
+        return new GatewayReleaseBO(
                 result.getString("id"),
                 result.getString("gateway_group_id"),
                 result.getLong("draft_revision"),

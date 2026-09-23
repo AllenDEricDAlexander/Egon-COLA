@@ -11,7 +11,7 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpMutationControlDTO
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteMountMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteProviderMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpServerMutationDTO;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpCapabilityPreviewVO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpServerVO;
@@ -20,9 +20,9 @@ import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactM
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpCapabilityDraftRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpTaskRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.rule.service.GatewayRuleCanonicalizer;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
@@ -46,6 +46,13 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteCapabilityBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO;
 
 /**
  * 中文说明：{@code McpControlPlaneService} 是服务组件，位于当前 Gateway 模块的相关包中，负责MCPControlPlane服务相关的职责与边界。
@@ -353,12 +360,12 @@ public class McpControlPlaneService {
         }
         requireCreateRevision(command.expectedRevision());
         Instant now = clock.instant();
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
         String id = SnowflakeIdGenerator.nextId();
-        servers.saveAndFlush(new McpServerPO(
+        servers.saveAndFlush(new McpServerBO(
                 id,
                 command.gatewayGroupId(),
                 command.serverCode(),
@@ -418,9 +425,9 @@ public class McpControlPlaneService {
         if (replay != null) {
             return replay;
         }
-        McpServerPO server = requiredServer(id);
+        McpServerBO server = requiredServer(id);
         requireGroup(command.gatewayGroupId(), server.getGatewayGroupId());
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
@@ -485,9 +492,9 @@ public class McpControlPlaneService {
         if (replay != null) {
             return replay;
         }
-        McpServerPO server = requiredServer(id);
+        McpServerBO server = requiredServer(id);
         requireGroup(control.gatewayGroupId(), server.getGatewayGroupId());
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 control.gatewayGroupId(),
                 control.expectedDraftRevision()
         );
@@ -521,7 +528,7 @@ public class McpControlPlaneService {
      * @return 返回 capabilities 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO> capabilities(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO> capabilities(
             String gatewayGroupId,
             String serverId,
             top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum kind) {
@@ -529,7 +536,7 @@ public class McpControlPlaneService {
         return capabilities.load(gatewayGroupId)
                 .capabilities(kind)
                 .stream()
-                .filter(item -> item.serverId().equals(serverId))
+                .filter(item -> item.getServerId().equals(serverId))
                 .toList();
     }
 
@@ -574,19 +581,19 @@ public class McpControlPlaneService {
                     kind,
                     id
             );
-            if (!existing.serverId().equals(command.serverId())) {
+            if (!existing.getServerId().equals(command.serverId())) {
                 throw new IllegalArgumentException(
                         "MCP capability cannot move between Servers"
                 );
             }
         }
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
         var mutation = capabilities.save(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO(
                         kind,
                         resourceId,
                         command.gatewayGroupId(),
@@ -650,7 +657,7 @@ public class McpControlPlaneService {
             return replay;
         }
         requiredCapability(control.gatewayGroupId(), kind, id);
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 control.gatewayGroupId(),
                 control.expectedDraftRevision()
         );
@@ -715,7 +722,7 @@ public class McpControlPlaneService {
      * @return 返回 providers 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO> providers(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO> providers(
             String gatewayGroupId) {
         return remote.providers(gatewayGroupId);
     }
@@ -755,13 +762,13 @@ public class McpControlPlaneService {
         if (id != null) {
             requiredProvider(command.gatewayGroupId(), id);
         }
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
         var mutation = remote.saveProvider(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO(
                         resourceId,
                         command.gatewayGroupId(),
                         command.providerCode(),
@@ -821,7 +828,7 @@ public class McpControlPlaneService {
             return replay;
         }
         requiredProvider(control.gatewayGroupId(), id);
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 control.gatewayGroupId(),
                 control.expectedDraftRevision()
         );
@@ -857,7 +864,7 @@ public class McpControlPlaneService {
      * @return 返回 远程Capabilities 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteCapabilityPO>
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteCapabilityBO>
             remoteCapabilities(String providerId) {
         return remote.capabilities(providerId);
     }
@@ -871,7 +878,7 @@ public class McpControlPlaneService {
      * @return 返回 mounts 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteMountDraftPO> mounts(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO> mounts(
             String gatewayGroupId) {
         return remote.mounts(gatewayGroupId);
     }
@@ -910,13 +917,13 @@ public class McpControlPlaneService {
         }
         requiredServerInGroup(command.serverId(), command.gatewayGroupId());
         requiredProvider(command.gatewayGroupId(), command.providerId());
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
         var mutation = remote.saveMount(
-                new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteMountDraftPO(
+                new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO(
                         resourceId,
                         command.gatewayGroupId(),
                         command.serverId(),
@@ -979,11 +986,11 @@ public class McpControlPlaneService {
             return replay;
         }
         boolean exists = remote.mounts(control.gatewayGroupId()).stream()
-                .anyMatch(item -> item.id().equals(id));
+                .anyMatch(item -> item.getId().equals(id));
         if (!exists) {
             throw notFound("MCP Remote Mount", id);
         }
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 control.gatewayGroupId(),
                 control.expectedDraftRevision()
         );
@@ -1019,7 +1026,7 @@ public class McpControlPlaneService {
      * @return 返回 artifacts 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO> artifacts(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO> artifacts(
             String gatewayGroupId) {
         return artifacts.list(gatewayGroupId);
     }
@@ -1033,7 +1040,7 @@ public class McpControlPlaneService {
      * @return 返回 制品 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO artifact(String id) {
+    public top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO artifact(String id) {
         return artifacts.find(id).orElseThrow(() -> notFound(
                 "MCP App artifact",
                 id
@@ -1144,13 +1151,13 @@ public class McpControlPlaneService {
                         command.sizeBytes()
                 ));
         validateArtifact(command, artifactContent);
-        GatewayDraftPO gatewayDraft = editable(
+        GatewayDraftBO gatewayDraft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
         String id = SnowflakeIdGenerator.nextId();
-        artifacts.save(new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO(
+        artifacts.save(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO(
                 id,
                 command.gatewayGroupId(),
                 command.appCode(),
@@ -1277,9 +1284,9 @@ public class McpControlPlaneService {
         if (replay != null) {
             return replay;
         }
-        top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO artifact = artifact(id);
-        requireGroup(control.gatewayGroupId(), artifact.gatewayGroupId());
-        GatewayDraftPO gatewayDraft = editable(
+        top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO artifact = artifact(id);
+        requireGroup(control.gatewayGroupId(), artifact.getGatewayGroupId());
+        GatewayDraftBO gatewayDraft = editable(
                 control.gatewayGroupId(),
                 control.expectedDraftRevision()
         );
@@ -1301,9 +1308,9 @@ public class McpControlPlaneService {
                 actor,
                 request,
                 Map.of(
-                        "appCode", artifact.appCode(),
-                        "version", artifact.version(),
-                        "sha256", artifact.sha256()
+                        "appCode", artifact.getAppCode(),
+                        "version", artifact.getVersion(),
+                        "sha256", artifact.getSha256()
                 ),
                 now
         );
@@ -1319,7 +1326,7 @@ public class McpControlPlaneService {
      * @return 返回 tasks 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO> tasks(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO> tasks(
             String tenantId,
             String clientId) {
         return tasks.list(required(tenantId, "tenantId"), clientId);
@@ -1334,7 +1341,7 @@ public class McpControlPlaneService {
      * @return 返回 任务 的处理结果；returns the result of the operation.
      */
     @Transactional(readOnly = true)
-    public top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO task(String id) {
+    public top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO task(String id) {
         return tasks.find(id).orElseThrow(() -> notFound("MCP Task", id));
     }
 
@@ -1366,7 +1373,7 @@ public class McpControlPlaneService {
         if (replay != null) {
             return replay;
         }
-        top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO task = task(id);
+        top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO task = task(id);
         Instant now = clock.instant();
         boolean cancelled = tasks.cancel(id, expectedRevision, now);
         if (!cancelled) {
@@ -1379,13 +1386,13 @@ public class McpControlPlaneService {
                 id,
                 "CANCEL",
                 Map.of(
-                        "tenantId", task.tenantId(),
-                        "serverCode", task.serverCode(),
-                        "toolName", task.toolName()
+                        "tenantId", task.getTenantId(),
+                        "serverCode", task.getServerCode(),
+                        "toolName", task.getToolName()
                 ),
                 now
         );
-        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO(
+        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO(
                 TASK_IDEMPOTENCY_SCOPE,
                 scopeId,
                 required(idempotencyKey, "idempotencyKey"),
@@ -1413,7 +1420,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             String payloadDigest) {
         String key = required(idempotencyKey, "idempotencyKey");
-        top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO existing = idempotency.find(
+        top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO existing = idempotency.find(
                 TASK_IDEMPOTENCY_SCOPE,
                 scopeId,
                 key
@@ -1421,10 +1428,10 @@ public class McpControlPlaneService {
         if (existing == null) {
             return null;
         }
-        if (!existing.payloadSha256().equals(payloadDigest)) {
+        if (!existing.getPayloadSha256().equals(payloadDigest)) {
             throw new GatewayAdminIdempotencyConflictException();
         }
-        return Boolean.TRUE.equals(existing.response().get("cancelled"));
+        return Boolean.TRUE.equals(existing.getResponse().get("cancelled"));
     }
 
     /**
@@ -1447,7 +1454,7 @@ public class McpControlPlaneService {
      * @return 返回 finish 的处理结果；returns the result of the operation.
      */
     private McpMutationResultVO finish(
-            GatewayDraftPO draft,
+            GatewayDraftBO draft,
             String resourceId,
             long resourceRevision,
             String resourceType,
@@ -1467,7 +1474,7 @@ public class McpControlPlaneService {
                 resourceRevision,
                 false
         );
-        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO(
+        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO(
                 IDEMPOTENCY_SCOPE,
                 draft.getGatewayGroupId(),
                 required(idempotencyKey, "idempotencyKey"),
@@ -1507,7 +1514,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             String payloadDigest) {
         String key = required(idempotencyKey, "idempotencyKey");
-        top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO existing = idempotency.find(
+        top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO existing = idempotency.find(
                 IDEMPOTENCY_SCOPE,
                 gatewayGroupId,
                 key
@@ -1515,13 +1522,13 @@ public class McpControlPlaneService {
         if (existing == null) {
             return null;
         }
-        if (!existing.payloadSha256().equals(payloadDigest)) {
+        if (!existing.getPayloadSha256().equals(payloadDigest)) {
             throw new GatewayAdminIdempotencyConflictException();
         }
         return new McpMutationResultVO(
-                number(existing.response(), "draftRevision"),
-                existing.resourceId(),
-                number(existing.response(), "resourceRevision"),
+                number(existing.getResponse(), "draftRevision"),
+                existing.getResourceId(),
+                number(existing.getResponse(), "resourceRevision"),
                 true
         );
     }
@@ -1547,7 +1554,7 @@ public class McpControlPlaneService {
             String action,
             Map<String, Object> summary,
             Instant now) {
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -1557,8 +1564,8 @@ public class McpControlPlaneService {
                 resourceType,
                 resourceId,
                 action,
-                null,
-                summary,
+                GatewayAuditLogBO.sanitized(null),
+                GatewayAuditLogBO.sanitized(summary),
                 null,
                 null,
                 true,
@@ -1575,7 +1582,7 @@ public class McpControlPlaneService {
      * @param id 参数 id；parameter id。
      * @return 返回 required服务器 的处理结果；returns the result of the operation.
      */
-    private McpServerPO requiredServer(String id) {
+    private McpServerBO requiredServer(String id) {
         return servers.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> notFound("MCP Server", id));
     }
@@ -1602,13 +1609,13 @@ public class McpControlPlaneService {
      * @param id 参数 id；parameter id。
      * @return 返回 requiredCapability 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO requiredCapability(
+    private top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO requiredCapability(
             String gatewayGroupId,
             top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum kind,
             String id) {
         return capabilities.load(gatewayGroupId).capabilities(kind)
                 .stream()
-                .filter(item -> item.id().equals(id))
+                .filter(item -> item.getId().equals(id))
                 .findFirst()
                 .orElseThrow(() -> notFound("MCP " + kind, id));
     }
@@ -1622,11 +1629,11 @@ public class McpControlPlaneService {
      * @param id 参数 id；parameter id。
      * @return 返回 required提供方 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO requiredProvider(
+    private top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO requiredProvider(
             String gatewayGroupId,
             String id) {
         return remote.providers(gatewayGroupId).stream()
-                .filter(item -> item.id().equals(id))
+                .filter(item -> item.getId().equals(id))
                 .findFirst()
                 .orElseThrow(() -> notFound("MCP Remote Provider", id));
     }
@@ -1640,10 +1647,10 @@ public class McpControlPlaneService {
      * @param expectedRevision 参数 expectedRevision；parameter expected revision。
      * @return 返回 editable 的处理结果；returns the result of the operation.
      */
-    private GatewayDraftPO editable(
+    private GatewayDraftBO editable(
             String gatewayGroupId,
             long expectedRevision) {
-        GatewayDraftPO draft = drafts.findById(gatewayGroupId)
+        GatewayDraftBO draft = drafts.findById(gatewayGroupId)
                 .orElseThrow(() -> notFound(
                         "Gateway Draft",
                         gatewayGroupId
@@ -1753,7 +1760,7 @@ public class McpControlPlaneService {
      * @param server 参数 服务器；parameter server。
      * @return 返回 view 的处理结果；returns the result of the operation.
      */
-    private McpServerVO view(McpServerPO server) {
+    private McpServerVO view(McpServerBO server) {
         return new McpServerVO(
                 server.getId(),
                 server.getGatewayGroupId(),

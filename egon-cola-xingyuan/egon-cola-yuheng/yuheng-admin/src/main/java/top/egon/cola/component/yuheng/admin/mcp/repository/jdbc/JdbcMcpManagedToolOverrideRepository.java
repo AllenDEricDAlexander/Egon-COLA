@@ -111,8 +111,9 @@ import java.util.Objects;
 import java.util.Set;
 
 
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpManagedToolDraftMutationDTO;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpManagedToolOverrideRepository;
 /**
  * 中文说明：{@code JdbcMcpManagedToolOverrideRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcMCPManaged工具Override存储相关的职责与边界。
  * English summary: {@code JdbcMcpManagedToolOverrideRepository} is a jdbc mcp managed tool override store store in the current Gateway module; it owns the jdbc mcp managed tool override store-related responsibility and boundary.
@@ -120,7 +121,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpManagedToolDraftMu
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Repository
-public class JdbcMcpManagedToolOverrideRepository {
+public class JdbcMcpManagedToolOverrideRepository
+        implements McpManagedToolOverrideRepository {
 
     /**
      * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcMcpManagedToolOverrideRepository} 在其生命周期内读取或更新。
@@ -161,7 +163,7 @@ public class JdbcMcpManagedToolOverrideRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 load 的处理结果；returns the result of the operation.
      */
-    public List<McpManagedToolOverridePO> load(String gatewayGroupId) {
+    public List<McpManagedToolOverrideBO> load(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT tool_id, gateway_group_id, operation_id, server_id,
                        additional_permissions::text AS additional_permissions,
@@ -169,7 +171,7 @@ public class JdbcMcpManagedToolOverrideRepository {
                   FROM gateway_mcp_managed_tool_override
                  WHERE gateway_group_id = ?
                  ORDER BY operation_id
-                """, (result, row) -> new McpManagedToolOverridePO(
+                """, (result, row) -> new McpManagedToolOverrideBO(
                 result.getString("tool_id"),
                 result.getString("gateway_group_id"),
                 result.getString("operation_id"),
@@ -195,7 +197,7 @@ public class JdbcMcpManagedToolOverrideRepository {
      * @return 返回 save 的处理结果；returns the result of the operation.
      */
     public McpManagedToolDraftMutationDTO save(
-            McpManagedToolOverridePO override,
+            McpManagedToolOverrideBO override,
             long expectedRevision,
             AdminActor actor,
             Instant now) {
@@ -215,23 +217,23 @@ public class JdbcMcpManagedToolOverrideRepository {
                    AND operation_id = ?
                    AND revision = ?
                 """,
-                override.toolId(),
-                override.serverId(),
-                json.write(override.additionalPermissions()),
-                override.minimumRiskLevel(),
-                override.enabled(),
+                override.getToolId(),
+                override.getServerId(),
+                json.write(override.getAdditionalPermissions()),
+                override.getMinimumRiskLevel(),
+                override.getEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor),
-                override.gatewayGroupId(),
-                override.operationId(),
+                override.getGatewayGroupId(),
+                override.getOperationId(),
                 expectedRevision
         );
         if (updated == 1) {
-            return new McpManagedToolDraftMutationDTO(override.toolId(), expectedRevision + 1);
+            return new McpManagedToolDraftMutationDTO(override.getToolId(), expectedRevision + 1);
         }
         Long current = currentRevision(
-                override.gatewayGroupId(),
-                override.operationId()
+                override.getGatewayGroupId(),
+                override.getOperationId()
         );
         if (current != null || expectedRevision != 0) {
             throw revisionConflict(current);
@@ -243,19 +245,19 @@ public class JdbcMcpManagedToolOverrideRepository {
                     revision, created_at, created_by, updated_at, updated_by
                 ) VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, 0, ?, ?, ?, ?)
                 """,
-                override.toolId(),
-                override.gatewayGroupId(),
-                override.operationId(),
-                override.serverId(),
-                json.write(override.additionalPermissions()),
-                override.minimumRiskLevel(),
-                override.enabled(),
+                override.getToolId(),
+                override.getGatewayGroupId(),
+                override.getOperationId(),
+                override.getServerId(),
+                json.write(override.getAdditionalPermissions()),
+                override.getMinimumRiskLevel(),
+                override.getEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor),
                 McpJdbcJson.timestamp(now),
                 actorId(actor)
         );
-        return new McpManagedToolDraftMutationDTO(override.toolId(), 0);
+        return new McpManagedToolDraftMutationDTO(override.getToolId(), 0);
     }
 
     /**

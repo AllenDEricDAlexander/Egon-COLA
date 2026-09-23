@@ -21,6 +21,8 @@ import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayP
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.RESOLVED;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.SUBMITTED;
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
 
 class JdbcGatewayReleasePublicationStoreTest {
 
@@ -30,13 +32,13 @@ class JdbcGatewayReleasePublicationStoreTest {
     @Test
     void insertsAndReadsAttemptInPhaseOrder() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO chunk = record(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO chunk = record(
                 0,
                 CHUNK,
                 "yuheng.rules.chunk.release-1.0",
                 "018f22d8-155d-7000-8000-000000000001"
         );
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO activation = record(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO activation = record(
                 1,
                 ACTIVATION,
                 "yuheng.rules.active",
@@ -160,8 +162,8 @@ class JdbcGatewayReleasePublicationStoreTest {
     @Test
     void cleanupCandidatesProtectActiveAndRetainPredecessor() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO(
                         "change-1",
                         "release-old",
                         "yuheng-biz-gateway-orders",
@@ -187,12 +189,12 @@ class JdbcGatewayReleasePublicationStoreTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO record(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO record(
             int phaseOrder,
             top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationPhaseEnum phaseType,
             String configKey,
             String changeId) {
-        return new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO(
+        return new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO(
                 "release-1",
                 1,
                 phaseOrder,

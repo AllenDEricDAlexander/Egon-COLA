@@ -116,10 +116,11 @@ import java.util.Objects;
 
 
 import top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityDraftPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityDraftBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpCapabilityDraftMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpCapabilityBinding;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpCapabilityDraftRepository;
 /**
  * 中文说明：{@code JdbcMcpCapabilityDraftRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcMCPCapability草稿存储相关的职责与边界。
  * English summary: {@code JdbcMcpCapabilityDraftRepository} is a jdbc mcp capability draft store store in the current Gateway module; it owns the jdbc mcp capability draft store-related responsibility and boundary.
@@ -127,7 +128,8 @@ import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpCapabilityBin
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Repository
-public class JdbcMcpCapabilityDraftRepository {
+public class JdbcMcpCapabilityDraftRepository
+        implements McpCapabilityDraftRepository {
 
     /**
      * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcMcpCapabilityDraftRepository} 在其生命周期内读取或更新。
@@ -168,17 +170,17 @@ public class JdbcMcpCapabilityDraftRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 load 的处理结果；returns the result of the operation.
      */
-    public McpCapabilityDraftPO load(String gatewayGroupId) {
+    public McpCapabilityDraftBO load(String gatewayGroupId) {
         String groupId = McpJdbcJson.required(
                 gatewayGroupId,
                 "gatewayGroupId"
         );
-        EnumMap<McpCapabilityKindEnum, List<McpCapabilityRecordPO>> values =
+        EnumMap<McpCapabilityKindEnum, List<McpCapabilityRecordBO>> values =
                 new EnumMap<>(McpCapabilityKindEnum.class);
         for (McpCapabilityKindEnum kind : McpCapabilityKindEnum.values()) {
             values.put(kind, load(kind, groupId));
         }
-        return new McpCapabilityDraftPO(groupId, values);
+        return McpCapabilityDraftBO.normalized(groupId, values);
     }
 
     /**
@@ -193,7 +195,7 @@ public class JdbcMcpCapabilityDraftRepository {
      * @return 返回 save 的处理结果；returns the result of the operation.
      */
     public McpCapabilityDraftMutationDTO save(
-            McpCapabilityRecordPO draft,
+            McpCapabilityRecordBO draft,
             long expectedRevision,
             AdminActor actor,
             Instant now) {
@@ -201,43 +203,43 @@ public class JdbcMcpCapabilityDraftRepository {
         validateExpectedRevision(expectedRevision);
         McpCapabilityBinding binding = binding(draft);
         List<Object> updateValues = new ArrayList<>();
-        updateValues.add(draft.name());
+        updateValues.add(draft.getName());
         updateValues.addAll(binding.values());
-        updateValues.add(json.write(draft.content()));
-        updateValues.add(draft.enabled());
+        updateValues.add(json.write(draft.getContent()));
+        updateValues.add(draft.isEnabled());
         updateValues.add(McpJdbcJson.timestamp(now));
         updateValues.add(actorId(actor));
-        updateValues.add(draft.id());
+        updateValues.add(draft.getId());
         updateValues.add(expectedRevision);
         int updated = jdbc.update(
-                updateSql(draft.kind(), binding),
+                updateSql(draft.getKind(), binding),
                 updateValues.toArray()
         );
         if (updated == 1) {
-            return new McpCapabilityDraftMutationDTO(draft.id(), expectedRevision + 1);
+            return new McpCapabilityDraftMutationDTO(draft.getId(), expectedRevision + 1);
         }
-        Long currentRevision = currentRevision(draft.kind(), draft.id());
+        Long currentRevision = currentRevision(draft.getKind(), draft.getId());
         if (currentRevision != null || expectedRevision != 0) {
             throw revisionConflict(currentRevision);
         }
 
         List<Object> insertValues = new ArrayList<>();
-        insertValues.add(draft.id());
-        insertValues.add(draft.gatewayGroupId());
-        insertValues.add(draft.serverId());
-        insertValues.add(draft.name());
+        insertValues.add(draft.getId());
+        insertValues.add(draft.getGatewayGroupId());
+        insertValues.add(draft.getServerId());
+        insertValues.add(draft.getName());
         insertValues.addAll(binding.values());
-        insertValues.add(json.write(draft.content()));
-        insertValues.add(draft.enabled());
+        insertValues.add(json.write(draft.getContent()));
+        insertValues.add(draft.isEnabled());
         insertValues.add(McpJdbcJson.timestamp(now));
         insertValues.add(actorId(actor));
         insertValues.add(McpJdbcJson.timestamp(now));
         insertValues.add(actorId(actor));
         jdbc.update(
-                insertSql(draft.kind(), binding),
+                insertSql(draft.getKind(), binding),
                 insertValues.toArray()
         );
-        return new McpCapabilityDraftMutationDTO(draft.id(), 0);
+        return new McpCapabilityDraftMutationDTO(draft.getId(), 0);
     }
 
     /**
@@ -290,7 +292,7 @@ public class JdbcMcpCapabilityDraftRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 load 的处理结果；returns the result of the operation.
      */
-    private List<McpCapabilityRecordPO> load(
+    private List<McpCapabilityRecordBO> load(
             McpCapabilityKindEnum kind,
             String gatewayGroupId) {
         String sql = """
@@ -306,7 +308,7 @@ public class JdbcMcpCapabilityDraftRepository {
                 kind.table(),
                 kind.nameColumn()
         );
-        return jdbc.query(sql, (result, row) -> new McpCapabilityRecordPO(
+        return jdbc.query(sql, (result, row) -> new McpCapabilityRecordBO(
                 kind,
                 result.getString("id"),
                 result.getString("gateway_group_id"),
@@ -386,9 +388,9 @@ public class JdbcMcpCapabilityDraftRepository {
      * @param draft 参数 草稿；parameter draft。
      * @return 返回 binding 的处理结果；returns the result of the operation.
      */
-    private McpCapabilityBinding binding(McpCapabilityRecordPO draft) {
-        Map<String, Object> content = draft.content();
-        return switch (draft.kind()) {
+    private McpCapabilityBinding binding(McpCapabilityRecordBO draft) {
+        Map<String, Object> content = draft.getContent();
+        return switch (draft.getKind()) {
             case RESOURCE -> new McpCapabilityBinding(
                     "resource_uri, driver_type, operation_id, remote_mount_id",
                     "resource_uri = ?, driver_type = ?, operation_id = ?, "

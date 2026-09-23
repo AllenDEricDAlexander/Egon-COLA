@@ -7,9 +7,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.reporting.domain.dto.GatewayDefinitionLifecycleScopeDTO;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayDefinitionLifecycleRepository;
@@ -161,7 +161,7 @@ public class GatewayDefinitionLifecycleReconciler {
         }
         Instant now = clock.instant();
         Set<GatewayDefinitionLifecycleScopeDTO> scopes = new LinkedHashSet<>();
-        for (GatewayApplicationPO application
+        for (GatewayApplicationBO application
                 : applications.findAllByDeletedFalseOrderByCreatedAtDesc()) {
             scopes.add(new GatewayDefinitionLifecycleScopeDTO(
                     application.getBizCode(),
@@ -236,11 +236,11 @@ public class GatewayDefinitionLifecycleReconciler {
      * @param now 参数 now；parameter now。
      * @return 返回 审计 的处理结果；returns the result of the operation.
      */
-    private GatewayAuditLogPO audit(
+    private GatewayAuditLogBO audit(
             Set<String> activeDefinitionSets,
             top.egon.cola.component.yuheng.admin.reporting.domain.vo.GatewayReconcileResultVO result,
             Instant now) {
-        return new GatewayAuditLogPO(
+        return new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 "yuheng-definition-reconciler",
                 "SYSTEM",
@@ -250,8 +250,8 @@ public class GatewayDefinitionLifecycleReconciler {
                 "DEFINITION_SET",
                 "provider-active-sets",
                 "RECONCILE_PROVIDER_LIFECYCLE",
-                Map.of(),
-                Map.of(
+                GatewayAuditLogBO.sanitized(Map.of()),
+                GatewayAuditLogBO.sanitized(Map.of(
                         "activeDefinitionSetIds",
                         List.copyOf(activeDefinitionSets),
                         "activatedDefinitionSets",
@@ -262,7 +262,7 @@ public class GatewayDefinitionLifecycleReconciler {
                         result.activatedOperations(),
                         "offlinedOperations",
                         result.offlinedOperations()
-                ),
+                )),
                 null,
                 null,
                 true,

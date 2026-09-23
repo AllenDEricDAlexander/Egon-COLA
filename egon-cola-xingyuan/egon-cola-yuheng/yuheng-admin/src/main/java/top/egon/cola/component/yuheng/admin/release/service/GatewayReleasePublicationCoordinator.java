@@ -13,8 +13,8 @@ import top.egon.cola.component.tianshu.model.management.DdcManagementPublishStat
 import top.egon.cola.component.tianshu.model.management.DdcManagementPublishTask;
 import top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayPublicationScopeDTO;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminDdcProperties;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
 import top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum;
 import top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO;
 import top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseArtifactVO;
@@ -185,28 +185,28 @@ public final class GatewayReleasePublicationCoordinator {
             String actorId) {
         Objects.requireNonNull(compiled, "compiled");
         String operator = required(actorId, "actorId");
-        List<top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO> operations =
+        List<top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO> operations =
                 initialize(releaseId, attemptNo, compiled);
-        operations.stream().filter(operation -> operation.status() != SUCCESS)
-                .map(GatewayReleasePublicationPO::targetScope).distinct()
+        operations.stream().filter(operation -> operation.getStatus() != SUCCESS)
+                .map(GatewayReleasePublicationBO::getTargetScope).distinct()
                 .forEach(publisher::ensureReadyTarget);
-        List<GatewayReleaseTargetPO> targets = new ArrayList<>();
+        List<GatewayReleaseTargetBO> targets = new ArrayList<>();
         int successfulPhases = 0;
         DdcManagementPublishResult latestResult = null;
-        for (top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO original
+        for (top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO original
                 : operations) {
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation =
-                    current(releaseId, attemptNo, original.phaseOrder());
-            if (operation.status() == SUCCESS) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation =
+                    current(releaseId, attemptNo, original.getPhaseOrder());
+            if (operation.getStatus() == SUCCESS) {
                 successfulPhases++;
-                if (operation.phaseType() == ACTIVATION) {
+                if (operation.getPhaseType() == ACTIVATION) {
                     latestResult = publishedResult(operation);
                     targets.addAll(targets(operation, latestResult, compiled));
                 }
                 continue;
             }
             DdcManagementPublishResult result = execute(
-                    operation.targetScope(),
+                    operation.getTargetScope(),
                     operation,
                     operator
             );
@@ -214,14 +214,14 @@ public final class GatewayReleasePublicationCoordinator {
             latestResult = result;
             top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum status =
                     status(result.status());
-            recordResult(operation.changeId(), result, status);
-            if (operation.phaseType() == ACTIVATION) {
+            recordResult(operation.getChangeId(), result, status);
+            if (operation.getPhaseType() == ACTIVATION) {
                 targets.addAll(targets(operation, result, compiled));
             }
             if (status != SUCCESS) {
                 return new GatewayPublicationOutcomeVO(
                         status,
-                        operation.changeId(),
+                        operation.getChangeId(),
                         result,
                         successfulPhases > 0,
                         List.copyOf(targets)
@@ -229,21 +229,21 @@ public final class GatewayReleasePublicationCoordinator {
             }
             successfulPhases++;
         }
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO activation =
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO activation =
                 journal.findAttemptMetadata(releaseId, attemptNo).getLast();
         DdcManagementPublishResult result = latestResult != null
-                && activation.changeId().equals(latestResult.changeId())
+                && activation.getChangeId().equals(latestResult.changeId())
                 ? latestResult
                 : publishedResult(journal.findOperation(
                         releaseId,
                         attemptNo,
-                        activation.phaseOrder()
+                        activation.getPhaseOrder()
                 ).orElseThrow(() -> new IllegalStateException(
                         "publication activation disappeared"
                 )));
         return new GatewayPublicationOutcomeVO(
                 SUCCESS,
-                activation.changeId(),
+                activation.getChangeId(),
                 result,
                 false,
                 List.copyOf(targets)
@@ -262,27 +262,27 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private DdcManagementPublishResult execute(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator) {
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO current = operation;
-        if (current.status() == PLANNED) {
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO current = operation;
+        if (current.getStatus() == PLANNED) {
             current = resolve(scope, current, operator);
         }
-        if (current.status() == RESOLVED) {
-            journal.markSubmitted(current.changeId(), clock.instant());
+        if (current.getStatus() == RESOLVED) {
+            journal.markSubmitted(current.getChangeId(), clock.instant());
             return publish(scope, current, operator);
         }
-        if (current.status() == SUBMITTED) {
+        if (current.getStatus() == SUBMITTED) {
             return resumeSubmitted(scope, current, operator);
         }
-        if (current.status() == FAILED
-                || current.status() == PARTIAL_SUCCESS
-                || current.status() == TIMEOUT
-                || current.status() == UNKNOWN) {
+        if (current.getStatus() == FAILED
+                || current.getStatus() == PARTIAL_SUCCESS
+                || current.getStatus() == TIMEOUT
+                || current.getStatus() == UNKNOWN) {
             return retry(scope, current, operator);
         }
         throw new IllegalStateException(
-                "publication phase cannot execute from " + current.status()
+                "publication phase cannot execute from " + current.getStatus()
         );
     }
 
@@ -298,7 +298,7 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private DdcManagementPublishResult publish(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator) {
         try {
             return publisher.publish(command(scope, operation, operator));
@@ -319,10 +319,10 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private DdcManagementPublishResult resumeSubmitted(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator) {
         try {
-            return result(client.getPublishTask(operation.changeId()));
+            return result(client.getPublishTask(operation.getChangeId()));
         } catch (DdcManagementClientException exception) {
             if (exception.code()
                     == DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND
@@ -347,18 +347,18 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private DdcManagementPublishResult retry(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator) {
         try {
             DdcManagementPublishTask task =
-                    client.getPublishTask(operation.changeId());
+                    client.getPublishTask(operation.getChangeId());
             if (task.status() == DdcManagementPublishStatus.PENDING
                     || task.status()
                     == DdcManagementPublishStatus.PUBLISHING
                     || task.status() == DdcManagementPublishStatus.SUCCESS) {
                 return result(task);
             }
-            return client.retry(operation.changeId());
+            return client.retry(operation.getChangeId());
         } catch (DdcManagementClientException exception) {
             if (exception.code()
                     == DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND
@@ -381,10 +381,10 @@ public final class GatewayReleasePublicationCoordinator {
      * @return 返回 recover 的处理结果；returns the result of the operation.
      */
     private DdcManagementPublishResult recover(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             RuntimeException publishFailure) {
         try {
-            return result(client.getPublishTask(operation.changeId()));
+            return result(client.getPublishTask(operation.getChangeId()));
         } catch (RuntimeException queryFailure) {
             publishFailure.addSuppressed(queryFailure);
             return unknown(operation, publishFailure);
@@ -401,15 +401,15 @@ public final class GatewayReleasePublicationCoordinator {
      * @param operator 参数 operator；parameter operator。
      * @return 返回 resolve 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO resolve(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO resolve(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator) {
         return resolve(
                 scope,
                 operation,
                 operator,
-                operation.contentValue()
+                operation.getContentValue()
         );
     }
 
@@ -424,9 +424,9 @@ public final class GatewayReleasePublicationCoordinator {
      * @param leafValue 参数 leaf值；parameter leaf value。
      * @return 返回 resolve 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO resolve(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO resolve(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator,
             String leafValue) {
         DdcManagementConfigQuery query = new DdcManagementConfigQuery(
@@ -438,7 +438,7 @@ public final class GatewayReleasePublicationCoordinator {
         if (config == null) {
             String initialDocument = yamlDocument.putLeaf(
                     null,
-                    operation.configKey(),
+                    operation.getConfigKey(),
                     leafValue
             );
             config = create(
@@ -449,22 +449,22 @@ public final class GatewayReleasePublicationCoordinator {
                     initialDocument
             );
         }
-        validateConfig(config, operation.configKey());
+        validateConfig(config, operation.getConfigKey());
         String documentContent = yamlDocument.putLeaf(
                 config.content(),
-                operation.configKey(),
+                operation.getConfigKey(),
                 leafValue
         );
         journal.resolveDocument(
-                operation.changeId(),
+                operation.getChangeId(),
                 config.version(),
                 documentContent,
                 clock.instant()
         );
         return current(
-                operation.releaseId(),
-                operation.attemptNo(),
-                operation.phaseOrder()
+                operation.getReleaseId(),
+                operation.getAttemptNo(),
+                operation.getPhaseOrder()
         );
     }
 
@@ -482,7 +482,7 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private DdcManagementConfig create(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator,
             DdcManagementConfigQuery query,
             String documentContent) {
@@ -494,14 +494,14 @@ public final class GatewayReleasePublicationCoordinator {
                     GatewayDdcYamlDocument.RESOURCE_NAME,
                     documentContent,
                     GatewayDdcYamlDocument.FORMAT,
-                    "Gateway release " + operation.releaseId(),
+                    "Gateway release " + operation.getReleaseId(),
                     0L,
                     operator
             ));
         } catch (RuntimeException failure) {
             DdcManagementConfig recovered = client.findConfig(query)
                     .orElseThrow(() -> failure);
-            validateConfig(recovered, operation.configKey());
+            validateConfig(recovered, operation.getConfigKey());
             return recovered;
         }
     }
@@ -553,21 +553,21 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private DdcManagementPublishResult republish(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator) {
         String leafValue = yamlDocument.leafValue(
-                operation.contentValue(),
-                operation.configKey()
+                operation.getContentValue(),
+                operation.getConfigKey()
         ).orElseThrow(() -> new IllegalStateException(
                 "resolved Gateway rule leaf is missing"
         ));
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO resolved = resolve(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO resolved = resolve(
                 scope,
                 operation,
                 operator,
                 leafValue
         );
-        journal.markSubmitted(resolved.changeId(), clock.instant());
+        journal.markSubmitted(resolved.getChangeId(), clock.instant());
         return publish(scope, resolved, operator);
     }
 
@@ -583,16 +583,16 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private GatewayDdcPublicationCommand command(
             GatewayPublicationScopeDTO scope,
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             String operator) {
         return new GatewayDdcPublicationCommand(
                 scope.bizCode(),
                 scope.env(),
                 scope.appCode(),
-                operation.configKey(),
-                operation.contentValue(),
-                operation.expectedVersion(),
-                operation.changeId(),
+                operation.getConfigKey(),
+                operation.getContentValue(),
+                operation.getExpectedVersion(),
+                operation.getChangeId(),
                 operator,
                 timeout
         );
@@ -608,11 +608,11 @@ public final class GatewayReleasePublicationCoordinator {
      * @param compiled 参数 compiled；parameter compiled。
      * @return 返回 initialize 的处理结果；returns the result of the operation.
      */
-    private List<top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO> initialize(
+    private List<top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO> initialize(
             String releaseId,
             int attemptNo,
             CompiledGatewayRelease compiled) {
-        List<top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO> existing =
+        List<top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO> existing =
                 journal.findAttemptMetadata(releaseId, attemptNo);
         List<GatewayReleaseArtifactVO> artifacts = artifacts(compiled);
         if (!existing.isEmpty()) {
@@ -623,11 +623,11 @@ public final class GatewayReleasePublicationCoordinator {
                 ? targetProperties.targets(compiled.snapshot().content().env())
                 : frozenScopes(journal.findAttemptMetadata(releaseId, 1));
         Instant now = clock.instant();
-        List<top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO> created =
+        List<top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO> created =
                 new ArrayList<>();
         for (GatewayReleaseArtifactVO artifact : artifacts) {
             for (GatewayPublicationScopeDTO scope : scopes) {
-                created.add(new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO(
+                created.add(new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO(
                     required(releaseId, "releaseId"),
                     attemptNo,
                     created.size(),
@@ -688,7 +688,7 @@ public final class GatewayReleasePublicationCoordinator {
      * @param artifacts 参数 artifacts；parameter artifacts。
      */
     private void validateExisting(
-            List<top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO> existing,
+            List<top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO> existing,
             List<GatewayReleaseArtifactVO> artifacts) {
         List<GatewayPublicationScopeDTO> scopes = frozenScopes(existing);
         if (existing.size() != artifacts.size() * scopes.size()) {
@@ -698,13 +698,13 @@ public final class GatewayReleasePublicationCoordinator {
         }
         for (int index = 0; index < existing.size(); index++) {
             GatewayReleaseArtifactVO artifact = artifacts.get(index / scopes.size());
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation =
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation =
                     existing.get(index);
-            if (!operation.targetScope().equals(scopes.get(index % scopes.size()))
-                    || operation.phaseOrder() != index
-                    || operation.phaseType() != artifact.phaseType()
-                    || !operation.configKey().equals(artifact.configKey())
-                    || !operation.contentSha256().equals(
+            if (!operation.getTargetScope().equals(scopes.get(index % scopes.size()))
+                    || operation.getPhaseOrder() != index
+                    || operation.getPhaseType() != artifact.phaseType()
+                    || !operation.getConfigKey().equals(artifact.configKey())
+                    || !operation.getContentSha256().equals(
                     checksum(artifact.value()))) {
                 throw new IllegalStateException(
                         "publication journal content conflict"
@@ -723,7 +723,7 @@ public final class GatewayReleasePublicationCoordinator {
      * @param phaseOrder 参数 阶段序号；parameter phase order。
      * @return 返回 current 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO current(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO current(
             String releaseId,
             int attemptNo,
             int phaseOrder) {
@@ -765,18 +765,18 @@ public final class GatewayReleasePublicationCoordinator {
      * @return 返回 result 的处理结果；returns the result of the operation.
      */
     private DdcManagementPublishResult result(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation) {
         return new DdcManagementPublishResult(
-                operation.changeId(),
+                operation.getChangeId(),
                 DdcManagementPublishStatus.SUCCESS,
-                operation.ddcTargetVersion(),
-                resourceChecksum(operation.contentValue()),
+                operation.getDdcTargetVersion(),
+                resourceChecksum(operation.getContentValue()),
                 0,
                 List.of(),
                 null,
-                operation.createdAt(),
-                operation.updatedAt(),
-                operation.updatedAt()
+                operation.getCreatedAt(),
+                operation.getUpdatedAt(),
+                operation.getUpdatedAt()
         );
     }
 
@@ -789,9 +789,9 @@ public final class GatewayReleasePublicationCoordinator {
      * @return 返回 publishedResult 的处理结果；returns the result of the operation.
      */
     private DdcManagementPublishResult publishedResult(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation) {
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation) {
         try {
-            return result(client.getPublishTask(operation.changeId()));
+            return result(client.getPublishTask(operation.getChangeId()));
         } catch (RuntimeException unavailable) {
             return result(operation);
         }
@@ -830,17 +830,17 @@ public final class GatewayReleasePublicationCoordinator {
      * @return 返回 unknown 的处理结果；returns the result of the operation.
      */
     private DdcManagementPublishResult unknown(
-            top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO operation,
+            top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO operation,
             RuntimeException failure) {
         return new DdcManagementPublishResult(
-                operation.changeId(),
+                operation.getChangeId(),
                 DdcManagementPublishStatus.UNKNOWN,
-                operation.ddcTargetVersion(),
-                resourceChecksum(operation.contentValue()),
+                operation.getDdcTargetVersion(),
+                resourceChecksum(operation.getContentValue()),
                 0,
                 List.of(),
                 failure.getMessage(),
-                operation.createdAt(),
+                operation.getCreatedAt(),
                 null,
                 clock.instant()
         );
@@ -869,12 +869,12 @@ public final class GatewayReleasePublicationCoordinator {
      * 中文说明：要求 journal 具备完整的两角色目标，禁止将无目标的历史记录绑定到新配置。
      * English summary: Requires both frozen role targets and never rebinds unclassified history.
      */
-    private List<GatewayPublicationScopeDTO> frozenScopes(List<GatewayReleasePublicationPO> operations) {
-        if (operations.isEmpty() || operations.stream().anyMatch(operation -> operation.targetScope() == null)) {
+    private List<GatewayPublicationScopeDTO> frozenScopes(List<GatewayReleasePublicationBO> operations) {
+        if (operations.isEmpty() || operations.stream().anyMatch(operation -> operation.getTargetScope() == null)) {
             throw new IllegalStateException("YUHENG_PUBLICATION_TARGET_MISSING");
         }
         List<GatewayPublicationScopeDTO> scopes = operations.stream()
-                .map(GatewayReleasePublicationPO::targetScope).distinct().toList();
+                .map(GatewayReleasePublicationBO::getTargetScope).distinct().toList();
         if (scopes.size() != 2 || !scopes.stream().map(GatewayPublicationScopeDTO::engineRole)
                 .collect(java.util.stream.Collectors.toSet()).equals(EnumSet.allOf(GatewayEngineRoleEnum.class))) {
             throw new IllegalStateException("YUHENG_PUBLICATION_TARGET_CONFLICT");
@@ -912,16 +912,16 @@ public final class GatewayReleasePublicationCoordinator {
      * 中文说明：保留每个角色的独立版本与 ACK，避免后一侧覆盖前一侧。
      * English summary: Retains both roles' independent activation versions and acknowledgements.
      */
-    private List<GatewayReleaseTargetPO> targets(
-            GatewayReleasePublicationPO operation,
+    private List<GatewayReleaseTargetBO> targets(
+            GatewayReleasePublicationBO operation,
             DdcManagementPublishResult result,
             CompiledGatewayRelease compiled) {
-        return result.targets().stream().map(target -> new GatewayReleaseTargetPO(
+        return result.targets().stream().map(target -> new GatewayReleaseTargetBO(
                 target.instanceId(), target.leaseId(), target.status(), target.currentVersion(),
                 "SUCCESS".equals(target.status()) ? compiled.activation().artifactSha256() : null,
                 target.errorMessage() == null ? null : "TIANSHU_TARGET_ERROR",
                 target.ackAt() == null ? clock.instant() : target.ackAt(),
-                operation.targetScope().engineRole()
+                operation.getTargetScope().engineRole()
         )).toList();
     }
 

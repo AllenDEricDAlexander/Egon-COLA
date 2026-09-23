@@ -6,10 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSnapshotRepository;
 import top.egon.cola.component.yuheng.admin.reporting.domain.dto.GatewayDefinitionIngestionCommandDTO;
-import top.egon.cola.component.yuheng.admin.reporting.domain.po.GatewayStoredReportPO;
+import top.egon.cola.component.yuheng.admin.reporting.domain.bo.GatewayStoredReportBO;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayDefinitionReportRepository;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayDefinitionSourceTypeEnum;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport;
@@ -115,12 +115,12 @@ public class GatewayDefinitionIngestionService {
                 });
 
         Instant now = clock.instant();
-        GatewayStoredReportPO stored;
+        GatewayStoredReportBO stored;
         if (reports.definitionSetExists(
                 command.applicationId(),
                 report.definitionSetId()
         )) {
-            stored = new GatewayStoredReportPO(0, 0, List.of());
+            stored = new GatewayStoredReportBO(0, 0, List.of());
         } else {
             stored = reports.ingest(
                     command.applicationId(),
@@ -241,26 +241,26 @@ public class GatewayDefinitionIngestionService {
         }
         Set<String> snapshotGroups = new HashSet<>();
         for (String snapshotId : command.snapshotIds()) {
-            GatewayOpenApiSnapshotPO snapshot = snapshots.findById(snapshotId)
+            GatewayOpenApiSnapshotBO snapshot = snapshots.findById(snapshotId)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot was "
                                     + "not found: " + snapshotId
                     ));
-            if (!command.applicationId().equals(snapshot.applicationId())
+            if (!command.applicationId().equals(snapshot.getApplicationId())
                     || !command.report().build().buildId().equals(
-                    snapshot.buildId()
+                    snapshot.getBuildId()
             )
-                    || !"VALID".equals(snapshot.validationStatus())
-                    || (snapshot.definitionSetId() != null
+                    || !"VALID".equals(snapshot.getValidationStatus())
+                    || (snapshot.getDefinitionSetId() != null
                     && !command.report().definitionSetId().equals(
-                    snapshot.definitionSetId()
+                    snapshot.getDefinitionSetId()
             ))) {
                 throw new IllegalArgumentException(
                         "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot does not "
                                 + "belong to the command"
                 );
             }
-            if (!snapshotGroups.add(snapshot.openapiGroup())) {
+            if (!snapshotGroups.add(snapshot.getOpenapiGroup())) {
                 throw new IllegalArgumentException(
                         "snapshotIds contain duplicate OpenAPI groups"
                 );
@@ -276,13 +276,13 @@ public class GatewayDefinitionIngestionService {
 
     private GatewayInterfaceDefinitionReportResult result(
             GatewayDefinitionIngestionCommandDTO command,
-            GatewayStoredReportPO stored,
+            GatewayStoredReportBO stored,
             Instant now) {
         GatewayDefinitionCounts counts = counts(command.report());
         return new GatewayInterfaceDefinitionReportResult(
                 command.report().reportId(),
                 command.report().definitionSetId(),
-                stored.created() == 0 && stored.updated() == 0
+                stored.getCreated() == 0 && stored.getUpdated() == 0
                         ? GatewayInterfaceDefinitionReportResult.Status
                         .ACCEPTED_WITH_WARNINGS
                         : GatewayInterfaceDefinitionReportResult.Status.ACCEPTED,
@@ -292,11 +292,11 @@ public class GatewayDefinitionIngestionService {
                         counts.entities(),
                         counts.groups(),
                         counts.operations(),
-                        stored.created(),
-                        stored.updated(),
+                        stored.getCreated(),
+                        stored.getUpdated(),
                         0
                 ),
-                stored.operationRefs(),
+                stored.getOperationRefs(),
                 List.of(),
                 now
         );

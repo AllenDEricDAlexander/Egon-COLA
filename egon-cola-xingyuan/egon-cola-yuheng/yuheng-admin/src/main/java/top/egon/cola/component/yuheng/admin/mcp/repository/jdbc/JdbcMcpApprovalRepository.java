@@ -108,7 +108,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpApprovalRepository;
 /**
  * 中文说明：{@code JdbcMcpApprovalRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcMCP审批存储相关的职责与边界。
  * English summary: {@code JdbcMcpApprovalRepository} is a jdbc mcp approval store store in the current Gateway module; it owns the jdbc mcp approval store-related responsibility and boundary.
@@ -116,7 +117,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalPO;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Repository
-public class JdbcMcpApprovalRepository {
+public class JdbcMcpApprovalRepository
+        implements McpApprovalRepository {
 
     /**
      * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcMcpApprovalRepository} 在其生命周期内读取或更新。
@@ -144,7 +146,7 @@ public class JdbcMcpApprovalRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code JdbcMcpApprovalRepository.issue(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param approval 参数 审批；parameter approval。
      */
-    public void issue(McpApprovalPO approval) {
+    public void issue(McpApprovalBO approval) {
         Objects.requireNonNull(approval, "approval");
         jdbc.update("""
                 INSERT INTO gateway_mcp_approval(
@@ -155,16 +157,16 @@ public class JdbcMcpApprovalRepository {
                     ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 0, ?, ?, NULL
                 )
                 """,
-                approval.id(),
-                approval.tokenDigest(),
-                approval.subjectId(),
-                approval.tenantId(),
-                approval.clientId(),
-                approval.serverCode(),
-                approval.toolName(),
-                approval.argumentDigest(),
-                McpJdbcJson.timestamp(approval.issuedAt()),
-                McpJdbcJson.timestamp(approval.expiresAt())
+                approval.getId(),
+                approval.getTokenDigest(),
+                approval.getSubjectId(),
+                approval.getTenantId(),
+                approval.getClientId(),
+                approval.getServerCode(),
+                approval.getToolName(),
+                approval.getArgumentDigest(),
+                McpJdbcJson.timestamp(approval.getIssuedAt()),
+                McpJdbcJson.timestamp(approval.getExpiresAt())
         );
     }
 
@@ -226,14 +228,14 @@ public class JdbcMcpApprovalRepository {
      * @param id 参数 id；parameter id。
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
-    public Optional<McpApprovalPO> find(String id) {
-        List<McpApprovalPO> values = jdbc.query("""
+    public Optional<McpApprovalBO> find(String id) {
+        List<McpApprovalBO> values = jdbc.query("""
                 SELECT id, token_digest, subject_id, tenant_id, client_id,
                        server_code, tool_name, argument_digest,
                        issued_at, expires_at
                   FROM gateway_mcp_approval
                  WHERE id = ?
-                """, (result, row) -> new McpApprovalPO(
+                """, (result, row) -> new McpApprovalBO(
                 result.getString("id"),
                 result.getString("token_digest"),
                 result.getString("subject_id"),

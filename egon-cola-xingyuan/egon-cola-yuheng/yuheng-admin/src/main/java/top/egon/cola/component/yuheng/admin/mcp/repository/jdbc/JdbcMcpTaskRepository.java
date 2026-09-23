@@ -112,7 +112,8 @@ import java.util.Optional;
 import java.util.Set;
 
 
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpTaskRepository;
 /**
  * 中文说明：{@code JdbcMcpTaskRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcMCP任务存储相关的职责与边界。
  * English summary: {@code JdbcMcpTaskRepository} is a jdbc mcp task store store in the current Gateway module; it owns the jdbc mcp task store-related responsibility and boundary.
@@ -120,7 +121,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpTaskPO;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Repository
-public class JdbcMcpTaskRepository {
+public class JdbcMcpTaskRepository
+        implements McpTaskRepository {
 
     /**
      * 中文说明：表示 STATES 这一固定值；它属于 {@code JdbcMcpTaskRepository} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -172,7 +174,7 @@ public class JdbcMcpTaskRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code JdbcMcpTaskRepository.create(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param task 参数 任务；parameter task。
      */
-    public void create(McpTaskPO task) {
+    public void create(McpTaskBO task) {
         Objects.requireNonNull(task, "task");
         jdbc.update("""
                 INSERT INTO gateway_mcp_task_instance(
@@ -187,27 +189,27 @@ public class JdbcMcpTaskRepository {
                     ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?
                 )
                 """,
-                task.id(),
-                task.principalFingerprint(),
-                task.subjectId(),
-                task.tenantId(),
-                task.clientId(),
-                task.serverCode(),
-                task.toolName(),
-                task.requestDigest(),
-                state(task.state()),
-                write(task.inputPayload()),
-                write(task.resultPayload()),
-                write(task.errorPayload()),
-                task.workerOwner(),
-                McpJdbcJson.timestamp(task.leaseUntil()),
-                McpJdbcJson.timestamp(task.executionDeadline()),
-                McpJdbcJson.timestamp(task.expiresAt()),
-                task.attemptCount(),
-                task.maxAttempts(),
-                task.revision(),
-                McpJdbcJson.timestamp(task.createdAt()),
-                McpJdbcJson.timestamp(task.updatedAt())
+                task.getId(),
+                task.getPrincipalFingerprint(),
+                task.getSubjectId(),
+                task.getTenantId(),
+                task.getClientId(),
+                task.getServerCode(),
+                task.getToolName(),
+                task.getRequestDigest(),
+                state(task.getState()),
+                write(task.getInputPayload()),
+                write(task.getResultPayload()),
+                write(task.getErrorPayload()),
+                task.getWorkerOwner(),
+                McpJdbcJson.timestamp(task.getLeaseUntil()),
+                McpJdbcJson.timestamp(task.getExecutionDeadline()),
+                McpJdbcJson.timestamp(task.getExpiresAt()),
+                task.getAttemptCount(),
+                task.getMaxAttempts(),
+                task.getRevision(),
+                McpJdbcJson.timestamp(task.getCreatedAt()),
+                McpJdbcJson.timestamp(task.getUpdatedAt())
         );
     }
 
@@ -219,8 +221,8 @@ public class JdbcMcpTaskRepository {
      * @param id 参数 id；parameter id。
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
-    public Optional<McpTaskPO> find(String id) {
-        List<McpTaskPO> values = jdbc.query("""
+    public Optional<McpTaskBO> find(String id) {
+        List<McpTaskBO> values = jdbc.query("""
                 SELECT id, principal_fingerprint, subject_id, tenant_id,
                        client_id, server_code, tool_name, request_digest,
                        state, input_payload::text AS input_payload,
@@ -231,7 +233,7 @@ public class JdbcMcpTaskRepository {
                        created_at, updated_at
                   FROM gateway_mcp_task_instance
                  WHERE id = ?
-                """, (result, row) -> new McpTaskPO(
+                """, (result, row) -> new McpTaskBO(
                 result.getString("id"),
                 result.getString("principal_fingerprint"),
                 result.getString("subject_id"),
@@ -266,7 +268,7 @@ public class JdbcMcpTaskRepository {
      * @param clientId 参数 客户端Id；parameter client id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    public List<McpTaskPO> list(String tenantId, String clientId) {
+    public List<McpTaskBO> list(String tenantId, String clientId) {
         return jdbc.query("""
                 SELECT id, principal_fingerprint, subject_id, tenant_id,
                        client_id, server_code, tool_name, request_digest,
@@ -408,9 +410,9 @@ public class JdbcMcpTaskRepository {
      * @param result 参数 result；parameter result。
      * @return 返回 map 的处理结果；returns the result of the operation.
      */
-    private McpTaskPO map(java.sql.ResultSet result)
+    private McpTaskBO map(java.sql.ResultSet result)
             throws java.sql.SQLException {
-        return new McpTaskPO(
+        return new McpTaskBO(
                 result.getString("id"),
                 result.getString("principal_fingerprint"),
                 result.getString("subject_id"),

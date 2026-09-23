@@ -1,9 +1,9 @@
 package top.egon.cola.component.yuheng.admin.reporting.service;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSnapshotRepository;
-import top.egon.cola.component.yuheng.admin.reporting.domain.po.GatewayStoredReportPO;
+import top.egon.cola.component.yuheng.admin.reporting.domain.bo.GatewayStoredReportBO;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayDefinitionReportRepository;
 import top.egon.cola.component.yuheng.admin.reporting.domain.dto.GatewayDefinitionIngestionCommandDTO;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayDefinitionSourceTypeEnum;
@@ -45,7 +45,7 @@ class GatewayDefinitionIngestionServiceTest {
         when(reports.definitionSetExists("app-1", report.definitionSetId()))
                 .thenReturn(false);
         when(reports.ingest(eq("app-1"), any(), any()))
-                .thenReturn(new GatewayStoredReportPO(1, 0, List.of()));
+                .thenReturn(new GatewayStoredReportBO(1, 0, List.of()));
         when(snapshots.findById("snapshot-orders"))
                 .thenReturn(Optional.of(snapshot("snapshot-orders")));
         when(snapshots.linkAllToDefinitionSet(
@@ -108,7 +108,7 @@ class GatewayDefinitionIngestionServiceTest {
         when(reports.definitionSetExists("app-1", report.definitionSetId()))
                 .thenReturn(false);
         when(reports.ingest(eq("app-1"), any(), any()))
-                .thenReturn(new GatewayStoredReportPO(1, 0, List.of()));
+                .thenReturn(new GatewayStoredReportBO(1, 0, List.of()));
         when(snapshots.findById("snapshot-orders"))
                 .thenReturn(Optional.of(snapshot("snapshot-orders")));
         when(snapshots.linkAllToDefinitionSet(
@@ -144,8 +144,8 @@ class GatewayDefinitionIngestionServiceTest {
         );
     }
 
-    private GatewayOpenApiSnapshotPO snapshot(String id) {
-        return new GatewayOpenApiSnapshotPO(
+    private GatewayOpenApiSnapshotBO snapshot(String id) {
+        return new GatewayOpenApiSnapshotBO(
                 id,
                 "app-1",
                 null,

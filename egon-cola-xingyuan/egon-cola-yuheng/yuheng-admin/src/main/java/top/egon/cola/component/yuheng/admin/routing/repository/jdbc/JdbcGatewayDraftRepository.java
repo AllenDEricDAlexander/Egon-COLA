@@ -112,6 +112,9 @@ import java.util.Map;
 
 import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.GatewayJdbcParameters.timestamp;
 
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
+
 /**
  * 中文说明：{@code JdbcGatewayDraftRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关草稿存储相关的职责与边界。
  * English summary: {@code JdbcGatewayDraftRepository} is a jdbc gateway draft store store in the current Gateway module; it owns the jdbc gateway draft store-related responsibility and boundary.
@@ -161,7 +164,7 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
      * @return 返回 routes 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayRouteDraftPO> routes(String gatewayGroupId) {
+    public List<GatewayRouteDraftBO> routes(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT gateway_group_id, route_id, operation_id,
                        route_content::text AS route_content, enabled,
@@ -169,7 +172,7 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
                   FROM gateway_route_draft
                  WHERE gateway_group_id = ?
                  ORDER BY route_id
-                """, (result, row) -> new GatewayRouteDraftPO(
+                """, (result, row) -> new GatewayRouteDraftBO(
                 result.getString("gateway_group_id"),
                 result.getString("route_id"),
                 result.getString("operation_id"),
@@ -189,7 +192,7 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
      * @return 返回 policies 的处理结果；returns the result of the operation.
      */
     @Override
-    public List<GatewayPolicyDraftPO> policies(String gatewayGroupId) {
+    public List<GatewayPolicyDraftBO> policies(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT gateway_group_id, policy_id, policy_type, policy_scope,
                        policy_content::text AS policy_content, enabled,
@@ -197,7 +200,7 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
                   FROM gateway_policy_draft
                  WHERE gateway_group_id = ?
                  ORDER BY policy_id
-                """, (result, row) -> new GatewayPolicyDraftPO(
+                """, (result, row) -> new GatewayPolicyDraftBO(
                 result.getString("gateway_group_id"),
                 result.getString("policy_id"),
                 result.getString("policy_type"),
@@ -217,7 +220,7 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
      * @param route 参数 路由；parameter route。
      */
     @Override
-    public void upsertRoute(GatewayRouteDraftPO route) {
+    public void upsertRoute(GatewayRouteDraftBO route) {
         jdbc.update("""
                 INSERT INTO gateway_route_draft(
                     gateway_group_id, route_id, operation_id, route_content,
@@ -230,13 +233,13 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
                               updated_at = EXCLUDED.updated_at,
                               updated_by = EXCLUDED.updated_by
                 """,
-                route.gatewayGroupId(),
-                route.routeId(),
-                route.operationId(),
-                json(route.content()),
-                route.enabled(),
-                timestamp(route.updatedAt()),
-                route.updatedBy()
+                route.getGatewayGroupId(),
+                route.getRouteId(),
+                route.getOperationId(),
+                json(route.getContent()),
+                route.isEnabled(),
+                timestamp(route.getUpdatedAt()),
+                route.getUpdatedBy()
         );
     }
 
@@ -264,7 +267,7 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
      * @param policy 参数 策略；parameter policy。
      */
     @Override
-    public void upsertPolicy(GatewayPolicyDraftPO policy) {
+    public void upsertPolicy(GatewayPolicyDraftBO policy) {
         jdbc.update("""
                 INSERT INTO gateway_policy_draft(
                     gateway_group_id, policy_id, policy_type, policy_scope,
@@ -278,14 +281,14 @@ public class JdbcGatewayDraftRepository implements GatewayDraftRepository {
                               updated_at = EXCLUDED.updated_at,
                               updated_by = EXCLUDED.updated_by
                 """,
-                policy.gatewayGroupId(),
-                policy.policyId(),
-                policy.policyType(),
-                policy.policyScope(),
-                json(policy.content()),
-                policy.enabled(),
-                timestamp(policy.updatedAt()),
-                policy.updatedBy()
+                policy.getGatewayGroupId(),
+                policy.getPolicyId(),
+                policy.getPolicyType(),
+                policy.getPolicyScope(),
+                json(policy.getContent()),
+                policy.isEnabled(),
+                timestamp(policy.getUpdatedAt()),
+                policy.getUpdatedBy()
         );
     }
 

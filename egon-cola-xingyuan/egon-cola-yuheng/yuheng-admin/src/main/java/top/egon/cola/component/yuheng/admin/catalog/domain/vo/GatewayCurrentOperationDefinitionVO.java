@@ -1,8 +1,8 @@
 package top.egon.cola.component.yuheng.admin.catalog.domain.vo;
 
 
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO;
-import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
 
 /**
  * 中文说明：{@code GatewayCurrentOperationDefinitionVO} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Current操作定义相关的职责与边界。
@@ -14,18 +14,18 @@ import top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO
  */
 public record GatewayCurrentOperationDefinitionVO(
         /**
-         * 中文说明：保存 操作 对应的状态、依赖或配置值；字段类型为 {@code GatewayOperationPO}，由 {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} 在其生命周期内读取或更新。
-         * English summary: Holds the state, dependency, or configuration represented by operation; its type is {@code GatewayOperationPO}, and {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} reads or updates it during its lifecycle.
+         * 中文说明：保存 操作 对应的状态、依赖或配置值；字段类型为 {@code GatewayOperationBO}，由 {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by operation; its type is {@code GatewayOperationBO}, and {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} reads or updates it during its lifecycle.
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        GatewayOperationPO operation,
+        GatewayOperationBO operation,
         /**
-         * 中文说明：保存 定义 对应的状态、依赖或配置值；字段类型为 {@code GatewayOperationDefinitionPO}，由 {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} 在其生命周期内读取或更新。
-         * English summary: Holds the state, dependency, or configuration represented by definition; its type is {@code GatewayOperationDefinitionPO}, and {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} reads or updates it during its lifecycle.
+         * 中文说明：保存 定义 对应的状态、依赖或配置值；字段类型为 {@code GatewayOperationDefinitionBO}，由 {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by definition; its type is {@code GatewayOperationDefinitionBO}, and {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} reads or updates it during its lifecycle.
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        GatewayOperationDefinitionPO definition
+        GatewayOperationDefinitionBO definition
 ) {
 }

@@ -25,6 +25,7 @@ import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 
 import java.util.List;
 import java.util.Locale;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO;
 
 /**
  * 中文说明：{@code McpCapabilityController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责MCPCapability控制器相关的职责与边界。
@@ -87,7 +88,7 @@ public class McpCapabilityController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/servers/{serverId}/" + CAPABILITY_COLLECTION)
-    public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO> list(
+    public List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO> list(
             @PathVariable String serverId,
             @PathVariable String plural,
             @RequestParam String gatewayGroupId) {

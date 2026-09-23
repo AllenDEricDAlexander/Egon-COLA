@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO;
 
 class GatewayRuleChunkGarbageCollectorTest {
 
@@ -49,7 +50,7 @@ class GatewayRuleChunkGarbageCollectorTest {
         GatewayReleasePublicationRepository journal =
                 mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate =
                 candidate(
                         "change-1",
                         "release-old",
@@ -66,7 +67,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                                 GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY,
                                 "activation"
                         ),
-                        candidate.configKey(),
+                        candidate.getConfigKey(),
                         "chunk"
                 ),
                 7L
@@ -92,7 +93,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 "infra", "test", "ge"));
         assertThat(yaml().leafValue(
                 captor.getValue().content(),
-                candidate.configKey()
+                candidate.getConfigKey()
         )).isEmpty();
         assertThat(yaml().leafValue(
                 captor.getValue().content(),
@@ -108,7 +109,7 @@ class GatewayRuleChunkGarbageCollectorTest {
         GatewayReleasePublicationRepository journal =
                 mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate =
                 candidate(
                         "change-2",
                         "release-old",
@@ -122,7 +123,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 DdcManagementPublishStatus.FAILED
         ));
         when(client.findConfig(any())).thenReturn(Optional.of(
-                config(documentWithChunk(candidate.configKey()), 5L)
+                config(documentWithChunk(candidate.getConfigKey()), 5L)
         ));
         GatewayRuleChunkGarbageCollector collector = collector(
                 journal,
@@ -141,7 +142,7 @@ class GatewayRuleChunkGarbageCollectorTest {
         GatewayReleasePublicationRepository journal =
                 mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate =
                 candidate(
                         "change-3",
                         "release-old",
@@ -154,7 +155,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 .when(client).publish(any());
         when(client.findConfig(any())).thenReturn(
                 Optional.of(config(
-                        documentWithChunk(candidate.configKey()),
+                        documentWithChunk(candidate.getConfigKey()),
                         5L
                 )),
                 Optional.of(config(
@@ -242,12 +243,12 @@ class GatewayRuleChunkGarbageCollectorTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate(
+    private top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO candidate(
             String changeId,
             String releaseId,
             String configKey,
             long targetVersion) {
-        return new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO(
+        return new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO(
                 changeId,
                 releaseId,
                 "yuheng-biz-gateway-orders",

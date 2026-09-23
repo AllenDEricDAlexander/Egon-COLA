@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.error.management.DdcManagementClientException;
 import top.egon.cola.component.tianshu.model.management.DdcManagementScopeBinding;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 
 import java.time.Instant;
@@ -83,8 +83,8 @@ class GatewayScopeServiceTest {
         );
     }
 
-    private GatewayApplicationPO application(String id) {
-        return new GatewayApplicationPO(
+    private GatewayApplicationBO application(String id) {
+        return new GatewayApplicationBO(
                 id,
                 "retail",
                 "order",

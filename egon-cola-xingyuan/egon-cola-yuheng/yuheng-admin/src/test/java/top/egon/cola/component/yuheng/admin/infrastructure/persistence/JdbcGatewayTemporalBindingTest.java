@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO;
 
 class JdbcGatewayTemporalBindingTest {
 
@@ -28,7 +29,7 @@ class JdbcGatewayTemporalBindingTest {
         JdbcGatewayCredentialRepository store =
                 new JdbcGatewayCredentialRepository(jdbc);
 
-        store.insert(new top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO(
+        store.insert(new top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO(
                 "credential-1",
                 "application-1",
                 "access-1",

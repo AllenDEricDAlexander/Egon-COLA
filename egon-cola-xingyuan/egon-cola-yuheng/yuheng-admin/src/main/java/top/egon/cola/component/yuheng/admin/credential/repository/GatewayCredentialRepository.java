@@ -1,7 +1,7 @@
 package top.egon.cola.component.yuheng.admin.credential.repository;
 
 
-import top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO;
+import top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,7 +22,7 @@ public interface GatewayCredentialRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayCredentialRepository.insert(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param credential 参数 凭证；parameter credential。
      */
-    void insert(GatewayCredentialPO credential);
+    void insert(GatewayCredentialBO credential);
 
     /**
      * 中文说明：执行 find 操作；该方法是 {@code GatewayCredentialRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -33,7 +33,7 @@ public interface GatewayCredentialRepository {
      * @param keyId 参数 键Id；parameter key id。
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayCredentialPO> find(String applicationId, String keyId);
+    Optional<GatewayCredentialBO> find(String applicationId, String keyId);
 
     /**
      * 中文说明：执行 findByAccess键 操作；该方法是 {@code GatewayCredentialRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -43,7 +43,7 @@ public interface GatewayCredentialRepository {
      * @param accessKey 参数 access键；parameter access key。
      * @return 返回 findByAccess键 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayCredentialPO> findByAccessKey(String accessKey);
+    Optional<GatewayCredentialBO> findByAccessKey(String accessKey);
 
     /**
      * 中文说明：执行 list 操作；该方法是 {@code GatewayCredentialRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -53,7 +53,7 @@ public interface GatewayCredentialRepository {
      * @param applicationId 参数 applicationId；parameter application id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    List<GatewayCredentialPO> list(String applicationId);
+    List<GatewayCredentialBO> list(String applicationId);
 
     /**
      * 中文说明：执行 overlap 操作；该方法是 {@code GatewayCredentialRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

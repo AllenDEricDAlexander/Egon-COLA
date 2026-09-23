@@ -111,6 +111,8 @@ import java.util.Optional;
 
 import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.GatewayJdbcParameters.timestamp;
 
+import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
+
 /**
  * 中文说明：{@code JdbcIdempotencyRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcIdempotency存储相关的职责与边界。
  * English summary: {@code JdbcIdempotencyRepository} is a jdbc idempotency store store in the current Gateway module; it owns the jdbc idempotency store-related responsibility and boundary.
@@ -162,7 +164,7 @@ public class JdbcIdempotencyRepository implements IdempotencyRepository {
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
     @Override
-    public Optional<IdempotencyPO> find(
+    public Optional<IdempotencyBO> find(
             String scopeType,
             String scopeId,
             String key) {
@@ -173,7 +175,7 @@ public class JdbcIdempotencyRepository implements IdempotencyRepository {
                   FROM gateway_idempotency_record
                  WHERE scope_type = ? AND scope_id = ?
                    AND idempotency_key = ?
-                """, (result, row) -> new IdempotencyPO(
+                """, (result, row) -> new IdempotencyBO(
                 result.getString("scope_type"),
                 result.getString("scope_id"),
                 result.getString("idempotency_key"),
@@ -195,21 +197,21 @@ public class JdbcIdempotencyRepository implements IdempotencyRepository {
      * @param record 参数 record；parameter record。
      */
     @Override
-    public void save(IdempotencyPO record) {
+    public void save(IdempotencyBO record) {
         jdbc.update("""
                 INSERT INTO gateway_idempotency_record(
                     scope_type, scope_id, idempotency_key, payload_sha256,
                     resource_id, response_content, created_at, expires_at
                 ) VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?)
                 """,
-                record.scopeType(),
-                record.scopeId(),
-                record.key(),
-                record.payloadSha256(),
-                record.resourceId(),
-                json(record.response()),
-                timestamp(record.createdAt()),
-                timestamp(record.expiresAt())
+                record.getScopeType(),
+                record.getScopeId(),
+                record.getKey(),
+                record.getPayloadSha256(),
+                record.getResourceId(),
+                json(record.getResponse()),
+                timestamp(record.getCreatedAt()),
+                timestamp(record.getExpiresAt())
         );
     }
 

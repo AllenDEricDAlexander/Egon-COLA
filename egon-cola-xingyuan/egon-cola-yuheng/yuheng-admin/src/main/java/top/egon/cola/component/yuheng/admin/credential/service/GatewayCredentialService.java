@@ -9,7 +9,7 @@ import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplic
 import top.egon.cola.component.yuheng.admin.credential.domain.vo.GatewayCredentialVO;
 import top.egon.cola.component.yuheng.admin.credential.domain.vo.IssuedGatewayCredentialVO;
 import top.egon.cola.component.yuheng.admin.credential.repository.GatewayCredentialRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO;
 
 /**
  * 中文说明：{@code GatewayCredentialService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关凭证服务相关的职责与边界。
@@ -143,11 +144,11 @@ public class GatewayCredentialService {
         requireApplication(applicationId);
         return credentials.list(applicationId).stream()
                 .map(credential -> new GatewayCredentialVO(
-                        credential.id(),
-                        credential.accessKey(),
-                        credential.status(),
-                        credential.validFrom(),
-                        credential.validUntil()
+                        credential.getId(),
+                        credential.getAccessKey(),
+                        credential.getStatus(),
+                        credential.getValidFrom(),
+                        credential.getValidUntil()
                 ))
                 .toList();
     }
@@ -175,7 +176,7 @@ public class GatewayCredentialService {
         Instant now = clock.instant();
         top.egon.cola.component.yuheng.admin.credential.domain.vo.GatewayProtectedSecretVO protectedSecret =
                 configured.protect(secret, aad(applicationId, accessKey));
-        credentials.insert(new top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO(
+        credentials.insert(new top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO(
                 id,
                 applicationId,
                 accessKey,
@@ -224,18 +225,18 @@ public class GatewayCredentialService {
                     "credential overlap must be between 0 and 24 hours"
             );
         }
-        top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO current = required(
+        top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO current = required(
                 applicationId,
                 keyId
         );
-        if ("REVOKED".equals(current.status())) {
+        if ("REVOKED".equals(current.getStatus())) {
             throw new IllegalArgumentException(
                     "revoked credential cannot be rotated"
             );
         }
         Instant now = clock.instant();
         credentials.overlap(
-                current.id(),
+                current.getId(),
                 now.plus(overlap),
                 now
         );
@@ -244,7 +245,7 @@ public class GatewayCredentialService {
                 actor,
                 request
         );
-        audit(actor, request, applicationId, current.accessKey(), "ROTATE");
+        audit(actor, request, applicationId, current.getAccessKey(), "ROTATE");
         return replacement;
     }
 
@@ -265,18 +266,18 @@ public class GatewayCredentialService {
             String keyId,
             AdminActor actor,
             RequestAuditContext request) {
-        top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO credential = required(
+        top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO credential = required(
                 applicationId,
                 keyId
         );
         Instant now = clock.instant();
-        credentials.revoke(credential.id(), now);
-        audit(actor, request, applicationId, credential.accessKey(), "REVOKE");
+        credentials.revoke(credential.getId(), now);
+        audit(actor, request, applicationId, credential.getAccessKey(), "REVOKE");
         return new GatewayCredentialVO(
-                credential.id(),
-                credential.accessKey(),
+                credential.getId(),
+                credential.getAccessKey(),
                 "REVOKED",
-                credential.validFrom(),
+                credential.getValidFrom(),
                 now
         );
     }
@@ -290,7 +291,7 @@ public class GatewayCredentialService {
      * @param keyId 参数 键Id；parameter key id。
      * @return 返回 required 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO required(
+    private top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO required(
             String applicationId,
             String keyId) {
         return credentials.find(applicationId, keyId)
@@ -378,7 +379,7 @@ public class GatewayCredentialService {
             String applicationId,
             String accessKey,
             String action) {
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -388,8 +389,8 @@ public class GatewayCredentialService {
                 "YUHENG_CREDENTIAL",
                 accessKey,
                 action,
-                null,
-                Map.of("applicationId", applicationId),
+                GatewayAuditLogBO.sanitized(null),
+                GatewayAuditLogBO.sanitized(Map.of("applicationId", applicationId)),
                 null,
                 null,
                 true,

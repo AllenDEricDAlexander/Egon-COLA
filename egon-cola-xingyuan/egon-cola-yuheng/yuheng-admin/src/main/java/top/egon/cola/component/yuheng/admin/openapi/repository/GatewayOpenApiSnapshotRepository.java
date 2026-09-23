@@ -1,6 +1,6 @@
 package top.egon.cola.component.yuheng.admin.openapi.repository;
 
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +19,7 @@ public interface GatewayOpenApiSnapshotRepository {
      * @param snapshotId snapshot identifier
      * @return the snapshot when present
      */
-    Optional<GatewayOpenApiSnapshotPO> findById(String snapshotId);
+    Optional<GatewayOpenApiSnapshotBO> findById(String snapshotId);
 
     /**
      * Finds a snapshot by its application/build/group/canonical identity.
@@ -30,7 +30,7 @@ public interface GatewayOpenApiSnapshotRepository {
      * @param canonicalSha256 canonical document hash
      * @return an existing snapshot when present
      */
-    Optional<GatewayOpenApiSnapshotPO> findByContract(
+    Optional<GatewayOpenApiSnapshotBO> findByContract(
             String applicationId,
             String buildId,
             String openapiGroup,
@@ -49,7 +49,7 @@ public interface GatewayOpenApiSnapshotRepository {
      * @param canonicalSha256 canonical document hash
      * @return newest matching snapshot when present
      */
-    default Optional<GatewayOpenApiSnapshotPO>
+    default Optional<GatewayOpenApiSnapshotBO>
     findByApplicationGroupAndCanonicalSha256(
             String applicationId,
             String openapiGroup,
@@ -63,8 +63,8 @@ public interface GatewayOpenApiSnapshotRepository {
      * @param snapshot immutable snapshot row
      * @return inserted or reused snapshot
      */
-    GatewayOpenApiSnapshotPO insertOrReuse(
-            GatewayOpenApiSnapshotPO snapshot);
+    GatewayOpenApiSnapshotBO insertOrReuse(
+            GatewayOpenApiSnapshotBO snapshot);
 
     /**
      * Lists snapshots for exactly the requested build Groups in stable order.
@@ -74,7 +74,7 @@ public interface GatewayOpenApiSnapshotRepository {
      * @param openapiGroups advertised Group codes
      * @return snapshots ordered by Group and id
      */
-    List<GatewayOpenApiSnapshotPO> findByBuildGroups(
+    List<GatewayOpenApiSnapshotBO> findByBuildGroups(
             String applicationId,
             String buildId,
             List<String> openapiGroups);
@@ -97,6 +97,6 @@ public interface GatewayOpenApiSnapshotRepository {
      * @param definitionSetId aggregate Definition Set identifier
      * @return snapshots ordered by Group and id
      */
-    List<GatewayOpenApiSnapshotPO> findByDefinitionSetId(
+    List<GatewayOpenApiSnapshotBO> findByDefinitionSetId(
             String definitionSetId);
 }

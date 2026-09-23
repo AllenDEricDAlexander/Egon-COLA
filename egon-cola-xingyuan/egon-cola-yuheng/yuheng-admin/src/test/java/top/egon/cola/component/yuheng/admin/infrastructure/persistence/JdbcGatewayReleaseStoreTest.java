@@ -14,14 +14,15 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO;
 
 class JdbcGatewayReleaseStoreTest {
 
     @Test
     void findsLatestRecoverableAttemptFromPublicationJournal() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO attempt =
-                new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO(
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO attempt =
+                new top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO(
                         "release-1",
                         "group-1",
                         2

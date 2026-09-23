@@ -8,7 +8,7 @@ import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.error.management.DdcManagementClientException;
 import top.egon.cola.component.tianshu.model.management.DdcManagementScopeBinding;
 import top.egon.cola.component.tianshu.model.management.DdcManagementScopeQuery;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.scope.domain.GatewayPhysicalApplicationKey;
 import top.egon.cola.component.yuheng.admin.scope.domain.dto.GatewayScopeQueryDTO;
@@ -100,7 +100,7 @@ public class GatewayScopeService {
                 .findAllByDeletedFalseOrderByCreatedAtDesc().stream()
                 .collect(Collectors.toMap(
                         GatewayScopeService::physicalKey,
-                        GatewayApplicationPO::getId,
+                        GatewayApplicationBO::getId,
                         (existing, duplicate) -> existing,
                         LinkedHashMap::new
                 ));
@@ -223,7 +223,7 @@ public class GatewayScopeService {
      * @return 返回 physical键 的处理结果；returns the result of the operation.
      */
     private static GatewayPhysicalApplicationKey physicalKey(
-            GatewayApplicationPO application) {
+            GatewayApplicationBO application) {
         return new GatewayPhysicalApplicationKey(
                 application.getBizCode(),
                 application.getEnv(),

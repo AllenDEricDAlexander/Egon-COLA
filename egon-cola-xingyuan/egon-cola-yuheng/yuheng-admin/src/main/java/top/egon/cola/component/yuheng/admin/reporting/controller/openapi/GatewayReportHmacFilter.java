@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.credential.repository.GatewayCredentialRepository;
 import top.egon.cola.component.yuheng.admin.credential.service.GatewaySecretProtector;
@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO;
 
 /**
  * 中文说明：{@code GatewayReportHmacFilter} 是过滤器，位于当前 Gateway 模块的相关包中，负责网关报告Hmac过滤器相关的职责与边界。
@@ -261,14 +262,14 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         if (Duration.between(signedAt, now).abs().compareTo(allowedSkew) > 0) {
             throw failure("YUHENG_REPORT_TIMESTAMP_INVALID");
         }
-        top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO credential =
+        top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO credential =
                 credentials.findByAccessKey(accessKey)
                         .filter(value -> active(value, now))
                         .orElseThrow(() ->
                                 failure("YUHENG_REPORT_CREDENTIAL_INVALID"));
-        GatewayApplicationPO application =
+        GatewayApplicationBO application =
                 applications.findByIdAndDeletedFalse(
-                                credential.applicationId()
+                                credential.getApplicationId()
                         )
                         .orElseThrow(() ->
                                 failure("YUHENG_REPORT_SCOPE_INVALID"));
@@ -306,10 +307,10 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         try {
             secret = protector.unprotect(
                     new top.egon.cola.component.yuheng.admin.credential.domain.vo.GatewayProtectedSecretVO(
-                            credential.secretCiphertext(),
-                            credential.keyVersion()
+                            credential.getSecretCiphertext(),
+                            credential.getKeyVersion()
                     ),
-                    credential.applicationId() + ":" + accessKey
+                    credential.getApplicationId() + ":" + accessKey
             );
         } catch (RuntimeException unavailable) {
             throw failure("YUHENG_REPORT_CREDENTIAL_INVALID");
@@ -351,12 +352,12 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
      * @return 返回 active 的处理结果；returns the result of the operation.
      */
     private boolean active(
-            top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO credential,
+            top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO credential,
             Instant now) {
-        return !"REVOKED".equals(credential.status())
-                && !now.isBefore(credential.validFrom())
-                && (credential.validUntil() == null
-                || now.isBefore(credential.validUntil()));
+        return !"REVOKED".equals(credential.getStatus())
+                && !now.isBefore(credential.getValidFrom())
+                && (credential.getValidUntil() == null
+                || now.isBefore(credential.getValidUntil()));
     }
 
     /**

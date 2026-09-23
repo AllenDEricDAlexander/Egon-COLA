@@ -12,7 +12,7 @@ import top.egon.cola.component.yuheng.admin.credential.repository.GatewayCredent
 import top.egon.cola.component.yuheng.admin.credential.service.GatewaySecretProtector;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayHmacNonceRepository;
 import top.egon.cola.component.yuheng.admin.reporting.service.GatewayReportAuthentication;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.credential.service.AesGcmGatewaySecretProtector;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayCanonicalRequest;
@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO;
 
 class GatewayReportHmacFilterTest {
 
@@ -78,7 +79,7 @@ class GatewayReportHmacFilterTest {
         GatewayCredentialRepository credentials =
                 mock(GatewayCredentialRepository.class);
         when(credentials.findByAccessKey(accessKey)).thenReturn(
-                Optional.of(new top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO(
+                Optional.of(new top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO(
                         "credential-1",
                         "app-1",
                         accessKey,
@@ -94,7 +95,7 @@ class GatewayReportHmacFilterTest {
         GatewayApplicationRepository applications =
                 mock(GatewayApplicationRepository.class);
         when(applications.findByIdAndDeletedFalse("app-1")).thenReturn(
-                Optional.of(new GatewayApplicationPO(
+                Optional.of(new GatewayApplicationBO(
                         "app-1",
                         "test-biz",
                         "inventory",

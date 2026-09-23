@@ -2,6 +2,7 @@ package top.egon.cola.component.yuheng.admin.release.service;
 
 
 import top.egon.cola.component.yuheng.admin.rule.domain.vo.CompiledGatewayRelease;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO;
 
 /**
  * 中文说明：{@code PreparedGatewayRelease} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Prepared发布相关的职责与边界。
@@ -14,12 +15,12 @@ import top.egon.cola.component.yuheng.admin.rule.domain.vo.CompiledGatewayReleas
  */
 public record PreparedGatewayRelease(
         /**
-         * 中文说明：保存 发布 对应的状态、依赖或配置值；字段类型为 {@code top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO}，由 {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease} 在其生命周期内读取或更新。
-         * English summary: Holds the state, dependency, or configuration represented by release; its type is {@code top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO}, and {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease} reads or updates it during its lifecycle.
+         * 中文说明：保存 发布 对应的状态、依赖或配置值；字段类型为 {@code top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO}，由 {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by release; its type is {@code top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO}, and {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease} reads or updates it during its lifecycle.
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease}; do not couple callers to its representation when the owning type exposes an API.
          */
-        top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO release,
+        top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO release,
         /**
          * 中文说明：保存 compiled 对应的状态、依赖或配置值；字段类型为 {@code CompiledGatewayRelease}，由 {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease} 在其生命周期内读取或更新。
          * English summary: Holds the state, dependency, or configuration represented by compiled; its type is {@code CompiledGatewayRelease}, and {@code top.egon.cola.component.yuheng.admin.release.service.PreparedGatewayRelease} reads or updates it during its lifecycle.

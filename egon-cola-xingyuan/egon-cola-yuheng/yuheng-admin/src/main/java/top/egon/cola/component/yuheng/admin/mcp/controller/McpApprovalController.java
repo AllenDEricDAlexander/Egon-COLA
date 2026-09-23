@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO;
 
 /**
  * 中文说明：{@code McpApprovalController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责MCP审批控制器相关的职责与边界。
@@ -150,7 +151,7 @@ public class McpApprovalController {
         Instant expiresAt = issuedAt.plusSeconds(request.ttlSeconds());
         String token = token();
         String id = UUID.randomUUID().toString();
-        approvals.issue(new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalPO(
+        approvals.issue(new top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpApprovalBO(
                 id,
                 McpSecurityDigests.token(token),
                 owner.subjectId(),

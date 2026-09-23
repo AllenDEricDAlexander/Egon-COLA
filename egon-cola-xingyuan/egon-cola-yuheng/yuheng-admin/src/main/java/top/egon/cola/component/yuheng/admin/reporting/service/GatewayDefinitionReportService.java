@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import top.egon.cola.component.yuheng.admin.reporting.domain.bo.GatewayStoredReportBO;
+import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
 
 /**
  * 中文说明：{@code GatewayDefinitionReportService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关定义报告服务相关的职责与边界。
@@ -194,18 +196,18 @@ public class GatewayDefinitionReportService {
         );
         canonicalizer.verify(report);
         String payloadSha = canonicalizer.payloadSha256(report);
-        top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO previous = idempotency.find(
+        top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO previous = idempotency.find(
                         IDEMPOTENCY_SCOPE,
                         authentication.applicationId(),
                         report.reportId()
                 )
                 .orElse(null);
         if (previous != null) {
-            if (!previous.payloadSha256().equals(payloadSha)) {
+            if (!previous.getPayloadSha256().equals(payloadSha)) {
                 throw new GatewayAdminIdempotencyConflictException();
             }
             return objectMapper.convertValue(
-                    previous.response(),
+                    previous.getResponse(),
                     GatewayInterfaceDefinitionReportResult.class
             );
         }
@@ -231,7 +233,7 @@ public class GatewayDefinitionReportService {
                 )
                         ? alreadyVerified(authentication, report)
                         : ingest(authentication, report);
-        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO(
+        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO(
                 IDEMPOTENCY_SCOPE,
                 authentication.applicationId(),
                 report.reportId(),
@@ -263,7 +265,7 @@ public class GatewayDefinitionReportService {
                         reportId
                 )
                 .map(record -> objectMapper.convertValue(
-                        record.response(),
+                        record.getResponse(),
                         GatewayInterfaceDefinitionReportResult.class
                 ))
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
@@ -299,7 +301,7 @@ public class GatewayDefinitionReportService {
                 authentication.applicationId()
         );
         Instant now = clock.instant();
-        top.egon.cola.component.yuheng.admin.reporting.domain.po.GatewayStoredReportPO stored = reports.ingest(
+        top.egon.cola.component.yuheng.admin.reporting.domain.bo.GatewayStoredReportBO stored = reports.ingest(
                 authentication.applicationId(),
                 report,
                 now
@@ -316,11 +318,11 @@ public class GatewayDefinitionReportService {
                         counts.entities(),
                         counts.groups(),
                         counts.operations(),
-                        stored.created(),
-                        stored.updated(),
+                        stored.getCreated(),
+                        stored.getUpdated(),
                         missing
                 ),
-                stored.operationRefs(),
+                stored.getOperationRefs(),
                 missing == 0
                         ? List.of()
                         : List.of(warning(

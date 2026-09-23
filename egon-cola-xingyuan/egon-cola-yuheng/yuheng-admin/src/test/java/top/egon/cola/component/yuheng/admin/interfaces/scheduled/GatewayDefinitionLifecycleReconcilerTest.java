@@ -7,7 +7,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.yuheng.admin.runtime.service.GatewayProjectionService;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayDefinitionLifecycleRepository;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.reporting.domain.vo.GatewayReconcileResultVO;
@@ -52,7 +52,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
             return null;
         }).when(transactions).executeWithoutResult(any());
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(new GatewayApplicationPO(
+                .thenReturn(List.of(new GatewayApplicationBO(
                         "application-1",
                         "test-biz",
                         "orders",
@@ -111,7 +111,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
         GatewayDefinitionLifecycleRepository lifecycle =
                 mock(GatewayDefinitionLifecycleRepository.class);
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(new GatewayApplicationPO(
+                .thenReturn(List.of(new GatewayApplicationBO(
                         "application-1",
                         "test-biz",
                         "orders",
@@ -165,7 +165,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
             return null;
         }).when(transactions).executeWithoutResult(any());
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(new GatewayApplicationPO(
+                .thenReturn(List.of(new GatewayApplicationBO(
                         "application-1",
                         "test-biz",
                         "orders",
@@ -226,7 +226,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
             return null;
         }).when(transactions).executeWithoutResult(any());
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(new GatewayApplicationPO(
+                .thenReturn(List.of(new GatewayApplicationBO(
                         "application-1",
                         "test-biz",
                         "orders",

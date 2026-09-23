@@ -2,10 +2,10 @@ package top.egon.cola.component.yuheng.admin.release.repository;
 
 
 import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayReleaseStatus;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseAttemptPO;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePO;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayRecoverableReleaseAttemptBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAttemptBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseBO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
 import top.egon.cola.component.yuheng.admin.rule.domain.vo.CompiledGatewayRelease;
 
 import java.time.Instant;
@@ -30,7 +30,7 @@ public interface GatewayReleaseRepository {
      * @param attemptNo 参数 attemptNo；parameter attempt no。
      */
     void insert(
-            GatewayReleasePO release,
+            GatewayReleaseBO release,
             CompiledGatewayRelease compiled,
             int attemptNo);
 
@@ -42,7 +42,7 @@ public interface GatewayReleaseRepository {
      * @param releaseId 参数 发布Id；parameter release id。
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayReleasePO> find(String releaseId);
+    Optional<GatewayReleaseBO> find(String releaseId);
 
     /**
      * 中文说明：执行 history 操作；该方法是 {@code GatewayReleaseRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -52,7 +52,7 @@ public interface GatewayReleaseRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 history 的处理结果；returns the result of the operation.
      */
-    List<GatewayReleasePO> history(String gatewayGroupId);
+    List<GatewayReleaseBO> history(String gatewayGroupId);
 
     /**
      * 中文说明：执行 recoverable 操作；该方法是 {@code GatewayReleaseRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -61,7 +61,7 @@ public interface GatewayReleaseRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseRepository.recoverable(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 recoverable 的处理结果；returns the result of the operation.
      */
-    List<GatewayRecoverableReleaseAttemptPO> recoverable();
+    List<GatewayRecoverableReleaseAttemptBO> recoverable();
 
     /**
      * 中文说明：执行 attempts 操作；该方法是 {@code GatewayReleaseRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -71,7 +71,7 @@ public interface GatewayReleaseRepository {
      * @param releaseId 参数 发布Id；parameter release id。
      * @return 返回 attempts 的处理结果；returns the result of the operation.
      */
-    List<GatewayReleaseAttemptPO> attempts(String releaseId);
+    List<GatewayReleaseAttemptBO> attempts(String releaseId);
 
     /**
      * 中文说明：执行 latestAttempt 操作；该方法是 {@code GatewayReleaseRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -144,7 +144,7 @@ public interface GatewayReleaseRepository {
             String changeId,
             String errorCode,
             String errorMessage,
-            List<GatewayReleaseTargetPO> targets,
+            List<GatewayReleaseTargetBO> targets,
             Instant now);
 
     /**

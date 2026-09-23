@@ -115,6 +115,8 @@ import java.util.Objects;
 
 
 import top.egon.cola.component.yuheng.admin.observability.repository.jdbc.GatewayObservabilitySqlFilter;
+
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO;
 /**
  * 中文说明：{@code JdbcGatewayObservabilityRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关可观测性存储相关的职责与边界。
  * English summary: {@code JdbcGatewayObservabilityRepository} is a jdbc gateway observability store store in the current Gateway module; it owns the jdbc gateway observability store-related responsibility and boundary.
@@ -246,7 +248,7 @@ public class JdbcGatewayObservabilityRepository
      * @param failure 参数 failure；parameter failure。
      */
     @Override
-    public void recordFailure(GatewayConsumeFailurePO failure) {
+    public void recordFailure(GatewayConsumeFailureBO failure) {
         jdbc.update(
                 """
                 INSERT INTO gateway_call_event_consume_failure (
@@ -256,16 +258,16 @@ public class JdbcGatewayObservabilityRepository
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (topic, partition_no, offset_no) DO NOTHING
                 """,
-                failure.id(),
-                failure.topic(),
-                failure.partition(),
-                failure.offset(),
-                blankToNull(failure.eventId()),
-                failure.failureCode(),
-                failure.failureMessage(),
-                failure.payloadSha256(),
-                failure.payloadSize(),
-                Timestamp.from(failure.occurredAt())
+                failure.getId(),
+                failure.getTopic(),
+                failure.getPartition(),
+                failure.getOffset(),
+                blankToNull(failure.getEventId()),
+                failure.getFailureCode(),
+                failure.getFailureMessage(),
+                failure.getPayloadSha256(),
+                failure.getPayloadSize(),
+                Timestamp.from(failure.getOccurredAt())
         );
     }
 

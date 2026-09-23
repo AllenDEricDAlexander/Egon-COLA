@@ -5,12 +5,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.routing.domain.dto.GatewayDraftMutationControlDTO;
 import top.egon.cola.component.yuheng.admin.routing.domain.dto.GatewayPolicyMutationDTO;
 import top.egon.cola.component.yuheng.admin.routing.domain.dto.GatewayRouteMutationDTO;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftDiffVO;
 import top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftMutationResultVO;
 import top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO;
@@ -35,6 +35,10 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
+import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
 
 /**
  * 中文说明：{@code GatewayDraftService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关草稿服务相关的职责与边界。
@@ -190,7 +194,7 @@ public class GatewayDraftService {
      */
     @Transactional(readOnly = true)
     public GatewayDraftVO get(String gatewayGroupId) {
-        GatewayDraftPO draft = required(gatewayGroupId);
+        GatewayDraftBO draft = required(gatewayGroupId);
         return view(draft);
     }
 
@@ -243,7 +247,7 @@ public class GatewayDraftService {
         if (replay != null) {
             return replay;
         }
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation =
                 catalog.findOperation(command.operationId())
                         .orElseThrow(() -> new GatewayAdminNotFoundException(
                                 "gateway operation "
@@ -251,17 +255,17 @@ public class GatewayDraftService {
                                         + " was not found"
                         ));
         if (isPublic(canonicalContent)
-                && !operation.externalAccessible()) {
+                && !operation.isExternalAccessible()) {
             throw new IllegalArgumentException(
                     "PUBLIC route references an internal-only operation"
             );
         }
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 gatewayGroupId,
                 command.expectedRevision()
         );
         Instant now = clock.instant();
-        store.upsertRoute(new top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO(
+        store.upsertRoute(new top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO(
                 gatewayGroupId,
                 required(routeId, "routeId"),
                 command.operationId(),
@@ -316,7 +320,7 @@ public class GatewayDraftService {
         if (replay != null) {
             return replay;
         }
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 gatewayGroupId,
                 control.expectedRevision()
         );
@@ -367,12 +371,12 @@ public class GatewayDraftService {
         if (replay != null) {
             return replay;
         }
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 gatewayGroupId,
                 command.expectedRevision()
         );
         Instant now = clock.instant();
-        store.upsertPolicy(new top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO(
+        store.upsertPolicy(new top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO(
                 gatewayGroupId,
                 required(policyId, "policyId"),
                 required(command.policyType(), "policyType")
@@ -432,7 +436,7 @@ public class GatewayDraftService {
         if (replay != null) {
             return replay;
         }
-        GatewayDraftPO draft = editable(
+        GatewayDraftBO draft = editable(
                 gatewayGroupId,
                 control.expectedRevision()
         );
@@ -464,59 +468,59 @@ public class GatewayDraftService {
         GatewayDraftVO draft = get(gatewayGroupId);
         List<GatewayDraftValidationIssueVO> errors = new ArrayList<>();
         List<GatewayDraftValidationIssueVO> warnings = new ArrayList<>();
-        for (top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO route : draft.routes()) {
+        for (top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO route : draft.routes()) {
             Map<String, Object> canonicalContent = routeMapper.canonicalize(
-                    route.content()
+                    route.getContent()
             );
-            top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
-                    catalog.findOperation(route.operationId()).orElse(null);
+            top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation =
+                    catalog.findOperation(route.getOperationId()).orElse(null);
             GatewayProtocol protocol = operation == null
                     ? null
-                    : GatewayProtocol.valueOf(operation.protocol());
+                    : GatewayProtocol.valueOf(operation.getProtocol());
             GatewayResponseMode responseMode = operation == null
                     ? null
-                    : operationResponseMode(operation.id());
+                    : operationResponseMode(operation.getId());
             transportValidator.validate(
                     canonicalContent,
                     protocol,
                     responseMode
             ).forEach(issue -> errors.add(new GatewayDraftValidationIssueVO(
-                    "routes." + route.routeId() + "." + issue.path(),
+                    "routes." + route.getRouteId() + "." + issue.path(),
                     issue.code(),
                     issue.message()
             )));
             if (operation == null) {
                 errors.add(new GatewayDraftValidationIssueVO(
-                        "routes." + route.routeId() + ".operationId",
+                        "routes." + route.getRouteId() + ".operationId",
                         "OPERATION_NOT_FOUND",
                         "referenced operation does not exist"
                 ));
                 continue;
             }
-            if ("OFFLINE".equals(operation.lifecycleStatus())) {
+            if ("OFFLINE".equals(operation.getLifecycleStatus())) {
                 errors.add(new GatewayDraftValidationIssueVO(
-                        "routes." + route.routeId() + ".operationId",
+                        "routes." + route.getRouteId() + ".operationId",
                         "OPERATION_OFFLINE",
                         "offline operation cannot be published"
                 ));
             } else if ("DISCOVERED".equals(
-                    operation.lifecycleStatus())) {
+                    operation.getLifecycleStatus())) {
                 errors.add(new GatewayDraftValidationIssueVO(
-                        "routes." + route.routeId() + ".operationId",
+                        "routes." + route.getRouteId() + ".operationId",
                         "OPERATION_NOT_ACTIVE",
                         "operation is not active on any provider"
                 ));
-            } else if ("DEPRECATED".equals(operation.lifecycleStatus())) {
+            } else if ("DEPRECATED".equals(operation.getLifecycleStatus())) {
                 warnings.add(new GatewayDraftValidationIssueVO(
-                        "routes." + route.routeId() + ".operationId",
+                        "routes." + route.getRouteId() + ".operationId",
                         "OPERATION_DEPRECATED",
                         "deprecated operation remains routable"
                 ));
             }
             if (isPublic(canonicalContent)
-                    && !operation.externalAccessible()) {
+                    && !operation.isExternalAccessible()) {
                 errors.add(new GatewayDraftValidationIssueVO(
-                        "routes." + route.routeId() + ".accessZones",
+                        "routes." + route.getRouteId() + ".accessZones",
                         "EXTERNAL_ACCESS_DENIED",
                         "operation is not externally accessible"
                 ));
@@ -575,7 +579,7 @@ public class GatewayDraftService {
      * @return 返回 finish 的处理结果；returns the result of the operation.
      */
     private GatewayDraftMutationResultVO finish(
-            GatewayDraftPO draft,
+            GatewayDraftBO draft,
             String resourceType,
             String resourceId,
             String action,
@@ -592,7 +596,7 @@ public class GatewayDraftService {
                 resourceId,
                 false
         );
-        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO(
+        idempotency.save(new top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO(
                 SCOPE,
                 draft.getGatewayGroupId(),
                 required(key, "idempotencyKey"),
@@ -605,7 +609,7 @@ public class GatewayDraftService {
                 now,
                 now.plus(Duration.ofDays(7))
         ));
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -615,8 +619,8 @@ public class GatewayDraftService {
                 resourceType,
                 resourceId,
                 action,
-                null,
-                Map.of("changeReason", reason),
+                GatewayAuditLogBO.sanitized(null),
+                GatewayAuditLogBO.sanitized(Map.of("changeReason", reason)),
                 draft.getRevision(),
                 null,
                 true,
@@ -647,7 +651,7 @@ public class GatewayDraftService {
                     "idempotencyKey is required"
             );
         }
-        top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO existing = idempotency.find(
+        top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO existing = idempotency.find(
                 SCOPE,
                 gatewayGroupId,
                 key
@@ -656,15 +660,15 @@ public class GatewayDraftService {
             return null;
         }
         boolean compatible = java.util.Arrays.stream(compatibleDigests)
-                .anyMatch(existing.payloadSha256()::equals);
-        if (!existing.payloadSha256().equals(digest) && !compatible) {
+                .anyMatch(existing.getPayloadSha256()::equals);
+        if (!existing.getPayloadSha256().equals(digest) && !compatible) {
             throw new GatewayAdminIdempotencyConflictException();
         }
-        Object revision = existing.response().get("revision");
+        Object revision = existing.getResponse().get("revision");
         long value = revision instanceof Number number
                 ? number.longValue()
                 : Long.parseLong(revision.toString());
-        return new GatewayDraftMutationResultVO(value, existing.resourceId(), true);
+        return new GatewayDraftMutationResultVO(value, existing.getResourceId(), true);
     }
 
     /**
@@ -676,8 +680,8 @@ public class GatewayDraftService {
      * @param expectedRevision 参数 expectedRevision；parameter expected revision。
      * @return 返回 editable 的处理结果；returns the result of the operation.
      */
-    private GatewayDraftPO editable(String id, long expectedRevision) {
-        GatewayDraftPO draft = required(id);
+    private GatewayDraftBO editable(String id, long expectedRevision) {
+        GatewayDraftBO draft = required(id);
         draft.assertEditable(expectedRevision);
         return draft;
     }
@@ -690,7 +694,7 @@ public class GatewayDraftService {
      * @param id 参数 id；parameter id。
      * @return 返回 required 的处理结果；returns the result of the operation.
      */
-    private GatewayDraftPO required(String id) {
+    private GatewayDraftBO required(String id) {
         return drafts.findById(id)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
                         "gateway draft " + id + " was not found"
@@ -705,7 +709,7 @@ public class GatewayDraftService {
      * @param draft 参数 草稿；parameter draft。
      * @return 返回 view 的处理结果；returns the result of the operation.
      */
-    private GatewayDraftVO view(GatewayDraftPO draft) {
+    private GatewayDraftVO view(GatewayDraftBO draft) {
         return new GatewayDraftVO(
                 draft.getGatewayGroupId(),
                 draft.getRevision(),
@@ -747,7 +751,7 @@ public class GatewayDraftService {
         return catalog.loadDefinitions(operationId)
                 .stream()
                 .findFirst()
-                .map(definition -> definition.attributes().getOrDefault(
+                .map(definition -> definition.getAttributes().getOrDefault(
                         "responseMode",
                         "TRANSPARENT"
                 ).toString())

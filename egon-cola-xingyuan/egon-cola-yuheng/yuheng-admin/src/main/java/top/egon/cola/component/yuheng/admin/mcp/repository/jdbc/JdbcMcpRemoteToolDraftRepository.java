@@ -111,8 +111,9 @@ import java.util.Map;
 import java.util.Objects;
 
 
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteToolDraftMutationDTO;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteToolDraftRepository;
 /**
  * 中文说明：{@code JdbcMcpRemoteToolDraftRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcMCP远程工具草稿存储相关的职责与边界。
  * English summary: {@code JdbcMcpRemoteToolDraftRepository} is a jdbc mcp remote tool draft store store in the current Gateway module; it owns the jdbc mcp remote tool draft store-related responsibility and boundary.
@@ -120,7 +121,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteToolDraftMut
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Repository
-public class JdbcMcpRemoteToolDraftRepository {
+public class JdbcMcpRemoteToolDraftRepository
+        implements McpRemoteToolDraftRepository {
 
     /**
      * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcMcpRemoteToolDraftRepository} 在其生命周期内读取或更新。
@@ -161,7 +163,7 @@ public class JdbcMcpRemoteToolDraftRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 load 的处理结果；returns the result of the operation.
      */
-    public List<McpRemoteToolDraftPO> load(String gatewayGroupId) {
+    public List<McpRemoteToolDraftBO> load(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, server_id, tool_name,
                        remote_mount_id, content::text AS content,
@@ -170,7 +172,7 @@ public class JdbcMcpRemoteToolDraftRepository {
                  WHERE gateway_group_id = ?
                    AND deleted = FALSE
                  ORDER BY server_id, tool_name
-                """, (result, row) -> new McpRemoteToolDraftPO(
+                """, (result, row) -> new McpRemoteToolDraftBO(
                 result.getString("id"),
                 result.getString("gateway_group_id"),
                 result.getString("server_id"),
@@ -194,7 +196,7 @@ public class JdbcMcpRemoteToolDraftRepository {
      * @return 返回 save 的处理结果；returns the result of the operation.
      */
     public McpRemoteToolDraftMutationDTO save(
-            McpRemoteToolDraftPO draft,
+            McpRemoteToolDraftBO draft,
             long expectedRevision,
             AdminActor actor,
             Instant now) {
@@ -213,19 +215,19 @@ public class JdbcMcpRemoteToolDraftRepository {
                    AND revision = ?
                    AND deleted = FALSE
                 """,
-                draft.name(),
-                draft.remoteMountId(),
-                json.write(draft.content()),
-                draft.enabled(),
+                draft.getName(),
+                draft.getRemoteMountId(),
+                json.write(draft.getContent()),
+                draft.isEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor),
-                draft.id(),
+                draft.getId(),
                 expectedRevision
         );
         if (updated == 1) {
-            return new McpRemoteToolDraftMutationDTO(draft.id(), expectedRevision + 1);
+            return new McpRemoteToolDraftMutationDTO(draft.getId(), expectedRevision + 1);
         }
-        Long current = currentRevision(draft.id());
+        Long current = currentRevision(draft.getId());
         if (current != null || expectedRevision != 0) {
             throw revisionConflict(current);
         }
@@ -238,19 +240,19 @@ public class JdbcMcpRemoteToolDraftRepository {
                     ?, ?, ?, ?, ?, ?::jsonb, ?, 0, FALSE, ?, ?, ?, ?
                 )
                 """,
-                draft.id(),
-                draft.gatewayGroupId(),
-                draft.serverId(),
-                draft.name(),
-                draft.remoteMountId(),
-                json.write(draft.content()),
-                draft.enabled(),
+                draft.getId(),
+                draft.getGatewayGroupId(),
+                draft.getServerId(),
+                draft.getName(),
+                draft.getRemoteMountId(),
+                json.write(draft.getContent()),
+                draft.isEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor),
                 McpJdbcJson.timestamp(now),
                 actorId(actor)
         );
-        return new McpRemoteToolDraftMutationDTO(draft.id(), 0);
+        return new McpRemoteToolDraftMutationDTO(draft.getId(), 0);
     }
 
     /**

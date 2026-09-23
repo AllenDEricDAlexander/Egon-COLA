@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
+import top.egon.cola.component.yuheng.admin.openapi.domain.bo.GatewayOpenApiSnapshotBO;
 import top.egon.cola.component.yuheng.admin.openapi.repository.GatewayOpenApiSnapshotRepository;
 
 import java.sql.ResultSet;
@@ -65,7 +65,7 @@ public class JdbcGatewayOpenApiSnapshotRepository
     }
 
     @Override
-    public Optional<GatewayOpenApiSnapshotPO> findById(String snapshotId) {
+    public Optional<GatewayOpenApiSnapshotBO> findById(String snapshotId) {
         return jdbc.query(
                         SELECT_COLUMNS + " WHERE id = ?",
                         rowMapper(),
@@ -76,7 +76,7 @@ public class JdbcGatewayOpenApiSnapshotRepository
     }
 
     @Override
-    public Optional<GatewayOpenApiSnapshotPO> findByContract(
+    public Optional<GatewayOpenApiSnapshotBO> findByContract(
             String applicationId,
             String buildId,
             String openapiGroup,
@@ -99,7 +99,7 @@ public class JdbcGatewayOpenApiSnapshotRepository
     }
 
     @Override
-    public Optional<GatewayOpenApiSnapshotPO>
+    public Optional<GatewayOpenApiSnapshotBO>
     findByApplicationGroupAndCanonicalSha256(
             String applicationId,
             String openapiGroup,
@@ -121,9 +121,9 @@ public class JdbcGatewayOpenApiSnapshotRepository
     }
 
     @Override
-    public GatewayOpenApiSnapshotPO insertOrReuse(
-            GatewayOpenApiSnapshotPO snapshot) {
-        Objects.requireNonNull(snapshot, "snapshot");
+    public GatewayOpenApiSnapshotBO insertOrReuse(
+            GatewayOpenApiSnapshotBO snapshot) {
+        GatewayOpenApiSnapshotBO.validated(snapshot);
         int inserted = jdbc.update("""
                 INSERT INTO gateway_openapi_snapshot(
                     id, application_id, definition_set_id, build_id,
@@ -138,53 +138,53 @@ public class JdbcGatewayOpenApiSnapshotRepository
                     application_id, build_id, openapi_group, canonical_sha256
                 ) DO NOTHING
                 """,
-                snapshot.id(),
-                snapshot.applicationId(),
-                snapshot.definitionSetId(),
-                snapshot.buildId(),
-                snapshot.artifactVersion(),
-                snapshot.openapiGroup(),
-                snapshot.openapiVersion(),
-                snapshot.documentSha256(),
-                snapshot.canonicalSha256(),
-                json(snapshot.documentJson()),
-                snapshot.validationStatus(),
-                json(snapshot.validationMessages()),
-                snapshot.operationCount(),
-                snapshot.schemaCount(),
-                snapshot.fetchedFromInstanceId(),
-                timestamp(snapshot.fetchedAt()),
-                timestamp(snapshot.validatedAt()),
-                timestamp(snapshot.createdAt())
+                snapshot.getId(),
+                snapshot.getApplicationId(),
+                snapshot.getDefinitionSetId(),
+                snapshot.getBuildId(),
+                snapshot.getArtifactVersion(),
+                snapshot.getOpenapiGroup(),
+                snapshot.getOpenapiVersion(),
+                snapshot.getDocumentSha256(),
+                snapshot.getCanonicalSha256(),
+                json(snapshot.getDocumentJson()),
+                snapshot.getValidationStatus(),
+                json(snapshot.getValidationMessages()),
+                snapshot.getOperationCount(),
+                snapshot.getSchemaCount(),
+                snapshot.getFetchedFromInstanceId(),
+                timestamp(snapshot.getFetchedAt()),
+                timestamp(snapshot.getValidatedAt()),
+                timestamp(snapshot.getCreatedAt())
         );
         if (inserted == 1) {
             return snapshot;
         }
-        GatewayOpenApiSnapshotPO existing = findByContract(
-                snapshot.applicationId(),
-                snapshot.buildId(),
-                snapshot.openapiGroup(),
-                snapshot.canonicalSha256()
+        GatewayOpenApiSnapshotBO existing = findByContract(
+                snapshot.getApplicationId(),
+                snapshot.getBuildId(),
+                snapshot.getOpenapiGroup(),
+                snapshot.getCanonicalSha256()
         ).orElseThrow(() -> new IllegalStateException(
                 "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot identity "
-                        + snapshot.id()
+                        + snapshot.getId()
                         + " could not be resolved"
         ));
         if (!sameContract(existing, snapshot)) {
             throw new IllegalStateException(
                     "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: immutable contract "
-                            + snapshot.applicationId()
+                            + snapshot.getApplicationId()
                             + "/"
-                            + snapshot.buildId()
+                            + snapshot.getBuildId()
                             + "/"
-                            + snapshot.openapiGroup()
+                            + snapshot.getOpenapiGroup()
             );
         }
         return existing;
     }
 
     @Override
-    public List<GatewayOpenApiSnapshotPO> findByBuildGroups(
+    public List<GatewayOpenApiSnapshotBO> findByBuildGroups(
             String applicationId,
             String buildId,
             List<String> openapiGroups) {
@@ -260,7 +260,7 @@ public class JdbcGatewayOpenApiSnapshotRepository
     }
 
     @Override
-    public List<GatewayOpenApiSnapshotPO> findByDefinitionSetId(
+    public List<GatewayOpenApiSnapshotBO> findByDefinitionSetId(
             String definitionSetId) {
         return jdbc.query(
                 SELECT_COLUMNS + """
@@ -273,21 +273,22 @@ public class JdbcGatewayOpenApiSnapshotRepository
     }
 
     private boolean sameContract(
-            GatewayOpenApiSnapshotPO left,
-            GatewayOpenApiSnapshotPO right) {
-        return left.artifactVersion().equals(right.artifactVersion())
-                && left.openapiVersion().equals(right.openapiVersion())
-                && left.documentJson().equals(right.documentJson())
-                && left.validationStatus().equals(right.validationStatus())
-                && left.validationMessages().equals(
-                right.validationMessages()
+            GatewayOpenApiSnapshotBO left,
+            GatewayOpenApiSnapshotBO right) {
+        return left.getArtifactVersion().equals(right.getArtifactVersion())
+                && left.getOpenapiVersion().equals(right.getOpenapiVersion())
+                && left.getDocumentJson().equals(right.getDocumentJson())
+                && left.getValidationStatus().equals(right.getValidationStatus())
+                && left.getValidationMessages().equals(
+                right.getValidationMessages()
         )
-                && left.operationCount() == right.operationCount()
-                && left.schemaCount() == right.schemaCount();
+                && left.getOperationCount() == right.getOperationCount()
+                && left.getSchemaCount() == right.getSchemaCount();
     }
 
-    private RowMapper<GatewayOpenApiSnapshotPO> rowMapper() {
-        return (result, row) -> new GatewayOpenApiSnapshotPO(
+    private RowMapper<GatewayOpenApiSnapshotBO> rowMapper() {
+        return (result, row) -> GatewayOpenApiSnapshotBO.validated(
+                new GatewayOpenApiSnapshotBO(
                 result.getString("id"),
                 result.getString("application_id"),
                 result.getString("definition_set_id"),
@@ -306,7 +307,7 @@ public class JdbcGatewayOpenApiSnapshotRepository
                 instant(result, "fetched_at"),
                 instant(result, "validated_at"),
                 instant(result, "created_at")
-        );
+        ));
     }
 
     private Map<String, Object> readMap(ResultSet result, String column)

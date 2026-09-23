@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.mcp.domain.exception.McpValidationException;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpManagedToolProjectionVO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
@@ -43,6 +43,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO;
 
 /**
  * 中文说明：{@code McpReleaseContentFactory} 是工厂，位于当前 Gateway 模块的相关包中，负责MCP发布Content工厂相关的职责与边界。
@@ -228,7 +235,7 @@ public class McpReleaseContentFactory {
      */
     @Transactional(readOnly = true)
     public List<McpManagedToolProjectionVO> managedTools(String gatewayGroupId) {
-        List<McpServerPO> serverEntities = servers
+        List<McpServerBO> serverEntities = servers
                 .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
                         gatewayGroupId
                 );
@@ -244,22 +251,22 @@ public class McpReleaseContentFactory {
      * @return 返回 create 的处理结果；returns the result of the operation.
      */
     private McpRuleContent create(String gatewayGroupId) {
-        List<McpServerPO> serverEntities = servers
+        List<McpServerBO> serverEntities = servers
                 .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
                         gatewayGroupId
                 );
-        Map<String, McpServerPO> serverById = serverEntities.stream()
+        Map<String, McpServerBO> serverById = serverEntities.stream()
                 .collect(Collectors.toUnmodifiableMap(
-                        McpServerPO::getId,
+                        McpServerBO::getId,
                         Function.identity()
                 ));
         var draft = capabilities.load(gatewayGroupId);
-        List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO> providers =
+        List<top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO> providers =
                 remote.providers(gatewayGroupId);
-        Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO>
+        Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO>
                 providerById = providers.stream().collect(
                 java.util.stream.Collectors.toUnmodifiableMap(
-                        top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO::id,
+                        top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO::getId,
                         java.util.function.Function.identity()
                 )
         );
@@ -306,8 +313,8 @@ public class McpReleaseContentFactory {
      */
     private List<McpRuntimeTool> tools(
             String gatewayGroupId,
-            List<McpServerPO> serverEntities,
-            Map<String, McpServerPO> serverById) {
+            List<McpServerBO> serverEntities,
+            Map<String, McpServerBO> serverById) {
         List<McpRuntimeTool> result = new ArrayList<>();
         managedTools(gatewayGroupId, serverEntities).stream()
                 .map(McpManagedToolProjectionVO::tool)
@@ -329,34 +336,34 @@ public class McpReleaseContentFactory {
      */
     private List<McpManagedToolProjectionVO> managedTools(
             String gatewayGroupId,
-            List<McpServerPO> serverEntities) {
-        Map<String, McpServerPO> serverById = serverEntities.stream()
+            List<McpServerBO> serverEntities) {
+        Map<String, McpServerBO> serverById = serverEntities.stream()
                 .collect(Collectors.toUnmodifiableMap(
-                        McpServerPO::getId,
+                        McpServerBO::getId,
                         Function.identity()
                 ));
-        Map<String, McpServerPO> serverByCode = serverEntities.stream()
+        Map<String, McpServerBO> serverByCode = serverEntities.stream()
                 .collect(Collectors.toUnmodifiableMap(
-                        McpServerPO::getServerCode,
+                        McpServerBO::getServerCode,
                         Function.identity()
                 ));
-        Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO>
+        Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO>
                 overrideByOperationId = managedOverrides.load(gatewayGroupId)
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(
-                        top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO
-                                ::operationId,
+                        top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO
+                                ::getOperationId,
                         Function.identity()
                 ));
         List<McpManagedToolProjectionVO> result = new ArrayList<>();
         for (top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO current
                 : catalog.loadCurrentOperationDefinitions(gatewayGroupId)) {
             if (!Set.of("RPC_DESCRIPTOR", "OPENAPI31")
-                    .contains(current.operation().sourceType())) {
+                    .contains(current.operation().getSourceType())) {
                 continue;
             }
             Map<String, Object> exposure = objectMap(
-                    current.definition().attributes().get("mcpExposure")
+                    current.definition().getAttributes().get("mcpExposure")
             );
             if (!bool(exposure, "registerMcp", false)) {
                 continue;
@@ -390,30 +397,30 @@ public class McpReleaseContentFactory {
             String gatewayGroupId,
             top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO current,
             Map<String, Object> exposure,
-            Map<String, McpServerPO> serverById,
-            Map<String, McpServerPO> serverByCode,
-            Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO>
+            Map<String, McpServerBO> serverById,
+            Map<String, McpServerBO> serverByCode,
+            Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO>
                     overrideByOperationId) {
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation = current.operation();
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition =
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation = current.operation();
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition =
                 current.definition();
         String codeServerCode = required(exposure, "mcpServerCode");
-        McpServerPO codeServer = serverByCode.get(codeServerCode);
+        McpServerBO codeServer = serverByCode.get(codeServerCode);
         if (codeServer == null) {
             throw new McpValidationException(
                     "YUHENG_MCP_SERVER_NOT_FOUND",
-                    "operations." + operation.operationKey()
+                    "operations." + operation.getOperationKey()
                             + ".mcpExposure.mcpServerCode",
                     "MCP Server " + codeServerCode + " was not found"
             );
         }
-        String toolId = managedToolId(codeServerCode, operation.operationKey());
-        top.egon.cola.component.yuheng.admin.mcp.domain.po.McpManagedToolOverridePO override =
-                overrideByOperationId.get(operation.id());
-        McpServerPO effectiveServer = override == null
-                || override.serverId() == null
+        String toolId = managedToolId(codeServerCode, operation.getOperationKey());
+        top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpManagedToolOverrideBO override =
+                overrideByOperationId.get(operation.getId());
+        McpServerBO effectiveServer = override == null
+                || override.getServerId() == null
                 ? codeServer
-                : serverById.get(override.serverId());
+                : serverById.get(override.getServerId());
         if (effectiveServer == null) {
             throw new McpValidationException(
                     "YUHENG_MCP_SERVER_NOT_FOUND",
@@ -426,7 +433,7 @@ public class McpReleaseContentFactory {
         );
         Set<String> additionalPermissions = override == null
                 ? Set.of()
-                : override.additionalPermissions();
+                : override.getAdditionalPermissions();
         LinkedHashSet<String> effectivePermissions = new LinkedHashSet<>(
                 codePermissions
         );
@@ -434,35 +441,35 @@ public class McpReleaseContentFactory {
         String codeRisk = text(exposure, "riskLevel", "LOW");
         String minimumRisk = override == null
                 ? null
-                : override.minimumRiskLevel();
+                : override.getMinimumRiskLevel();
         String effectiveRisk = maximumRisk(codeRisk, minimumRisk);
-        if (!Set.of("HTTP", "RPC").contains(operation.protocol())) {
+        if (!Set.of("HTTP", "RPC").contains(operation.getProtocol())) {
             throw new McpValidationException(
                     "YUHENG_MCP_OPERATION_PROTOCOL_UNSUPPORTED",
-                    "operations." + operation.operationKey() + ".protocol",
+                    "operations." + operation.getOperationKey() + ".protocol",
                     "managed MCP Tool requires HTTP or RPC Operation"
             );
         }
-        if ("HTTP".equals(operation.protocol())
-                && bool(definition.attributes(), "streaming", false)) {
+        if ("HTTP".equals(operation.getProtocol())
+                && bool(definition.getAttributes(), "streaming", false)) {
             throw new McpValidationException(
                     "YUHENG_MCP_STREAMING_UNSUPPORTED",
-                    "operations." + operation.operationKey() + ".streaming",
+                    "operations." + operation.getOperationKey() + ".streaming",
                     "streaming Operation cannot be projected as an MCP Tool"
             );
         }
-        boolean enabled = override == null || override.enabled() == null;
+        boolean enabled = override == null || override.getEnabled() == null;
         McpRuntimeTool tool = new McpRuntimeTool(
                 toolId,
                 effectiveServer.getServerCode(),
                 required(exposure, "mcpName"),
                 description(definition),
                 "LOCAL_OPERATION",
-                operation.id(),
-                operation.protocol(),
+                operation.getId(),
+                operation.getProtocol(),
                 null,
-                inputSchema(operation.protocol(), definition.requestSchema()),
-                schema(definition.responseSchema()),
+                inputSchema(operation.getProtocol(), definition.getRequestSchema()),
+                schema(definition.getResponseSchema()),
                 Map.of(),
                 Set.copyOf(effectivePermissions),
                 effectiveRisk,
@@ -471,7 +478,7 @@ public class McpReleaseContentFactory {
         );
         return new McpManagedToolProjectionVO(
                 gatewayGroupId,
-                operation.operationKey(),
+                operation.getOperationKey(),
                 codeServer.getId(),
                 codeServer.getServerCode(),
                 effectiveServer.getId(),
@@ -479,7 +486,7 @@ public class McpReleaseContentFactory {
                 additionalPermissions,
                 codeRisk,
                 minimumRisk,
-                override == null ? 0 : override.revision(),
+                override == null ? 0 : override.getRevision(),
                 tool
         );
     }
@@ -492,7 +499,7 @@ public class McpReleaseContentFactory {
      * @param server 参数 服务器；parameter server。
      * @return 返回 服务器 的处理结果；returns the result of the operation.
      */
-    private McpRuntimeServer server(McpServerPO server) {
+    private McpRuntimeServer server(McpServerBO server) {
         return new McpRuntimeServer(
                 server.getId(),
                 server.getServerCode(),
@@ -518,25 +525,25 @@ public class McpReleaseContentFactory {
      * @return 返回 远程工具 的处理结果；returns the result of the operation.
      */
     private McpRuntimeTool remoteTool(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteToolDraftPO draft,
-            Map<String, McpServerPO> serverById) {
-        Map<String, Object> value = draft.content();
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteToolDraftBO draft,
+            Map<String, McpServerBO> serverById) {
+        Map<String, Object> value = draft.getContent();
         return new McpRuntimeTool(
-                draft.id(),
-                serverCode(draft.serverId(), serverById),
-                draft.name(),
+                draft.getId(),
+                serverCode(draft.getServerId(), serverById),
+                draft.getName(),
                 optional(value, "description"),
                 "REMOTE_MCP",
                 null,
                 null,
-                draft.remoteMountId(),
+                draft.getRemoteMountId(),
                 schema(value.get("inputSchema")),
                 schema(value.get("outputSchema")),
                 stringMap(value.get("annotations")),
                 strings(value.get("requiredPermissions")),
                 text(value, "riskLevel", "LOW"),
                 bool(value, "idempotent", false),
-                draft.enabled()
+                draft.isEnabled()
         );
     }
 
@@ -550,13 +557,13 @@ public class McpReleaseContentFactory {
      * @return 返回 资源 的处理结果；returns the result of the operation.
      */
     private McpRuntimeResource resource(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO draft,
-            Map<String, McpServerPO> serverById) {
-        Map<String, Object> value = draft.content();
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO draft,
+            Map<String, McpServerBO> serverById) {
+        Map<String, Object> value = draft.getContent();
         return new McpRuntimeResource(
-                draft.id(),
-                serverCode(draft.serverId(), serverById),
-                draft.name(),
+                draft.getId(),
+                serverCode(draft.getServerId(), serverById),
+                draft.getName(),
                 required(value, "uri"),
                 optional(value, "description"),
                 text(value, "mimeType", "application/json"),
@@ -566,7 +573,7 @@ public class McpReleaseContentFactory {
                 stringMap(value.get("configuration")),
                 strings(value.get("requiredPermissions")),
                 number(value, "maxBytes", 67_108_864L),
-                draft.enabled()
+                draft.isEnabled()
         );
     }
 
@@ -580,13 +587,13 @@ public class McpReleaseContentFactory {
      * @return 返回 模板 的处理结果；returns the result of the operation.
      */
     private McpRuntimeResourceTemplate template(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO draft,
-            Map<String, McpServerPO> serverById) {
-        Map<String, Object> value = draft.content();
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO draft,
+            Map<String, McpServerBO> serverById) {
+        Map<String, Object> value = draft.getContent();
         return new McpRuntimeResourceTemplate(
-                draft.id(),
-                serverCode(draft.serverId(), serverById),
-                draft.name(),
+                draft.getId(),
+                serverCode(draft.getServerId(), serverById),
+                draft.getName(),
                 required(value, "uriTemplate"),
                 optional(value, "description"),
                 text(value, "mimeType", "application/json"),
@@ -596,7 +603,7 @@ public class McpReleaseContentFactory {
                 stringMap(value.get("configuration")),
                 strings(value.get("requiredPermissions")),
                 number(value, "maxBytes", 67_108_864L),
-                draft.enabled()
+                draft.isEnabled()
         );
     }
 
@@ -610,13 +617,13 @@ public class McpReleaseContentFactory {
      * @return 返回 提示词 的处理结果；returns the result of the operation.
      */
     private McpRuntimePrompt prompt(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO draft,
-            Map<String, McpServerPO> serverById) {
-        Map<String, Object> value = draft.content();
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO draft,
+            Map<String, McpServerBO> serverById) {
+        Map<String, Object> value = draft.getContent();
         return new McpRuntimePrompt(
-                draft.id(),
-                serverCode(draft.serverId(), serverById),
-                draft.name(),
+                draft.getId(),
+                serverCode(draft.getServerId(), serverById),
+                draft.getName(),
                 optional(value, "description"),
                 required(value, "sourceType"),
                 optional(value, "template"),
@@ -624,7 +631,7 @@ public class McpReleaseContentFactory {
                 optional(value, "remoteMountId"),
                 List.copyOf(strings(value.get("arguments"))),
                 strings(value.get("requiredPermissions")),
-                draft.enabled()
+                draft.isEnabled()
         );
     }
 
@@ -638,19 +645,19 @@ public class McpReleaseContentFactory {
      * @return 返回 任务策略 的处理结果；returns the result of the operation.
      */
     private McpRuntimeTaskPolicy taskPolicy(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO draft,
-            Map<String, McpServerPO> serverById) {
-        Map<String, Object> value = draft.content();
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO draft,
+            Map<String, McpServerBO> serverById) {
+        Map<String, Object> value = draft.getContent();
         return new McpRuntimeTaskPolicy(
-                draft.id(),
-                serverCode(draft.serverId(), serverById),
-                draft.name(),
+                draft.getId(),
+                serverCode(draft.getServerId(), serverById),
+                draft.getName(),
                 bool(value, "durable", true),
                 bool(value, "inputAllowed", false),
                 number(value, "executionTimeoutSeconds", 60),
                 number(value, "resultTtlSeconds", 86_400),
                 Math.toIntExact(number(value, "maxAttempts", 3)),
-                draft.enabled()
+                draft.isEnabled()
         );
     }
 
@@ -664,33 +671,33 @@ public class McpReleaseContentFactory {
      * @return 返回 app 的处理结果；returns the result of the operation.
      */
     private McpRuntimeApp app(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpCapabilityRecordPO draft,
-            Map<String, McpServerPO> serverById) {
-        Map<String, Object> value = draft.content();
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpCapabilityRecordBO draft,
+            Map<String, McpServerBO> serverById) {
+        Map<String, Object> value = draft.getContent();
         String artifactId = required(value, "appArtifactId");
         var artifact = artifacts.find(artifactId)
                 .orElseThrow(() -> new McpValidationException(
                         "YUHENG_MCP_ARTIFACT_NOT_FOUND",
-                        "apps." + draft.name() + ".appArtifactId",
+                        "apps." + draft.getName() + ".appArtifactId",
                         "MCP App artifact was not found"
                 ));
         return new McpRuntimeApp(
-                draft.id(),
-                serverCode(draft.serverId(), serverById),
-                draft.name(),
-                artifact.appCode(),
-                artifact.version(),
-                artifact.resourceUri(),
-                artifact.id(),
-                artifact.artifactReference(),
-                artifact.sha256(),
-                artifact.sizeBytes(),
-                artifact.mimeType(),
-                artifact.contentSecurityPolicy(),
-                artifact.permissions(),
-                artifact.allowedOrigins(),
+                draft.getId(),
+                serverCode(draft.getServerId(), serverById),
+                draft.getName(),
+                artifact.getAppCode(),
+                artifact.getVersion(),
+                artifact.getResourceUri(),
+                artifact.getId(),
+                artifact.getArtifactReference(),
+                artifact.getSha256(),
+                artifact.getSizeBytes(),
+                artifact.getMimeType(),
+                artifact.getContentSecurityPolicy(),
+                artifact.getPermissions(),
+                artifact.getAllowedOrigins(),
                 strings(value.get("allowedTools")),
-                draft.enabled()
+                draft.isEnabled()
         );
     }
 
@@ -703,11 +710,11 @@ public class McpReleaseContentFactory {
      * @return 返回 提供方 的处理结果；returns the result of the operation.
      */
     private McpRuntimeRemoteProvider provider(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO draft) {
-        Map<String, Object> value = draft.content();
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO draft) {
+        Map<String, Object> value = draft.getContent();
         return new McpRuntimeRemoteProvider(
-                draft.id(),
-                draft.providerCode(),
+                draft.getId(),
+                draft.getProviderCode(),
                 required(value, "displayName"),
                 McpProtocolDialect.valueOf(required(value, "dialect")),
                 required(value, "transportType"),
@@ -715,7 +722,7 @@ public class McpReleaseContentFactory {
                 optional(value, "authProfileReference"),
                 optional(value, "tlsProfileReference"),
                 required(value, "capabilityFingerprint"),
-                draft.enabled()
+                draft.isEnabled()
         );
     }
 
@@ -730,24 +737,24 @@ public class McpReleaseContentFactory {
      * @return 返回 mount 的处理结果；returns the result of the operation.
      */
     private McpRuntimeRemoteMount mount(
-            top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteMountDraftPO draft,
-            Map<String, McpServerPO> serverById,
-            Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO>
+            top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO draft,
+            Map<String, McpServerBO> serverById,
+            Map<String, top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO>
                     providerById) {
-        var provider = providerById.get(draft.providerId());
+        var provider = providerById.get(draft.getProviderId());
         if (provider == null) {
             throw new McpValidationException(
                     "YUHENG_MCP_REMOTE_PROVIDER_NOT_FOUND",
-                    "remoteMounts." + draft.id() + ".providerId",
+                    "remoteMounts." + draft.getId() + ".providerId",
                     "remote MCP Provider was not found"
             );
         }
-        Map<String, Object> value = draft.content();
+        Map<String, Object> value = draft.getContent();
         return new McpRuntimeRemoteMount(
-                draft.id(),
-                serverCode(draft.serverId(), serverById),
-                provider.providerCode(),
-                draft.namespace(),
+                draft.getId(),
+                serverCode(draft.getServerId(), serverById),
+                provider.getProviderCode(),
+                draft.getNamespace(),
                 strings(value.getOrDefault(
                         "primitiveTypes",
                         List.of(
@@ -761,8 +768,8 @@ public class McpReleaseContentFactory {
                 stringMap(value.get("renameRules")),
                 text(value, "conflictPolicy", "REJECT"),
                 strings(value.get("requiredPermissions")),
-                draft.capabilityFingerprint(),
-                draft.enabled()
+                draft.getCapabilityFingerprint(),
+                draft.isEnabled()
         );
     }
 
@@ -777,8 +784,8 @@ public class McpReleaseContentFactory {
      */
     private String serverCode(
             String serverId,
-            Map<String, McpServerPO> serverById) {
-        McpServerPO server = serverById.get(serverId);
+            Map<String, McpServerBO> serverById) {
+        McpServerBO server = serverById.get(serverId);
         if (server == null) {
             throw new McpValidationException(
                     "YUHENG_MCP_SERVER_NOT_FOUND",
@@ -798,9 +805,9 @@ public class McpReleaseContentFactory {
      * @return 返回 description 的处理结果；returns the result of the operation.
      */
     private String description(
-            top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition) {
-        String description = optional(definition.attributes(), "description");
-        return description == null ? definition.summary() : description;
+            top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition) {
+        String description = optional(definition.getAttributes(), "description");
+        return description == null ? definition.getSummary() : description;
     }
 
     /**

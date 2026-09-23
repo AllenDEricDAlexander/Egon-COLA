@@ -12,7 +12,7 @@ import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftRepository;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.rule.service.GatewayRuleCanonicalizer;
@@ -34,6 +34,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
+import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
 
 class GatewayDraftServiceTest {
 
@@ -48,7 +53,7 @@ class GatewayDraftServiceTest {
     @Test
     void normalizesBeforeDigestAndStorage() {
         Fixture fixture = fixture();
-        AtomicReference<top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO> saved =
+        AtomicReference<top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO> saved =
                 new AtomicReference<>();
         when(fixture.idempotency.find(
                 "YUHENG_DRAFT",
@@ -88,10 +93,10 @@ class GatewayDraftServiceTest {
                 request()
         );
 
-        ArgumentCaptor<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO> route =
-                ArgumentCaptor.forClass(top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO.class);
+        ArgumentCaptor<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO> route =
+                ArgumentCaptor.forClass(top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO.class);
         verify(fixture.store).upsertRoute(route.capture());
-        assertThat(route.getValue().content()).isEqualTo(Map.of(
+        assertThat(route.getValue().getContent()).isEqualTo(Map.of(
                 "host", "ai.example.com",
                 "httpMethod", "POST",
                 "pathPattern", "/v1/**",
@@ -177,15 +182,15 @@ class GatewayDraftServiceTest {
                 request()
         );
 
-        ArgumentCaptor<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO> policy =
+        ArgumentCaptor<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO> policy =
                 ArgumentCaptor.forClass(
-                        top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO.class
+                        top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO.class
                 );
         verify(fixture.store).upsertPolicy(policy.capture());
-        assertThat(policy.getValue().content())
+        assertThat(policy.getValue().getContent())
                 .containsEntry("authenticationMode", "NONE")
                 .containsKey("credentialRecoveryProviderId");
-        assertThat(policy.getValue().content()
+        assertThat(policy.getValue().getContent()
                 .get("credentialRecoveryProviderId")).isNull();
     }
 
@@ -193,7 +198,7 @@ class GatewayDraftServiceTest {
     void reportsRouteTransportErrorsAtDraftFieldPaths() {
         Fixture fixture = fixture();
         when(fixture.store.routes("group-1")).thenReturn(List.of(
-                new top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO(
+                new top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO(
                         "group-1",
                         "route-1",
                         "operation-1",
@@ -249,7 +254,7 @@ class GatewayDraftServiceTest {
                 }
         );
         when(fixture.store.routes("group-1")).thenReturn(List.of(
-                new top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO(
+                new top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO(
                         "group-1",
                         "route-1",
                         "operation-1",
@@ -286,7 +291,7 @@ class GatewayDraftServiceTest {
         IdempotencyRepository idempotency = mock(IdempotencyRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
-        GatewayDraftPO draft = new GatewayDraftPO(
+        GatewayDraftBO draft = new GatewayDraftBO(
                 "group-1",
                 "admin",
                 NOW
@@ -341,8 +346,8 @@ class GatewayDraftServiceTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO legacyRecord(String digest) {
-        return new top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO(
+    private top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO legacyRecord(String digest) {
+        return new top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO(
                 "YUHENG_DRAFT",
                 "group-1",
                 "idem-1",
@@ -354,8 +359,8 @@ class GatewayDraftServiceTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation() {
-        return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation() {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO(
                 "operation-1",
                 "application-1",
                 "interface-1",
@@ -380,8 +385,8 @@ class GatewayDraftServiceTest {
         );
     }
 
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition() {
-        return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO(
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition() {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO(
                 "definition-1",
                 "operation-1",
                 1L,

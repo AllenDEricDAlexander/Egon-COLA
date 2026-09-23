@@ -12,7 +12,7 @@ import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualOper
 import top.egon.cola.component.yuheng.admin.catalog.domain.enums.GatewayCatalogProtocolEnum;
 import top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
-import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
+import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayAuditLogBO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.rule.service.GatewayRuleCanonicalizer;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
@@ -25,6 +25,8 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
+import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
 
 /**
  * 中文说明：{@code GatewayCatalogService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关目录服务相关的职责与边界。
@@ -183,13 +185,13 @@ public class GatewayCatalogService {
                 .ifPresent(existing -> {
                     throw new IllegalArgumentException(
                             "operation key already exists with source "
-                                    + existing.sourceType()
+                                    + existing.getSourceType()
                     );
                 });
         Instant now = clock.instant();
         String operationId = SnowflakeIdGenerator.nextId();
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
-                new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation =
+                new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO(
                         operationId,
                         scope.applicationId(),
                         interfaceGroupId,
@@ -206,7 +208,7 @@ public class GatewayCatalogService {
                         now
                 );
         store.insertOperation(operation);
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition =
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition =
                 definition(
                         operation,
                         1,
@@ -217,8 +219,8 @@ public class GatewayCatalogService {
         store.appendDefinition(definition);
         store.pointToDefinition(
                 operationId,
-                definition.id(),
-                definition.externalAccessible(),
+                definition.getId(),
+                definition.isExternalAccessible(),
                 now
         );
         audit(actor, request, "OPERATION", operationId, "CREATE_MANUAL",
@@ -227,7 +229,7 @@ public class GatewayCatalogService {
                         "externalAccessible",
                         command.externalAccessible(),
                         "definitionSha256",
-                        definition.definitionSha256()
+                        definition.getDefinitionSha256()
                 ));
         return detail(operationId);
     }
@@ -242,7 +244,7 @@ public class GatewayCatalogService {
      */
     @Transactional(readOnly = true)
     public GatewayOperationDetailVO detail(String operationId) {
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation =
                 requiredOperation(operationId);
         return new GatewayOperationDetailVO(
                 operation,
@@ -267,39 +269,39 @@ public class GatewayCatalogService {
             GatewayManualDefinitionDTO definition,
             AdminActor actor,
             RequestAuditContext request) {
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation =
                 requiredManualOperation(operationId);
-        List<top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO> history =
+        List<top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO> history =
                 store.loadDefinitions(operationId);
         long nextVersion = history.stream()
-                .mapToLong(top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO
-                        ::definitionVersion)
+                .mapToLong(top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO
+                        ::getDefinitionVersion)
                 .max()
                 .orElse(0) + 1;
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO appended = definition(
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO appended = definition(
                 operation,
                 nextVersion,
                 definition,
                 actor.actorId(),
                 clock.instant()
         );
-        if (history.stream().anyMatch(existing -> existing.definitionSha256()
-                .equals(appended.definitionSha256()))) {
+        if (history.stream().anyMatch(existing -> existing.getDefinitionSha256()
+                .equals(appended.getDefinitionSha256()))) {
             return new GatewayOperationDetailVO(operation, history);
         }
         store.appendDefinition(appended);
         store.pointToDefinition(
                 operationId,
-                appended.id(),
-                appended.externalAccessible(),
-                appended.createdAt()
+                appended.getId(),
+                appended.isExternalAccessible(),
+                appended.getCreatedAt()
         );
         audit(actor, request, "OPERATION", operationId,
                 "UPDATE_MANUAL_DEFINITION", Map.of(
                         "definitionVersion", nextVersion,
-                        "definitionSha256", appended.definitionSha256(),
+                        "definitionSha256", appended.getDefinitionSha256(),
                         "externalAccessible",
-                        appended.externalAccessible()
+                        appended.isExternalAccessible()
                 ));
         return detail(operationId);
     }
@@ -321,18 +323,18 @@ public class GatewayCatalogService {
             GatewayManualMetadataDTO metadata,
             AdminActor actor,
             RequestAuditContext request) {
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation =
                 requiredManualOperation(operationId);
-        List<top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO> history =
+        List<top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO> history =
                 store.loadDefinitions(operationId);
         if (history.isEmpty()) {
             throw new IllegalStateException(
                     "manual operation has no definition"
             );
         }
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO current = history.getFirst();
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO current = history.getFirst();
         Map<String, Object> attributes =
-                new LinkedHashMap<>(current.attributes());
+                new LinkedHashMap<>(current.getAttributes());
         if (metadata.owner() == null || metadata.owner().isBlank()) {
             attributes.remove("owner");
         } else {
@@ -343,12 +345,12 @@ public class GatewayCatalogService {
                 new GatewayManualDefinitionDTO(
                         metadata.summary(),
                         metadata.tags(),
-                        current.requestSchema(),
-                        current.responseSchema(),
-                        current.errorSchema(),
-                        current.descriptorSnapshot(),
+                        current.getRequestSchema(),
+                        current.getResponseSchema(),
+                        current.getErrorSchema(),
+                        current.getDescriptorSnapshot(),
                         attributes,
-                        current.externalAccessible()
+                        current.isExternalAccessible()
                 ),
                 actor,
                 request
@@ -390,13 +392,13 @@ public class GatewayCatalogService {
      * @param now 参数 now；parameter now。
      * @return 返回 定义 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO definition(
-            top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation,
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO definition(
+            top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation,
             long version,
             GatewayManualDefinitionDTO value,
             String actorId,
             Instant now) {
-        validateDefinition(operation.protocol(), value);
+        validateDefinition(operation.getProtocol(), value);
         Map<String, Object> digestMaterial = new LinkedHashMap<>();
         digestMaterial.put("summary", value.summary());
         digestMaterial.put("tags", value.tags());
@@ -409,9 +411,9 @@ public class GatewayCatalogService {
                 "externalAccessible",
                 value.externalAccessible()
         );
-        return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO(
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO(
                 SnowflakeIdGenerator.nextId(),
-                operation.id(),
+                operation.getId(),
                 version,
                 GatewayRuleCanonicalizer.sha256(bytes(digestMaterial)),
                 value.summary(),
@@ -510,7 +512,7 @@ public class GatewayCatalogService {
      * @param id 参数 id；parameter id。
      * @return 返回 required操作 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO requiredOperation(String id) {
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO requiredOperation(String id) {
         return store.findOperation(id)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
                         "gateway operation " + id + " was not found"
@@ -525,11 +527,11 @@ public class GatewayCatalogService {
      * @param id 参数 id；parameter id。
      * @return 返回 requiredManual操作 的处理结果；returns the result of the operation.
      */
-    private top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO requiredManualOperation(
+    private top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO requiredManualOperation(
             String id) {
-        top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
+        top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO operation =
                 requiredOperation(id);
-        if (!"MANUAL".equals(operation.sourceType())) {
+        if (!"MANUAL".equals(operation.getSourceType())) {
             throw new IllegalArgumentException(
                     "RPC_DESCRIPTOR operation cannot be modified by manual API"
             );
@@ -619,7 +621,7 @@ public class GatewayCatalogService {
             String resourceId,
             String action,
             Map<String, Object> after) {
-        audits.save(new GatewayAuditLogPO(
+        audits.save(new GatewayAuditLogBO(
                 SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
@@ -629,8 +631,8 @@ public class GatewayCatalogService {
                 resourceType,
                 resourceId,
                 action,
-                null,
-                after,
+                GatewayAuditLogBO.sanitized(null),
+                GatewayAuditLogBO.sanitized(after),
                 null,
                 null,
                 true,

@@ -11,7 +11,7 @@ import top.egon.cola.component.yuheng.admin.scope.domain.dto.GatewayScopeQueryDT
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 import top.egon.cola.component.yuheng.admin.application.domain.exception.GatewayApplicationAlreadyExistsException;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import java.time.Clock;
@@ -139,7 +139,7 @@ class GatewayApplicationServiceTest {
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
                 .thenReturn(List.of(
                         application("application-order", "default"),
-                        new GatewayApplicationPO(
+                        new GatewayApplicationBO(
                                 "application-legacy",
                                 "legacy",
                                 "legacy-app",
@@ -194,10 +194,10 @@ class GatewayApplicationServiceTest {
         );
     }
 
-    private GatewayApplicationPO application(
+    private GatewayApplicationBO application(
             String id,
             String namespace) {
-        return new GatewayApplicationPO(
+        return new GatewayApplicationBO(
                 id,
                 "retail",
                 "order",

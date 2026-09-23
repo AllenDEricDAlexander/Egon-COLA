@@ -2,7 +2,7 @@ package top.egon.cola.component.yuheng.admin.application.repository;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.yuheng.admin.application.domain.bo.GatewayApplicationBO;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +14,7 @@ import java.util.Optional;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 public interface GatewayApplicationRepository
-        extends JpaRepository<GatewayApplicationPO, String> {
+        extends JpaRepository<GatewayApplicationBO, String> {
 
     /**
      * 中文说明：执行 findAllByDeletedFalseOrderByCreatedAtDesc 操作；该方法是 {@code GatewayApplicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -23,7 +23,7 @@ public interface GatewayApplicationRepository
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayApplicationRepository.findAllByDeletedFalseOrderByCreatedAtDesc(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 findAllByDeletedFalseOrderByCreatedAtDesc 的处理结果；returns the result of the operation.
      */
-    List<GatewayApplicationPO> findAllByDeletedFalseOrderByCreatedAtDesc();
+    List<GatewayApplicationBO> findAllByDeletedFalseOrderByCreatedAtDesc();
 
     /**
      * 中文说明：执行 findByIdAndDeletedFalse 操作；该方法是 {@code GatewayApplicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -33,7 +33,7 @@ public interface GatewayApplicationRepository
      * @param id 参数 id；parameter id。
      * @return 返回 findByIdAndDeletedFalse 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayApplicationPO> findByIdAndDeletedFalse(String id);
+    Optional<GatewayApplicationBO> findByIdAndDeletedFalse(String id);
 
     /**
      * 中文说明：执行 findByApplicationCodeAndEnvAnd命名空间AndDeletedFalse 操作；该方法是 {@code GatewayApplicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -45,7 +45,7 @@ public interface GatewayApplicationRepository
      * @param namespace 参数 命名空间；parameter namespace。
      * @return 返回 findByApplicationCodeAndEnvAnd命名空间AndDeletedFalse 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayApplicationPO>
+    Optional<GatewayApplicationBO>
     findByApplicationCodeAndEnvAndNamespaceAndDeletedFalse(
             String applicationCode,
             String env,
@@ -61,7 +61,7 @@ public interface GatewayApplicationRepository
      * @param env 参数 env；parameter env。
      * @return 返回 findByBizCodeAndApplicationCodeAndEnvAndDeletedFalse 的处理结果；returns the result of the operation.
      */
-    Optional<GatewayApplicationPO>
+    Optional<GatewayApplicationBO>
     findByBizCodeAndApplicationCodeAndEnvAndDeletedFalse(
             String bizCode,
             String applicationCode,

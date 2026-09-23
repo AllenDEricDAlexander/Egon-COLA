@@ -2,7 +2,7 @@ package top.egon.cola.component.yuheng.admin.release.domain.vo;
 
 
 import top.egon.cola.component.tianshu.model.management.DdcManagementPublishResult;
-import top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO;
+import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTargetBO;
 import java.util.List;
 
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
@@ -47,7 +47,7 @@ public record GatewayPublicationOutcomeVO(
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO}; do not couple callers to its representation when the owning type exposes an API.
          */
         boolean partialApplied,
-        List<GatewayReleaseTargetPO> targets
+        List<GatewayReleaseTargetBO> targets
 ) {
 
     /**

@@ -3,6 +3,8 @@ package top.egon.cola.component.yuheng.admin.routing.domain.vo;
 
 import java.time.Instant;
 import java.util.List;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO;
+import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO;
 
 /**
  * 中文说明：{@code GatewayDraftVO} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责草稿View相关的职责与边界。
@@ -55,19 +57,19 @@ public record GatewayDraftVO(
          */
         String changeSummary,
         /**
-         * 中文说明：保存 routes 对应的状态、依赖或配置值；字段类型为 {@code List<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO>}，由 {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} 在其生命周期内读取或更新。
-         * English summary: Holds the state, dependency, or configuration represented by routes; its type is {@code List<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO>}, and {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} reads or updates it during its lifecycle.
+         * 中文说明：保存 routes 对应的状态、依赖或配置值；字段类型为 {@code List<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO>}，由 {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by routes; its type is {@code List<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO>}, and {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} reads or updates it during its lifecycle.
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        List<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftPO> routes,
+        List<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO> routes,
         /**
-         * 中文说明：保存 policies 对应的状态、依赖或配置值；字段类型为 {@code List<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO>}，由 {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} 在其生命周期内读取或更新。
-         * English summary: Holds the state, dependency, or configuration represented by policies; its type is {@code List<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO>}, and {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} reads or updates it during its lifecycle.
+         * 中文说明：保存 policies 对应的状态、依赖或配置值；字段类型为 {@code List<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO>}，由 {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by policies; its type is {@code List<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO>}, and {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} reads or updates it during its lifecycle.
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        List<top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftPO> policies,
+        List<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayPolicyDraftBO> policies,
         /**
          * 中文说明：保存 updatedAt 对应的状态、依赖或配置值；字段类型为 {@code Instant}，由 {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} 在其生命周期内读取或更新。
          * English summary: Holds the state, dependency, or configuration represented by updated at; its type is {@code Instant}, and {@code top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftVO} reads or updates it during its lifecycle.

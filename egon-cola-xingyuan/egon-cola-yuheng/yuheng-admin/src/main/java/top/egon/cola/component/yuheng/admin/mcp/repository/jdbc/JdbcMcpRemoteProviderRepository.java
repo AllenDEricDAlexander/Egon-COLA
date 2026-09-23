@@ -112,10 +112,11 @@ import java.util.Map;
 import java.util.Objects;
 
 
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteProviderDraftPO;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteCapabilityPO;
-import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteMountDraftPO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteProviderDraftBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteCapabilityBO;
+import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpRemoteMountDraftBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteProviderDraftMutationDTO;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteProviderRepository;
 /**
  * 中文说明：{@code JdbcMcpRemoteProviderRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责JdbcMCP远程提供方存储相关的职责与边界。
  * English summary: {@code JdbcMcpRemoteProviderRepository} is a jdbc mcp remote provider store store in the current Gateway module; it owns the jdbc mcp remote provider store-related responsibility and boundary.
@@ -123,7 +124,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteProviderDraf
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Repository
-public class JdbcMcpRemoteProviderRepository {
+public class JdbcMcpRemoteProviderRepository
+        implements McpRemoteProviderRepository {
 
     /**
      * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcMcpRemoteProviderRepository} 在其生命周期内读取或更新。
@@ -164,7 +166,7 @@ public class JdbcMcpRemoteProviderRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 providers 的处理结果；returns the result of the operation.
      */
-    public List<McpRemoteProviderDraftPO> providers(String gatewayGroupId) {
+    public List<McpRemoteProviderDraftBO> providers(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, provider_code, display_name,
                        dialect, transport_type, endpoint_reference,
@@ -193,7 +195,7 @@ public class JdbcMcpRemoteProviderRepository {
                     "capability_fingerprint"
             ));
             content.put("status", result.getString("status"));
-            return new McpRemoteProviderDraftPO(
+            return new McpRemoteProviderDraftBO(
                     result.getString("id"),
                     result.getString("gateway_group_id"),
                     result.getString("provider_code"),
@@ -216,12 +218,12 @@ public class JdbcMcpRemoteProviderRepository {
      * @return 返回 save提供方 的处理结果；returns the result of the operation.
      */
     public McpRemoteProviderDraftMutationDTO saveProvider(
-            McpRemoteProviderDraftPO provider,
+            McpRemoteProviderDraftBO provider,
             long expectedRevision,
             AdminActor actor,
             Instant now) {
         validateRevision(expectedRevision);
-        Map<String, Object> content = provider.content();
+        Map<String, Object> content = provider.getContent();
         Object[] mutable = providerValues(provider, content, actor, now);
         int updated = jdbc.update("""
                 UPDATE gateway_mcp_remote_provider
@@ -232,13 +234,13 @@ public class JdbcMcpRemoteProviderRepository {
                        revision = revision + 1,
                        updated_at = ?, updated_by = ?
                  WHERE id = ? AND revision = ? AND deleted = FALSE
-                """, append(mutable, provider.id(), expectedRevision));
+                """, append(mutable, provider.getId(), expectedRevision));
         if (updated == 1) {
-            return new McpRemoteProviderDraftMutationDTO(provider.id(), expectedRevision + 1);
+            return new McpRemoteProviderDraftMutationDTO(provider.getId(), expectedRevision + 1);
         }
         Long currentRevision = currentRevision(
                 "gateway_mcp_remote_provider",
-                provider.id()
+                provider.getId()
         );
         if (currentRevision != null || expectedRevision != 0) {
             throw revisionConflict(currentRevision);
@@ -256,9 +258,9 @@ public class JdbcMcpRemoteProviderRepository {
                     0, FALSE, ?, ?, ?, ?
                 )
                 """,
-                provider.id(),
-                provider.gatewayGroupId(),
-                provider.providerCode(),
+                provider.getId(),
+                provider.getGatewayGroupId(),
+                provider.getProviderCode(),
                 required(content, "displayName"),
                 required(content, "dialect"),
                 required(content, "transportType"),
@@ -267,13 +269,13 @@ public class JdbcMcpRemoteProviderRepository {
                 optional(content, "tlsProfileReference"),
                 optional(content, "capabilityFingerprint"),
                 content.getOrDefault("status", "CONFIGURED").toString(),
-                provider.enabled(),
+                provider.isEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor),
                 McpJdbcJson.timestamp(now),
                 actorId(actor)
         );
-        return new McpRemoteProviderDraftMutationDTO(provider.id(), 0);
+        return new McpRemoteProviderDraftMutationDTO(provider.getId(), 0);
     }
 
     /**
@@ -284,7 +286,7 @@ public class JdbcMcpRemoteProviderRepository {
      * @param providerId 参数 提供方Id；parameter provider id。
      * @return 返回 capabilities 的处理结果；returns the result of the operation.
      */
-    public List<McpRemoteCapabilityPO> capabilities(String providerId) {
+    public List<McpRemoteCapabilityBO> capabilities(String providerId) {
         return jdbc.query("""
                 SELECT id, provider_id, primitive_type, remote_name,
                        descriptor::text AS descriptor,
@@ -292,7 +294,7 @@ public class JdbcMcpRemoteProviderRepository {
                   FROM gateway_mcp_remote_capability
                  WHERE provider_id = ?
                  ORDER BY primitive_type, remote_name
-                """, (result, row) -> new McpRemoteCapabilityPO(
+                """, (result, row) -> new McpRemoteCapabilityBO(
                 result.getString("id"),
                 result.getString("provider_id"),
                 result.getString("primitive_type"),
@@ -317,25 +319,25 @@ public class JdbcMcpRemoteProviderRepository {
     public void replaceCapabilities(
             String providerId,
             String fingerprint,
-            List<McpRemoteCapabilityPO> capabilities,
+            List<McpRemoteCapabilityBO> capabilities,
             Instant syncedAt) {
         jdbc.update(
                 "DELETE FROM gateway_mcp_remote_capability "
                         + "WHERE provider_id = ?",
                 providerId
         );
-        for (McpRemoteCapabilityPO capability : capabilities) {
+        for (McpRemoteCapabilityBO capability : capabilities) {
             jdbc.update("""
                     INSERT INTO gateway_mcp_remote_capability(
                         id, provider_id, primitive_type, remote_name,
                         descriptor, capability_fingerprint, synced_at
                     ) VALUES (?, ?, ?, ?, ?::jsonb, ?, ?)
                     """,
-                    capability.id(),
+                    capability.getId(),
                     providerId,
-                    capability.primitiveType(),
-                    capability.remoteName(),
-                    json.write(capability.descriptor()),
+                    capability.getPrimitiveType(),
+                    capability.getRemoteName(),
+                    json.write(capability.getDescriptor()),
                     fingerprint,
                     McpJdbcJson.timestamp(syncedAt)
             );
@@ -358,7 +360,7 @@ public class JdbcMcpRemoteProviderRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 mounts 的处理结果；returns the result of the operation.
      */
-    public List<McpRemoteMountDraftPO> mounts(String gatewayGroupId) {
+    public List<McpRemoteMountDraftBO> mounts(String gatewayGroupId) {
         return jdbc.query("""
                 SELECT id, gateway_group_id, server_id, provider_id,
                        namespace, capability_fingerprint,
@@ -366,7 +368,7 @@ public class JdbcMcpRemoteProviderRepository {
                   FROM gateway_mcp_remote_mount_draft
                  WHERE gateway_group_id = ? AND deleted = FALSE
                  ORDER BY server_id, namespace
-                """, (result, row) -> new McpRemoteMountDraftPO(
+                """, (result, row) -> new McpRemoteMountDraftBO(
                 result.getString("id"),
                 result.getString("gateway_group_id"),
                 result.getString("server_id"),
@@ -391,7 +393,7 @@ public class JdbcMcpRemoteProviderRepository {
      * @return 返回 saveMount 的处理结果；returns the result of the operation.
      */
     public McpRemoteProviderDraftMutationDTO saveMount(
-            McpRemoteMountDraftPO mount,
+            McpRemoteMountDraftBO mount,
             long expectedRevision,
             AdminActor actor,
             Instant now) {
@@ -404,23 +406,23 @@ public class JdbcMcpRemoteProviderRepository {
                        updated_at = ?, updated_by = ?
                  WHERE id = ? AND revision = ? AND deleted = FALSE
                 """,
-                mount.serverId(),
-                mount.providerId(),
-                mount.namespace(),
-                mount.capabilityFingerprint(),
-                json.write(mount.content()),
-                mount.enabled(),
+                mount.getServerId(),
+                mount.getProviderId(),
+                mount.getNamespace(),
+                mount.getCapabilityFingerprint(),
+                json.write(mount.getContent()),
+                mount.isEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor),
-                mount.id(),
+                mount.getId(),
                 expectedRevision
         );
         if (updated == 1) {
-            return new McpRemoteProviderDraftMutationDTO(mount.id(), expectedRevision + 1);
+            return new McpRemoteProviderDraftMutationDTO(mount.getId(), expectedRevision + 1);
         }
         Long currentRevision = currentRevision(
                 "gateway_mcp_remote_mount_draft",
-                mount.id()
+                mount.getId()
         );
         if (currentRevision != null || expectedRevision != 0) {
             throw revisionConflict(currentRevision);
@@ -436,20 +438,20 @@ public class JdbcMcpRemoteProviderRepository {
                     0, FALSE, ?, ?, ?, ?
                 )
                 """,
-                mount.id(),
-                mount.gatewayGroupId(),
-                mount.serverId(),
-                mount.providerId(),
-                mount.namespace(),
-                mount.capabilityFingerprint(),
-                json.write(mount.content()),
-                mount.enabled(),
+                mount.getId(),
+                mount.getGatewayGroupId(),
+                mount.getServerId(),
+                mount.getProviderId(),
+                mount.getNamespace(),
+                mount.getCapabilityFingerprint(),
+                json.write(mount.getContent()),
+                mount.isEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor),
                 McpJdbcJson.timestamp(now),
                 actorId(actor)
         );
-        return new McpRemoteProviderDraftMutationDTO(mount.id(), 0);
+        return new McpRemoteProviderDraftMutationDTO(mount.getId(), 0);
     }
 
     /**
@@ -551,12 +553,12 @@ public class JdbcMcpRemoteProviderRepository {
      * @return 返回 提供方Values 的处理结果；returns the result of the operation.
      */
     private Object[] providerValues(
-            McpRemoteProviderDraftPO provider,
+            McpRemoteProviderDraftBO provider,
             Map<String, Object> content,
             AdminActor actor,
             Instant now) {
         return new Object[]{
-                provider.providerCode(),
+                provider.getProviderCode(),
                 required(content, "displayName"),
                 required(content, "dialect"),
                 required(content, "transportType"),
@@ -565,7 +567,7 @@ public class JdbcMcpRemoteProviderRepository {
                 optional(content, "tlsProfileReference"),
                 optional(content, "capabilityFingerprint"),
                 content.getOrDefault("status", "CONFIGURED").toString(),
-                provider.enabled(),
+                provider.isEnabled(),
                 McpJdbcJson.timestamp(now),
                 actorId(actor)
         };
