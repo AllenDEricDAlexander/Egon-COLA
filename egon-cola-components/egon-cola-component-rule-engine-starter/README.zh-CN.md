@@ -12,7 +12,7 @@
 
 | Module | 说明 |
 |---|---|
-| `egon-cola-component-rule-engine-starter` | Spring Boot starter，并在自身 test 目录中提供规则链、单例责任链、规则树和自动配置样例验证 |
+| `egon-cola-component-rule-engine-starter` | Spring Boot starter，并在自身 test 目录中提供规则链、单例责任链、规则树、执行器、上下文、结果模型、轨迹、监听器、异步加载和自动配置样例验证 |
 
 ## 功能说明
 
@@ -30,6 +30,8 @@
 
 `AbstractSingletonRuleLink<T, R>` 支持通过 `appendNext` 组装单例链路，适合把每个规则节点作为独立类长期复用。它采用责任链模式：当前节点成功且上下文未停止时才进入下一个节点。
 
+该模式由业务代码直接调用，不经过 `RuleChainExecutor` 或 `RuleTreeExecutor`，因此步骤上限、超时控制、`RuleTrace` 记录和 `RuleExecutionListener` 回调都不作用于它。需要这些治理能力时请使用执行器。
+
 ### 规则树
 
 `RuleTree<T, R>` 是基于 `RuleNode<T, R>` 和 `RouteDecision` 的路由模型，适合根据当前节点结果动态跳转到不同节点。节点可以返回：
@@ -39,15 +41,15 @@
 | `RouteDecision.toCode("nodeCode")` | 跳转到树中指定 code 的节点 |
 | `RouteDecision.toNode(node, reason)` | 跳转到直接指定的节点 |
 | `RouteDecision.end(data)` | 结束规则树并返回数据 |
-| `RouteDecision.noRoute(reason)` | 没有可用路由 |
+| `RouteDecision.noRoute(reason)` | 若规则树声明了 `defaultEndNodeCode` 则回退到该节点，否则以 `RuleStatus.NO_ROUTE` 结束 |
 
 ### 上下文、轨迹和监听器
 
-`RuleContext` 保存 requestId、traceId、执行路径、错误列表、自定义属性、最大步数和超时时间。开启 trace 后，执行结果会携带 `RuleTrace` 和 `NodeTrace`。业务可以注册 `RuleExecutionListener` Bean 监听引擎、节点、路由、停止、超时和异常事件。
+`RuleContext` 保存 requestId、traceId、执行路径、错误列表、自定义属性、最大步数和超时时间。开启 trace 后，执行结果会携带 `RuleTrace` 和 `NodeTrace`。业务可以注册 `RuleExecutionListener` Bean 监听引擎、节点、路由的前后置回调，以及停止、超时、超过最大步数和错误事件。若应用未提供，自动配置会先注册一个 `LoggingRuleExecutionListener`。
 
 ### 异步加载
 
-`RuleAsyncExecutor` 用于在规则执行期间加载外部数据，并把结果写入 `RuleContext`。默认实现为 `DefaultRuleAsyncExecutor`，线程池大小由配置控制。
+`RuleAsyncExecutor` 用于在规则执行期间加载外部数据：`load(loader, context, timeout)` 只返回加载结果，`loadToContext(key, loader, context, timeout)` 才会把结果写入 `RuleContext` 的 `key`；加载失败会以 `IllegalStateException` 暴露。默认实现为 `DefaultRuleAsyncExecutor`，线程池大小由配置控制。
 
 ## 依赖方式
 
@@ -100,7 +102,7 @@ egon:
 | `async-max-pool-size` | `16` | 异步加载最大线程数 |
 | `trace-enabled` | `true` | 是否记录执行轨迹 |
 | `listener-error-ignore` | `true` | 监听器异常是否忽略 |
-| `throw-exception` | `false` | 执行失败时是否直接抛异常 |
+| `throw-exception` | `false` | 规则代码抛出的异常是直接向上传播，还是转换为 `NODE_ERROR` 失败结果。结果级失败（`fail`、`STOPPED`、`TIMEOUT`、`MAX_STEPS_EXCEEDED`、`NO_ROUTE`）永远不会被抛出。 |
 
 ## 完整的使用示例
 
@@ -299,7 +301,7 @@ public class RuleAuditListener implements RuleExecutionListener {
 - `DefaultRuleChainExecutor` 按 handler 顺序执行，遇到 stop/fail、超时或超过最大步数时结束。
 - `DefaultRuleTreeExecutor` 从 root 开始执行节点，再根据 `RouteDecision` 选择下一个节点，支持无路由、结束节点、最大步数和超时保护。
 - `RuleResult` 是统一结果模型，包含 `success`、`status`、`code`、`message`、`data`、`trace`、`exception`、`stoppedNode`、`hitNode` 和 `costMillis`。
-- `RuleExecutionListenerComposite` 会按 Spring order 排序所有监听器，并根据 `listener-error-ignore` 决定监听器异常是否影响主流程。
+- `RuleEngineAutoConfiguration` 会收集所有 `RuleExecutionListener` Bean，剔除嵌套的 composite，用 `AnnotationAwareOrderComparator` 排序后交给 `RuleExecutionListenerComposite`，再由后者依据 `listener-error-ignore` 决定监听器异常是否影响主流程。默认注册 `LoggingRuleExecutionListener`，可被应用替换。
 - `DefaultRuleAsyncExecutor` 作为独立线程池 Bean 注册，销毁方法为 `shutdown`。
 
 ## 边界和注意事项

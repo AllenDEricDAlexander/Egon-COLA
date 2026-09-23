@@ -12,7 +12,7 @@ The component suits scenarios with a limited number of rules and explicit variat
 
 | Module | Description |
 |---|---|
-| `egon-cola-component-rule-engine-starter` | Spring Boot starter and its sample/unit tests for rule chains, rule trees, executors, context, result models, traces, listeners, asynchronous loading, and auto-configuration |
+| `egon-cola-component-rule-engine-starter` | Spring Boot starter and its sample/unit tests for rule chains, singleton chains of responsibility, rule trees, executors, context, result models, traces, listeners, asynchronous loading, and auto-configuration |
 
 ## Features
 
@@ -30,6 +30,8 @@ The component suits scenarios with a limited number of rules and explicit variat
 
 `AbstractSingletonRuleLink<T, R>` supports assembling singleton links through `appendNext`, making each reusable rule node a long-lived independent class. It follows the Chain of Responsibility pattern: the next node runs only when the current node succeeds and the context has not stopped.
 
+This model is invoked directly and does not pass through `RuleChainExecutor` or `RuleTreeExecutor`, so step limits, timeout control, `RuleTrace` recording, and `RuleExecutionListener` callbacks do not apply to it. Use the executors when those governance features are required.
+
 ### Rule Trees
 
 `RuleTree<T, R>` is a routing model based on `RuleNode<T, R>` and `RouteDecision`. It is suitable when the result of the current node dynamically selects the next node. A node can return:
@@ -39,15 +41,15 @@ The component suits scenarios with a limited number of rules and explicit variat
 | `RouteDecision.toCode("nodeCode")` | Route to the node with the specified code in the tree |
 | `RouteDecision.toNode(node, reason)` | Route directly to the specified node |
 | `RouteDecision.end(data)` | End the rule tree and return data |
-| `RouteDecision.noRoute(reason)` | Indicate that no route is available |
+| `RouteDecision.noRoute(reason)` | Fall back to the tree's `defaultEndNodeCode` when it declares one; otherwise end with `RuleStatus.NO_ROUTE` |
 
 ### Context, Traces, and Listeners
 
-`RuleContext` stores the requestId, traceId, execution path, error list, custom attributes, maximum step count, and timeout. When tracing is enabled, the execution result includes `RuleTrace` and `NodeTrace`. Applications can register `RuleExecutionListener` Beans to observe engine, node, routing, stop, timeout, and exception events.
+`RuleContext` stores the requestId, traceId, execution path, error list, custom attributes, maximum step count, and timeout. When tracing is enabled, the execution result includes `RuleTrace` and `NodeTrace`. Applications can register `RuleExecutionListener` Beans to observe engine, node, and route before/after callbacks plus stop, timeout, max-steps, and error events. The auto-configuration already registers a `LoggingRuleExecutionListener` unless an application supplies one.
 
 ### Asynchronous Loading
 
-`RuleAsyncExecutor` loads external data during rule execution and writes the result into `RuleContext`. Its default implementation is `DefaultRuleAsyncExecutor`, and configuration controls the thread-pool size.
+`RuleAsyncExecutor` loads external data during rule execution. `load(loader, context, timeout)` only returns the loaded value, while `loadToContext(key, loader, context, timeout)` also writes it into `RuleContext` under `key`; a failed load surfaces as `IllegalStateException`. Its default implementation is `DefaultRuleAsyncExecutor`, and configuration controls the thread-pool size.
 
 ## Dependency Setup
 
@@ -100,7 +102,7 @@ egon:
 | `async-max-pool-size` | `16` | Maximum thread count for asynchronous loading |
 | `trace-enabled` | `true` | Whether to record execution traces |
 | `listener-error-ignore` | `true` | Whether listener exceptions are ignored |
-| `throw-exception` | `false` | Whether execution failures are thrown directly |
+| `throw-exception` | `false` | Whether an exception thrown by rule code propagates to the caller instead of being converted into a `NODE_ERROR` failure result. Result-level failures (`fail`, `STOPPED`, `TIMEOUT`, `MAX_STEPS_EXCEEDED`, `NO_ROUTE`) are never thrown. |
 
 ## Complete Usage Examples
 
@@ -299,7 +301,7 @@ public class RuleAuditListener implements RuleExecutionListener {
 - `DefaultRuleChainExecutor` runs handlers in order and stops on a stop/fail result, timeout, or maximum-step violation.
 - `DefaultRuleTreeExecutor` starts at the root and selects the next node from `RouteDecision`, with support for no-route and end nodes plus maximum-step and timeout protection.
 - `RuleResult` is the unified result model. It includes `success`, `status`, `code`, `message`, `data`, `trace`, `exception`, `stoppedNode`, `hitNode`, and `costMillis`.
-- `RuleExecutionListenerComposite` orders all listeners by Spring order and uses `listener-error-ignore` to determine whether a listener exception affects the primary flow.
+- `RuleEngineAutoConfiguration` collects every `RuleExecutionListener` bean, drops nested composites, sorts the list with `AnnotationAwareOrderComparator`, and hands it to `RuleExecutionListenerComposite`, which uses `listener-error-ignore` to determine whether a listener exception affects the primary flow. A `LoggingRuleExecutionListener` is registered by default and can be replaced.
 - `DefaultRuleAsyncExecutor` is registered as a dedicated thread-pool Bean with `shutdown` as its destroy method.
 
 ## Boundaries and Operational Notes
