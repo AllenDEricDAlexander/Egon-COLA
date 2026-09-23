@@ -4,12 +4,12 @@
 | --- | --- |
 | Document | `2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md` |
 | Template Version | `7` |
-| Status | `Review` |
+| Status | `Accepted` |
 | Type | `Architecture` |
 | Complexity | `Complex` |
 | Complexity Drivers | 多 issuer 信任、两类主体、SAS/SCG/玉衡/鉴神/天枢协作、旧登录协议替换、JPA 到 MP、撤销一致性、密钥轮换 |
 | Created | `2026-09-22 17:14 Asia/Shanghai` |
-| Updated | `2026-09-22 18:22 Asia/Shanghai` |
+| Updated | `2026-09-23 10:51 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 授柄 OAuth/OIDC 及 Starter、鉴神认证入口、玉衡身份适配、新 SCG/BFF、天枢控制面凭证、共享前端认证 |
@@ -21,7 +21,7 @@
 | Supersedes | [无 Session JWT 设计](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §7–§11、§13–§16 中无浏览器会话、固定 RT、统一 audience、单密钥及仅撤销 RT 的认证契约；替换范围在 §16 逐项列出，需本 Spec 获批后生效 |
 | Depends On | None |
 | Related Specs | [统一身份平台设计](../../superpowers/specs/2026-08-01-unified-identity-platform-design.md) §7–§13；[RBAC3 授权分层](2026-08-24-17-30-rbac3-resource-grants-layering.md)；[玉衡双引擎](2026-09-02-19-52-gateway-dual-engine-separation.md) |
-| Related Plans | None |
+| Related Plans | [天权多租户 OAuth2 / OIDC 实施 Plan](../plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md) |
 
 ## 1. Summary
 
@@ -29,7 +29,7 @@
 
 这不是增加几个 Security 配置即可完成的升级。当前代码已经有 RS256、服务令牌缓存、租户上下文和鉴神权限快照，但 USER Token/固定 Refresh Token、单 issuer/单密钥、全局 Client、JPA/Flyway 与本次目标存在实质差异。应迁移协议与认证状态，保留授权资产、用户标识、天枢服务身份及玉衡双引擎。
 
-用户已确认八项决策（§5.3），包括共享 Redis 每次检查撤销且故障拒绝、切换时重新登录、客户端 secret 逐个轮换为 bcrypt。本版补齐协议/管理契约、认证表与索引、Java 类型和配置、迁移及故障恢复，状态为 **Review**，供用户审核；决策回复不是对整份文档的 Accepted 批准。没有生产代码、依赖、DDL 或运行态变更。
+用户已确认八项决策（§5.3），包括共享 Redis 每次检查撤销且故障拒绝、切换时重新登录、客户端 secret 逐个轮换为 bcrypt。本版补齐协议/管理契约、认证表与索引、Java 类型和配置、迁移及故障恢复。用户于 2026-09-23 明确确认本 Spec 并要求据此编写 Plan，因此状态更新为 **Accepted**；确认不代表已实施或通过运行验收。
 
 **审阅重点**：§7 保持模块边界；§9 定义标准协议和管理接口；§11 使用隔离的新认证 schema，旧历史只读；§15.1 明确即时撤销的成功点与恢复栅栏；§16 规定逐租户切流、重新登录和凭证轮换。生产容量、真实数据库数据与故障演练仍是实施后的验收，本文不宣称已有生产运行证明。
 
@@ -7704,7 +7704,7 @@ DEC-006已确认。所有受保护请求先本地验签，再共享Redis检查�
 | RISK-006 | 依赖解析与API patch漂移 | Medium | 不同代配置API/启动失败 | 保留Boot3.5、Cloud2025.0线，effective POM与编译证明；不依赖线上7.x API | 编译待验 |
 | RISK-007 | 实际公网域名、TLS证书、Redis受控PRIMARY流程、存储卷 | 部署输入 | 无法上线 | §15配置契约与readiness校验，实施运维提供值；示例不是生产配置 | 不阻塞设计，阻塞上线 |
 
-未解决重大用户决定：None。上列是已指定机制和验收的风险，不是将未完成设计藏为“实施时再决定”。本Spec的Review不等于生产go-live批准。
+未解决重大用户决定：None。上列是已指定机制和验收的风险，不是将未完成设计藏为“实施时再决定”。本 Spec 的 Accepted 不等于生产 go-live 批准。
 
 ## 19. Traceability Matrix
 
@@ -7746,7 +7746,7 @@ REQ-001–019与八项用户决策逐项对应。SAS在授柄，鉴神保持授�
 
 ### 20.4 Relationship and effective-design review
 
-本版只替换前文命名的旧认证/会话/issuer/key/撤销内容，鉴神无Session授权与玉衡路由/双引擎仍保留。8月21日旧文档仍Review，不伪造Accepted；本版也仅Review，等待用户对完整Spec审核。未修改任何前驱规范正文。
+本版只替换前文命名的旧认证/会话/issuer/key/撤销内容，鉴神无Session授权与玉衡路由/双引擎仍保留。8月21日旧文档仍为 Review，不伪造其 Accepted 状态。本版已于 2026-09-23 获用户确认；未修改任何前驱规范正文。
 
 ### 20.5 Blocking Manual Check
 
@@ -7774,4 +7774,4 @@ REQ-001–019与八项用户决策逐项对应。SAS在授柄，鉴神保持授�
 
 **PASS — Ready for user review**
 
-结论仅针对设计完整性和当前文档审查，Status=Review，不是Accepted/Implemented或生产验收通过。下一步由mario审核本Spec；没有编写Plan、修改生产代码、执行迁移或启动服务。
+结论仅针对设计完整性；Status=Accepted 反映用户于 2026-09-23 的确认，不是 Implemented 或生产验收通过。后续 Plan 单独审核；本 Spec 的确认不授权执行迁移或启动服务。
