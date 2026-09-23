@@ -1075,7 +1075,7 @@ DEC-101=全量破坏式新库，不保旧数据；旧SQL档案不可改，runtim
 - Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/architecture/GatewayAiModuleContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/bootstrap/LlmGatewayApplication.java`
 - Commit: `feat(yuheng): 建立批准依赖与LLM模块编译边界`（仅候选逻辑检查点；按AGENTS全部步骤最多一个最终提交，不逐Step自动commit）
 
-### Step 2 — 固定class、枚举、Validation与原wire合同
+### Step 2 — 固定class、枚举、Validation与原wire合同【已COMMITTED 2026-09-23: f89f0df71；72文件，勿重跑】
 
 - Requirements: REQ-003, REQ-004, REQ-007, REQ-013, REQ-015
 - Dependencies: Step 1完成其声明的验证；全部前序模型/访问合同可用。
