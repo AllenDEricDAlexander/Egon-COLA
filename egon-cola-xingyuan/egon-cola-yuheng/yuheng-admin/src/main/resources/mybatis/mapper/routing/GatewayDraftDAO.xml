@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.yuheng.admin.routing.dao.GatewayDraftDAO">
+    <resultMap id="GatewayDraftResultMap" type="top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftRecordPO">
+        <id column="id" property="id"/>
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="gateway_group_id" property="gatewayGroupId"/>
+        <result column="revision" property="revision"/>
+        <result column="based_on_release_id" property="basedOnReleaseId"/>
+        <result column="status" property="status"/>
+        <result column="change_summary" property="changeSummary"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, gateway_group_id, revision, based_on_release_id, status, change_summary</sql>
+    <select id="selectActiveById" resultMap="GatewayDraftResultMap">
+        SELECT <include refid="columns"/> FROM gateway_draft WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="GatewayDraftResultMap">
+        SELECT <include refid="columns"/> FROM gateway_draft WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_draft SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>

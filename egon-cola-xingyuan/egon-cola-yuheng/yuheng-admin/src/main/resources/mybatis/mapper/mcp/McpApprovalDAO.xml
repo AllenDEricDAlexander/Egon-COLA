@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.yuheng.admin.mcp.dao.McpApprovalDAO">
+    <resultMap id="McpApprovalResultMap" type="top.egon.cola.component.yuheng.admin.mcp.domain.po.McpApprovalRecordPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="token_digest" property="tokenDigest"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="client_id" property="clientId"/>
+        <result column="server_code" property="serverCode"/>
+        <result column="tool_name" property="toolName"/>
+        <result column="argument_digest" property="argumentDigest"/>
+        <result column="status" property="status"/>
+        <result column="revision" property="revision"/>
+        <result column="issued_at" property="issuedAt" jdbcType="TIMESTAMP"/>
+        <result column="expires_at" property="expiresAt" jdbcType="TIMESTAMP"/>
+        <result column="consumed_at" property="consumedAt" jdbcType="TIMESTAMP"/>
+        <result column="approval_key" property="approvalKey"/>
+        <result column="subject_tenant_id" property="subjectTenantId"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, token_digest, subject_id, client_id, server_code, tool_name, argument_digest, status, revision, issued_at, expires_at, consumed_at, approval_key, subject_tenant_id</sql>
+    <select id="selectActiveById" resultMap="McpApprovalResultMap">
+        SELECT <include refid="columns"/> FROM gateway_mcp_approval WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="McpApprovalResultMap">
+        SELECT <include refid="columns"/> FROM gateway_mcp_approval WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_mcp_approval SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>

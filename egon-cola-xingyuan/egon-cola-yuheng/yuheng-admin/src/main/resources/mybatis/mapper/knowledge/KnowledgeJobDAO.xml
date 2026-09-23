@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.yuheng.admin.knowledge.dao.KnowledgeJobDAO">
+    <resultMap id="KnowledgeJobResultMap" type="top.egon.cola.component.yuheng.admin.knowledge.domain.po.KnowledgeJobPO">
+        <id column="id" property="id"/>
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="kb_id" property="kbId"/>
+        <result column="type" property="type"/>
+        <result column="resource_id" property="resourceId"/>
+        <result column="actor_id" property="actorId"/>
+        <result column="payload" property="payload" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="idempotency_key" property="idempotencyKey"/>
+        <result column="request_hash" property="requestHash"/>
+        <result column="status" property="status"/>
+        <result column="stage" property="stage"/>
+        <result column="attempt" property="attempt"/>
+        <result column="next_attempt_at" property="nextAttemptAt" jdbcType="TIMESTAMP"/>
+        <result column="lease_owner" property="leaseOwner"/>
+        <result column="lease_token" property="leaseToken"/>
+        <result column="lease_expires_at" property="leaseExpiresAt" jdbcType="TIMESTAMP"/>
+        <result column="error_code" property="errorCode"/>
+        <result column="result" property="result" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="retry_of_job_id" property="retryOfJobId"/>
+        <result column="revision" property="revision"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, kb_id, type, resource_id, actor_id, payload, idempotency_key, request_hash, status, stage, attempt, next_attempt_at, lease_owner, lease_token, lease_expires_at, error_code, result, retry_of_job_id, revision</sql>
+    <select id="selectActiveById" resultMap="KnowledgeJobResultMap">
+        SELECT <include refid="columns"/> FROM gateway_knowledge_job WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="KnowledgeJobResultMap">
+        SELECT <include refid="columns"/> FROM gateway_knowledge_job WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_knowledge_job SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>

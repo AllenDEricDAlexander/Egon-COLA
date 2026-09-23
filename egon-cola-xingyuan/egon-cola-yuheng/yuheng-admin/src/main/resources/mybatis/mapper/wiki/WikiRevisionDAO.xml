@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.yuheng.admin.wiki.dao.WikiRevisionDAO">
+    <resultMap id="WikiRevisionResultMap" type="top.egon.cola.component.yuheng.admin.wiki.domain.po.WikiRevisionPO">
+        <id column="id" property="id"/>
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="kb_id" property="kbId"/>
+        <result column="page_id" property="pageId"/>
+        <result column="title" property="title"/>
+        <result column="markdown" property="markdown"/>
+        <result column="tags" property="tags" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="links" property="links" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="sources" property="sources" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="content_hash" property="contentHash"/>
+        <result column="author_actor_id" property="authorActorId"/>
+        <result column="generation_job_id" property="generationJobId"/>
+        <result column="publication_status" property="publicationStatus"/>
+        <result column="review_status" property="reviewStatus"/>
+        <result column="publication_policy_snapshot" property="publicationPolicySnapshot"/>
+        <result column="publication_version" property="publicationVersion"/>
+        <result column="review_instance_id" property="reviewInstanceId"/>
+        <result column="reviewer_actor_id" property="reviewerActorId"/>
+        <result column="reviewed_at" property="reviewedAt" jdbcType="TIMESTAMP"/>
+        <result column="review_decision_code" property="reviewDecisionCode"/>
+        <result column="published_at" property="publishedAt" jdbcType="TIMESTAMP"/>
+        <result column="published_by_actor_id" property="publishedByActorId"/>
+        <result column="archived_at" property="archivedAt" jdbcType="TIMESTAMP"/>
+        <result column="archived_by_actor_id" property="archivedByActorId"/>
+        <result column="publication_error_code" property="publicationErrorCode"/>
+        <result column="ever_published" property="everPublished"/>
+        <result column="revision" property="revision"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, kb_id, page_id, title, markdown, tags, links, sources, content_hash, author_actor_id, generation_job_id, publication_status, review_status, publication_policy_snapshot, publication_version, review_instance_id, reviewer_actor_id, reviewed_at, review_decision_code, published_at, published_by_actor_id, archived_at, archived_by_actor_id, publication_error_code, ever_published, revision</sql>
+    <select id="selectActiveById" resultMap="WikiRevisionResultMap">
+        SELECT <include refid="columns"/> FROM gateway_wiki_revision WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="WikiRevisionResultMap">
+        SELECT <include refid="columns"/> FROM gateway_wiki_revision WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_wiki_revision SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>

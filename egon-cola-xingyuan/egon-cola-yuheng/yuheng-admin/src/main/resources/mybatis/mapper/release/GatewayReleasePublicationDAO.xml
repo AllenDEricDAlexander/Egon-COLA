@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.yuheng.admin.release.dao.GatewayReleasePublicationDAO">
+    <resultMap id="GatewayReleasePublicationResultMap" type="top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationRecordPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="release_id" property="releaseId"/>
+        <result column="attempt_no" property="attemptNo"/>
+        <result column="phase_order" property="phaseOrder"/>
+        <result column="phase_type" property="phaseType"/>
+        <result column="config_key" property="configKey"/>
+        <result column="content_value" property="contentValue"/>
+        <result column="content_sha256" property="contentSha256"/>
+        <result column="expected_version" property="expectedVersion"/>
+        <result column="change_id" property="changeId"/>
+        <result column="ddc_target_version" property="ddcTargetVersion"/>
+        <result column="ddc_status" property="ddcStatus"/>
+        <result column="error_code" property="errorCode"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="target_role" property="targetRole"/>
+        <result column="target_biz_code" property="targetBizCode"/>
+        <result column="target_env" property="targetEnv"/>
+        <result column="target_app_code" property="targetAppCode"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, release_id, attempt_no, phase_order, phase_type, config_key, content_value, content_sha256, expected_version, change_id, ddc_target_version, ddc_status, error_code, error_message, target_role, target_biz_code, target_env, target_app_code</sql>
+    <select id="selectActiveById" resultMap="GatewayReleasePublicationResultMap">
+        SELECT <include refid="columns"/> FROM gateway_release_publication WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="GatewayReleasePublicationResultMap">
+        SELECT <include refid="columns"/> FROM gateway_release_publication WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_release_publication SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}, version = version + 1
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>

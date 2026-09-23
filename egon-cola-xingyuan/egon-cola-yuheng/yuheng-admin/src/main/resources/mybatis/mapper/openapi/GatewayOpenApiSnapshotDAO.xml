@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.yuheng.admin.openapi.dao.GatewayOpenApiSnapshotDAO">
+    <resultMap id="GatewayOpenApiSnapshotResultMap" type="top.egon.cola.component.yuheng.admin.openapi.domain.po.GatewayOpenApiSnapshotRecordPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="definition_set_id" property="definitionSetId"/>
+        <result column="build_id" property="buildId"/>
+        <result column="artifact_version" property="artifactVersion"/>
+        <result column="openapi_group" property="openapiGroup"/>
+        <result column="openapi_version" property="openapiVersion"/>
+        <result column="document_sha256" property="documentSha256"/>
+        <result column="canonical_sha256" property="canonicalSha256"/>
+        <result column="document_json" property="documentJson" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="validation_status" property="validationStatus"/>
+        <result column="validation_messages" property="validationMessages" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="operation_count" property="operationCount"/>
+        <result column="schema_count" property="schemaCount"/>
+        <result column="fetched_from_instance_id" property="fetchedFromInstanceId"/>
+        <result column="fetched_at" property="fetchedAt" jdbcType="TIMESTAMP"/>
+        <result column="validated_at" property="validatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, application_id, definition_set_id, build_id, artifact_version, openapi_group, openapi_version, document_sha256, canonical_sha256, document_json, validation_status, validation_messages, operation_count, schema_count, fetched_from_instance_id, fetched_at, validated_at</sql>
+    <select id="selectActiveById" resultMap="GatewayOpenApiSnapshotResultMap">
+        SELECT <include refid="columns"/> FROM gateway_openapi_snapshot WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="GatewayOpenApiSnapshotResultMap">
+        SELECT <include refid="columns"/> FROM gateway_openapi_snapshot WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_openapi_snapshot SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>
