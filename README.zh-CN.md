@@ -4,8 +4,8 @@
 
 Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层的业务工程脚手架、可复用的 Spring Boot 组件，以及可以独立部署的企业级平台能力，其中包含 AI Agent 相关构件。它负责把工程结构、依赖方向和运行边界立住，业务系统仍然拥有业务规则、领域模型和具体部署决策的所有权。
 
-[![Fast CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml)
-[![Java Compatibility](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml)
+[![CI Backend](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-backend.yml)
+[![CI Frontend](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-frontend.yml)
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Maven Central](https://img.shields.io/maven-central/v/top.egon/egon-cola-components-bom.svg)](https://central.sonatype.com/artifact/top.egon/egon-cola-components-bom)

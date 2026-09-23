@@ -1,0 +1,77 @@
+name: CI Backend
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Compile, test and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    env:
+      # The Testcontainers-backed Outbox integration tests assume-skip without this flag.
+      EGON_OUTBOX_TEST_POSTGRES_ENABLED: "true"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "21"
+          cache: maven
+
+      - name: Compile, test and package the backend reactor
+        run: |
+          set -euo pipefail
+          chmod +x ./mvnw
+          ./mvnw -B -ntp clean verify
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-artifacts
+          path: |
+            **/target/*.jar
+            !**/*-exec.jar
+            !**/*-sources.jar
+            !**/*-javadoc.jar
+            !**.jar.original
+            !**/target/it/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            **/target/surefire-reports
+            **/target/failsafe-reports
+          if-no-files-found: ignore
+
+      - name: Remove self-installed Maven artifacts
+        if: always()
+        # maven-invoker-plugin writes into the real local repository, so without this
+        # cleanup the shared `cache: maven` entry would serve our own stale artifacts.
+        run: |
+          rm -rf \
+            "$HOME/.m2/repository/top/egon" \
+            "$HOME/.m2/repository/com/alibaba/cola" \
+            "$HOME/.m2/repository/com/alibaba/craftsman"

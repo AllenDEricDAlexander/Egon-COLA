@@ -4,8 +4,8 @@
 
 Egon-COLA is a Java 21 Maven multi-module repository that provides cleanly layered project scaffolding, reusable Spring Boot components, and independently deployable enterprise platforms, including AI-agent building blocks. It fixes the engineering direction — module layout, dependency edges, and runtime boundaries — while leaving business rules, domain models, and deployment decisions to the consuming application.
 
-[![Fast CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml)
-[![Java Compatibility](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml)
+[![CI Backend](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-backend.yml)
+[![CI Frontend](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci-frontend.yml)
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Maven Central](https://img.shields.io/maven-central/v/top.egon/egon-cola-components-bom.svg)](https://central.sonatype.com/artifact/top.egon/egon-cola-components-bom)

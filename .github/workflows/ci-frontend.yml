@@ -1,0 +1,82 @@
+name: CI Frontend
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: ${{ matrix.project }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: xingyuan-admin-web-shared
+            dir: egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared
+            dist: egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/dist
+          - project: xingyuan-admin-portal
+            dir: egon-cola-xingyuan/egon-cola-xingyuan-admin-portal
+            dist: egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/dist
+          - project: tianshu-admin-web
+            dir: egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
+            dist: egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/dist
+          - project: tianquan-shoubing-admin-web
+            dir: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web
+            dist: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/dist
+          - project: tianquan-jianshen-frontend
+            dir: egon-cola-xingyuan/egon-cola-tianquan-jianshen
+            test_args: --run
+            dist: |-
+              egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/dist
+              egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/dist
+          - project: yuheng-admin-web
+            dir: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
+            dist: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/dist
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |-
+            egon-cola-xingyuan/package-lock.json
+            egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/package-lock.json
+            egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/package-lock.json
+            egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/package-lock.json
+            egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/package-lock.json
+            egon-cola-xingyuan/egon-cola-tianquan-jianshen/package-lock.json
+            egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/package-lock.json
+
+      - name: Compile, test and build
+        working-directory: ${{ matrix.dir }}
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run typecheck
+          npm test ${{ matrix.test_args }}
+          npm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.project }}-dist
+          path: ${{ matrix.dist }}
+          if-no-files-found: error
+          retention-days: 14
