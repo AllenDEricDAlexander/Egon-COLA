@@ -2,7 +2,7 @@
 
 Consuming this starter requires PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC. Excluding `shardingsphere-jdbc` is unsupported and must fail at compile or startup. The starter publishes the logical `@Primary DataSource` from one YAML file under `egon.cola.component.mybatis-plus.sharding`. `config-style: STRATEGY` and `config-style: NATIVE` are mutually exclusive.
 
-Recommended STRATEGY yaml uses `tenant_id` first, then a business root such as `order_id` for orders/order_items (`COMPLEX_TENANT_THEN_BUSINESS`). Default transaction type is LOCAL; XA remains on the classpath and can be selected with `transaction-default-type: XA`.
+Recommended STRATEGY yaml uses `tenant_id` first, then a business root such as `order_id` for orders/order_items (`COMPLEX_TENANT_THEN_BUSINESS`). The default transaction type is LOCAL. `transaction-default-type` only fills the ShardingSphere rule when the YAML omits `defaultType`, and validation accepts exactly `LOCAL` or `XA`; anything else fails with `LOCAL_TRANSACTION_REQUIRED`. Selecting `XA` forwards the value — this starter does not depend on an XA transaction provider, so the host must add the provider and its recovery manager itself.
 
 ```yaml
 egon:
@@ -122,7 +122,7 @@ Extend `EgonModel<PO>` and declare `@TableName`. Do not shadow technical fields.
 | deletedAt | deleted_at | LocalDateTime/timestamp(6); NULL means active |
 | version | version | Long/BIGINT; insert 0, increment on update/delete |
 
-`@TableLogic` uses `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`. `EgonColaIdentifierGenerator` calls the process-wide static `SnowflakeIdGenerator`, which `IdGeneratorAutoConfiguration` initializes once from validated ID properties; configure a unique `EGON_ID_MACHINE_ID` per instance. Counters belong only in isolated tests. `@KeySequence` conflicts with this ASSIGN_ID contract and is rejected.
+`@TableLogic` uses `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`. `EgonColaIdentifierGenerator` calls the process-wide static `SnowflakeIdGenerator`, which `IdGeneratorAutoConfiguration` initializes once from validated ID properties; configure a unique `EGON_COLA_COMPONENT_ID_MACHINE_ID` per instance. Counters belong only in isolated tests. `@KeySequence` conflicts with this ASSIGN_ID contract and is rejected.
 
 Common accepts any non-null Long tenant; ShardingSphere hosts require positive Long sharding keys. The MetaObjectHandler is assembled whenever MyBatis-Plus is enabled — there is no enable switch for it — and owns technical fields. Extension hooks may fill business fields only.
 
@@ -139,33 +139,39 @@ Tenant identity has no injected provider. `EgonColaTenantIdProvider` is a static
 - Preserve id, tenant, creation metadata and version from the caller or a row loaded in the same transaction. Zero affected rows are not successful updates.
 - MybatisBatch requires the same DataSource and an actual Spring transaction. Empty input emits no SQL; invalid/duplicate IDs fail early. Default chunk 1000, collection limit 10000; failures mark rollback-only.
 
-No platform SQL Injector was added. Use mapper extensions for concrete non-generic SQL needs, and field handlers for real JSONB/array differences. Agent keeps its field-specific JSONB handler; the global String handler stays standard. Persisted enums require one `@EnumValue` and matching public `@JsonValue`/Jackson semantics, checked at startup.
+No MyBatis-Plus SQL Injector is registered: startup validation requires those three statements to come from Mapper XML. Use mapper extensions for concrete non-generic SQL needs, and field handlers for real JSONB/array differences. Agent keeps its field-specific JSONB handler; the global String handler stays standard. Persisted enums require one `@EnumValue` and matching public `@JsonValue`/Jackson semantics, checked at startup.
 
-## Annotation-based caching / 注解缓存
+## Annotation-based caching
 
-`EgonColaRepository` 仅负责持久化，已移除 `getByCache`、`listByCache`、`getCachePortProvider`、`cacheRegionName` 和 CRUD
-自动失效。
-具体 Repository 使用 Spring `@CacheConfig`、`@Cacheable`、`@CachePut`、`@CacheEvict`、`@Caching`；宿主显式启用
-`@EnableCaching`。
-注解应放在具体 Repository 的 public、非 final 业务方法上，由外部 Bean 通过代理调用，内部调用原有
-CRUD；基类的数据校验、租户和批量事务守卫保持不变。
-脚手架以 `findCachedById` / `updateCachedById` 示例展示此方式。所有影响缓存的写路径需要声明失效，普通 CRUD 不再自动失效。
-单键读/写/失效统一使用具名 `keyGenerator = "egonColaRepositoryKeyGenerator"`，由它产出可信 `tenant:id`；
-批量签名与多参数签名不支持该策略，需独立区域或显式失效。
-`@CachePut` 缓存返回值，不能用于返回 boolean 的更新方法并期望得到实体缓存。
+`EgonColaRepository` only persists. `getByCache`, `listByCache`, `getCachePortProvider` and
+`cacheRegionName` are removed, and CRUD no longer evicts caches automatically. Concrete repositories use
+the Spring `@CacheConfig`, `@Cacheable`, `@CachePut`, `@CacheEvict` and `@Caching` annotations, and the
+host enables `@EnableCaching` explicitly. Annotations belong on public, non-final business methods of
+the concrete repository, invoked through the proxy by an external bean, while the method body keeps
+calling the inherited CRUD; the base class keeps its data validation, tenancy and batch transaction
+guards. The generated projects demonstrate this with `findCachedById` / `updateCachedById`. Every write
+path that touches cached data must declare its own eviction, because plain CRUD no longer evicts.
+Single-key reads, writes and evictions share the named `keyGenerator = "egonColaRepositoryKeyGenerator"`,
+which produces the trusted `tenant:id`; multi-parameter and batch signatures do not support this
+strategy and need a separate region or explicit eviction. `@CachePut` caches the return value, so it
+cannot sit on a boolean-returning update and still yield an entity entry.
 
-两级缓存是必需组件（`egon.cola.component.cache.enabled` 缺省 `true`），本 starter 依赖受管理的
-common-cache starter 并在启动时校验 CacheManager：组件启用而宿主只有非本组件、非兼容的 `CacheManager` 时，
-以 `CACHE_MANAGER_INCOMPATIBLE` 失败，避免静默退回单级缓存；组件显式关闭时该检查跳过，键生成器仍可用。
+The two-level cache is a required component (`egon.cola.component.cache.enabled` defaults to `true`).
+This starter depends on the managed common-cache starter and validates the CacheManager at startup: when
+the component is enabled and the host only offers a foreign, incompatible `CacheManager`, startup fails
+with `CACHE_MANAGER_INCOMPATIBLE` instead of silently falling back to a single-level cache. Explicitly
+disabling the component skips that check, and the key generator remains usable.
 
-Key、TTL 采样、事务提交/回滚、`sync` 与 `unless` 的限制、组合注解和手动操作详见
-[缓存 starter 文档](../egon-cola-component-common-cache-spring-boot-starter/README.md)。
+Keys, TTL sampling, commit/rollback timing, the `sync` and `unless` restrictions, composite annotations
+and manual operation are documented in the
+[cache starter guide](../egon-cola-component-common-cache-spring-boot-starter/README.md), which is
+currently Chinese-only.
 
 ## SQL guards and transactions
 
 The original SQL guard proves positive ID bounds before execution. Final SQL checks enforce tenancy, active rows, versions and audit fields after TenantLine. Block-attack, optimistic locking, PostgreSQL pagination and LOCAL write-target checks share one interceptor chain. Dynamic table names are disabled by default and require explicit mappings.
 
-LOCAL checks span SqlSessionFactory instances. Multi-table writes within one physical group are allowed; cross-group writes fail and mark rollback-only. XA/BASE are not enabled. Root-key bulk writes require the exact statement ID and column in `local-write-guard.allowed-root-statements`.
+The LOCAL write guard runs regardless of the declared transaction type and spans SqlSessionFactory instances. Multi-table writes within one physical group are allowed; cross-group writes fail with `LOCAL_WRITE_TARGET_MISMATCH`, and a multi-target write without an actual transaction fails with `LOCAL_TRANSACTION_REQUIRED`. `BASE` is rejected during topology validation, and no XA recovery manager is provisioned or verified here. Root-key bulk writes require the exact statement ID and column in `local-write-guard.allowed-root-statements`.
 
 Page limit is 500. IllegalSQL is permitted only in `dev`. Mixed dev/prod activation is rejected.
 
@@ -175,10 +181,10 @@ Page limit is 500. IllegalSQL is permitted only in `dev`. Mixed dev/prod activat
 
 Do not register DDL target records as default MP IDdl beans or combine this runner with DdlApplicationRunner. This starter owns pool creation, topology validation, TableInfo schema maintenance, DDL scripts, and logical datasource construction. Applications must not rebuild local `ShardingDataSourceBootstrapper` copies.
 
-Six business archetypes use this runner and retain old B/V/manual SQL unchanged as archives. Agent keeps Flyway and adds one empty-knowledge-table correction; Outbox/vector ownership is unchanged.
+All seven generated archetypes depend on this starter. Six enable this runner and keep their historical `B`/`V` manual SQL unchanged as archives; Agent disables the runner and stays on Flyway.
 
 ## Configuration and proof
 
-Settings live under `egon.cola.component.mybatis-plus`; source profiles provide complete examples. Common defaults DDL to disabled, the six archetypes enable it, and Agent disables it. ID settings use `egon.cola.component.id`.
+Settings live under `egon.cola.component.mybatis-plus`; source profiles provide complete examples. Common defaults DDL to disabled, the six non-Agent archetypes enable it, and Agent disables it. ID settings use `egon.cola.component.id`.
 
-Tests exercise actual Mapper/plugin paths following the official MP test style. CPU/Mock/H2 results do not prove PostgreSQL DDL, replication, physical placement or query performance. Explicit PG tests use dedicated databases and `egon.pg.routing=true` / `egon.pg.readwrite=true`; run them manually. Validate SQL plans with EXPLAIN on realistic data.
+Tests exercise actual Mapper/plugin paths following the official MP test style. CPU/Mock/H2 results do not prove PostgreSQL DDL, replication, physical placement or query performance. Explicit PostgreSQL tests are environment-gated and skipped by default: `EGON_MP_PG_MODEL_TEST=true` enables the logic-delete and optimistic-lock suites, `EGON_MP_PG_DDL_TEST=true` enables the managed-DDL case, and both read `EGON_MP_PG_URL` / `EGON_MP_PG_USER` / `EGON_MP_PG_PASSWORD` for a dedicated database. They are not part of CI and must be run manually. Validate SQL plans with EXPLAIN on realistic data.

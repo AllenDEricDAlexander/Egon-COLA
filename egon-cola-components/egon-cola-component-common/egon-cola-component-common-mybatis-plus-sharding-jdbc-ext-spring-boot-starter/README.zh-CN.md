@@ -2,7 +2,7 @@
 
 消费本 Starter 必须同时使用 PostgreSQL、MyBatis-Plus 与 ShardingSphere-JDBC。排除 `shardingsphere-jdbc` 不受支持，编译或启动必须失败。逻辑 `@Primary DataSource` 由一份 YAML（前缀 `egon.cola.component.mybatis-plus.sharding`）描述。`config-style: STRATEGY` 与 `config-style: NATIVE` 互斥。
 
-推荐 STRATEGY：订单/明细使用 `COMPLEX_TENANT_THEN_BUSINESS`（先 `tenant_id` 再 `order_id`）。默认事务 LOCAL；classpath 保留 XA，可设 `transaction-default-type: XA`。
+推荐 STRATEGY：订单/明细使用 `COMPLEX_TENANT_THEN_BUSINESS`（先 `tenant_id` 再 `order_id`）。默认事务 LOCAL。`transaction-default-type` 只在 YAML 未写 `defaultType` 时填入 ShardingSphere 事务规则，校验只接受 `LOCAL` 或 `XA`，其他取值以 `LOCAL_TRANSACTION_REQUIRED` 失败。选择 `XA` 只是转发该取值：本 starter 不依赖任何 XA 事务 provider，宿主必须自行引入 provider 及其恢复管理器。
 
 ```yaml
 egon:
@@ -122,7 +122,7 @@ rules:
 | deletedAt | deleted_at | LocalDateTime / timestamp(6)，未删除 NULL |
 | version | version | Long / BIGINT NOT NULL，插入 0，更新与软删递增 |
 
-逻辑删除使用 `@TableLogic` 与 `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`。主键适配器 `EgonColaIdentifierGenerator` 调用进程级静态 `SnowflakeIdGenerator`，该引擎由 `IdGeneratorAutoConfiguration` 在校验 ID 配置后一次性初始化，不重新实现分布式算法。实例必须配置唯一 `EGON_ID_MACHINE_ID`；计数器只用于隔离测试。`@KeySequence` 与该 ASSIGN_ID 合同冲突，启动校验拒绝组合。
+逻辑删除使用 `@TableLogic` 与 `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`。主键适配器 `EgonColaIdentifierGenerator` 调用进程级静态 `SnowflakeIdGenerator`，该引擎由 `IdGeneratorAutoConfiguration` 在校验 ID 配置后一次性初始化，不重新实现分布式算法。实例必须配置唯一 `EGON_COLA_COMPONENT_ID_MACHINE_ID`；计数器只用于隔离测试。`@KeySequence` 与该 ASSIGN_ID 合同冲突，启动校验拒绝组合。
 
 Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long 分片键。技术字段统一由 MetaObjectHandler 填充，MyBatis-Plus 启用即装配该 handler，没有开关；扩展钩子只允许处理业务字段。SQL Injector 不承担元数据填充职责。
 
@@ -139,7 +139,7 @@ Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long �
 - 更新前从调用方或同一事务加载的行保留 id、tenant、create metadata、version。零行冲突不得当作成功。
 - MybatisBatch 必须在相同 DataSource 的真实 Spring 事务内运行；空集合不发 SQL，重复/非法 ID 提前拒绝。默认分块 1000，总集合上限 10000，失败标记 rollback-only。
 
-只在明确需要批量/特殊 SQL 的场景使用 Mapper 扩展。没有新增平台 SQL Injector。字段 TypeHandler 用于 JSONB、数组等真实类型差异；Agent 的 JSONB 使用字段专用 handler，不覆盖全局 String handler。持久化枚举需唯一 `@EnumValue`，对外枚举值需匹配 `@JsonValue`/Jackson 合同，启动时校验。
+只在明确需要批量/特殊 SQL 的场景使用 Mapper 扩展。没有注册 MyBatis-Plus SQL Injector：启动校验要求上述三个语句必须来自 Mapper XML。字段 TypeHandler 用于 JSONB、数组等真实类型差异；Agent 的 JSONB 使用字段专用 handler，不覆盖全局 String handler。持久化枚举需唯一 `@EnumValue`，对外枚举值需匹配 `@JsonValue`/Jackson 合同，启动时校验。
 
 ## 注解缓存
 
@@ -155,7 +155,7 @@ Key、TTL 采样、事务提交/回滚、`sync` 与 `unless` 的限制、组合�
 
 原始 SQL Guard 在执行前验证正 ID 范围；TenantLine 后再次验证最终 SQL 的租户、active、版本和审计条件。全表更新/删除拦截、乐观锁、PG 分页与 LOCAL 写目标保护统一装配。动态表名默认关闭，只接受显式白名单映射。
 
-LOCAL Guard 跨 SqlSessionFactory 检查事务目标。一个事务可写同一物理组的多表，跨组写入拒绝并标记回滚；XA/BASE 不启用。精确 root-key 批量语句必须通过 `local-write-guard.allowed-root-statements` 注册完整 statementId 和列名；不接受普通业务以任意 Wrapper 绕过 ID/版本保护。
+LOCAL Guard 与声明的事务类型无关，跨 SqlSessionFactory 检查事务目标。一个事务可写同一物理组的多表，跨组写入以 `LOCAL_WRITE_TARGET_MISMATCH` 拒绝，无真实事务的多目标写入以 `LOCAL_TRANSACTION_REQUIRED` 拒绝。`BASE` 在拓扑校验阶段即被拒绝，本组件既不提供也不验证 XA 恢复管理器。精确 root-key 批量语句必须通过 `local-write-guard.allowed-root-statements` 注册完整 statementId 和列名；不接受普通业务以任意 Wrapper 绕过 ID/版本保护。
 
 分页上限 500。IllegalSQL 仅 `dev` 允许。同时启用 dev/prod 会被拒绝。
 
@@ -165,10 +165,10 @@ LOCAL Guard 跨 SqlSessionFactory 检查事务目标。一个事务可写同一�
 
 不要把 `EgonColaDdlTargetBO` 注册为默认 MP IDdl Bean，也不要混用 MP 默认 DdlApplicationRunner。本 Starter 负责物理池、拓扑校验、TableInfo 维护、脚本 DDL 与逻辑数据源；应用不得再复制 `ShardingDataSourceBootstrapper`。
 
-六个业务脚手架由该运行器接管，旧 B/V/manual SQL 原样归档。Agent 继续保留 Flyway，仅新增一条空知识表修订；Outbox 和向量表保持现有组件所有权。
+七个生成脚手架都依赖本 starter：其中六个由该运行器接管并显式启用，旧 B/V/manual SQL 原样归档；Agent 关闭该运行器并继续使用 Flyway。
 
 ## 配置与验证
 
-核心配置位于 `egon.cola.component.mybatis-plus`；源脚手架四个 profile 给出完整配置。Common 的 `ddl.enabled` 默认 false，六个脚手架显式启用，Agent 显式关闭。主键配置位于 `egon.cola.component.id`。
+核心配置位于 `egon.cola.component.mybatis-plus`；源脚手架四个 profile 给出完整配置。Common 的 `ddl.enabled` 默认 false，六个非 Agent 脚手架显式启用，Agent 显式关闭。主键配置位于 `egon.cola.component.id`。
 
-CPU/Mock/H2 用例参考官方 MyBatis-Plus 测试的真实 Mapper/插件调用方式。它们不证明 PG DDL、复制、分片实际落点或性能。真实 PG/SS 测试默认禁用：使用专用测试库并显式设置 `egon.pg.routing=true` 或 `egon.pg.readwrite=true` 后手动执行；SQL 性能需在真实数据分布上以 EXPLAIN 验收。
+CPU/Mock/H2 用例参考官方 MyBatis-Plus 测试的真实 Mapper/插件调用方式。它们不证明 PG DDL、复制、分片实际落点或性能。真实 PG/SS 测试默认跳过，由环境变量开启：`EGON_MP_PG_MODEL_TEST=true` 启用逻辑删除与乐观锁用例，`EGON_MP_PG_DDL_TEST=true` 启用受管 DDL 用例，两者都从 `EGON_MP_PG_URL` / `EGON_MP_PG_USER` / `EGON_MP_PG_PASSWORD` 读取专用测试库连接。这些用例不在 CI 中执行，必须手动运行；SQL 性能需在真实数据分布上以 EXPLAIN 验收。
