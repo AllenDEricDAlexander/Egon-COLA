@@ -2,7 +2,7 @@
 
 Consuming this starter requires PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC. Excluding `shardingsphere-jdbc` is unsupported and must fail at compile or startup. The starter publishes the logical `@Primary DataSource` from one YAML file under `egon.cola.component.mybatis-plus.sharding`. `config-style: STRATEGY` and `config-style: NATIVE` are mutually exclusive.
 
-Recommended STRATEGY yaml uses `tenant_id` first, then a business root such as `order_id` for orders/order_items (`COMPLEX_TENANT_THEN_BUSINESS`). The default transaction type is LOCAL. `transaction-default-type` only fills the ShardingSphere rule when the YAML omits `defaultType`, and validation accepts exactly `LOCAL` or `XA`; anything else fails with `LOCAL_TRANSACTION_REQUIRED`. Selecting `XA` forwards the value — this starter does not depend on an XA transaction provider, so the host must add the provider and its recovery manager itself.
+Recommended STRATEGY yaml uses `tenant_id` first, then a business root such as `order_id` for orders/order_items (`COMPLEX_TENANT_THEN_BUSINESS`). The default transaction type is LOCAL. In STRATEGY the `transaction-default-type` value is always emitted as the generated rule's `defaultType`; in NATIVE it is only the fallback for a host YAML that omits `defaultType`. Validation accepts exactly `LOCAL` or `XA` and rejects anything else with `LOCAL_TRANSACTION_REQUIRED`. Selecting XA (`transaction-default-type: XA`) forwards the value only — this starter does not depend on an XA transaction provider, so the host must add the provider and its recovery manager itself.
 
 ```yaml
 egon:

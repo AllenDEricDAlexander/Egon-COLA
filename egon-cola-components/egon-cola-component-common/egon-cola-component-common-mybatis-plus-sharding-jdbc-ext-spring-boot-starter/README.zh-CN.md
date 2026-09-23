@@ -2,7 +2,7 @@
 
 消费本 Starter 必须同时使用 PostgreSQL、MyBatis-Plus 与 ShardingSphere-JDBC。排除 `shardingsphere-jdbc` 不受支持，编译或启动必须失败。逻辑 `@Primary DataSource` 由一份 YAML（前缀 `egon.cola.component.mybatis-plus.sharding`）描述。`config-style: STRATEGY` 与 `config-style: NATIVE` 互斥。
 
-推荐 STRATEGY：订单/明细使用 `COMPLEX_TENANT_THEN_BUSINESS`（先 `tenant_id` 再 `order_id`）。默认事务 LOCAL。`transaction-default-type` 只在 YAML 未写 `defaultType` 时填入 ShardingSphere 事务规则，校验只接受 `LOCAL` 或 `XA`，其他取值以 `LOCAL_TRANSACTION_REQUIRED` 失败。选择 `XA` 只是转发该取值：本 starter 不依赖任何 XA 事务 provider，宿主必须自行引入 provider 及其恢复管理器。
+推荐 STRATEGY：订单/明细使用 `COMPLEX_TENANT_THEN_BUSINESS`（先 `tenant_id` 再 `order_id`）。默认事务 LOCAL。STRATEGY 下 `transaction-default-type` 一定作为生成规则的 `defaultType` 写出；NATIVE 下它只是宿主 YAML 未写 `defaultType` 时的回退。校验只接受 `LOCAL` 或 `XA`，其他取值以 `LOCAL_TRANSACTION_REQUIRED` 失败。选择 XA（`transaction-default-type: XA`）只是转发该取值：本 starter 不依赖任何 XA 事务 provider，宿主必须自行引入 provider 及其恢复管理器。
 
 ```yaml
 egon:
