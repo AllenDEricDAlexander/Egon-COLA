@@ -282,14 +282,14 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 
 ```bash
 # 1. 四个 facade，各自使用可解析 consumer POM
-./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml \
-  -Prelease -Ppublish-resolved-facade -DtrimStackTrace=false -DskipTests=true clean deploy
+./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml -Prelease -Ppublish-resolved-facade -DtrimStackTrace=false -DskipTests=true clean deploy
+./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-facade/pom.xml -Prelease -Ppublish-resolved-facade -DtrimStackTrace=false -DskipTests=true clean deploy
+./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml -Prelease -Ppublish-resolved-facade -DtrimStackTrace=false -DskipTests=true clean deploy
+./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml -Prelease -Ppublish-resolved-facade -DtrimStackTrace=false -DskipTests=true clean deploy
 # service、service-open、web-open 的 facade 同样各执行一次
 
 # 2. 其余模块。排除已经发布的四个 facade，避免 Release 坐标重复上传
-./mvnw -B -ntp -Pgenerated-archetypes -Prelease \
-  -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade' \
-  -DtrimStackTrace=false -DskipTests=true clean deploy
+./mvnw -B -ntp -Pgenerated-archetypes -Prelease -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade' -DtrimStackTrace=false -DskipTests=true clean deploy
 ```
 
 `--fast` 不跑测试、Archetype IT 和 release-shape。发布失败就不会上传，不需要先做一轮 dry-run。
