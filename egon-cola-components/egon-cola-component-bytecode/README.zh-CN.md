@@ -2,24 +2,37 @@
 
 [English](README.md) | 中文
 
-字节码组件无需加载或初始化应用类，即可依据标准 Egon COLA 架构规则检查已编译的类。其公共 API 仅依赖 JDK；ASM、Maven 和 JSON 序列化均属于实现细节。
+字节码组件覆盖两个边界。构建期：无需加载或初始化应用类，即可依据标准 Egon COLA 架构规则检查已编译的类。运行期：由 `premain` Agent 对 executor 交接、方法观测和方法扩展决策进行字节码增强。其公共 API 仅依赖 JDK；ASM、Maven 和 JSON 序列化均属于实现细节。
 
 ## 模块
 
 | 模块 | 职责 | 是否加入 BOM |
 |---|---|---|
-| `egon-cola-component-bytecode-api` | 规则、运行时事件、上下文载体和 Agent 能力的 JDK-only 契约 | 是 |
+| `egon-cola-component-bytecode-api` | 架构规则与发现项、executor 和观测事件及其 Sink、上下文载体、`@EgonObserved` 的 JDK-only 契约 | 是 |
 | `egon-cola-component-bytecode-bridge` | 转换后的应用字节码与运行时之间的轻量桥接 | 是 |
 | `egon-cola-component-bytecode-core` | 基于 ASM 的类转换和架构规则引擎 | 否 |
-| `egon-cola-component-bytecode-runtime` | 运行时增强、指标、Sink 和故障隔离 | 是 |
+| `egon-cola-component-bytecode-runtime` | 运行时 dispatcher、增强包装、事件分发和有界故障隔离 | 是 |
 | `egon-cola-component-bytecode-agent` | shaded `premain` Java Agent 产物 | 是 |
-| `egon-cola-component-bytecode-starter` | Spring Boot 配置、Actuator，以及可选的 Method Extension 集成 | 是 |
+| `egon-cola-component-bytecode-starter` | Spring Boot 配置、Micrometer 指标绑定、Actuator 暴露，以及可选的 Method Extension 集成 | 是 |
 | `egon-cola-component-bytecode-architecture-maven-plugin` | 构建期架构校验 goal | 否 |
 | `egon-cola-component-bytecode-test` | 生成工程和运行时验证 | 否 |
-| `egon-cola-component-bytecode-benchmark` | 架构扫描 JMH 基准测试 | 否 |
+| `egon-cola-component-bytecode-benchmark` | 架构扫描、executor 增强和方法观测的 JMH 基准测试 | 否 |
 
 Maven plugin、test 和 benchmark 模块属于仓库内工具。业务应用通过 BOM 引入
 API/runtime/Agent/starter；需要架构检查时，再在构建中单独使用 plugin。
+
+## 契约约定
+
+本组件中每个手写的枚举都实现 common-core 的 `EgonEnum` 契约，整数 code 按声明顺序固定分配
+（`DISABLED=0` … `FAILED=4`、`EXTENDS=0` … `CONSTANT_POOL=20`），绝不从 `ordinal()` 派生；
+而 bridge 协议、Agent 配置、Maven 规则配置和 JSON 序列化仍然按常量名匹配。由于公共 API 仅依赖
+JDK，`egon-cola-component-bytecode-api` 和 `egon-cola-component-bytecode-bridge` 声明
+`egon-cola-component-common-core` 时排除了它的全部传递依赖，shaded Agent JAR 只白名单保留
+`top/egon/cola/component/common/core/enums/EgonEnum.class` 这一个条目，而不是复制并重定位。
+
+starter 只发布一份规范的 `egonColaValidationUtils` facade。`BytecodeStartupValidator` 和
+`ObservationMetadataValidator` 继承 common 的 `BaseValidator`，先通过它执行原生 Jakarta 约束校验，
+再做自己的协议与标签关联检查，因此被拒绝的观测载荷绝不会到达 `MeterRegistry`。
 
 ## 运行时 Agent 安装
 
@@ -35,13 +48,13 @@ API/runtime/Agent/starter；需要架构检查时，再在构建中单独使用 
 
 ```bash
 java -Xverify:all \
-  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.3.jar=enabled=true,features=executor;observation;method-extension,include=com.example.*,observation-include=com.example.*" \
+  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.4.1.jar=enabled=true,features=executor;observation;method-extension,include=com.example.*,observation-include=com.example.*" \
   -jar application.jar
 ```
 
-发布的 Agent JAR 是主产物 `egon-cola-component-bytecode-agent-${version}.jar`；其中已包含重定位后的 ASM 和 SnakeYAML 类。不要在命令行中使用未 shaded 的 Agent classifier。Agent 仅支持 `premain`。
+发布的 Agent JAR 是主产物 `egon-cola-component-bytecode-agent-${version}.jar`；其中已包含重定位后的 ASM 和 SnakeYAML 类。shade 插件关闭了附加产物，因此不会发布第二个 Agent classifier；Maven 留在 `target/` 下的 `original-egon-cola-component-bytecode-agent-*.jar` 只是构建中间物，绝不能出现在命令行中。Agent 仅支持 `premain`。
 
-Agent 默认禁用；启用 Agent 时必须至少显式配置一个 `include` 模式。支持的键包括 `enabled`、`features`、`include`、`exclude`、`observation-include`、`observation-method`、`observation-exclude`、`observe-constructors`、`observation-slow-threshold-millis`、`failure-policy`、`failure-capacity` 和 `config`。配置优先级从低到高依次为默认值、环境变量、JVM 系统属性、YAML 和 `-javaagent` 参数。`config` 路径本身依次从环境变量、系统属性和 Agent 参数中选择。
+Agent 默认禁用；启用 Agent 时必须至少显式配置一个 `include` 模式。支持的键包括 `enabled`、`features`、`include`、`exclude`、`observation-include`、`observation-method`、`observation-exclude`、`observe-constructors`、`observation-slow-threshold-millis`、`failure-policy`、`failure-capacity` 和 `config`。配置优先级从低到高依次为默认值、环境变量、JVM 系统属性、YAML 和 `-javaagent` 参数。`config` 路径的解析方向相反：Agent 参数、系统属性、环境变量中第一个非空值生效。
 
 ```yaml
 enabled: true
@@ -79,7 +92,7 @@ Agent 只会重写已包含应用类中的以下接口调用点：
 - `ExecutorService.submit(Runnable, Object)`
 - `ExecutorService.submit(Callable)`
 
-对调度器 API、具体 executor owner 方法、JDK 类和其他重载的调用保持不变。每个重写点都有一个稳定 ID，该 ID 由其 owner、所在方法、目标签名和指令位置派生。ID 冲突会导致明确的注册失败，而不会产生含义不清的指标。
+对调度器 API、具体 executor owner 方法、JDK 类和其他重载的调用保持不变。每个重写点都有一个稳定 ID：由 owner、所在方法的名称与 descriptor、调用 opcode、目标的 owner/name/descriptor 以及指令序号，经 SHA-256 派生。ID 冲突会导致明确的注册失败，而不会产生含义不清的指标。
 
 底层 executor API 恰好调用一次。`submit` 返回该 executor 创建的原始 `Future`，而业务异常、`RejectedExecutionException`、中断和取消行为均保留原有身份与时序。包装器在任务执行期间恢复捕获的上下文，并在 `finally` 中清理工作线程状态；如果 carrier 已经执行了捕获，取消操作无法阻止这次捕获工作。
 
@@ -161,7 +174,7 @@ egon:
 ```
 
 ```bash
-java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.3.jar=enabled=true,features=method-extension,include=com.example.*" \
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.4.1.jar=enabled=true,features=method-extension,include=com.example.*" \
   -jar application.jar
 ```
 
@@ -169,7 +182,7 @@ Agent 模式支持任意可见性的具体实例方法，包括 private 同类�
 
 Handler 在方法观测之前运行。因此，被拒绝的调用会产生 Method Extension 事件，但不会进入被观测的业务方法。允许执行的同步调用保留返回值身份。拒绝处理支持直接值和 `returnJson`，并使用现有响应规则适配 `Future`、`CompletionStage` 和 `CompletableFuture` 载荷。任意具体 `Future` 实现和响应式类型明确不受支持。
 
-Spring 只会在单例初始化完成后将运行时标记为就绪。在此之前，`not-ready-policy` 控制 `PROCEED`、`REJECT` 或 `FAIL`；默认值是 `PROCEED`。方法元数据按应用 `ClassLoader` 缓存，且不会全局持有应用 ClassLoader。事件包含有界的方法和 Handler 标识及结果，但绝不包含参数、返回载荷、凭据或异常消息。
+Spring 只会在单例初始化完成后将运行时标记为就绪。在此之前，`not-ready-policy` 控制 `PROCEED`、`REJECT` 或 `FAIL`；默认值是 `PROCEED`。方法元数据缓存在以声明类为键的 `ClassValue` 中，bridge 的 per-`ClassLoader` 注册表使用弱引用 Map，因此不会全局持有应用 ClassLoader。事件包含有界的方法和 Handler 标识及结果，但绝不包含参数、返回载荷、凭据或异常消息。
 
 ## Access Guard 边界
 
@@ -206,7 +219,7 @@ Actuator 是可选的，starter 不会传递引入它。如果应用已安装 Ac
 
 ## Maven 插件
 
-始终显式声明插件版本。在单模块项目中绑定 `check`，或在多模块 reactor 的终端模块中绑定 `check-reactor`：
+始终显式声明插件版本，并将 goal 绑定到 `verify`。单模块项目使用 `check`（light archetype 即如此）；生成的多模块项目在末端 `*-starter` 模块绑定 `check-reactor`（web、service 和 agent archetype 即如此）：
 
 ```xml
 <plugin>
@@ -239,7 +252,7 @@ Actuator 是可选的，starter 不会传递引入它。如果应用已安装 Ac
 可用目标包括：
 
 - `bytecode-architecture:check`：扫描当前模块。
-- `bytecode-architecture:check-reactor`：扫描当前 Maven reactor 中已编译的类。
+- `bytecode-architecture:check-reactor`：aggregator goal，扫描当前项目最近祖先目录之下所有会话模块中已编译的类。
 - `bytecode-architecture:generate-baseline`：将当前发现项的指纹显式写入 baseline。
 
 常规检查只会写入 `target` 目录，不会向 baseline 添加发现项。
@@ -261,7 +274,7 @@ explicit module mapping > package mapping > module-name suffix > UNKNOWN
 | `scanTests` / `egonArchitecture.scanTests` | `false` | 包含 `target/test-classes`。 |
 | `scanDependencies` / `egonArchitecture.scanDependencies` | `false` | 包含依赖 JAR。 |
 | `additionalClassDirectories` | 空 | 包含其他已编译类目录。 |
-| `frameworkDenylist` | 内置 Spring/Jakarta 技术前缀 | 替换 Domain 技术框架拒绝列表。 |
+| `frameworkDenylist` | 七个内置前缀：Spring、`jakarta.persistence`、`javax.persistence`、`org.apache.ibatis`、`org.mybatis`、`org.hibernate`、`com.baomidou` | 替换 Domain 技术框架拒绝列表。 |
 | `frameworkAllowlist` | 空 | 在应用拒绝列表前允许指定技术前缀。 |
 | `facadeImplementationPackages` | `..adapter..` | 定义 Facade 实现允许所在的包。 |
 | `failurePolicy` / `egonArchitecture.failurePolicy` | `FAIL` | 选择 `FAIL`、`WARN` 或 `REPORT_ONLY`。 |
@@ -277,10 +290,10 @@ explicit module mapping > package mapping > module-name suffix > UNKNOWN
 3. `ARCH-003`：Application 不得依赖 Infrastructure 或 Adapter。
 4. `ARCH-004`：Application 不得直接访问持久化框架或基础设施 mapper/repository 实现。
 5. `ARCH-005`：Facade 必须保持为自包含的契约模块。
-6. `ARCH-006`：Starter 不得包含或直接引用 Domain 或 Application 业务实现。
+6. `ARCH-006`：Starter 不得直接依赖 Domain 或 Application 中的实现类型。
 7. `ARCH-007`：Common 不得依赖业务模块。
 8. `ARCH-008`：Adapter 不得直接调用 Infrastructure 实现。
-9. `ARCH-009`：Domain 可以定义 repository 接口，但不得包含 JPA entity、mapper 实现、SQL session 或基础设施 repository 实现。
+9. `ARCH-009`：Domain 不得依赖配置的持久化前缀（`jakarta.persistence`、`javax.persistence`、MyBatis、Hibernate、MyBatis-Plus、`java.sql`），也不得依赖具体的 `*MapperImpl`/`*RepositoryImpl` 类。接口被豁免，因此 Domain 可以定义自己的 repository 端口。
 10. `ARCH-010`：Facade 实现必须位于配置的 Adapter 包中。
 
 扫描器覆盖继承、字段、参数、返回类型与异常类型、泛型签名、注解及其值、局部类型、对象分配、数组、类型转换、`instanceof`、字段访问、方法与构造器调用、method handle、`invokedynamic`、Lambda 目标、`ConstantDynamic` 和常量池类引用。
@@ -302,16 +315,16 @@ ${project.build.directory}/egon-cola-architecture
 默认 baseline 为 `${maven.multiModuleProjectDirectory}/.egon-cola/architecture-baseline.json`。
 
 1. 审查当前发现项。
-2. 运行 `./mvnw bytecode-architecture:generate-baseline` 创建 baseline。
+2. 运行 `./mvnw compile bytecode-architecture:generate-baseline` 创建 baseline。`generate-baseline` 没有声明默认 phase，因此同一次调用中必须排在 compile 之后，否则会对不存在的 `target/classes` 求摘要。
 3. 如果 baseline 代表已接受的技术债，请提交审查后的 baseline。
 4. 持续运行 `check` 或 `check-reactor`；只有新发现项会受故障策略约束，已修复项会报告为 stale。
 5. 只有明确要替换现有 baseline 时，才传入 `-DegonArchitecture.overwrite=true`。
 
-稳定指纹包括规则 ID、源 class/member/descriptor、依赖种类，以及目标 class/member/descriptor。它不包含行号和展示文本。
+稳定指纹包括规则 ID、严重级别、module、源层与目标层、源 class/member/descriptor、目标 class/member/descriptor、依赖种类和位置种类。它不包含行号和展示文本。
 
 ## 内容哈希缓存
 
-解析后的元数据缓存在 `target/egon-cola-architecture/cache` 下。缓存键包含 class SHA-256、解析器 schema 版本、ASM baseline 版本和有效扫描配置摘要。每次运行仍会重新构建完整图并评估所有规则。CI 使用以下命令禁用缓存：
+解析后的元数据缓存在 `target/egon-cola-architecture/cache` 下。每个缓存键是一次 SHA-256，覆盖解析器 schema 版本、ASM baseline 版本、扫描配置摘要和原始 class 字节。扫描配置摘要只包含 module/package 映射和三个框架列表，不包含扫描开关、策略和报告选项。每次运行仍会重新构建完整图并评估所有规则。CI 使用以下命令禁用缓存：
 
 ```bash
 ./mvnw -DegonArchitecture.cache.enabled=false verify
@@ -319,11 +332,11 @@ ${project.build.directory}/egon-cola-architecture
 
 ## ArchUnit 迁移边界
 
-light、web 和 service archetype 使用此插件替换其生成的 ArchUnit 测试。已批准的标准规则范围特意不保留五项定制检查：light 的 domain-first/reversed outbound-port 包命名、web 的 external evaluation-facade 隔离、service 禁止的 inbound 包段、service 项目级原生 gRPC 禁令，以及 service provider-facade 隔离。
+四个 native 的 light、web、service、agent archetype 使用此插件替换其生成的 ArchUnit 测试；三个 `-open` archetype 仍然使用 ArchUnit。已批准的标准规则范围特意不保留五项定制检查：light 的 domain-first/reversed outbound-port 包命名、web 的 external evaluation-facade 隔离、service 禁止的 inbound 包段、service 项目级原生 gRPC 禁令，以及 service provider-facade 隔离。
 
 ## 兼容性与基准测试
 
-生产产物使用 `--release 21` 编译。Maven Invoker 会在本地验证真实 Java 21 类，并在 JDK 25 上编译真实的 `--release 25` record fixture，再交由插件扫描。Fork 测试还会使用 `-Xverify:all` 和发布的 `-javaagent` JAR 启动真实 Java 21/25 进程，其中包括 Surefire 和 Failsafe fixture。
+生产产物使用 `--release 21` 编译。Maven Invoker 会在本地验证真实 Java 21 类，`architecture-java25` fixture 会先编译真实的 `--release 25` record（class-file major `69`）再交由插件扫描。Fork 的 Surefire 和 Failsafe fixture 使用 `-Xverify:all` 和构建出的 `-javaagent` JAR 启动真实进程。两条 Java 25 路径都是有条件的：Invoker 套件声明 `invoker.java.version = 25+`，`AgentJava25CompatibilityTest` 只在 `JAVA25_HOME` 指向可执行 JDK 时运行，因此 Java 21 构建会跳过它们。
 
 使用以下命令构建并列出 JMH benchmark：
 
@@ -332,8 +345,8 @@ light、web 和 service archetype 使用此插件替换其生成的 ArchUnit 测
 java -jar egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar -l
 ```
 
-`ArchitectureScanBenchmark.scanOneThousandClasses` 会在测量前生成 1,000 个确定性的 class 字节数组，随后测量解析、图构建、全部十条规则和结果创建。受控目标为不超过两秒；共享 CI 会记录性能证据，但不会应用易受噪声影响的绝对阈值。
+`ArchitectureScanBenchmark.scanOneThousandClasses` 会在测量前生成 1,000 个确定性的 class 字节数组，随后测量解析、图构建、全部十条规则和结果创建。受控目标为不超过两秒。
 
-`ExecutorEnhancementBenchmark` 会分别记录未匹配过滤、1,000 次转换、直接提交、仅上下文提交，以及上下文加 Micrometer 提交。受控目标为 1,000 次转换不超过一秒，提交开销低于五微秒；共享 CI 会列出并记录这些 benchmark，但不强制执行对硬件敏感的绝对数值。
+`ExecutorEnhancementBenchmark` 会分别记录未匹配过滤、1,000 次转换、直接提交、仅上下文提交，以及上下文加 Micrometer 提交。受控目标为 1,000 次转换不超过一秒，提交开销低于五微秒。
 
-`MethodObservationBenchmark` 会在不捕获参数的情况下记录直接 baseline、禁用 bridge、启用成功、启用异常和慢事件路径。受控的启用成功目标低于两微秒；共享 CI 会记录结果，但不应用对硬件敏感的绝对阈值。
+`MethodObservationBenchmark` 会在不捕获参数的情况下记录直接 baseline、禁用 bridge、启用成功、启用异常和慢事件路径。受控的启用成功目标低于两微秒。这些目标是项目约定而非 CI 门禁：`CI Backend` workflow 只有一个在 Java 21 上执行 `./mvnw -B -ntp clean verify` 的任务，从不构建、列出或运行 benchmark JAR。
