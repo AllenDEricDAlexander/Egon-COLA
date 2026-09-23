@@ -16,7 +16,7 @@ The component owns configuration validation, ADK graph compilation, an immutable
 | Spring Boot | 3.5.16 |
 | Spring AI | 1.1.8 |
 | Google ADK | 0.7.0 |
-| Session storage | ADK `InMemorySessionService`, process-local and in-memory |
+| Session storage | Session service of the ADK `InMemoryRunner`, process-local and in-memory |
 
 Spring AI provider starters and provider credentials are deliberately not included. A host supplies one or more named `ChatModel` beans.
 
@@ -100,7 +100,7 @@ Supported root shapes are represented by `root-agent-name`:
 | Single leaf | Root names one `agents` entry; `workflows` is empty. |
 | Sequential | Root names a `SEQUENTIAL` workflow with ordered `sub-agent-names`. |
 | Parallel | Root names a `PARALLEL` workflow with independent children. |
-| Loop | Root names a `LOOP` workflow and sets `max-iterations` from 1 to 100. |
+| Loop | Root names a `LOOP` workflow; `max-iterations` is optional there, defaults to `3`, and must be within 1-100. |
 
 Each node has exactly one parent except the root. A workflow cannot refer to itself, an unknown node, or the same child twice.
 
@@ -157,5 +157,5 @@ Component failures are raised from `top.egon.cola.component.agentflow.common.exc
 The tested compatibility line is Java 21 + Spring Boot 3.5.16 + Spring AI 1.1.8 + Google ADK 0.7.0. Any Spring AI or ADK upgrade requires re-running the focused tests, the runtime dependency tree check, and the Components reactor test. Do not add `google-adk-dev`, provider starters, Web, MCP, JDBC, or Flyway dependencies to this starter without a new specification.
 
 ```bash
-./mvnw -B -ntp -f egon-cola-component-agent-flow-starter/pom.xml test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-agent-flow-starter -am test
 ```

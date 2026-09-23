@@ -16,7 +16,7 @@
 | Spring Boot | 3.5.16 |
 | Spring AI | 1.1.8 |
 | Google ADK | 0.7.0 |
-| Session 存储 | ADK `InMemorySessionService`，进程内、in-memory |
+| Session 存储 | ADK `InMemoryRunner` 自带的 session service，进程内、in-memory |
 
 组件不会带入 Spring AI provider starter 或 provider 凭据。宿主需要提供一个或多个具名 `ChatModel` Bean。
 
@@ -100,7 +100,7 @@ egon:
 | 单叶子 | Root 指向一个 `agents` 项，`workflows` 为空。 |
 | Sequential | Root 指向 `SEQUENTIAL` workflow，并按顺序填写 `sub-agent-names`。 |
 | Parallel | Root 指向 `PARALLEL` workflow，子 Agent 可并行执行。 |
-| Loop | Root 指向 `LOOP` workflow，并将 `max-iterations` 设置为 1 到 100。 |
+| Loop | Root 指向 `LOOP` workflow；`max-iterations` 在 LOOP 下可省略，默认为 `3`，取值范围 1-100。 |
 
 除 root 外，每个节点必须恰好有一个父节点。Workflow 不能引用自身、未知节点或重复的子节点。
 
@@ -150,10 +150,12 @@ configuration -> validation -> ADK graph compilation -> registry -> session exec
 
 它不提供 provider 集成、HTTP、MCP、database、UI、持久化 Session 或远程恢复协议。宿主拥有这些边界，并负责提供可信的 `userId`。组件日志只记录安全的 stage/outcome/error-type 和 event-count，不记录消息内容、instruction、凭据、`userId` 或 `sessionId`。生产环境应审查或关闭 provider/ADK debug 日志，因为第三方 observability 可能看到更宽的内容范围。
 
+组件异常位于 `top.egon.cola.component.agentflow.common.exception`，统一继承 common-core 的 `CommonException`，因此各 starter 的 `getCode()`、`getStatus()` 与 `isRetryable()` 保持一致。Starter 仅在应用尚未定义时发布规范的 `egonColaValidationUtils` Bean，并注入 `AgentFlowConfigValidator`；该 validator 继承 `BaseValidator`，在原生字段约束之后继续执行自己的图规则校验。
+
 ## 升级与验证门禁
 
 当前验证的兼容线是 Java 21 + Spring Boot 3.5.16 + Spring AI 1.1.8 + Google ADK 0.7.0。升级 Spring AI 或 ADK 后必须重新执行 focused tests、runtime dependency tree 检查和 Components reactor 测试。没有新的 Spec，不要向 starter 加入 `google-adk-dev`、provider starter、Web、MCP、JDBC 或 Flyway 依赖。
 
 ```bash
-./mvnw -B -ntp -f egon-cola-component-agent-flow-starter/pom.xml test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-agent-flow-starter -am test
 ```
