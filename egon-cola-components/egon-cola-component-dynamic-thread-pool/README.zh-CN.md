@@ -16,6 +16,13 @@
 | `egon-cola-component-dynamic-thread-pool-admin` | 独立 Spring Boot Admin 服务，提供管理 REST API、manifest、Redis 查询和配置变更发布 |
 | `egon-cola-component-dynamic-thread-pool-test` | 组件样例和集成验证模块 |
 
+## 契约约定
+
+- `ExecutorKind` 与 `RegistryEnumVO` 实现公共 `EgonEnum` 契约，使用固定整型编码（`PLATFORM_THREAD_POOL=0`、`SPRING_THREAD_POOL_TASK_EXECUTOR=1`、`VIRTUAL_THREAD_PER_TASK=2`、`UNKNOWN=3`；registry key 为 `0..2`）。编码是字面声明，绝不由 `ordinal()` 推导；`name()` 与 `RegistryEnumVO.getKey()` 保持与变更前完全一致的 Redis 线值。
+- `Response.Code` 实现 `ErrorStatus`。`getCode()` 是契约整型编码，对外的历史 String 线值（`0000`、`0001`、`0002`）由 `getStatus()` 暴露并写入 `Response.code` 信封字段，`getMessage()` 携带原始标签。
+- 组件不声明自定义异常类型。starter 和 admin 直接抛出 JDK 异常（非法参数或未知执行器用 `IllegalArgumentException`，受限虚拟线程执行器饱和时用 `RejectedExecutionException`，不支持的能力用 `UnsupportedOperationException`），Admin REST 层则通过 `Response` 信封返回失败，而不是依赖异常继承体系。
+- starter 与 admin 模块中的 `RemainingComponentContractTest` 钉住了上述约定，可用 `-Dtest=RemainingComponentContractTest -Dsurefire.failIfNoSpecifiedTests=false` 运行。
+
 ## 功能说明
 
 ### 执行器托管
@@ -315,11 +322,11 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 
 - `DynamicThreadPoolAutoConfig` 通过 `AutoConfiguration.imports` 注册，配置前缀为 `egon.cola.component.dtp`，`enabled` 缺省为 `true`。
 - `resolveAppName` 优先使用 `egon.cola.component.dtp.app-name`，其次使用 `spring.application.name`，最后降级为 `default-app`。
-- `resolveInstanceId` 优先使用显式配置，其次使用 `{appName}-{server.port}`，最后使用 JVM runtime name。
+- `resolveInstanceId` 优先使用显式配置，其次使用 `{appName}-{server.port}`，最后使用 `{appName}-{JVM runtime name}`。
 - `ManagedExecutorRegistry` 保存所有托管执行器；`ManagedExecutor` 同时负责上下文感知任务提交，`DynamicThreadPoolService` 负责查询快照和执行更新。
 - `ThreadPoolConfigAdjustListener` 订阅 `DTP:CHANGE_TOPIC:{appName}`，收到 `DtpConfigChangeMessage` 后调用 `IDynamicThreadPoolService.updateExecutor`。
 - `BoundedVirtualThreadExecutor` 使用 `Semaphore` 控制并发上限，并通过 `DtpContextAwareExecutorService` 在每次提交时捕获一个 `TraceContext`。它内置 submitted/running/completed/failed/rejected 指标，`updateConcurrencyLimit` 可以运行时调整许可数量。
-- `ThreadPoolDataReportJob` 周期性写入 snapshot、apps、instances 和审计数据；report 可以通过 `egon.cola.component.dtp.report.enabled=false` 关闭。
+- `ThreadPoolDataReportJob` 周期性写入 apps 集合、instances 集合和每个执行器的 snapshot；审计事件不在该任务内写入，而是在配置变更被执行时记录。report 可以通过 `egon.cola.component.dtp.report.enabled=false` 关闭。
 - Admin 的 `/resize` 只允许 `PLATFORM_THREAD_POOL` 和 `SPRING_THREAD_POOL_TASK_EXECUTOR`，`/virtual-limit` 只发布 `VIRTUAL_THREAD_PER_TASK` 更新命令。
 
 ## 边界和注意事项
@@ -328,7 +335,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 - starter 默认创建自己的 Redisson 客户端 `dynamicThreadRedissonClient`，业务应用需要保证 Redis 可用。
 - 执行器 Bean 名是治理标识，重命名 Bean 会影响 admin 调整路径。
 - 对虚拟线程执行器只能调整并发上限，不能调整平台线程池参数。
-- 对平台线程池或 Spring 线程池的调整会校验 `corePoolSize <= maximumPoolSize`。
+- Admin 在 `/resize` 上要求：`executorKind` 可调整、`corePoolSize` 与 `maximumPoolSize` 均为正数且 `corePoolSize <= maximumPoolSize`；当 `allowCoreThreadTimeOut` 为 true 时 `keepAliveSeconds` 还必须为正数。业务应用侧的 `ThreadPoolResizeSupport` 会再次校验正数和同一大小关系，并按不会产生中间态 `core > max` 的顺序写入两个值。
 
 ## 验证命令
 

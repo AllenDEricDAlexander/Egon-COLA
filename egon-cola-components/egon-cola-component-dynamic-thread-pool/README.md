@@ -12,7 +12,7 @@ The component consists of a business-side starter and a standalone admin service
 
 | Module | Description |
 |---|---|
-| `egon-cola-component-dynamic-thread-pool-starter` | Business application starter responsible for executor discovery, snapshot collection, Redis registration, configuration change listening, xingyuan- and virtual-thread Trace propagation, audit events, and Micrometer metrics |
+| `egon-cola-component-dynamic-thread-pool-starter` | Business application starter responsible for executor discovery, snapshot collection, Redis registration, configuration change listening, platform- and virtual-thread Trace propagation, audit events, and Micrometer metrics |
 | `egon-cola-component-dynamic-thread-pool-admin` | Standalone Spring Boot Admin service that provides management REST APIs, a manifest, Redis queries, and configuration change publication |
 | `egon-cola-component-dynamic-thread-pool-test` | Component sample and integration verification module |
 
@@ -20,7 +20,7 @@ The component consists of a business-side starter and a standalone admin service
 
 - `ExecutorKind` and `RegistryEnumVO` implement the public `EgonEnum` contract with fixed integer codes (`PLATFORM_THREAD_POOL=0`, `SPRING_THREAD_POOL_TASK_EXECUTOR=1`, `VIRTUAL_THREAD_PER_TASK=2`, `UNKNOWN=3`; registry keys `0..2`). Codes are literal declarations and are never derived from `ordinal()`; `name()` and `RegistryEnumVO.getKey()` keep exactly the Redis wire values they had before.
 - `Response.Code` implements `ErrorStatus`. `getCode()` is the integer contract code, while the published legacy String wire codes (`0000`, `0001`, `0002`) are exposed through `getStatus()` and written into the `Response.code` envelope field. `getMessage()` carries the original label.
-- The component declares no custom exception type, so it uses the common `CommonException`/`BusinessException` hierarchy directly.
+- The component declares no custom exception type. The starter and admin throw JDK exceptions directly (`IllegalArgumentException` for invalid sizes and unknown executors, `RejectedExecutionException` for a saturated governed virtual-thread executor, `UnsupportedOperationException` for an unsupported capability), while the Admin REST layer answers failures through the `Response` envelope instead of an exception handler hierarchy.
 - `RemainingComponentContractTest` in the starter and admin modules pins the tables above; run it with `-Dtest=RemainingComponentContractTest -Dsurefire.failIfNoSpecifiedTests=false`.
 
 ## Features
@@ -53,7 +53,7 @@ The starter creates a Redisson client named `dynamicThreadRedissonClient` and wr
 
 ### Trace Context Propagation
 
-`common-trace` owns the complete `TraceContext` and the three local-thread templates. DTP keeps its existing executor adapters: `DtpRunnable`, `DtpCallable`, and `DtpSupplier` extend those templates; `DtpContextAwareExecutorService`, `DtpTaskDecorator`, and `DtpThreads` apply them at the relevant submission boundary. `ManagedExecutor` is itself an `ExecutorService`, and all three governance adapters are context-aware submission boundaries. Platform, Spring xingyuan, and virtual threads therefore share the same Trace and MDC capture, restoration, and cleanup semantics.
+`common-trace` owns the complete `TraceContext` and the three local-thread templates. DTP keeps its existing executor adapters: `DtpRunnable`, `DtpCallable`, and `DtpSupplier` extend those templates; `DtpContextAwareExecutorService`, `DtpTaskDecorator`, and `DtpThreads` apply them at the relevant submission boundary. `ManagedExecutor` is itself an `ExecutorService`, and all three governance adapters are context-aware submission boundaries. Platform, Spring platform, and virtual threads therefore share the same Trace and MDC capture, restoration, and cleanup semantics.
 
 DTP does not replace or proxy executor Beans defined by the business application. Direct calls to a raw `ThreadPoolExecutor` bypass the adapter; submit through the same-name `ManagedExecutor` obtained from `ManagedExecutorRegistry`, or explicitly use `DtpContextAwareExecutorService`. Direct `ThreadPoolTaskExecutor` usage can still install `DtpTaskDecorator`.
 
@@ -70,7 +70,7 @@ The Admin API base path is `/api/v1/dtp`:
 | `GET /api/v1/dtp/apps/{appName}/instances` | Query application instances |
 | `GET /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors` | Query all executor snapshots for an instance |
 | `GET /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}` | Query a single executor snapshot |
-| `POST /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}/resize` | Adjust the capacity of a xingyuan thread pool or Spring thread pool |
+| `POST /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}/resize` | Adjust the capacity of a platform thread pool or Spring thread pool |
 | `POST /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}/virtual-limit` | Adjust the concurrency limit of a bounded virtual-thread executor |
 | `GET /api/v1/dtp/events?appName={appName}&date={yyyyMMdd}` | Query audit events |
 
@@ -109,11 +109,11 @@ The Trace Spring Boot starter is explicit. The DTP starter depends only on the c
 
 | Submission Boundary | DTP API |
 |---|---|
-| DTP-managed xingyuan, Spring, or virtual executor | `ManagedExecutor` from `ManagedExecutorRegistry` |
+| DTP-managed platform, Spring, or virtual executor | `ManagedExecutor` from `ManagedExecutorRegistry` |
 | `ExecutorService` | `DtpContextAwareExecutorService` |
 | Spring `ThreadPoolTaskExecutor` | `DtpTaskDecorator` |
 | Direct `Runnable`, `Callable`, or `Supplier` wrapping | `DtpRunnable`, `DtpCallable`, `DtpSupplier` |
-| Standalone xingyuan or virtual thread | `DtpThreads` |
+| Standalone platform or virtual thread | `DtpThreads` |
 | Governed virtual-thread executor | `BoundedVirtualThreadExecutor` |
 
 Build and deploy the Admin service as a standalone application within the component:
@@ -274,7 +274,7 @@ curl http://localhost:8089/api/v1/dtp/apps/order-service/instances
 curl http://localhost:8089/api/v1/dtp/apps/order-service/instances/order-service-8081/executors
 ```
 
-Adjust the capacity of a xingyuan thread pool or Spring thread pool:
+Adjust the capacity of a platform thread pool or Spring thread pool:
 
 ```bash
 curl -X POST \
@@ -314,7 +314,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 
 1. Business applications interact only with the starter and do not expose management endpoints directly.
 2. The admin does not connect directly to business applications. All state reads and change notifications pass through Redis, reducing runtime coupling.
-3. `ManagedExecutor` adapts executor capabilities so xingyuan thread pools, Spring thread pools, and virtual-thread executors share one snapshot and update model.
+3. `ManagedExecutor` adapts executor capabilities so platform thread pools, Spring thread pools, and virtual-thread executors share one snapshot and update model.
 4. Adjustment commands include `appName`, `instanceId`, `executorName`, and `executorKind`. The starter validates the identity before updating, preventing a command from being applied to the wrong instance.
 5. `common-trace` owns context capture and restoration; DTP owns executor governance and the adapters that apply that context at each submission boundary.
 
@@ -322,11 +322,11 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 
 - `DynamicThreadPoolAutoConfig` is registered through `AutoConfiguration.imports`. Its configuration prefix is `egon.cola.component.dtp`, and `enabled` defaults to `true`.
 - `resolveAppName` first uses `egon.cola.component.dtp.app-name`, then `spring.application.name`, and finally falls back to `default-app`.
-- `resolveInstanceId` first uses the explicit configuration, then `{appName}-{server.port}`, and finally the JVM runtime name.
+- `resolveInstanceId` first uses the explicit configuration, then `{appName}-{server.port}`, and finally `{appName}-{JVM runtime name}`.
 - `ManagedExecutorRegistry` stores all managed executors; `ManagedExecutor` also provides context-aware task submission, and `DynamicThreadPoolService` queries snapshots and performs updates.
 - `ThreadPoolConfigAdjustListener` subscribes to `DTP:CHANGE_TOPIC:{appName}`. After receiving a `DtpConfigChangeMessage`, it calls `IDynamicThreadPoolService.updateExecutor`.
 - `BoundedVirtualThreadExecutor` uses `Semaphore` to control its concurrency limit and `DtpContextAwareExecutorService` to capture one `TraceContext` per submission. It includes submitted/running/completed/failed/rejected metrics and supports runtime permit adjustment through `updateConcurrencyLimit`.
-- `ThreadPoolDataReportJob` periodically writes snapshot, apps, instances, and audit data. Reporting can be disabled with `egon.cola.component.dtp.report.enabled=false`.
+- `ThreadPoolDataReportJob` periodically writes the apps set, the instance set, and one snapshot key per executor. Audit events are not part of that job; they are recorded when a configuration change is applied. Reporting can be disabled with `egon.cola.component.dtp.report.enabled=false`.
 - Admin `/resize` accepts only `PLATFORM_THREAD_POOL` and `SPRING_THREAD_POOL_TASK_EXECUTOR`; `/virtual-limit` publishes only `VIRTUAL_THREAD_PER_TASK` update commands.
 
 ## Boundaries and Operational Notes
@@ -334,8 +334,8 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 - The component directory does not include a UI. Integrate a UI through `/api/v1/dtp/manifest` and the REST APIs in an external system.
 - By default, the starter creates its own Redisson client named `dynamicThreadRedissonClient`; the business application must ensure Redis is available.
 - Executor Bean names are governance identifiers. Renaming a Bean changes the path used by the admin for adjustments.
-- Virtual-thread executors support only concurrency-limit adjustments, not xingyuan thread-pool parameters.
-- Adjustments to xingyuan thread pools or Spring thread pools validate `corePoolSize <= maximumPoolSize`.
+- Virtual-thread executors support only concurrency-limit adjustments, not platform thread-pool parameters.
+- The Admin rejects a `/resize` request unless `executorKind` is resizable, `corePoolSize` and `maximumPoolSize` are both positive, and `corePoolSize <= maximumPoolSize`; `keepAliveSeconds` must additionally be positive whenever `allowCoreThreadTimeOut` is true. `ThreadPoolResizeSupport` re-checks positivity and the same ordering on the business-application side, then applies the two values in the order that avoids a transient `core > max` state.
 
 ## Validation Commands
 
