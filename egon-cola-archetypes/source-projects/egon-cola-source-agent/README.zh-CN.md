@@ -97,7 +97,7 @@ knowledge 域在 `/api/v1/knowledge-bases` 与 `/api/v1/knowledge-documents` 下
 | 键 | 环境变量 | 含义 |
 | --- | --- | --- |
 | `spring.datasource.url` / `username` / `password` | `AGENT_DB_URL`、`AGENT_DB_USERNAME`、`AGENT_DB_PASSWORD` | PostgreSQL 数据库；`dev`/`prod` 必填 |
-| 遗留 `spring.flyway.*` | 遗留 `AGENT_FLYWAY_ENABLED` | 源码残留，需通过获批的 MP-SDJ DDL 迁移替换，不作为新部署选项 |
+| `spring.flyway.*` | `AGENT_FLYWAY_ENABLED` | 当前真正生效的建库路径：`application.yml`、`dev` 与 `prod` 默认为 `true`，locations 为 `classpath:db/migration`，因此 knowledge 启动会执行三条 `V2026*` 脚本；`test` 强制 `false`。只能通过获批的 MP-SDJ DDL 迁移替换，不作为部署开关 |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | `AGENT_MULTIPART_MAX_FILE_SIZE`、`AGENT_MULTIPART_MAX_REQUEST_SIZE` | 高于接口上限的容器防线（默认 25MB / 26MB） |
 | `egon.cola.component.rag.*` | `AGENT_RAG_STORAGE_ROOT` | 维度、具名向量库与嵌入模型 Bean、存储根目录、检索上限（默认 8，最大 50） |
 | `egon.cola.component.transactional-outbox.enabled` | — | 摄取队列及其投递 |
@@ -138,7 +138,7 @@ curl --fail-with-body --no-buffer \
 不启动服务即可运行 source 校验：
 
 ```bash
-./mvnw -B -ntp -f egon-cola-source-agent/pom.xml clean verify
+./mvnw -B -ntp clean verify
 ```
 
 生成的 archetype 由仓库 archetype 脚本独立验证。该 source project 不包含消息中间件、RPC、GraphQL endpoint 或 UI；其持久面是 knowledge 的库表、迁移与 outbox 队列，以及已接线但尚无查询接入的二级缓存。
@@ -147,12 +147,12 @@ curl --fail-with-body --no-buffer \
 
 知识库查询统一为绑定参数的 Mapper XML。更新同时限制租户、活动状态、期望版本与入库状态；`deleted_at` 使用可空 UTC LocalDateTime，`version` 从 0 递增。JSONB 保留字段专用 handler。
 
-统一规范改为 MP-SDJ 分布式受管 DDL。当前源码仍有 Flyway 依赖、db/migration 和关闭 Common DDL 的遗留配置，这些是迁移差异而非目标选项。后续代码迁移需接入组件 Runner、Manifest 与物理目标，保持已有 SQL/数据并核对 Outbox/向量表归属；本次文档更新没有执行该运行时迁移。
+统一规范改为 MP-SDJ 分布式受管 DDL，但本 source project 尚未到达该状态：实际执行的是 Flyway。infrastructure 依赖里有 `flyway-core` 与 `flyway-database-postgresql`，`spring.flyway.locations` 指向 `classpath:db/migration`，且 `dev`/`prod` 保持 `AGENT_FLYWAY_ENABLED` 的 `true` 默认值，因此三条 `V2026*` 脚本（含 `create extension if not exists vector`）会在启动时执行。Common DDL 另被关闭（`egon.cola.component.mybatis-plus.ddl.enabled: false`），本项目也没有 `db/egon-mp` SQL 与 `repository-manifest.json`，即受管 DDL 目前无可执行目标。这些是迁移差异而非目标选项。后续代码迁移需接入组件 Runner、Manifest 与物理目标，保持已有 SQL/数据并核对 Outbox/向量表归属；本次文档更新没有执行该运行时迁移。
 
 生产配置 `EGON_ID_MACHINE_ID`。默认 H2/fake-model 测试不执行 PostgreSQL 迁移或向量集成，需在专用数据库上手动验收。
 
 ## 二级缓存
 
-`base`、`dev`、`prod` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/RedisConfig.java` 已带 `@EnableCaching` 并发布 `redissonClient`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
+`application.yml`、`application-dev.yml`、`application-prod.yml` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/RedisConfig.java` 已带 `@EnableCaching` 并发布 `redissonClient`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；当前没有任何 knowledge 查询被注解，因此打开开关本身不会改变行为。普通 CRUD
-不再隐式失效缓存，一旦有读路径接入，其写入和删除入口也必须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+不再隐式失效缓存，一旦有读路径接入，其写入和删除入口也必须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。

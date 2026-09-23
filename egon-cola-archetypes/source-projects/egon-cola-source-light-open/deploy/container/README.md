@@ -1,7 +1,5 @@
 # Container Delivery
 
-[English](README.md) | [中文](README.zh-CN.md)
-
 ## One Portable Dockerfile
 
 `deploy/container/Dockerfile` is the only image build definition. Docker, Podman,
@@ -19,9 +17,10 @@ nerdctl build --build-arg CONTAINER_ENGINE=nerdctl \
   --file deploy/container/Dockerfile --tag "$IMAGE_NAME:local" .
 ```
 
-The Dockerfile packages source with the Maven Wrapper. All Maven dependencies,
-including organization-specific Facade artifacts, must be resolvable from the
-build environment. Private-repository credential transport is an operator concern
+The Dockerfile packages source with the Maven Wrapper. Every Maven dependency,
+including the Egon-COLA component artifacts this project builds against, must be
+resolvable from the build environment; this project has no Facade module and
+resolves no remote Facade artifact. Private-repository credential transport is an operator concern
 and must not be encoded as a Docker build argument because build arguments are not
 secret storage.
 
@@ -64,9 +63,14 @@ nerdctl compose --env-file deploy/env/.env.example \
 
 The bundled Compose files set `APP_DATASOURCE_MODE=SHARDING` and provision
 `postgres-master-data`, `postgres-shard-0`, and `postgres-shard-1`. They do not
-pretend to provide replication. `SHARDING_READWRITE` requires operator-provided
-primary/replica endpoints for every logical group declared by
-`datasource/sharding-readwrite.yml`.
+pretend to provide replication, and no read/write Compose file ships.
+`SHARDING_READWRITE` is a configuration capability: after switching the mode,
+declare one `role: PRIMARY` and at least one `role: REPLICA` entry per
+`logical-name` in the `egon.cola.component.mybatis-plus.sharding.data-sources`
+list of `egon-mybatis-plus-sharding.yml`, and point every entry at an
+operator-provided endpoint. The
+`src/test/resources/sharding/two-level-readwrite.yml` sample is a test-only
+ShardingSphere rules document, not a deployment descriptor.
 
 The example credentials are development-only.
 
@@ -91,9 +95,11 @@ log data. No generated helper performs that deletion automatically.
 ## Health And Failure Behavior
 
 All three PostgreSQL primaries, Redis, RabbitMQ, Nacos, and the Spring Boot
-readiness endpoint have health checks. Missing production variables fail Compose configuration. An enabled
-but unavailable remote Facade retains the generated application's fail-fast
-behavior.
+readiness endpoint have health checks. Missing production variables fail Compose
+configuration. `NACOS_SERVER_ADDR` is declared without a default in
+`bootstrap-dev.yml` and `bootstrap-prod.yml`, so leaving it unset stops startup.
+This project publishes no Facade module and resolves no remote Facade artifact,
+so there is no remote-Facade startup path.
 
 ## Jenkins
 

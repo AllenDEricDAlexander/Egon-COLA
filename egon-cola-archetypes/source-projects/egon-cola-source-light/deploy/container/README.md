@@ -1,13 +1,15 @@
 # Container Delivery
 
-[English](README.md) | [中文](README.zh-CN.md)
-
 ## One Portable Dockerfile
 
-`deploy/container/Dockerfile` is the only image build definition. Docker, Podman,
-and nerdctl/BuildKit consume the same standards-oriented multi-stage file. The
-`CONTAINER_ENGINE` build argument records which command performed the build; it
-does not select a second Dockerfile.
+`deploy/container/Dockerfile` is the only application image build definition.
+Docker, Podman, and nerdctl/BuildKit consume the same standards-oriented
+multi-stage file. The `CONTAINER_ENGINE` build argument records which command
+performed the build; it does not select a second Dockerfile.
+
+`deploy/container/Dockerfile.arthas` is the single exception and builds a
+separate, opt-in diagnostics sidecar image; it never changes the application
+image. See `Arthas diagnostics sidecar` below.
 
 ```bash
 IMAGE_NAME="$(bash ./mvnw -q -DforceStdout help:evaluate -Dexpression=project.artifactId | tail -n 1)"
@@ -19,9 +21,10 @@ nerdctl build --build-arg CONTAINER_ENGINE=nerdctl \
   --file deploy/container/Dockerfile --tag "$IMAGE_NAME:local" .
 ```
 
-The Dockerfile packages source with the Maven Wrapper. All Maven dependencies,
-including organization-specific Facade artifacts, must be resolvable from the
-build environment. Private-repository credential transport is an operator concern
+The Dockerfile packages source with the Maven Wrapper. Every Maven dependency,
+including the Egon-COLA component artifacts this project builds against, must be
+resolvable from the build environment; this project publishes its own Facade
+contract as a package, so it resolves no remote Facade artifact. Private-repository credential transport is an operator concern
 and must not be encoded as a Docker build argument because build arguments are not
 secret storage.
 
@@ -64,11 +67,50 @@ nerdctl compose --env-file deploy/env/.env.example \
 
 The bundled Compose files set `APP_DATASOURCE_MODE=SHARDING` and provision
 `postgres-master-data`, `postgres-shard-0`, and `postgres-shard-1`. They do not
-pretend to provide replication. `SHARDING_READWRITE` requires operator-provided
-primary/replica endpoints for every logical group declared by
-`datasource/sharding-readwrite.yml`.
+pretend to provide replication, and no read/write Compose file ships.
+`SHARDING_READWRITE` is a configuration capability: after switching the mode,
+declare one `role: PRIMARY` and at least one `role: REPLICA` entry per
+`logical-name` in the `egon.cola.component.mybatis-plus.sharding.data-sources`
+list of `egon-mybatis-plus-sharding.yml`, and point every entry at an
+operator-provided endpoint. The
+`src/test/resources/sharding/two-level-readwrite.yml` sample is a test-only
+ShardingSphere rules document, not a deployment descriptor.
 
 The example credentials are development-only.
+
+The documented `up --build` command needs two inputs the samples do not supply.
+First, `deploy/env/.env.example` leaves `RPC_ADVERTISED_HOST`, `HTTP_ADVERTISED_HOST`, `TIANSHU_RPC_TARGET`, `TIANSHU_REGISTRATION_RESOURCE_URI` and `TIANSHU_REDIS_HOST`
+blank while the development Compose files mark them `:?`-required, so Compose
+aborts with `required variable ... is missing a value` before any image builds.
+Second, the application reads `EGON_ID_MACHINE_ID` without a default and these
+Compose files pass no such entry to the container, so the application exits on
+placeholder resolution until the operator adds it to the service `environment:`
+mapping; it must be unique per instance and within 0-1023. `deploy/env/.env.prod.example`
+keeps the first group blank for the operator to fill and never mentions
+`EGON_ID_MACHINE_ID`.
+
+## Arthas diagnostics sidecar
+
+`deploy/compose/compose.arthas.yaml` is an opt-in Docker Compose override, not a
+fourth runtime file. Add it after a development file to start the `arthas`
+service built from `deploy/container/Dockerfile.arthas`:
+
+```bash
+docker compose --env-file deploy/env/.env.example \
+  --file deploy/compose/compose.docker.yaml \
+  --file deploy/compose/compose.arthas.yaml \
+  --profile diagnostics up -d --build
+```
+
+Arthas attaches to the application JVM through a shared PID namespace and a
+tmpfs-backed `/tmp`, serves only the application loopback port `8563`, and keeps
+Telnet disabled. `ARTHAS_SIDECAR_IMAGE` defaults to
+`egon-cola-arthas-sidecar:4.3.5-jdk21`. The sidecar bind-mounts
+`ARTHAS_PASSWORD_HOST_FILE` (default `deploy/secrets/arthas_password`, a path the
+operator creates and keeps out of version control) read-only at
+`/run/secrets/arthas_password`; the attach script rejects anything that is not a
+single line of 32-128 base64url characters. Production Compose files never
+reference this overlay.
 
 ## Production Compose
 
@@ -91,9 +133,12 @@ log data. No generated helper performs that deletion automatically.
 ## Health And Failure Behavior
 
 All three PostgreSQL primaries, Redis, RabbitMQ, and the Spring Boot
-readiness endpoint have health checks. Missing production variables fail Compose configuration. An enabled
-but unavailable remote Facade retains the generated application's fail-fast
-behavior.
+readiness endpoint have health checks. Missing production variables fail Compose
+configuration. This project publishes its own Facade contract in-process and
+resolves no remote Facade, so there is no remote-Facade startup path; RPC
+provider registration, Tianshu consistency and HTTP registration each keep
+`fail-fast: true`, so an enabled but unreachable Tianshu endpoint aborts startup
+rather than degrading silently.
 
 ## Jenkins
 

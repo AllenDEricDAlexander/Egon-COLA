@@ -1,6 +1,6 @@
 # egon-cola-source-service-open
 
-[English](README.md) | 中文
+[English](README.md) | [中文](README.zh-CN.md)
 
 `egon-cola-source-service-open` 是基于开源 Spring Boot 3.5、Spring Cloud Alibaba、Dubbo Triple、MyBatis-Plus 和 ShardingSphere 的纯 Service Open 示例，覆盖 Course、Schedule、Exam、Paper、Score 流程。业务流量通过 Dubbo Triple 或 RabbitMQ 进入；HTTP 只保留 Spring Boot Actuator 管理端点。
 
@@ -25,6 +25,8 @@ egon-cola-source-service-open-starter         Boot 组装、profile、运行治�
 `facade/src/main/proto` 是本工程唯一拥有的 RPC wire source。三个业务 Proto 文件在 `egon.evaluation.v1` 下定义 3 个 service、11 个 unary 方法；Dubbo Maven plugin `3.3.6` 使用 `tri` 生成代码。Organization 协议不在此复制：`infrastructure` 依赖对端 Web Open facade 工件，因此同一份 `egon.organization.v1` wire 契约只保留一个 Java 归属。ID 统一为正 `int64`，时间使用 `Timestamp`，无返回值使用 `google.protobuf.Empty`，分页固定包含 `records/current_page/total_pages/page_size/total_count`。目录中额外提供 wire-compatible 的 `google/protobuf/empty.proto`，仅用于 Dubbo 3.3.6 codegen。
 
 Evaluation 的 11 个方法在同一个 Triple 端口按 `course`、`exam`、`score` group 暴露，版本为 `1.0.0`。Organization 目录调用保持完全相同的 wire 名称，其 stub 来自对端 facade 工件。测试通过标准 gRPC `ManagedChannel` 验证 unary interop；模板不启动第二个 grpc-java server。
+
+对端 Organization 调用由激活的 Spring profile 选择，而不是由开关控制：`dev`/`prod` 绑定 `DubboOrganizationDirectoryClientImpl`，`test` 绑定 `LocalOrganizationDirectoryClientImpl`。该实现的两个 `@DubboReference` stub 读取 `app.integrations.organization.group` 与 `.version`，因此 `ORGANIZATION_FACADE_GROUP`（默认 `student-management-organization`）与 `ORGANIZATION_FACADE_SERVICE_VERSION`（默认 `1.0.0`）才是真正生效的部署覆盖项，必须与对端硬编码的 `ServiceBean` group/version 一致。`ORGANIZATION_FACADE_ENABLED`（`app.integrations.organization.enabled`）在 `application.yml` 中默认 `false`、在 `dev`/`prod` 中默认 `true`，但没有任何生产代码读取它，改值不会启用或禁用该 client。
 
 
 所有技术 ID 都由 Common 的 `LongIdGenerator` 生成，PostgreSQL 中使用 `BIGINT`；Domain、Application、PO、DAO、事件和分片键内部统一使用正 `Long`。每个运行实例必须设置唯一的 `EGON_ID_MACHINE_ID`，没有运行时默认值。本 archetype 不包含 UUID 生成器或 UUID 分片算法。
@@ -56,7 +58,7 @@ Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。逻辑表�
   -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-生成测试覆盖 Proto descriptor、Long identity、Common MyBatis-Plus DAO/service、隔离 H2 持久化与 typed ShardingSphere 路由合同、手工 SQL 约定、11 个 Triple provider、标准 gRPC unary interop、Organization client 双剖面实现、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
+生成测试覆盖 Proto descriptor、Long identity、Common MyBatis-Plus DAO/service、隔离 H2 持久化与 typed ShardingSphere 路由合同、手工 SQL 约定、三个 provider 暴露的 11 个 Triple unary 方法、标准 gRPC unary interop、Organization client 双剖面实现、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
 
 这些检查只证明源码、生成工程和本地测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos 拓扑、RabbitMQ、跨 Project provider、部署网络或生产权限。archetype 生成和上述命令不会自动启动应用，也不会执行数据库 SQL。
 
@@ -97,25 +99,24 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9081
 
 本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
 
-`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。
+`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。该文件只是孤立的参考资料：没有任何测试、POM 或配置加载它，其中的 `CLASS_BASED` `algorithmClassName` 指向的类也不会生成。工程实际使用的 `config-style: STRATEGY` 拓扑由组件自带的 `EgonColaLongTenantShardingAlgorithm` 与 `EgonColaTenantBusinessComplexShardingAlgorithm` 完成同样的路由。
 
 算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
 
-初始化由 组件统一管理数据源/拓扑与 `EgonColaPostgreDdlRunner` 受管 DDL，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+数据源与拓扑由 Common MyBatis-Plus 组件统一管理，并提供受管 `EgonColaPostgreDdlRunner` bean。显式传入目标后，它按 `repository-manifest.json` 对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql`：空库首次初始化，受管库验证 checksum/前缀/路由指纹，非空未受管库报 REBUILD_REQUIRED。生成的工程内没有任何代码调用该 bean，因此启动不会建表；首次使用前必须由使用者接入该调用，或用外部迁移工具执行同一份 SQL。`db/manual/postgresql/**` 下的旧脚本原样保留作档案，不再作为本脚手架运行入口。
 
 读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
 
 每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
 
-默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
+默认测试使用隔离 H2 和受控依赖。本工程不含 PostgreSQL 门控测试：`-Degon.pg.*` 与 `EGON_TEST_PG_*` 不被任何 POM、YAML 或测试读取，也没有测试启动或提供数据库。PG/SS 真实路由、迁移和性能 EXPLAIN 由使用者手动验收，没有失败不等于通过。
 
-## 二级缓存骨架（默认关闭）
+## 二级缓存
 
-生成工程保留缓存 starter 依赖和默认 `enabled: false` 配置。启用时由宿主提供 `RedissonClient`，设置
-`egon.cola.component.cache.enabled=true`，并在配置类显式添加 `@EnableCaching`。mp-sd-ext 基类已移除缓存端口耦合，具体
+`application.yml`、`application-dev.yml`、`application-prod.yml` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/RedisConfig.java` 已带 `@EnableCaching`，并发布 `redissonClient` 与二级 `cacheManager`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
-不再隐式失效缓存，其他写入和删除入口也须声明失效。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。
 
 ## 2026-09-22 Java / CQE 维护规范
 

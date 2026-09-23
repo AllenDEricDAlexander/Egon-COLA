@@ -48,7 +48,7 @@ credentials in the existing environment/secrets mechanism, never in `run.*` prop
 Business domains come before protocol or technical details so `user` and `teaching` remain cohesive and can later be extracted into independent services without reversing package order.
 
 ```text
-src/main/java/top/egon/cola/archetype/source/light
+src/main/java/${packageInPathFormat}
 ├── start
 ├── adapter
 │   ├── user/{controller,mq,graphql,facade/impl,pojo/{dto,vo,convertor},validators}
@@ -122,7 +122,8 @@ Persistence uses Common MP repositories and explicit Mapper XML; domain service 
 
 `test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2, in-memory adapters, and deterministic stubs; RabbitMQ, Redis, COLA RPC registry access, and external HTTP calls are disabled.
 
-`prod` is reserved for runtime builds and deployments from `main`. Configure `dev` and `prod` through environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `TIANSHU_RPC_TARGET=host:19090`, `TIANSHU_ENABLED=true`, `TIANSHU_REGISTRY_ENABLED=true`, and `RPC_ENABLED=true`. Broker credentials use Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, and `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are application switches.
+`prod` is reserved for runtime builds and deployments from `main`. Configure `dev` and `prod` through environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `TIANSHU_RPC_TARGET=host:19090`, `TIANSHU_ENABLED=true`, `TIANSHU_REGISTRY_ENABLED=true`, and `RPC_ENABLED=true`. Broker credentials use Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, and `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` is the application's own switch. The same `RABBITMQ_ENABLED` value also drives
+`@RabbitListener` auto-startup; this project has no separate listener-startup variable.
 
 ## Commands
 
@@ -207,27 +208,27 @@ The stock Redisson auto-configuration is excluded; Tianshu owns its explicitly c
 
 This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain semantics; concrete repositories extend `EgonColaRepository` and mappers extend `EgonColaMapper`. Queries use explicit XML. `EgonModel` owns id, tenantId, creation/update actors and times, `LocalDateTime deletedAt` and `Long version`: NULL is active, deletion writes a UTC timestamp and increments the version. AR/QueryChain are disabled; technical filling is mandatory.
 
-`APP_DATASOURCE_MODE` supports `SHARDING` and `SHARDING_READWRITE` with LOCAL transactions. Single tables use explicit `!SINGLE group.schema.table`; broadcast tables are read-only. Default legacy tenant routing retains its old addresses. The optional `src/test/resources/sharding/two-level-readwrite.yml` example lives in infrastructure for multi-module projects. It hashes tenant_id into a tenant slot, then a business root ID into a bucket; order.id and item.order_id share the same root policy and physical group.
+`APP_DATASOURCE_MODE` supports `SHARDING` and `SHARDING_READWRITE` with LOCAL transactions. Single tables use explicit `!SINGLE group.schema.table`; broadcast tables are read-only. Default legacy tenant routing retains its old addresses. The optional `src/test/resources/sharding/two-level-readwrite.yml` example lives in infrastructure for multi-module projects. It hashes tenant_id into a tenant slot, then a business root ID into a bucket; order.id and item.order_id share the same root policy and physical group. This file is orphan reference material: no test, POM or configuration loads it, and its `CLASS_BASED` `algorithmClassName` entries name project classes that are not generated. The shipped `config-style: STRATEGY` topology reaches the same routing through the component's `EgonColaLongTenantShardingAlgorithm` and `EgonColaTenantBusinessComplexShardingAlgorithm` instead.
 
 mix64-v1 is fixed. T/B are powers of two up to 1024, with product at most 4096. Balanced databases also require a balanced slot map and tenant workload. There is no automatic redistribution. Query fanout is bounded; commands require exact keys. Changing topology requires matching DDL and a deliberate data migration/rebuild; the test example is not a drop-in production schema.
 
-The MP-SDJ starter owns datasource/topology setup and the managed `EgonColaPostgreDdlRunner` on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
+The MP-SDJ starter owns datasource/topology setup and contributes the managed `EgonColaPostgreDdlRunner` bean. Called with explicit targets it applies `db/egon-mp/V20260913_001__initialize_repository_schema.sql` to physical PRIMARY schemas from `repository-manifest.json`: empty schemas initialize once, managed schemas verify checksums, prefix and route fingerprint, and non-empty unmanaged schemas fail with REBUILD_REQUIRED. Nothing in a generated project calls that bean, so startup creates no tables; wire the call, or apply the same SQL with an operator migration tool, before first use. The archived `db/migration/sharding/**` `B*`/`V*` scripts remain unchanged and are no longer the runtime entry point.
 
 PostgreSQL owns replication. Ordinary reads use ROUND_ROBIN replicas; transaction/locking/strong reads use PRIMARY. No replica provisioning or promotion is implemented. Business, single and broadcast tables carry tenant_id. Cross-group LOCAL writes are rejected and mark rollback-only.
 
 Set a unique `EGON_ID_MACHINE_ID` for each runtime; production uses the existing Common Snowflake generator. Profiles retain matching MP keys, diagnostics are dev-only and the raw recorder logger is OFF. Dynamic table names require explicit mappings. MybatisBatch runs inside the caller's transaction.
 
-Default tests use isolated H2 and controlled dependencies. Physical routing tests require `-Degon.pg.routing=true` and `EGON_TEST_PG_URL`; read/write tests require `-Degon.pg.readwrite=true`, `EGON_TEST_PG_PRIMARY_URL` and `EGON_TEST_PG_REPLICA_URL`, plus dedicated `EGON_TEST_PG_USER/PASSWORD`. They create/clean only their UUID schemas and do not start databases. Real PG/SS, migration and EXPLAIN acceptance remains manual; a skip is not a pass.
+Default tests use isolated H2 and controlled dependencies. This project ships no PostgreSQL-gated test: `-Degon.pg.*` and `EGON_TEST_PG_*` are read by no POM, YAML or test here, and no test starts or provisions a database. Real PG/SS routing, migration and EXPLAIN acceptance remains manual; the absence of a failure is not a pass.
 
 ## Two-level cache
 
-`base`, `dev` and `prod` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys with
+`application.yml`, `application-dev.yml` and `application-prod.yml` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys with
 `enabled: false` so unit and module runs never require Redis. `infrastructure/config/RedisConfig.java` carries `@EnableCaching`,
 so a generated project is cache-ready once a Redis connection is configured. The mp-sd-ext base repository no longer depends on
 a cache port: concrete repositories declare Spring Cache annotations. The
 repository examples use `findCachedById` / `updateCachedById` (Agent defines its own business methods). Ordinary CRUD no
 longer evicts implicitly; annotate every relevant write/delete path. See
-the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
+the `egon-cola-component-common-cache-spring-boot-starter` documentation in the Egon-COLA repository
 for keys, conditions, combined operations, transactions and sync limitations. Every profile declares the same five TTL keys
 (`l1-expire`, `l1-jitter`, `l2-expire`, `l2-jitter`, `null-expire`) plus the shared `key-prefix`, `tenant-mdc-key` and batch/lock
 budgets; only values differ per environment.

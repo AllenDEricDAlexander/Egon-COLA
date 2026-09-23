@@ -103,7 +103,7 @@ A document in a non-terminal state is refused a reprocess with `409`. A retried 
 | Key | Environment variable | Meaning |
 | --- | --- | --- |
 | `spring.datasource.url` / `username` / `password` | `AGENT_DB_URL`, `AGENT_DB_USERNAME`, `AGENT_DB_PASSWORD` | The PostgreSQL database; `dev` and `prod` require them |
-| Legacy `spring.flyway.*` | Legacy `AGENT_FLYWAY_ENABLED` | Present in source only; replace through an authorized MP-SDJ DDL migration, not a new deployment choice |
+| `spring.flyway.*` | `AGENT_FLYWAY_ENABLED` | The active schema path: `application.yml`, `dev` and `prod` default it to `true` over `classpath:db/migration`, so a knowledge start-up runs the three `V2026*` scripts; `test` forces `false`. Retire it only through an authorized MP-SDJ DDL migration, not as a per-deployment toggle |
 | `spring.servlet.multipart.max-file-size` / `max-request-size` | `AGENT_MULTIPART_MAX_FILE_SIZE`, `AGENT_MULTIPART_MAX_REQUEST_SIZE` | Container guard above the API limit (25 MB / 26 MB by default) |
 | `egon.cola.component.rag.*` | `AGENT_RAG_STORAGE_ROOT` | Dimensions, the named vector store and embedding model, the storage root, retrieval limits (default 8, maximum 50) |
 | `egon.cola.component.transactional-outbox.enabled` | — | The ingest queue and its delivery |
@@ -144,7 +144,7 @@ curl --fail-with-body --no-buffer \
 Run the source checks without starting a service:
 
 ```bash
-./mvnw -B -ntp -f egon-cola-source-agent/pom.xml clean verify
+./mvnw -B -ntp clean verify
 ```
 
 The generated archetype is validated separately by the repository archetype scripts. The source project contains no message broker, RPC, GraphQL endpoint, or UI; its durable surface is the knowledge schema with its migrations and the outbox queue, over the two-level cache that no query has opted into yet.
@@ -153,13 +153,13 @@ The generated archetype is validated separately by the repository archetype scri
 
 Knowledge queries now use bound Mapper XML. Updates enforce tenant, active row, expected version and expected ingest status. `deleted_at` is a nullable UTC LocalDateTime and `version` starts at zero. The field-specific JSONB handler is retained.
 
-The project standard is now MP-SDJ distributed managed DDL. Legacy source still includes Flyway dependencies, db/migration scripts and disabled Common DDL. These are migration gaps, not the supported target. Preserve historical SQL and data; a separate implementation must wire the component runner, ordered manifest and physical targets and reconcile outbox/vector ownership. This documentation update does not perform that runtime migration.
+The project standard is now MP-SDJ distributed managed DDL, but this source project has not reached it: Flyway is the path that actually runs. `flyway-core` and `flyway-database-postgresql` are on the infrastructure classpath, `spring.flyway.locations` points at `classpath:db/migration`, and `dev`/`prod` leave `AGENT_FLYWAY_ENABLED` at its `true` default, so the three `V2026*` scripts — including `create extension if not exists vector` — execute on start-up. Common DDL is separately off (`egon.cola.component.mybatis-plus.ddl.enabled: false`), and this project ships neither `db/egon-mp` SQL nor a `repository-manifest.json`, so there is no managed-DDL target to run yet. These are migration gaps, not the supported target. Preserve historical SQL and data; a separate implementation must wire the component runner, ordered manifest and physical targets and reconcile outbox/vector ownership. This documentation update does not perform that runtime migration.
 
 Set `EGON_ID_MACHINE_ID` for production. Default H2/fake-model tests do not run PostgreSQL migrations or vector integrations; perform those checks manually on a dedicated database.
 
 ## Two-level cache
 
-`base`, `dev` and `prod` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys
+`application.yml`, `application-dev.yml` and `application-prod.yml` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys
 with `enabled: false` so unit and module runs never require Redis. `infrastructure/config/RedisConfig.java` carries
 `@EnableCaching` and publishes the `redissonClient`, so a generated project is cache-ready once a Redis connection is
 configured. The mp-sd-ext base repository no longer depends on a cache port: concrete repositories declare Spring Cache
@@ -167,5 +167,5 @@ annotations, and no knowledge query is annotated yet, so enabling the switch cha
 Ordinary CRUD does not evict implicitly; annotate every relevant write and delete path whenever a read is cached. Every
 profile declares the same five TTL keys (`l1-expire`, `l1-jitter`, `l2-expire`, `l2-jitter`, `null-expire`) plus the
 shared `key-prefix`, `tenant-mdc-key` and batch/lock budgets; only the values differ. See
-the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
+the `egon-cola-component-common-cache-spring-boot-starter` documentation in the Egon-COLA repository
 for keys, conditions, combined operations, transactions and sync limitations.

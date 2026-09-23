@@ -2,11 +2,16 @@
 
 > 历史脚本档案：本目录不是当前启动 DDL 入口。当前规范统一采用 MP-SDJ Starter 分布式受管 DDL、版本化 SQL 与 SHA-256 Manifest；下文手工步骤仅说明历史交付物，不作为新部署或升级流程。不要修改已应用脚本或历史校验和。
 
+当前入口是 `../../egon-mp/V20260913_001__initialize_repository_schema.sql` 与
+`repository-manifest.json`，由 `EgonColaPostgreDdlRunner` 在显式调用时执行；生成的工程不会自动调用它，
+所以两条路径都要人工掌握。受管 schema 使用 `deleted_at` 与 `version`，而本目录的 003/004 只补 `is_deleted`，
+两者结构不互通：不要把本目录脚本当作受管 schema 的前置或替代。
+
 这些脚本属于 PostgreSQL 数据库运维交付物。应用启动、Spring SQL 初始化、MyBatis-Plus
 和 Maven 都不会读取或执行它们。
 
 
-1. 备份 `master_data` 与每个 shard primary，并记录两个脚本的 SHA-256、目标库和执行时间。
+1. 备份 `master_data` 与每个 shard primary，并记录四个脚本的 SHA-256、目标库和执行时间。
 2. 在 `master_data` primary 上执行
    `master-data/001__create_organization_master_data_schema.sql`。
 3. 在每个 shard primary 上执行
@@ -19,6 +24,9 @@
 7. 只有 schema 校验、备份记录和发布审批完成后，才允许启用应用实例。
 
 示例（每个 primary 单独执行）：
+
+$MASTER_DATA_URL、$SHARD_0_URL、$SHARD_1_URL 是运维自备的 shell 变量，
+本工程的 POM、YAML 或 `deploy/env/*` 都不定义它们；执行前先按目标 primary 导出。
 
 ```bash
 psql "$MASTER_DATA_URL" --set ON_ERROR_STOP=1 \

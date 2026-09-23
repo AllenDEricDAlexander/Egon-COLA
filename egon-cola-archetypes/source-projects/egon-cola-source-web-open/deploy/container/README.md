@@ -1,7 +1,5 @@
 # Container Delivery
 
-[English](README.md) | [中文](README.zh-CN.md)
-
 ## One Portable Dockerfile
 
 `deploy/container/Dockerfile` is the only image build definition. Docker, Podman,
@@ -64,8 +62,14 @@ nerdctl compose --env-file deploy/env/.env.example \
 
 The bundled Compose files set `APP_DATASOURCE_MODE=SHARDING` and provision
 `master_data`, `shard_0`, and `shard_1` primaries. They intentionally do not
-emulate replicas. `SHARDING_READWRITE` requires an operator-managed topology and
-all variables declared by `datasource/sharding-readwrite.yml`.
+emulate replicas, and no read/write Compose file ships. `SHARDING_READWRITE`
+requires an operator-managed topology: declare one `role: PRIMARY` and at least
+one `role: REPLICA` entry per `logical-name` in
+`egon.cola.component.mybatis-plus.sharding.data-sources` inside
+`egon-mybatis-plus-sharding.yml`, and provide the endpoint variables behind
+them. The `src/test/resources/sharding/two-level-readwrite.yml` sample in the
+infrastructure module is a test-only ShardingSphere rules document, not a
+deployment descriptor.
 
 The example credentials are development-only. Set a unique `EGON_ID_MACHINE_ID` for
 each application instance.

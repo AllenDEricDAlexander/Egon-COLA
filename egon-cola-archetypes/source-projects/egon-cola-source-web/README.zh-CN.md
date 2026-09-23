@@ -103,7 +103,7 @@ RabbitMQ command 使用总计三次尝试、有限退避和死信队列。领域
 
 Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2、内存缓存/幂等 adapter、本地事件发布器、确定性的 Evaluation 查询 stub、已关闭的 RabbitMQ 与 外部 Tianshu 连接，以及已关闭的 COLA RPC provider/consumer 与 registry。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都使用 COLA RPC Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0.0`）。
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都使用 COLA RPC Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0`）。
 
 - Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
 
@@ -185,24 +185,24 @@ SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl egon-cola-source-web-starter spring-b
 
 本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
 
-`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。
+`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。该文件只是孤立的参考资料：没有任何测试、POM 或配置加载它，其中的 `CLASS_BASED` `algorithmClassName` 指向的类也不会生成。工程实际使用的 `config-style: STRATEGY` 拓扑由组件自带的 `EgonColaLongTenantShardingAlgorithm` 与 `EgonColaTenantBusinessComplexShardingAlgorithm` 完成同样的路由。
 
 算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
 
-初始化由 组件统一管理数据源/拓扑与 `EgonColaPostgreDdlRunner` 受管 DDL，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+数据源与拓扑由 Common MyBatis-Plus 组件统一管理，并提供受管 `EgonColaPostgreDdlRunner` bean。显式传入目标后，它按 `repository-manifest.json` 对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql`：空库首次初始化，受管库验证 checksum/前缀/路由指纹，非空未受管库报 REBUILD_REQUIRED。生成的工程内没有任何代码调用该 bean，因此启动不会建表；首次使用前必须由使用者接入该调用，或用外部迁移工具执行同一份 SQL。`db/migration/sharding/**` 下的 `B*`/`V*` 旧脚本原样保留作档案，不再作为本脚手架运行入口。
 
 读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
 
 每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
 
-默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
+默认测试使用隔离 H2 和受控依赖。本工程不含 PostgreSQL 门控测试：`-Degon.pg.*` 与 `EGON_TEST_PG_*` 不被任何 POM、YAML 或测试读取，也没有测试启动或提供数据库。PG/SS 真实路由、迁移和性能 EXPLAIN 由使用者手动验收，没有失败不等于通过。
 
 ## 二级缓存
 
-`base`、`dev`、`prod` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/OrganizationRedisConfig.java` 已带 `@EnableCaching`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
+`application.yml`、`application-dev.yml`、`application-prod.yml` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/OrganizationRedisConfig.java` 已带 `@EnableCaching`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
-不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。
 
 ## 2026-09-22 Java / CQE 维护规范
 

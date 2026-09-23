@@ -1,5 +1,7 @@
 # egon-cola-source-web-open
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 `egon-cola-source-web-open` is the open-source Web edition of the organization Project. It
 keeps the domain-first layout and is generated as seven Maven modules. Gateway is an
 external deployment concern; no Gateway component or route is generated.
@@ -33,11 +35,15 @@ graph stays acyclic.
 The runtime matrix is Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba
 2025.0.0.0, Dubbo 3.3.6, Nacos 3.0.3 (Compose image), gRPC 1.73.0, Protobuf 3.x,
 ShardingSphere 5.5.3, and Springdoc 2.8.17. Direct Egon components are Common core/ID,
-the Common MyBatis-Plus starter, and Dynamic Thread Pool starter.
+the Common MyBatis-Plus starter, the Common two-level cache starter, and Dynamic Thread
+Pool starter.
 
 The project intentionally has no Spring Data JPA, Flyway, Liquibase, Gateway starter or
-UUID generator, and it copies no peer protocol: the only external contract is the published
-Evaluation facade artifact owned by the Service Open project. `OpenArchitectureTest`,
+UUID business key, and it copies no peer protocol: the only external contract is the published
+Evaluation facade artifact owned by the Service Open project. The Adapter does call
+`UUID.randomUUID()` to mint a trace or idempotency-correlation request id when a caller
+sends no `Idempotency-Key`; that value never reaches a business column.
+`OpenArchitectureTest`,
 `OpenPeerFacadeContractTest` and the generated verification gate enforce this boundary.
 
 
@@ -66,6 +72,17 @@ Organization providers export Dubbo Triple with group
 `student-management-organization`, version `1.0.0`, and `tri` in dev/prod. Evaluation
 uses `GrpcEvaluationQueryClientImpl` with managed channel and configurable deadline; tests use
 an in-process gRPC server and no retry.
+
+The exported group and version are hard-coded in the `ServiceBean` definitions built by
+`adapter/teaching/rpc/SchoolClassRpcProvider` and `adapter/user/rpc/UserRpcProvider`; no
+environment variable changes them. Outbound, only `app.integrations.evaluation.grpc-target`
+and `.grpc-deadline` are read, so `EVALUATION_GRPC_TARGET` (default `localhost:50051`) and
+`EVALUATION_GRPC_DEADLINE` (default `PT3S`) are the live deployment overrides. The client is
+picked by the active Spring profile (`dev`/`prod` use the gRPC client, `test` uses
+`LocalEvaluationQueryClientImpl`), which means `EVALUATION_FACADE_ENABLED`,
+`EVALUATION_COURSE_FACADE_GROUP`, `EVALUATION_EXAM_FACADE_GROUP`,
+`EVALUATION_SCORE_FACADE_GROUP` and `EVALUATION_FACADE_SERVICE_VERSION` bind configuration
+that no production code reads — setting them changes nothing.
 
 
 Controllers and GraphQL resolvers remain in Adapter:
@@ -148,27 +165,30 @@ credentials in the existing environment/secrets mechanism, never in `run.*` prop
 
 This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain semantics; concrete repositories extend `EgonColaRepository` and mappers extend `EgonColaMapper`. Queries use explicit XML. `EgonModel` owns id, tenantId, creation/update actors and times, `LocalDateTime deletedAt` and `Long version`: NULL is active, deletion writes a UTC timestamp and increments the version. AR/QueryChain are disabled; technical filling is mandatory.
 
-`APP_DATASOURCE_MODE` supports `SHARDING` and `SHARDING_READWRITE` with LOCAL transactions. Single tables use explicit `!SINGLE group.schema.table`; broadcast tables are read-only. Default legacy tenant routing retains its old addresses. The optional `src/test/resources/sharding/two-level-readwrite.yml` example lives in infrastructure for multi-module projects. It hashes tenant_id into a tenant slot, then a business root ID into a bucket; order.id and item.order_id share the same root policy and physical group.
+`APP_DATASOURCE_MODE` supports `SHARDING` and `SHARDING_READWRITE` with LOCAL transactions. Single tables use explicit `!SINGLE group.schema.table`; broadcast tables are read-only. Default legacy tenant routing retains its old addresses. The optional `src/test/resources/sharding/two-level-readwrite.yml` example lives in infrastructure for multi-module projects. It hashes tenant_id into a tenant slot, then a business root ID into a bucket; order.id and item.order_id share the same root policy and physical group. This file is orphan reference material: no test, POM or configuration loads it, and its `CLASS_BASED` `algorithmClassName` entries name project classes that are not generated. The shipped `config-style: STRATEGY` topology reaches the same routing through the component's `EgonColaLongTenantShardingAlgorithm` and `EgonColaTenantBusinessComplexShardingAlgorithm` instead.
 
 mix64-v1 is fixed. T/B are powers of two up to 1024, with product at most 4096. Balanced databases also require a balanced slot map and tenant workload. There is no automatic redistribution. Query fanout is bounded; commands require exact keys. Changing topology requires matching DDL and a deliberate data migration/rebuild; the test example is not a drop-in production schema.
 
-The MP-SDJ starter owns datasource/topology setup and the managed `EgonColaPostgreDdlRunner` on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
+The MP-SDJ starter owns datasource/topology setup and contributes the managed `EgonColaPostgreDdlRunner` bean. Called with explicit targets it applies `db/egon-mp/V20260913_001__initialize_repository_schema.sql` to physical PRIMARY schemas from `repository-manifest.json`: empty schemas initialize once, managed schemas verify checksums, prefix and route fingerprint, and non-empty unmanaged schemas fail with REBUILD_REQUIRED. Nothing in a generated project calls that bean, so startup creates no tables; wire the call, or apply the same SQL with an operator migration tool, before first use. The archived `db/manual/postgresql/**` scripts remain unchanged and are no longer the runtime entry point.
 
 PostgreSQL owns replication. Ordinary reads use ROUND_ROBIN replicas; transaction/locking/strong reads use PRIMARY. No replica provisioning or promotion is implemented. Business, single and broadcast tables carry tenant_id. Cross-group LOCAL writes are rejected and mark rollback-only.
 
 Set a unique `EGON_ID_MACHINE_ID` for each runtime; production uses the existing Common Snowflake generator. Profiles retain matching MP keys, diagnostics are dev-only and the raw recorder logger is OFF. Dynamic table names require explicit mappings. MybatisBatch runs inside the caller's transaction.
 
-Default tests use isolated H2 and controlled dependencies. Physical routing tests require `-Degon.pg.routing=true` and `EGON_TEST_PG_URL`; read/write tests require `-Degon.pg.readwrite=true`, `EGON_TEST_PG_PRIMARY_URL` and `EGON_TEST_PG_REPLICA_URL`, plus dedicated `EGON_TEST_PG_USER/PASSWORD`. They create/clean only their UUID schemas and do not start databases. Real PG/SS, migration and EXPLAIN acceptance remains manual; a skip is not a pass.
+Default tests use isolated H2 and controlled dependencies. This project ships no PostgreSQL-gated test: `-Degon.pg.*` and `EGON_TEST_PG_*` are read by no POM, YAML or test here, and no test starts or provisions a database. Real PG/SS routing, migration and EXPLAIN acceptance remains manual; the absence of a failure is not a pass.
 
-## Two-level cache skeleton (disabled by default)
+## Two-level cache
 
-The generated project includes the cache starter with `enabled: false`. To enable it, provide a `RedissonClient`, set
-`egon.cola.component.cache.enabled=true`, and explicitly add `@EnableCaching` to a configuration class. The mp-sd-ext
-base repository no longer depends on a cache port: concrete repositories declare Spring Cache annotations. The
-repository examples use `findCachedById` / `updateCachedById` (Agent defines its own business methods). Ordinary CRUD no
-longer evicts implicitly; annotate every relevant write/delete path. See
-the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
-for keys, conditions, combined operations, transactions and sync limitations.
+`application.yml`, `application-dev.yml` and `application-prod.yml` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys with
+`enabled: false` so unit and module runs never require Redis. `infrastructure/config/OrganizationRedisConfig.java` carries `@EnableCaching` and
+publishes the `redissonClient` plus the two-level `cacheManager`, so a generated project is cache-ready once a Redis
+connection is configured. The mp-sd-ext base repository no longer depends on a cache port: concrete repositories declare
+Spring Cache annotations. The repository examples use `findCachedById` / `updateCachedById` (Agent defines its own business
+methods). Ordinary CRUD no longer evicts implicitly; annotate every relevant write/delete path. See
+the `egon-cola-component-common-cache-spring-boot-starter` documentation in the Egon-COLA repository
+for keys, conditions, combined operations, transactions and sync limitations. Every profile declares the same five TTL keys
+(`l1-expire`, `l1-jitter`, `l2-expire`, `l2-jitter`, `null-expire`) plus the shared `key-prefix`, `tenant-mdc-key` and batch/lock
+budgets; only values differ per environment.
 
 ## 2026-09-22 Java / CQE maintenance requirements
 

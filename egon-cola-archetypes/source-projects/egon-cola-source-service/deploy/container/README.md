@@ -1,7 +1,5 @@
 # Container Delivery
 
-[English](README.md) | [中文](README.zh-CN.md)
-
 ## One Portable Dockerfile
 
 `deploy/container/Dockerfile` is the only image build definition. Docker, Podman,
@@ -64,11 +62,27 @@ nerdctl compose --env-file deploy/env/.env.example \
 
 The bundled Compose files set `APP_DATASOURCE_MODE=SHARDING` and provision three
 PostgreSQL primaries for `master_data`, `shard_0`, and `shard_1`. They do not
-emulate replicas. `SHARDING_READWRITE` is supported by the application when the
-deployment supplies every primary and replica endpoint declared in
-`datasource/sharding-readwrite.yml`.
+emulate replicas, and no read/write Compose file ships. `SHARDING_READWRITE` is
+supported by the application when `egon-mybatis-plus-sharding.yml` declares one
+`role: PRIMARY` and at least one `role: REPLICA` entry per `logical-name` in
+`egon.cola.component.mybatis-plus.sharding.data-sources`, and the deployment
+supplies the matching operator-managed endpoints. The
+`src/test/resources/sharding/two-level-readwrite.yml` sample in the
+infrastructure module is a test-only ShardingSphere rules document, not a
+deployment descriptor.
 
 The example credentials are development-only.
+
+The documented `up --build` command needs two inputs the samples do not supply.
+First, `deploy/env/.env.example` leaves `RPC_ADVERTISED_HOST`, `HTTP_ADVERTISED_HOST`, `TIANSHU_RPC_TARGET`, `TIANSHU_REGISTRATION_RESOURCE_URI`, `TIANSHU_REDIS_HOST` and `ORGANIZATION_FACADE_APP_CODE`
+blank while the development Compose files mark them `:?`-required, so Compose
+aborts with `required variable ... is missing a value` before any image builds.
+Second, the application reads `EGON_ID_MACHINE_ID` without a default and these
+Compose files pass no such entry to the container, so the application exits on
+placeholder resolution until the operator adds it to the service `environment:`
+mapping; it must be unique per instance and within 0-1023. `deploy/env/.env.prod.example`
+keeps the first group blank for the operator to fill and never mentions
+`EGON_ID_MACHINE_ID`.
 
 ## Production Compose
 
@@ -104,7 +118,7 @@ be explicitly enabled with Jenkins credentials.
 
 ## Native RPC, Tianshu and remote queries
 
-This project exposes 11 evaluation unary operations from the Protobuf contract published by its own facade module. Providers delegate to the existing facades. Remote queries use the Organization Domain service contract behind its infrastructure client, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout. `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+This project exposes 11 evaluation unary operations from the Protobuf contract published by its own facade module. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing Application use cases. Remote queries use the Organization Domain service contract behind its infrastructure client, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout. `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
 
 Supply existing Tianshu RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an Tianquan-Shoubing SERVICE-token client allowed `tianshu:registration:write`. Complete the `TIANSHU_*`, `TIANQUAN_SHOUBING_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `tianshuregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.tianshuregistration` and `spring.security.oauth2.client.provider.tianshuregistration.token-uri` external properties. Production enables RPC/Tianshu mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No Tianshu or Tianquan-Shoubing container is bundled.
 
