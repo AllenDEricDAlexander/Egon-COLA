@@ -1,6 +1,7 @@
 package top.egon.cola.component.bytecode.test.release;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.bytecode.bridge.BridgeProtocol;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,7 +52,7 @@ class BytecodeReleaseShapeTest {
                     manifest.getMainAttributes().getValue("Premain-Class"));
             assertEquals(version,
                     manifest.getMainAttributes().getValue("Implementation-Version"));
-            assertEquals("1.0",
+            assertEquals(BridgeProtocol.MAJOR + "." + BridgeProtocol.MINOR,
                     manifest.getMainAttributes().getValue("Egon-Bridge-Protocol"));
             assertEquals("false",
                     manifest.getMainAttributes().getValue("Can-Redefine-Classes"));

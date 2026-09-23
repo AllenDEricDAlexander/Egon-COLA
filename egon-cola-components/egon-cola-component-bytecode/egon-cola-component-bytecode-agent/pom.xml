@@ -12,6 +12,10 @@
     <artifactId>egon-cola-component-bytecode-agent</artifactId>
     <name>egon-cola-component-bytecode-agent</name>
     <description>Premain-only Agent for Egon COLA bytecode enhancements.</description>
+    <properties>
+        <!-- Mirrors top.egon.cola.component.bytecode.bridge.BridgeProtocol; AgentJarManifestTest fails when it drifts. -->
+        <bytecode.bridge.protocol>2.0</bytecode.bridge.protocol>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
@@ -93,7 +97,7 @@
                                         <Can-Redefine-Classes>false</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>false</Can-Retransform-Classes>
                                         <Implementation-Version>${project.version}</Implementation-Version>
-                                        <Egon-Bridge-Protocol>1.0</Egon-Bridge-Protocol>
+                                        <Egon-Bridge-Protocol>${bytecode.bridge.protocol}</Egon-Bridge-Protocol>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>

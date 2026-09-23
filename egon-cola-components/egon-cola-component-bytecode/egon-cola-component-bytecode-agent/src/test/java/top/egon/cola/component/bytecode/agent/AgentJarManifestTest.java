@@ -1,6 +1,7 @@
 package top.egon.cola.component.bytecode.agent;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.bytecode.bridge.BridgeProtocol;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -32,6 +33,8 @@ class AgentJarManifestTest {
         assertNotNull(manifest);
         assertEquals("false", manifest.getMainAttributes().getValue("Can-Redefine-Classes"));
         assertEquals("false", manifest.getMainAttributes().getValue("Can-Retransform-Classes"));
+        assertEquals(BridgeProtocol.MAJOR + "." + BridgeProtocol.MINOR,
+                manifest.getMainAttributes().getValue("Egon-Bridge-Protocol"));
         assertFalse(manifest.getMainAttributes().containsKey("Agent-Class"));
         assertEquals(1, Arrays.stream(BytecodeAgent.class.getDeclaredMethods())
                 .map(Method::getName)
