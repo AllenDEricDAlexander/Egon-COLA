@@ -177,7 +177,7 @@ class RpcProcessIT {
                                 List.of(
                                         "--egon.cola.component.rpc.provider.enabled=false",
                                         "--egon.cola.component.rpc.consumer.enabled=true",
-                                        "--egon.cola.component.rpc.consumer.yuheng-service-name="
+                                        "--egon.cola.component.rpc.consumer.gateway-service-name="
                                                 + "egon-internal-rpc-gateway",
                                         "--rpc.test.run-once=true",
                                         "--rpc.test.message=process-call"
@@ -365,7 +365,7 @@ class RpcProcessIT {
                         "--egon.cola.component.rpc.tls.development-plaintext=true",
                         "--egon.cola.component.rpc.provider.lease-seconds=60",
                         "--egon.cola.component.rpc.provider.heartbeat-interval-seconds=10",
-                        "--egon.cola.component.rpc.consumer.yuheng-discovery-timeout-ms=15000",
+                        "--egon.cola.component.rpc.consumer.gateway-discovery-timeout-ms=15000",
                         "--egon.rpc.runtime-version=process-it"
                 )
         );

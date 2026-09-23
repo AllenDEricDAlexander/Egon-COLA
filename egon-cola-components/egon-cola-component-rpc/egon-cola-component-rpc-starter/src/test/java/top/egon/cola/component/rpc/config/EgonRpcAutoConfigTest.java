@@ -50,7 +50,7 @@ public class EgonRpcAutoConfigTest {
                             "egon.cola.component.rpc.enabled=true",
                             "egon.cola.component.rpc.consumer.enabled=true",
                             "egon.cola.component.rpc.identity.env=test",
-                            "egon.cola.component.rpc.consumer.yuheng-discovery-timeout-ms=100",
+                            "egon.cola.component.rpc.consumer.gateway-discovery-timeout-ms=100",
                             "spring.application.name=consumer-test"
                     )
                     .withBean(
