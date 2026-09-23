@@ -6,16 +6,18 @@
 
 `egon-cola-components-bom` is the Maven BOM for the Egon COLA component ecosystem. It provides no runtime code. Its only responsibility is to manage versions consistently for components under `egon-cola-components` that business applications can consume directly, avoiding repeated version declarations on every component dependency.
 
-The BOM exports stable consumption entry points: common core and utility modules,
-business component starters, the flat Agent Flow starter, and the bytecode component's public API, bridge, runtime,
-Agent, and starter. Platform, admin, test, and
-aggregator POM modules are not exported as business dependency entry points.
+The BOM manages 22 `top.egon` runtime artifacts: the common core and utility modules, the
+business component starters (including RAG and the flat Agent Flow starter), the RPC Tianshu
+adapter, and the bytecode component's public API, bridge, runtime, Agent, and starter. Besides
+those, it pins the third-party versions that component APIs expose to consumers:
+`org.apache.commons:commons-lang3` and the Redisson artifacts. Platform, admin, test, build-time
+tooling, and aggregator POM modules are not exported as business dependency entry points.
 
 ## Features
 
 ### Unified Version Management
 
-After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.3.3`.
+After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. Every Egon component version follows the BOM's `project.version`, currently `5.4.1`. The three third-party entries keep their own pinned versions instead: `commons-lang3` `3.20.0` and both Redisson artifacts `3.26.0`.
 
 ### Exported Dependencies
 
@@ -27,13 +29,17 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common-id-starter` | Pure-JDK Snowflake contracts and algorithm, and Spring Boot auto-configuration for database `BIGINT` IDs |
 | `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
 | `egon-cola-component-common-data-desensitize-spring-boot-starter` | Jackson response and Logback message desensitization through shared strategies |
+| `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | MyBatis-Plus and ShardingSphere-JDBC contracts: `EgonModel`, the Mapper XML statements, local-write guards, and sharding topology validation |
+| `egon-cola-component-common-cache-spring-boot-starter` | Guava L1 plus Redisson `RMapCache` L2 two-level cache with tenant-scoped keys and cross-node invalidation |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
+| `egon-cola-component-rpc-starter` | Protobuf/gRPC Provider and Consumer starter |
+| `egon-cola-component-rpc-tianshu-adapter` | Tianshu (DDC) Protobuf contracts, request signing, and registry snapshot client used by the RPC component |
 | `egon-cola-component-rule-engine-starter` | Rule engine starter |
 | `egon-cola-component-agent-flow-starter` | Flat Spring AI + Google ADK Agent Flow starter with in-memory sessions and streaming execution |
 | `egon-cola-component-access-guard-starter` | Method access governance starter |
 | `egon-cola-component-method-extension-starter` | Method extension starter |
 | `egon-cola-component-transactional-outbox-starter` | PostgreSQL/JDBC transactional outbox starter |
-| `egon-cola-component-rpc-starter` | Protobuf/gRPC Provider and Consumer starter |
+| `egon-cola-component-rag-starter` | Document extraction, chunking, embedding, and similarity-retrieval starter |
 | `egon-cola-component-bytecode-api` | Public bytecode capability API |
 | `egon-cola-component-bytecode-bridge` | Bridge between business applications and the Agent |
 | `egon-cola-component-bytecode-runtime` | Bytecode runtime implementation |
@@ -44,11 +50,14 @@ After a business application imports the BOM through `dependencyManagement`, sub
 
 | Module | Reason |
 |---|---|
-| `egon-cola-component-common` | Aggregator POM, not a runtime JAR |
-| `*-admin` | Standalone services that should be deployed as applications, not used as business dependencies |
-| `*-test` | Component samples and verification modules that should not enter the business runtime |
-| `egon-cola-component-dynamic-thread-pool` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | Component aggregator POMs, not business dependency entry points |
-| `egon-cola-xingyuan-*` | Enterprise infrastructure xingyuan belong to `egon-cola-xingyuan` and are versioned outside the Components BOM |
+| `egon-cola-component-common` / `-dynamic-thread-pool` / `-rpc` / `-method-extension` / `-bytecode` | Component aggregator POMs, not business dependency entry points. Rule Engine, Access Guard, Transactional Outbox, Agent Flow, and RAG are flat starters with no aggregator POM |
+| `egon-cola-component-common-test` / `-dynamic-thread-pool-test` / `-rpc-test` / `-bytecode-test` | Component samples, generated-project checks, and verification modules that should not enter the business runtime |
+| `egon-cola-component-dynamic-thread-pool-admin` | The only admin module in this reactor: a standalone Spring Boot service, deployed as an application instead of consumed as a dependency |
+| `egon-cola-component-bytecode-core` | ASM transformation and rule-engine implementation, reached through the exported API, bridge, runtime, and Agent artifacts |
+| `egon-cola-component-bytecode-architecture-maven-plugin` | Build-time Maven plugin; declared with an explicit `<version>` in `<build>` rather than imported as a dependency |
+| `egon-cola-component-bytecode-benchmark` | JMH benchmark module |
+| `egon-cola-component-code-generator` | Offline build-time code generation tool with no runtime artifact |
+| `egon-cola-tianshu-*` / `egon-cola-yuheng-*` / `egon-cola-tianquan-*` | Enterprise infrastructure platform modules live in the separate `egon-cola-xingyuan` reactor, which imports this BOM instead of being managed by it |
 
 ## Complete Usage Example
 
@@ -111,7 +120,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 
 ```xml
 <properties>
-    <egon-cola.version>5.3.2</egon-cola.version>
+    <egon-cola.version>5.4.1</egon-cola.version>
 </properties>
 
 <dependencyManagement>
@@ -142,14 +151,14 @@ Child modules declare only the artifact:
 
 1. The BOM manages only runtime entry points that consumers actually need, preventing accidental business dependencies on admin, test, or aggregator modules.
 2. Stable common contracts are exported through `common-core`; trace core is exported through `common-trace`, and Spring applications use the dedicated Trace Starter.
-3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. The bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
-4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
+3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. Rule Engine, Access Guard, Transactional Outbox, Agent Flow, and RAG exist only as that starter. The bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately, and RPC additionally exports its Tianshu adapter because applications wire it explicitly.
+4. Every Egon component version follows the BOM's own version, reducing version drift when components are combined. Third-party coordinates that component APIs expose to consumers keep their own pinned versions.
 5. Agent Flow is a flat starter entry point; its host-owned ChatModel/provider, MCP, HTTP, and database boundaries are not exported as BOM dependencies.
 
 ### Implementation Details
 
 - Its `packaging` is `pom`; it has no source code or runtime classes.
-- Every exported component is declared in `<dependencyManagement>` with `${project.version}` as its version.
+- Every exported component is declared in `<dependencyManagement>` with `${project.version}` as its version; the three third-party entries use their own version properties, so a consumer can rely on the BOM for the Redisson and `commons-lang3` versions that the cache and common modules expose.
 - The release profile configures source archives, Javadoc, GPG signing, and Central Portal publishing.
 - `maven-deploy-plugin` defaults to `skip=true`; the Central Publishing profile controls the publication path.
 
@@ -160,6 +169,7 @@ Child modules declare only the artifact:
 - When adding a component, export its starter instead of its aggregator POM or test module. Export additional modules only when they have an explicit, independent consumption boundary.
 - Agent Flow remains default-off and process-local (`in-memory`); its README documents the `executeStream` cancellation, timeout, and `close` contract. Provider credentials and runtime recovery stay with the host application.
 - When common gains a submodule, decide whether it is a stable business runtime entry point before adding it to the BOM.
+- Build-time tooling is not a dependency entry point. `egon-cola-component-code-generator` and the bytecode architecture Maven plugin stay out of the BOM; declare the plugin version explicitly in `<build>`.
 
 ## Validation Command
 
