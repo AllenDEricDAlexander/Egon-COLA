@@ -28,7 +28,11 @@ docker compose --env-file .env -f compose.yml up -d
 
 包含 MVC、WebFlux、RPC Provider、RPC Consumer 和双 Engine 的完整 Demo 见
 [开发联调 Runbook](../docs/developer-integration.zh-CN.md)。命令入口为
-`./scripts/demo.sh`；`down` 保留数据，显式破坏性的 `purge` 只允许用于带本地标记的
+`deployment/scripts/demo.sh`，在本目录下执行；它把 `compose.demo.yml` 叠加在
+`compose.yml` 之上，并使用独立的 Compose project 名称，生成的材料（各服务 env 文件和
+收集的日志）放在 `.demo/`，可用 `YUHENG_DEMO_RUNTIME_DIR` 改变位置。子命令为 `doctor`、
+`build`、`up-control`、`init`、`up-providers`、`publish`、`up-consumer`、`verify`、
+`logs`、`down` 和 `purge`；`down` 保留数据，显式破坏性的 `purge` 只允许用于带本地标记的
 Demo project。
 
 ## 端口与持久化
@@ -50,10 +54,13 @@ Demo project。
 | MCP 1 数据 / Management | 18084 / 18085 | 本机诊断，独立就绪探测 |
 | MCP 2 数据 / Management | 18184 / 18185 | 第二个 MCP 副本 |
 | Demo MVC / WebFlux | 18094 / 18095 | 避免占用 MCP 默认端口 |
+| Demo RPC Provider | 18086 / 19091 | HTTP 入口与 Egon RPC Slot |
+| Demo RPC Consumer | 18087 | 驱动 RPC→RPC 转发 |
 | Admin Web | 18090 | React 管理页面 |
 
 每个 Engine 的 LKG 目录必须独立持久化；Tianshu Redis 与分布式限流 Redis
-使用不同实例和数据卷。
+使用不同实例和数据卷。PostgreSQL 需初始化两个数据库，避免 Tianshu 与 Yuheng Admin 的
+Flyway 历史互相干扰。
 PostgreSQL 初始化两个 Database，避免 Tianshu 与 Yuheng Admin 的 Flyway 历史互相污染。
 
 ## 健康与发布顺序
@@ -212,12 +219,14 @@ MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
 
 ## 双角色状态、凭据与切换
 
-- Tianshu 的 `biz/env/appCode/namespace` 相同，appCode 为 `ge`；每个副本使用唯一 Config Client/Registry/Node ID。角色由制品固定，不增加 mode 开关。
-- `tianshu-rpc-credentials.yml` 显式保留 Runtime、Registry、Management 三类现有凭据，并增加 MCP Runtime/Registry。Spring 的高优先级 list 会整体替换，因此不能仅配置下标3/4。示例 scope 保留原通配行为；生产按实际 Provider 访问需求收紧。
+- Tianshu 的 `biz/env/namespace` 相同（`${YUHENG_BIZ_CODE}` / `${YUHENG_ENV:-local}` /
+  `${YUHENG_NAMESPACE:-default}`），但 appCode 不同：API_RPC Engine 注册为 `ge`，MCP
+  Engine 注册为 `gme`。每个副本仍使用唯一 Config Client/Registry/Node ID。角色由制品固定，不增加 mode 开关。
+- `tianshu-rpc-credentials.yml` 显式保留 Runtime、Registry、Management 三类现有凭据，并增加 MCP Runtime/Registry。Spring 的高优先级 list 会整体替换，因此不能仅配置下标 3/4。示例 scope 保留原通配行为；生产按实际 Provider 访问需求收紧。
 - API/MCP 各自填写 Tianquan-Shoubing Resource ID/URI，不能复用进程身份。共享业务 MCP Server Resource、原有 Token/audience/权限契约不变。示例占位符必须替换为实际已登记身份；本目录不部署 Tianquan-Shoubing。
-- MCP Session/Subscription 使用共享 Redis；Task/Approval 使用现有 gateway_admin 表，Flyway 仍由 Admin 负责。API 没有 MCP 数据库配置。两个 MCP 副本共享 `YUHENG_MCP_ARTIFACT_DIRECTORY`，启动前由操作者准备 UID/GID10001 可访问的现有目录；不自动 chown 或清除用户文件。
+- MCP Session/Subscription 使用共享 Redis；Task/Approval 使用现有 gateway_admin 表，Flyway 仍由 Admin 负责。API 没有 MCP 数据库配置。两个 MCP 副本共享 `YUHENG_MCP_ARTIFACT_DIRECTORY`，启动前由操作者准备 UID/GID 10001 可访问的现有目录；不自动 chown 或清除用户文件。
 - 四个 Engine 使用四个独立 LKG 卷。先启动 Tianshu/Admin/Provider，再启动 Engine，发布已有合法规则后执行 `./scripts/wait-ready.sh --engines`；Admin 必须看到两个角色全部在线实例的相同 Release/Version/Checksum 和 ACK_SUCCESS。
-- 数据面代理保留18081，按 `/mcp/`、`/legacy/mcp/`、`/.well-known/oauth-protected-resource/mcp/` 分流；其余路径进入 API_RPC，保留 Host、认证和协议头。INTERNAL HTTP/gRPC 保持原独立入口。
+- 数据面代理保留 18081，按 `/mcp/`、`/legacy/mcp/`、`/.well-known/oauth-protected-resource/mcp/` 分流；其余路径进入 API_RPC，保留 Host、认证和协议头。INTERNAL HTTP/gRPC 保持原独立入口。
 - mTLS 数据面使用专用 `haproxy.data-plane.mtls.cfg` 终止外部 TLS，再校验各后端证书与主机名；控制面 `haproxy.cfg` 仍是 TCP 透传。代理 PEM 需具备服务端/客户端用途，SAN 覆盖稳定外部域名；各 Engine 证书 SAN 覆盖对应服务名，不使用 verify-none。
 - 一角色更新失败保留旧快照，Admin 必须显示不一致。混合旧 Combined/新 split 制品切换期间禁止发布新 Release；先暗启 MCP 并验证，切 MCP 路由，再替换 API_RPC，最后退役旧实例。回滚仅切目标角色路由/制品，保留数据库和 LKG。
 - `run-mcp-conformance.sh` 默认指向 MCP 的 `/mcp/commerce`，需先发布该 Server 并满足其鉴权条件；可显式传入官方 SDK fixture URL，后者不能作为 Engine 验收证据。安全脚本覆盖 MCP Context 与单一制品兼容性。

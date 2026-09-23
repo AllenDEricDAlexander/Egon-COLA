@@ -39,9 +39,14 @@ discovered Yuheng set rather than connecting directly to Providers.
 | `yuheng-contract` | Stable cross-process contracts for rules, providers, releases, and events | No |
 | `yuheng-core` | Framework-free data-plane models, filters, routing, security, and SPI | No |
 | `yuheng-mcp-core` | Shared MCP protocol, task, session, artifact, and subscription runtime primitives | No |
+| `yuheng-runtime-core` | Non-executable runtime capabilities shared by both Engine roles: traffic shaping, resilience, and compiled-operation handling | No |
 | `yuheng-biz-gateway` | Executable HTTP/RPC data plane, listeners, upstream clients, health, and telemetry | No |
+| `yuheng-mcp-gateway` | Executable second Engine role (`McpGatewayEngineApplication`) serving the MCP data plane | No |
 | `yuheng-admin` | Executable management control plane, persistence, release compilation, authentication, and OpenAPI | No |
 | `yuheng-starter` | Provider interface-definition reporting plus Yuheng metadata contribution to Tianshu HTTP registration | Yes |
+| `yuheng-starter-openapi` | Framework-neutral OpenAPI governance extensions for a Provider application | Yes |
+| `yuheng-starter-openapi-webmvc` | Spring MVC adapter for the OpenAPI governance extensions | Yes |
+| `yuheng-starter-openapi-webflux` | Spring WebFlux adapter for the OpenAPI governance extensions | Yes |
 | `yuheng-test` | Real HTTP/RPC providers, consumers, and live topology verification | No |
 
 The Admin Web is a private React application colocated at
@@ -94,13 +99,24 @@ The downstream service repeats exact Resource validation: USER continues into
 Tianquan-Jianshen authorization, while SERVICE is checked locally against the operation's
 required Tianquan-Shoubing scope.
 
-Yuheng Admin and Engine are Resource Servers themselves and use owner-only
-private-key files to obtain Admission Tickets for Tianshu registration. Resource
-disable revokes only the matching route-provider leases and blocks new tokens
-and tickets. After restoring the Resource, key, grants, and route definition,
-instances obtain fresh tickets and reconcile normally. Deploy Tianquan-Shoubing V2 and Tianshu V8
-before Yuheng V11; Yuheng V11 removes the legacy audience column and is not
-rollback-compatible with binaries that still expect it.
+Yuheng Admin and both Engine roles are Resource Servers themselves. They register and
+heartbeat with Tianshu through a standard Spring OAuth2 Client `client_credentials` flow
+that mints a fresh Tianquan-Shoubing SERVICE Token for the Tianshu Resource with the
+`tianshu:registration:write` scope; there is no separate registration ticket. The token
+claims are what Tianshu records as the admission projection
+(`resourceServerId`, `resourceVersion`, `credentialId`, `admissionExpiresAt`) on the
+instance. Configure the client with
+`egon.cola.platform.tianquan.shoubing.service-client.*` and point
+`egon.cola.component.tianshu.registration-resource-uri` at the Tianshu Resource; the
+transport `private-key-path` settings are TLS certificate keys, not OAuth credentials.
+
+Disabling a Resource revokes the leases it admits — configuration clients and Providers
+alike — and blocks newly issued tokens. After restoring the Resource, credentials,
+grants, and route definition, instances obtain a fresh SERVICE Token and reconcile
+normally. Schema order: Tianquan-Shoubing is at V6, Tianshu at V9, and Yuheng Admin at
+V13. Yuheng V11 renames `gateway_mcp_server.oauth_audience` to `resource_uri`; the
+rename is not rollback-compatible with binaries that still expect the old column, but
+V11 itself drops nothing.
 
 ## Trace Propagation
 
@@ -121,10 +137,13 @@ the lightweight `common-trace` generator.
 
 The Components BOM does not export Yuheng artifacts. Business systems that publish
 Yuheng definitions depend only on `yuheng-starter`; it composes
-the Tianshu HTTP registration starter. Applications that need HTTP registration without
+the Tianshu HTTP registration starter. Provider applications that also want their OpenAPI
+documents governed by Admin add `yuheng-starter-openapi` with the matching
+`yuheng-starter-openapi-webmvc` or `yuheng-starter-openapi-webflux` adapter. Applications
+that need HTTP registration without
 Yuheng definition reporting may depend directly on
 `egon-cola-tianshu-http-registration-starter` with the repository release version.
-Engine, Admin, Contract, Core, and test artifacts are internal xingyuan modules and should
+Engine, Admin, Contract, Core, and test artifacts are platform-internal modules and should
 be built or deployed through the repository's Yuheng topology.
 
 HTTP registration Java types now live under
@@ -170,10 +189,11 @@ It uses Testcontainers by default, or isolated host-local processes when `initdb
 - The base Compose topology is a local development dependency set. The HA overlays
   validate multiple stateless Admin processes and proxy routing; they do not turn a
   single PostgreSQL, Redis, or Kafka node into a production HA service.
-- The Yuheng does not include a general account system or external IAM. Admin Web
-  receives a verified IAM Bearer Token and Yuheng Admin enforces the authenticated
-  actor and capability boundary.
-- The OpenAI route profile is a transport preset, not an AI xingyuan. Yuheng does
+- Yuheng does not include a general account system or external IAM. Admin Web signs in
+  through the platform unified identity with a CSRF-protected cookie session, and Yuheng
+  Admin enforces the authenticated actor and capability boundary returned by
+  `GET /api/v1/auth/bootstrap`.
+- The OpenAI route profile is a transport preset, not an AI business platform. Yuheng does
   not count tokens, charge usage, manage prompts or conversations, perform RAG or
   Agent orchestration, execute Function Calling, or select a business model. It
   recognizes routes, carries protocols, and transparently forwards bytes.

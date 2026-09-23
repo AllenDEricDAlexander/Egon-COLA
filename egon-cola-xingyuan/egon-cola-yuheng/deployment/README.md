@@ -30,8 +30,13 @@ This documentation update does not start the stack automatically.
 
 For the complete MVC, WebFlux, RPC Provider, RPC Consumer, and dual-Engine demo,
 use the [developer integration runbook](../docs/developer-integration.md). The command
-facade is `./scripts/demo.sh`; `down` preserves data and the explicitly destructive
-`purge` command is restricted to a marked local demo project.
+facade is `deployment/scripts/demo.sh`, run from this directory; it layers
+`compose.demo.yml` on top of `compose.yml` under its own Compose project name and keeps
+generated material (per-service env files and collected logs) in `.demo/`, which
+`YUHENG_DEMO_RUNTIME_DIR` may relocate. Its subcommands are `doctor`, `build`,
+`up-control`, `init`, `up-providers`, `publish`, `up-consumer`, `verify`, `logs`,
+`down`, and `purge`; `down` preserves data and the explicitly destructive `purge`
+command is restricted to the locally marked demo project.
 
 ## Ports and persistence
 
@@ -52,6 +57,8 @@ facade is `./scripts/demo.sh`; `down` preserves data and the explicitly destruct
 | MCP 1 Data / Management | 18084 / 18085 | Loopback diagnostics and independent readiness |
 | MCP 2 Data / Management | 18184 / 18185 | Second MCP replica |
 | Demo MVC / WebFlux | 18094 / 18095 | Avoid MCP default port collisions |
+| Demo RPC Provider | 18086 / 19091 | HTTP slot and Egon RPC slot |
+| Demo RPC Consumer | 18087 | Drives RPC→RPC forwarding |
 | Admin Web | 18090 | React management page |
 
 Persist each Engine's LKG directory independently. Tianshu Redis and the distributed rate-limit
@@ -222,16 +229,19 @@ tags. Collector unavailability does not affect Yuheng business responses.
 - Tianshu bootstrap is direct unary gRPC through a configured logical target; there is no machine HTTP fallback, Tianshu self-registration, streaming configuration channel, or sticky-session requirement;
 - Nacos, Dubbo, and Nginx management are outside this deployment;
 - The dedicated data-plane HAProxy selects fixed API_RPC/MCP backend pools; external DNS, certificates and production ingress remain operator-owned;
-- Secret Manager, NetworkPolicy, and external observability xingyuan remain owned by the deployment xingyuan.
+- Secret Manager, NetworkPolicy, and external observability platform remain owned by the deployment platform.
 
 ## Dual-role state, credentials, and cutover
 
-- Both roles share Tianshu biz/env/appCode/namespace (`ge`) but each replica has a unique Config Client/Registry/Node identity. The role is fixed by the executable, never a mode flag.
-- `tianshu-rpc-credentials.yml` retains all three existing credential capabilities and adds separate MCP Runtime/Registry credentials. Spring list overrides replace the whole list, so configuring only indices3/4 is invalid. The example retains the existing wildcard scopes; constrain production scopes against actual Provider access.
+- Both roles share the Tianshu biz/env/namespace (`${YUHENG_BIZ_CODE}` / `${YUHENG_ENV:-local}` /
+  `${YUHENG_NAMESPACE:-default}`) but not the appCode: the API_RPC Engines register as `ge`
+  and the MCP Engines as `gme`. Each replica still has a unique Config Client/Registry/Node
+  identity. The role is fixed by the executable, never a mode flag.
+- `tianshu-rpc-credentials.yml` retains all three existing credential capabilities and adds separate MCP Runtime/Registry credentials. Spring list overrides replace the whole list, so configuring only indices 3/4 is invalid. The example retains the existing wildcard scopes; constrain production scopes against actual Provider access.
 - Provision separate Tianquan-Shoubing Resource IDs/URIs for the API and MCP processes. Business MCP Server resources, tokens, audiences and permission contracts stay unchanged. Replace example placeholders with registered identities; this directory does not deploy Tianquan-Shoubing.
-- MCP sessions/subscriptions share Redis; tasks/approvals use existing gateway_admin tables, with Flyway owned by Admin. API has no MCP datasource. Provision the existing shared `YUHENG_MCP_ARTIFACT_DIRECTORY` with UID/GID10001 access before startup; scripts do not chown or erase user artifacts.
+- MCP sessions/subscriptions share Redis; tasks/approvals use existing gateway_admin tables, with Flyway owned by Admin. API has no MCP datasource. Provision the existing shared `YUHENG_MCP_ARTIFACT_DIRECTORY` with UID/GID 10001 access before startup; scripts do not chown or erase user artifacts.
 - Four independent LKG volumes prevent cross-process writes. Start Tianshu/Admin/Providers, then Engines; after a valid release run `./scripts/wait-ready.sh --engines`. Require both roles and every online replica to ACK the same Release/Version/Checksum.
-- The proxy preserves18081 and routes `/mcp/`, `/legacy/mcp/`, and `/.well-known/oauth-protected-resource/mcp/` to MCP. Other paths use API_RPC, retaining Host/authentication/protocol headers. INTERNAL HTTP/gRPC retain separate listeners.
+- The proxy preserves 18081 and routes `/mcp/`, `/legacy/mcp/`, and `/.well-known/oauth-protected-resource/mcp/` to MCP. Other paths use API_RPC, retaining Host/authentication/protocol headers. INTERNAL HTTP/gRPC retain separate listeners.
 - `haproxy.data-plane.mtls.cfg` terminates external TLS and verifies each TLS backend certificate/hostname. Control-plane `haproxy.cfg` remains TCP passthrough. Supply a proxy PEM with server/client usage and stable external SAN; each Engine certificate covers its service DNS name. No verify-none option is used.
 - A failed role retains its previous snapshot and Admin reports inconsistency. Do not publish a new Release while old Combined and split binaries coexist. Start MCP dark, validate, cut MCP routing, replace API_RPC, then retire old nodes. Roll back only the affected route/artifact; retain databases and LKG.
 - `run-mcp-conformance.sh` defaults to MCP `/mcp/commerce`; publish that Server and satisfy its authentication first. Explicit official-SDK fixture URLs remain supported but are not Engine acceptance evidence. The security script includes MCP Context and unified-artifact compatibility.

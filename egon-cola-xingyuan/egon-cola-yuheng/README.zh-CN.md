@@ -36,14 +36,19 @@ Pub/Sub 仍承载变更通知。其他普通 RPC 服务仍由 Tianshu 支撑，�
 | `yuheng-contract` | 规则、Provider、发布和事件的跨进程稳定契约 | 否 |
 | `yuheng-core` | 无框架数据面模型、过滤器、路由、安全和 SPI | 否 |
 | `yuheng-mcp-core` | Admin 与 Engine 共享的 MCP 协议、任务、会话、制品和订阅运行时原语 | 否 |
+| `yuheng-runtime-core` | 两种 Engine 角色共享的非可执行运行时能力：流量整形、弹性治理和已编译操作处理 | 否 |
 | `yuheng-biz-gateway` | 可执行 HTTP/RPC 数据面、监听器、上游客户端、健康检查和遥测 | 否 |
+| `yuheng-mcp-gateway` | 可执行的第二种 Engine 角色（`McpGatewayEngineApplication`），承载 MCP 数据面 | 否 |
 | `yuheng-admin` | 可执行管理控制面、持久化、规则编译、鉴权和 OpenAPI | 否 |
 | `yuheng-starter` | Provider 接口定义上报，并向 Tianshu HTTP 注册贡献 Yuheng 元数据 | 是 |
+| `yuheng-starter-openapi` | 与框架无关的 Provider OpenAPI 治理扩展 | 是 |
+| `yuheng-starter-openapi-webmvc` | OpenAPI 治理扩展的 Spring MVC 适配器 | 是 |
+| `yuheng-starter-openapi-webflux` | OpenAPI 治理扩展的 Spring WebFlux 适配器 | 是 |
 | `yuheng-test` | 真实 HTTP/RPC Provider、Consumer 和拓扑验证 | 否 |
 
 Admin Web 是与 Yuheng 源码同目录的私有 React 应用，路径为
 `egon-cola-yuheng/yuheng-admin-web`；它不是 Maven
-子模块。详见 [前端 README](yuheng-admin-web/README.md)。
+子模块。详见 [前端 README](yuheng-admin-web/README.zh-CN.md)。
 
 ## 运行能力
 
@@ -70,6 +75,35 @@ UI 资源扩展通过 `capabilities.experimental["top.egon/apps"]` 声明。
 未实现标准任务增强协商、`tasks/list` 和 `tasks/result`。
 RC 发现仍保留既有方言描述；Resource、Prompt 回归通过不代表标准 Tasks 或 Apps 兼容性。
 
+## OAuth Resource 绑定
+
+Yuheng 从可信的路由目标解析期望的 Resource Server，而不是从调用方提供的 Header 或请求
+参数解析。一条路由指向唯一的 `bizCode + appCode + environment` 三元组，对应一个绝对
+Resource URI，例如
+`https://api.egon.internal/prod/permission/tianquan-shoubing`。Tianquan-Shoubing 适配器
+只接受单一 Audience 的 Access Token，且其 `aud` 与 `resource_version` 必须匹配该路由
+Resource，principal 类型为 `USER` 或 `SERVICE`。
+
+Yuheng 负责认证、精确 Resource 绑定、可信身份 Header 替换和路由。它不判定用户角色，也不
+判定接口/数据/字段权限，更不会询问 Tianquan-Jianshen 某个服务能否调用另一个服务。下游
+服务会重复精确 Resource 校验：`USER` 继续进入 Tianquan-Jianshen 授权，`SERVICE` 则在本地
+与该操作要求的 Tianquan-Shoubing Scope 比对。
+
+Yuheng Admin 和两种 Engine 角色本身也是 Resource Server。它们通过标准 Spring OAuth2
+Client `client_credentials` 流程，为每次 Tianshu 注册和心跳取得一枚新的 Tianquan-Shoubing
+SERVICE Token（Scope 为 `tianshu:registration:write`）；不存在独立的注册票据。Tianshu 把
+Token Claims 记录为实例上的准入投影（`resourceServerId`、`resourceVersion`、
+`credentialId`、`admissionExpiresAt`）。客户端凭据配置在
+`egon.cola.platform.tianquan.shoubing.service-client.*`，并用
+`egon.cola.component.tianshu.registration-resource-uri` 指向 Tianshu Resource；各项
+`private-key-path` 配置是 TLS 证书私钥，不是 OAuth 凭据。
+
+禁用 Resource 会摘除它所准入的租约——配置客户端和 Provider 都包括在内——并阻止新签发
+Token。恢复 Resource、凭据、Grant 和路由定义后，实例取得新的 SERVICE Token 即可正常校准。
+Schema 顺序为：Tianquan-Shoubing 到 V6、Tianshu 到 V9、Yuheng Admin 到 V13。Yuheng V11
+把 `gateway_mcp_server.oauth_audience` 重命名为 `resource_uri`；该重命名无法回退到仍读取
+旧列的二进制，但 V11 自身不删除任何内容。
+
 ## Trace 传播
 
 Yuheng 数据面使用 `egon-cola-component-common-trace` 的 W3C Trace Context 能力。
@@ -85,7 +119,9 @@ Yuheng 已接入 Micrometer Observation / OpenTelemetry。存在有效 Observati
 ## 消费和构建
 
 Components BOM 不再导出 Yuheng Artifact。需要上报 Yuheng 接口定义的业务系统只需
-依赖 `yuheng-starter`，它会组装 Tianshu HTTP 注册 Starter；不需要
+依赖 `yuheng-starter`，它会组装 Tianshu HTTP 注册 Starter；希望 OpenAPI 文档一并被
+Admin 治理的 Provider 应用，再追加 `yuheng-starter-openapi` 与对应的
+`yuheng-starter-openapi-webmvc` 或 `yuheng-starter-openapi-webflux` 适配器。不需要
 Yuheng 接口定义上报、只需注册 HTTP 服务的应用，才直接依赖
 `egon-cola-tianshu-http-registration-starter`。Engine、Admin、Contract、Core 和 test
 属于平台内部模块，应通过仓库的 Yuheng 拓扑构建或部署。
@@ -120,9 +156,9 @@ Testcontainers；当 `PATH` 中存在 `initdb`、`postgres` 和 `redis-server` �
 | 文档 | 用途 |
 |---|---|
 | [Yuheng + Tianshu + RPC 联调](docs/developer-integration.zh-CN.md) | 端到端 Demo 命令、成功判据、故障演练和证据边界 |
-| [本地部署](deployment/README.md) | Compose 构建、端口、Ready、HA 样例、TLS/mTLS 和启停顺序 |
-| [性能和故障演练](performance/README.md) | k6 smoke/baseline、长稳、资源采样和固定故障场景 |
-| [Admin Web](yuheng-admin-web/README.md) | React 构建、测试、浏览器鉴权和 API Origin 配置 |
+| [本地部署](deployment/README.zh-CN.md) | Compose 构建、端口、Ready、HA 样例、TLS/mTLS 和启停顺序 |
+| [性能和故障演练](performance/README.zh-CN.md) | k6 smoke/baseline、长稳、资源采样和固定故障场景 |
+| [Admin Web](yuheng-admin-web/README.zh-CN.md) | React 构建、测试、浏览器鉴权和 API Origin 配置 |
 
 ## 边界
 
@@ -130,8 +166,9 @@ Testcontainers；当 `PATH` 中存在 `initdb`、`postgres` 和 `redis-server` �
   前的入口及 L4/L7 负载均衡由部署环境负责。
 - 基础 Compose 拓扑是本地开发依赖集合。HA overlay 只验证多个无状态 Admin 进程和
   代理路由，不会把单节点 PostgreSQL、Redis 或 Kafka 变成生产 HA 服务。
-- Yuheng 不包含通用账号系统或外部 IAM。Admin Web 提供经过验证的 IAM Bearer
-  Token，Yuheng Admin 负责鉴权 Actor 和 capability 边界。
+- Yuheng 不包含通用账号系统或外部 IAM。Admin Web 经平台统一身份以 CSRF 保护的 Cookie
+  会话登录，Yuheng Admin 依据 `GET /api/v1/auth/bootstrap` 返回的 Actor 和 capability
+  边界执行鉴权。
 - OpenAI Route Profile 只是传输配置预设，不是 AI 业务平台。Yuheng 不统计 Token、
   不计费、不管理 Prompt 或会话、不执行 RAG/Agent 编排或 Function Calling，也不做
   业务模型选择；它只识别请求、匹配路由、承载协议并透明转发字节。

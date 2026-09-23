@@ -39,9 +39,11 @@ YUHENG_PERF_PROFILE=baseline ./run-k6.sh rpc
 The scripts prefer a local k6 binary and otherwise use a pinned `grafana/k6` image. Throughput,
 VUS, and duration can be overridden with `YUHENG_PERF_RATE`,
 `YUHENG_PERF_PRE_ALLOCATED_VUS`, `YUHENG_PERF_MAX_VUS`, and `YUHENG_PERF_DURATION`.
-Results are written to `artifacts/*-summary.json` by default. The Rate in the capacity file is
-per Scenario; both the HTTP and RPC scripts contain two parallel Scenarios, so each script's
-total arrival rate is twice the configured value.
+Results are written to `artifacts/*-summary.json`; `YUHENG_PERF_OUTPUT_DIRECTORY` relocates that
+directory. `capacity.json` carries three profiles — `smoke`, `baseline`, and the `soak` profile
+that `soak.sh` selects — and an unknown `YUHENG_PERF_PROFILE` fails immediately. The Rate in the
+capacity file is per Scenario; both the HTTP and RPC scripts contain two parallel Scenarios, so
+each script's total arrival rate is twice the configured value.
 
 ## 24-hour soak
 
@@ -50,11 +52,12 @@ YUHENG_SOAK_DURATION_SECONDS=86400 ./soak.sh
 ```
 
 During the soak, `sample-resources.sh` samples container CPU, Memory, Network, Block IO, and
-PID count every 10 seconds into `artifacts/resources.csv`. Also archive JVM Heap/Direct Memory/
+PID count every 10 seconds (`YUHENG_RESOURCE_SAMPLE_INTERVAL_SECONDS`) into
+`artifacts/resources.csv`. Also archive JVM Heap/Direct Memory/
 GC, EventLoop, Connection/Channel, Inflight/Queue, Kafka Drop, and rule-version-switch metrics
-from Prometheus after the run. `soak.sh` runs HTTP and RPC sequentially, each for the supplied
-duration; a complete acceptance run therefore takes about 48 hours. For a 24-hour total, use
-12 hours for each scenario.
+from Prometheus after the run. `soak.sh` exports `YUHENG_PERF_PROFILE=soak` and runs HTTP and RPC
+sequentially, each for the supplied duration; a complete acceptance run therefore takes about
+48 hours. For a 24-hour total, use 12 hours for each scenario.
 
 ## Fault drills
 

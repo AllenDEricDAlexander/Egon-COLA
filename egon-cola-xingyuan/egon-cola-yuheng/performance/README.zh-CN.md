@@ -37,8 +37,10 @@ YUHENG_PERF_PROFILE=baseline ./run-k6.sh rpc
 
 脚本优先使用本机 k6，否则使用固定版本的 `grafana/k6` 镜像。吞吐、VUS 和时长可由
 `YUHENG_PERF_RATE`、`YUHENG_PERF_PRE_ALLOCATED_VUS`、
-`YUHENG_PERF_MAX_VUS`、`YUHENG_PERF_DURATION` 覆盖。结果默认进入
-`artifacts/*-summary.json`。容量文件中的 Rate 是每个 Scenario 的速率；HTTP/RPC
+`YUHENG_PERF_MAX_VUS`、`YUHENG_PERF_DURATION` 覆盖。结果写入
+`artifacts/*-summary.json`，目录可由 `YUHENG_PERF_OUTPUT_DIRECTORY` 改变。容量文件包含
+`smoke`、`baseline` 和 `soak.sh` 使用的 `soak` 三个 profile；未知
+`YUHENG_PERF_PROFILE` 会立即失败。容量文件中的 Rate 是每个 Scenario 的速率；HTTP/RPC
 脚本各含两个并行 Scenario，因此各自总到达率是该值的两倍。
 
 ## 24 小时长稳
@@ -47,11 +49,12 @@ YUHENG_PERF_PROFILE=baseline ./run-k6.sh rpc
 YUHENG_SOAK_DURATION_SECONDS=86400 ./soak.sh
 ```
 
-长稳期间 `sample-resources.sh` 每 10 秒采集容器 CPU、Memory、Network、Block IO
+长稳期间 `sample-resources.sh` 每 10 秒（可用 `YUHENG_RESOURCE_SAMPLE_INTERVAL_SECONDS`
+调整）采集容器 CPU、Memory、Network、Block IO
 和 PID 数，写入 `artifacts/resources.csv`。运行后还应从 Prometheus 归档 JVM
 Heap/Direct Memory/GC、EventLoop、Connection/Channel、Inflight/Queue、Kafka Drop
-和规则版本切换指标。`soak.sh` 顺序执行 HTTP 与 RPC，各自使用所给持续时间；完整
-验收因此需要约 48 小时。若要求总计 24 小时，可分别设为 12 小时。
+和规则版本切换指标。`soak.sh` 会导出 `YUHENG_PERF_PROFILE=soak`，并顺序执行 HTTP 与 RPC，
+各自使用所给持续时间；完整验收因此需要约 48 小时。若要求总计 24 小时，可分别设为 12 小时。
 
 ## 故障演练
 
