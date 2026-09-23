@@ -11,8 +11,10 @@ Spring MVC, WebFlux, RestClient, and WebClient.
 
 The component does not provide log collection, log rotation, storage, a full
 APM system, or a replacement OpenTelemetry SDK. Its scope is trace context,
-MDC projection, and header propagation compatible with Micrometer Observation
-and OpenTelemetry.
+MDC projection, and header propagation: the `traceparent` wire format follows W3C
+Trace Context, which is what OpenTelemetry-speaking peers expect, and Reactor
+cross-thread replay rides on Micrometer `context-propagation` rather than
+Micrometer Observation.
 
 ## Modules
 
@@ -30,7 +32,11 @@ W3C Trace Context is the primary protocol:
 | Inbound read | `traceparent`, `tracestate`, `x-egon-request-id` |
 | Compatibility read | `X-Trace-Id` is read-only by default; valid `traceparent` wins |
 | Outbound write | `traceparent`, `tracestate`, `x-egon-request-id` |
-| Not propagated | `x-egon-trace-id`, `x-trace-id`, `X-Trace-Id` |
+| Neither read nor written | `x-egon-trace-id` |
+
+Legacy `X-Trace-Id` and `x-trace-id` are read-only aliases used only when no valid
+`traceparent` is present; `x-egon-trace-id` is neither read nor written. A missing
+`x-egon-request-id` is replaced by a freshly generated identifier.
 
 `traceId` identifies the whole trace, `spanId` identifies the current unit of
 work, `parentSpanId` identifies the upstream span, and `requestId` is a request
@@ -62,8 +68,8 @@ egon:
         servlet:
           enabled: true
           access-log: true
-          record-request-body: false
-          record-response-body: false
+          record-query: false
+          trusted-proxy-headers: false
         webflux:
           enabled: true
         rest-client:
@@ -82,9 +88,35 @@ Log pattern example:
 ```
 
 Request bodies, response bodies, full headers, authorization data, tokens, and
-identity fields are not logged by default. Applications that extend access
+identity fields are never logged. Applications that extend access
 logging should add masking, field allowlists, size limits, and content type
 limits.
+
+## Configuration
+
+| Key | Default | Effect |
+|---|---|---|
+| `enabled` | `true` | Master switch for the whole auto-configuration. |
+| `propagation.enabled` | `true` | When `false`, inbound headers are ignored and a root context is created. |
+| `propagation.legacy-trace-id-read-only` | `true` | Accept `X-Trace-Id` / `x-trace-id` when no valid `traceparent` is present. |
+| `propagation.response-headers` | `true` | Master switch for response headers; the stack switch must also be on. |
+| `servlet.enabled` | `true` | Registers the filter, its registration, and the MVC log interceptor; each backs off to an existing bean. |
+| `servlet.order` | `Integer.MIN_VALUE + 100` | `FilterRegistrationBean` order. |
+| `servlet.response-headers` | `true` | Servlet-side response header switch. |
+| `servlet.access-log` | `true` | Emits the `trace_access` line from the filter. |
+| `servlet.excluded-paths` | empty | `PatternMatchUtils.simpleMatch` globs against the request URI; a match skips the filter entirely. |
+| `servlet.record-query` | `false` | Append the query string to the logged path. |
+| `servlet.trusted-proxy-headers` | `false` | Read the client IP from the first `X-Forwarded-For` entry instead of `getRemoteAddr()`. |
+| `webflux.*` | as `servlet.*` | `WebFlux` extends `Servlet`, so every servlet key has a WebFlux twin. |
+| `rest-client.enabled`, `web-client.enabled` | `true` | Register the matching `RestClient`/`WebClient` customizer. |
+| `rest-client.take-over-existing-traceparent`, `web-client.take-over-existing-traceparent` | `false` | Overwrite an outbound `traceparent` the caller already set. |
+| `reactor.automatic-context-propagation` | `true` | Register `TraceThreadLocalAccessor` when Micrometer `ContextRegistry` is present. |
+
+`servlet.slow-request-threshold`, `servlet.record-headers`, `servlet.record-request-body`
+and `servlet.record-response-body` (plus their `webflux` twins) bind without error but no
+code reads them: request and response bodies and full headers are never logged, under any
+setting. The MVC interceptor logs `http_access` whenever `servlet.enabled` is on; that line
+is not gated by `access-log`.
 
 ## Core API
 
@@ -115,9 +147,15 @@ post-process application executor beans.
 - Uses `@AutoConfiguration` and
   `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`;
   no component scan.
-- Servlet support uses a high-priority `OncePerRequestFilter`.
+- Servlet support uses a high-priority `OncePerRequestFilter` plus a Spring MVC
+  `MyLogInterceptor` registered on `/**`.
 - WebFlux treats Reactor Context as the source of truth and MDC as a
-  thread-local log projection.
+  thread-local log projection: the filter writes the context under the
+  `TraceContext` key and opens its own scope on the subscribing thread.
+  Its `trace_access` line fixes `protocol=HTTP` and leaves `errorCode` empty,
+  and with `trusted-proxy-headers` on it reports no client IP when
+  `X-Forwarded-For` is absent — unlike the servlet filter, which falls back to
+  the socket address.
 - RestClient and WebClient create child spans and write standard headers.
 - The self-built Yuheng Reactor Netty data plane uses `common-trace`
   directly instead of Spring Cloud Gateway filters.
