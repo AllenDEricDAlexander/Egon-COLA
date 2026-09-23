@@ -97,7 +97,7 @@ egon:
 ```java
 // 1. 只解析一次，文本由你自己落库
 ExtractedDocumentBO extracted = extractionService.extract(
-        new RagExtractionCommand("report.pdf", "application/pdf", bytes));
+        new RagExtractionCommand("report.pdf", "application/pdf", new ByteArrayInputStream(bytes)));
 
 // 2. 从你已存的文本切分并嵌入——不会重新读取原文件
 RagIngestionResult result = ingestionService.ingest(new RagIngestionCommand(
@@ -125,18 +125,24 @@ List<RagRetrievedChunkBO> chunks = retrievalService.retrieve(new RagRetrievalQue
 
 ## 执行与失败语义
 
-- **无事务、无持久化。** 组件只写向量库与存储 SPI；向量库的事务语义由其宿主的实现决定。
+- **无事务、无持久化。** 组件只写向量库，向量库的事务语义由其宿主的实现决定。
+  `RagDocumentStorage` 只是对外暴露的 SPI，由宿主自行调用，并不在摄取流水线中被调用。
 - **不重试、不调度。** 失败直接向上抛出，是否重试由调用方决定。
 - **摄取先删后写。** 配合确定性的分块标识（`documentId + ':' + chunkIndex`），重跑是幂等的。
   重跑会重新计费嵌入，但不会重新读取或重新解析文档。
 - **检索不降级。** 依赖失败会抛异常而不是返回空列表——对调用方而言，「没有匹配」与「检索失败」含义相反。
 - **集合与模型过滤是强制的。** 过滤条件由组件构造，调用方无法省略。向量表是共享的，漏掉过滤会静默返回
   其它集合或其它模型的分块。
+- **失败异常统一落在 common 契约上。** 异常位于
+  `top.egon.cola.component.rag.common.exception`，继承共享的 `CommonException`，因此各 starter 的
+  `getCode()`、`getStatus()` 与 `isRetryable()` 保持一致。稳定的机器可读编码
+  （`RAG_VECTOR_STORE`、`RAG_VALIDATION` 等）由 `getStatus()` 承载，`safeMessage()` 仍返回
+  可直接展示给调用方的无内容消息。
 
 ## 边界与日志
 
 组件只记录标识、计数、耗时、结果与错误类型。文档内容、分块文本、向量、查询原文与凭据不会进入日志。
-指标标签只包含结果、模型与策略，绝不含集合或文档标识。
+指标标签只包含 `result`、`model` 与 `strategy`，绝不含集合或文档标识。
 
 ## 运维须知
 
@@ -150,5 +156,5 @@ List<RagRetrievedChunkBO> chunks = retrievalService.retrieve(new RagRetrievalQue
 ## 升级与验证门禁
 
 枚举只增不改；SPI 接口只增默认方法；配置键只增可选键。
-`mvn -pl egon-cola-components/egon-cola-component-rag-starter clean verify` 运行全部离线测试，
-不需要任何凭据或外部服务。
+`./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-rag-starter -am verify` 运行全部离线
+测试，不需要任何凭据或外部服务。

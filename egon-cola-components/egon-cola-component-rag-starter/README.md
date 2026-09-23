@@ -103,7 +103,7 @@ and names the model.
 ```java
 // 1. extract once, then persist the text yourself
 ExtractedDocumentBO extracted = extractionService.extract(
-        new RagExtractionCommand("report.pdf", "application/pdf", bytes));
+        new RagExtractionCommand("report.pdf", "application/pdf", new ByteArrayInputStream(bytes)));
 
 // 2. chunk and embed from the text you stored - never re-reading the original
 RagIngestionResult result = ingestionService.ingest(new RagIngestionCommand(
@@ -133,8 +133,9 @@ Host implementations are collected automatically and can replace a built-in one.
 
 ## Execution and Failure Semantics
 
-- **No transactions, no persistence.** The component writes only to the vector store and the storage
-  SPI; vector store transaction semantics belong to the host's implementation.
+- **No transactions, no persistence.** The component writes only to the vector store; vector store
+  transaction semantics belong to the host's implementation. `RagDocumentStorage` is an exposed SPI
+  that the host invokes itself, never a step of the ingestion pipeline.
 - **No retry, no scheduling.** A failure propagates; the caller decides whether to retry.
 - **Ingestion deletes first, then writes.** Combined with deterministic chunk identifiers
   (`documentId + ':' + chunkIndex`) that makes a re-run idempotent. A re-run re-embeds, which costs
@@ -154,7 +155,7 @@ Host implementations are collected automatically and can replace a built-in one.
 
 The component logs identifiers, counts, durations, outcomes and error types only. Document content,
 chunk text, vectors, query text and credentials never reach the log. Metrics tags are limited to
-outcome, model and strategy; they never include collection or document identifiers.
+`result`, `model` and `strategy`; they never include collection or document identifiers.
 
 ## Operational Notes
 
@@ -172,5 +173,6 @@ outcome, model and strategy; they never include collection or document identifie
 ## Upgrade and Verification
 
 Enumerations only gain values; SPI interfaces only gain default methods; configuration keys only gain
-optional keys. `mvn -pl egon-cola-components/egon-cola-component-rag-starter clean verify` runs the
-whole offline suite, which needs no credentials and no external service.
+optional keys.
+`./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-rag-starter -am verify` runs the whole
+offline suite, which needs no credentials and no external service.
