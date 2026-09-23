@@ -9,23 +9,28 @@ refresh-token families, signing keys, and identity-security audit events.
 
 - `core` contains stable identity contracts and pure identity, OAuth, and token
   policies behind ports, with no Spring or I/O.
-- `starter` verifies Tianquan-Shoubing tokens and global user state in downstream services.
+- `rpc-contract` carries the stable Egon RPC contracts (`identity_directory.proto`) for
+  internal Tianquan-Shoubing capabilities.
+- `starter` verifies USER and SERVICE access tokens and reads Resource/Client state from
+  Redis. USER validation is fully stateless and carries no session claims.
 - `gateway-adapter` implements identity-only Yuheng security capabilities.
 - `admin` owns persistence, OAuth HTTP endpoints, Tianshu/Yuheng integration, and
   the executable Tianquan-Shoubing control plane.
-- `admin-web` is the React administration and login/consent application.
+- `admin-web` is the React administration and login/consent application. It is a plain
+  Node project and not a Maven child of this reactor.
 
 The Tianquan-Shoubing owns tenant catalog and membership facts. Tianquan-Jianshen owns roles, permissions,
 data scopes, field policies, policy snapshots, and authorization versions; it
 keeps only external-tenant authorization state and never provides tenant or
-membership CRUD. Access tokens contain stable identity, target, context, and
-token-security claims.
+membership CRUD. USER access tokens carry stable identity and authentication-context
+claims only; SERVICE access tokens additionally carry the target Resource, the
+authorization context, and the credential and token-security claims.
 
 For the operator cutover, follow
 [`unified-identity-oauth-client-tenant-cutover.md`](../../docs/runbooks/unified-identity-oauth-client-tenant-cutover.md).
 
 See
-[`docs/superpowers/specs/2026-08-01-unified-identity-xingyuan-design.md`](../../docs/superpowers/specs/2026-08-01-unified-identity-xingyuan-design.md)
+[`docs/superpowers/specs/2026-08-01-unified-identity-platform-design.md`](../../docs/superpowers/specs/2026-08-01-unified-identity-platform-design.md)
 for the approved requirements and architecture.
 
 ## OAuth Resource and service-client configuration
@@ -40,11 +45,11 @@ access token has exactly one `aud` value equal to that URI.
 
 Provision a Resource and its service clients in this order:
 
-1. Apply Tianquan-Shoubing V5 and the compatible Tianshu/RBAC migrations before deploying code
+1. Apply Tianquan-Shoubing V6 and the compatible Tianshu/RBAC migrations before deploying code
    that requires the new contracts.
 2. Create the Resource Server and its exact business/application/environment
    identity, then enable it.
-3. An Tianquan-Shoubing administrator creates each Confidential Client, confirms its `appId`
+3. A Tianquan-Shoubing administrator creates each Confidential Client, confirms its `appId`
    and `client_id`, and returns a client Secret once. Store that Secret only in
    the consumer's Secret Manager and rotate it through the Tianquan-Shoubing Admin Web.
 4. Add USER grants and the Tianquan-Jianshen application-entry permission. Add SERVICE
@@ -54,16 +59,22 @@ Provision a Resource and its service clients in this order:
    `client_credentials`/`client_secret_basic`; Tianshu registration uses a
    Tianshu-audience `PLATFORM` SERVICE token and no second registration credential.
 
-Representative access-token claims, with identifiers shortened and all
-credentials omitted, are:
+Representative access-token claims, registered claims such as `iss`, `jti`,
+`iat`, `nbf`, and `exp` elided, identifiers shortened and all credentials
+omitted, are:
 
 ```json
-{"sub":"user-1","tid":"tenant-1","sid":"session-1","client_id":"web-1","principal_type":"USER","token_version":7,"resource_version":9,"aud":["https://api.egon.internal/prod/permission/tianquan-shoubing"]}
-{"sub":"service-client-1","tid":"tenant-1","client_id":"service-client-1","principal_type":"SERVICE","scope":["tianquan-jianshen:policy:read"],"source_biz":"permission","source_app":"tianquan-shoubing","source_env":"prod","resource_version":9,"aud":["https://api.egon.internal/prod/permission/tianquan-jianshen"]}
+{"sub":"user-1","tid":"tenant-1","acr":"MFA","auth_time":1760000000,"principal_type":"USER","aud":["https://api.egon.internal/prod/permission/tianquan-shoubing"]}
+{"sub":"service-client-1","tid":"tenant-1","client_id":"service-client-1","app_id":"app-1","scope_context":"TENANT","scope":["tianquan-jianshen:policy:read"],"source_biz":"permission","source_app":"tianquan-shoubing","source_env":"prod","credential_id":"cred-1","resource_version":9,"principal_type":"SERVICE","aud":["https://api.egon.internal/prod/permission/tianquan-jianshen"]}
 ```
 
-USER tokens deliberately contain no roles, permissions, data scopes, field
-policies, or service scopes. Tianquan-Jianshen decides whether a user may enter the target
+`tid` appears on a SERVICE token only when `scope_context` is `TENANT`; a
+`PLATFORM` token omits it. `acr` is one of `PASSWORD`, `MFA`, or `STRONG`.
+USER tokens deliberately contain no roles,
+permissions, data scopes, field policies, or service scopes, and the starter
+verifier rejects session and revocation claims outright (`sid`, `session_id`,
+`client_id`, `token_version`, `resource_version`, `nonce`, and the authorization
+projections). Tianquan-Jianshen decides whether a user may enter the target
 application before issuance and enforces operation/data/field permission in the
 downstream service. SERVICE token target, tenant, and scope authorization is
 owned entirely by Tianquan-Shoubing Service Grants; token issuance never calls Tianquan-Jianshen and no

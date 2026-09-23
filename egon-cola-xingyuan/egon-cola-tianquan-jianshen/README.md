@@ -7,7 +7,7 @@ Yuheng/Tianshu publication while retaining only authorization state for each
 external tenant ID. Tianquan-Shoubing owns the tenant catalog and identity-sub memberships;
 Tianquan-Jianshen does not create or administer those facts.
 
-Chinese documentation: [README.zh-CN.md](README.zh-CN.md).
+[English](README.md) | [中文](README.zh-CN.md)
 
 ## Product semantics
 
@@ -36,9 +36,11 @@ Chinese documentation: [README.zh-CN.md](README.zh-CN.md).
 | `starter`         | Business-service PEP, reference JWT validation and snapshot reads                      | Never depends on Admin                                 |
 | `gateway-adapter` | Yuheng hot-path authentication and authorization                                      | Never calls Admin over HTTP and never queries SQL      |
 | `admin`           | Authorization control plane, persistence, projection workers, Tianshu/Yuheng registration | Server-only; never imported by Starter                 |
-| `react-sdk`       | Typed process-memory auth state and UI integration primitives                          | No browser-persistent credentials                      |
-| `admin-web`       | Permission-filtered administration UI                                                  | Static Vite application; local component registry only |
+| `react-sdk`       | Typed process-memory auth state and UI integration primitives                          | npm workspace, not a Maven child; no browser-persistent credentials |
+| `admin-web`       | Permission-filtered administration UI                                                  | npm workspace, not a Maven child; static Vite application |
 
+Only the first five rows are Maven children of this reactor; `react-sdk` and
+`admin-web` are npm workspaces declared in this directory's `package.json`.
 There is no `tianquan-jianshen-test` artifact and no aggregate runtime library.
 
 ## Runtime flow
@@ -82,7 +84,7 @@ by Tianquan-Shoubing Service Grants.
 Tianquan-Jianshen Admin obtains its Tianshu-audience PLATFORM SERVICE token through Spring
 OAuth2 Client using the Tianquan-Shoubing-administered app ID and one-time Secret. Tianshu binds
 the token audience, scope, source, instance, replay state, and lease expiry; no
-second registration credential is used. Apply Tianquan-Shoubing V5 and the compatible Tianshu/RBAC
+second registration credential is used. Apply Tianquan-Shoubing V6 and the compatible Tianshu/RBAC
 release together. Roll back with a coordinated forward fix because old
 service-permission and unauthenticated-registration paths are intentionally
 removed.
@@ -118,7 +120,10 @@ Tianquan-Jianshen never auto-publishes one.
 | --- | ---: | ---: |
 | `tianquan-jianshen.maximum-active-roots` | 16 | 1..32 |
 
-The key controls only the maximum number of active role roots. Tianquan-Shoubing owns the
+The key controls only the maximum number of active role roots. It is consumed as a
+non-refreshable `@DdcValue` placeholder, so a new value takes effect on restart, and the
+same setting is bound locally as `egon.tianquan-jianshen.maximum-active-roots`.
+Tianquan-Shoubing owns the
 five-minute USER Access Token and stable Refresh Token lifecycles. There are no
 Tianquan-Jianshen token/session timeout keys and no cross-key timeout publication.
 
@@ -135,6 +140,40 @@ Release/engine consistency, and an observed routed request. Status and metrics
 expose bounded versions, state, fingerprints, and error codes only—never raw
 configuration values, lease credentials, passwords, tokens, private keys, hashes,
 or bootstrap administrator secrets.
+
+## First platform administrator
+
+The first administrator can only be created through the one-shot CLI inside the
+executable Admin artifact; there is no HTTP endpoint for it. The command runs in a
+non-web Spring context (`WebApplicationType.NONE`) and exits on success or failure
+without starting an HTTP server. Use the `exec`-classifier jar
+(`egon-cola-tianquan-jianshen-admin-exec.jar`), not the thin jar of the same base name.
+
+```bash
+java -jar egon-cola-tianquan-jianshen-admin-exec.jar \
+  bootstrap-platform-admin \
+  --tenant-id <positive-long-tenant-id> \
+  --identity-sub <tianquan-shoubing-user-sub>
+```
+
+`--tenant-id` and `--identity-sub` are the only accepted options; each appears exactly
+once and the tenant ID must be a positive `Long`. Anything else, `--password` included,
+is rejected as an unsupported option. Tianquan-Jianshen never creates or stores a
+credential, so there is no password prompt — the passphrase belongs to Tianquan-Shoubing.
+
+The command first requires the subject to be an active member of that tenant in the
+identity directory. Inside one transaction it then takes a PostgreSQL advisory lock,
+refuses a tenant that already has a platform administrator, records the verified-tenant
+authorization state, requires the pre-existing `tianquan-jianshen-admin` application and
+its tenant binding, creates `ROLE_PLATFORM_ADMIN` (MANAGEMENT / CRITICAL), grants the
+eighteen required active `iam.*` resources, writes the user, the direct assignment and its
+self-closure, and appends the `PLATFORM_ADMIN_BOOTSTRAPPED` audit event plus an
+`ASSIGNMENT_CHANGED` authorization event.
+
+Bootstrap fails outright when the platform application or any required resource has not
+been published yet, so apply the Flyway migrations and the resource Manifest first.
+Re-running is refused; a lost administrator requires the separate recovery runbook rather
+than a second silent root account.
 
 ## Build and test
 
@@ -160,8 +199,10 @@ or the Admin Web.
 
 ## Verification tooling
 
-All scripts are opt-in. `--help` and `--check-config` are read-only and do not
-contact external services.
+All scripts live under `scripts/verification/` in this directory and there is no
+repository-root equivalent, so run them from
+`egon-cola-xingyuan/egon-cola-tianquan-jianshen`. All scripts are opt-in. `--help`
+and `--check-config` are read-only and do not contact external services.
 
 ```bash
 scripts/verification/verify-static.sh --verify
