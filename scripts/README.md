@@ -60,12 +60,16 @@ scripts/
 
 | 脚本 | 保护对象 |
 |---|---|
-| `test-generate-archetypes.sh` | `generate_archetypes.sh`（确定性、遗留归档哈希、CI 门接线） |
+| `test-generate-archetypes.sh` | `generate_archetypes.sh`（确定性、遗留归档哈希、发布接线） |
 | `test-archetype-release.sh` | `maven-deploy.sh` 的发布形态（假仓库、fake stage） |
 | `test-bump-cola-version.sh` | `bump_cola_version.sh`（fixture 仓库树哈希、失败与非法版本路径） |
 | `test-egon-codegen.sh` | `egon-codegen.sh` 背后生成器（light / web / service plan→apply→compile） |
 
+运行模式：`test-generate-archetypes.sh` 默认只跑 `unit`，另有 `generation`、`package reactor`、`release` 三种；workflow 接线断言只在 `release` 模式下执行，所以改 CI 后它不会自动变红。其余三个套件无参数即全跑。
+
 > **CI 目前不跑 `checks/` 与 `regression/`。** 这两类是 agent Manual Check 与人工门。凡是「必须长期成立」的约束，只写成脚本迟早会静默失效——要么接进 `.github/workflows/`，要么就接受它会烂。
+
+> 2026-09-23 起仓库只剩 `ci-backend.yml` 与 `ci-frontend.yml` 两条验证流水线，二者都不接 archetype 生成。`publish-maven-central.yml` 是唯一仍运行 `generate_archetypes.sh generate` + `check` 的 workflow，因此 **archetype 源码到生成物的漂移只在发布时才被兜住**；上面两个 archetype 套件的 CI 接线断言也只针对该 workflow。
 
 ---
 

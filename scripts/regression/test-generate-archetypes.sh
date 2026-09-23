@@ -475,18 +475,12 @@ test_reactor_cutover_mode() {
 }
 
 test_release_wiring_mode() {
-  # The fast lane only compiles and tests the backend reactor; generation is verified by the
-  # compatibility and publish lanes, which must wire the source-to-archetype pipeline.
-  local workflow
-  for workflow in "$REPO_ROOT/.github/workflows/ci_java_compatibility.yaml" \
-      "$REPO_ROOT/.github/workflows/publish-maven-central.yml"; do
-    [[ -f "$workflow" ]] || fail "missing workflow: ${workflow}"
-    assert_file_contains "$workflow" 'generate_archetypes.sh' "${workflow} generation gate"
-    assert_file_contains "$workflow" 'source-projects' "${workflow} source gate"
-  done
-  local fast_ci="$REPO_ROOT/.github/workflows/ci.yaml"
-  [[ -f "$fast_ci" ]] || fail "missing workflow: ${fast_ci}"
-  assert_file_contains "$fast_ci" 'clean test' "${fast_ci} backend compile gate"
+  # Since CI collapsed to the two verification lanes, the Central publish workflow is the only
+  # lane that still wires the source-to-archetype pipeline; archetype drift is caught at release.
+  local workflow="$REPO_ROOT/.github/workflows/publish-maven-central.yml"
+  [[ -f "$workflow" ]] || fail "missing workflow: ${workflow}"
+  assert_file_contains "$workflow" 'generate_archetypes.sh' "${workflow} generation gate"
+  assert_file_contains "$workflow" 'source-projects' "${workflow} source gate"
 }
 
 main() {

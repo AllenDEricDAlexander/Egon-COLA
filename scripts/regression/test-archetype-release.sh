@@ -278,27 +278,18 @@ test_generated_profile_and_paths() {
   assert_file_contains "$DEPLOY_SCRIPT" '-Pgenerated-archetypes' 'deploy generated profile'
   assert_file_contains "$DEPLOY_SCRIPT" 'egon-cola-archetypes/.generated' 'deploy generated artifact root'
   assert_file_contains "$DEPLOY_SCRIPT" 'egon-cola-archetype-agent' 'deploy Agent target'
-  for workflow in "$REPO_ROOT/.github/workflows/ci_java_compatibility.yaml" \
-      "$REPO_ROOT/.github/workflows/publish-maven-central.yml"; do
-    assert_file_contains "$workflow" 'egon-cola-archetypes/definitions' \
-      "${workflow} definitions inventory"
-    assert_file_contains "$workflow" '.generated/' "${workflow} generated artifact root"
-    assert_file_contains "$workflow" '-Pgenerated-archetypes' "${workflow} generated profile"
-    assert_file_contains "$workflow" 'generate_archetypes.sh generate' \
-      "${workflow} generation entry point"
-    assert_file_contains "$workflow" 'generate_archetypes.sh check' \
-      "${workflow} generated drift check"
-    assert_file_not_contains "$workflow" 'src/main/archetype/archetype.properties' \
-      "${workflow} legacy manifest path"
-    assert_file_not_contains "$workflow" 'egon-cola-archetypes/${ARCHETYPE_ARTIFACT_ID}/pom.xml' \
-      "${workflow} legacy package path"
-  done
-  # The fast lane deliberately compiles and tests only the backend reactor; the two lanes above
-  # own the source-to-archetype pipeline.
-  assert_file_contains "$REPO_ROOT/.github/workflows/ci.yaml" 'clean test' \
-    'fast lane backend compile and test'
-  assert_file_not_contains "$REPO_ROOT/.github/workflows/ci.yaml" 'generate_archetypes.sh' \
-    'fast lane omits generation'
+  # Since CI collapsed to the two verification lanes, the Central publish workflow is the only
+  # lane that still owns the source-to-archetype pipeline.
+  workflow="$REPO_ROOT/.github/workflows/publish-maven-central.yml"
+  assert_file_contains "$workflow" 'egon-cola-archetypes/definitions' 'publish definitions inventory'
+  assert_file_contains "$workflow" '.generated/' 'publish generated artifact root'
+  assert_file_contains "$workflow" '-Pgenerated-archetypes' 'publish generated profile'
+  assert_file_contains "$workflow" 'generate_archetypes.sh generate' 'publish generation entry point'
+  assert_file_contains "$workflow" 'generate_archetypes.sh check' 'publish generated drift check'
+  assert_file_not_contains "$workflow" 'src/main/archetype/archetype.properties' \
+    'publish legacy manifest path'
+  assert_file_not_contains "$workflow" 'egon-cola-archetypes/${ARCHETYPE_ARTIFACT_ID}/pom.xml' \
+    'publish legacy package path'
 }
 
 main() {
