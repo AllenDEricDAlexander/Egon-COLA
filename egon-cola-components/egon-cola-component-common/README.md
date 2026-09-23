@@ -13,7 +13,8 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 | Module | Description |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`, common exceptions, converter contracts, POJO records, and tree construction |
-| `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | Opt-in MyBatis-Plus 3.5.16 ActiveRecord `EgonModel`, zero-addition `EgonColaMapper`, enhanced 57-method service, TenantID isolation, audit fill, and repository validation |
+| `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | Opt-in MyBatis-Plus 3.5.16 support: technical-field base model `EgonModel` without ActiveRecord, `EgonColaMapper` narrowing the model self-type plus three added statements, enhanced 57-method service, TenantID isolation, audit fill, and repository validation |
+| `egon-cola-component-common-cache-spring-boot-starter` | Spring Cache annotations over an L1 Guava and L2 Redisson `RMapCache` two-level cache with one-channel L1 invalidation broadcast |
 | `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core, W3C `traceparent` propagation, complete MDC capture, and local-thread task templates |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
 | `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, and Spring Boot auto-configuration; all tests live in this module |
@@ -44,6 +45,9 @@ The main contracts in `common-core` use Java records with stable Jackson field n
 | `OperatorContext` | Operator identity context |
 | `PageSlice<T>` | Slice pagination without a total count |
 | `TreeBuilder`, `TreeNode`, `TreeOptions` | Flat node to parent-child tree construction |
+
+`TreeNode` and `TreeOptions` are mutable helper classes rather than records, and
+`TreeBuilder` is their static entry point.
 
 `ResultRecord` and `PageResultRecord` expose static factory methods directly. There is no separate result factory class.
 
@@ -149,6 +153,10 @@ Then include the specific modules you need:
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-data-desensitize-spring-boot-starter</artifactId>
     </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-cache-spring-boot-starter</artifactId>
+    </dependency>
 </dependencies>
 ```
 
@@ -166,9 +174,9 @@ import top.egon.cola.component.common.crypto.hmac.Hmacs;
 import top.egon.cola.component.common.desensitize.annotation.Sensitive;
 import top.egon.cola.component.common.desensitize.annotation.SensitiveType;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.pojo.PageQuery;
-import top.egon.cola.component.common.pojo.PageResultRecord;
-import top.egon.cola.component.common.pojo.ResultRecord;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
@@ -225,8 +233,8 @@ public class OrderController {
 Tree construction example:
 
 ```java
-import top.egon.cola.component.common.pojo.TreeBuilder;
-import top.egon.cola.component.common.pojo.TreeNode;
+import top.egon.cola.component.common.core.pojo.TreeBuilder;
+import top.egon.cola.component.common.core.pojo.TreeNode;
 
 import java.util.List;
 
@@ -271,9 +279,9 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | `ResultDtos`, `ResultModels` | Static factory methods on `ResultRecord` and `PageResultRecord` |
 | `PageMeta` | `PageMetaRecord` |
 | `PageModel` | `PageResultRecord` for response pages, or `PageSlice` for slice-only data |
-| `top.egon.cola.component.common.model.*` | `top.egon.cola.component.common.pojo.*` |
-| `top.egon.cola.component.common.result.*` | `top.egon.cola.component.common.pojo.*` |
-| `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
+| `top.egon.cola.component.common.model.*` | `top.egon.cola.component.common.core.pojo.*` |
+| `top.egon.cola.component.common.result.*` | `top.egon.cola.component.common.core.pojo.*` |
+| `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.core.pojo.*` |
 | `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator` |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`, `Hmacs`, `Base64s`, `Hexes` |
 | `egon-cola-component-common-mask` | `egon-cola-component-common-data-desensitize-spring-boot-starter` |
