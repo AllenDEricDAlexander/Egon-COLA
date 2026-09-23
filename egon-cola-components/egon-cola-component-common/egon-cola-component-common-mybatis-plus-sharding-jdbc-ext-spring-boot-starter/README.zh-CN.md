@@ -149,7 +149,7 @@ Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long �
 所有影响缓存数据的写路径必须声明失效，普通 CRUD 不再自动失效；`@CachePut` 缓存方法返回值，不能挂在返回 boolean 的更新方法上。
 
 两级缓存是必需组件（`egon.cola.component.cache.enabled` 缺省 `true`），本 starter 依赖受管理的 common-cache starter 并在启动时校验 CacheManager：组件启用而宿主仅存在不兼容的 `CacheManager` 时以 `CACHE_MANAGER_INCOMPATIBLE` 失败，不静默退回单级缓存；显式关闭组件时跳过该校验，键生成器仍可用。
-Key、TTL 采样、事务提交/回滚、`sync` 与 `unless` 的限制、组合注解和手动操作以 [缓存 starter 文档](../egon-cola-component-common-cache-spring-boot-starter/README.md) 为单一事实源。
+Key、TTL 采样、事务提交/回滚、`sync` 与 `unless` 的限制、组合注解和手动操作以 [缓存 starter 文档](../egon-cola-component-common-cache-spring-boot-starter/README.zh-CN.md) 为单一事实源。
 
 ## SQL 与事务保护
 

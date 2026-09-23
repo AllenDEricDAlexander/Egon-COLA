@@ -164,8 +164,7 @@ disabling the component skips that check, and the key generator remains usable.
 
 Keys, TTL sampling, commit/rollback timing, the `sync` and `unless` restrictions, composite annotations
 and manual operation are documented in the
-[cache starter guide](../egon-cola-component-common-cache-spring-boot-starter/README.md), which is
-currently Chinese-only.
+[cache starter guide](../egon-cola-component-common-cache-spring-boot-starter/README.md).
 
 ## SQL guards and transactions
 
