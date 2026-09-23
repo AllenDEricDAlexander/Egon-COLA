@@ -1951,20 +1951,20 @@ class GatewayLiveTopologyIT {
                 )
                 .argument(
                         "egon.cola.component.rpc.consumer."
-                                + "yuheng-discovery-timeout-ms",
+                                + "gateway-discovery-timeout-ms",
                         30000
                 )
                 .argument(
                         "egon.cola.component.rpc.consumer."
-                                + "yuheng-service-name",
+                                + "gateway-service-name",
                         RPC_YUHENG_SERVICE_NAME
                 )
                 .argument(
-                        "egon.cola.component.rpc.consumer.yuheng-group",
+                        "egon.cola.component.rpc.consumer.gateway-group",
                         "default"
                 )
                 .argument(
-                        "egon.cola.component.rpc.consumer.yuheng-version",
+                        "egon.cola.component.rpc.consumer.gateway-version",
                         "1.0.0"
                 )
                 .startupTimeout(STARTUP_TIMEOUT)
