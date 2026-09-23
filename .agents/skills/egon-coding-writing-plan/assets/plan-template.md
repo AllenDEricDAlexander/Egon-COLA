@@ -285,6 +285,8 @@ Repeat the same structure. Do not replace exact file order with “update servic
 
 State when to run focused, module, cross-module, full, migration, frontend, and manual/runtime gates. Do not claim runtime proof when the Plan only defines future validation.
 
+Every gate must first try an existing repository command. When none covers it, the Plan names the focused harness to create under repository `scripts/work/` as `<plan-id>-<verb>.sh`, and the last Step records its disposition: promote into a durable check suite, move into the subsystem it guards, or delete. While a harness stays in `scripts/work/` it is not a commit path and must not be force-added; only its promotion or deletion commit is. An undetermined harness in `scripts/work/` blocks `Ready`.
+
 ## 9. Migration, Compatibility, Rollout, and Rollback
 
 Define the exact order for applicable migration files, generated contracts, data backfill, dual-read/write, API/event compatibility, configuration, feature flags, deployment, post-deploy checks, rollback, and forward-fix. For MP-SDJ managed DDL, name the next SQL version, manifest entry, physical targets and partial-failure recovery; preserve applied SQL/history. On native light/web/service, catalog Java and Mapper XML paths touched by that SQL are later `GENERATED` steps. Their pseudocode is the generator config and `scripts/egon-codegen.sh plan`/`apply`, not a class body. Follow `references/backend-code-generation.md`.

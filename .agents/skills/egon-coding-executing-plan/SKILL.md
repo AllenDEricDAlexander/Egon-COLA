@@ -209,8 +209,9 @@ After every Plan Step is committed, read `references/final-spec-audit.md` and pe
    - `Runtime unverified`: source/module evidence exists, but the Spec requires user-controlled live-system proof that was not run.
 6. Check non-goals and scope boundaries for accidental behavior, dependency, migration, or refactor expansion.
 7. Check every Plan Step has a verified commit and no planned file/validation gate was silently omitted.
-8. Re-execute all ten effective Literal Rules and all 17 Manual Checks against the final tree and delivery commits. Every applicable row must be `PASS`; every `N/A` needs evidence and reason; Rule 11 and `MC-BLOCKER-001` must pass and reconcile all findings.
-9. Report every `Partial`, `Not satisfied`, `Runtime unverified`, failed/blocked Literal Rule or Manual Check, and silent-exception attempt with evidence, impact, and recommended next action.
+8. Dispose of every scratch verification harness created during execution. Each one is promoted into a durable check suite, moved into the subsystem it actually guards, or deleted; report the chosen outcome per harness. An undetermined script left in repository `scripts/work/` is a finding, and never a silent pass.
+9. Re-execute all ten effective Literal Rules and all 17 Manual Checks against the final tree and delivery commits. Every applicable row must be `PASS`; every `N/A` needs evidence and reason; Rule 11 and `MC-BLOCKER-001` must pass and reconcile all findings.
+10. Report every `Partial`, `Not satisfied`, `Runtime unverified`, failed/blocked Literal Rule or Manual Check, and silent-exception attempt with evidence, impact, and recommended next action.
 
 Do not silently add unplanned fixes during the final audit. If the audit finds a gap, report it and wait for the user to approve a corrective Plan/Step.
 
@@ -226,6 +227,7 @@ The completion report must contain:
 - a final Literal Rule matrix containing Rules 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 separately with applicability, status, diff evidence, validation evidence, finding, and action;
 - explicit unmet, partial, and runtime-unverified requirements;
 - approved deviations and corrective commits;
+- the disposition of every scratch verification harness created during execution, and confirmation that repository `scripts/work/` holds no undetermined script;
 - remaining worktree state and confirmation that unrelated work was preserved;
 - whether runtime, database, browser, deployment, push, PR, or release actions were not performed;
 - one final verdict:

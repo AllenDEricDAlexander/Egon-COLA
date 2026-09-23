@@ -65,6 +65,7 @@ Do not downgrade a concrete implementation defect to `Runtime unverified`. That 
 - Corrective commits are explicit and attributed; history was not silently rewritten.
 - No required Plan file or validation gate was skipped.
 - No unrelated work was committed.
+- Every scratch verification harness created during execution has a recorded disposition — promoted into a durable check suite, moved into the subsystem it guards, or deleted — and repository `scripts/work/` contains no undetermined script. A harness that was neither reused nor judged is a delivery-discipline finding, not a harmless leftover.
 - No immutable migration was edited.
 
 ## 7. Re-run the blocking Manual Check

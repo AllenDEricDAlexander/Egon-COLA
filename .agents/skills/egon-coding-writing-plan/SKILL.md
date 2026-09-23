@@ -85,6 +85,7 @@ Do not translate, renumber, correct, shorten, or paraphrase this block. `referen
 19. Every Step must list the applicable blocking `MC-*` IDs, and every affected Java file must state its standards impact. The pseudocode and validation must make semantic naming, every layer-handoff Validation/groups/normalization, exact Value-object record/ordinary class Lombok modeling, MapStruct/MapStructPlus plus mandatory Egon `BaseConverter`, Bean names/injection/Qualifier propagation, `@Slf4j`, utilities, Jackson, `java.time`, configuration parity, and the mandatory approved pattern for each Complex business flow executable rather than aspirational.
 20. Complete every Manual Check row one by one in Chapter 12. An applicable row requires `PASS` and concrete repository/Plan evidence; an inapplicable row requires evidence-backed `N/A`. Any missing ID/evidence, `FAIL`, `BLOCKED`, `UNKNOWN`, or unresolved exception prohibits a PASS verdict.
 21. Apply `references/user-mandated-java-rules.md` literally. Chapter 4 must preserve ten independent rows using original numbering `1, 2, 3, 4, 5, 6, 7, 9, 10, 11`; every Step must contain `Literal Rules:` and every affected file `Literal rule enforcement:`. Mandatory wording may not be converted into “prefer/consider/when compatible.” A conflict returns to the Spec/user and blocks PASS.
+22. A gate no existing repository command covers needs a scratch verification harness. Plan its creation under repository `scripts/work/` as `<plan-id>-<verb>.sh` — never in the `scripts/` top level, which is reserved for durable tools — and plan its disposition in the final Step: promote it into the repository's durable check suites, move it to the subsystem it actually guards, or delete it. Any harness left undetermined in `scripts/work/` blocks a `Ready` verdict.
 
 ## Target Spec and effective-design resolution
 
@@ -142,6 +143,7 @@ Treat overdesign as a material Spec defect when it changes public interaction co
    - List exact original `Rule N` values for the Step and explain each file's literal-rule enforcement. A generic standards paragraph is not sufficient.
 8. **Write quality and release gates**
    - Use exact repository commands for focused tests, module tests, static checks, builds, integration/E2E/manual checks, migration validation, and final regression.
+   - Prefer an existing repository command over a new one. When no command covers a gate, plan the focused harness under repository `scripts/work/` and state its final-Step disposition per rule 22.
 9. **Review and repair**
    - Apply `references/review-checklist.md` and reconcile every mismatch with the effective Spec.
    - Execute all Chapter 12 Manual Checks individually; close failures/blockers or change the verdict. Never collapse them into one unsupported assertion.

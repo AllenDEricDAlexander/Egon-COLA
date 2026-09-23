@@ -87,6 +87,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 19. 每个 Step 都必须列出适用阻断型 `MC-*`，每个受影响 Java 文件写明规范影响。伪代码和验证必须把语义命名、每个层间交接的 Validation/Group/规范化、准确 Record/`@Value`/复杂类完整 Lombok、MapStruct/MapStructPlus 与强制 Egon `BaseConverter`、Bean 名/注入/Qualifier 传播、`@Slf4j`、工具、Jackson、`java.time`、配置一致性和每个 Complex Flow 的强制获批模式落实为可执行内容。
 20. 第 12 章逐项完成全部 Manual Check。适用行必须有具体仓库/Plan 证据且为 `PASS`，不适用行必须有证据地 `N/A`。缺失 ID/证据、`FAIL`、`BLOCKED`、`UNKNOWN` 或未关闭例外都禁止 PASS。
 21. 必须逐字执行 `references/user-mandated-java-rules.zh-CN.md`。第 4 章按原编号 `1、2、3、4、5、6、7、9、10、11` 保留十个独立行；每个 Step 写 `Literal Rules:`，每个受影响文件写 `Literal rule enforcement:`。禁止把强制措辞改成“优先/考虑/兼容时”。冲突必须返回 Spec/用户并阻断 PASS。
+22. 现有仓库命令无法覆盖的门禁需要临时验收 harness。其创建必须规划在仓库 `scripts/work/` 下，命名为 `<plan-id>-<verb>.sh`——禁止写入 `scripts/` 顶层，那里只放长期工具——并在最后一个 Step 明确处置：升格进仓库长期检查集、并入它实际守护的子系统，或删除。`scripts/work/` 中留有未判定 harness 的 Plan 不能标为 `Ready`。
 
 ## 目标 Spec 与有效设计解析
 
@@ -144,6 +145,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - 为 Step 列出准确原始 `Rule N`，为每个文件说明逐字规则如何落实；一段泛化规范说明不合格。
 8. **编写质量与发布门禁**
    - 使用仓库真实命令覆盖聚焦测试、模块测试、静态检查、构建、集成/E2E/人工验证、迁移校验和最终回归。
+   - 门禁优先复用仓库既有命令。确实没有覆盖时，把聚焦 harness 规划在仓库 `scripts/work/` 下，并按第 22 条写明最后一个 Step 的处置。
 9. **复核并修复**
    - 执行 `references/review-checklist.md`，解决与有效 Spec 的所有不一致。
    - 逐项执行第 12 章 Manual Check；关闭失败/阻断或改变结论，不能把多项检查折叠成一句无证据断言。

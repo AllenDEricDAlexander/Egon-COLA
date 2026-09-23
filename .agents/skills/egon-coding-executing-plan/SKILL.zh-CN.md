@@ -204,8 +204,9 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - `Runtime unverified`：源码/模块证据存在，但 Spec 还要求用户控制的真实运行环境验证，而该验证未执行。
 6. 审核非目标和范围边界，确认没有意外增加行为、依赖、迁移或无关重构。
 7. 确认每个 Plan Step 都有已核验提交，且没有静默遗漏计划文件或验证门禁。
-8. 针对最终 Tree 和 Delivery Commit 重新执行十个原始 Literal Rule 与全部 17 项 Manual Check。适用行必须 `PASS`，每个 `N/A` 要有证据与原因，Rule 11 和 `MC-BLOCKER-001` 必须通过并与全部发现一致。
-9. 报告全部 `Partial`、`Not satisfied`、`Runtime unverified`、失败/阻断 Literal Rule、Manual Check 和静默例外尝试及其证据、影响和建议下一步。
+8. 处置执行期间新建的每一个临时验收 harness：升格进长期检查集、并入它实际守护的子系统，或删除，并逐个报告所选结果。仓库 `scripts/work/` 中留有未判定脚本即是一项发现，绝不能当作静默通过。
+9. 针对最终 Tree 和 Delivery Commit 重新执行十个原始 Literal Rule 与全部 17 项 Manual Check。适用行必须 `PASS`，每个 `N/A` 要有证据与原因，Rule 11 和 `MC-BLOCKER-001` 必须通过并与全部发现一致。
+10. 报告全部 `Partial`、`Not satisfied`、`Runtime unverified`、失败/阻断 Literal Rule、Manual Check 和静默例外尝试及其证据、影响和建议下一步。
 
 最终审核发现缺口时，不得静默追加未计划修复；应先报告并等待用户批准纠正 Plan/Step。
 
@@ -221,6 +222,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 - 包含 Rule 1、2、3、4、5、6、7、9、10、11 的最终 Literal Rule 矩阵，逐项写 Applicability、Status、Diff Evidence、Validation Evidence、Finding 与 Action；
 - 明确列出的未满足、部分满足和运行时未验证要求；
 - 已批准偏差和纠正提交；
+- 执行期间每个临时验收 harness 的处置结果，以及仓库 `scripts/work/` 中不存在未判定脚本的确认；
 - 剩余工作区状态，以及无关工作得到保留的确认；
 - 明确说明哪些运行时、数据库、浏览器、部署、push、PR 或 release 操作没有执行；
 - 一个最终结论：
