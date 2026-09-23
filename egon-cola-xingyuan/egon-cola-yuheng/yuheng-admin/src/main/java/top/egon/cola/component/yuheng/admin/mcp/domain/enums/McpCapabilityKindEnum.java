@@ -1,99 +1,97 @@
 package top.egon.cola.component.yuheng.admin.mcp.domain.enums;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import top.egon.cola.component.common.core.enums.EgonEnum;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * 中文说明：{@code McpCapabilityKindEnum} 是枚举类型，位于当前 Gateway 模块的相关包中，负责CapabilityKind相关的职责与边界。
- * English summary: {@code McpCapabilityKindEnum} is an enumeration in the current Gateway module; it owns the capability kind-related responsibility and boundary.
+ * 中文说明：{@code McpCapabilityKindEnum} 是枚举类型，位于当前 Gateway 模块的相关包中，负责 CapabilityKind 相关的职责与边界，并保持原 wire 字符串不变。
+ * English summary: {@code McpCapabilityKindEnum} is an enumeration in the current Gateway module; it owns the capability kind-related responsibility and boundary while keeping the original wire values.
  *
- * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ * 用法 / Usage: 数据库列与 JSON 均只使用 {@code wireValue}，{@code code} 仅为发布后不变的内部标识，禁止以 ordinal 作为业务编码；/ Persist and serialize {@code wireValue} only; {@code code} is an internal identifier that never changes after release and ordinal is never a business value.
  */
-public enum McpCapabilityKindEnum {
-    /**
-     * 中文说明：表示 资源 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value resource; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    RESOURCE("gateway_mcp_resource_draft", "resource_name"),
-    /**
-     * 中文说明：表示 资源模板 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value resource template; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
+public enum McpCapabilityKindEnum implements EgonEnum {
+
+    /** 中文说明：资源草稿能力；English summary: the resource draft capability. */
+    RESOURCE(10, "RESOURCE", "资源", "gateway_mcp_resource_draft", "resource_name"),
+    /** 中文说明：资源模板草稿能力；English summary: the resource template draft capability. */
     RESOURCE_TEMPLATE(
+            20,
+            "RESOURCE_TEMPLATE",
+            "资源模板",
             "gateway_mcp_resource_template_draft",
             "template_name"
     ),
-    /**
-     * 中文说明：表示 提示词 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value prompt; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    PROMPT("gateway_mcp_prompt_draft", "prompt_name"),
-    /**
-     * 中文说明：表示 任务策略 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value task policy; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    TASK_POLICY("gateway_mcp_task_policy_draft", "tool_name"),
-    /**
-     * 中文说明：表示 APPBINDING 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value app binding; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    APP_BINDING("gateway_mcp_app_binding_draft", "tool_name");
+    /** 中文说明：提示词草稿能力；English summary: the prompt draft capability. */
+    PROMPT(30, "PROMPT", "提示词", "gateway_mcp_prompt_draft", "prompt_name"),
+    /** 中文说明：任务策略草稿能力；English summary: the task policy draft capability. */
+    TASK_POLICY(40, "TASK_POLICY", "任务策略", "gateway_mcp_task_policy_draft", "tool_name"),
+    /** 中文说明：应用绑定草稿能力；English summary: the app binding draft capability. */
+    APP_BINDING(50, "APP_BINDING", "应用绑定", "gateway_mcp_app_binding_draft", "tool_name");
 
-    /**
-     * 中文说明：保存 table 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by table; its type is {@code String}, and {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
+    private static final Map<String, McpCapabilityKindEnum> WIRE_VALUES = Arrays.stream(values())
+            .collect(Collectors.toUnmodifiableMap(McpCapabilityKindEnum::wireValue, Function.identity()));
+
+    private final int code;
+
+    @EnumValue
+    private final String wireValue;
+
+    private final String message;
+
     private final String table;
 
-    /**
-     * 中文说明：保存 nameColumn 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by name column; its type is {@code String}, and {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
     private final String nameColumn;
 
-    /**
-     * 中文说明：创建 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param table 参数 table；parameter table。
-     * @param nameColumn 参数 nameColumn；parameter name column。
-     */
-    McpCapabilityKindEnum(String table, String nameColumn) {
+    McpCapabilityKindEnum(int code, String wireValue, String message, String table, String nameColumn) {
+        this.code = code;
+        this.wireValue = wireValue;
+        this.message = message;
         this.table = table;
         this.nameColumn = nameColumn;
     }
 
+    @Override
+    public int getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return message;
+    }
+
+    @JsonValue
+    public String wireValue() {
+        return wireValue;
+    }
+
     /**
-     * 中文说明：执行 table 操作；该方法是 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the table operation; this method is the invocation entry point on {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum.table(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @return 返回 table 的处理结果；returns the result of the operation.
+     * 中文说明：按原 wire 字符串在不可变查表中精确匹配，未知值与 null 一律拒绝而非静默兜底。
+     * English summary: Looks the value up in the immutable wire map and rejects unknown or null input instead of coercing it.
      */
+    @JsonCreator
+    public static McpCapabilityKindEnum fromWire(String wireValue) {
+        if (wireValue == null) {
+            throw new IllegalArgumentException("McpCapabilityKindEnum wire value is required");
+        }
+        McpCapabilityKindEnum matched = WIRE_VALUES.get(wireValue);
+        if (matched == null) {
+            throw new IllegalArgumentException("Unknown McpCapabilityKindEnum wire value: " + wireValue);
+        }
+        return matched;
+    }
+
     public String table() {
         return table;
     }
 
-    /**
-     * 中文说明：执行 nameColumn 操作；该方法是 {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the name column operation; this method is the invocation entry point on {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum.nameColumn(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @return 返回 nameColumn 的处理结果；returns the result of the operation.
-     */
     public String nameColumn() {
         return nameColumn;
     }

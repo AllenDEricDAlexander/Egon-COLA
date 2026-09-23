@@ -1,4 +1,4 @@
-package top.egon.cola.component.yuheng.admin.catalog.domain.enums;
+package top.egon.cola.component.yuheng.admin.llm.domain.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -11,20 +11,18 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 中文说明：{@code GatewayCatalogProtocolEnum} 是枚举类型，位于当前 Gateway 模块的相关包中，负责 Protocol 相关的职责与边界，并保持原 wire 字符串不变。
- * English summary: {@code GatewayCatalogProtocolEnum} is an enumeration in the current Gateway module; it owns the protocol-related responsibility and boundary while keeping the original wire values.
+ * 中文说明：{@code LlmModelKindEnum} 是枚举类型，负责LLM 模型类别的职责与边界，并保持原 wire 字符串不变。
+ * English summary: {@code LlmModelKindEnum} is an enumeration that owns the LLM model kind responsibility and boundary while keeping the original wire values.
  *
  * 用法 / Usage: 数据库列与 JSON 均只使用 {@code wireValue}，{@code code} 仅为发布后不变的内部标识，禁止以 ordinal 作为业务编码；/ Persist and serialize {@code wireValue} only; {@code code} is an internal identifier that never changes after release and ordinal is never a business value.
  */
-public enum GatewayCatalogProtocolEnum implements EgonEnum {
+public enum LlmModelKindEnum implements EgonEnum {
 
-    /** 中文说明：HTTP 协议；English summary: HTTP protocol. */
-    HTTP(10, "HTTP", "HTTP 协议"),
-    /** 中文说明：RPC 协议；English summary: RPC protocol. */
-    RPC(20, "RPC", "RPC 协议");
+    CHAT(10, "CHAT", "对话模型"),
+    EMBEDDING(20, "EMBEDDING", "向量模型");
 
-    private static final Map<String, GatewayCatalogProtocolEnum> WIRE_VALUES = Arrays.stream(values())
-            .collect(Collectors.toUnmodifiableMap(GatewayCatalogProtocolEnum::wireValue, Function.identity()));
+    private static final Map<String, LlmModelKindEnum> WIRE_VALUES = Arrays.stream(values())
+            .collect(Collectors.toUnmodifiableMap(LlmModelKindEnum::wireValue, Function.identity()));
 
     private final int code;
 
@@ -33,7 +31,7 @@ public enum GatewayCatalogProtocolEnum implements EgonEnum {
 
     private final String message;
 
-    GatewayCatalogProtocolEnum(int code, String wireValue, String message) {
+    LlmModelKindEnum(int code, String wireValue, String message) {
         this.code = code;
         this.wireValue = wireValue;
         this.message = message;
@@ -59,13 +57,13 @@ public enum GatewayCatalogProtocolEnum implements EgonEnum {
      * English summary: Looks the value up in the immutable wire map and rejects unknown or null input instead of coercing it.
      */
     @JsonCreator
-    public static GatewayCatalogProtocolEnum fromWire(String wireValue) {
+    public static LlmModelKindEnum fromWire(String wireValue) {
         if (wireValue == null) {
-            throw new IllegalArgumentException("GatewayCatalogProtocolEnum wire value is required");
+            throw new IllegalArgumentException("LlmModelKindEnum wire value is required");
         }
-        GatewayCatalogProtocolEnum matched = WIRE_VALUES.get(wireValue);
+        LlmModelKindEnum matched = WIRE_VALUES.get(wireValue);
         if (matched == null) {
-            throw new IllegalArgumentException("Unknown GatewayCatalogProtocolEnum wire value: " + wireValue);
+            throw new IllegalArgumentException("Unknown LlmModelKindEnum wire value: " + wireValue);
         }
         return matched;
     }

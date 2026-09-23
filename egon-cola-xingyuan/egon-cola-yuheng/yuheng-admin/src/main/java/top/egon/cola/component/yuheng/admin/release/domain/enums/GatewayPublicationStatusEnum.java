@@ -1,75 +1,91 @@
 package top.egon.cola.component.yuheng.admin.release.domain.enums;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import top.egon.cola.component.common.core.enums.EgonEnum;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * 中文说明：{@code GatewayPublicationStatusEnum} 是枚举类型，位于当前 Gateway 模块的相关包中，负责GatewayPublicationStatusEnum相关的职责与边界。
- * English summary: {@code GatewayPublicationStatusEnum} is an enumeration in the current Gateway module; it owns the publication status-related responsibility and boundary.
+ * 中文说明：{@code GatewayPublicationStatusEnum} 是枚举类型，位于当前 Gateway 模块的相关包中，负责 GatewayPublicationStatusEnum 相关的职责与边界，并保持原 wire 字符串不变。
+ * English summary: {@code GatewayPublicationStatusEnum} is an enumeration in the current Gateway module; it owns the publication status-related responsibility and boundary while keeping the original wire values.
  *
- * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ * 用法 / Usage: 数据库列与 JSON 均只使用 {@code wireValue}，{@code code} 仅为发布后不变的内部标识，禁止以 ordinal 作为业务编码；/ Persist and serialize {@code wireValue} only; {@code code} is an internal identifier that never changes after release and ordinal is never a business value.
  */
-public enum GatewayPublicationStatusEnum {
-    /**
-     * 中文说明：表示 PLANNED 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value planned; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    PLANNED,
-    /**
-     * 中文说明：表示 RESOLVED 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value resolved; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    RESOLVED,
-    /**
-     * 中文说明：表示 SUBMITTED 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value submitted; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    SUBMITTED,
-    /**
-     * 中文说明：表示 SUCCESS 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value success; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    SUCCESS,
-    /**
-     * 中文说明：表示 FAILED 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value failed; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    FAILED,
-    /**
-     * 中文说明：表示 PARTIALSUCCESS 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value partial success; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    PARTIAL_SUCCESS,
-    /**
-     * 中文说明：表示 超时 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value timeout; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    TIMEOUT,
-    /**
-     * 中文说明：表示 UNKNOWN 这一固定值；它属于 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value unknown; it is a state, type, or protocol value of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    UNKNOWN;
+public enum GatewayPublicationStatusEnum implements EgonEnum {
+
+    /** 中文说明：发布计划已登记；English summary: the publication is planned. */
+    PLANNED(10, "PLANNED", "已计划"),
+    /** 中文说明：发布目标已解析；English summary: the publication targets are resolved. */
+    RESOLVED(20, "RESOLVED", "已解析"),
+    /** 中文说明：发布已提交；English summary: the publication was submitted. */
+    SUBMITTED(30, "SUBMITTED", "已提交"),
+    /** 中文说明：发布成功；English summary: the publication succeeded. */
+    SUCCESS(40, "SUCCESS", "发布成功"),
+    /** 中文说明：发布失败；English summary: the publication failed. */
+    FAILED(50, "FAILED", "发布失败"),
+    /** 中文说明：发布部分成功；English summary: the publication partially succeeded. */
+    PARTIAL_SUCCESS(60, "PARTIAL_SUCCESS", "部分成功"),
+    /** 中文说明：发布超时；English summary: the publication timed out. */
+    TIMEOUT(70, "TIMEOUT", "发布超时"),
+    /** 中文说明：发布结果未知；English summary: the publication result is unknown. */
+    UNKNOWN(80, "UNKNOWN", "结果未知");
+
+    private static final Map<String, GatewayPublicationStatusEnum> WIRE_VALUES = Arrays.stream(values())
+            .collect(Collectors.toUnmodifiableMap(GatewayPublicationStatusEnum::wireValue, Function.identity()));
+
+    private final int code;
+
+    @EnumValue
+    private final String wireValue;
+
+    private final String message;
+
+    GatewayPublicationStatusEnum(int code, String wireValue, String message) {
+        this.code = code;
+        this.wireValue = wireValue;
+        this.message = message;
+    }
+
+    @Override
+    public int getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return message;
+    }
+
+    @JsonValue
+    public String wireValue() {
+        return wireValue;
+    }
 
     /**
-     * 中文说明：执行 terminalResult 操作；该方法是 {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the terminal result operation; this method is the invocation entry point on {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum} and performs the corresponding runtime, management, or protocol work.
+     * 中文说明：按原 wire 字符串在不可变查表中精确匹配，未知值与 null 一律拒绝而非静默兜底。
+     * English summary: Looks the value up in the immutable wire map and rejects unknown or null input instead of coercing it.
+     */
+    @JsonCreator
+    public static GatewayPublicationStatusEnum fromWire(String wireValue) {
+        if (wireValue == null) {
+            throw new IllegalArgumentException("GatewayPublicationStatusEnum wire value is required");
+        }
+        GatewayPublicationStatusEnum matched = WIRE_VALUES.get(wireValue);
+        if (matched == null) {
+            throw new IllegalArgumentException("Unknown GatewayPublicationStatusEnum wire value: " + wireValue);
+        }
+        return matched;
+    }
+
+    /**
+     * 中文说明：判断当前发布状态是否已是终态结果。
+     * English summary: Reports whether the publication status is already a terminal result.
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.terminalResult(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 terminalResult 的处理结果；returns the result of the operation.
      */
     public boolean terminalResult() {
