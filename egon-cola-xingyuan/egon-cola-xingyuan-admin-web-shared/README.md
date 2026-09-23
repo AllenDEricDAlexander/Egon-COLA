@@ -1,14 +1,21 @@
 # @egon-cola/xingyuan-admin-web-shared
 
-Egon COLA 四个管理 Web 平台（Tianshu / Yuheng / Tianquan-Shoubing / Tianquan-Jianshen）共享的前端公共层。
+Egon COLA 平台前端公共层，供四个管理控制台（Tianshu / Yuheng / Tianquan-Shoubing /
+Tianquan-Jianshen）以及 `egon-cola-xingyuan-admin-portal` 微前端宿主共享。
 
 ## 包含内容
 
 - **Layout**：`EnterpriseLayout` / `EnterpriseHeader` / `EnterpriseFooter` 及完整 TypeScript 类型。平台通过 config 传入平台名、Logo、导航菜单、用户信息与全局操作区，Header 自动按当前路由高亮（最长前缀匹配），窄屏自动切换抽屉导航，Layout 保证最小高度与贴底 Footer。
 - **Theme**：`AdminThemeProvider`、`designTokens`、`injectTokens`。
-- **API / Auth**：`createHttpClient`、`createOAuthClient`、`createTokenStore`、`decodeTokenPayload` 等。
-- **i18n**：`initI18n`、`I18nProvider`、`useT`、`changeLanguage`。
-- **Components / Hooks**：`PageState`、`PageTemplate`、`AppErrorBoundary`、`usePermission`、`useFeatureQuery`。
+- **API**：`createHttpClient`、`ApiError`、`classifyApiError`。
+- **Auth**：`createGatewayAuthClient` 与 `GatewayAuthError`。它封装平台统一身份的
+  Cookie/CSRF 浏览器登录（`GET /oauth2/login/csrf` + `POST /oauth2/login`，携带
+  `X-Tianquan-Shoubing-CSRF`）和 `bootstrap(path?)` 授权引导读取，默认路径
+  `/api/v1/auth/bootstrap`。会话保存在 `HttpOnly` Cookie 中，包内不实现 Token 存储，
+  也没有 `createOAuthClient` / `createTokenStore` / `decodeTokenPayload` 之类的导出。
+- **i18n**：`initI18n`、`I18nProvider`、`useT`、`changeLanguage`、`currentLanguage`。
+- **Components / Hooks**：`PageHeader`、`PageState`、`PageTemplate`、
+  `AppErrorBoundary`、`usePermission`、`useFeatureQuery`。
 - **Vite 插件**（`@egon-cola/xingyuan-admin-web-shared/vite-plugin`）：`egonFaviconPlugin()`，统一为四个平台注入仓库根 `favicon.png`（dev/preview 中间件 + index.html 注入 + build 产物输出）。
 
 ## 使用
@@ -21,7 +28,7 @@ const config: EnterpriseLayoutConfig = {
   platformName: 'Yuheng Admin',
   navigation: [{ key: 'dashboard', label: '总览', path: '/dashboard' }],
   user: { name: 'admin', menu: [{ key: 'logout', label: '退出登录' }] },
-  footer: { version: '5.2.3' },
+  footer: { version: '5.4.1' },
 }
 ```
 
