@@ -16,7 +16,7 @@ Tianquan-Jianshen）以及 `egon-cola-xingyuan-admin-portal` 微前端宿主共�
 - **i18n**：`initI18n`、`I18nProvider`、`useT`、`changeLanguage`、`currentLanguage`。
 - **Components / Hooks**：`PageHeader`、`PageState`、`PageTemplate`、
   `AppErrorBoundary`、`usePermission`、`useFeatureQuery`。
-- **Vite 插件**（`@egon-cola/xingyuan-admin-web-shared/vite-plugin`）：`egonFaviconPlugin()`，统一为四个平台注入仓库根 `favicon.png`（dev/preview 中间件 + index.html 注入 + build 产物输出）。
+- **Vite 插件**（`@egon-cola/xingyuan-admin-web-shared/vite-plugin`）：`egonFaviconPlugin()`，统一为四个控制台与 Portal 宿主注入 `egon-cola-xingyuan/favicon.png`（dev/preview 中间件 + index.html 注入 + build 产物输出）。
 
 ## 使用
 
