@@ -7,7 +7,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 NS = {"m": "http://maven.apache.org/POM/4.0.0"}
 FORBIDDEN = re.compile(r"org\.apache\.dubbo|org\.springframework\.cloud|com\.alibaba\.cloud|"
                        r"org\.springdoc|@EnableDubbo|@Dubbo(Service|Reference)|"

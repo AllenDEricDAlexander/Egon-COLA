@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
 FIXTURE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/egon-cola-version-test.XXXXXX")"
 readonly SCRIPT_DIR PROJECT_ROOT FIXTURE_ROOT
 

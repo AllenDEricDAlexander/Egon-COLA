@@ -143,7 +143,7 @@ def check_facade_ownership(sources, failures):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--effective-poms", type=Path,
                         help="Directory containing Maven effective POMs named <family>.xml")
     args = parser.parse_args()

@@ -36,3 +36,9 @@ ${project.build.directory}
 # Archetype two-stage derived workspace; rebuild with scripts/generate_archetypes.sh
 egon-cola-archetypes/.generated.*/
 egon-cola-archetypes/.generated/
+# Agent 运行时脚本区：Plan 期间的一次性 harness，默认不入库；
+# 收尾评估后确定复用的才移入 scripts/checks/ 或 scripts/regression/ 再 git add。
+/scripts/work/*
+!/scripts/work/.gitkeep
+__pycache__/
+*.py[cod]

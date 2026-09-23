@@ -3,8 +3,8 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
-GENERATOR="${SCRIPT_DIR}/generate_archetypes.sh"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
+GENERATOR="${REPO_ROOT}/scripts/generate_archetypes.sh"
 
 fail() {
   printf 'archetype-generation-test: %s\n' "$*" >&2

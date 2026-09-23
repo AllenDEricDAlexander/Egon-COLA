@@ -150,7 +150,7 @@ def self_test():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--runtime-trees", type=Path, help="Directory containing <family>.txt Maven runtime trees")
     parser.add_argument("--effective-poms", type=Path, help="Directory containing <family>.xml effective reactor POMs")
     parser.add_argument("--self-test", action="store_true")
