@@ -1,9 +1,12 @@
 package top.egon.cola.component.codegen.update;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.codegen.model.CodegenPlanBO;
+import top.egon.cola.component.codegen.model.CodegenProfileEnum;
 import top.egon.cola.component.codegen.validation.OutputPathValidator;
 
 import java.io.IOException;
@@ -27,14 +30,19 @@ public class GenerationPlanService {
 
     public static final String CONFLICT = "CONFLICT";
 
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
+
     @Qualifier("generationStateRepository")
     private final GenerationStateRepository stateRepository;
 
     @Qualifier("outputPathValidator")
     private final OutputPathValidator paths;
 
-    public CodegenPlanBO plan(Path outputRoot, List<RenderedFile> requested, String schemaFingerprint,
+    public CodegenPlanBO plan(Path outputRoot, List<RenderedFile> requested, CodegenProfileEnum profile,
+                              String schemaFingerprint, String configFingerprint, String versionChecksumPrefix,
                               String templateFingerprint, String componentFingerprint, List<String> pendingArtifacts) {
+        paths.checkDistinct(requested.stream().map(RenderedFile::relativePath).toList());
         GenerationStateRepository.StateBO state = stateRepository.load(outputRoot);
         Map<String, CodegenPlanBO.ArtifactStateBO> previous = new LinkedHashMap<>();
         for (CodegenPlanBO.ArtifactStateBO artifact : state.getArtifacts()) {
@@ -50,7 +58,9 @@ public class GenerationPlanService {
             boolean previousPresent = prior != null && prior.isPreviousGeneratedHashPresent();
             String candidateHash = sha256(rendered.bytes());
             String operation;
-            if (disk != null && previousPresent && !diskHash.equals(previousHash)) {
+            if (disk != null && (!previousPresent || !diskHash.equals(previousHash))) {
+                operation = CONFLICT;
+            } else if (disk == null && previousPresent) {
                 operation = CONFLICT;
             } else if (disk != null && diskHash.equals(candidateHash)) {
                 operation = "NO_CHANGE";
@@ -85,15 +95,18 @@ public class GenerationPlanService {
             }
         }
         CodegenPlanBO plan = CodegenPlanBO.builder()
-                .formatVersion(1)
-                .profile(null)
+                .formatVersion(CodegenPlanBO.FORMAT_VERSION)
+                .profile(profile)
                 .outputRootBinding(outputRoot.toAbsolutePath().normalize().toString())
                 .inputFingerprint(schemaFingerprint)
+                .configFingerprint(configFingerprint)
+                .stateFingerprint(stateRepository.fingerprint(state))
                 .templateSetVersion(templateFingerprint)
                 .componentFingerprint(componentFingerprint)
                 .files(files)
                 .pendingImpacts(impacts)
                 .latestObservedSchema(schemaFingerprint)
+                .versionChecksumPrefix(versionChecksumPrefix)
                 .build();
         plan.setPlanId(planId(plan));
         for (int index = 0; index < files.size(); index++) {
@@ -123,17 +136,22 @@ public class GenerationPlanService {
     }
 
     static String planId(CodegenPlanBO plan) {
-        StringBuilder canonical = new StringBuilder();
-        canonical.append(plan.getFormatVersion()).append('|')
-                .append(plan.getOutputRootBinding()).append('|')
-                .append(plan.getInputFingerprint()).append('|')
-                .append(plan.getTemplateSetVersion()).append('|')
-                .append(plan.getComponentFingerprint()).append('|');
-        for (CodegenPlanBO.FileChangeBO file : plan.getFiles()) {
-            canonical.append(file.getPath()).append('|').append(file.getOperation()).append('|')
-                    .append(file.getCandidateHash()).append('|').append(file.getExpectedDiskHash()).append('\n');
+        CodegenPlanBO canonical = plan.snapshot();
+        canonical.setPlanId(null);
+        for (CodegenPlanBO.FileChangeBO file : canonical.getFiles()) {
+            file.setActionId(null);
+            file.setCandidatePath(null);
         }
-        return sha256(canonical.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        try {
+            return sha256(MAPPER.writeValueAsBytes(canonical));
+        } catch (IOException exception) {
+            throw new IllegalStateException("plan fingerprint failed", exception);
+        }
+    }
+
+    public static boolean hasValidId(CodegenPlanBO plan) {
+        return plan != null && plan.supportedFormat() && plan.getPlanId() != null
+                && plan.getPlanId().equals(planId(plan));
     }
 
     public static String sha256(byte[] bytes) {

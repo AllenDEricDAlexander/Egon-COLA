@@ -118,7 +118,8 @@ public class FreeMarkerTemplateService {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update(readBytes("templates/backend/catalog.json"));
-            for (CatalogEntry entry : catalog.values()) {
+            for (CatalogEntry entry : catalog.values().stream()
+                    .sorted(java.util.Comparator.comparing(CatalogEntry::id)).toList()) {
                 digest.update(entry.id().getBytes(StandardCharsets.UTF_8));
                 digest.update(readBytes("templates/backend/" + entry.resource()));
             }

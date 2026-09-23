@@ -74,13 +74,24 @@ jobs:
               ./mvnw -B -ntp -N install
               ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
               ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+              for facade_pom in \
+                egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-facade/pom.xml \
+                egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml \
+                egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml \
+                egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml
+              do
+                ./mvnw -B -ntp -f "${facade_pom}" -Ppublish-resolved-facade install
+              done
               ./scripts/generate_archetypes.sh generate
               test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
               ./scripts/generate_archetypes.sh check
+              FACADE_EXCLUSIONS="!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade"
               ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
                 -Pgenerated-archetypes \
+                -pl "${FACADE_EXCLUSIONS}" \
                 clean install
               ./mvnw -B -ntp -Pgenerated-archetypes -Prelease \
+                -pl "${FACADE_EXCLUSIONS}" \
                 -Dgpg.skip=true clean verify
             '
 
@@ -295,7 +306,9 @@ jobs:
             bash -lc '
               set -euo pipefail
               ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-                -Pgenerated-archetypes clean verify
+                -Pgenerated-archetypes \
+                -pl "!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade" \
+                clean verify
             '
 
       - name: Remove self-installed Maven artifacts

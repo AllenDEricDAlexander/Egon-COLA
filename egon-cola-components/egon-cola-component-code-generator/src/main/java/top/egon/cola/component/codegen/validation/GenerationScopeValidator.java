@@ -214,8 +214,15 @@ public class GenerationScopeValidator {
                     "CRUD requires one non-null BIGINT id primary key"));
         }
         requireBase(diagnostics, table, "tenant_id", "bigint", false);
+        requireBase(diagnostics, table, "create_user_id", "varchar", false);
+        requireBase(diagnostics, table, "create_time", "timestamp", false);
+        requireBase(diagnostics, table, "update_user_id", "varchar", false);
+        requireBase(diagnostics, table, "update_time", "timestamp", false);
         requireBase(diagnostics, table, "deleted_at", "timestamp", true);
         requireBase(diagnostics, table, "version", "bigint", false);
+        requireTimeZone(diagnostics, table, "create_time", true);
+        requireTimeZone(diagnostics, table, "update_time", true);
+        requireTimeZone(diagnostics, table, "deleted_at", false);
         if (!hasLifecycleKey(table)) {
             diagnostics.add(diagnostic(MISSING_LIFECYCLE_KEY, "/" + table.getLogicalName(),
                     "business uniqueness must include deleted_at"));
@@ -262,6 +269,20 @@ public class GenerationScopeValidator {
                 || (!nullable && Boolean.TRUE.equals(column.getNullable()))) {
             diagnostics.add(diagnostic(BASE_FIELD_TYPE, "/" + table.getLogicalName() + "/" + name,
                     "base column does not match EgonModel"));
+        }
+    }
+
+    private static void requireTimeZone(List<CodegenPlanBO.DiagnosticBO> diagnostics,
+                                        CodegenSchemaBO.TableBO table, String name, boolean withTimeZone) {
+        CodegenSchemaBO.ColumnBO column = column(table, name);
+        if (column == null || column.getSqlType() == null) {
+            return;
+        }
+        String type = column.getSqlType().toLowerCase(Locale.ROOT);
+        boolean zoned = type.contains("with time zone") || type.startsWith("timestamptz");
+        if (zoned != withTimeZone) {
+            diagnostics.add(diagnostic(BASE_FIELD_TYPE, "/" + table.getLogicalName() + "/" + name,
+                    "timestamp timezone does not match EgonModel"));
         }
     }
 

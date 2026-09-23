@@ -35,4 +35,18 @@ scripts/egon-codegen.sh recover --config codegen.json
 
 `check` 不改项目文件。`apply` 只替换磁盘内容仍等于上次生成内容的文件。人工改过的文件保持原样。
 
+`backend-crud` 会生成完整基础链路：PO、DAO、Mapper XML、Repository、领域模型与
+Domain Service/实现、Command/Query/Result、转换器、Manage/实现；Light 和 Web 还会
+生成 Controller，Service 不生成 HTTP 入口。可以只选其中的产物；引用的其他类型必须已在
+目标项目中存在，生成器不会擅自扩大范围。查询和写入均由 Repository 持有 Mapper/XML 访问，
+Domain Service 实现不能直接调用 DAO。`logicalTables` 必须明确指定。
+
+DDL 必须定义 `EgonModel` 所需的 id、tenant、审计、deleted_at 和 version 列，
+生成器校验其类型和空值语义。PO 继承 `EgonModel`，只声明业务字段；Mapper XML 仍映射
+继承字段。生成器不会把这些通用字段再声明到 PO 中。
+
+计划格式当前为 v2。无生成记录的同名文件、人工编辑的文件，以及计划后新增或改变的文件
+均返回冲突，不自动接管或覆盖。`apply` 重新核对配置、DDL、模板、工具代码和生成状态的
+指纹，并在同一输出目录锁下预检所有目标文件；旧 v1 计划需要重新运行 `plan`。
+
 当前验收覆盖源码编译和隔离测试。它不代表 PostgreSQL、ShardingSphere 或 MQ 已经在真实环境运行。

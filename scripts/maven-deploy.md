@@ -47,11 +47,17 @@ Egon-COLA
 flowchart TD
     A[修改版本号] --> B[本地构建验证]
     B --> C[正常源码 clean install]
-    C --> D[generate + check]
-    D --> E[-Pgenerated-archetypes IT + release shape]
-    E --> F[从根 Reactor 统一发布全部模块]
-    F --> G[创建 Git Tag / Release Note]
+    C --> D[单独安装四个 peer facade 的可解析 POM]
+    D --> E[generate + check]
+    E --> F[-Pgenerated-archetypes IT + release shape]
+    F --> G[先发布四个 peer facade]
+    G --> H[再发布其余 Reactor，排除这四个坐标]
+    H --> I[创建 Git Tag / Release Note]
 ```
+
+Service 与 Web、Service Open 与 Web Open 互相消费对方的 facade。这四个 facade 必须先单独发布，
+随后的整体发布排除它们，避免同一 Release 坐标发布两次。发布出去的 facade POM 不能再把父版本
+留成 `${egon-cola.version}`，否则对端工程会去解析一个不存在的 parent POM。
 
 Tianshu 归属 Platforms，但 RPC 组件消费 Tianshu Starter，Gateway 又消费 RPC。这个依赖图在
 根 Reactor 内可以由 Maven 正确排序，却不能拆成独立的 Components 和 Platforms 新版本
@@ -217,11 +223,24 @@ gpg --armor --export-secret-keys <KEY_ID>
 ./mvnw -B -ntp -N install
 ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
 ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+# 源码安装会把 parent 版本仍为 ${egon-cola.version} 的 facade POM 装进本地仓库。
+# 接着用 publish-resolved-facade 覆盖成可解析的 consumer POM。
+for pom in \
+  egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-facade/pom.xml \
+  egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml \
+  egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml \
+  egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml
+do
+  ./mvnw -B -ntp -f "$pom" -Ppublish-resolved-facade install
+done
 ./scripts/generate_archetypes.sh generate
 ./scripts/generate_archetypes.sh check
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-  -Pgenerated-archetypes clean install
+  -Pgenerated-archetypes \
+  -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade' \
+  clean install
 ./mvnw -B -ntp -Pgenerated-archetypes -Prelease \
+  -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade' \
   -Dgpg.skip=true clean verify
 ```
 
@@ -251,7 +270,7 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 
 ## 7. 本地真实发布
 
-同一版本没有执行过任何 parent-only 或局部发布后，从根 Reactor 一次性发布。
+同一版本不要先手写 parent-only 发布。正式发布由脚本固定成两段：先发布四个 peer facade，再发布其余 Reactor。
 
 一键发布，不跑 dry-run，也不跑测试：
 
@@ -259,13 +278,21 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 ./scripts/maven-deploy.sh --fast
 ```
 
-它只做一次非 SNAPSHOT 版本确认，然后执行：
+它只做一次非 SNAPSHOT 版本确认，安装父 POM，重新执行 `generate_archetypes.sh generate`，然后：
 
 ```bash
-./mvnw -B -ntp -Pgenerated-archetypes -Prelease -DtrimStackTrace=false -DskipTests=true clean deploy
+# 1. 四个 facade，各自使用可解析 consumer POM
+./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml \
+  -Prelease -Ppublish-resolved-facade -DtrimStackTrace=false -DskipTests=true clean deploy
+# service、service-open、web-open 的 facade 同样各执行一次
+
+# 2. 其余模块。排除已经发布的四个 facade，避免 Release 坐标重复上传
+./mvnw -B -ntp -Pgenerated-archetypes -Prelease \
+  -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade' \
+  -DtrimStackTrace=false -DskipTests=true clean deploy
 ```
 
-`--fast` 会先安装父 POM 并重新执行 `generate_archetypes.sh generate`，让已发布 Archetype 的父版本、`egon-cola.version` 和对端 facade 依赖都等于本次发布版本，然后再 `clean deploy`。它不跑测试、Archetype IT 和 release-shape。发布失败就不会上传，不需要先做一轮 dry-run。
+`--fast` 不跑测试、Archetype IT 和 release-shape。发布失败就不会上传，不需要先做一轮 dry-run。
 
 需要先跑完整预检再发布时，仍使用：
 
@@ -273,7 +300,7 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 ./scripts/maven-deploy.sh all --publish
 ```
 
-`--publish` 会先完整执行 source → generate/check → Archetype IT → release-shape 预检，随后只执行一次根 Reactor `clean deploy`。
+`--publish` 会先完整执行 source → 四个 facade 的可解析安装 → generate/check → Archetype IT → release-shape 预检，随后先发布这四个 facade，再发布排除它们的根 Reactor。
 真实发布不能传 `-Dgpg.skip=true`；Central Portal 返回 `UNKNOWN` 时必须先按 deployment id 查询状态，不能盲目重放 deploy。
 
 发布后可以验证 BOM、Tianshu 平台和 Archetype 是否可解析：
@@ -401,6 +428,7 @@ git push origin v5.x.y
 | 真实发布时使用 `-Dgpg.skip=true`        | Maven Central Release 必须有签名                 |
 | 同一版本重复发布                         | Release 版本不可覆盖                              |
 | 未验证 Parent POM 就直接发布子模块          | 子模块可能无法解析父 POM                              |
+| 跳过四个 facade，直接从根 Reactor 一次 deploy | 对端工程会按未展开的 `${egon-cola.version}` 找 parent；后补发布又会撞上已存在的 Release 坐标。用 `./scripts/maven-deploy.sh --fast` 或 `--publish` |
 | 发布非 `all` 目标，或手写一条更短的 deploy 命令 | 非 `all` 会留下半套不可覆盖的 Central 坐标。要跳过预检和测试，用 `./scripts/maven-deploy.sh --fast` |
 | 把 Token / GPG 私钥写进文档             | 这是事故，不是配置                                   |
 

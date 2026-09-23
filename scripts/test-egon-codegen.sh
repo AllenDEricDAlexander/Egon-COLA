@@ -49,7 +49,7 @@ EOF
 ${modules}
   "input": {"mode": "schema", "schemaFiles": ["${schema}"]},
   "logicalTables": ["orders"],
-  "artifacts": ["po", "dao", "mapper-xml", "repo"],
+  "artifacts": ["backend-crud"],
   "existingTypeMappings": {},
   "fieldPolicies": {"create": ["code"], "update": ["code"], "result": ["code"], "filter": ["code"], "sort": ["id"]},
   "apiContract": {
@@ -60,6 +60,26 @@ ${modules}
   "events": {"enabled": false}
 }
 EOF
+  local support_root="${output}/src/main/java/com/example/codegenfixture/support"
+  if [[ "${project_type}" != "light" ]]; then
+    support_root="${output}/${name}-infrastructure/src/main/java/com/example/codegenfixture/support"
+  fi
+  mkdir -p "${support_root}"
+  cat > "${support_root}/FixtureErrorMapper.java" <<'JAVA'
+package com.example.codegenfixture.support;
+
+public final class FixtureErrorMapper {
+    private FixtureErrorMapper() {}
+
+    public static RuntimeException missing(Long id) {
+        return new IllegalStateException("missing:" + id);
+    }
+
+    public static RuntimeException zeroRows(String operation, Long id, Long version) {
+        return new IllegalStateException(operation + ":" + id + ":" + version);
+    }
+}
+JAVA
   echo "${config}"
 }
 
@@ -69,7 +89,7 @@ generate_into() {
   local plan_output
   plan_output="$("${java_bin}" -cp "${EGON_CODEGEN_CLASSPATH}" top.egon.cola.component.codegen.cli.CodegenCommand plan --config "${config}")"
   local plan_id
-  plan_id="$(printf '%s' "${plan_output}" | python3 -c 'import json,sys; text=sys.stdin.read(); print(json.loads(text[text.rfind("{"):])["planId"])')"
+  plan_id="$(printf '%s' "${plan_output}" | python3 -c 'import json,sys; lines=[line for line in sys.stdin.read().splitlines() if line.strip()]; print(json.loads(lines[-1])["planId"])')"
   "${java_bin}" -cp "${EGON_CODEGEN_CLASSPATH}" top.egon.cola.component.codegen.cli.CodegenCommand apply --config "${config}" --plan "${plan_id}"
 }
 

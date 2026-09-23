@@ -54,16 +54,24 @@ Mandatory preflight:
   1. Install the root parent POM
   2. Install the archetype parent POM
   3. Build the archetype source projects
-  4. Generate archetypes
-  5. Verify the generated set is deterministic
-  6. Build the generated archetype reactor
-  7. Run release-shape verification
+  4. Reinstall the four peer facades with resolvable consumer POMs
+  5. Generate archetypes
+  6. Verify the generated set is deterministic
+  7. Build the generated archetype reactor, excluding those facades
+  8. Run release-shape verification, excluding those facades
+
+The four peer facades form a cross-family cycle: each service reactor consumes the
+web facade, and each web reactor consumes the service facade. Their source parent
+version is the literal property egon-cola.version, which consumers cannot resolve.
+Publish installs a standalone consumer POM for each facade first, then publishes the
+remaining reactor without those four coordinates.
 
 The script never starts a business application or executes database SQL.
 
 A real publish is opt-in through --publish or --fast.
 Central production publishing is supported for the all target only.
 --fast is the one-command publish and does not run the preflight below.
+It still publishes the four peer facades before the remaining reactor.
 USAGE
 }
 
@@ -84,6 +92,25 @@ definition_manifests() {
     -type f \
     -name archetype.properties \
     -print | LC_ALL=C sort
+}
+
+# Peer contracts consumed across families. Publish these before the reactor that
+# runs archetype integration tests, and do not publish them again afterwards.
+peer_facade_poms=(
+  egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-facade/pom.xml
+  egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml
+  egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml
+  egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml
+)
+
+peer_facade_exclusions='!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade'
+
+run_peer_facades() {
+  local pom
+  for pom in "${peer_facade_poms[@]}"; do
+    echo "Peer facade: ${pom}"
+    "${MVNW}" -B -ntp -f "${pom}" "$@"
+  done
 }
 
 # ---------------------------------------------------------------------------
@@ -409,7 +436,7 @@ run_preflight() {
   # -------------------------------------------------------------------------
 
   echo
-  echo "[3/7] Building archetype source projects..."
+  echo "[3/8] Building archetype source projects..."
 
   "${MVNW}" \
     -B \
@@ -419,12 +446,22 @@ run_preflight() {
     clean \
     install
 
+  # The source reactor installs facade POMs whose parent version is still
+  # ${egon-cola.version}. Replace those repository POMs before any external build.
+  echo
+  echo "[4/8] Installing peer facades with resolvable consumer POMs..."
+
+  run_peer_facades \
+    -Ppublish-resolved-facade \
+    "${preflight_test_args[@]+"${preflight_test_args[@]}"}" \
+    install
+
   # -------------------------------------------------------------------------
-  # 4. Generate archetypes
+  # 5. Generate archetypes
   # -------------------------------------------------------------------------
 
   echo
-  echo "[4/7] Generating archetypes..."
+  echo "[5/8] Generating archetypes..."
 
   "${GENERATOR}" generate
 
@@ -437,42 +474,44 @@ run_preflight() {
   fi
 
   # -------------------------------------------------------------------------
-  # 5. Deterministic generation check
+  # 6. Deterministic generation check
   # -------------------------------------------------------------------------
 
   echo
-  echo "[5/7] Verifying generated archetypes are deterministic..."
+  echo "[6/8] Verifying generated archetypes are deterministic..."
 
   "${GENERATOR}" check
 
   # -------------------------------------------------------------------------
-  # 6. Generated archetype reactor
+  # 7. Generated archetype reactor
   # -------------------------------------------------------------------------
 
   echo
-  echo "[6/7] Building generated archetype reactor..."
+  echo "[7/8] Building generated archetype reactor..."
 
   "${MVNW}" \
     -B \
     -ntp \
     -f egon-cola-archetypes/pom.xml \
     -Pgenerated-archetypes \
+    -pl "${peer_facade_exclusions}" \
     "${preflight_test_args[@]+"${preflight_test_args[@]}"}" \
     clean \
     install
 
   # -------------------------------------------------------------------------
-  # 7. Release-shape verification
+  # 8. Release-shape verification
   # -------------------------------------------------------------------------
 
   echo
-  echo "[7/7] Running release-shape verification..."
+  echo "[8/8] Running release-shape verification..."
 
   "${MVNW}" \
     -B \
     -ntp \
     -Pgenerated-archetypes \
     -Prelease \
+    -pl "${peer_facade_exclusions}" \
     -Dgpg.skip=true \
     "${preflight_test_args[@]+"${preflight_test_args[@]}"}" \
     clean \
@@ -547,6 +586,17 @@ if [[ "${mode}" == deploy ]]; then
     "${GENERATOR}" generate
   fi
 
+  echo
+  echo "Publishing the four peer facades before the remaining reactor..."
+
+  run_peer_facades \
+    -Prelease \
+    -Ppublish-resolved-facade \
+    -DtrimStackTrace=false \
+    "${deploy_test_args[@]+"${deploy_test_args[@]}"}" \
+    clean \
+    deploy
+
   # -------------------------------------------------------------------------
   # Final Maven deploy arguments
   # -------------------------------------------------------------------------
@@ -556,6 +606,7 @@ if [[ "${mode}" == deploy ]]; then
     -ntp
     -Pgenerated-archetypes
     -Prelease
+    -pl "${peer_facade_exclusions}"
     -DtrimStackTrace=false
   )
 

@@ -21,14 +21,22 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import jakarta.validation.Validation;
 import java.io.PrintStream;
+import java.io.InputStream;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipFile;
 
 /**
  * Plain Java entry point. It does not start Spring or open a database.
@@ -80,6 +88,10 @@ public class CodegenCommand {
                 default -> error(out, err, 2, "CONFIG_REQUIRED", "unknown command");
             };
         } catch (Exception exception) {
+            if (exception instanceof PostgreDdlAdapter.DdlParseException failure) {
+                int code = "apply".equals(args[0]) ? 6 : 2;
+                return error(out, err, code, code == 6 ? "STALE_PLAN" : failure.getCode(), failure.getMessage());
+            }
             log.warn("codegen command failed: {}", exception.getClass().getSimpleName());
             return error(out, err, 7, "IO_FAILURE", exception.getMessage() == null ? "command failed" : exception.getMessage());
         }
@@ -91,12 +103,19 @@ public class CodegenCommand {
         body.put("engineVersion", "2.3.35");
         body.put("templateSetDigest", templates.getTemplateSetDigest());
         body.put("profiles", List.of("light", "web", "service"));
+        List<String> artifacts = new ArrayList<>(List.of("po", "dao", "mapper-xml", "repo",
+                "domain-model", "domain-query", "command", "query", "result", "converter",
+                "domain-service", "domain-impl", "manage", "manage-impl", "controller"));
+        artifacts.sort(String::compareTo);
+        body.put("artifacts", artifacts);
+        body.put("presets", List.of("persistence-crud", "backend-crud"));
+        body.put("planFormatVersion", CodegenPlanBO.FORMAT_VERSION);
         out.println(MAPPER.writeValueAsString(body));
         return 0;
     }
 
     private int plan(Map<String, String> flags, PrintStream out, PrintStream err) throws Exception {
-        Loaded loaded = load(flags, err);
+        Loaded loaded = load(flags, out, err);
         if (loaded.code() != 0) {
             return loaded.code();
         }
@@ -112,7 +131,10 @@ public class CodegenCommand {
         if (!flags.containsKey("--plan") || !flags.containsKey("--config")) {
             return error(out, err, 2, "CONFIG_REQUIRED", "apply requires --config and --plan");
         }
-        Loaded loaded = load(flags, err);
+        if (!flags.get("--plan").matches("[0-9a-f]{64}")) {
+            return error(out, err, 2, "CONFIG_REQUIRED", "plan id must be a SHA-256 digest");
+        }
+        Loaded loaded = load(flags, out, err);
         if (loaded.code() != 0) {
             return loaded.code();
         }
@@ -121,11 +143,22 @@ public class CodegenCommand {
             return error(out, err, 2, "CONFIG_REQUIRED", "plan was not found");
         }
         CodegenPlanBO plan = MAPPER.readValue(file.toFile(), CodegenPlanBO.class);
-        if (!flags.get("--plan").equals(plan.getPlanId())) {
+        if (!flags.get("--plan").equals(plan.getPlanId()) || !GenerationPlanService.hasValidId(plan)) {
             return error(out, err, 6, "STALE_PLAN", "plan id does not match");
         }
-        GenerationApplyService.Result result = applyService.apply(loaded.root(), plan, Set.of(),
-                plan.getTemplateSetVersion(), plan.getComponentFingerprint(), -1);
+        GenerationApplyService.Result result = applyService.apply(loaded.root(), plan, Set.of(), () -> {
+            try {
+                Loaded fresh = load(flags, out, err);
+                if (fresh.code() != 0) {
+                    return null;
+                }
+                return new GenerationApplyService.CurrentInputs(fresh.schema().getInputFingerprint(),
+                        configFingerprint(fresh.config()), templates.getTemplateSetDigest(),
+                        componentFingerprint(), render(fresh.config(), fresh.schema()));
+            } catch (Exception failure) {
+                throw new IllegalStateException("generation inputs changed", failure);
+            }
+        }, -1);
         out.println(MAPPER.writeValueAsString(Map.of("status", result.status(), "detail", result.detail())));
         return switch (result.status()) {
             case "APPLIED", "NO_CHANGE" -> 0;
@@ -138,7 +171,7 @@ public class CodegenCommand {
     }
 
     private int check(Map<String, String> flags, PrintStream out, PrintStream err) throws Exception {
-        Loaded loaded = load(flags, err);
+        Loaded loaded = load(flags, out, err);
         if (loaded.code() != 0) {
             return loaded.code();
         }
@@ -155,7 +188,7 @@ public class CodegenCommand {
     }
 
     private int recover(Map<String, String> flags, PrintStream out, PrintStream err) throws Exception {
-        Loaded loaded = load(flags, err);
+        Loaded loaded = load(flags, out, err);
         if (loaded.code() != 0) {
             return loaded.code();
         }
@@ -166,8 +199,9 @@ public class CodegenCommand {
 
     private CodegenPlanBO buildPlan(CodegenConfigBO config, CodegenSchemaBO schema) {
         Path root = Path.of(config.getOutputRoot());
-        return plans.plan(root, render(config, schema), schema.getInputFingerprint(),
-                templates.getTemplateSetDigest(), "egon-cola-component-code-generator", List.of());
+        return plans.plan(root, render(config, schema), config.getProfile(), schema.getInputFingerprint(),
+                configFingerprint(config), schema.getVersionChecksumPrefix(), templates.getTemplateSetDigest(),
+                componentFingerprint(), List.of());
     }
 
     private List<GenerationPlanService.RenderedFile> render(CodegenConfigBO config, CodegenSchemaBO schema) {
@@ -175,28 +209,63 @@ public class CodegenCommand {
         List<GenerationPlanService.RenderedFile> files = new ArrayList<>();
         for (CodegenSchemaBO.TableBO table : schema.getTables()) {
             for (String artifact : config.getArtifacts()) {
-                if (!ProjectLayoutStrategy.PERSISTENCE.contains(artifact)) {
-                    continue;
-                }
                 Map<String, Object> model = scope.renderModel(config, table, artifact);
-                String fileName = switch (artifact) {
-                    case "po" -> model.get("poType") + ".java";
-                    case "dao" -> model.get("daoType") + ".java";
-                    case "mapper-xml" -> model.get("daoType") + ".xml";
-                    case "repo" -> model.get("repoType") + ".java";
-                    default -> artifact;
-                };
-                String relative = layout.relativePath(config, artifact, fileName);
-                files.add(new GenerationPlanService.RenderedFile(relative, artifact, table.getLogicalName(),
-                        templates.render(artifact, model)));
+                switch (artifact) {
+                    case "command" -> {
+                        emit(files, config, layout, table, model, artifact, "command", "create", "createCommandType", "command");
+                        emit(files, config, layout, table, model, artifact, "command", "update", "updateCommandType", "command");
+                        emit(files, config, layout, table, model, artifact, "command", "delete", "deleteCommandType", "command");
+                    }
+                    case "query" -> {
+                        emit(files, config, layout, table, model, artifact, "query", "detail", "detailQueryType", "query");
+                        emit(files, config, layout, table, model, artifact, "query", "page", "pageQueryType", "query");
+                    }
+                    case "converter" -> {
+                        emit(files, config, layout, table, model, artifact, "converter", "persistence", "persistenceConverterType", "persistence-converter");
+                        emit(files, config, layout, table, model, artifact, "converter", "create", "createConverterType", "application-converter");
+                        emit(files, config, layout, table, model, artifact, "converter", "update", "updateConverterType", "application-converter");
+                        emit(files, config, layout, table, model, artifact, "converter", "delete", "deleteConverterType", "application-converter");
+                        emit(files, config, layout, table, model, artifact, "converter", "result", "resultConverterType", "application-converter");
+                    }
+                    default -> {
+                        String typeKey = switch (artifact) {
+                            case "po" -> "poType";
+                            case "dao", "mapper-xml" -> "daoType";
+                            case "repo" -> "repoType";
+                            case "domain-model" -> "domainType";
+                            case "domain-query" -> "domainQueryType";
+                            case "result" -> "resultType";
+                            case "domain-service" -> "domainServiceType";
+                            case "domain-impl" -> "domainImplType";
+                            case "manage" -> "manageType";
+                            case "manage-impl" -> "manageImplType";
+                            case "controller" -> "controllerType";
+                            default -> throw new IllegalArgumentException("unsupported artifact " + artifact);
+                        };
+                        String suffix = "mapper-xml".equals(artifact) ? ".xml" : ".java";
+                        files.add(new GenerationPlanService.RenderedFile(
+                                layout.relativePath(config, artifact, model.get(typeKey) + suffix),
+                                artifact, table.getLogicalName(), templates.render(artifact, model)));
+                    }
+                }
             }
         }
         return files;
     }
 
-    private Loaded load(Map<String, String> flags, PrintStream err) throws Exception {
+    private void emit(List<GenerationPlanService.RenderedFile> files, CodegenConfigBO config,
+                      ProjectLayoutStrategy layout, CodegenSchemaBO.TableBO table, Map<String, Object> model,
+                      String artifact, String variantKey, String variant, String typeKey, String pathArtifact) {
+        Map<String, Object> context = new LinkedHashMap<>(model);
+        context.put(variantKey + "Kind", variant);
+        files.add(new GenerationPlanService.RenderedFile(
+                layout.relativePath(config, pathArtifact, model.get(typeKey) + ".java"),
+                artifact, table.getLogicalName(), templates.render(artifact, context)));
+    }
+
+    private Loaded load(Map<String, String> flags, PrintStream out, PrintStream err) throws Exception {
         if (!flags.containsKey("--config")) {
-            error(System.out, err, 2, "CONFIG_REQUIRED", "--config is required");
+            error(out, err, 2, "CONFIG_REQUIRED", "--config is required");
             return new Loaded(2, null, null, null);
         }
         CodegenConfigBO config = MAPPER.readValue(Path.of(flags.get("--config")).toFile(), CodegenConfigBO.class);
@@ -205,13 +274,74 @@ public class CodegenCommand {
             err.println(MAPPER.writeValueAsString(Map.of("code", diagnostics.get(0).getCode(), "message", diagnostics.get(0).getMessage())));
             return new Loaded(codeFor(diagnostics.get(0).getCode()), null, null, null);
         }
-        CodegenSchemaBO schema = schemas.read(config);
+        config = configValidator.normalize(config);
+        Path root = Path.of(config.getOutputRoot());
+        GenerationStateRepository.StateBO state = states.load(root);
+        List<String> observedPrefix = new ArrayList<>();
+        if (state.getVersionChecksumPrefix() != null && !state.getVersionChecksumPrefix().isBlank()) {
+            for (String entry : state.getVersionChecksumPrefix().split("\\R")) {
+                observedPrefix.add(entry.substring(entry.indexOf(':') + 1));
+            }
+        }
+        CodegenSchemaBO schema = schemas.read(config, Map.of(), observedPrefix);
+        if (config.getTables() == null || config.getTables().isEmpty()) {
+            return new Loaded(error(out, err, 2, "CONFIG_REQUIRED", "logicalTables is required"), null, null, null);
+        }
+        List<CodegenSchemaBO.TableBO> selected = new ArrayList<>();
+        for (String tableName : config.getTables()) {
+            CodegenSchemaBO.TableBO match = schema.getTables().stream()
+                    .filter(table -> tableName.equals(table.getLogicalName())).findFirst().orElse(null);
+            if (match == null) {
+                return new Loaded(error(out, err, 2, "CONFIG_REQUIRED", "logical table is absent: " + tableName), null, null, null);
+            }
+            selected.add(match);
+        }
+        schema.setTables(selected);
         List<CodegenPlanBO.DiagnosticBO> scopeDiagnostics = scope.validate(config, schema);
         if (!scopeDiagnostics.isEmpty()) {
             err.println(MAPPER.writeValueAsString(Map.of("code", scopeDiagnostics.get(0).getCode(), "message", scopeDiagnostics.get(0).getMessage())));
             return new Loaded(3, null, null, null);
         }
-        return new Loaded(0, config, schema, Path.of(config.getOutputRoot()));
+        return new Loaded(0, config, schema, root);
+    }
+
+    private static String configFingerprint(CodegenConfigBO config) {
+        try {
+            return GenerationPlanService.sha256(MAPPER.writeValueAsBytes(config));
+        } catch (IOException exception) {
+            throw new IllegalStateException("configuration fingerprint failed", exception);
+        }
+    }
+
+    private static String componentFingerprint() {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            Path codeSource = Path.of(CodegenCommand.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            String prefix = "top/egon/cola/component/codegen/";
+            if (Files.isDirectory(codeSource)) {
+                Path packageRoot = codeSource.resolve(prefix);
+                try (var classes = Files.walk(packageRoot)) {
+                    for (Path path : classes.filter(file -> file.toString().endsWith(".class"))
+                            .sorted(Comparator.comparing(path -> codeSource.relativize(path).toString())).toList()) {
+                        digest.update(codeSource.relativize(path).toString().getBytes(StandardCharsets.UTF_8));
+                        digest.update(Files.readAllBytes(path));
+                    }
+                }
+            } else {
+                try (ZipFile jar = new ZipFile(codeSource.toFile())) {
+                    for (var entry : jar.stream().filter(file -> file.getName().startsWith(prefix)
+                            && file.getName().endsWith(".class")).sorted(Comparator.comparing(java.util.zip.ZipEntry::getName)).toList()) {
+                        digest.update(entry.getName().getBytes(StandardCharsets.UTF_8));
+                        try (InputStream input = jar.getInputStream(entry)) {
+                            digest.update(input.readAllBytes());
+                        }
+                    }
+                }
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (IOException | NoSuchAlgorithmException | URISyntaxException exception) {
+            throw new IllegalStateException("generator fingerprint failed", exception);
+        }
     }
 
     private static int codeFor(String code) {
@@ -227,6 +357,9 @@ public class CodegenCommand {
         body.put("planId", plan.getPlanId());
         body.put("fileCount", plan.getFiles().size());
         body.put("pending", plan.getPendingImpacts().size());
+        body.put("files", plan.getFiles().stream().map(file -> Map.of(
+                "path", file.getPath(), "artifact", file.getArtifact(), "operation", file.getOperation(),
+                "candidateHash", file.getCandidateHash())).toList());
         return body;
     }
 
@@ -235,7 +368,12 @@ public class CodegenCommand {
     }
 
     private static int error(PrintStream out, PrintStream err, int code, String stable, String message) {
-        err.println("{\"code\":\"" + stable + "\",\"message\":\"" + message.replace("\"", "'") + "\"}");
+        try {
+            err.println(MAPPER.writeValueAsString(Map.of("code", stable,
+                    "message", message == null ? "command failed" : message)));
+        } catch (IOException exception) {
+            err.println("{\"code\":\"IO_FAILURE\",\"message\":\"error serialization failed\"}");
+        }
         return code;
     }
 

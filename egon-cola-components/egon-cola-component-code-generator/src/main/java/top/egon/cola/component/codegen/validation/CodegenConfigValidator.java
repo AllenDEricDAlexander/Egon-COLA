@@ -41,17 +41,17 @@ public class CodegenConfigValidator {
 
     private static final Set<String> KNOWN_ARTIFACTS = Set.of(
             "po", "dao", "mapper-xml", "repo", "converter", "command", "query", "result",
-            "domain-service", "domain-impl", "domain-model", "domain-query", "application", "controller");
+            "domain-service", "domain-impl", "domain-model", "domain-query", "manage", "manage-impl", "controller");
 
     private static final List<String> PERSISTENCE_ARTIFACTS = List.of("po", "dao", "mapper-xml", "repo");
 
     private static final List<String> BACKEND_CRUD_ARTIFACTS = List.of(
             "po", "dao", "mapper-xml", "repo", "domain-model", "domain-query", "command", "query",
-            "result", "converter", "domain-service", "domain-impl", "application");
+            "result", "converter", "domain-service", "domain-impl", "manage", "manage-impl");
 
     private static final Set<String> UPPER_ARTIFACTS = Set.of(
             "converter", "command", "query", "result", "domain-service", "domain-impl",
-            "domain-model", "domain-query", "application", "controller");
+            "domain-model", "domain-query", "manage", "manage-impl", "controller");
 
     private static final Set<String> SERVER_FIELDS = Set.of(
             "tenant_id", "tenantId", "created_at", "createdAt", "created_by", "createdBy",
@@ -94,7 +94,7 @@ public class CodegenConfigValidator {
                     violation.getMessage()));
         }
         if (!plan.supportedFormat()) {
-            diagnostics.add(diagnostic(UNSUPPORTED_FORMAT, "/formatVersion", "formatVersion must be 1"));
+            diagnostics.add(diagnostic(UNSUPPORTED_FORMAT, "/formatVersion", "formatVersion must be 2"));
         }
         if (!diagnostics.isEmpty()) {
             log.warn("codegen apply rejected: {}", diagnostics.stream()
@@ -117,13 +117,13 @@ public class CodegenConfigValidator {
             throw new IllegalArgumentException("config is required");
         }
         CodegenConfigBO copy = config.snapshot();
-        copy.setArtifacts(new ArrayList<>(expand(config.getArtifacts())));
+        copy.setArtifacts(new ArrayList<>(expand(config)));
         return copy;
     }
 
     private List<CodegenPlanBO.DiagnosticBO> crossChecks(CodegenConfigBO config) {
         List<CodegenPlanBO.DiagnosticBO> diagnostics = new ArrayList<>();
-        List<String> expanded = expand(config.getArtifacts());
+        List<String> expanded = expand(config);
         Set<String> seen = new LinkedHashSet<>();
         for (String artifact : expanded) {
             if (!seen.add(artifact)) {
@@ -143,8 +143,9 @@ public class CodegenConfigValidator {
         return diagnostics;
     }
 
-    private static List<String> expand(List<String> artifacts) {
+    private static List<String> expand(CodegenConfigBO config) {
         List<String> expanded = new ArrayList<>();
+        List<String> artifacts = config.getArtifacts();
         if (artifacts == null) {
             return expanded;
         }
@@ -158,6 +159,9 @@ public class CodegenConfigValidator {
                 expanded.addAll(PERSISTENCE_ARTIFACTS);
             } else if ("backend-crud".equals(token)) {
                 expanded.addAll(BACKEND_CRUD_ARTIFACTS);
+                if (config.getProfile() != CodegenProfileEnum.SERVICE) {
+                    expanded.add("controller");
+                }
             } else {
                 expanded.add(token);
             }

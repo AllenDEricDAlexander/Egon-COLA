@@ -86,8 +86,7 @@ public class [=domainImplType] implements [=domainServiceType] {
     @Transactional(readOnly = true)
     public PageSlice<[=domainType]> query(@Valid [=domainQueryType] query) {
         int limit = query.getPage().pageSize();
-        List<[=poType]> rows = new ArrayList<>(repository.getBaseMapper()
-                .selectByQuery(query, limit + 1, query.getPage().offset()));
+        List<[=poType]> rows = new ArrayList<>(repository.selectByQuery(query, limit + 1, query.getPage().offset()));
         boolean hasNext = rows.size() > limit;
         if (hasNext) {
             rows = rows.subList(0, limit);

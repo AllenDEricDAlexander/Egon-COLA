@@ -485,5 +485,36 @@
                 </plugins>
             </build>
         </profile>
+        <!--
+          Peer facades are consumed outside this reactor. Their source parent version is
+          ${egon-cola.version}, which is not a repository coordinate. This profile publishes
+          a standalone consumer POM so the other family can resolve the facade jar.
+        -->
+        <profile>
+            <id>publish-resolved-facade</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>flatten-maven-plugin</artifactId>
+                        <version>1.7.0</version>
+                        <configuration>
+                            <updatePomFile>true</updatePomFile>
+                            <flattenMode>oss</flattenMode>
+                            <flattenedPomFilename>target/flattened-pom.xml</flattenedPomFilename>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>flatten-facade-pom</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>flatten</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

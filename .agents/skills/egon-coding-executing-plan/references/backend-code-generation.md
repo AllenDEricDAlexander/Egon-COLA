@@ -20,6 +20,12 @@ When current dependencies cannot satisfy a requirement:
 
 The verified offline generator is `scripts/egon-codegen.sh`. It supports native profiles `light`, `web` and `service`, FreeMarker 2.3.35, and the commands `templates`, `plan`, `check`, `apply` and `recover`. Operating notes are in the generator module README next to that script. The launcher requires an explicit local `EGON_CODEGEN_CLASSPATH`. A missing Java executable or classpath entry returns `BLOCKED_TOOLING` and does not download dependencies or start an application. Agent, open and traditional profiles remain unsupported.
 
+The CLI now expands `backend-crud` through PO/DAO/Mapper XML/Repository, Domain model and Service/implementation, Command/Query/Result/converters, Manage/implementation, and a Controller for native Light/Web. Native Service has no HTTP Controller. `logicalTables` must be explicit; selecting a narrower artifact list never widens the write scope. Confirm the target project already provides every required referenced type and API/error boundary before applying. The generated Domain Service implementation calls named Repository methods for queries and writes; it must not call `getBaseMapper()` or a DAO directly. The Repository owns Mapper/XML access.
+
+The DDL must contain the inherited `EgonModel` id, tenant, audit, nullable `deleted_at` and version columns. Verify their types, but generate only business columns in the PO class. Mapper XML includes the inherited fields. Do not add those shared declarations to a subclass merely because they appear in SQL.
+
+Plans use formatVersion 2. Review the file inventory before apply: an existing path with no generator state is `CONFLICT`, as is a user-edited or intentionally removed generated file. The CLI re-reads config and DDL and independently checks template, generator and state fingerprints before writing; a v1 plan or stale input must be replanned. Do not use a handwritten patch to bypass these protections.
+
 For an approved template task, call `plan`, inspect the JSON summary, selected files and conflicts, then `apply` only the authorized actions. Read the machine summary and diff. Do not retype generated boilerplate. A missing dependency or absent classpath still blocks; do not invent a replacement generator.
 
 Generate supported repetitive backend scaffolding through that command. The model supplies generation configuration and business decisions, reviews its diff, and writes only business logic/custom queries not covered by templates. Do not add empty adapters, base classes or services merely to exercise a template.
@@ -91,3 +97,5 @@ Map these concerns to `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-MODEL-001
 - skill 驱动的生成在 `apply` 成功后，或本次只授权到 `plan` 时，向 `docs/egon/codegen/ddl-consumption-log.md` 追加一条。记下 Asia/Shanghai 时间、profile、输出根、用到的 `src/main/resources/db/` 脚本版本（执行到的最高版本）、路径、SHA-256 和完整 SQL。这不是数据库执行记录，不连接数据库。只追加，不改旧条目；没有 db 脚本就记 `throughVersion: none`。
 
 用户于 2026-09-22 最终明确改为 FreeMarker，替代前一条 Velocity 选型。仅授权工具依赖 org.freemarker:freemarker（方案固定2.3.35），生成业务工程不增加引擎依赖，其他依赖仍须逐项批准。
+
+当前 CLI 的 `backend-crud` 会连通 Repo → Domain Service/实现 → Manage/实现 → Light/Web Controller；Service 不生成 HTTP Controller。查询和写入都经 Repository，Domain Service 实现不得直接调用 Mapper/DAO。`logicalTables` 明确选择。DDL 中的 EgonModel 通用列仅校验并映射，PO 继承基类且只生成业务列。v2 计划保护无归属文件、人工更改和旧输入；v1 计划须重新生成，不能手改目录文件绕过冲突。

@@ -13,6 +13,7 @@
 
     <artifactId>egon-cola-source-service-open-facade</artifactId>
     <packaging>jar</packaging>
+    <name>egon-cola-source-service-open-facade</name>
 
     <dependencies>
         <dependency>

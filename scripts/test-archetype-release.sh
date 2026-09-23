@@ -58,6 +58,10 @@ joined=" $* "
 label=other
 if [[ "$joined" == *"help:evaluate"* ]]; then
   label=version
+elif [[ "$joined" == *"-facade/pom.xml"* && "$joined" == *" deploy"* ]]; then
+  label=facade-deploy
+elif [[ "$joined" == *"-facade/pom.xml"* && "$joined" == *" install"* ]]; then
+  label=facade-install
 elif [[ "$joined" == *"-f egon-cola-archetypes/source-projects/pom.xml"* ]]; then
   label=source-install
 elif [[ "$joined" == *"-f egon-cola-archetypes/pom.xml"* && "$joined" == *"-Pgenerated-archetypes"* ]]; then
@@ -189,12 +193,15 @@ test_mandatory_preflight_order() {
   local expected actual
   : >"$FAKE_LOG"
   fixture_deploy all --dry-run >/dev/null
-  expected=$'root-bootstrap\narchetypes-bootstrap\nsource-install\ngenerate\ncheck\ngenerated-it\nrelease-shape'
+  expected=$'root-bootstrap\narchetypes-bootstrap\nsource-install\nfacade-install\ngenerate\ncheck\ngenerated-it\nrelease-shape'
   actual="$(event_labels)"
   assert_order "$expected" "$actual"
-  if grep -q '^mvnw:deploy:' "$FAKE_LOG"; then
+  assert_equal '4' "$(grep -c '^mvnw:facade-install:' "$FAKE_LOG" || true)" 'peer facade installs'
+  if grep -q '^mvnw:deploy:' "$FAKE_LOG" || grep -q '^mvnw:facade-deploy:' "$FAKE_LOG"; then
     fail 'dry-run reached Maven deploy'
   fi
+  grep -Fq -- '-Ppublish-resolved-facade' "$FAKE_LOG" || fail 'facade install omitted resolved POM profile'
+  grep -Fq -- '!:egon-cola-source-web-facade' "$FAKE_LOG" || fail 'generated reactor still rebuilds peer facades'
 }
 
 test_fast_publish_skips_preflight() {
@@ -202,14 +209,15 @@ test_fast_publish_skips_preflight() {
   : >"$FAKE_LOG"
   fixture_deploy --fast >/dev/null
   actual="$(event_labels)"
-  assert_order $'version\ngenerate\ndeploy' "$actual"
-  for stage in source-install check generated-it release-shape; do
+  assert_order $'version\ngenerate\nfacade-deploy\ndeploy' "$actual"
+  for stage in source-install check generated-it release-shape facade-install; do
     if printf '%s\n' "$actual" | grep -Fxq -- "$stage"; then
       fail "fast publish ran preflight stage: ${stage}"
     fi
   done
   deploy_count="$(grep -c '^mvnw:deploy:' "$FAKE_LOG" || true)"
-  assert_equal '1' "$deploy_count" 'single fast deploy'
+  assert_equal '1' "$deploy_count" 'single fast reactor deploy'
+  assert_equal '4' "$(grep -c '^mvnw:facade-deploy:' "$FAKE_LOG" || true)" 'fast peer facade deploys'
   grep -Fq -- '-Pgenerated-archetypes' "$FAKE_LOG" || fail 'fast deploy omitted generated profile'
   grep -Fq -- '-Prelease' "$FAKE_LOG" || fail 'fast deploy omitted release profile'
   grep -Fq -- '-DskipTests=true' "$FAKE_LOG" || fail 'fast deploy did not skip tests'
@@ -225,21 +233,22 @@ test_single_publish_deploy() {
   : >"$FAKE_LOG"
   fixture_deploy all --publish >/dev/null
   actual="$(event_labels)"
-  assert_order $'root-bootstrap\narchetypes-bootstrap\nsource-install\ngenerate\ncheck\ngenerated-it\nrelease-shape\nversion\ndeploy' "$actual"
+  assert_order $'root-bootstrap\narchetypes-bootstrap\nsource-install\nfacade-install\ngenerate\ncheck\ngenerated-it\nrelease-shape\nversion\nfacade-deploy\ndeploy' "$actual"
   deploy_count="$(grep -c '^mvnw:deploy:' "$FAKE_LOG" || true)"
   assert_equal '1' "$deploy_count" 'single root deploy'
+  assert_equal '4' "$(grep -c '^mvnw:facade-deploy:' "$FAKE_LOG" || true)" 'peer facade deploys before reactor'
   grep -Fq -- '-Pgenerated-archetypes' "$FAKE_LOG" || fail 'deploy omitted generated profile'
   grep -Fq -- '-Prelease' "$FAKE_LOG" || fail 'deploy omitted release profile'
 }
 
 test_failure_never_reaches_deploy() {
   local failure deploy_count
-  for failure in root-bootstrap archetypes-bootstrap source-install generate check generated-it release-shape; do
+  for failure in root-bootstrap archetypes-bootstrap source-install facade-install generate check generated-it release-shape; do
     : >"$FAKE_LOG"
     if FAKE_FAIL_LABEL="$failure" fixture_deploy all --publish >/dev/null 2>&1; then
       fail "failure injection unexpectedly succeeded: ${failure}"
     fi
-    deploy_count="$(grep -c '^mvnw:deploy:' "$FAKE_LOG" || true)"
+    deploy_count="$(grep -Ec '^mvnw:(facade-)?deploy:' "$FAKE_LOG" || true)"
     assert_equal '0' "$deploy_count" "deploy after ${failure} failure"
   done
 }

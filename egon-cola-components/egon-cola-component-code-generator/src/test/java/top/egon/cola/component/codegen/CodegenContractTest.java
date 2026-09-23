@@ -120,7 +120,7 @@ class CodegenContractTest {
         assertEquals(first, second);
         assertEquals(plan, restored);
         assertTrue(restored.supportedFormat());
-        restored.setFormatVersion(2);
+        restored.setFormatVersion(1);
         assertFalse(restored.supportedFormat());
     }
 

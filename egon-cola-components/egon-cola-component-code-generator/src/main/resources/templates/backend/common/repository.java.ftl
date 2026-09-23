@@ -2,6 +2,13 @@ package [=repoPackage];
 
 import [=poFqn];
 import [=daoFqn];
+[#if includeQuery!false]
+import [=domainQueryFqn];
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
+[/#if]
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -25,4 +32,11 @@ public class [=repoType] extends EgonColaRepository<[=daoType], [=poType]> {
     @Getter(AccessLevel.PROTECTED)
     @Qualifier("[=propertiesBean]")
     private final EgonColaMybatisPlusProperties properties;
+[#if includeQuery!false]
+
+    public List<[=poType]> selectByQuery(@Valid @NotNull [=domainQueryType] query,
+                                        @Min(1) int limit, @Min(0) long offset) {
+        return getBaseMapper().selectByQuery(query, limit, offset);
+    }
+[/#if]
 }

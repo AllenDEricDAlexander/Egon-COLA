@@ -141,7 +141,8 @@ public interface ProjectLayoutStrategy {
         String domain = safeSegment(config.getDomain(), "domain");
         return switch (artifact) {
             case "domain-model", "domain-query", "domain-service" -> base + ".domain." + domain;
-            case "domain-impl", "persistence-converter" -> base + ".infrastructure." + domain + ".service";
+            case "domain-impl" -> base + ".infrastructure." + domain + ".service.impl";
+            case "persistence-converter" -> base + ".infrastructure." + domain + ".converter";
             case "po" -> base + ".infrastructure." + domain + ".po";
             case "dao", "mapper-xml" -> base + ".infrastructure." + domain + ".dao";
             case "repo" -> base + ".infrastructure." + domain + ".repo";

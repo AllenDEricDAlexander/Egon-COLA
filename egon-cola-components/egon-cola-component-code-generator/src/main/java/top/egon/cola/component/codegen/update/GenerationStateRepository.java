@@ -15,7 +15,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -57,6 +60,15 @@ public class GenerationStateRepository {
         }
     }
 
+    public String fingerprint(StateBO state) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(MAPPER.writeValueAsBytes(state)));
+        } catch (IOException | NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("generation state fingerprint failed", exception);
+        }
+    }
+
     public Path candidate(Path outputRoot, String planId, String relativePath) {
         return outputRoot.resolve(".egon/codegen/candidates").resolve(planId).resolve(relativePath).normalize();
     }
@@ -82,6 +94,8 @@ public class GenerationStateRepository {
         private Integer formatVersion;
 
         private String latestObservedSchema;
+
+        private String versionChecksumPrefix;
 
         @Builder.Default
         private List<CodegenPlanBO.ArtifactStateBO> artifacts = new ArrayList<>();

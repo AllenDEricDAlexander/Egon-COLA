@@ -9,6 +9,8 @@ description: Use when a coding task needs a repository-grounded RFC-style specif
 
 After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement. On native light, web, and service, a SQL change refreshes catalog-owned Java and Mapper XML only through that generator: the model writes the SQL, the manifest, and the generator config. A new business project is created by egon-coding-create-new-module from one non-open archetype, not by handwriting a module tree. After each such apply, or after a plan that is the last authorized generator action, append the classpath SQL journal required by references/backend-code-generation.md.
 
+For native CRUD, `backend-crud` uses the full Repository → Domain Service → Manage → Controller chain where that profile supports HTTP. Check `EgonModel` fields in DDL and keep them inherited in PO. A v1 or stale plan and unmanaged files block apply; use the v2 generator plan and review the exact file list.
+
 ## Java / CQE effective contract (2026-09-22)
 
 Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.

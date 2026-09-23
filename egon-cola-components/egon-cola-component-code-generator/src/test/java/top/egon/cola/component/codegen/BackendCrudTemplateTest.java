@@ -63,6 +63,9 @@ class BackendCrudTemplateTest {
         assertFalse(light.get("domain-service").contains("mybatis"));
         assertFalse(light.get("domain-model").contains("EgonModel"));
         assertFalse(light.get("domain-impl").contains(".application."));
+        assertTrue(light.get("repo").contains("selectByQuery"));
+        assertTrue(light.get("domain-impl").contains("repository.selectByQuery"));
+        assertFalse(light.get("domain-impl").contains("getBaseMapper()"));
         assertFalse(light.get("controller").contains("Repository"));
         assertFalse(light.get("controller").contains("DomainService"));
         assertTrue(light.get("controller").contains("manage.detail"));

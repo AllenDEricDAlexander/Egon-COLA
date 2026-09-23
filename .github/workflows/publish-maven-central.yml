@@ -183,11 +183,21 @@ jobs:
           ./mvnw -B -ntp -N install
           ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
           ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+          for facade_pom in \
+            egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-facade/pom.xml \
+            egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml \
+            egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml \
+            egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml
+          do
+            ./mvnw -B -ntp -f "${facade_pom}" -Ppublish-resolved-facade install
+          done
           ./scripts/generate_archetypes.sh generate
           test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
           ./scripts/generate_archetypes.sh check
           ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-            -Pgenerated-archetypes clean install
+            -Pgenerated-archetypes \
+            -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade' \
+            clean install
 
       - name: Verify release shape (dry run)
         if: ${{ inputs.dry_run == true }}
@@ -199,6 +209,7 @@ jobs:
             -ntp
             -Pgenerated-archetypes
             -Prelease
+            -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade'
             -DtrimStackTrace=false
             -Dgpg.skip=true
           )
@@ -217,6 +228,7 @@ jobs:
             -ntp
             -Pgenerated-archetypes
             -Prelease
+            -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade'
             -DtrimStackTrace=false
             "-Dgpg.passphrase=${GPG_PASSPHRASE}"
           )
@@ -272,18 +284,37 @@ jobs:
         run: |
           set -euo pipefail
 
+          FACADE_ARGS=(
+            -B
+            -ntp
+            -Prelease
+            -Ppublish-resolved-facade
+            -DtrimStackTrace=false
+            "-Dgpg.passphrase=${GPG_PASSPHRASE}"
+          )
           MVN_ARGS=(
             -B
             -ntp
             -Pgenerated-archetypes
             -Prelease
+            -pl '!:egon-cola-source-service-facade,!:egon-cola-source-web-facade,!:egon-cola-source-service-open-facade,!:egon-cola-source-web-open-facade'
             -DtrimStackTrace=false
             "-Dgpg.passphrase=${GPG_PASSPHRASE}"
           )
 
           if [[ "${{ inputs.skip_tests }}" == "true" ]]; then
+            FACADE_ARGS+=("-DskipTests")
             MVN_ARGS+=("-DskipTests")
           fi
+
+          for facade_pom in \
+            egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-facade/pom.xml \
+            egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-facade/pom.xml \
+            egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml \
+            egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml
+          do
+            ./mvnw -f "${facade_pom}" "${FACADE_ARGS[@]}" clean deploy
+          done
 
           ./mvnw ${{ steps.target.outputs.maven_project_args }} "${MVN_ARGS[@]}" clean deploy
 

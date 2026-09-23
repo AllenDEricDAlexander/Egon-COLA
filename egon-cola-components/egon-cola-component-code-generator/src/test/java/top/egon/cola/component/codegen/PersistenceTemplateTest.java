@@ -70,6 +70,11 @@ class PersistenceTemplateTest {
             assertTrue(repo.contains("@Repository(\"ordersRepository\")"));
             assertTrue(rendered.get("po").contains("@SuperBuilder"));
             assertTrue(rendered.get("po").contains("extends EgonModel<OrdersPO>"));
+            for (String inherited : List.of("id", "tenantId", "createUserId", "createTime",
+                    "updateUserId", "updateTime", "deletedAt", "version")) {
+                assertFalse(rendered.get("po").matches("(?s).*private\\s+\\w+\\s+" + inherited + "\\s*;.*"), inherited);
+            }
+            assertTrue(rendered.get("po").contains("extends EgonModel<OrdersPO>"));
             assertFalse(rendered.get("po").contains("private Long id"));
             if (profile == CodegenProfileEnum.LIGHT) {
                 assertTrue(path(config, "po").startsWith("src/main/java/"));
@@ -126,6 +131,14 @@ class PersistenceTemplateTest {
         CodegenSchemaBO legacySchema = CodegenSchemaBO.builder().tables(List.of(legacy)).build();
         assertTrue(codes(scope.validate(config(CodegenProfileEnum.SERVICE, List.of("dao")), legacySchema))
                 .contains(GenerationScopeValidator.LEGACY_UNIQUE_KEY));
+    }
+
+    @Test
+    void inheritedAuditColumnsRemainInDdlButNotInThePojo() {
+        CodegenSchemaBO withoutAudit = orders.snapshot();
+        withoutAudit.getTables().get(0).getColumns().removeIf(column -> "create_time".equals(column.getName()));
+        assertTrue(codes(scope.validate(config(CodegenProfileEnum.LIGHT, List.of("po")), withoutAudit))
+                .contains(GenerationScopeValidator.BASE_FIELD_TYPE));
     }
 
     private Map<String, String> render(CodegenConfigBO config) {

@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Machine contract shared by plan and apply. formatVersion 1 is the only supported shape.
+ * Machine contract shared by plan and apply. Version 2 binds all generation inputs.
  */
 @Data
 @NoArgsConstructor
@@ -28,7 +28,7 @@ import java.util.List;
 @JsonPropertyOrder(alphabetic = true)
 public class CodegenPlanBO {
 
-    public static final int FORMAT_VERSION = 1;
+    public static final int FORMAT_VERSION = 2;
 
     @NotNull(groups = CodegenGroups.Apply.class)
     private Integer formatVersion;
@@ -45,6 +45,8 @@ public class CodegenPlanBO {
     private String inputFingerprint;
 
     private String configFingerprint;
+
+    private String stateFingerprint;
 
     private String templateSetVersion;
 
@@ -68,6 +70,8 @@ public class CodegenPlanBO {
     private JournalBO journal;
 
     private String latestObservedSchema;
+
+    private String versionChecksumPrefix;
 
     @JsonIgnore
     public boolean supportedFormat() {
@@ -112,6 +116,7 @@ public class CodegenPlanBO {
                 .outputRootBinding(outputRootBinding)
                 .inputFingerprint(inputFingerprint)
                 .configFingerprint(configFingerprint)
+                .stateFingerprint(stateFingerprint)
                 .templateSetVersion(templateSetVersion)
                 .componentFingerprint(componentFingerprint)
                 .files(copiedFiles)
@@ -121,6 +126,7 @@ public class CodegenPlanBO {
                 .artifactStates(copiedStates)
                 .journal(journal == null ? null : journal.snapshot())
                 .latestObservedSchema(latestObservedSchema)
+                .versionChecksumPrefix(versionChecksumPrefix)
                 .build();
     }
 
