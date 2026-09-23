@@ -119,12 +119,14 @@ The bound engine is thread-safe, duplicate-free, and strictly increasing at its 
 ## Clock Rollback Policy
 
 - A rollback not larger than `max-clock-backward` is waited out using short parks and a bounded monotonic-time deadline.
-- Waiting is interrupt-aware; interruption stops generation and preserves the thread's interrupt flag.
+- Waiting is interrupt-aware: a thread that is already interrupted, or interrupted while waiting, stops generation with `IdGenerationInterruptedException` and keeps its interrupt flag set.
 - A larger rollback, or a small rollback that does not recover within the deadline, immediately raises `ClockMovedBackwardException`. Its diagnostics include the current time, last used time, rollback distance, and machine ID.
 - The implementation does not continue on an invented logical timestamp after a serious rollback. That would be unsafe after a process restart because the in-memory watermark is lost.
-- Timestamp exhaustion raises `SnowflakeTimestampOutOfRangeException` instead of wrapping the 41-bit field.
+- A wall clock outside the representable window raises `SnowflakeTimestampOutOfRangeException` instead of wrapping the 41-bit field. The window ends when the 41 elapsed-millisecond bits are exhausted, and it also excludes any instant before the Epoch.
 
 Run reliable NTP on every node and monitor time synchronization. A pure in-memory generator cannot unconditionally guarantee no duplicates across a serious clock rollback combined with process restart.
+
+Configuration failures and these generation failures all throw the common-core `CommonException` with `ResultCode.SYSTEM_ERROR`, so each carries an integer `getCode()`, a String `getStatus()`, and a message containing the generation diagnostics.
 
 ## Machine ID Allocation
 

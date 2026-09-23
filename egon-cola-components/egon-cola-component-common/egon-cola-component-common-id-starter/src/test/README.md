@@ -5,14 +5,31 @@
 在仓库根目录执行：
 
 ```bash
-mvn -f egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml clean test
+./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml clean test
 ```
+
+`src/test/java` 下的测试类职责：
+
+| 测试类 | 覆盖范围 |
+|---|---|
+| `snowflake/SnowflakeIdGeneratorTest` | 位布局与引擎状态往返、单实例严格递增、机器 ID 边界与同 ID 冲突、Epoch 与末位可表示毫秒、序列耗尽后等待下一毫秒、回拨等待与有界失败、中断虚拟线程 |
+| `snowflake/SnowflakeIdGeneratorConcurrencyTest` | 平台线程与大量虚拟线程共享引擎时只产生正数且不重复 |
+| `contract/SnowflakeStaticContractTest` | 静态入口不可构造、两个抽象操作、门面保留原 CAS 算法、未初始化拒绝、同配置复用与异配置拒绝、并发绑定唯一；机器 ID 边界场景在独立 JVM 子进程中执行 |
+| `autoconfigure/IdGeneratorAutoConfigurationTest` | 正常上下文不发布生成器 Bean、重复上下文不重复绑定、`enabled=false` 不绑定、`machine-id` 缺失或越界与负回拨容忍快速失败、时长绑定、自定义 `IdGenerator` 或 `LongIdGenerator` Bean 使默认配置退让 |
+| `generator/LongIdGeneratorTest` | 具名 `LongIdGenerator` 实现两个独立操作 |
 
 定向执行生成器与并发测试：
 
 ```bash
-mvn -f egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml \
+./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml \
   -Dtest=SnowflakeIdGeneratorTest,SnowflakeIdGeneratorConcurrencyTest test
+```
+
+单独运行静态契约测试：
+
+```bash
+./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml \
+  -Dtest=SnowflakeStaticContractTest test
 ```
 
 阻塞场景有 JUnit 超时、Future 超时或线程 join 超时保护。普通测试只验证正确性，不使用
@@ -23,7 +40,7 @@ mvn -f egon-cola-components/egon-cola-component-common/egon-cola-component-commo
 JMH 位于同一 Starter 的 `src/jmh/java`，只在显式启用 `jmh` Profile 时编译：
 
 ```bash
-mvn -f egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml \
+./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml \
   -Pjmh -DskipTests package
 ```
 
@@ -31,7 +48,7 @@ mvn -f egon-cola-components/egon-cola-component-common/egon-cola-component-commo
 
 ```text
 egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/
-target/egon-cola-component-common-id-starter-5.3.2-benchmarks.jar
+target/egon-cola-component-common-id-starter-5.4.1-benchmarks.jar
 ```
 
 ## 平台线程吞吐与平均延迟
@@ -39,7 +56,7 @@ target/egon-cola-component-common-id-starter-5.3.2-benchmarks.jar
 正式执行 1、2、4、8、16、32 个平台线程，并采集 GC 分配数据：
 
 ```bash
-java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.3.2-benchmarks.jar \
+java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.4.1-benchmarks.jar \
   '.*(throughput|averageTime)Threads(1|2|4|8|16|32)$' -prof gc
 ```
 
@@ -55,7 +72,7 @@ java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-co
 归一化为 ID/s 和 B/ID。常用批次为 `32, 128, 512, 2048, 8192, 32768, 65536`：
 
 ```bash
-java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.3.2-benchmarks.jar \
+java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.4.1-benchmarks.jar \
   '.*virtualThreadBatch(32|128|512|2048|8192|32768|65536)$' -prof gc
 ```
 
@@ -65,7 +82,7 @@ java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-co
 继续向上探测 131,072、262,144、524,288 和 1,048,576 个虚拟线程任务：
 
 ```bash
-java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.3.2-benchmarks.jar \
+java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.4.1-benchmarks.jar \
   '.*virtualThreadBatch(131072|262144|524288|1048576)$' -prof gc
 ```
 
@@ -78,11 +95,11 @@ java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-co
 冒烟只验证 benchmark 可启动和完成，不用于正式容量结论：
 
 ```bash
-java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.3.2-benchmarks.jar \
+java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.4.1-benchmarks.jar \
   '.*(throughputThreads(1|32)|averageTimeThreads(1|32))$' \
   -wi 0 -i 1 -r 200ms -f 1 -prof gc
 
-java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.3.2-benchmarks.jar \
+java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/target/egon-cola-component-common-id-starter-5.4.1-benchmarks.jar \
   '.*virtualThreadBatch(32|512|2048|8192|32768|65536)$' \
   -wi 0 -i 1 -r 200ms -f 1 -prof gc
 ```
