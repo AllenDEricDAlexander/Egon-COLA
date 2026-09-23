@@ -11,7 +11,7 @@
 | Access Guard | 基于规则的准入控制，通过 Spring AOP 保护业务方法执行 | [Access Guard Starter](egon-cola-component-access-guard-starter/README.zh-CN.md) |
 | Agent Flow | 扁平化的 Spring AI + Google ADK 配置驱动 Flow 编译、in-memory Session、同步事件和流式执行 | [Agent Flow Starter](egon-cola-component-agent-flow-starter/README.zh-CN.md) |
 | Bytecode | ASM 架构校验，以及运行时 executor 增强、方法观测和方法扩展增强 | [Bytecode](egon-cola-component-bytecode/README.zh-CN.md) |
-| Code Generator | 离线开发工具，读取 PostgreSQL DDL 或 MyBatis-Plus/Sharding-JDBC manifest 生成后端 CRUD | [Code Generator](egon-cola-component-code-generator/README.md)（仅中文） |
+| Code Generator | 离线开发工具，读取 PostgreSQL DDL 或 MyBatis-Plus/Sharding-JDBC manifest 生成后端 CRUD | [Code Generator](egon-cola-component-code-generator/README.zh-CN.md) |
 | Common | 共享契约和基础工具模块 | [Common](egon-cola-component-common/README.zh-CN.md) |
 | Dynamic Thread Pool | 运行时执行器管理 | [Dynamic Thread Pool](egon-cola-component-dynamic-thread-pool/README.zh-CN.md) |
 | Method Extension | 在注解方法执行前运行一个业务自定义决策 Handler | [Method Extension](egon-cola-component-method-extension/README.zh-CN.md) |

@@ -109,7 +109,7 @@ Egon-COLA 源起于阿里巴巴开源的 [COLA v5](https://github.com/alibaba/CO
 | [RAG](egon-cola-components/egon-cola-component-rag-starter/README.zh-CN.md) | ★ `egon-cola-component-rag-starter` | `RagDocumentExtractor`、`RagChunkingStrategy`（`TOKEN`/`MARKDOWN_HEADING`/`RECURSIVE`）、`RagDocumentStorage`、向量化注册表、强制的 collection 与 model 过滤、幂等分块 ID | 宿主提供 `EmbeddingModel` + `VectorStore` |
 | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.zh-CN.md) | ★ `egon-cola-component-bytecode-api` / `-bridge` / `-runtime` / `-agent` / `-starter` | 公共能力契约、Agent↔运行时桥接、带 sink 与故障隔离的增强、shade 后的 `premain` Agent（`executor`、`observation`、`method-extension`）、Spring Boot Starter 与 `/actuator/egonbytecode` | Agent 能力需 `-javaagent` |
 | | ◆ `egon-cola-component-bytecode-architecture-maven-plugin` | 构建期 `check`、`check-reactor`、`generate-baseline`，10 条架构规则与 Text/JSON/HTML 报告 | 声明在 `<build><plugins>`，不是 `<dependencies>` |
-| [Code Generator](egon-cola-components/egon-cola-component-code-generator/README.md) | ◆ `egon-cola-component-code-generator` | 离线开发工具：输入 PostgreSQL DDL 或持久化清单，输出分层 CRUD，`plan`/`check`/`apply`/`recover` 流程，指纹校验保证不覆盖手工修改 | 仅开发期；不启动 Spring |
+| [Code Generator](egon-cola-components/egon-cola-component-code-generator/README.zh-CN.md) | ◆ `egon-cola-component-code-generator` | 离线开发工具：输入 PostgreSQL DDL 或持久化清单，输出分层 CRUD，`plan`/`check`/`apply`/`recover` 流程，指纹校验保证不覆盖手工修改 | 仅开发期；不启动 Spring |
 
 ### 平台
 

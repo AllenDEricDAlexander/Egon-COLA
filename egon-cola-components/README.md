@@ -11,7 +11,7 @@
 | Access Guard | Rule-based admission control and guarded business execution through Spring AOP | [Access Guard Starter](egon-cola-component-access-guard-starter/README.md) |
 | Agent Flow | Flat configuration-driven Spring AI + Google ADK flow compilation, in-memory sessions, synchronous events, and streaming execution | [Agent Flow Starter](egon-cola-component-agent-flow-starter/README.md) |
 | Bytecode | ASM architecture verification plus runtime executor, method-observation, and Method Extension enhancement | [Bytecode](egon-cola-component-bytecode/README.md) |
-| Code Generator | Offline build-time CRUD generation from PostgreSQL DDL or MyBatis-Plus/Sharding-JDBC manifests | [Code Generator](egon-cola-component-code-generator/README.md) (Chinese-only) |
+| Code Generator | Offline build-time CRUD generation from PostgreSQL DDL or MyBatis-Plus/Sharding-JDBC manifests | [Code Generator](egon-cola-component-code-generator/README.md) |
 | Common | Shared contracts and utility modules | [Common](egon-cola-component-common/README.md) |
 | Dynamic Thread Pool | Runtime executor management | [Dynamic Thread Pool](egon-cola-component-dynamic-thread-pool/README.md) |
 | Method Extension | One business-defined decision handler executed before an annotated method | [Method Extension](egon-cola-component-method-extension/README.md) |
