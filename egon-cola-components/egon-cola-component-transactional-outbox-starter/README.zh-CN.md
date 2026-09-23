@@ -81,6 +81,11 @@ Failsafe 执行。
 `PlatformTransactionManager`。只在使用 HTTP 投递时增加 `spring-web`，只在使用
 RabbitMQ 投递时增加 `spring-rabbit`。
 
+组件异常位于 `top.egon.cola.component.outbox.common.exception`，统一继承 common-core 的
+`CommonException`，因此各 starter 的 `getCode()`、`getStatus()` 与 `isRetryable()` 保持一致。
+Starter 仅在应用尚未定义时发布规范的 `egonColaValidationUtils` Bean，并注入自身的
+validator；这些 validator 继承 `BaseValidator`，并保留各自的协议校验。
+
 ## PostgreSQL 迁移
 
 引入 starter **不会自动建表**，也不会替业务应用执行 Flyway。请复制：
@@ -266,8 +271,9 @@ egon:
 ```
 
 enqueue 时使用 `channel("http")` 和 `destination("order-api")`。客户端不会跟随重定向。
-凭证应由 `HttpCredentialProvider` Bean 在投递时提供，不要把 `Authorization` 或
-`Cookie` 持久化到 `OutboxMessage`：
+凭证应由 `HttpCredentialProvider` Bean 在投递时提供，不要把请求头写入 `OutboxMessage`：
+`Authorization`、`Proxy-Authorization`、`Cookie`、`Set-Cookie`、`Host`、`Content-Length`、
+`Transfer-Encoding`、`Connection` 在 enqueue 校验阶段就会被拒绝，投递时也会再次过滤。
 
 ```java
 @Bean
@@ -380,7 +386,8 @@ egon:
 
 ## 指标与安全日志
 
-存在唯一 Micrometer `MeterRegistry` 时，组件记录：
+当容器中同时存在 Micrometer `MeterRegistry` 与 `DataSource`，且应用未自定义
+`OutboxMetrics` 时，组件记录：
 
 - `egon.cola.outbox.backlog`
 - `egon.cola.outbox.enqueue`
@@ -407,8 +414,9 @@ EGON_OUTBOX_TEST_POSTGRES_ENABLED=true ./mvnw -B -ntp \
 ```
 
 测试使用隔离的 PostgreSQL 16.6 Testcontainer，不读取本机 PostgreSQL 用户名或密码。
-GitHub CI 的 `Outbox PostgreSQL` 任务会始终开启这组测试；Docker 或数据库启动失败会使
-任务失败，不会静默跳过。
+GitHub CI 的 `CI Backend` 任务为整个 Reactor 设置
+`EGON_OUTBOX_TEST_POSTGRES_ENABLED=true`，因此这组测试始终执行、不会 assume-skip；
+Docker 或数据库启动失败会使任务失败，不会静默跳过。
 
 ## 明确的支持边界
 

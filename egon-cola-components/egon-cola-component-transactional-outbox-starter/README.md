@@ -293,8 +293,10 @@ egon:
 ```
 
 Enqueue with `channel("http")` and `destination("order-api")`. Redirects are not
-followed. Use an `HttpCredentialProvider` Bean for credentials rather than
-persisting `Authorization` or `Cookie` headers in `OutboxMessage`:
+followed. Use an `HttpCredentialProvider` Bean for credentials instead of persisting
+headers in `OutboxMessage`: `Authorization`, `Proxy-Authorization`, `Cookie`,
+`Set-Cookie`, `Host`, `Content-Length`, `Transfer-Encoding`, and `Connection` are
+rejected during enqueue validation and are stripped again from outbound headers:
 
 ```java
 @Bean
@@ -416,7 +418,8 @@ the business requires.
 
 ## Metrics and Safe Logging
 
-If exactly one Micrometer `MeterRegistry` is present, the component records:
+If a Micrometer `MeterRegistry` and a `DataSource` bean are both present and the
+application defines no `OutboxMetrics` bean of its own, the component records:
 
 - `egon.cola.outbox.backlog`
 - `egon.cola.outbox.enqueue`
@@ -445,9 +448,10 @@ EGON_OUTBOX_TEST_POSTGRES_ENABLED=true ./mvnw -B -ntp \
 ```
 
 The suite uses an isolated PostgreSQL 16.6 Testcontainer and does not read local
-PostgreSQL usernames or passwords. The GitHub CI `Outbox PostgreSQL` job always
-enables this suite; Docker or database startup failures fail the job instead of
-silently skipping it.
+PostgreSQL usernames or passwords. The GitHub CI `CI Backend` job sets
+`EGON_OUTBOX_TEST_POSTGRES_ENABLED=true` for the whole reactor, so this suite always
+runs there and never assume-skips; Docker or database startup failures fail the job
+instead of silently skipping it.
 
 ## Explicit Scope
 
