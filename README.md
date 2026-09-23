@@ -13,6 +13,7 @@ Egon-COLA is a Java 21 Maven multi-module repository that provides cleanly layer
 
 ## Contents
 
+- [Origin](#origin)
 - [Features](#features)
 - [Modules at a Glance](#modules-at-a-glance)
 - [Architecture](#architecture)
@@ -32,35 +33,96 @@ Egon-COLA is a Java 21 Maven multi-module repository that provides cleanly layer
 - [Changelog](#changelog)
 - [License](#license)
 
+## Origin
+
+Egon-COLA began as Alibaba's open-source [COLA v5](https://github.com/alibaba/COLA) (Clean Object-oriented and Layered Architecture) taken into this repository as a starting point rather than as an external dependency. The initial commit (2025-08-17) imported COLA's root POM `com.alibaba.cola:cola-dummy-aggregation-parent`, its `cola-components` set (`cola-component-dto`, `cola-component-exception`, `cola-component-extension-starter`, `cola-component-statemachine`, `cola-component-ruleengine`, `cola-components-bom`, …), and the `cola-archetypes` light/service/web templates.
+
+| Dimension | Status |
+|---|---|
+| Retained | The COLA layer direction (`common`, `facade`, `adapter`, `application`, `domain`, `infrastructure`, `starter`), the Archetype + Component + BOM organization, and the 5.x version line — the current release is `5.4.1`. |
+| Renamed | On 2026-07-01 every coordinate moved from `com.alibaba.cola` to `top.egon`, and every artifact from `cola-*` to `egon-cola-*`. |
+| Re-implemented | No upstream artifact is consumed at build or runtime. `CoreBoundaryTest` and `SourceBoundaryAssert` fail the build if a single `com.alibaba.cola` import reappears. |
+| Extended | RPC, dynamic thread pools, access governance, method extension, transactional outbox, two-level cache, the MyBatis-Plus/ShardingSphere repository layer, Agent Flow and RAG, bytecode governance, and an independently deployable platform tier (Tianshu, Yuheng, Tianquan-Shoubing, Tianquan-Jianshen) that COLA never shipped. |
+
+Read this as a lineage, not a distribution: Egon-COLA keeps COLA's architectural vocabulary and grows an engineering foundation of its own on top of it.
+
 ## Features
 
-- **Project scaffolding**: Generate the native component/platform-backed family (`light`, `service`, `web`, `agent`) or the public-stack `-open` family with Maven Archetypes.
-- **Layering conventions**: Provide explicit boundaries for the `common`, `facade`, `domain`, `application`, `infrastructure`, `adapter`, and `starter` layers.
-- **Reusable components**: Offer common contracts, IDs, tracing, caching, persistence extensions, dynamic thread pools, RPC, rule engines, access governance, method extension, transactional outbox, and bytecode tooling.
-- **AI-agent capabilities**: Provide the Agent Flow and RAG starters on Spring AI plus Google ADK, and an `agent` archetype that generates a Deep Research and knowledge-base service.
-- **Enterprise platforms**: Include Tianshu (Dynamic Config Center), Yuheng, Tianquan-Shoubing (Unified Identity Provider), and Tianquan-Jianshen permission platform, plus a Wujie-based Admin Portal.
-- **Architecture verification**: Support build-time architecture rules, baselines, reports, and optional runtime bytecode enhancements.
-- **Compatibility verification**: Run Maven builds, generated-project verification, Docker-backed tests, and multi-JDK checks in CI.
+**Scaffolding and layering**
+
+- Seven Maven Archetypes in two families: the native `light`, `service`, `web`, and `agent` family wired to Egon-COLA components and platforms, and the public-stack `-open` family (`light-open`, `service-open`, `web-open`) pinned to a reviewed Spring ecosystem baseline.
+- Explicit layer ownership in every generated project: `common`, `facade`, `adapter`, `application`, `domain`, `infrastructure`, and `starter`, with `light` deliberately collapsed into one module and `agent` expanded into six.
+- Peer RPC contracts published as ordinary libraries (`...-service-facade`, `...-web-facade`, and their `-open` twins) so sibling generated projects can call each other without sharing sources.
+- Build-time architecture rules, baselines, and reports that keep the generated dependency direction intact as the business project grows.
+
+**Application building blocks (Components)**
+
+- Stable contracts, Spring-free: `Result`/`PageResult`/`PageQuery`/`SortQuery`, `ErrorStatus`/`BusinessException`/`CommonException`, `TreeBuilder`, `BaseConverter`, and the `EgonEnum` persistence contract.
+- Cross-cutting runtime: W3C `traceparent`/`tracestate` context with MDC projection and task decorators, Servlet/WebFlux/WebClient/Reactor auto-configuration, Snowflake `BIGINT` IDs behind an explicit `machine-id`, digests/HMAC/Base64/Hex, and `@Sensitive` masking on Jackson responses and Logback messages.
+- Data access: a two-level Guava (L1) + Redisson `RMapCache` (L2) cache with tenant-scoped keys and penetration/breakdown/avalanche guards, plus a MyBatis-Plus 3.5.16 + ShardingSphere-JDBC 5.5.3 + PostgreSQL layer that publishes one logical `DataSource`, an `EgonModel` ActiveRecord contract, tenant and optimistic-lock interceptors, batch commands, and a checksum-verified DDL runner.
+- Async capacity and governance: dynamic thread pools (including bounded virtual-thread executors) resized through Redis with snapshot reporting and metrics; method-level deny/allow lists, penalty box, rate limits, and time limits; pre-invocation method-extension handlers behind an AOP or bytecode-Agent engine; and a PostgreSQL transactional outbox delivering at-least-once over HTTP, RabbitMQ, or a custom handler.
+- Pure-Java rule engine: rule chains, responsibility chains, and rule trees with execution trace and listeners. It deliberately ships no expression language and no rule-management backend.
+- Development tooling: an offline generator that turns PostgreSQL DDL or a persistence manifest into the layered CRUD code of a generated project, without starting Spring or editing the target POM.
+
+**AI-agent building blocks**
+
+- Agent Flow compiles a YAML flow tree into Spring AI 1.1.8 and Google ADK 0.7.0 `LlmAgent`, `SequentialAgent`, `ParallelAgent`, and `LoopAgent` graphs with strict startup validation, synchronous and streamed execution, and process-local sessions.
+- RAG supplies the mechanics — extraction, chunking, storage, embedding, and filtered similarity retrieval — while the host owns the `EmbeddingModel` and `VectorStore` beans; it is not a knowledge base product.
+- The `agent` archetype generates a six-module Deep Research plus knowledge-base service on PostgreSQL `vector`, exposing a single SSE run endpoint and no MQ, RPC, GraphQL, or UI surface.
+
+**Enterprise platforms**
+
+- Tianshu (Dynamic Config Center): one-YAML ConfigData loading, `@DdcValue` with selective refresh, Redis leases for configuration clients and RPC providers, synchronous `SYNC_ALL_ACK` publication, and a standalone control plane with its own console.
+- Yuheng: an HTTP/RPC data plane plus control plane — release-based routing, OpenAI-compatible transparent streaming, WebSocket and multipart transport, MCP endpoints, provider discovery and health, mTLS, and W3C trace propagation.
+- Tianquan-Shoubing: the unified identity provider for OAuth/OIDC, browser SSO, multi-tenant membership, and single-audience resource-bound tokens.
+- Tianquan-Jianshen: resource and role authorization with immutable manifest activation, fail-closed fencing, atomic policy snapshots, and a gateway adapter for the Yuheng hot path.
+- A Wujie-based Admin Portal plus one React console per platform, sharing layout, theming, HTTP/OAuth clients, and i18n through `@egon-cola/xingyuan-admin-web-shared`.
+
+**Verification**
+
+- CI verifies the Maven backend and the platform frontends, generated projects are compiled and tested from the archetype catalog, Docker-backed integration tests cover cross-process flows, and the compatibility matrix is checked on more than one JDK.
 
 ## Modules at a Glance
 
-| Kind | Module | Primary use |
-|---|---|---|
-| Component | [Common](egon-cola-components/egon-cola-component-common/README.md) | Shared results, exceptions, POJOs, trace, ID, crypto, data desensitization, cache, and MyBatis-Plus/ShardingSphere extensions. |
-| Component | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | Executor registration, Redis config changes, dynamic resizing, virtual-thread limits, and trace propagation. |
-| Component | [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | Protobuf/gRPC provider and consumer, Tianshu registration and discovery, and Yuheng channel. |
-| Component | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine-starter/README.md) | Java rule chains, responsibility chains, rule trees, trace, limits, and listeners. |
-| Component | [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.md) | Method-level allow/deny lists, rate limiting, timeouts, and rejection governance. |
-| Component | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.md) | Insert AOP or Agent business-decision handlers before annotated method execution. |
-| Component | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md) | At-least-once PostgreSQL/JDBC delivery over HTTP, RabbitMQ, or custom handlers. |
-| Component | [Agent Flow](egon-cola-components/egon-cola-component-agent-flow-starter/README.md) | Configuration-driven flow compilation on Spring AI and Google ADK, in-memory sessions, sync and streamed execution. |
-| Component | [RAG](egon-cola-components/egon-cola-component-rag-starter/README.md) | Document extraction, chunking, embedding, and similarity retrieval mechanics; the host supplies the `EmbeddingModel` and `VectorStore` beans. |
-| Component | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.md) | Build-time architecture checks plus optional Executor, observability, Method Extension, and Access Guard enhancement. |
-| Component | [Code Generator](egon-cola-components/egon-cola-component-code-generator/README.md) | Offline development tool that generates backend CRUD from PostgreSQL DDL; never starts Spring or touches the target POM. |
-| Platform | [Tianshu (Dynamic Config Center)](egon-cola-xingyuan/egon-cola-tianshu/README.md) | Dynamic configuration, Redis leases, service registration, synchronized publication, and a standalone control plane. |
-| Platform | [Yuheng](egon-cola-xingyuan/egon-cola-yuheng/README.md) | HTTP/RPC data plane, rule publication, provider discovery, security, observability, and deployment assets. |
-| Platform | [Tianquan-Shoubing](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md) | OAuth/OIDC authentication and unified identity server capabilities. |
-| Platform | [Tianquan-Jianshen](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md) | Resource authorization, role permissions, policy snapshots, Yuheng adapter, and admin control plane. |
+The tables below list every artifact a consumer can depend on. `★` marks an entry point whose version the Components BOM manages; `◆` marks an artifact that is importable but deliberately outside the BOM (platform library, build plugin, or development tool). Aggregator POMs and `*-test`, `*-admin`, `*-core`, and `*-benchmark` modules are build, verification, or deployment units — never business dependencies.
+
+### Components
+
+| Component | Entry point | What it gives a consumer | Requires |
+|---|---|---|---|
+| [Common](egon-cola-components/egon-cola-component-common/README.md) | ★ `egon-cola-component-common-core` | `Result`/`PageResult`/`PageQuery`/`SortQuery`, `ErrorStatus`/`BusinessException`/`CommonException`, `TreeBuilder`, `BaseConverter`, `EgonEnum` — Spring-free | — |
+| | ★ `egon-cola-component-common-trace` | Pure JDK + SLF4J `TraceContext`, full MDC projection, W3C `traceparent`/`tracestate` parsing, trace-propagating `Runnable`/`Callable`/`Supplier` | — |
+| | ★ `egon-cola-component-common-trace-spring-boot-starter` | Trace auto-wiring for Servlet, WebFlux, `RestClient`, `WebClient`, and Reactor context projection | — |
+| | ★ `egon-cola-component-common-id-starter` | Snowflake `BIGINT` ids, statically callable without Spring, explicit `machine-id` 0–1023, clock-backward tolerance | — |
+| | ★ `egon-cola-component-common-crypto` | `Digests` (SHA-256), `Hmacs`, `Base64s`, `Hexes` | — |
+| | ★ `egon-cola-component-common-data-desensitize-spring-boot-starter` | `@Sensitive` Jackson response masking plus Logback `%sensitiveMsg`, shared `SensitiveStrategy`, selectable `RESPONSE`/`LOG` scenes | — |
+| | ★ `egon-cola-component-common-cache-spring-boot-starter` | Two-level cache: Guava L1 + Redisson `RMapCache` L2, tenant-scoped keys, penetration/breakdown/avalanche guards, post-commit eviction | Redis (host `RedissonClient`) + `@EnableCaching` |
+| | ★ `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | One logical sharded `DataSource` from a single YAML, `EgonModel` ActiveRecord, `EgonColaRepository` guarded commands, tenant and optimistic-lock interceptors, batching, `EgonColaPostgreDdlRunner` | PostgreSQL |
+| [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | ★ `egon-cola-component-dynamic-thread-pool-starter` | Registers `ThreadPoolExecutor`, `ThreadPoolTaskExecutor`, and `BoundedVirtualThreadExecutor`; remote resize and virtual-thread limits, snapshot reporting, Micrometer metrics, trace decorators | Redis |
+| [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | ★ `egon-cola-component-rpc-starter` | Transport-neutral gRPC 1.75 / Protobuf 4.32 unary provider and consumer: `@EgonRpcService`, `@EgonRpcMethod`, `@EgonRpcProvider`, `@EgonRpcReference` (`DIRECT` or `GATEWAY`) | — |
+| | ★ `egon-cola-component-rpc-tianshu-adapter` | The above plus Tianshu ConfigData, lease registration, discovery, HMAC auth metadata, and mTLS wiring — the entry point for an app that needs Tianshu | Tianshu + Redis |
+| [Rule Engine](egon-cola-components/egon-cola-component-rule-engine-starter/README.md) | ★ `egon-cola-component-rule-engine-starter` | `RuleChain`/`ChainHandler`, `AbstractSingletonRuleLink`, `RuleTree` with `RouteDecision`, `RuleTrace`, `RuleExecutionListener`, async execution | — |
+| [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.md) | ★ `egon-cola-component-access-guard-starter` | `@AccessGuard`/`@RateLimitGuard`/`@AllowListGuard`/`@TimeLimitGuard` in the fixed order Deny → Allow → PenaltyBox → RateLimit → TimeLimit, programmatic `AccessGuardClient`, async and reactive lifecycle, fail-open/closed policies, Actuator endpoint | Redis only with `storage: REDISSON`; HMAC secret whenever a rule exists |
+| [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.md) | ★ `egon-cola-component-method-extension-starter` | `@MethodExtension` handlers that decide before the annotated method runs; `engine: AOP`, `AGENT`, or `DISABLED`; `not-ready-policy: PROCEED/REJECT/FAIL` | `AGENT` mode needs the bytecode Agent |
+| [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md) | ★ `egon-cola-component-transactional-outbox-starter` | Enqueue inside the caller's transaction, `FOR UPDATE SKIP LOCKED` polling, retry/dead-letter/retention, `messageId` as idempotency key, HTTP and RabbitMQ channels plus a custom `DeliveryHandler` SPI | PostgreSQL (table is not auto-created) |
+| [Agent Flow](egon-cola-components/egon-cola-component-agent-flow-starter/README.md) | ★ `egon-cola-component-agent-flow-starter` | YAML flow tree compiled to Spring AI 1.1.8 + Google ADK 0.7.0 `LlmAgent`/`SequentialAgent`/`ParallelAgent`/`LoopAgent`, strict startup validation, `execute` and `executeStream`, process-local sessions | Host-owned named `ChatModel` beans |
+| [RAG](egon-cola-components/egon-cola-component-rag-starter/README.md) | ★ `egon-cola-component-rag-starter` | `RagDocumentExtractor`, `RagChunkingStrategy` (`TOKEN`/`MARKDOWN_HEADING`/`RECURSIVE`), `RagDocumentStorage`, embedding registry, forced collection and model filters, idempotent chunk ids | Host-owned `EmbeddingModel` + `VectorStore` |
+| [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.md) | ★ `egon-cola-component-bytecode-api` / `-bridge` / `-runtime` / `-agent` / `-starter` | Public capability contracts, Agent↔runtime bridge, enhancement with sinks and failure isolation, shaded `premain` Agent (`executor`, `observation`, `method-extension`), Spring Boot starter plus `/actuator/egonbytecode` | `-javaagent` for Agent features |
+| | ◆ `egon-cola-component-bytecode-architecture-maven-plugin` | Build-time `check`, `check-reactor`, and `generate-baseline` goals with 10 architecture rules and Text/JSON/HTML reports | Declared in `<build><plugins>`, not in `<dependencies>` |
+| [Code Generator](egon-cola-components/egon-cola-component-code-generator/README.md) | ◆ `egon-cola-component-code-generator` | Offline development tool: PostgreSQL DDL or a persistence manifest in, layered CRUD out, with `plan`/`check`/`apply`/`recover` and a fingerprint guard that never overwrites hand edits | Development time only; never starts Spring |
+
+### Platforms
+
+| Platform | Runnable applications | Artifacts a consumer imports | Backing services |
+|---|---|---|---|
+| [Tianshu (Dynamic Config Center)](egon-cola-xingyuan/egon-cola-tianshu/README.md) | `egon-cola-tianshu-admin`, `egon-cola-tianshu-admin-web` | ◆ `egon-cola-tianshu-starter` (ConfigData, `@DdcValue`, selective refresh, ACK, leases), ◆ `egon-cola-tianshu-http-registration-starter`, ★ `egon-cola-component-rpc-tianshu-adapter` | PostgreSQL + Redis (`SINGLE`/`SENTINEL`/`CLUSTER`) |
+| [Yuheng](egon-cola-xingyuan/egon-cola-yuheng/README.md) | `yuheng-biz-gateway` (data plane), `yuheng-admin`, `yuheng-admin-web` | ◆ `yuheng-starter`, ◆ `yuheng-contract`, ◆ `yuheng-starter-openapi` with `-webmvc` / `-webflux` variants | Tianshu + Redis + PostgreSQL; Kafka optional |
+| [Tianquan-Shoubing](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md) | `egon-cola-tianquan-shoubing-admin`, `egon-cola-tianquan-shoubing-admin-web` | ◆ `egon-cola-tianquan-shoubing-starter` (token and global-user verification), ◆ `-rpc-contract`, ◆ `-gateway-adapter` (Yuheng-side only) | PostgreSQL + Redis; Tianshu |
+| [Tianquan-Jianshen](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md) | `egon-cola-tianquan-jianshen-admin`, `egon-cola-tianquan-jianshen-admin-web` | ◆ `egon-cola-tianquan-jianshen-starter` (policy enforcement point), ◆ `-contract`, ◆ `-gateway-adapter` (Yuheng hot path), npm `@egon-cola/tianquan-jianshen-react-sdk` | Tianshu + Yuheng + Redis + PostgreSQL + Tianquan-Shoubing |
+
+### Shared admin frontend
+
+`egon-cola-xingyuan-admin-portal` is the private Wujie micro-frontend shell that aggregates the four platform consoles, and `egon-cola-xingyuan-admin-web-shared` (`@egon-cola/xingyuan-admin-web-shared`) is the npm library they share: `EnterpriseLayout`, `AdminThemeProvider` and design tokens, `createHttpClient`/`createOAuthClient`/`createTokenStore`, i18n, and page-state components. Neither is a Maven module; both need Node.js 24.
 
 ## Architecture
 
@@ -192,7 +254,7 @@ Add only the component entry points required by the business application:
 </dependencies>
 ```
 
-The BOM manages these public entry points: `common-core`, `common-trace`, `common-id-starter`, `common-crypto`, the data-desensitization, cache, and MyBatis-Plus/ShardingSphere extension starters, `dynamic-thread-pool-starter`, `common-trace-spring-boot-starter`, `rpc-starter`, `rpc-tianshu-adapter`, `rule-engine-starter`, `agent-flow-starter`, `rag-starter`, `access-guard-starter`, `method-extension-starter`, `transactional-outbox-starter`, and the bytecode `api`/`bridge`/`runtime`/`agent`/`starter` artifacts. It does not export platform artifacts, test modules, admin applications, the code generator, or frontend packages. See the [Components BOM README](egon-cola-components/egon-cola-components-bom/README.md) for the authoritative export list.
+The BOM manages 22 public entry points: `common-core`, `common-trace`, `common-id-starter`, `common-crypto`, the data-desensitization, cache, and MyBatis-Plus/ShardingSphere extension starters, `dynamic-thread-pool-starter`, `common-trace-spring-boot-starter`, `rpc-starter`, `rpc-tianshu-adapter`, `rule-engine-starter`, `agent-flow-starter`, `rag-starter`, `access-guard-starter`, `method-extension-starter`, `transactional-outbox-starter`, and the bytecode `api`/`bridge`/`runtime`/`agent`/`starter` artifacts — every `★` row in [Project Structure](#project-structure). It does not export platform artifacts, test modules, admin applications, the code generator, or frontend packages; the `◆` rows are published but declare their own version. See the [Components BOM README](egon-cola-components/egon-cola-components-bom/README.md) for the authoritative export list.
 
 If a component version is not available in the remote Maven repository, install the current reactor locally before consuming it from another project:
 
@@ -318,49 +380,133 @@ Extension points are module-local contracts, not a promise that every module is 
 
 ## Project Structure
 
+Every line is annotated, and every artifact a consumer can depend on appears here. `★` = managed by the Components BOM (import the BOM, then omit `<version>`). `◆` = importable, but outside the Components BOM: platform libraries, the architecture Maven plugin, and development tools carry their own version. Everything else is an aggregator POM, a runnable application, or a verification module — not a business dependency.
+
 ```text
-Egon-COLA/
-├── .github/                         # GitHub Actions workflows
-├── .mvn/wrapper/                    # Maven Wrapper configuration
-├── docs/                            # Operations runbooks and project documents
-├── egon-cola-archetypes/            # Maven Archetypes and generated-project fixtures
-│   ├── source-projects/             # Editable normal Maven source projects
-│   │   ├── egon-cola-source-light/
-│   │   ├── egon-cola-source-light-open/
-│   │   ├── egon-cola-source-service/
-│   │   ├── egon-cola-source-service-open/
-│   │   ├── egon-cola-source-web/
-│   │   ├── egon-cola-source-web-open/
-│   │   └── egon-cola-source-agent/
-│   ├── definitions/                 # Packaging manifests and curated contracts
-│   └── .generated/                  # Ignored generated publishing reactor
-├── egon-cola-components/            # Reusable components, starters, BOM, and tests
-│   ├── egon-cola-components-bom/
-│   ├── egon-cola-component-common/
-│   ├── egon-cola-component-dynamic-thread-pool/
-│   ├── egon-cola-component-rpc/
-│   ├── egon-cola-component-rule-engine-starter/
-│   ├── egon-cola-component-agent-flow-starter/
-│   ├── egon-cola-component-access-guard-starter/
-│   ├── egon-cola-component-method-extension/
-│   ├── egon-cola-component-transactional-outbox-starter/
-│   ├── egon-cola-component-rag-starter/
-│   ├── egon-cola-component-bytecode/
-│   └── egon-cola-component-code-generator/
-├── egon-cola-xingyuan/              # Deployable enterprise platforms
-│   ├── egon-cola-tianshu/
-│   ├── egon-cola-yuheng/
-│   ├── egon-cola-tianquan-shoubing/
-│   ├── egon-cola-tianquan-jianshen/
-│   ├── egon-cola-xingyuan-admin-portal/      # Wujie-aggregated admin shell
-│   └── egon-cola-xingyuan-admin-web-shared/  # Shared admin web layout and SDK
-├── scripts/                           # Release and repository helper scripts
-├── mvnw
-├── mvnw.cmd
-└── pom.xml                            # Root aggregation parent, version 5.4.1
+Egon-COLA/  # Three-tier reactor root: archetypes, components, and platforms
+├── .github/workflows/                                # ci-backend.yml (Maven), ci-frontend.yml (npm), publish-maven-central.yml (Central release)
+├── .mvn/wrapper/                                     # Maven Wrapper, pinned to Maven 3.9.14
+├── docs/                                             # Project documentation: egon/ (spec, plan, review, reports, codegen), runbooks/, operations/, superpowers/
+├── egon-cola-archetypes/                             # Archetype tier; parent artifactId egon-cola-archetypes-parent
+│   ├── pom.xml                                       # Default reactor publishes the 4 peer facades only; -Pgenerated-archetypes adds the 7 archetypes
+│   ├── source-projects/                              # The only editable archetype sources; maintainers never edit .generated
+│   │   ├── pom.xml                                   # Source reactor parent that installs every project below in dependency order
+│   │   ├── egon-cola-source-light/                   # Single-module Spring Boot project → archetype egon-cola-archetype-light
+│   │   ├── egon-cola-source-light-open/              # Single module on the public stack → archetype egon-cola-archetype-light-open
+│   │   ├── egon-cola-source-service/                 # adapter/application/domain/facade/infrastructure/common/starter; RPC + MQ, no HTTP controller by default → egon-cola-archetype-service
+│   │   │   └── egon-cola-source-service-facade/      # ◆ published peer Protobuf contract, consumed by the web family
+│   │   ├── egon-cola-source-service-open/            # Same shape on the public stack → egon-cola-archetype-service-open
+│   │   │   └── egon-cola-source-service-open-facade/ # ◆ published peer Protobuf contract, consumed by web-open
+│   │   ├── egon-cola-source-web/                     # adapter/application/domain/facade/infrastructure/common/starter → egon-cola-archetype-web
+│   │   │   └── egon-cola-source-web-facade/          # ◆ published peer Protobuf contract, consumed by the service family
+│   │   ├── egon-cola-source-web-open/                # Same shape on the public stack → egon-cola-archetype-web-open
+│   │   │   └── egon-cola-source-web-open-facade/     # ◆ published peer Protobuf contract, consumed by service-open
+│   │   └── egon-cola-source-agent/                   # Six-module Deep Research + knowledge-base service on PostgreSQL vector → egon-cola-archetype-agent
+│   ├── definitions/                                  # 7 packaging contracts (manifest, packaging POM, META-INF, ITs); not Maven modules
+│   └── .generated/                                   # Ignored derived publishing reactor; regenerate with scripts/generate_archetypes.sh, never hand-edit
+├── egon-cola-components/                             # Reusable component tier; parent artifactId egon-cola-components-parent
+│   ├── pom.xml                                       # Aggregator and build configuration only — never a business dependency
+│   ├── egon-cola-components-architecture.md          # Cross-component layering and dependency-edge rules
+│   ├── egon-cola-components-bom/                     # ★ The version authority: import once in dependencyManagement, then every ★ line below needs no version
+│   ├── egon-cola-component-common/                   # Aggregator POM — depend on the sub-artifacts, never on this one
+│   │   ├── egon-cola-component-common-core           # ★ Result/PageResult/PageQuery/SortQuery, ErrorStatus/BusinessException, TreeBuilder, BaseConverter, EgonEnum
+│   │   ├── egon-cola-component-common-trace          # ★ Pure JDK+SLF4J TraceContext, MDC projection, W3C traceparent parsing, trace-propagating tasks
+│   │   ├── egon-cola-component-common-trace-spring-boot-starter # ★ Trace wiring for Servlet, WebFlux, RestClient, WebClient, Reactor
+│   │   ├── egon-cola-component-common-id-starter     # ★ Snowflake BIGINT ids; machine-id is explicit and never inferred
+│   │   ├── egon-cola-component-common-crypto         # ★ Digests, Hmacs, Base64s, Hexes
+│   │   ├── egon-cola-component-common-data-desensitize-spring-boot-starter # ★ @Sensitive Jackson response and Logback message masking
+│   │   ├── egon-cola-component-common-cache-spring-boot-starter # ★ Guava L1 + Redisson RMapCache L2, tenant-scoped keys, penetration/breakdown/avalanche guards
+│   │   ├── egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter # ★ Sharded logical DataSource, EgonModel, tenant/optimistic-lock interceptors, batch, DDL runner
+│   │   └── egon-cola-component-common-test           # Internal SourceBoundaryAssert used by component verification
+│   ├── egon-cola-component-dynamic-thread-pool/      # Aggregator POM
+│   │   ├── egon-cola-component-dynamic-thread-pool-starter # ★ Executor registry, Redis-driven resize, virtual-thread limits, snapshot reporting, Micrometer, trace decorators
+│   │   ├── egon-cola-component-dynamic-thread-pool-admin # Runnable DTP console application — deploy it, do not depend on it
+│   │   └── egon-cola-component-dynamic-thread-pool-test # Samples and behavior verification
+│   ├── egon-cola-component-rpc/                      # Aggregator POM
+│   │   ├── egon-cola-component-rpc-starter           # ★ gRPC/Protobuf provider and consumer, DIRECT or GATEWAY, no registry baked in
+│   │   ├── egon-cola-component-rpc-tianshu-adapter   # ★ rpc-starter plus Tianshu ConfigData, lease registration, discovery, HMAC and mTLS wiring
+│   │   └── egon-cola-component-rpc-test              # Contract, provider, and consumer verification fixtures
+│   ├── egon-cola-component-rule-engine-starter       # ★ RuleChain, responsibility chains, RuleTree, trace, listeners; module and artifact are one
+│   ├── egon-cola-component-access-guard-starter      # ★ Deny→Allow→PenaltyBox→RateLimit→TimeLimit, HMAC keys, fail-open/closed, Actuator
+│   ├── egon-cola-component-method-extension/         # Aggregator POM
+│   │   └── egon-cola-component-method-extension-starter # ★ @MethodExtension decisions with engine AOP, AGENT, or DISABLED
+│   ├── egon-cola-component-transactional-outbox-starter # ★ Enqueue in the caller transaction, SKIP LOCKED polling, HTTP/RabbitMQ/custom handler, dead letter
+│   ├── egon-cola-component-agent-flow-starter        # ★ YAML flow tree to Spring AI + Google ADK graphs, sync and streamed, process-local sessions
+│   ├── egon-cola-component-rag-starter               # ★ Extraction, chunking, storage, embedding and retrieval SPIs over host-owned model and store
+│   ├── egon-cola-component-bytecode/                 # Aggregator POM
+│   │   ├── egon-cola-component-bytecode-api          # ★ JDK-only capability contracts, runtime events, ContextCarrier
+│   │   ├── egon-cola-component-bytecode-bridge       # ★ Bridge between transformed code and the runtime
+│   │   ├── egon-cola-component-bytecode-runtime      # ★ Enhancement, sinks, metrics, failure isolation
+│   │   ├── egon-cola-component-bytecode-agent        # ★ Shaded premain javaagent: executor, observation, method-extension
+│   │   ├── egon-cola-component-bytecode-starter      # ★ Spring Boot wiring plus /actuator/egonbytecode
+│   │   ├── egon-cola-component-bytecode-architecture-maven-plugin # ◆ Build-time check, check-reactor, generate-baseline with 10 architecture rules
+│   │   ├── egon-cola-component-bytecode-core         # Internal ASM transformation and rule engine, shaded into -agent and used by the plugin
+│   │   ├── egon-cola-component-bytecode-test         # Architecture and agent integration fixtures
+│   │   └── egon-cola-component-bytecode-benchmark    # JMH measurements
+│   └── egon-cola-component-code-generator            # ◆ Offline CRUD generator with plan/check/apply/recover; development tool, never a runtime dependency
+├── egon-cola-xingyuan/                               # Deployable platform tier; parent artifactId egon-cola-xingyuan-parent
+│   ├── pom.xml                                       # Platform aggregator and version alignment for platform libraries (not the Components BOM)
+│   ├── egon-cola-tianshu/                            # Dynamic Config Center; aggregator POM
+│   │   ├── egon-cola-tianshu-starter                 # ◆ ConfigData SDK, @DdcValue and selective refresh, ACK, client and provider leases
+│   │   ├── egon-cola-tianshu-http-registration-starter # ◆ Registers a Spring HTTP service with Tianshu and keeps its lease alive
+│   │   ├── egon-cola-tianshu-admin                   # Runnable control plane: gRPC facades, REST admin, SYNC_ALL_ACK publication
+│   │   ├── egon-cola-tianshu-admin-web               # React console, Node project outside the Maven reactor
+│   │   └── egon-cola-tianshu-test                    # Starter samples and lease/identity acceptance tests
+│   ├── egon-cola-yuheng/                             # Internal gateway platform; aggregator POM
+│   │   ├── yuheng-starter                            # ◆ Business-side composition entry that includes Tianshu HTTP registration
+│   │   ├── yuheng-contract                           # ◆ Stable contracts shared between gateway modules and consumers
+│   │   ├── yuheng-starter-openapi                    # ◆ OpenAI-compatible API surface, transport-neutral
+│   │   ├── yuheng-starter-openapi-webmvc             # ◆ Servlet stack variant of the OpenAI-compatible surface
+│   │   ├── yuheng-starter-openapi-webflux            # ◆ Reactive stack variant of the OpenAI-compatible surface
+│   │   ├── yuheng-biz-gateway                        # Runnable Reactor Netty data plane: routing, streaming, mTLS, trace
+│   │   ├── yuheng-admin                              # Runnable control plane: releases, rules, provider and OpenAPI management
+│   │   ├── yuheng-core / yuheng-runtime-core         # Gateway internals — not consumer entry points
+│   │   ├── yuheng-mcp-core / yuheng-mcp-gateway      # Experimental MCP endpoints — gateway internals
+│   │   ├── yuheng-admin-web                          # React console, Node project outside the Maven reactor
+│   │   ├── yuheng-test                               # HTTP, RPC, MCP, and identity providers plus the acceptance suite
+│   │   └── deployment / docs / performance           # Images, runbooks, integration guides, and benchmark assets
+│   ├── egon-cola-tianquan-shoubing/                  # Unified identity provider (OAuth/OIDC); aggregator POM
+│   │   ├── egon-cola-tianquan-shoubing-starter       # ◆ Downstream token verification and global-user resolution
+│   │   ├── egon-cola-tianquan-shoubing-rpc-contract  # ◆ Identity RPC contracts
+│   │   ├── egon-cola-tianquan-shoubing-gateway-adapter # ◆ Yuheng-side identity capability, not a business-app dependency
+│   │   ├── egon-cola-tianquan-shoubing-core          # Pure identity domain model without Spring or I/O
+│   │   ├── egon-cola-tianquan-shoubing-admin         # Runnable identity server control plane: clients, tenants, keys, audit
+│   │   └── egon-cola-tianquan-shoubing-admin-web     # React console, Node project outside the Maven reactor
+│   ├── egon-cola-tianquan-jianshen/                  # Permission platform; aggregator POM
+│   │   ├── egon-cola-tianquan-jianshen-starter       # ◆ Business-service policy enforcement: JWT validation and snapshot reads
+│   │   ├── egon-cola-tianquan-jianshen-contract      # ◆ Resource, role, and policy contracts
+│   │   ├── egon-cola-tianquan-jianshen-gateway-adapter # ◆ Authorization hook for the Yuheng hot path
+│   │   ├── egon-cola-tianquan-jianshen-core          # Role DAG, activation algebra, and constraints without I/O
+│   │   ├── egon-cola-tianquan-jianshen-admin         # Runnable control plane: manifest activation, fencing, projections
+│   │   ├── egon-cola-tianquan-jianshen-admin-web     # React console in the platform frontend workspace
+│   │   └── egon-cola-tianquan-jianshen-react-sdk     # npm client SDK for the admin frontend
+│   ├── egon-cola-xingyuan-admin-portal/              # Private Wujie micro-frontend shell aggregating the four consoles
+│   ├── egon-cola-xingyuan-admin-web-shared/          # npm @egon-cola/xingyuan-admin-web-shared: layout, theming, HTTP/OAuth clients, i18n
+│   └── docs/                                         # Platform-tier design specs and plans (superpowers workspace)
+├── scripts/                                          # Release and repository helpers
+│   ├── README.md                                     # Script index and placement rules
+│   ├── maven-deploy.sh                               # Maven Central publish wrapper; --publish is required, list and archetypes are read-only
+│   ├── maven-deploy.md                               # Release prerequisites, signing, and credential setup
+│   ├── bump_cola_version.sh                          # Repaints the 5.x version across reactors, READMEs, and archetype templates
+│   ├── generate_archetypes.sh                        # generate | check: derive .generated from source-projects and verify it
+│   ├── egon-codegen.sh                               # Wrapper for the offline code generator
+│   ├── unified-identity-local.sh                     # Local identity, Tianshu, Yuheng, and Jianshen topology launcher
+│   ├── unified-xingyuan/                             # Platform-stack helpers: local stack prepare/start/status, tenant migration
+│   ├── checks/                                       # Architecture and boundary ownership checks for the three tiers
+│   └── regression/                                   # Release-shape regression suites for archetypes and generated projects
+├── mvnw / mvnw.cmd                                   # Maven Wrapper entry points
+└── pom.xml                                           # Root aggregation parent egon-cola-aggregation-parent, version 5.4.1
 ```
 
-Useful documentation entry points include the [component architecture guide](egon-cola-components/egon-cola-components-architecture.md), [original archetype architecture diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md), [Open archetype architecture overview](egon-cola-archetypes/open-source-archetype-architecture.md), [Open archetype code style](egon-cola-archetypes/open-source-archetype-code-style.md), [unified identity local runbook](docs/runbooks/unified-identity-local.md), and [Maven deployment guide](scripts/maven-deploy.md).
+Recommended reading order:
+
+- [Component architecture guide](egon-cola-components/egon-cola-components-architecture.md)
+- [Archetype architecture Mermaid diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md)
+- [Open archetype architecture overview](egon-cola-archetypes/open-source-archetype-architecture.md)
+- [Open archetype code style](egon-cola-archetypes/open-source-archetype-code-style.md)
+- [Unified identity local runbook](docs/runbooks/unified-identity-local.md)
+- [Maven deployment guide](scripts/maven-deploy.md)
+- [Unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md)
 
 ## Deployment
 

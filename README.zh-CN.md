@@ -13,6 +13,7 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 
 ## 目录
 
+- [源起](#源起)
 - [核心能力](#核心能力)
 - [组件与平台概览](#组件与平台概览)
 - [架构](#架构)
@@ -32,35 +33,96 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 - [版本变更](#版本变更)
 - [许可证](#许可证)
 
+## 源起
+
+Egon-COLA 源起于阿里巴巴开源的 [COLA v5](https://github.com/alibaba/COLA)（Clean Object-oriented and Layered Architecture，整洁面向对象分层架构）。仓库初始提交（2025-08-17）把 COLA v5 作为起点整体引入：根 POM 是 `com.alibaba.cola:cola-dummy-aggregation-parent`，`cola-components` 下是 `cola-component-dto`、`cola-component-exception`、`cola-component-extension-starter`、`cola-component-statemachine`、`cola-component-ruleengine`、`cola-components-bom` 等上游组件，`cola-archetypes` 提供 light/service/web 脚手架。
+
+| 维度 | 状态 |
+|---|---|
+| 继承 | COLA 的分层方向（`common`、`facade`、`adapter`、`application`、`domain`、`infrastructure`、`starter`），Archetype + Component + BOM 的组织方式，以及 5.x 版本主线——当前发布版本 `5.4.1`。 |
+| 更名 | 2026-07-01 全部坐标从 `com.alibaba.cola` 迁移到 `top.egon`，全部 Artifact 从 `cola-*` 改为 `egon-cola-*`。 |
+| 重写 | 构建和运行时都不再消费任何上游 Artifact。哪怕出现一行 `com.alibaba.cola` import，`CoreBoundaryTest` 与 `SourceBoundaryAssert` 也会让构建失败。 |
+| 扩展 | RPC、动态线程池、访问治理、方法扩展、事务 Outbox、两级缓存、MyBatis-Plus/ShardingSphere 持久化层、Agent Flow 与 RAG、字节码治理，以及 COLA 从未提供、可独立部署的平台层（Tianshu、Yuheng、Tianquan-Shoubing、Tianquan-Jianshen）。 |
+
+因此 Egon-COLA 是 COLA 谱系上的工程底座，而不是 COLA 的发行版：它沿用 COLA 的架构语汇，并在其上长出自己的组件、平台与治理体系。
+
 ## 核心能力
 
-- **工程脚手架**：通过 Maven Archetype 生成基于 Egon 组件/平台的原始族（`light`、`service`、`web`、`agent`），或基于公开 Spring 生态的 `-open` 族。
-- **分层约束**：明确 `common`、`facade`、`domain`、`application`、`infrastructure`、`adapter`、`starter` 等层之间的职责和依赖方向。
-- **可复用组件**：覆盖通用契约、ID、Trace、缓存、持久化扩展、动态线程池、RPC、规则引擎、访问治理、方法扩展、事务 Outbox 和字节码工具。
-- **AI Agent 能力**：基于 Spring AI 与 Google ADK 的 Agent Flow 和 RAG 组件，以及生成 Deep Research 与知识库服务的 `agent` 脚手架。
-- **企业级平台**：包含 Tianshu (Dynamic Config Center)、Yuheng、统一身份提供方 Tianquan-Shoubing 和 Tianquan-Jianshen 权限平台，以及基于 Wujie 的统一管理 Portal。
-- **架构验证**：支持构建期架构规则、基线、报告，以及可选的运行时字节码增强。
-- **持续兼容性验证**：在 CI 中执行 Maven 构建、Archetype 生成工程验证、Docker 集成验证和多 JDK 兼容性验证。
+**脚手架与分层**
+
+- 两族共七个 Maven Archetype：跟随 Egon 组件/平台的原始族 `light`、`service`、`web`、`agent`，以及锁定在已审阅公开 Spring 生态基线上的 `-open` 族（`light-open`、`service-open`、`web-open`）。
+- 生成工程分层职责明确：`common`、`facade`、`adapter`、`application`、`domain`、`infrastructure`、`starter`；`light` 刻意收敛为单模块，`agent` 展开为六模块。
+- 对端 RPC 契约以普通库形式发布（`...-service-facade`、`...-web-facade` 及其 `-open` 版本），使同族生成工程可以互相调用而不共享源码。
+- 构建期架构规则、基线和报告，保证业务工程长大后依赖方向依然不被破坏。
+
+**应用构件（组件）**
+
+- 稳定契约、不依赖 Spring：`Result`/`PageResult`/`PageQuery`/`SortQuery`、`ErrorStatus`/`BusinessException`/`CommonException`、`TreeBuilder`、`BaseConverter` 以及 `EgonEnum` 持久化契约。
+- 横切运行能力：W3C `traceparent`/`tracestate` 上下文 + MDC 投影 + 任务装饰器，Servlet/WebFlux/WebClient/Reactor 自动装配，需要显式 `machine-id` 的 Snowflake `BIGINT` ID，摘要/HMAC/Base64/Hex，以及作用于 Jackson 响应和 Logback 日志的 `@Sensitive` 脱敏。
+- 数据访问：Guava（L1）+ Redisson `RMapCache`（L2）两级缓存，带租户维度 Key 和穿透/击穿/雪崩防护；MyBatis-Plus 3.5.16 + ShardingSphere-JDBC 5.5.3 + PostgreSQL 层用一份 YAML 发布单个逻辑 `DataSource`，提供 `EgonModel` ActiveRecord 契约、租户与乐观锁拦截器、批量命令和带校验和的 DDL Runner。
+- 异步容量与治理：经 Redis 动态改配、含虚拟线程受限执行器的动态线程池（快照上报 + 指标）；方法级黑名单、白名单、惩罚箱、限流和超时；在 AOP 或字节码 Agent 引擎前插入的方法扩展 Handler；PostgreSQL 事务 Outbox 以至少一次语义经 HTTP、RabbitMQ 或自定义 Handler 投递。
+- 纯 Java 规则引擎：规则链、责任链、带路由决策的规则树、执行 Trace 和监听器；刻意不提供表达式语言，也不提供规则管理后端。
+- 开发期工具：离线代码生成器把 PostgreSQL DDL 或持久化清单转成生成工程的分层 CRUD，不启动 Spring，也不修改目标 POM。
+
+**AI Agent 构件**
+
+- Agent Flow 把 YAML Flow 树编译为 Spring AI 1.1.8 + Google ADK 0.7.0 的 `LlmAgent`/`SequentialAgent`/`ParallelAgent`/`LoopAgent` 图，启动期严格校验，支持同步与流式执行，Session 为进程内。
+- RAG 只提供机制——抽取、分块、存储、向量化和带强制过滤的相似度检索——`EmbeddingModel` 与 `VectorStore` Bean 由宿主提供；它不是知识库产品。
+- `agent` 脚手架生成六模块的 Deep Research 与知识库服务，向量检索落在 PostgreSQL `vector`，只暴露一个 SSE 运行端点，不引入 MQ、RPC、GraphQL 或 UI。
+
+**企业级平台**
+
+- Tianshu（动态配置中心）：单 YAML ConfigData 加载、`@DdcValue` 与选择性刷新、配置客户端和 RPC Provider 的 Redis 租约、`SYNC_ALL_ACK` 同步发布，以及独立部署的控制面与配套控制台。
+- Yuheng：HTTP/RPC 数据面加控制面——按 Release 路由、OpenAI 兼容透传流式、WebSocket 与 multipart 通道、MCP 端点、Provider 发现与健康检查、mTLS、W3C Trace 传播。
+- Tianquan-Shoubing：统一身份提供方，负责 OAuth/OIDC、浏览器 SSO、多租户成员关系和单 Audience 的 Resource 绑定 Token。
+- Tianquan-Jianshen：资源与角色权限，提供不可变 Manifest 激活、fail-closed Fence、原子策略快照，以及作用于 Yuheng 热路径的网关适配。
+- 基于 Wujie 的统一管理 Portal 加每个平台一个 React 控制台，通过 `@egon-cola/xingyuan-admin-web-shared` 共享布局、主题、HTTP/OAuth 客户端和 i18n。
+
+**验证**
+
+- CI 分别验证 Java 后端与平台前端，生成工程会从 Archetype 目录真实生成并编译测试，跨进程流程有 Docker-backed 集成测试，兼容性矩阵在多个 JDK 上校验。
 
 ## 组件与平台概览
 
-| 类别 | 模块 | 主要用途 |
-|---|---|---|
-| Component | [Common](egon-cola-components/egon-cola-component-common/README.zh-CN.md) | 通用结果、异常、POJO、Trace、ID、加密、脱敏、缓存以及 MyBatis-Plus/ShardingSphere 扩展能力。 |
-| Component | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.zh-CN.md) | 执行器注册、Redis 配置变更、动态扩缩容、虚拟线程限制和 Trace 传播。 |
-| Component | [RPC](egon-cola-components/egon-cola-component-rpc/README.zh-CN.md) | Protobuf/gRPC Provider、Consumer、Tianshu 注册发现及 Yuheng 通道。 |
-| Component | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine-starter/README.zh-CN.md) | Java 规则链、责任链、规则树、Trace、限制和监听器。 |
-| Component | [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.zh-CN.md) | 方法级白名单、黑名单、限流、超时和拒绝治理。 |
-| Component | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.zh-CN.md) | 在注解方法执行前插入 AOP 或 Agent 业务决策 Handler。 |
-| Component | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md) | 基于 PostgreSQL/JDBC 的至少一次 HTTP、RabbitMQ 或自定义 Handler 投递。 |
-| Component | [Agent Flow](egon-cola-components/egon-cola-component-agent-flow-starter/README.zh-CN.md) | 基于 Spring AI 与 Google ADK 的配置驱动 Flow 编译、in-memory Session、同步与流式执行。 |
-| Component | [RAG](egon-cola-components/egon-cola-component-rag-starter/README.zh-CN.md) | 文档抽取、分块、向量化和相似度检索机制；`EmbeddingModel` 与 `VectorStore` Bean 由宿主提供。 |
-| Component | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.zh-CN.md) | 构建期架构检查，以及可选的 Executor、观测、Method Extension 和 Access Guard 增强。 |
-| Component | [Code Generator](egon-cola-components/egon-cola-component-code-generator/README.md) | 离线开发工具，从 PostgreSQL DDL 生成后端 CRUD；不启动 Spring，也不修改目标工程 POM。 |
-| Platform | [Tianshu (Dynamic Config Center)](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md) | 动态配置、Redis 租约、服务注册、同步发布和独立控制面。 |
-| Platform | [Yuheng](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md) | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
-| Platform | [Tianquan-Shoubing (统一身份 Provider)](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md) | OAuth/OIDC 身份认证和统一身份相关的服务端能力。 |
-| Platform | [Tianquan-Jianshen](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md) | 资源授权、角色权限、策略快照、Yuheng 适配和管理控制面。 |
+下表列出所有可被使用方依赖的 Artifact。`★` 表示 Components BOM 管理版本的入口；`◆` 表示可以引入但刻意不进入 BOM 的 Artifact（平台库、构建插件、开发期工具）。聚合 POM 以及 `*-test`、`*-admin`、`*-core`、`*-benchmark` 模块属于构建、验证或部署单元，永远不是业务依赖。
+
+### 组件
+
+| 组件 | 消费入口 | 提供给使用方的能力 | 依赖的外部条件 |
+|---|---|---|---|
+| [Common](egon-cola-components/egon-cola-component-common/README.zh-CN.md) | ★ `egon-cola-component-common-core` | `Result`/`PageResult`/`PageQuery`/`SortQuery`、`ErrorStatus`/`BusinessException`/`CommonException`、`TreeBuilder`、`BaseConverter`、`EgonEnum`——不依赖 Spring | 无 |
+| | ★ `egon-cola-component-common-trace` | 纯 JDK + SLF4J 的 `TraceContext`、完整 MDC 投影、W3C `traceparent`/`tracestate` 解析、可传播 Trace 的 `Runnable`/`Callable`/`Supplier` | 无 |
+| | ★ `egon-cola-component-common-trace-spring-boot-starter` | Servlet、WebFlux、`RestClient`、`WebClient` 与 Reactor 上下文投影的 Trace 自动装配 | 无 |
+| | ★ `egon-cola-component-common-id-starter` | Snowflake `BIGINT` ID，不依赖 Spring 也可静态调用，`machine-id` 必须显式给出（0–1023），支持时钟回拨容忍 | 无 |
+| | ★ `egon-cola-component-common-crypto` | `Digests`（SHA-256）、`Hmacs`、`Base64s`、`Hexes` | 无 |
+| | ★ `egon-cola-component-common-data-desensitize-spring-boot-starter` | `@Sensitive` 的 Jackson 响应脱敏与 Logback `%sensitiveMsg`，共享 `SensitiveStrategy`，`RESPONSE`/`LOG` 场景可选 | 无 |
+| | ★ `egon-cola-component-common-cache-spring-boot-starter` | 两级缓存：Guava L1 + Redisson `RMapCache` L2，租户维度 Key，穿透/击穿/雪崩防护，提交后再写或失效 | Redis（宿主 `RedissonClient`）+ `@EnableCaching` |
+| | ★ `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | 一份 YAML 发布单个逻辑分片 `DataSource`、`EgonModel` ActiveRecord、`EgonColaRepository` 受保护命令、租户与乐观锁拦截器、批量、`EgonColaPostgreDdlRunner` | PostgreSQL |
+| [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.zh-CN.md) | ★ `egon-cola-component-dynamic-thread-pool-starter` | 纳管 `ThreadPoolExecutor`、`ThreadPoolTaskExecutor` 与 `BoundedVirtualThreadExecutor`；远程改配与虚拟线程上限、快照上报、Micrometer 指标、Trace 装饰器 | Redis |
+| [RPC](egon-cola-components/egon-cola-component-rpc/README.zh-CN.md) | ★ `egon-cola-component-rpc-starter` | 与技术栈无关的 gRPC 1.75 / Protobuf 4.32 unary Provider 与 Consumer：`@EgonRpcService`、`@EgonRpcMethod`、`@EgonRpcProvider`、`@EgonRpcReference`（`DIRECT` 或 `GATEWAY`） | 无 |
+| | ★ `egon-cola-component-rpc-tianshu-adapter` | 在上述之上叠加 Tianshu ConfigData、租约注册、服务发现、HMAC 认证元数据与 mTLS 装配——需要 Tianshu 的应用由此接入 | Tianshu + Redis |
+| [Rule Engine](egon-cola-components/egon-cola-component-rule-engine-starter/README.zh-CN.md) | ★ `egon-cola-component-rule-engine-starter` | `RuleChain`/`ChainHandler`、`AbstractSingletonRuleLink`、带 `RouteDecision` 的 `RuleTree`、`RuleTrace`、`RuleExecutionListener`、异步执行 | 无 |
+| [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.zh-CN.md) | ★ `egon-cola-component-access-guard-starter` | `@AccessGuard`/`@RateLimitGuard`/`@AllowListGuard`/`@TimeLimitGuard`，固定顺序 Deny → Allow → PenaltyBox → RateLimit → TimeLimit；编程式 `AccessGuardClient`、异步与响应式生命周期、fail-open/closed 策略、Actuator 端点 | 仅 `storage: REDISSON` 时需要 Redis；只要存在规则就必须提供 HMAC 密钥 |
+| [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.zh-CN.md) | ★ `egon-cola-component-method-extension-starter` | `@MethodExtension` Handler 在被注解方法执行前给出决策；`engine` 取 `AOP`、`AGENT` 或 `DISABLED`；`not-ready-policy` 取 `PROCEED/REJECT/FAIL` | `AGENT` 模式需要字节码 Agent |
+| [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md) | ★ `egon-cola-component-transactional-outbox-starter` | 在调用方事务内入队、`FOR UPDATE SKIP LOCKED` 轮询、重试/死信/保留期、以 `messageId` 作幂等键、HTTP 与 RabbitMQ 通道以及自定义 `DeliveryHandler` SPI | PostgreSQL（表不会自动创建） |
+| [Agent Flow](egon-cola-components/egon-cola-component-agent-flow-starter/README.zh-CN.md) | ★ `egon-cola-component-agent-flow-starter` | YAML Flow 树编译为 Spring AI 1.1.8 + Google ADK 0.7.0 的 `LlmAgent`/`SequentialAgent`/`ParallelAgent`/`LoopAgent`，启动期严格校验，`execute` 与 `executeStream`，Session 为进程内 | 宿主提供具名 `ChatModel` Bean |
+| [RAG](egon-cola-components/egon-cola-component-rag-starter/README.zh-CN.md) | ★ `egon-cola-component-rag-starter` | `RagDocumentExtractor`、`RagChunkingStrategy`（`TOKEN`/`MARKDOWN_HEADING`/`RECURSIVE`）、`RagDocumentStorage`、向量化注册表、强制的 collection 与 model 过滤、幂等分块 ID | 宿主提供 `EmbeddingModel` + `VectorStore` |
+| [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.zh-CN.md) | ★ `egon-cola-component-bytecode-api` / `-bridge` / `-runtime` / `-agent` / `-starter` | 公共能力契约、Agent↔运行时桥接、带 sink 与故障隔离的增强、shade 后的 `premain` Agent（`executor`、`observation`、`method-extension`）、Spring Boot Starter 与 `/actuator/egonbytecode` | Agent 能力需 `-javaagent` |
+| | ◆ `egon-cola-component-bytecode-architecture-maven-plugin` | 构建期 `check`、`check-reactor`、`generate-baseline`，10 条架构规则与 Text/JSON/HTML 报告 | 声明在 `<build><plugins>`，不是 `<dependencies>` |
+| [Code Generator](egon-cola-components/egon-cola-component-code-generator/README.md) | ◆ `egon-cola-component-code-generator` | 离线开发工具：输入 PostgreSQL DDL 或持久化清单，输出分层 CRUD，`plan`/`check`/`apply`/`recover` 流程，指纹校验保证不覆盖手工修改 | 仅开发期；不启动 Spring |
+
+### 平台
+
+| 平台 | 可运行应用 | 使用方引入的 Artifact | 后端服务 |
+|---|---|---|---|
+| [Tianshu (Dynamic Config Center)](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md) | `egon-cola-tianshu-admin`、`egon-cola-tianshu-admin-web` | ◆ `egon-cola-tianshu-starter`（ConfigData、`@DdcValue`、选择性刷新、ACK、租约）、◆ `egon-cola-tianshu-http-registration-starter`、★ `egon-cola-component-rpc-tianshu-adapter` | PostgreSQL + Redis（`SINGLE`/`SENTINEL`/`CLUSTER`） |
+| [Yuheng](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md) | `yuheng-biz-gateway`（数据面）、`yuheng-admin`、`yuheng-admin-web` | ◆ `yuheng-starter`、◆ `yuheng-contract`、◆ `yuheng-starter-openapi` 及 `-webmvc` / `-webflux` 变体 | Tianshu + Redis + PostgreSQL；Kafka 可选 |
+| [Tianquan-Shoubing](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md) | `egon-cola-tianquan-shoubing-admin`、`egon-cola-tianquan-shoubing-admin-web` | ◆ `egon-cola-tianquan-shoubing-starter`（Token 校验与全局用户解析）、◆ `-rpc-contract`、◆ `-gateway-adapter`（仅供 Yuheng 侧） | PostgreSQL + Redis；Tianshu |
+| [Tianquan-Jianshen](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md) | `egon-cola-tianquan-jianshen-admin`、`egon-cola-tianquan-jianshen-admin-web` | ◆ `egon-cola-tianquan-jianshen-starter`（业务侧决策执行点）、◆ `-contract`、◆ `-gateway-adapter`（Yuheng 热路径）、npm `@egon-cola/tianquan-jianshen-react-sdk` | Tianshu + Yuheng + Redis + PostgreSQL + Tianquan-Shoubing |
+
+### 共享 Admin 前端
+
+`egon-cola-xingyuan-admin-portal` 是私有的 Wujie 微前端壳，负责聚合四个平台控制台；`egon-cola-xingyuan-admin-web-shared`（npm `@egon-cola/xingyuan-admin-web-shared`）是它们共享的库：`EnterpriseLayout`、`AdminThemeProvider` 与设计令牌、`createHttpClient`/`createOAuthClient`/`createTokenStore`、i18n 以及页面状态组件。两者都不是 Maven 模块，都需要 Node.js 24。
 
 ## 架构
 
@@ -191,9 +253,9 @@ cd Egon-COLA
 </dependencies>
 ```
 
-BOM 管理的公共入口包括：`common-core`、`common-trace`、`common-id-starter`、`common-crypto`，数据脱敏、缓存和 MyBatis-Plus/ShardingSphere 扩展 Starter，`dynamic-thread-pool-starter`、`common-trace-spring-boot-starter`、`rpc-starter`、`rpc-tianshu-adapter`、`rule-engine-starter`、`agent-flow-starter`、`rag-starter`、`access-guard-starter`、`method-extension-starter`、`transactional-outbox-starter`，以及字节码的 `api`/`bridge`/`runtime`/`agent`/`starter`。
+BOM 管理的公共入口共 22 个：`common-core`、`common-trace`、`common-id-starter`、`common-crypto`，数据脱敏、缓存和 MyBatis-Plus/ShardingSphere 扩展 Starter，`dynamic-thread-pool-starter`、`common-trace-spring-boot-starter`、`rpc-starter`、`rpc-tianshu-adapter`、`rule-engine-starter`、`agent-flow-starter`、`rag-starter`、`access-guard-starter`、`method-extension-starter`、`transactional-outbox-starter`，以及字节码的 `api`/`bridge`/`runtime`/`agent`/`starter`——即[工程结构](#工程结构)中每一个 `★` 行。
 
-BOM 不导出平台 Artifact、测试模块、Admin 应用、Code Generator 或前端 npm 包。完整导出列表以 [Components BOM 中文 README](egon-cola-components/egon-cola-components-bom/README.zh-CN.md) 为准。
+BOM 不导出平台 Artifact、测试模块、Admin 应用、Code Generator 或前端 npm 包；`◆` 行的 Artifact 会随 Reactor 发布，但版本需要自行声明。完整导出列表以 [Components BOM 中文 README](egon-cola-components/egon-cola-components-bom/README.zh-CN.md) 为准。
 
 如果某个组件版本尚未出现在远程 Maven 仓库，可以先在本仓库安装当前 Reactor：
 
@@ -319,46 +381,122 @@ mvn -B archetype:generate \
 
 ## 工程结构
 
+每一行都有注释说明，且所有可被使用方依赖的 Artifact 都会出现在这里。`★` = 由 Components BOM 管理版本（导入 BOM 后可省略 `<version>`）。`◆` = 可以引入但在 Components BOM 之外：平台库、架构 Maven 插件和开发期工具需要自带版本。其余都是聚合 POM、可运行应用或验证模块——不是业务依赖。
+
 ```text
-Egon-COLA/
-├── .github/                         # GitHub Actions 工作流
-├── .mvn/wrapper/                    # Maven Wrapper 配置
-├── docs/                            # 运维 Runbook 和项目文档
-├── egon-cola-archetypes/            # Maven Archetype 与生成工程夹具
-│   ├── source-projects/             # 可编辑的正常 Maven 源码工程
-│   │   ├── egon-cola-source-light/
-│   │   ├── egon-cola-source-light-open/
-│   │   ├── egon-cola-source-service/
-│   │   ├── egon-cola-source-service-open/
-│   │   ├── egon-cola-source-web/
-│   │   ├── egon-cola-source-web-open/
-│   │   └── egon-cola-source-agent/
-│   ├── definitions/                 # 打包 manifest 和 curated 合同
-│   └── .generated/                  # 忽略的生成发布 Reactor
-├── egon-cola-components/            # 可复用组件、Starter、BOM 和测试
-│   ├── egon-cola-components-bom/
-│   ├── egon-cola-component-common/
-│   ├── egon-cola-component-dynamic-thread-pool/
-│   ├── egon-cola-component-rpc/
-│   ├── egon-cola-component-rule-engine-starter/
-│   ├── egon-cola-component-agent-flow-starter/
-│   ├── egon-cola-component-access-guard-starter/
-│   ├── egon-cola-component-method-extension/
-│   ├── egon-cola-component-transactional-outbox-starter/
-│   ├── egon-cola-component-rag-starter/
-│   ├── egon-cola-component-bytecode/
-│   └── egon-cola-component-code-generator/
-├── egon-cola-xingyuan/              # 可部署的企业级基础设施平台
-│   ├── egon-cola-tianshu/
-│   ├── egon-cola-yuheng/
-│   ├── egon-cola-tianquan-shoubing/
-│   ├── egon-cola-tianquan-jianshen/
-│   ├── egon-cola-xingyuan-admin-portal/      # Wujie 聚合管理壳
-│   └── egon-cola-xingyuan-admin-web-shared/  # 共享 Admin 布局与 SDK
-├── scripts/                           # 发布和仓库辅助脚本
-├── mvnw
-├── mvnw.cmd
-└── pom.xml                            # 根聚合父 POM，版本 5.4.1
+Egon-COLA/  # 三层 Reactor 根目录：脚手架、组件与平台
+├── .github/workflows/                                # ci-backend.yml（Java 后端）、ci-frontend.yml（前端）、publish-maven-central.yml（Central 发布）
+├── .mvn/wrapper/                                     # Maven Wrapper，锁定 Maven 3.9.14
+├── docs/                                             # 项目文档：egon/（spec、plan、review、reports、codegen）、runbooks/、operations/、superpowers/
+├── egon-cola-archetypes/                             # 脚手架层；父 Artifact ID 为 egon-cola-archetypes-parent
+│   ├── pom.xml                                       # 默认 Reactor 只发布 4 个对端 facade；-Pgenerated-archetypes 才加入 7 个 Archetype
+│   ├── source-projects/                              # 唯一可编辑的脚手架源码；维护者从不修改 .generated
+│   │   ├── pom.xml                                   # 源码 Reactor 父 POM，按依赖顺序安装下面的每个工程
+│   │   ├── egon-cola-source-light/                   # 单模块 Spring Boot 工程 → Archetype egon-cola-archetype-light
+│   │   ├── egon-cola-source-light-open/              # 公开技术栈基线的单模块工程 → egon-cola-archetype-light-open
+│   │   ├── egon-cola-source-service/                 # adapter/application/domain/facade/infrastructure/common/starter；RPC + MQ，默认无 HTTP Controller → egon-cola-archetype-service
+│   │   │   └── egon-cola-source-service-facade/      # ◆ 发布的对端 Protobuf 契约，供 web 族消费
+│   │   ├── egon-cola-source-service-open/            # 同构，落在公开技术栈基线 → egon-cola-archetype-service-open
+│   │   │   └── egon-cola-source-service-open-facade/ # ◆ 发布的对端 Protobuf 契约，供 web-open 消费
+│   │   ├── egon-cola-source-web/                     # adapter/application/domain/facade/infrastructure/common/starter → egon-cola-archetype-web
+│   │   │   └── egon-cola-source-web-facade/          # ◆ 发布的对端 Protobuf 契约，供 service 族消费
+│   │   ├── egon-cola-source-web-open/                # 同构，落在公开技术栈基线 → egon-cola-archetype-web-open
+│   │   │   └── egon-cola-source-web-open-facade/     # ◆ 发布的对端 Protobuf 契约，供 service-open 消费
+│   │   └── egon-cola-source-agent/                   # 六模块 Deep Research + 知识库服务，向量检索用 PostgreSQL vector → egon-cola-archetype-agent
+│   ├── definitions/                                  # 7 个打包合同（manifest、打包 POM、META-INF、IT）；不是 Maven 模块
+│   └── .generated/                                   # 被忽略的派生发布 Reactor；用 scripts/generate_archetypes.sh 重生成，禁止手改
+├── egon-cola-components/                             # 可复用组件层；父 Artifact ID 为 egon-cola-components-parent
+│   ├── pom.xml                                       # 只是聚合与构建配置——永远不是业务依赖
+│   ├── egon-cola-components-architecture.md          # 组件间分层与依赖方向规则
+│   ├── egon-cola-components-bom/                     # ★ 版本唯一来源：在 dependencyManagement 导入一次，下面每个 ★ 行都无需写版本
+│   ├── egon-cola-component-common/                   # 聚合 POM——依赖子 Artifact，不要依赖它本身
+│   │   ├── egon-cola-component-common-core           # ★ Result/PageResult/PageQuery/SortQuery、ErrorStatus/BusinessException、TreeBuilder、BaseConverter、EgonEnum
+│   │   ├── egon-cola-component-common-trace          # ★ 纯 JDK+SLF4J 的 TraceContext、MDC 投影、W3C traceparent 解析、可传播 Trace 的任务包装
+│   │   ├── egon-cola-component-common-trace-spring-boot-starter # ★ Servlet、WebFlux、RestClient、WebClient、Reactor 的 Trace 装配
+│   │   ├── egon-cola-component-common-id-starter     # ★ Snowflake BIGINT ID；machine-id 必须显式给出，绝不推断
+│   │   ├── egon-cola-component-common-crypto         # ★ Digests、Hmacs、Base64s、Hexes
+│   │   ├── egon-cola-component-common-data-desensitize-spring-boot-starter # ★ @Sensitive 的 Jackson 响应与 Logback 日志脱敏
+│   │   ├── egon-cola-component-common-cache-spring-boot-starter # ★ Guava L1 + Redisson RMapCache L2，租户维度 Key，穿透/击穿/雪崩防护
+│   │   ├── egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter # ★ 分片逻辑 DataSource、EgonModel、租户与乐观锁拦截器、批量、DDL Runner
+│   │   └── egon-cola-component-common-test           # 组件验证内部使用的 SourceBoundaryAssert
+│   ├── egon-cola-component-dynamic-thread-pool/      # 聚合 POM
+│   │   ├── egon-cola-component-dynamic-thread-pool-starter # ★ 执行器纳管、Redis 驱动改配、虚拟线程上限、快照上报、Micrometer、Trace 装饰器
+│   │   ├── egon-cola-component-dynamic-thread-pool-admin # 可运行的 DTP 控制台应用——部署它，不要依赖它
+│   │   └── egon-cola-component-dynamic-thread-pool-test # 示例与行为验证
+│   ├── egon-cola-component-rpc/                      # 聚合 POM
+│   │   ├── egon-cola-component-rpc-starter           # ★ gRPC/Protobuf Provider 与 Consumer，DIRECT 或 GATEWAY，不内置注册中心
+│   │   ├── egon-cola-component-rpc-tianshu-adapter   # ★ rpc-starter 加 Tianshu ConfigData、租约注册、发现、HMAC 与 mTLS 装配
+│   │   └── egon-cola-component-rpc-test              # 契约、Provider、Consumer 验证夹具
+│   ├── egon-cola-component-rule-engine-starter       # ★ RuleChain、责任链、RuleTree、Trace、监听器；模块即 Artifact
+│   ├── egon-cola-component-access-guard-starter      # ★ Deny→Allow→PenaltyBox→RateLimit→TimeLimit、HMAC 密钥、fail-open/closed、Actuator
+│   ├── egon-cola-component-method-extension/         # 聚合 POM
+│   │   └── egon-cola-component-method-extension-starter # ★ @MethodExtension 决策，engine 为 AOP、AGENT 或 DISABLED
+│   ├── egon-cola-component-transactional-outbox-starter # ★ 调用方事务内入队、SKIP LOCKED 轮询、HTTP/RabbitMQ/自定义 Handler、死信
+│   ├── egon-cola-component-agent-flow-starter        # ★ YAML Flow 树到 Spring AI + Google ADK 图，同步与流式，Session 进程内
+│   ├── egon-cola-component-rag-starter               # ★ 抽取、分块、存储、向量化与检索 SPI，模型与向量库由宿主提供
+│   ├── egon-cola-component-bytecode/                 # 聚合 POM
+│   │   ├── egon-cola-component-bytecode-api          # ★ 仅依赖 JDK 的能力契约、运行时事件、ContextCarrier
+│   │   ├── egon-cola-component-bytecode-bridge       # ★ 被增强代码与运行时之间的桥
+│   │   ├── egon-cola-component-bytecode-runtime      # ★ 增强、sink、指标与故障隔离
+│   │   ├── egon-cola-component-bytecode-agent        # ★ shade 后的 premain javaagent：executor、observation、method-extension
+│   │   ├── egon-cola-component-bytecode-starter      # ★ Spring Boot 装配加 /actuator/egonbytecode
+│   │   ├── egon-cola-component-bytecode-architecture-maven-plugin # ◆ 构建期 check、check-reactor、generate-baseline，含 10 条架构规则
+│   │   ├── egon-cola-component-bytecode-core         # 内部 ASM 转换与规则引擎，shade 进 -agent 并被插件使用
+│   │   ├── egon-cola-component-bytecode-test         # 架构与 Agent 集成夹具
+│   │   └── egon-cola-component-bytecode-benchmark    # JMH 度量
+│   └── egon-cola-component-code-generator            # ◆ 离线 CRUD 生成器，plan/check/apply/recover；开发期工具，永远不是运行时依赖
+├── egon-cola-xingyuan/                               # 可独立部署的平台层；父 Artifact ID 为 egon-cola-xingyuan-parent
+│   ├── pom.xml                                       # 平台聚合 POM，同时为平台库对齐版本（不是 Components BOM）
+│   ├── egon-cola-tianshu/                            # 动态配置中心；聚合 POM
+│   │   ├── egon-cola-tianshu-starter                 # ◆ ConfigData SDK、@DdcValue 与选择性刷新、ACK、客户端与 Provider 租约
+│   │   ├── egon-cola-tianshu-http-registration-starter # ◆ 把 Spring HTTP 服务注册到 Tianshu 并维持租约
+│   │   ├── egon-cola-tianshu-admin                   # 可运行的控制面：gRPC facade、REST 管理、SYNC_ALL_ACK 发布
+│   │   ├── egon-cola-tianshu-admin-web               # React 控制台，Maven Reactor 之外的 Node 工程
+│   │   └── egon-cola-tianshu-test                    # Starter 示例与租约/身份生命周期验收测试
+│   ├── egon-cola-yuheng/                             # 内部网关平台；聚合 POM
+│   │   ├── yuheng-starter                            # ◆ 业务侧组合入口，内含 Tianshu HTTP 注册
+│   │   ├── yuheng-contract                           # ◆ 网关模块与消费方共享的稳定契约
+│   │   ├── yuheng-starter-openapi                    # ◆ OpenAI 兼容 API 面，与技术栈无关
+│   │   ├── yuheng-starter-openapi-webmvc             # ◆ OpenAI 兼容 API 面的 Servlet 栈变体
+│   │   ├── yuheng-starter-openapi-webflux            # ◆ OpenAI 兼容 API 面的响应式栈变体
+│   │   ├── yuheng-biz-gateway                        # 可运行的 Reactor Netty 数据面：路由、流式、mTLS、Trace
+│   │   ├── yuheng-admin                              # 可运行的控制面：Release、规则、Provider 与 OpenAPI 管理
+│   │   ├── yuheng-core / yuheng-runtime-core         # 网关内部实现——不是使用方入口
+│   │   ├── yuheng-mcp-core / yuheng-mcp-gateway      # 实验性 MCP 端点——网关内部实现
+│   │   ├── yuheng-admin-web                          # React 控制台，Maven Reactor 之外的 Node 工程
+│   │   ├── yuheng-test                               # HTTP、RPC、MCP 与身份 Provider 及验收套件
+│   │   └── deployment / docs / performance           # 镜像、Runbook、集成指南与压测资产
+│   ├── egon-cola-tianquan-shoubing/                  # 统一身份提供方（OAuth/OIDC）；聚合 POM
+│   │   ├── egon-cola-tianquan-shoubing-starter       # ◆ 下游 Token 校验与全局用户解析
+│   │   ├── egon-cola-tianquan-shoubing-rpc-contract  # ◆ 身份相关 RPC 契约
+│   │   ├── egon-cola-tianquan-shoubing-gateway-adapter # ◆ Yuheng 侧身份能力，不是业务应用依赖
+│   │   ├── egon-cola-tianquan-shoubing-core          # 不依赖 Spring 与 I/O 的纯身份领域模型
+│   │   ├── egon-cola-tianquan-shoubing-admin         # 可运行的身份服务端控制面：客户端、租户、密钥、审计
+│   │   └── egon-cola-tianquan-shoubing-admin-web     # React 控制台，Maven Reactor 之外的 Node 工程
+│   ├── egon-cola-tianquan-jianshen/                  # 权限平台；聚合 POM
+│   │   ├── egon-cola-tianquan-jianshen-starter       # ◆ 业务服务的权限决策执行：JWT 校验与快照读取
+│   │   ├── egon-cola-tianquan-jianshen-contract      # ◆ 资源、角色与策略契约
+│   │   ├── egon-cola-tianquan-jianshen-gateway-adapter # ◆ 挂在 Yuheng 热路径上的鉴权钩子
+│   │   ├── egon-cola-tianquan-jianshen-core          # 不依赖 I/O 的角色 DAG、激活代数与约束
+│   │   ├── egon-cola-tianquan-jianshen-admin         # 可运行的控制面：Manifest 激活、Fence、投影
+│   │   ├── egon-cola-tianquan-jianshen-admin-web     # 平台前端工作区内的 React 控制台
+│   │   └── egon-cola-tianquan-jianshen-react-sdk     # Admin 前端的 npm SDK
+│   ├── egon-cola-xingyuan-admin-portal/              # 私有的 Wujie 微前端壳，聚合四个控制台
+│   ├── egon-cola-xingyuan-admin-web-shared/          # npm @egon-cola/xingyuan-admin-web-shared：布局、主题、HTTP/OAuth 客户端、i18n
+│   └── docs/                                         # 平台层设计规格与方案（superpowers 工作区）
+├── scripts/                                          # 发布与仓库辅助脚本
+│   ├── README.md                                     # 脚本索引与落位规则
+│   ├── maven-deploy.sh                               # Maven Central 发布包装脚本；真实发布必须 --publish，list 与 archetypes 只读
+│   ├── maven-deploy.md                               # 发布前置条件、签名与凭据配置
+│   ├── bump_cola_version.sh                          # 统一改写各 Reactor、README 与脚手架模板里的 5.x 版本
+│   ├── generate_archetypes.sh                        # generate | check：从 source-projects 派生 .generated 并校验
+│   ├── egon-codegen.sh                               # 离线代码生成器的包装脚本
+│   ├── unified-identity-local.sh                     # 本地统一身份、Tianshu、Yuheng、Jianshen 拓扑启动器
+│   ├── unified-xingyuan/                             # 平台栈辅助脚本：本地栈 prepare/start/status、租户迁移
+│   ├── checks/                                       # 三层的架构与边界归属检查
+│   └── regression/                                   # 脚手架与生成工程的发布形态回归套件
+├── mvnw / mvnw.cmd                                   # Maven Wrapper 入口
+└── pom.xml                                           # 根聚合父 POM egon-cola-aggregation-parent，版本 5.4.1
 ```
 
 推荐先阅读：
