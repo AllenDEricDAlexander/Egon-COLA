@@ -2,18 +2,20 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-`egon-cola-component-method-extension` is a lightweight Spring Boot Starter for
+`egon-cola-component-method-extension-starter` (aggregator artifact
+`egon-cola-component-method-extension`) is a lightweight Spring Boot Starter for
 running one business-defined decision handler before an annotated method.
 
 ## Modules
 
 | Module | Purpose |
 |---|---|
+| `egon-cola-component-method-extension` | `pom` aggregator; not published and not exported by the BOM |
 | `egon-cola-component-method-extension-starter` | Annotation, handler contract, AOP, response conversion, and auto-configuration |
 
 ## Dependency
 
-Import `top.egon:egon-cola-components-bom:5.2.3`, then add:
+Import `top.egon:egon-cola-components-bom:5.4.1`, then add:
 
 ```xml
 <dependency>
@@ -35,8 +37,10 @@ egon:
         order: -2147483548
 ```
 
-`engine` accepts `AOP`, `AGENT`, or `DISABLED`. A missing value preserves the
-existing AOP behavior. `enabled=false` always disables both engines.
+`enabled` defaults to `true`, so the starter is active as soon as the dependency is
+present; `enabled=false` always disables both engines. `engine` accepts `AOP`,
+`AGENT`, or `DISABLED` and defaults to `AOP`. Binding uses `ignoreInvalidFields=true`,
+so a missing or misspelled value falls back to `AOP` rather than failing start-up.
 
 | Engine | Supported methods | Runtime boundary |
 |---|---|---|
@@ -127,14 +131,15 @@ published Agent JAR before the application main class:
 ```
 
 ```bash
-java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=method-extension,include=com.example.*" \
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.4.1.jar=enabled=true,features=method-extension,include=com.example.*" \
   -jar application.jar
 ```
 
 The bytecode starter declares Method Extension support as optional, so consumers
-must still declare this Method Extension starter explicitly. Spring startup fails
-when `engine: AGENT` is selected but the active Agent does not advertise the
-`METHOD_EXTENSION` capability. `not-ready-policy` applies only before Spring finishes
+must still declare this Method Extension starter explicitly. Spring start-up fails
+when `engine: AGENT` is selected but the bytecode starter is absent from the
+classpath. The separate capability check that the running Agent advertises
+`METHOD_EXTENSION` is enforced by the bytecode starter. `not-ready-policy` applies only before Spring finishes
 initializing the runtime adapter: `PROCEED` allows the original body, `REJECT` returns
 `null` without invoking a Handler, and `FAIL` throws a startup-readiness error.
 
@@ -142,5 +147,6 @@ For rejections, direct synchronous values preserve the existing response rules.
 `Future`, `CompletionStage`, and `CompletableFuture` return types receive a completed
 rejection value; allowed calls retain the original asynchronous object identity.
 Arbitrary concrete `Future` implementations and reactive return types are not
-adapted. Agent events expose bounded method/Handler identities and outcomes only;
-arguments, return payloads, credentials, and exception messages are never published.
+adapted. Agent events expose bounded method/Handler identities, outcomes, and a
+bounded handler-supplied reason; arguments, return payloads, credentials, and
+exception messages are never published.

@@ -2,17 +2,18 @@
 
 [English](README.md) | 中文
 
-`egon-cola-component-method-extension` 是一个轻量级 Spring Boot Starter，用于在执行带注解的方法之前运行一个由业务定义的决策 Handler。
+`egon-cola-component-method-extension-starter`（聚合 Artifact 为 `egon-cola-component-method-extension`）是一个轻量级 Spring Boot Starter，用于在执行带注解的方法之前运行一个由业务定义的决策 Handler。
 
 ## 模块
 
 | 模块 | 用途 |
 |---|---|
+| `egon-cola-component-method-extension` | `pom` 聚合模块；不发布，也不由 BOM 导出 |
 | `egon-cola-component-method-extension-starter` | 提供注解、Handler 契约、AOP、响应转换和自动配置 |
 
 ## 依赖
 
-导入 `top.egon:egon-cola-components-bom:5.2.3`，然后添加：
+导入 `top.egon:egon-cola-components-bom:5.4.1`，然后添加：
 
 ```xml
 <dependency>
@@ -34,7 +35,7 @@ egon:
         order: -2147483548
 ```
 
-`engine` 接受 `AOP`、`AGENT` 或 `DISABLED`。未配置该值时保留现有 AOP 行为。`enabled=false` 始终会禁用这两种引擎。
+`enabled` 默认为 `true`，因此依赖一经引入即生效；`enabled=false` 始终会禁用这两种引擎。`engine` 接受 `AOP`、`AGENT` 或 `DISABLED`，默认 `AOP`。配置绑定使用 `ignoreInvalidFields=true`，缺失或拼写错误的取值会回退到 `AOP`，而不是让启动失败。
 
 | 引擎 | 支持的方法 | 运行时边界 |
 |---|---|---|
@@ -85,6 +86,8 @@ public UserResponse query(String userId) {
 
 Handler 缺失或存在歧义、决策为 null，以及响应配置无效时，会抛出 `MethodExtensionConfigurationException`。JSON 和响应类型错误会抛出 `MethodExtensionResponseException`。Handler 抛出的异常会被记录并原样向外传播；Handler 失败后绝不会执行原方法。
 
+**异常与枚举契约：** 三个组件异常都位于 `top.egon.cola.component.methodextension.common.exception`，其中 `MethodExtensionException` 继承 common-core 的 `CommonException`，共用 `ResultCode.SYSTEM_ERROR` 编码与状态，因此消息、cause 和构造器形状保持文档所述。`engine`、`not-ready-policy` 与异步返回类型都是 common-core 的 `EgonEnum`，编码按声明顺序固定（`AOP=0`、`AGENT=1`、`DISABLED=2`；`PROCEED=0`、`REJECT=1`、`FAIL=2`），而配置绑定、策略分支和 JSON 类型化仍按常量名匹配。Starter 发布规范的 `egonColaValidationUtils` 门面，`MethodExtensionAgentEngineValidator` 复用它先执行原生 Jakarta 约束，再做自己的 classpath 关联校验。
+
 ## Spring AOP 限制
 
 只有 Spring 管理的代理 Bean 上的 public 方法会被拦截。不支持通过 `this` 的自调用、private 方法、static 方法和不可代理的 final 方法。V1 执行一个同步 Handler，不提供 Handler 链、响应式适配器、Web 层、Redis 集成或数据库状态。
@@ -101,10 +104,10 @@ Method Extension starter 保持独立，不依赖 bytecode 组件。若要使用
 ```
 
 ```bash
-java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=method-extension,include=com.example.*" \
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.4.1.jar=enabled=true,features=method-extension,include=com.example.*" \
   -jar application.jar
 ```
 
-bytecode starter 将 Method Extension 支持声明为可选依赖，因此使用方仍必须显式声明本 Method Extension starter。当选择 `engine: AGENT`，但活动 Agent 未声明 `METHOD_EXTENSION` 能力时，Spring 启动会失败。`not-ready-policy` 仅在 Spring 完成运行时适配器初始化之前生效：`PROCEED` 允许执行原方法体，`REJECT` 在不调用 Handler 的情况下返回 `null`，`FAIL` 抛出启动就绪状态错误。
+bytecode starter 将 Method Extension 支持声明为可选依赖，因此使用方仍必须显式声明本 Method Extension starter。当选择 `engine: AGENT` 但 classpath 上没有 bytecode starter 时，Spring 启动会失败；“活动 Agent 必须声明 `METHOD_EXTENSION` 能力”这一条由 bytecode starter 校验。`not-ready-policy` 仅在 Spring 完成运行时适配器初始化之前生效：`PROCEED` 允许执行原方法体，`REJECT` 在不调用 Handler 的情况下返回 `null`，`FAIL` 抛出启动就绪状态错误。
 
-对于拒绝结果，直接同步值沿用现有响应规则。返回类型为 `Future`、`CompletionStage` 和 `CompletableFuture` 时会收到一个已完成的拒绝值；允许执行的调用保留原异步对象的身份。不适配任意具体 `Future` 实现和响应式返回类型。Agent 事件只公开有界的方法/Handler 标识和结果；绝不会发布参数、返回载荷、凭据或异常消息。
+对于拒绝结果，直接同步值沿用现有响应规则。返回类型为 `Future`、`CompletionStage` 和 `CompletableFuture` 时会收到一个已完成的拒绝值；允许执行的调用保留原异步对象的身份。不适配任意具体 `Future` 实现和响应式返回类型。Agent 事件只公开有界的方法/Handler 标识、结果以及有界的 Handler 决策原因；绝不会发布参数、返回载荷、凭据或异常消息。
