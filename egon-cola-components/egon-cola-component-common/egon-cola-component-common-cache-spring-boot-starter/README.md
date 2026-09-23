@@ -7,7 +7,8 @@ Spring Cache 原生注解 + L1 Guava + L2 Redisson `RMapCache`，通过一个 Re
 ## 1. 启用
 
 本组件是必需组件：`enabled` 缺省为 `true`，装配不需要额外开关。starter 只消费宿主提供的 `RedissonClient`
-Bean，不创建客户端；宿主缺失该 Bean 时启动即失败（`CACHE_REDISSON_CLIENT_MISSING`），不静默降级为单级缓存。
+Bean，不创建客户端：按 `redissonClient` 名称优先解析，名称不存在时回退到唯一候选。没有候选、或有多个候选却没有约定名称，
+启动即失败（`CACHE_REDISSON_CLIENT_MISSING`），不静默降级为单级缓存。
 `spring-boot-starter-cache` 随本 starter 传递，Redisson 客户端依赖由宿主自行声明。配置示例：
 
 ```yaml
@@ -49,6 +50,9 @@ public class CacheConfiguration {
 自动配置先于 Boot 的 `CacheAutoConfiguration` 注册 `egonColaTwoLevelCacheManager`。
 宿主已经提供任意 `CacheManager` 时，整组自动配置让位；如有多个 manager，通过
 `@CacheConfig(cacheManager = "egonColaTwoLevelCacheManager")` 或每个注解上的 `cacheManager` 明确选择。
+与 mp-sd-ext 同时装配时，“让位”不是静默降级：`cache.enabled` 缺省为真且上下文里存在别的
+`CacheManager` 时，持久化侧的租户作用域裁决会以 `CACHE_MANAGER_INCOMPATIBLE` 失败；
+`enabled=false` 或上下文完全没有 `CacheManager`（切片上下文）不触发该失败。
 `@EnableCaching` 与 `enabled=true` 是两个独立开关，只有注册 manager 并不会启用注解拦截。
 
 ## 2. mp-sd-ext 集成
@@ -84,7 +88,8 @@ public class UserRepository extends EgonColaRepository<UserDAO, UserPO> {
 禁止给 final/private 方法加注解并期望 CGLIB 拦截。批量写依旧由上层事务包围。
 所有影响缓存数据的新增、修改、删除及自定义 SQL 路径都必须声明相应失效；直接调用普通 CRUD 不再自动失效。
 单键读写统一使用 `egonColaRepositoryKeyGenerator`：它接受一个 `Long` ID 或 `EgonModel` 参数，
-产出可信的 `tenant:id`，因此读、改、删三个入口天然共用同一区域键；多参数与集合/数组批量签名不支持该策略。
+产出可信的 `tenant:id`，因此读、改、删三个入口天然共用同一区域键；ID 必须为正，实体自带的租户与当前上下文不一致时以
+`CACHE_KEY_TENANT_MISMATCH` 拒绝；多参数与集合/数组批量签名不支持该策略。
 批量读不要把一个 `List<PO>` 写到单实体区域的某个 ID Key；如缓存整个批次，应使用独立区域，规范化 ID 顺序和重复值，并在写入时失效该区域。
 
 ## 3. 注解、SpEL 和组合操作
@@ -147,7 +152,7 @@ public class UserLookupRepository {
 - **雪崩**：每次写入分别采样 `[l1-expire, l1-expire + l1-jitter]` 与 `[l2-expire, l2-expire + l2-jitter]`，
   写入 L1 的实际寿命再按 L2 采样结果截断，避免出现比 L2 更久的本机残留。
   `regions.<cacheName>` 按五个字段独立覆盖全局 TTL；未指定的字段继承全局配置。
-  TTL 至少为 1ms，每一级的 `基础 + 抖动` 必须不溢出，否则绑定阶段即拒绝。
+  每一级的基础 TTL 必须为正、抖动不得为负，且 `基础 + 抖动` 仍可表示为毫秒，否则绑定阶段即拒绝。
   空值哨兵使用 `null-expire`，不加抖动。
 - **击穿**：`@Cacheable(sync=true)` 调用 `Cache.get(key, Callable)`。本机合并同 Key 的重叠加载，
   Redis 正常时再使用分布式锁与二次查询。锁等待超时、Redis 故障时回源但不回填，本机重叠请求仍共享本次结果。
@@ -189,7 +194,7 @@ mp-sd-ext 及脚手架已不再注入它。`second-evict-delay` 仅作用于旧�
 | 键                                                | 默认值                     | 用途             |
 |--------------------------------------------------|-------------------------|----------------|
 | `enabled`                                        | `true`                  | 必需组件开关，缺省即装配  |
-| `node-id`                                        | 随机 JVM 标识               | 忽略本机事件回声       |
+| `node-id`                                        | `""`                        | 忽略本机事件回声       |
 | `key-prefix`                                     | `egon:cola:cache`       | L2 和锁命名空间，模板按应用/版本隔离 |
 | `redis.topic`                                    | `egon:cola:cache:event` | 单一事件通道         |
 | `tenant-mdc-key`                                 | `tenantId`              | 当前租户上下文        |
@@ -203,6 +208,8 @@ mp-sd-ext 及脚手架已不再注入它。`second-evict-delay` 仅作用于旧�
 | `lock.lease-time`                                | `PT10S`                 | 分布式锁租期         |
 | `second-evict-delay`                             | `PT5S`                  | 旧端口延迟二次失效      |
 
+`node-id` 留空时，manager 在首次需要时生成 `node-<UUID>` 并在进程内复用；显式配置的值原样使用。
+
 所有属性绑定关闭了未知字段容忍：旧版共用的 `ttl.expire` / `ttl.jitter-ratio`（含区域级同名覆盖）在启动时
 直接以 `The elements [...] were left unbound.` 失败，而不是被静默忽略，避免滚动发布中新旧节点混用不同 TTL 语义。
 
@@ -212,5 +219,11 @@ L2 codec 沿用受限类型白名单：`top.egon.cola.`、`java.util.`、`java.t
 ## 8. 验证
 
 `EgonColaCacheAnnotationTest` 使用真实 Spring 缓存代理和 mock Redis，覆盖注解、SpEL、条件、组合、租户、TTL、并发和事务。
+`EgonColaCachePropertiesTest`、`EgonColaCacheAutoConfigurationTest`、`EgonColaCacheCodecsTest` 与
+`contract/RequiredTwoLevelCacheContractTest` 分别覆盖绑定与校验、条件装配与 fail-fast、受限类型白名单和必需组件契约；
+`EgonColaTwoLevelCacheManagerTest`、`EgonColaCacheChangedEventTest` 与 `EgonColaCacheChangedListenerTest`
+覆盖区域句柄与命名校验、node-id 解析、事件负载和监听器生命周期。
 mp-sd-ext 的 `EgonColaRepositoryCacheEnhancementTest` 验证具体 Repository 与基类 CRUD 的代理集成。
-真实 Redis/多节点测试仍通过 `-Degon.cola.cache.redis.it=true` 显式启用，需要调用者先准备并授权 Docker 环境。
+`core/EgonColaTwoLevelCacheTest`、`port/EgonColaTwoLevelCachePortEvictionIntegrationTest` 与
+`port/EgonColaCacheClusterConvergenceTest` 继承 `support/CacheRedisTestSupport`，是 Testcontainers Redis 用例：
+仍通过 `-Degon.cola.cache.redis.it=true` 显式启用，需要调用者先准备并授权 Docker 环境；Docker 不可用时逐用例 assumption 跳过。
