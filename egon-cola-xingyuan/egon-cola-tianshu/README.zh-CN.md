@@ -8,7 +8,8 @@
 一份 YAML 业务配置文档的 SDK、类型化管理 API、可独立部署的 Admin 应用，以及面向
 RPC Provider 和内部 Yuheng 的 Redis 服务注册中心。
 
-Maven 模块统一使用 `egon-cola-xingyuan-*` 前缀。Starter Java API 已按领域重新组织，
+Maven Artifact 统一使用 `egon-cola-tianshu-*` 前缀，由 `egon-cola-xingyuan-parent`
+聚合。Starter Java API 已按领域重新组织，
 不为旧技术分层包保留转发类型；外部 `egon.cola.component.tianshu` 配置命名空间保持不变。
 
 V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 Admin 进程可以服务
@@ -21,12 +22,13 @@ V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 
 ## 部署拓扑
 
 ```text
-配置客户端 ──直连 gRPC/HMAC──┐
-RPC Provider ────直连 gRPC/HMAC──┼──> Tianshu 逻辑目标 ──> Admin 集合 ──> PostgreSQL
-内部 Yuheng ────直连 gRPC/HMAC──┘                               │
-                                                                       └──> 共享 Redis
-配置客户端 <──────── Redis Pub/Sub ────────┘
-注册订阅方 <──────── Redis Pub/Sub ────────┘
+配置客户端     ─┐
+RPC Provider   ─┼── 直连 gRPC / HMAC ──> Tianshu 逻辑目标 ──> Admin 集合 ──┬──> PostgreSQL
+HTTP Provider  ─┤                                                          └──> 共享 Redis
+内部 Yuheng    ─┘
+
+共享 Redis ── Redis Pub/Sub ──> 配置客户端
+共享 Redis ── Redis Pub/Sub ──> 注册订阅方
 ```
 
 Admin 进程是唯一的机器控制面 RPC Provider。客户端通过本地配置的
@@ -45,7 +47,7 @@ Admin HTTP 仅保留给人工管理 API 和 Actuator 健康检查。各 Admin �
 | `egon-cola-component-rpc-tianshu-adapter` | 位于 `components/rpc` 的组装适配器：Protobuf 契约、直连 gRPC Client/Provider、HMAC Metadata 和 Spring Boot 装配 |
 | `egon-cola-tianshu-admin` | 人工 REST Admin 与直连 gRPC Facade、PostgreSQL 持久化、Redis 缓存/租约和同步发布状态机 |
 | `egon-cola-tianshu-admin-web` | 独立管理控制台（React + antd + Vite，纯 Node 工程，不进 Maven reactor）；构建与部署说明见 `egon-cola-tianshu-admin-web/README.md` |
-| `egon-cola-tianshu-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
+| `egon-cola-tianshu-test` | Starter 样例应用、黑盒消费端验证，以及租约/注册/资源准入生命周期验收测试；仅在 test 作用域依赖 Admin |
 
 Admin 的 webui 已从 jar 中摘出（`/tianshu-admin` 不再由 Admin 提供服务）：管理控制台以
 独立容器部署，经 `TIANSHU_ADMIN_API_BASE_URL` 指向 Admin，`/api` 请求由 static-server
@@ -203,10 +205,28 @@ private volatile Boolean downgradeEnabled;
 |---|---:|---:|---|
 | `CONFIG_CLIENT` | 30 秒 | 10 秒 | Redis 租约，加 `ddc_instance` 管理投影 |
 | `RPC_PROVIDER` | 30 秒 | 10 秒 | 仅 Redis |
+| `HTTP_PROVIDER` | 30 秒 | 10 秒 | 仅 Redis |
 | `INTERNAL_GATEWAY` | 15 秒 | 5 秒 | 仅 Redis |
 
 Admin 接受 5～300 秒租约，心跳周期必须短于租约。每次 Register 都生成新的
 `leaseId`。Redis Bucket TTL 是当前租约事实；Heartbeat 不会隐式重建丢失租约。
+
+### Tianquan-Shoubing SERVICE Token 与租约边界
+
+配置客户端、HTTP Provider、RPC Provider 和内部 Yuheng 的每次注册或心跳，都通过标准
+Spring OAuth2 Client `client_credentials` 流程取得一枚新的 Tianquan-Shoubing SERVICE
+Token。该授权面向 Tianshu Resource，携带 `grantContext: PLATFORM` 和最小权限的注册
+scope。Tianshu 校验签名 Token、精确 Audience、来源/应用身份、Scope、实例绑定、
+nonce 重放状态和过期时间；不接受第二套注册票据或 RPC 凭据。
+
+已启用的 Resource 按其逻辑 `bizCode + appCode + env` 三元组批准，因此实例不需要逐个
+进入目录审批。租约有效期受 SERVICE Token 有效期上界约束，注册表或审计状态中不保存
+原始 Token，缺失或过期的 Token 既不能创建也不能续期租约。Tianquan-Shoubing 不可用时，
+已有租约只能运行到当前 Token 边界有效期；无法安全续期时运行期进入恢复态并转为 not ready。
+
+禁用 Resource 只摘除逻辑三元组匹配的租约。恢复方式是重新启用 Resource、恢复所需的
+Tianquan-Shoubing Grant，并让每个实例取得新的 SERVICE Token 和租约。Tianquan-Shoubing V5
+与兼容的 Tianshu 发布必须一起应用；这是破坏性协议迁移，已有 Flyway 文件不得编辑或回退。
 
 ## 服务注册中心
 
@@ -216,7 +236,8 @@ Admin 接受 5～300 秒租约，心跳周期必须短于租约。每次 Registe
 env + namespace + serviceKind + serviceName + group + version + protocol
 ```
 
-支持的 `serviceKind` 是 `RPC_PROVIDER` 和 `INTERNAL_GATEWAY`。注册信息包含
+支持的 `serviceKind` 是 `HTTP_PROVIDER`、`RPC_PROVIDER` 和 `INTERNAL_GATEWAY`。
+注册信息包含
 `instanceId`、主机、端口、secure 标志、元数据、租约秒数和心跳周期。
 元数据有数量和长度边界，并拒绝保留前缀与敏感字段。
 
@@ -327,11 +348,29 @@ Admin 会检查已知方法/操作映射、契约版本、时间偏移、Access 
 
 ```yaml
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          egon-tianquan-shoubing:
+            client-id: ${EGON_TIANQUAN_SHOUBING_APP_KEY}
+            client-secret: ${EGON_TIANQUAN_SHOUBING_APP_SECRET}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+        provider:
+          egon-tianquan-shoubing:
+            token-uri: ${EGON_TIANQUAN_SHOUBING_TOKEN_URI}
   config:
     import: tianshu:application.yml
 
 egon:
   cola:
+    platform:
+      tianquan:
+        shoubing:
+          service-client:
+            app-id: ${EGON_TIANQUAN_SHOUBING_APP_ID}
+            registration-id: egon-tianquan-shoubing
     component:
       tianshu:
         enabled: true
@@ -372,6 +411,11 @@ egon:
         consistency:
           fail-fast: true
 ```
+
+上述 TLS `private-key-path` 只是传输层证书私钥，不是 OAuth 客户端凭据。OAuth 客户端
+身份是 Tianquan-Shoubing 管理的 `appId`/`client_id` 与一次性 Secret。所有 Secret 值都要
+留在本文档之外，发布顺序和恢复证据见
+[切换 Runbook](../../docs/runbooks/unified-identity-oauth-client-tenant-cutover.md)。
 
 允许远端文档不存在时可使用 `optional:tianshu:application.yml`。Tianshu 只贡献一个
 PropertySource，其优先级高于本地 ConfigData、低于 Spring Boot 的命令行参数和系统

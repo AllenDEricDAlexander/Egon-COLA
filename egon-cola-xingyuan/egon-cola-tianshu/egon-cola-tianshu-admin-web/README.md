@@ -8,10 +8,16 @@ directly.
 
 ## Authentication
 
-The console follows the Tianshu Admin bearer-token model: paste an admin Bearer
-Access Token into the login page; the token is kept in `sessionStorage` only
-and is never written into the URL or sent to the server side of the browser
-session. A 401 response clears the token and returns to the login page.
+The console signs in through the platform unified identity (Tianquan-Shoubing) via
+`createGatewayAuthClient` from `@egon-cola/xingyuan-admin-web-shared`. The login form
+submits a tenant ID, username and password to the CSRF-protected `/oauth2/login`
+endpoint, and the session lives in `HttpOnly` cookies the browser never reads.
+
+The console therefore holds no access token and sends no `Authorization` header; every
+call relies on cookie credentials. Identity and permissions come from
+`GET /api/v1/tianshu/auth/bootstrap`, and the console is authorized only when the
+response grants `TIANSHU_READ`. A 401 clears the local bootstrap state and returns to
+the login page.
 
 ## Development
 
@@ -23,8 +29,11 @@ npm run lint
 npm run build
 ```
 
-`npm run dev` proxies `/api` to a local Tianshu Admin at
-`http://127.0.0.1:18080` (override with `TIANSHU_ADMIN_PROXY`).
+`npm run dev` binds `http://127.0.0.1:18152` (`strictPort`) and proxies both `/oauth2`
+and `/api` to the gateway that fronts Tianshu Admin, by default
+`http://127.0.0.1:18180`. Override the two upstreams independently with
+`TIANSHU_AUTH_PROXY` and `TIANSHU_ADMIN_PROXY`; `npm run preview` reuses the same proxy
+table.
 
 The registry page sends an exact four-part scope on its first request. Set its
 build-time defaults when the local scope differs from `default / default-app /
@@ -38,9 +47,15 @@ VITE_TIANSHU_ADMIN_DEFAULT_NAMESPACE=default \
 npm run dev
 ```
 
-Run `npm run e2e` only with a reachable Tianshu Admin and a valid token in
-`TIANSHU_E2E_TOKEN` (the upstream URL can be overridden with `TIANSHU_E2E_ADMIN_URL`).
-The command is not a substitute for the Tianshu live Maven suite.
+Run `npm run e2e` only with a reachable Tianshu Admin: Playwright builds the console and
+serves `npm run preview` on `http://127.0.0.1:4173`, so the scenario traffic reaches Admin
+through the preview proxy table above. The command is not a substitute for the Tianshu
+live Maven suite.
+
+> Known gap: `e2e/tianshu-admin.spec.ts` still drives a removed "paste an admin token"
+> form through `TIANSHU_E2E_TOKEN`, so it skips unless that variable is set and then
+> fails against the current login form. The spec needs a source-side fix; see the
+> Yuheng Admin Web Playwright suite for the cookie-login pattern to copy.
 
 ## Runtime configuration
 
@@ -55,6 +70,11 @@ Set `TIANSHU_ADMIN_API_BASE_URL` to point at the admin backend:
 | `TIANSHU_ADMIN_API_TLS_CA_PATH` | — | CA file for mTLS upstream (required for `https:` upstream) |
 | `TIANSHU_ADMIN_API_TLS_CERTIFICATE_PATH` | — | Client certificate for mTLS upstream |
 | `TIANSHU_ADMIN_API_TLS_PRIVATE_KEY_PATH` | — | Client private key for mTLS upstream |
+
+The static server itself fails fast on an `http:` upstream unless the plaintext switch is
+`true`, but the shipped `Dockerfile` already bakes
+`TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT=true` into the image for local use; unset or
+override it in any environment with real TLS.
 
 Keep credentials out of committed `.env` files. TLS termination and the Tianshu
 Admin authorization policy remain deployment responsibilities.

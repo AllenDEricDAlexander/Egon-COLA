@@ -4,15 +4,15 @@
 
 ## Scope
 
-`egon-cola-tianshu` provides a Spring Boot ConfigData SDK
-for one YAML business-configuration document, typed management APIs, a standalone
-Admin application, and a Redis-backed service registry for RPC Providers and
-internal Gateways.
+`egon-cola-tianshu` provides a Spring Boot ConfigData SDK for one YAML
+business-configuration document per `bizCode + env + appCode` scope, typed management
+APIs, a standalone Admin application, and a Redis-backed service registry for RPC
+Providers, HTTP Providers, and internal Gateways.
 
-The Maven modules use the `egon-cola-xingyuan-*` prefix. The Starter Java API is
-organized by domain and does not retain forwarding types for its former technical
-packages. The external `egon.cola.component.tianshu` configuration namespace remains
-unchanged.
+The Maven artifacts use the `egon-cola-tianshu-*` prefix and are aggregated by
+`egon-cola-xingyuan-parent`. The Starter Java API is organized by domain and does not
+retain forwarding types for its former technical packages. The external
+`egon.cola.component.tianshu` configuration namespace remains unchanged.
 
 V1 supports one logical control plane backed by shared PostgreSQL and Redis. Multiple
 Admin processes can serve the same control plane: publish preparation uses PostgreSQL
@@ -26,12 +26,13 @@ temporary lease state in Redis and never create JPA or database tables.
 ## Deployment Topology
 
 ```text
-Configuration Clients ──direct gRPC/HMAC──┐
-RPC Providers ────────direct gRPC/HMAC──┼──> one logical Tianshu target ──> Admin set ──> PostgreSQL
-Internal Yuheng ─────direct gRPC/HMAC──┘                                      │
-                                                                                 └──> shared Redis
-Configuration Clients <──── Redis Pub/Sub ────────┘
-Registry Subscribers  <──── Redis Pub/Sub ────────┘
+Configuration Clients ─┐
+RPC Providers         ─┼── direct gRPC / HMAC ──> one logical Tianshu target ──> Admin set ──┬──> PostgreSQL
+HTTP Providers        ─┤                                                                      └──> shared Redis
+Internal Yuheng       ─┘
+
+shared Redis ── Redis Pub/Sub ──> Configuration Clients
+shared Redis ── Redis Pub/Sub ──> Registry Subscribers
 ```
 
 The Admin processes are the only machine control-plane RPC providers. Clients use
@@ -53,7 +54,7 @@ ACK, operation, and configuration-client projection data.
 | `egon-cola-component-rpc-tianshu-adapter` | Composition adapter under `components/rpc`: protobuf contracts, direct gRPC clients/providers, HMAC metadata, and Spring Boot wiring |
 | `egon-cola-tianshu-admin` | Human REST Admin plus direct gRPC facades, PostgreSQL persistence, Redis cache/leases, and synchronous publish state machine |
 | `egon-cola-tianshu-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-tianshu-admin-web/README.md` |
-| `egon-cola-tianshu-test` | Starter samples, black-box consumer verification, and cross-boundary identity/lease lifecycle acceptance tests |
+| `egon-cola-tianshu-test` | Starter sample application, black-box consumer verification, and lease / registry / resource-admission lifecycle acceptance tests; depends on Admin in test scope only |
 
 The Admin web UI has been extracted from the jar (`/tianshu-admin` is no longer served
 by Admin). The console deploys as its own container, points at Admin via
@@ -226,6 +227,7 @@ their callers use role-specific timing:
 |---|---:|---:|---|
 | `CONFIG_CLIENT` | 30 seconds | 10 seconds | Redis lease plus `ddc_instance` management projection |
 | `RPC_PROVIDER` | 30 seconds | 10 seconds | Redis only |
+| `HTTP_PROVIDER` | 30 seconds | 10 seconds | Redis only |
 | `INTERNAL_GATEWAY` | 15 seconds | 5 seconds | Redis only |
 
 The Admin accepts leases from 5 to 300 seconds, and the heartbeat interval must
@@ -399,10 +401,12 @@ spring:
 
 egon:
   cola:
-    xingyuan:
-      tianquan-shoubing:
-        service-client:
-          app-id: ${EGON_TIANQUAN_SHOUBING_APP_ID}
+    platform:
+      tianquan:
+        shoubing:
+          service-client:
+            app-id: ${EGON_TIANQUAN_SHOUBING_APP_ID}
+            registration-id: egon-tianquan-shoubing
     component:
       tianshu:
         enabled: true
@@ -580,11 +584,11 @@ For the complete Tianshu + Yuheng + RPC startup order, credentials, lease drills
 runtime evidence, use the [developer integration runbook](../egon-cola-yuheng/docs/developer-integration.md).
 
 - no Raft, leader election, consensus log, or membership protocol;
-- multi-Admin operation requires shared PostgreSQL and Redis; the xingyuan does not provision database or Redis HA;
+- multi-Admin operation requires shared PostgreSQL and Redis; the platform does not provision database or Redis HA;
 - Tianshu uses a direct logical RPC target with client-side or external round-robin; it does not register itself, discover itself, require sticky sessions, or stream config over gRPC;
 - no distributed consensus or general-purpose distributed lock service;
 - no embedded Redis and no database-backed service registry;
 - no embedded Admin UI or account system; the standalone Admin Web uses the
-  xingyuan identity and authorization integration, and MySQL compatibility is
+  platform unified identity and authorization integration, and MySQL compatibility is
   not a target;
 - no asynchronous, quorum, or partial-success publish mode in V1.

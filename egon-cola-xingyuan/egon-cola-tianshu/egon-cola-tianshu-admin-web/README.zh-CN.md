@@ -7,9 +7,13 @@ Tianshu Admin Web 是 Egon COLA 动态配置中心的独立管理控制台。它
 
 ## 认证
 
-沿用 Tianshu Admin 的 Bearer Token 模型：在登录页粘贴 admin Bearer Access Token；
-Token 仅保存在 `sessionStorage`，不会写入 URL 或发送到浏览器会话的服务端。
-收到 401 时清空 Token 并回到登录页。
+控制台通过 `@egon-cola/xingyuan-admin-web-shared` 的 `createGatewayAuthClient` 走平台
+统一身份（Tianquan-Shoubing）登录：登录页提交租户 ID、用户名和密码，经 CSRF 保护的
+`/oauth2/login` 完成认证，会话保存在浏览器不读取的 `HttpOnly` Cookie 中。
+
+因此控制台不持有 Access Token，也不发送 `Authorization` 头，所有请求依赖 Cookie 凭据。
+身份与权限来自 `GET /api/v1/tianshu/auth/bootstrap`，只有响应授予 `TIANSHU_READ` 时
+控制台才算已授权。收到 401 时清空本地 bootstrap 状态并回到登录页。
 
 ## 开发
 
@@ -21,8 +25,9 @@ npm run lint
 npm run build
 ```
 
-`npm run dev` 会把 `/api` 代理到本机 Tianshu Admin（默认
-`http://127.0.0.1:18080`，可用 `TIANSHU_ADMIN_PROXY` 覆盖）。
+`npm run dev` 绑定 `http://127.0.0.1:18152`（`strictPort`），并把 `/oauth2` 和 `/api`
+一并代理到 Tianshu Admin 前的网关，默认 `http://127.0.0.1:18180`。两个上游可分别用
+`TIANSHU_AUTH_PROXY` 和 `TIANSHU_ADMIN_PROXY` 覆盖；`npm run preview` 复用同一张代理表。
 
 注册中心首次请求会携带完整四级作用域。本地作用域不是
 `default / default-app / dev / default` 时，可设置以下构建时默认值：
@@ -35,9 +40,14 @@ VITE_TIANSHU_ADMIN_DEFAULT_NAMESPACE=default \
 npm run dev
 ```
 
-`npm run e2e` 仅在存在可达的 Tianshu Admin 且 `TIANSHU_E2E_TOKEN` 配置了有效 token
-时运行（上游地址可用 `TIANSHU_E2E_ADMIN_URL` 覆盖）。该命令不能替代 Tianshu 的
-Maven 测试套件。
+`npm run e2e` 需要存在可达的 Tianshu Admin：Playwright 会先构建控制台，再用
+`npm run preview` 在 `http://127.0.0.1:4173` 提供服务，场景流量经上面的 preview 代理表
+到达 Admin。该命令不能替代 Tianshu 的 Maven 测试套件。
+
+> 已知缺陷：`e2e/tianshu-admin.spec.ts` 仍在填写早已移除的“粘贴 admin token”表单，并
+> 依赖 `TIANSHU_E2E_TOKEN`；未设置该变量时整条用例被跳过，设置后也会在当前登录页上
+> 失败。该 spec 需要源码侧修复，可参照 Yuheng Admin Web 的 Playwright 用例改写为
+> Cookie 登录。
 
 ## 运行时配置
 
@@ -52,6 +62,10 @@ Maven 测试套件。
 | `TIANSHU_ADMIN_API_TLS_CA_PATH` | — | mTLS 上游的 CA 文件（`https:` 上游必填） |
 | `TIANSHU_ADMIN_API_TLS_CERTIFICATE_PATH` | — | mTLS 上游的客户端证书 |
 | `TIANSHU_ADMIN_API_TLS_PRIVATE_KEY_PATH` | — | mTLS 上游的客户端私钥 |
+
+static-server 遇到 `http:` 上游且未开启明文开关时会快速失败，但随仓 `Dockerfile` 已把
+`TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT=true` 固化进镜像供本地使用；真实 TLS 环境必须
+取消或覆盖该变量。
 
 不要把凭据写进提交的 `.env` 文件。TLS 终结与 Tianshu Admin 的授权策略属于部署职责。
 
