@@ -15,6 +15,10 @@ Forbidden for this skill: `egon-cola-archetype-light-open`, `egon-cola-archetype
 
 Select exactly one row. If two rows fit, ask before generate. Do not mix module sets.
 
+One generated project already has a root POM. For an explicitly requested outer reactor containing several generated projects, read `references/multi-project-parent.md` before deciding whether its POM needs inheritance; the normal solution is an aggregation-only POM with no Maven `<parent>`. The generated project's root keeps its direct published Egon parent.
+
+For Egon Component/Platform capability questions during project creation, the same reference explains the separation of the outer `<modules>`, inherited BOM/dependency management, and the actual `<dependencies>` of the generated inner module. Do not add Egon source repositories to the business reactor or introduce an unapproved dependency merely because the archetype parent manages its version.
+
 ## Required generation properties
 
 Always pass `groupId`, `artifactId`, `version`, `package`, and `interactiveMode=false`.
@@ -55,7 +59,7 @@ Never write under:
 - `egon-cola-archetypes/definitions`
 - `egon-cola-archetypes/.generated`
 
-Do not add the new project to a reactor POM unless the user asks.
+Do not add the new project to an outer reactor POM unless the user asks. If requested, use `references/multi-project-parent.md`; include the generated project root path once, without rewriting its `<parent>` or listing its internal modules again.
 
 ## Command shape
 
@@ -82,6 +86,7 @@ Check all of these before reporting success:
 
 - The new directory exists at `<parent>/<artifactId>` and was not written into `source-projects`, `definitions`, or `.generated`.
 - Root `pom.xml` inherits `top.egon:egon-cola-archetypes-parent` at the version you passed, with an empty `relativePath`.
+- If an outer aggregation POM was requested, verify that it lists this generated root exactly once, its business GAV is user-specified, and any other listed child paths actually exist. An aggregation POM does not replace this generated root parent.
 - Module directories match `expectedTopology` for that archetype. Light is one module (`root`). Agent has no `facade` module.
 - The chosen artifactId does not contain `-open`.
 - Do not delete the archetype's sample domain in this skill. Replacing it is later Spec work.
