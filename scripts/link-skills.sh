@@ -9,12 +9,13 @@ readonly SOURCE_ROOT="$REPO_ROOT/.agents/skills"
 
 DRY_RUN=false
 FORCE=false
+PRUNE=false
 declare -a TARGETS=()
 declare -a SKILL_NAMES=()
 
 usage() {
     printf '%s\n' \
-        "Usage: $SCRIPT_NAME [--dry-run] [--force] <absolute-project-dir>..." \
+        "Usage: $SCRIPT_NAME [--dry-run] [--force] [--prune] <absolute-project-dir>..." \
         "" \
         "Link every skill of $SOURCE_ROOT into other projects, one symlink" \
         "per skill at <project>/.agents/skills/<name>." \
@@ -22,6 +23,8 @@ usage() {
         "Options:" \
         "  --dry-run  Report what would happen; touch nothing." \
         "  --force    Also discard copies that are untracked or dirty." \
+        "  --prune    Also remove links into this repository whose skill was" \
+        "             renamed or deleted upstream, with their exclude entries." \
         "  -h, --help Show this help." \
         "" \
         "A same-name real directory is replaced by the symlink when the" \
@@ -29,6 +32,11 @@ usage() {
         "restore it. Anything else is left alone unless --force is given." \
         "Every path this script links is added to that repository's" \
         ".git/info/exclude so git status stays clean." \
+        "" \
+        "The target must be the root of its own repository. A linked git" \
+        "worktree, or a directory that only sits inside another repository," \
+        "is refused rather than written into the wrong exclude file. Links" \
+        "pointing somewhere other than this repository are never pruned." \
         "" \
         "Exit codes: 0 everything requested is linked, 2 finished with" \
         "skips, 1 usage or hard error."
@@ -61,6 +69,24 @@ mark_excluded() {
     [[ -f "$exclude" ]] || : >"$exclude"
     grep -qxF "$entry" "$exclude" 2>/dev/null && return 0
     printf '%s\n' "$entry" >>"$exclude"
+}
+
+# The inverse of mark_excluded, for links that no longer exist.
+unmark_excluded() {
+    local exclude="$1" entry="$2" tmp
+    [[ -n "$exclude" && -f "$exclude" ]] || return 0
+    grep -qxF "$entry" "$exclude" 2>/dev/null || return 0
+    tmp="$exclude.$$.tmp"
+    grep -vxF "$entry" "$exclude" >"$tmp" || true
+    mv -f -- "$tmp" "$exclude" || die "failed to rewrite $exclude"
+}
+
+is_skill_name() {
+    local want="$1" name
+    for name in "${SKILL_NAMES[@]}"; do
+        [[ "$name" == "$want" ]] && return 0
+    done
+    return 1
 }
 
 # Decide whether deleting an existing real copy is reversible:
@@ -143,6 +169,32 @@ link_one() {
     LINKED=$((LINKED + 1))
 }
 
+# Skills this repository renamed or dropped leave dead links behind in every
+# project that consumed them, which discovery reports as a missing skill.
+# Only links whose recorded target is inside SOURCE_ROOT are candidates.
+prune_stale_links() {
+    local target="$1" exclude="$2" link name dest rel
+
+    [[ -d "$target/.agents/skills" ]] || return 0
+    while IFS= read -r link; do
+        [[ -n "$link" ]] || continue
+        dest="$(readlink "$link")"
+        [[ "$dest" == "$SOURCE_ROOT"/* ]] || continue
+        name="${link##*/}"
+        is_skill_name "$name" && continue
+
+        rel=".agents/skills/$name"
+        if $DRY_RUN; then
+            log would-prune "$rel -> $dest"
+        else
+            rm -- "$link" || die "failed to remove $link"
+            unmark_excluded "$exclude" "$rel"
+            log pruned "$rel -> $dest"
+        fi
+        PRUNED=$((PRUNED + 1))
+    done < <(find "$target/.agents/skills" -mindepth 1 -maxdepth 1 -type l | sort)
+}
+
 link_target() {
     local target="$1" git_dir exclude name
 
@@ -167,12 +219,16 @@ link_target() {
     for name in "${SKILL_NAMES[@]}"; do
         link_one "$target" "$exclude" "$name"
     done
+    if $PRUNE; then
+        prune_stale_links "$target" "$exclude"
+    fi
 }
 
 while (($#)); do
     case "$1" in
         --dry-run) DRY_RUN=true ;;
         --force) FORCE=true ;;
+        --prune) PRUNE=true ;;
         -h | --help)
             usage
             exit 0
@@ -202,6 +258,7 @@ done < <(
 LINKED=0
 SKIPPED=0
 REPLACED=0
+PRUNED=0
 
 for raw in "${TARGETS[@]}"; do
     case "$raw" in
@@ -227,10 +284,11 @@ done
 
 printf '\n'
 if $DRY_RUN; then
-    printf 'dry-run: %d link(s), %d skip(s) would result\n' "$LINKED" "$SKIPPED"
+    printf 'dry-run: %d link(s), %d prune(s), %d skip(s) would result\n' \
+        "$LINKED" "$PRUNED" "$SKIPPED"
 else
-    printf '%d link(s) in place (%d replaced a real copy), %d skip(s)\n' \
-        "$LINKED" "$REPLACED" "$SKIPPED"
+    printf '%d link(s) in place (%d replaced a real copy), %d pruned, %d skip(s)\n' \
+        "$LINKED" "$REPLACED" "$PRUNED" "$SKIPPED"
     if ((REPLACED > 0)); then
         printf 'note: each replaced copy still shows as a deletion until committed;\n'
         printf '      the symlinks themselves are hidden by .git/info/exclude\n'

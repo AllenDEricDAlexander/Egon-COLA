@@ -227,6 +227,48 @@ fixture_refusals() {
   check 'skills path occupied by a file is refused' "$(run "$FIXTURE_ROOT/fileblock")" 1
 }
 
+# A skill renamed or deleted upstream leaves a dead link in every consumer.
+fixture_prune() {
+  local name="${SKILLS[0]}"
+  local root="$FIXTURE_ROOT/prune" stale foreign rc
+  mkdir -p "$root/.agents/skills"
+  (cd "$root" && g init -q && g commit -qm 'fixture: bare repo' --allow-empty)
+
+  ln -s "$SOURCE_ROOT/$name" "$root/.agents/skills/$name"
+  stale="$root/.agents/skills/egon-coding-retired"
+  ln -s "$SOURCE_ROOT/egon-coding-retired" "$stale"
+  printf '%s\n' ".agents/skills/$name" '.agents/skills/egon-coding-retired' \
+    >>"$root/.git/info/exclude"
+  mkdir -p "$FIXTURE_ROOT/foreign"
+  foreign="$root/.agents/skills/hand-rolled"
+  ln -s "$FIXTURE_ROOT/foreign" "$foreign"
+
+  rc="$(run "$root")"
+  check 'prune stays opt-in' \
+    "$([[ -L "$stale" ]] && printf 'link\n' || printf 'gone\n')" 'link'
+
+  rc="$(run --prune --dry-run "$root")"
+  check 'prune dry-run exits 0' "$rc" 0
+  check 'prune dry-run plans one removal' "$(logged '^would-prune')" 1
+  check 'prune dry-run keeps the stale link' \
+    "$([[ -L "$stale" ]] && printf 'link\n' || printf 'gone\n')" 'link'
+  check 'prune dry-run keeps its exclude entry' \
+    "$(grep -cxF -- '.agents/skills/egon-coding-retired' "$root/.git/info/exclude" || true)" 1
+
+  rc="$(run --prune "$root")"
+  check 'prune exits 0' "$rc" 0
+  check 'stale link removed' \
+    "$([[ -L "$stale" ]] && printf 'link\n' || printf 'gone\n')" 'gone'
+  check 'stale exclude entry dropped' \
+    "$(grep -cxF -- '.agents/skills/egon-coding-retired' "$root/.git/info/exclude" || true)" 0
+  check 'live exclude entry survives and was not duplicated' \
+    "$(grep -cxF -- ".agents/skills/$name" "$root/.git/info/exclude")" 1
+  check 'a link to somewhere else is left alone' \
+    "$([[ -L "$foreign" ]] && printf 'link\n' || printf 'gone\n')" 'link'
+  check 'current skills plus the foreign link remain' \
+    "$(link_count "$root/.agents/skills")" "$((${#SKILLS[@]} + 1))"
+}
+
 fixture_cwd_independence() {
   local root="$FIXTURE_ROOT/foreign-cwd" rc
   mkdir -p "$root"
@@ -245,6 +287,7 @@ fixture_committed_copy
 fixture_untracked_copy
 fixture_dirty_copy
 fixture_existing_links
+fixture_prune
 fixture_occupant
 fixture_refusals
 fixture_cwd_independence
