@@ -22908,7 +22908,8 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
 
 9. **登记但不越界修**：File 3 声明的 `@Operation(operationId=…)` 在 engine 侧不可用（该模块未引入 swagger 注解依赖，
    为本 Step 之前既有的依赖边界）；`LlmApiController:450` 模型目录的 `created` 取投影时刻而非渠道建档时刻；
-   antd 6 `Alert` 的 `message`→`title` 统一；最终审计遗留的 G-3（REQ-006 `BasePojo`）。四者按“未裁定的发现一律不动”
+   antd 6 `Alert` 的 `message`→`title` 统一；`MpMcpRuntimeTaskStore.transition`/`cancel` 因 `updateById` 只下发非空字段，
+   无法像旧语句那样把 `worker_owner`/`lease_until` 复位为 NULL（代码 javadoc 已按阻塞项上报，需组件能力或 Spec 裁定）。四者按“未裁定的发现一律不动”
    保留，属独立授权范围。
 
 10. **Runtime unverified（不掩饰）**：本 Step 未启动任何进程、浏览器、数据库或 Docker（用户未授权）。
