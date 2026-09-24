@@ -18588,7 +18588,7 @@ interface LlmModelConverter extends BaseForwardConverter<LlmModelCommandDTO,LlmM
 - Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmRoutingContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/dto/LlmInvocationCommandDTO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/vo/LlmInvocationResultVO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/bo/LlmModelSnapshotBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/po/LlmChannelPO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/po/LlmModelPO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/domain/bo/LlmChannelBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/domain/bo/LlmModelBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/repository/LlmConfigurationRepository.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/repository/LlmConfigurationRepository.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/dao/LlmChannelDAO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/dao/LlmModelDAO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/LlmRouteSelectionStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/LlmInvocationService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/impl/LlmInvocationServiceImpl.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/controller/LlmConfigurationController.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/service/LlmConfigurationService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/service/impl/LlmConfigurationServiceImpl.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/repository/impl/MpLlmConfigurationRepository.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmGatewayConfiguration.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmClientCredentialFilter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmGatewayProperties.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/repository/impl/MpLlmConfigurationRepository.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/mybatis/mapper/llm/LlmChannelDAO.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/mybatis/mapper/llm/LlmModelDAO.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/converter/LlmChannelPersistenceConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/converter/LlmModelPersistenceConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/converter/LlmChannelConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/converter/LlmModelConverter.java`
 - Commit: `feat(yuheng): 完成LLM配置管理和本地embedding路由`（仅候选逻辑检查点；按AGENTS全部步骤最多一个最终提交，不逐Step自动commit）
 
-### Step 11 — 实现四协议保真与有界流式屏障
+### Step 11 — 实现四协议保真与有界流式屏障【已COMMITTED 2026-09-24：见文末附录A4；9个声明路径 + 1个Step10专项修正(fb09b8d15)，本Step未写任何 YAML（用户指令），勿重跑】
 
 - Requirements: REQ-002, REQ-003, REQ-011
 - Dependencies: Step 10完成其声明的验证；全部前序模型/访问合同可用。
@@ -22466,3 +22466,56 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
     具名 bean 12 处、`@RequiredArgsConstructor`+`@Qualifier` 8 个注入类、`@Valid` 14 处、MapStruct 4 个、
     `java.time` 仅 Clock/Instant、无 fastjson/gson、路由用 Strategy 而非 if 分支、命名测试 6/6 真跑），
     MC-CONFIG-001 = N/A（见第 2 条）。字面规则 1/2/4/5/6/9/10/11 = PASS，Rule 3 = PASS 带第 6 条例外，Rule 7 = N/A（见第 2 条）。
+
+## 附录 A4 — Step 11 落地澄清（2026-09-24，追加于文末，不改动上方任何行号）
+
+1. **提交事实**：Step 10 归属的专项修正提交 `fb09b8d15`（`LlmInvocationResultVO` +31 / `LlmInvocationServiceImpl` +1），
+   Step 11 提交 `4e0b90283`（恰好 9 个声明路径，+10345）。门禁：
+   `./mvnw -o -pl …/yuheng-llm-gateway test -Dtest='LlmRoutingContractTest,LlmProtocolContractTest'` → 31/31、BUILD SUCCESS；
+   `./mvnw -o -pl …/yuheng-admin test` → 309/309、BUILD SUCCESS；提交后本模块工作树无残留。
+2. **本 Step 未写任何 YAML**（用户指令「配置先不写，我启动的时候补充」）：Rule 7 / MC-CONFIG-001 = 证据性 N/A。
+   全部运行时断言（流式线程池 64/0、`secrets-root` 下解析 `secretRef`、SSE 端到端、120s deadline、
+   四个 Strategy bean 与注册表的装配自检）保持 **Runtime unverified**，不得记为已验证。
+3. **Step 10 端口契约缺口（新发现，已按「同形最小修正 + 专项提交」处理）**：`invoke()` 只交付状态与安全头，
+   编排方为拿到 route 只能二次读快照并二次执行加权选择——两次准入判定、两次配置读、且可能选到与首帧不同的渠道，
+   直接违反 `MpLlmConfigurationRepository` 自身承诺的「一次请求一份快照」。修正：已路由结果 VO 增设
+   `candidates`（有序候选，防御性快照），`LlmApiController` 相应删除 `llmRouteSelectionStrategy` 协作者与
+   `candidateRoutes`/`headRoute` 两个私有方法，本类只剩 `findCatalog()` 一处读。A3 §1「29 个路径全部落地」仍成立，
+   但 A3 未预见该缺口，此为新增事实。
+4. **更正 A3 §3 的事实错误**：`spring-security-core` 其实**在**本模块编译类路径上（传递依赖，6.5.11）。
+   删除两个错误入口 bean 的真正理由不是类路径缺失，而是本模块没有 Spring Boot Security 自动配置，
+   `authenticationEntryPoint`/`accessDeniedHandler` 永远不会被容器调用——保留它们等于伪造合规。
+   原生 401/403/422/503 现由 Step 11 的 `LlmApiController` `@ExceptionHandler` + 同协议 `encodeError` 交付。
+   因此 REQ-002/REQ-003 由「Partial（缺错误入口）」改判为「源码满足、Runtime unverified」。
+5. **首轮 4 个编译缺陷（已修，均属新写文件内部）**：`ConstraintViolationException.size()` → `getConstraintViolations().size()`；
+   `LlmServletStreamComponent` 把 `DataBuffer` 当 `int` 读（`frame.read(byte[])` 该签名不存在）→ 改 `toByteBuffer()` 取值；
+   Chat 与 Embeddings 两处 `catch (InvalidPathException | IllegalArgumentException)` 父子类多捕获冲突 → 只保留父类。
+6. **首轮 9 个测试 RED 与裁定（一律改实现，未改任何断言）**：
+   (a) SSE 帧文法三处（Chat/Responses/Messages）原先隐含「一个 DataBuffer 恰好一个已框好的 JSON 对象」，
+   与 SPI「把上游原始字节按本协议解析成帧」矛盾 → 改为真正的 SSE 行解析：空行分帧、`data:` 去前缀与一个可选空格、
+   多 `data:` 以 `\n` 拼接、`event:`/`id:`/`retry:`/`:` 注释按 SSE 处理、`\r\n` 与 `\n` 均可、跨 buffer 分裂与合并都支持；
+   (b) Responses 一处**双重释放**（`concatMap` 映射器内释放 + `FluxConcatMap.drain` 丢弃再触发 `doOnDiscard`）
+   → 改为映射器只交付 `byte[]`，令 buffer 所有权唯一；同时把终态折叠从布尔位改为帧计数，修掉合并帧被静默丢弃；
+   (c) Chat `encodeRequest` 重建 `messages` 时丢掉 system/user 两轮 → 改为深拷贝后只改 `model`；
+   (d) Messages `encodeRequest` 用白名单拒绝未识别字段并自造 `budget_tokens ≥ 1024` 下限，
+   违反 Spec §9.0.1「未知但安全字段原样保留、更严约束由上游以原生 400 返回」→ 改为自证出网/凭据/alias 伪装黑名单，
+   `budget_tokens` 只要求正整数且 `< max_tokens`。
+7. **唯一一个测试自身缺陷（由主线修正，非实现）**：`ChatFace` 夹具用 `payload.putArray("messages")` 追加 assistant 轮，
+   Jackson 的 `putArray` 会先清空同名数组，导致字面量里的 system/user 消失；改为在既有数组上追加。断言未动。
+8. **遗留限制（诚实登记，不在本 Step 内偷修）**：
+   (a) `LlmServletStreamComponent` 的等待上界是写死的 Spec 120s + 5s 宽限，因为 `LlmGatewayProperties` 未暴露时长键
+   （新增键属于配置面，且需要用户启动时补 YAML）；
+   (b) 429 的 `Retry-After` 数值与 Anthropic `request_id` 都不在四字段错误载体上，只能另经被过滤的安全响应头；
+   (c) Spec §13 的启动自检目前落在控制器的 `@PostConstruct`，而不是装配期 EnumMap 构造点；
+   (d) `secretRef` 由四个 Strategy 各自解析（Step 11 只声明 9 个文件，没有共享解析 bean 的合法落点），
+   若后续 Step 出现第三个消费者，必须再提专项修正而不是就地复制。
+9. **门禁结论**：16 项 Manual Check 中 15 项 PASS（证据：9 个路径全为声明路径 + 1 个 Step 10 专项修正、无新依赖
+   （import 白名单扫描仅 jdk/Spring/Jackson/Commons/reactor/lombok/JUnit/AssertJ，无 fastjson/gson/okhttp）、
+   具名 bean 7 处且每个注入字段带 `@Qualifier`（控制器唯一例外是按名多元素注入的 `Map<String,LlmProtocolStrategy>`，
+   已在字段 javadoc 说明原因）、`@Validated` 8 处、SPI 参数级 `@Valid`/`@NotNull`、无 `record`、无 `switch`、
+   `java.time` 仅 Duration/Instant、零 TODO/UnsupportedOperationException、命名测试 31 个真跑 0 跳过），
+   MC-CONFIG-001 = N/A（见第 2 条）。字面规则 1/2/4/5/6/9/10/11 = PASS，Rule 3 = PASS（协议文档刻意以原生
+   `ObjectNode` 透传、不 reshape 成 VO，沿用 A3 §6 已登记的 llm 例外；本 Step 无新 Converter 需求），Rule 7 = N/A。
+10. **并发方式**：按用户「有可并发 Step 就唤起 subagent」的指令，本 Step 采用**Step 内文件级并发**
+    （7 个互不相交的单文件单元 + 3 个修复单元），Step 之间仍按 Plan 明文 Dependencies 串行；
+    全部 maven 验证由主线集中执行，未在同一模块并行两个 `mvnw`。
