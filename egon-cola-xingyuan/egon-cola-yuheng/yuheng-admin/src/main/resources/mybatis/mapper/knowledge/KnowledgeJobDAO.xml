@@ -43,4 +43,50 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+    <!-- Step 12 租约会话的四条具名语句：FOR UPDATE SKIP LOCKED 与「租约令牌 + 运行态 + 租约未过期」写回 CAS
+         无法由 Wrapper 表达（Spec §job claim）。租户与活跃谓词仍由受守卫边界与显式 tenant_id 双重把守。
+         The four Step 12 lease statements: FOR UPDATE SKIP LOCKED and the "lease token + running state + unexpired lease"
+         write-back CAS cannot be expressed by a Wrapper (Spec §job claim). Tenant and active-row predicates stay guarded
+         both by the boundary and by the explicit tenant_id. -->
+    <select id="selectClaimable" resultMap="KnowledgeJobResultMap">
+        SELECT <include refid="columns"/> FROM gateway_knowledge_job
+        WHERE deleted_at IS NULL AND (
+            (status IN ('QUEUED', 'RETRY_WAIT') AND next_attempt_at &lt;= #{now,jdbcType=TIMESTAMP})
+            OR (status = 'RUNNING' AND lease_expires_at &lt;= #{now,jdbcType=TIMESTAMP})
+        )
+        ORDER BY next_attempt_at ASC, id ASC
+        LIMIT #{slots}
+        FOR UPDATE SKIP LOCKED
+    </select>
+    <update id="claimJob">
+        UPDATE gateway_knowledge_job SET status = 'RUNNING', lease_owner = #{leaseOwner}, lease_token = #{leaseToken},
+            lease_expires_at = #{leaseExpiresAt,jdbcType=TIMESTAMP}, revision = revision + 1, version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{et.version}
+            AND status = #{et.status} AND lease_token = #{et.leaseToken}
+            AND (next_attempt_at &lt;= #{now,jdbcType=TIMESTAMP} OR lease_expires_at &lt;= #{now,jdbcType=TIMESTAMP})
+    </update>
+    <!-- 心跳同样是一条带技术 version 的版本化 UPDATE，因此与 claimJob/finishJob 一致地携带 et：
+         守卫边界（validateVersionedUpdate）要求 WHERE 恰有一个绑定的 Long version 谓词、SET 里有
+         update_user_id = 守卫上下文用户与 Instant 型 update_time，裸 id/tenantId 参数无法满足这两条。
+         心跳只延长 lease_expires_at：业务 revision、stage、attempt 一律不动。
+         A heartbeat is a versioned UPDATE carrying the technical version too, so like claimJob/finishJob it carries et:
+         the guarded boundary (validateVersionedUpdate) demands exactly one bound Long version predicate in the WHERE plus
+         update_user_id = the guard-context user and an Instant update_time in the SET, which bare id/tenantId parameters
+         cannot satisfy. A heartbeat extends only lease_expires_at: the business revision, stage and attempt never move. -->
+    <update id="heartbeatJob">
+        UPDATE gateway_knowledge_job SET lease_expires_at = #{leaseExpiresAt,jdbcType=TIMESTAMP}, version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{et.version}
+            AND status = 'RUNNING' AND lease_token = #{leaseToken} AND lease_expires_at &gt; #{now,jdbcType=TIMESTAMP}
+    </update>
+    <update id="finishJob">
+        UPDATE gateway_knowledge_job SET status = #{et.status}, stage = #{et.stage}, attempt = #{et.attempt},
+            next_attempt_at = #{et.nextAttemptAt,jdbcType=TIMESTAMP}, error_code = #{et.errorCode},
+            result = #{et.result,typeHandler=top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler},
+            revision = revision + 1, version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{et.version}
+            AND status = 'RUNNING' AND lease_token = #{leaseToken} AND lease_expires_at &gt; #{now,jdbcType=TIMESTAMP}
+    </update>
 </mapper>

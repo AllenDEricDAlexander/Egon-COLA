@@ -30,4 +30,25 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+    <!-- Step 12 原子发布：活动版本切换必须是带 expectedRevision 的单语句 CAS（Spec §"切 active"），
+         只改 active_revision_id 与 revision/审计/版本列，latest_job_id 与 kb_id 一律不动。
+         Step 12 atomic publication: switching the active revision is a single-statement CAS carrying expectedRevision
+         (Spec §"switch active"); only active_revision_id plus the revision/audit/version columns move, while latest_job_id
+         and kb_id never do. -->
+    <!-- 发布 CAS 也是一条带技术 version 的版本化 UPDATE，因此与生成的 deleteVersionedById 同形地携带 et：
+         守卫边界（validateVersionedUpdate）要求 WHERE 恰有一个绑定的 Long version 谓词、SET 里有
+         update_user_id = 守卫上下文用户与 Instant 型 update_time；业务 revision = expectedRevision 是另一列，
+         不能替代技术 version。裸 id/tenantId/kbId 参数无法满足这两条，故不注册豁免而是扩签名（上游组件不可改）。
+         Publication CAS is a versioned UPDATE carrying the technical version too, so it takes et in the shape of the
+         generated deleteVersionedById: the guarded boundary (validateVersionedUpdate) demands exactly one bound Long version
+         predicate in the WHERE plus update_user_id = the guard-context user and an Instant update_time in the SET, and the
+         business revision = expectedRevision predicate is a different column that cannot substitute. Bare id/tenantId/kbId
+         parameters cannot satisfy those two rules, so the signature carries et instead of registering an exception (upstream
+         components are off-limits). -->
+    <update id="activateRevision">
+        UPDATE gateway_knowledge_document SET active_revision_id = #{activeRevisionId}, revision = revision + 1,
+            version = version + 1, update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND kb_id = #{et.kbId} AND revision = #{expectedRevision}
+            AND deleted_at IS NULL AND version = #{et.version}
+    </update>
 </mapper>
