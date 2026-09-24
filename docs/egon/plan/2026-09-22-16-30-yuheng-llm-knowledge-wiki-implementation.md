@@ -18885,7 +18885,7 @@ Preserve effective contracts and named tests; no unrelated production edits.
 - Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/LlmProtocolStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/OpenAiChatProtocolStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/OpenAiEmbeddingProtocolStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/OpenAiResponsesProtocolStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/AnthropicMessagesProtocolStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/LlmServletStreamComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/controller/LlmApiController.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/exception/LlmInvocationException.java`
 - Commit: `feat(yuheng): 实现四协议保真与有界流式屏障`（仅候选逻辑检查点；按AGENTS全部步骤最多一个最终提交，不逐Step自动commit）
 
-### Step 12 — 完成资料上传、摄取任务与原子版本发布
+### Step 12 — 完成资料上传、摄取任务与原子版本发布【已COMMITTED 2026-09-24：见文末附录A5；38个路径（含1个新增端口方法与其实现），本Step未写任何 YAML（用户指令），勿重跑】
 
 - Requirements: REQ-004, REQ-005, REQ-010, REQ-011
 - Dependencies: Step 11完成其声明的验证；全部前序模型/访问合同可用。
@@ -22519,3 +22519,65 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
 10. **并发方式**：按用户「有可并发 Step 就唤起 subagent」的指令，本 Step 采用**Step 内文件级并发**
     （7 个互不相交的单文件单元 + 3 个修复单元），Step 之间仍按 Plan 明文 Dependencies 串行；
     全部 maven 验证由主线集中执行，未在同一模块并行两个 `mvnw`。
+
+---
+
+## 附录 A5 — Step 12 落地澄清（2026-09-24，追加于文末，不改动上方任何行号）
+
+1. **Step 12 已提交，勿重跑**：基线 `704fa7780`（Step 11 文档提交），交付提交 `94a6e8b7b`
+   `feat(yuheng): 完成资料上传、摄取任务与原子版本发布`，38 个路径、`+14092 −0`，
+   路径限定暂存与提交（本工作区存在并发写者，`git show --stat` 已核对无_foreign_ 文件混入，
+   并发写者的 21 个 ` M` 条目原样保留未动）。
+2. **仍然不写配置（延续附录 A2 第 1 条）**：本 Step 零 `application*.yml` / `*.properties`。
+   心跳/租约/并发度/队列全部落在 `KnowledgeProperties`（`@ConfigurationProperties` 载体 + 默认值 +
+   `${yuheng.knowledge.heartbeat:PT30S}` 形式键），运维启动期必须补的键清单归入 Step 16 部署说明。
+   因此 Rule 7 / MC-CONFIG-001 仍为证据支撑的 N/A，所有运行期断言为 Runtime unverified。
+3. **Repository 端口按 Plan 授权在证据下推进（附录 A3 第 3 条同一机制）**：
+   (a) Step 10 遗留的 DAO/XML SQL 槽位由本 Step 补齐并验证；
+   (b) `KnowledgeRepository` 新增 `softDeleteDocument(kbId, documentId, expectedRevision)` 端口方法
+   （整行替换型 `updateDocument` 永不写 `deleted_at`，已在两处 javadoc 明确分职）；
+   实现走 starter 认可的 `removeById(entity)` → `deleteVersionedById` 版本化逻辑删路径，
+   未放宽 `local-write-guard`，未触碰上游组件；
+   (c) API-022 的 `KnowledgeRetrievalService` 提前声明（Step 13 才实现），与本附录第 4 条一致。
+4. **围栏（fencing）裁决归位，而不是测试放宽**：`KnowledgeJobServiceImpl.publishTerminal` 原先在写入前
+   做一次“读侧所有权预检”，与端口 javadoc 声明的 CAS 契约不符；已删除该预检，
+   所有权判定唯一交给 `finishJob` 的 `id + tenant_id + lease_token + status='RUNNING' + lease 未过期` CAS
+   （0 行即失去所有权，绝不当成功），javadoc 同步改为“所有权本身一律交给 CAS 裁决”。
+   发布仍是 `activateRevision` 的恰一次 CAS，无半切换。
+5. **权限矩阵按 Spec §9.2 收紧/纠正（Plan 正文与实现曾偏离）**：API-012 成员列表由 READER 收紧为 OWNER；
+   API-020 实现本就是 EDITOR，只有 Plan 侧文档/偏差注释写错，已改为引用 Spec §9.2。
+   另：`KnowledgeServiceImpl` 的两个依赖偏差注释（`llmConfigurationRepository`、`idempotencyRepository`）
+   从引用仓外 `/tmp` 契约改为引用 Spec §9.2.9-011 / §4。
+6. **网关策略补齐**：四个携带 `Idempotency-Key` 的 POST 在 `@EgonGatewayPolicy` 上加
+   `idempotency = EgonGatewayPolicy.Idempotency.TRUE`（AUTO 会把 POST 判为 FALSE，令幂等键静默失效）。
+7. **三处测试夹具缺陷修正（修测试自身，断言意图未削弱）**：
+   (a) `ScriptedModelClient` 的失败批次下标是全局的，使“部分 embedding 失败”场景实际是全量失败 →
+   引入 `batchBaseline` 使布防按“本次运行”计，断言相应改为该运行的尾部批次；
+   (b) 上传拒绝场景的 journal 断言把 arrange 期自身的写入算进计数 → 收窄为请求真正写的三张表
+   （document/revision/job），`documentCount/revisionCount/jobCount` 为零的断言保留；
+   (c) `ScriptedKnowledgeStore` 补 `softDeleteDocument` 覆写（删行 + 记 `SOFT_DELETE:document:<id>`，
+   未命中记 `REJECT:softDeleteDocument:<id>`），否则新端口在夹具里不可观测。
+8. **登记的 Plan-vs-Spec 冲突（不就地偷改，留给用户裁定）**：
+   (a) API-015 上传：Plan 第 184 行/File 51 自己把 `KnowledgeUploadCommandDTO` 提交为 JSON 载体且不含 multipart，
+   同时 202 响应体被裁薄；Spec 要求 multipart 语义 → 冲突项，非实现偏差；
+   (b) API-012/013：Plan 明确不发布 `KnowledgeMembersVO`，成员响应固定为 `{members[], revision}`；
+   Spec 形状与此不同 → 冲突项。二者均已写在控制器/服务注释里并引用本附录。
+9. **遗留限制（诚实登记）**：
+   (a) 网关侧真实 PG `FOR UPDATE SKIP LOCKED` 领取路径、租约计时、`members @>` 索引命中、
+   真库软删 SQL、worker 调度与 `@ConditionalOnProperty` 开关全部 **Runtime unverified**
+   （需要用户显式授权的隔离 PostgreSQL，禁 Docker Desktop）；
+   (b) API-017 的软删是源码级核实 + 夹具级验证，Step 12 的集成测试未直接覆盖该 HTTP 端点；
+   (c) 附录 A2 第 5 条两项移交（`yuheng-mcp-gateway` 双租户键共存、`McpGatewayEngineApplication` 的
+   `scanBasePackages`）仍不在本 Step 声明路径内，未闭合。
+10. **门禁结论**：Module gate `./mvnw -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin test`
+    在本 Step 收尾跑了三次：第一次 316 tests / 3 failures（即第 4、7 条的四个成因），
+    修正后 316 / 0 / 0，提交前复跑 316 / 0 / 0 且 `BUILD SUCCESS`（含 49 份 Mapper XML 的
+    `AiMpRepositoryContractTest`、`AiCarrierContractTest` 等架构门禁；未跳过任何测试）。
+    `git diff --cached --check` 干净。字面规则 1/2/4/5/6/9/10/11 = PASS（Rule 9 的机制是
+    `KnowledgeJobStrategy.type()` + `@Bean("knowledgeJobStrategyRegistry")` EnumMap，
+    领取到未注册类型即 `KNOWLEDGE_STRATEGY_UNAVAILABLE` 终态失败，无 `switch`；
+    Rule 3 = PASS，新载体全部 `@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain = true)`，
+    无普通 `record`）；Rule 7 = N/A。17 项 Manual Check 中 MC-CONFIG-001 = N/A，其余 PASS；
+    `MC-SCOPE-001`/`MC-TEST-001` 证据为 38 个全为声明/授权路径 + 316 真跑 0 跳过。
+11. **并发方式**：延续附录 A4 第 10 条，Step 内文件级并发（不相交文件分派 subagent），
+    Step 之间仍按 Plan Dependencies 串行；所有 maven 验证由主线集中执行，同一模块未并行两个 `mvnw`。
