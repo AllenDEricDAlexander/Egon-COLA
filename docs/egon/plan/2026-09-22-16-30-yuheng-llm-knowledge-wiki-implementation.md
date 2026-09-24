@@ -22647,3 +22647,86 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
 11. **并发方式与偏差**：本 Step 的测试文件按「Step 内文件级并发」派给 subagent，但该 subagent 结束时未落盘任何文件
     （只回述了计划），因此由主线自行写完 13 项测试并复核；这是执行事实而非裁剪，登记为偏差。
     同一模块始终只有一个 `mvnw` 在跑；Step 之间仍按 Plan Dependencies 串行。
+
+## 附录 A7 — Step 14 交付记录（2026-09-25，执行期追加，不改写上方任何行）
+
+1. **提交**：Step 14 基线 `eae473b6e`（附录 A6 文档提交），代码提交 `fd8795411`
+   `feat(yuheng): 实现Wiki完整状态机与DIRECT自动发布`，22 个路径、+6937/−6（17 个声明文件 + 5 个同 Step 支撑路径）。
+   仍是一个 Step 一个 path-limited 提交（用户既有裁定，覆盖本 Plan「全部步骤最多一个最终提交」的原句）。
+
+2. **仍未写任何配置**：延续用户指令「直接写代码就行了，sql 写到 resource 下，配置先不写」。Rule 7 与 MC-CONFIG-001
+   继续是证据支撑的 N/A。本 Step 把 Spec 要求的边界做成实现内常量并在类注释里声明：目录页大小上限 20、
+   图节点上限 100、图边上限 200。接入配置时只替换常量读取点，不改变行为口径。
+
+3. **同 Step 的未声明支撑路径（按附录 A3/A5/A6 同一机制授权，非新增业务能力）**：
+   `wiki/dao/WikiPageDAO`（`movePointers`/`selectCatalog`/`countCatalog`）、`wiki/dao/WikiRevisionDAO`
+   （`transitionStatus`/`supersedePrevious`）、`resources/mybatis/mapper/wiki/WikiPageDAO.xml`、
+   `resources/mybatis/mapper/wiki/WikiRevisionDAO.xml`。理由是 Plan 把本 Step 的可见结果写成「指针 CAS 与状态 CAS 在
+   SQL 先行」「目录可见性由当前可见那一版决定」，而 17 个声明文件里没有任何 DAO 或 XML 能承载这句话。
+
+4. **Plan 的一处真实缺口：`wikiPublicationPolicyStrategyRegistry` bean 未被任何 Step 声明**。
+   `WikiServiceImpl` 与 `WikiGenerationStrategy` 都以 `@Qualifier("wikiPublicationPolicyStrategyRegistry")` 注入
+   `Map<WikiPublicationPolicyEnum, WikiPublicationPolicyStrategy>`（Rule 9 的「查表而非硬编码」），Step 14 的清单里
+   只有策略接口与 DIRECT 实现，没有任何文件负责装配这个 Map；缺它则 Spring 上下文在启动期即 `NoSuchBeanDefinition`。
+   因此在既有的 `config/KnowledgeConfiguration`（本 Step 唯一已有的装配场所）补齐该 bean，并与另两个注册表同形：
+   空集合/`null` 策略/重复认领一律 `IllegalStateException`。它与另两个注册表的**唯一**差别是刻意不要求枚举全覆盖：
+   `REVIEW_REQUIRED` 一旦登记一个空壳策略，审核事件就能在没有人复核的情况下把页面推成 PUBLISHED，那正是 Spec
+   §7.3.7 禁止的「假批准」。当前策略集只有 `DIRECT` 时，服务侧据此解析在效策略，注册表歧义或为空一律 503。
+
+5. **页面目录上限回正**：Step 12/13 期间 `WikiPageQueryDTO.size` 曾被写成 `@Max(100)`，与 Spec §9.2.23（API-023 的行是
+   完整 `WikiPageVO`，故 wiki 目录页大小上限为 20）冲突。本 Step 连同 `MpWikiRepository.CATALOG_PAGE_SIZE` 一起回到 20，
+   两处同改以免边界与实现各说一套。
+
+6. **命名测试暴露并修正的两处真实生产缺陷**（都不是为了让测试变绿而改断言）：
+   (a) `WikiLifecycleServiceImpl.audit` 把被清空的指针（`draftRevisionId`/`publishedRevisionId`/`publicationErrorCode`）
+       原样放进摘要 `Map`，而 `GatewayAuditLogBO.sanitized` 末尾是 `Map.copyOf`，null 值即抛 NPE——任何一次真实发布或
+       下线都会在写审计时 500。现在空指针以空串表达，审计如实记录「该指针为空」而不是丢弃该键。
+   (b) `WikiGenerationStrategy.run` 只区分 `CommonException` 与其他 `RuntimeException`，于是页面指针 CAS 落空产生的
+       `GatewayAdminRevisionConflictException` 落入兜底分支，作业码变成 `YUHENG_DEPENDENCY_UNAVAILABLE` 且日志记为
+       「unexpected」。Spec 的码表里这是 `WIKI_STATE_CONFLICT`，且它是预期内的并发结果而非依赖故障；新增专门分支
+       （不可重试，`warn` 只记 id/现值/耗时）。
+
+7. **测试替身向生产合同对齐，而不是反过来放宽生产**：`WikiLifecycleServiceTest` 的生成 fixture 原先按「请求命令形状」的
+   job payload（`sourceRevisionIds/pageId/expectedRevision`）和「对象形状」的模型引用编排，而生产链路是
+   `WikiServiceImpl` 写入的**冻结意图**（`kbId/pageId/basePageRevision/sources[{documentRevisionId,sourceHash}]`，与
+   `GenerationIntent.from` 逐键同名）＋提示词分配的引用号 `S<n>`（模型看不到任何 id）。fixture 因此改成生产形状，
+   并把「引用越界」的负例改写成编造引用号 `S9`——这更接近真实攻击面（服务端只会把不在引用表里的答案判为校验失败）。
+   同处 `WIKI_GENERATION_OUTPUT_INVALID` 不在 Spec 的 `WIKI_*` 码表内（Spec 只有 `WIKI_GENERATE`、
+   `WIKI_REVIEW_ADAPTER_NOT_CONFIGURED`、`WIKI_SOURCE_STALE`、`WIKI_STATE_CONFLICT`），故按模块既有的 422 码
+   `KNOWLEDGE_VALIDATION_FAILED` 断言；纯 JVM 测试按本模块既有惯例自行 `SnowflakeIdGenerator.initialize`，
+   并补齐 `listChunksOfRevision`/`heartbeat` 两个替身端口（未触碰即 `AssertionError` 的口径不变）。
+
+8. **目录行「按证据可读性整行 withheld」的裁定**：Spec §9.2 声明读为 READ_COMMITTED 且不保证跨页快照，因此
+   `items.size() < total` 是允许结果；当某页当前可见版的任一来源行已不可读时，目录里不出现该行并记 info，
+   绝不下发空壳正文（§7.3.4「拒绝而非空壳」）。同一条件在单页读取路径按 404 收束。
+
+9. **审计注记（非缺陷）**：「失败批次里已解析的候选应当存活」经 `publishGenerated` 不可达——它整批一个事务、
+   任一页零行即整批回滚，所以既不存在「一半页面已公开」的中间态（这正是 §7.3.7 要的），也意味着失败批次的候选
+   一并丢弃、需由编辑者重新发起。这是 Spec 的有意取舍，登记为口径说明。
+
+10. **验证**：`./mvnw -o -pl ...yuheng-admin -Dtest=WikiLifecycleServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+    → `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`；模块全量 `./mvnw -o -pl ...yuheng-admin test`
+    → `Tests run: 339, Failures: 0, Errors: 0, Skipped: 0` + `BUILD SUCCESS`（Step 13 基线 329 + 本 Step 的 10 项）。
+    同一次全量里 `AiMpRepositoryContractTest`(4)、`GatewayAiModuleContractTest`(2)、`AiCarrierContractTest`(7)、
+    `GatewayPersistenceBoundaryTest`(4)、`GatewayAdminPackageArchitectureTest`(3)、`GatewayAdminConfigurationTest`(6) 与
+    `GatewayAdminApplicationConfigurationTest`(4) 全部通过，说明新增具名语句满足守卫谓词、新 bean 不破坏上下文。
+    `git diff --check` 干净。**与 Plan 字面命令的偏差如实登记**：Plan 写 `-pl <module> -am`，本 Step 未触碰任何上游模块，
+    故以离线 `-o -pl <module>` 运行同一 selector，不重建 15 个上游模块。
+
+11. **Rule 与 Manual Check 结论**：Rule 1/2/3/4/5/6/9/10/11 = PASS（语义后缀 BO/VO/DTO/Query/Command/DAO/Repository/
+    Service/Controller/Converter；每层交接 `@Valid @NotNull` + 端口层 `@Pattern/@Min/@Max`，命令按 `ExecuteGroup` 分组；
+    载体一律 Lombok class，只有 `GenerationIntent`/`FrozenSource`/`FrozenCitation`/`GeneratedPage` 这类不可变内部值用
+    record；`@Slf4j` + 显式 bean 名 + `@RequiredArgsConstructor` + 逐属性 `@Qualifier`；工具仅 jdk/commons-lang3；
+    Jackson 与 `@JsonValue`/`@EnumValue`，无 ordinal；Rule 9 的迁移表 + 三个策略注册表；`java.time` 的 `Clock/Instant`；
+    Rule 11 为既有三层 + MP Starter + 守卫式 DDL）。Rule 7 = N/A（未写配置）。16 项 Manual Check 中 MC-CONFIG-001 = N/A、
+    MC-DEP-001 = N/A（零新依赖），其余 PASS；`MC-SCOPE-001` 证据为 22 个路径全部属本 Step 声明或上述支撑，
+    `MC-TEST-001` 证据为 10 项真跑 0 跳过 + 模块 339 项 0 失败。
+
+12. **Runtime unverified（登记，不掩饰）**：SQL 侧一切只有源码级证据——指针 CAS 的「相等或两边同时为空」两分支与
+    `= NULL` 的等价性、`ILIKE ... ESCAPE '\'` 转义、`tags @> jsonb_build_array(...)`、`COALESCE(draft, published)` 的
+    目录可见性 JOIN、`create_time DESC, id DESC` 的稳定目录序、`publication_version` 与守卫 `version` 不碰撞、
+    `deleted_at` 逻辑删除与唯一键、以及 202/409/403/404 的真实响应形状（属 Step 16 的 OpenAPI 与部署门）。
+    本会话未启动任何数据库、容器或服务（用户未授权，且明确禁止为验证启动 Docker）。
+
+13. **并发方式**：Step 14 内部无可并发的独立单元（17 个声明文件互相构成编译前置），Step 15 又依赖本 Step 的 HTTP 合同，
+    故仍串行；同一模块始终只有一个 `mvnw` 在跑。
