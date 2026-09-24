@@ -52,6 +52,7 @@
     <properties>
         <commons.lang3.version>3.20.0</commons.lang3.version>
         <redisson.version>3.26.0</redisson.version>
+        <spring-statemachine.version>4.0.2</spring-statemachine.version>
         <central.server.id>central</central.server.id>
         <central.publishing.maven.plugin.version>0.11.0</central.publishing.maven.plugin.version>
         <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
@@ -155,6 +156,11 @@
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-transactional-outbox-starter</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.statemachine</groupId>
+                <artifactId>spring-statemachine-core</artifactId>
+                <version>${spring-statemachine.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
