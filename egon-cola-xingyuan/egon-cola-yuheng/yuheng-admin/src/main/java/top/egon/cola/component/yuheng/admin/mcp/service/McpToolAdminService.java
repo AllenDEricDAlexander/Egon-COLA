@@ -3,6 +3,7 @@ package top.egon.cola.component.yuheng.admin.mcp.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -184,10 +185,10 @@ public class McpToolAdminService {
     @Autowired
     public McpToolAdminService(McpReleaseContentFactory contentFactory,
             McpValidationService validation,
-            McpManagedToolOverrideRepository managedOverrides,
-            McpRemoteToolDraftRepository remoteTools,
-            McpRemoteProviderRepository remote,
-            McpServerRepository servers,
+            @Qualifier("mpMcpManagedToolOverrideRepository") McpManagedToolOverrideRepository managedOverrides,
+            @Qualifier("mpMcpRemoteToolDraftRepository") McpRemoteToolDraftRepository remoteTools,
+            @Qualifier("mpMcpRemoteProviderRepository") McpRemoteProviderRepository remote,
+            @Qualifier("mcpServerRepository") McpServerRepository servers,
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,

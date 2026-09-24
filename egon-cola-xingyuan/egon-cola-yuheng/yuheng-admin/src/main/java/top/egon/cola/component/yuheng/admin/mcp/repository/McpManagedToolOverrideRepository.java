@@ -9,8 +9,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpManagedToolDraftMu
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 
 /**
- * 中文说明：{@code McpManagedToolOverrideRepository} 是持久化公开业务端口，签名与原 {@code JdbcMcpManagedToolOverrideRepository} 一致，仅把 PO 返回与入参替换为 BO。
- * English summary: {@code McpManagedToolOverrideRepository} is the public persistence port whose signatures mirror {@code JdbcMcpManagedToolOverrideRepository} with PO types replaced by BO types.
+ * 中文说明：{@code McpManagedToolOverrideRepository} 是持久化公开业务端口，签名与原 {@code legacy JDBC ManagedToolOverride facade} 一致，仅把 PO 返回与入参替换为 BO。
+ * English summary: {@code McpManagedToolOverrideRepository} is the public persistence port whose signatures mirror {@code legacy JDBC ManagedToolOverride facade} with PO types replaced by BO types.
  *
  * 用法 / Usage: 由应用/领域服务按限定名注入该端口，实现类承担事务与守卫查询。/ Inject this port from the application layer; the implementation owns transactions and guarded queries.
  */

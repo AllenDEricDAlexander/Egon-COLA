@@ -2,7 +2,6 @@ package top.egon.cola.component.yuheng.admin.mcp.domain.bo;
 
 import java.time.Instant;
 import java.util.Objects;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -62,16 +61,16 @@ public class McpApprovalBO {
             Instant issuedAt,
             Instant expiresAt
     ) {
-        String checkedId = McpJdbcJson.required(id, "id");
+        String checkedId = required(id, "id");
         String checkedTokenDigest = digest(tokenDigest, "tokenDigest");
         String checkedSubjectId =
-                McpJdbcJson.required(subjectId, "subjectId");
-        String checkedTenantId = McpJdbcJson.required(tenantId, "tenantId");
-        String checkedClientId = McpJdbcJson.required(clientId, "clientId");
+                required(subjectId, "subjectId");
+        String checkedTenantId = required(tenantId, "tenantId");
+        String checkedClientId = required(clientId, "clientId");
         String checkedServerCode =
-                McpJdbcJson.required(serverCode, "serverCode");
+                required(serverCode, "serverCode");
         String checkedToolName =
-                McpJdbcJson.required(toolName, "toolName");
+                required(toolName, "toolName");
         String checkedArgumentDigest =
                 digest(argumentDigest, "argumentDigest");
         Instant checkedIssuedAt =
@@ -105,12 +104,19 @@ public class McpApprovalBO {
      * @return 返回校验通过的摘要；returns the validated digest.
      */
     private static String digest(String value, String field) {
-        String digest = McpJdbcJson.required(value, field);
+        String digest = required(value, field);
         if (digest.length() != 64) {
             throw new IllegalArgumentException(
                     field + " must contain 64 characters"
             );
         }
         return digest;
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

@@ -27,7 +27,10 @@ import top.egon.cola.component.yuheng.core.mcp.remote.RemoteAuthProvider;
 import top.egon.cola.component.yuheng.runtime.provider.domain.ActiveHealthProbePolicy;
 import top.egon.cola.component.yuheng.runtime.provider.service.DirectoryProviderSelector;
 import top.egon.cola.component.yuheng.runtime.provider.service.ProviderDirectory;
-import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.JdbcMcpRuntimeTaskStore;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.MpMcpRuntimeTaskStore;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.support.McpGatewayPersistenceContext;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.converter.McpTaskPersistenceConverter;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.repository.McpTaskPersistenceRepository;
 import top.egon.cola.component.yuheng.mcp.engine.mcp.service.McpAuditPublisher;
 import top.egon.cola.component.yuheng.mcp.engine.mcp.service.McpEngineHttpHandler;
 import top.egon.cola.component.yuheng.mcp.engine.mcp.service.McpRuntimeHealthIndicator;
@@ -85,7 +88,7 @@ import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.HttpMcpTaskServiceT
 import top.egon.cola.component.yuheng.mcp.engine.mcp.service.McpGatewayIdentityAuthenticator;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client;
-import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.security.JdbcMcpApprovalAdapter;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.security.MpMcpApprovalAdapter;
 import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.security.Rbac3McpAuthorizationAdapter;
 import top.egon.cola.component.yuheng.runtime.security.service.GatewaySecurityChain;
 import top.egon.cola.component.yuheng.mcp.app.service.AppUiResourceDriver;
@@ -353,15 +356,55 @@ public class McpGatewayEngineConfiguration {
      * English summary: Executes the gateway mcp runtime task store operation; this method is the invocation entry point on {@code McpGatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code McpGatewayEngineConfiguration.gatewayMcpRuntimeTaskStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param dataSource 参数 dataSource；parameter data source。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param taskPersistenceRepository 参数 受守卫任务持久化边界；parameter the guarded task persistence boundary。
+     * @param taskPersistenceConverter 参数 任务列映射器；parameter the task column mapper。
+     * @param persistenceContext 参数 受守卫身份上下文；parameter the guarded identity context。
+     * @param batchLimit 参数 单次清理扫描最大行数；parameter the maximum rows one sweep touches。
      * @return 返回 网关MCP运行时任务存储 的处理结果；returns the result of the operation.
      */
     @Bean("gatewayMcpRuntimeTaskStore")
-    public JdbcMcpRuntimeTaskStore gatewayMcpRuntimeTaskStore(
-            DataSource dataSource,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
-        return new JdbcMcpRuntimeTaskStore(dataSource, objectMapper);
+    public MpMcpRuntimeTaskStore gatewayMcpRuntimeTaskStore(
+            @Qualifier("mcpTaskPersistenceRepository")
+            McpTaskPersistenceRepository taskPersistenceRepository,
+            @Qualifier("mcpTaskPersistenceConverter")
+            McpTaskPersistenceConverter taskPersistenceConverter,
+            @Qualifier("mcpGatewayPersistenceContext")
+            McpGatewayPersistenceContext persistenceContext,
+            @Value(
+                    "${egon.cola.component.yuheng.engine.mcp.tasks."
+                            + "batch-limit:64}"
+            ) int batchLimit) {
+        return new MpMcpRuntimeTaskStore(
+                taskPersistenceRepository,
+                taskPersistenceConverter,
+                persistenceContext,
+                batchLimit
+        );
+    }
+
+    /**
+     * 中文说明：执行 网关MCP持久化身份上下文 操作；该方法是 {@code McpGatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp persistence identity context operation; this method is the invocation entry point on {@code McpGatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpGatewayEngineConfiguration.mcpGatewayPersistenceContext(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param persistenceTenantId 参数 部署绑定的数值租户标识；parameter the deployment-bound numeric tenant identifier。
+     * @param persistenceTechnicalPrincipal 参数 写入审计列的技术主体；parameter the technical principal written into the audit columns。
+     * @return 返回 网关MCP持久化身份上下文 的处理结果；returns the result of the operation.
+     */
+    @Bean("mcpGatewayPersistenceContext")
+    public McpGatewayPersistenceContext mcpGatewayPersistenceContext(
+            @Value(
+                    "${egon.cola.component.yuheng.engine.mcp.persistence."
+                            + "tenant-id}"
+            ) String persistenceTenantId,
+            @Value(
+                    "${egon.cola.component.yuheng.engine.mcp.persistence."
+                            + "technical-principal}"
+            ) String persistenceTechnicalPrincipal) {
+        return new McpGatewayPersistenceContext(
+                persistenceTenantId,
+                persistenceTechnicalPrincipal
+        );
     }
 
     /**
@@ -376,9 +419,10 @@ public class McpGatewayEngineConfiguration {
      * @return 返回 网关MCP任务服务 的处理结果；returns the result of the operation.
      */
     @Bean("gatewayMcpTaskService")
-    @ConditionalOnBean(JdbcMcpRuntimeTaskStore.class)
+    @ConditionalOnBean(MpMcpRuntimeTaskStore.class)
     public McpTaskService gatewayMcpTaskService(
-            JdbcMcpRuntimeTaskStore store,
+            @Qualifier("gatewayMcpRuntimeTaskStore")
+            MpMcpRuntimeTaskStore store,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             @Qualifier("gatewayClock") Clock gatewayClock,
             McpRuntimeProperties properties) {
@@ -486,6 +530,7 @@ public class McpGatewayEngineConfiguration {
      * @param taskServices 参数 任务Services；parameter task services。
      * @param snapshots 参数 snapshots；parameter snapshots。
      * @param dataSources 参数 dataSources；parameter data sources。
+     * @param approvalPorts 参数 受守卫MCP审批适配器提供者；parameter the guarded MCP approval adapter provider。
      * @param remoteClients 参数 远程Clients；parameter remote clients。
      * @param mcpTelemetry 参数 MCP遥测；parameter mcp telemetry。
      * @param objectMapper 参数 object映射器；parameter object mapper。
@@ -511,6 +556,8 @@ public class McpGatewayEngineConfiguration {
             ObjectProvider<McpTaskService> taskServices,
             ObjectProvider<SingleFlightSnapshotLoader> snapshots,
             ObjectProvider<DataSource> dataSources,
+            @Qualifier("mcpApprovalAdapter")
+            ObjectProvider<MpMcpApprovalAdapter> approvalPorts,
             McpRemoteClientPool remoteClients,
             McpTelemetry mcpTelemetry,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
@@ -541,14 +588,12 @@ public class McpGatewayEngineConfiguration {
                 : new Rbac3McpAuthorizationAdapter(
                 snapshotLoader
         );
-        McpApprovalPort approvals = dataSource == null
+        MpMcpApprovalAdapter approvalAdapter = approvalPorts.getIfAvailable();
+        McpApprovalPort approvals = approvalAdapter == null
                 ? request -> reactor.core.publisher.Mono.just(
                 McpApprovalPort.Result.UNAVAILABLE
         )
-                : new JdbcMcpApprovalAdapter(
-                dataSource,
-                gatewayClock
-        );
+                : approvalAdapter;
         McpSecurityGate securityGate = new McpSecurityGate(
                 authorization,
                 approvals,

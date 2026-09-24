@@ -1,6 +1,7 @@
 package top.egon.cola.component.yuheng.admin.mcp.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -221,14 +222,15 @@ public class McpControlPlaneService {
      */
 
     @Autowired
-    public McpControlPlaneService(McpServerRepository servers,
-            McpCapabilityDraftRepository capabilities,
-            McpRemoteProviderRepository remote,
-            McpArtifactMetadataRepository artifacts,
+    public McpControlPlaneService(
+            @Qualifier("mcpServerRepository") McpServerRepository servers,
+            @Qualifier("mpMcpCapabilityDraftRepository") McpCapabilityDraftRepository capabilities,
+            @Qualifier("mpMcpRemoteProviderRepository") McpRemoteProviderRepository remote,
+            @Qualifier("mpMcpArtifactMetadataRepository") McpArtifactMetadataRepository artifacts,
             McpAppArtifactStore.Writer artifactWriter,
             McpAppArtifactStore.Reader artifactReader,
             McpAppSecurityValidator appSecurity,
-            McpTaskRepository tasks,
+            @Qualifier("mpMcpTaskRepository") McpTaskRepository tasks,
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
@@ -365,7 +367,7 @@ public class McpControlPlaneService {
                 command.expectedDraftRevision()
         );
         String id = SnowflakeIdGenerator.nextId();
-        servers.saveAndFlush(new McpServerBO(
+        servers.save(new McpServerBO(
                 id,
                 command.gatewayGroupId(),
                 command.serverCode(),
@@ -444,7 +446,7 @@ public class McpControlPlaneService {
                 actor,
                 now
         );
-        servers.flush();
+        server = servers.save(server);
         return finish(
                 gatewayDraft,
                 id,
@@ -500,7 +502,7 @@ public class McpControlPlaneService {
         );
         Instant now = clock.instant();
         server.softDelete(control.expectedRevision(), actor, now);
-        servers.flush();
+        server = servers.save(server);
         return finish(
                 gatewayDraft,
                 id,

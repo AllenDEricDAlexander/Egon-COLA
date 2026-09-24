@@ -3,7 +3,6 @@ package top.egon.cola.component.yuheng.admin.mcp.domain.bo;
 import java.util.Map;
 import java.util.Objects;
 import top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,11 +49,11 @@ public class McpCapabilityRecordBO {
             long revision
     ) {
         McpCapabilityKindEnum checkedKind = Objects.requireNonNull(kind, "kind");
-        String checkedId = McpJdbcJson.required(id, "id");
+        String checkedId = required(id, "id");
         String checkedGatewayGroupId =
-                McpJdbcJson.required(gatewayGroupId, "gatewayGroupId");
-        String checkedServerId = McpJdbcJson.required(serverId, "serverId");
-        String checkedName = McpJdbcJson.required(name, "name");
+                required(gatewayGroupId, "gatewayGroupId");
+        String checkedServerId = required(serverId, "serverId");
+        String checkedName = required(name, "name");
         Map<String, Object> checkedContent =
                 Map.copyOf(Objects.requireNonNull(content, "content"));
         if (revision < 0) {
@@ -72,5 +71,12 @@ public class McpCapabilityRecordBO {
                 enabled,
                 revision
         );
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

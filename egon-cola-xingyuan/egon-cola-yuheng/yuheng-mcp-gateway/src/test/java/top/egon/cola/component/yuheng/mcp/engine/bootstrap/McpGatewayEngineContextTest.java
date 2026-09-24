@@ -15,6 +15,9 @@ import top.egon.cola.component.tianshu.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.yuheng.mcp.engine.bootstrap.config.McpGatewayEngineConfiguration;
 import top.egon.cola.component.yuheng.mcp.engine.bootstrap.lifecycle.McpGatewayEngineRuntime;
 import top.egon.cola.component.yuheng.mcp.engine.http.service.McpGatewayHttpServer;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.converter.McpTaskPersistenceConverter;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.dao.McpTaskDAO;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.repository.McpTaskPersistenceRepository;
 import top.egon.cola.component.yuheng.mcp.engine.rule.service.McpGatewayRuleCompilerStrategy;
 import top.egon.cola.component.yuheng.runtime.operation.service.EngineGatewayOperationInvoker;
 import top.egon.cola.component.yuheng.runtime.rule.service.GatewayRuleCompilerStrategy;
@@ -56,7 +59,12 @@ class McpGatewayEngineContextTest {
 
     @Test
     void missingDurableStoreFailsContextInsteadOfStartingPartialRuntime() {
-        runner().run(context -> assertNotNull(context.getStartupFailure()));
+        baseRunner().run(context -> {
+            assertNotNull(context.getStartupFailure());
+            assertTrue(String.valueOf(context.getStartupFailure().getMessage())
+                            .contains("mcpTaskPersistenceRepository"),
+                    "the engine must fail closed on the missing guarded task boundary, not boot partially");
+        });
     }
 
     @Test
@@ -89,13 +97,25 @@ class McpGatewayEngineContextTest {
     }
 
     private ApplicationContextRunner runner() {
+        return baseRunner()
+                .withBean("mcpTaskDAO", McpTaskDAO.class, () -> mock(McpTaskDAO.class))
+                .withBean("mcpTaskPersistenceRepository", McpTaskPersistenceRepository.class,
+                        () -> mock(McpTaskPersistenceRepository.class))
+                .withBean("mcpTaskPersistenceConverter", McpTaskPersistenceConverter.class,
+                        () -> mock(McpTaskPersistenceConverter.class));
+    }
+
+    private ApplicationContextRunner baseRunner() {
         String prefix = "egon.cola.component.yuheng.mcp-engine.";
+        String persistencePrefix = "egon.cola.component.yuheng.engine.mcp.persistence.";
         return new ApplicationContextRunner().withUserConfiguration(McpGatewayEngineConfiguration.class)
                 .withPropertyValues(prefix + "yuheng-group-code=orders", prefix + "env=local",
                         prefix + "namespace=default", prefix + "node-id=mcp-test", prefix + "instance-id=mcp-test",
                         prefix + "data-directory=" + dataDirectory,
                         prefix + "listener.enabled=false", prefix + "listener.port=0",
                         prefix + "listener.tls.development-plaintext=true",
+                        persistencePrefix + "tenant-id=9001",
+                        persistencePrefix + "technical-principal=yuheng-mcp-engine-test",
                         prefix + "outbound.rpc-tls.development-plaintext=true")
                 .withBean("objectMapper", ObjectMapper.class, () -> new ObjectMapper().findAndRegisterModules())
                 .withBean("meterRegistry", SimpleMeterRegistry.class, SimpleMeterRegistry::new)

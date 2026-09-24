@@ -2,7 +2,6 @@ package top.egon.cola.component.yuheng.admin.mcp.domain.bo;
 
 import java.util.Map;
 import java.util.Objects;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,11 +49,11 @@ public class McpRemoteProviderDraftBO {
             boolean enabled,
             long revision
     ) {
-        String checkedId = McpJdbcJson.required(id, "id");
+        String checkedId = required(id, "id");
         String checkedGatewayGroupId =
-                McpJdbcJson.required(gatewayGroupId, "gatewayGroupId");
+                required(gatewayGroupId, "gatewayGroupId");
         String checkedProviderCode =
-                McpJdbcJson.required(providerCode, "providerCode");
+                required(providerCode, "providerCode");
         Map<String, Object> checkedContent =
                 Map.copyOf(Objects.requireNonNull(content, "content"));
         return new McpRemoteProviderDraftBO(
@@ -65,5 +64,12 @@ public class McpRemoteProviderDraftBO {
                 enabled,
                 revision
         );
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

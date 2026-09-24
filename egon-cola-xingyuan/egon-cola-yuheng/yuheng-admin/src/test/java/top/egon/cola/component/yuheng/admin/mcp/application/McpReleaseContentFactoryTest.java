@@ -7,11 +7,11 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpCapabilityDraftRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpArtifactMetadataRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpCapabilityDraftRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpManagedToolOverrideRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteProviderRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteToolDraftRepository;
 import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpManagedToolProjectionVO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
@@ -37,7 +37,7 @@ class McpReleaseContentFactoryTest {
 
     private McpServerRepository servers;
 
-    private JdbcMcpManagedToolOverrideRepository overrides;
+    private McpManagedToolOverrideRepository overrides;
 
     private GatewayCatalogRepository catalog;
 
@@ -46,15 +46,15 @@ class McpReleaseContentFactoryTest {
     @BeforeEach
     void setUp() {
         servers = mock(McpServerRepository.class);
-        overrides = mock(JdbcMcpManagedToolOverrideRepository.class);
+        overrides = mock(McpManagedToolOverrideRepository.class);
         catalog = mock(GatewayCatalogRepository.class);
         factory = new McpReleaseContentFactory(
                 servers,
-                mock(JdbcMcpCapabilityDraftRepository.class),
+                mock(McpCapabilityDraftRepository.class),
                 overrides,
-                mock(JdbcMcpRemoteToolDraftRepository.class),
-                mock(JdbcMcpRemoteProviderRepository.class),
-                mock(JdbcMcpArtifactMetadataRepository.class),
+                mock(McpRemoteToolDraftRepository.class),
+                mock(McpRemoteProviderRepository.class),
+                mock(McpArtifactMetadataRepository.class),
                 mock(GatewayDraftJpaRepository.class),
                 catalog,
                 mock(McpValidationService.class),

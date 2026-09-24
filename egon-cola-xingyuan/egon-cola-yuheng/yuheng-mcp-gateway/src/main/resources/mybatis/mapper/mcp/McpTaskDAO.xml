@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  中文说明：数据面进程自有的 gateway_mcp_task_instance 语句集，只覆盖 EgonColaMapper 继承来的受守卫语句
+  （按主键活跃读取、批量活跃读取、版本化逻辑删除），不新增任何按状态批量写入的自定义语句；列集合与控制面
+  yuheng-admin 的同名 XML 逐列一致，因为两个进程共享同一张表。
+  English summary: The data-plane statement set for gateway_mcp_task_instance. It only overrides the guarded statements
+  inherited from EgonColaMapper (active read by primary key, batch active read, versioned logical delete) and adds no
+  custom statement that writes by state alone; the column list matches the control plane's XML of the same name column
+  for column because both processes share the one table.
+-->
+<mapper namespace="top.egon.cola.component.yuheng.mcp.engine.mcp.dao.McpTaskDAO">
+    <resultMap id="McpTaskResultMap" type="top.egon.cola.component.yuheng.mcp.engine.mcp.domain.po.McpTaskRecordPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="principal_fingerprint" property="principalFingerprint"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="client_id" property="clientId"/>
+        <result column="server_code" property="serverCode"/>
+        <result column="tool_name" property="toolName"/>
+        <result column="request_digest" property="requestDigest"/>
+        <result column="state" property="state"/>
+        <result column="input_payload" property="inputPayload" typeHandler="top.egon.cola.component.yuheng.mcp.engine.mcp.dao.typehandler.McpJsonbTypeHandler"/>
+        <result column="result_payload" property="resultPayload" typeHandler="top.egon.cola.component.yuheng.mcp.engine.mcp.dao.typehandler.McpJsonbTypeHandler"/>
+        <result column="error_payload" property="errorPayload" typeHandler="top.egon.cola.component.yuheng.mcp.engine.mcp.dao.typehandler.McpJsonbTypeHandler"/>
+        <result column="worker_owner" property="workerOwner"/>
+        <result column="lease_until" property="leaseUntil" jdbcType="TIMESTAMP"/>
+        <result column="execution_deadline" property="executionDeadline" jdbcType="TIMESTAMP"/>
+        <result column="expires_at" property="expiresAt" jdbcType="TIMESTAMP"/>
+        <result column="attempt_count" property="attemptCount"/>
+        <result column="max_attempts" property="maxAttempts"/>
+        <result column="revision" property="revision"/>
+        <result column="task_key" property="taskKey"/>
+        <result column="subject_tenant_id" property="subjectTenantId"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, principal_fingerprint, subject_id, client_id, server_code, tool_name, request_digest, state, input_payload, result_payload, error_payload, worker_owner, lease_until, execution_deadline, expires_at, attempt_count, max_attempts, revision, task_key, subject_tenant_id</sql>
+    <select id="selectActiveById" resultMap="McpTaskResultMap">
+        SELECT <include refid="columns"/> FROM gateway_mcp_task_instance WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="McpTaskResultMap">
+        SELECT <include refid="columns"/> FROM gateway_mcp_task_instance WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <!--
+      中文说明：逻辑删除保留旧 expires_at 过期的语义，但只按单行 id + 技术 version CAS；旧 DELETE 的批量硬删
+      改为受守卫的逐行逻辑删除，绝不允许只按状态批量写。
+      English summary: The logical delete keeps the legacy expires_at-expiry intent but is scoped to one row by id plus the
+      technical version; the legacy bulk hard DELETE became a guarded per-row logical delete and a bulk write by state
+      alone is never allowed.
+    -->
+    <update id="deleteVersionedById">
+        UPDATE gateway_mcp_task_instance SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>

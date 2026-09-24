@@ -45,7 +45,7 @@ class GatewayPersistenceBoundaryTest {
             "GatewayReleaseAttemptPO", "GatewayOperationPO", "GatewayOperationDefinitionPO",
             "GatewayGroupPO", "GatewayStoredReportPO", "GatewayCredentialPO");
 
-    /** 本Step声明的公开业务端口与其 Jdbc 实现 / the declared public ports and their Jdbc implementations. */
+    /** 本Step声明的公开业务端口与其受守卫 MP 实现 / the declared public ports and their guarded MyBatis-Plus implementations. */
     private static final List<String> PORTS = List.of(
             "McpCapabilityDraftRepository", "McpApprovalRepository", "McpRemoteToolDraftRepository",
             "McpManagedToolOverrideRepository", "McpTaskRepository", "McpArtifactMetadataRepository",
@@ -120,7 +120,7 @@ class GatewayPersistenceBoundaryTest {
     }
 
     @Test
-    @DisplayName("declared ports are interfaces and the Jdbc implementations sit behind them")
+    @DisplayName("declared ports are interfaces and the guarded MP implementations sit behind them")
     void legacyImplementationsAreIsolatedBehindPorts() throws IOException {
         for (String port : PORTS) {
             List<Path> declared = mainSources().stream()
@@ -132,11 +132,14 @@ class GatewayPersistenceBoundaryTest {
                     port + " must be a public interface");
             assertTrue(text.contains("@Validated"), port + " must be validated at the boundary");
             assertFalse(text.contains("lombok"), port + " must not carry Lombok DI annotations");
-            Path implementation = declared.get(0).getParent().resolve("jdbc/Jdbc" + port + ".java");
+            Path implementation = declared.get(0).getParent().resolve("impl/Mp" + port + ".java");
             assertTrue(Files.exists(implementation),
-                    port + " needs the Jdbc implementation " + implementation);
+                    port + " needs the guarded MP implementation " + implementation);
             assertTrue(read(implementation).contains("implements " + port),
                     implementation.getFileName() + " must implement " + port);
+            Path superseded = declared.get(0).getParent().resolve("jdbc/Jdbc" + port + ".java");
+            assertFalse(Files.exists(superseded),
+                    port + " must not keep a hand-written JDBC implementation: " + superseded);
         }
     }
 

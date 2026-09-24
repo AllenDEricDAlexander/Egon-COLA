@@ -4,7 +4,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import top.egon.cola.component.yuheng.admin.mcp.domain.enums.McpCapabilityKindEnum;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,7 +37,7 @@ public class McpCapabilityDraftBO {
             String gatewayGroupId,
             Map<McpCapabilityKindEnum, List<McpCapabilityRecordBO>> capabilities
     ) {
-        String checkedGroupId = McpJdbcJson.required(gatewayGroupId, "gatewayGroupId");
+        String checkedGroupId = required(gatewayGroupId, "gatewayGroupId");
         EnumMap<McpCapabilityKindEnum, List<McpCapabilityRecordBO>> copy =
                 new EnumMap<>(McpCapabilityKindEnum.class);
         capabilities.forEach((kind, drafts) -> copy.put(kind, List.copyOf(drafts)));
@@ -53,5 +52,12 @@ public class McpCapabilityDraftBO {
      */
     public List<McpCapabilityRecordBO> capabilities(McpCapabilityKindEnum kind) {
         return capabilities.getOrDefault(kind, List.of());
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

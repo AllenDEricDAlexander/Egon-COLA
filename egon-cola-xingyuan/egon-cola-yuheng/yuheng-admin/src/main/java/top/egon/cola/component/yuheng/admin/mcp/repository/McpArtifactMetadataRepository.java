@@ -7,8 +7,8 @@ import java.util.Optional;
 import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpArtifactMetadataBO;
 
 /**
- * 中文说明：{@code McpArtifactMetadataRepository} 是持久化公开业务端口，签名与原 {@code JdbcMcpArtifactMetadataRepository} 一致，仅把 PO 返回与入参替换为 BO。
- * English summary: {@code McpArtifactMetadataRepository} is the public persistence port whose signatures mirror {@code JdbcMcpArtifactMetadataRepository} with PO types replaced by BO types.
+ * 中文说明：{@code McpArtifactMetadataRepository} 是持久化公开业务端口，签名与原 {@code legacy JDBC ArtifactMetadata facade} 一致，仅把 PO 返回与入参替换为 BO。
+ * English summary: {@code McpArtifactMetadataRepository} is the public persistence port whose signatures mirror {@code legacy JDBC ArtifactMetadata facade} with PO types replaced by BO types.
  *
  * 用法 / Usage: 由应用/领域服务按限定名注入该端口，实现类承担事务与守卫查询。/ Inject this port from the application layer; the implementation owns transactions and guarded queries.
  */

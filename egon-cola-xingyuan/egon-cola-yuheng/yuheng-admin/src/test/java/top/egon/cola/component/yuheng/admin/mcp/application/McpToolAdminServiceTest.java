@@ -11,9 +11,9 @@ import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpManagedToolOverrideRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteProviderRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpRemoteToolDraftRepository;
 import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpServerBO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeTool;
@@ -60,11 +60,11 @@ class McpToolAdminServiceTest {
 
     private McpValidationService validation;
 
-    private JdbcMcpManagedToolOverrideRepository managedOverrides;
+    private McpManagedToolOverrideRepository managedOverrides;
 
-    private JdbcMcpRemoteToolDraftRepository remoteTools;
+    private McpRemoteToolDraftRepository remoteTools;
 
-    private JdbcMcpRemoteProviderRepository remote;
+    private McpRemoteProviderRepository remote;
 
     private McpServerRepository servers;
 
@@ -78,9 +78,9 @@ class McpToolAdminServiceTest {
     void setUp() {
         contentFactory = mock(McpReleaseContentFactory.class);
         validation = mock(McpValidationService.class);
-        managedOverrides = mock(JdbcMcpManagedToolOverrideRepository.class);
-        remoteTools = mock(JdbcMcpRemoteToolDraftRepository.class);
-        remote = mock(JdbcMcpRemoteProviderRepository.class);
+        managedOverrides = mock(McpManagedToolOverrideRepository.class);
+        remoteTools = mock(McpRemoteToolDraftRepository.class);
+        remote = mock(McpRemoteProviderRepository.class);
         servers = mock(McpServerRepository.class);
         drafts = mock(GatewayDraftJpaRepository.class);
         idempotency = mock(IdempotencyRepository.class);

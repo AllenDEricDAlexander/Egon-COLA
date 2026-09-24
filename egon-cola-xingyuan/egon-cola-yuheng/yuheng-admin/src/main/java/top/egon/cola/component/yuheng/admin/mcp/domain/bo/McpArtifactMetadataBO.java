@@ -3,7 +3,6 @@ package top.egon.cola.component.yuheng.admin.mcp.domain.bo;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -78,30 +77,30 @@ public class McpArtifactMetadataBO {
             String createdBy,
             Instant createdAt
     ) {
-        String checkedId = McpJdbcJson.required(id, "id");
+        String checkedId = required(id, "id");
         String checkedGatewayGroupId =
-                McpJdbcJson.required(gatewayGroupId, "gatewayGroupId");
-        String checkedAppCode = McpJdbcJson.required(appCode, "appCode");
-        String checkedVersion = McpJdbcJson.required(version, "version");
+                required(gatewayGroupId, "gatewayGroupId");
+        String checkedAppCode = required(appCode, "appCode");
+        String checkedVersion = required(version, "version");
         String checkedDisplayName =
-                McpJdbcJson.required(displayName, "displayName");
+                required(displayName, "displayName");
         String checkedResourceUri =
-                McpJdbcJson.required(resourceUri, "resourceUri");
-        String checkedArtifactReference = McpJdbcJson.required(
+                required(resourceUri, "resourceUri");
+        String checkedArtifactReference = required(
                 artifactReference,
                 "artifactReference"
         );
-        String checkedSha256 = McpJdbcJson.required(sha256, "sha256");
+        String checkedSha256 = required(sha256, "sha256");
         String checkedMimeType =
-                McpJdbcJson.required(mimeType, "mimeType");
-        String checkedContentSecurityPolicy = McpJdbcJson.required(
+                required(mimeType, "mimeType");
+        String checkedContentSecurityPolicy = required(
                 contentSecurityPolicy,
                 "contentSecurityPolicy"
         );
         Set<String> checkedPermissions = Set.copyOf(permissions);
         Set<String> checkedAllowedOrigins = Set.copyOf(allowedOrigins);
         String checkedCreatedBy =
-                McpJdbcJson.required(createdBy, "createdBy");
+                required(createdBy, "createdBy");
         Instant checkedCreatedAt =
                 Objects.requireNonNull(createdAt, "createdAt");
         if (checkedSha256.length() != 64) {
@@ -131,5 +130,12 @@ public class McpArtifactMetadataBO {
                 checkedCreatedBy,
                 checkedCreatedAt
         );
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

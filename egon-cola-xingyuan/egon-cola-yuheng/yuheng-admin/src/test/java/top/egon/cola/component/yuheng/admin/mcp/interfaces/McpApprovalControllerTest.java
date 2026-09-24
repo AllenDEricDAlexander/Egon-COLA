@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.core.Authentication;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpApprovalRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpApprovalRepository;
+import top.egon.cola.component.yuheng.admin.mcp.service.impl.McpApprovalAdminServiceImpl;
 import top.egon.cola.component.yuheng.mcp.common.security.McpSecurityDigests;
 import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
@@ -30,7 +31,7 @@ class McpApprovalControllerTest {
 
     @Test
     void returnsPlaintextOnceAndPersistsOnlyBoundDigests() {
-        JdbcMcpApprovalRepository store = mock(JdbcMcpApprovalRepository.class);
+        McpApprovalRepository store = mock(McpApprovalRepository.class);
         SecureRandom random = mock(SecureRandom.class);
         doAnswer(invocation -> {
             byte[] value = invocation.getArgument(0);
@@ -39,10 +40,12 @@ class McpApprovalControllerTest {
         }).when(random).nextBytes(org.mockito.ArgumentMatchers.any());
         ObjectMapper objectMapper = new ObjectMapper();
         McpApprovalController controller = new McpApprovalController(
-                store,
-                objectMapper,
-                random,
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                new McpApprovalAdminServiceImpl(
+                        store,
+                        objectMapper,
+                        random,
+                        Clock.fixed(NOW, ZoneOffset.UTC)
+                )
         );
         Authentication authentication = mock(Authentication.class);
         when(authentication.isAuthenticated()).thenReturn(true);

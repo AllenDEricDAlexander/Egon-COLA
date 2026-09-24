@@ -9,8 +9,8 @@ import java.util.Optional;
 import top.egon.cola.component.yuheng.admin.mcp.domain.bo.McpTaskBO;
 
 /**
- * 中文说明：{@code McpTaskRepository} 是持久化公开业务端口，签名与原 {@code JdbcMcpTaskRepository} 一致，仅把 PO 返回与入参替换为 BO。
- * English summary: {@code McpTaskRepository} is the public persistence port whose signatures mirror {@code JdbcMcpTaskRepository} with PO types replaced by BO types.
+ * 中文说明：{@code McpTaskRepository} 是持久化公开业务端口，签名与原 {@code legacy JDBC Task facade} 一致，仅把 PO 返回与入参替换为 BO。
+ * English summary: {@code McpTaskRepository} is the public persistence port whose signatures mirror {@code legacy JDBC Task facade} with PO types replaced by BO types.
  *
  * 用法 / Usage: 由应用/领域服务按限定名注入该端口，实现类承担事务与守卫查询。/ Inject this port from the application layer; the implementation owns transactions and guarded queries.
  */

@@ -11,8 +11,8 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteProviderDraf
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 
 /**
- * 中文说明：{@code McpRemoteProviderRepository} 是持久化公开业务端口，签名与原 {@code JdbcMcpRemoteProviderRepository} 一致，仅把 PO 返回与入参替换为 BO。
- * English summary: {@code McpRemoteProviderRepository} is the public persistence port whose signatures mirror {@code JdbcMcpRemoteProviderRepository} with PO types replaced by BO types.
+ * 中文说明：{@code McpRemoteProviderRepository} 是持久化公开业务端口，签名与原 {@code legacy JDBC RemoteProvider facade} 一致，仅把 PO 返回与入参替换为 BO。
+ * English summary: {@code McpRemoteProviderRepository} is the public persistence port whose signatures mirror {@code legacy JDBC RemoteProvider facade} with PO types replaced by BO types.
  *
  * 用法 / Usage: 由应用/领域服务按限定名注入该端口，实现类承担事务与守卫查询。/ Inject this port from the application layer; the implementation owns transactions and guarded queries.
  */

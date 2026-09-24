@@ -2,7 +2,6 @@ package top.egon.cola.component.yuheng.admin.mcp.domain.bo;
 
 import java.util.Map;
 import java.util.Objects;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -59,15 +58,15 @@ public class McpRemoteMountDraftBO {
             boolean enabled,
             long revision
     ) {
-        String checkedId = McpJdbcJson.required(id, "id");
+        String checkedId = required(id, "id");
         String checkedGatewayGroupId =
-                McpJdbcJson.required(gatewayGroupId, "gatewayGroupId");
-        String checkedServerId = McpJdbcJson.required(serverId, "serverId");
+                required(gatewayGroupId, "gatewayGroupId");
+        String checkedServerId = required(serverId, "serverId");
         String checkedProviderId =
-                McpJdbcJson.required(providerId, "providerId");
+                required(providerId, "providerId");
         String checkedNamespace =
-                McpJdbcJson.required(namespace, "namespace");
-        String checkedCapabilityFingerprint = McpJdbcJson.required(
+                required(namespace, "namespace");
+        String checkedCapabilityFingerprint = required(
                 capabilityFingerprint,
                 "capabilityFingerprint"
         );
@@ -84,5 +83,12 @@ public class McpRemoteMountDraftBO {
                 enabled,
                 revision
         );
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

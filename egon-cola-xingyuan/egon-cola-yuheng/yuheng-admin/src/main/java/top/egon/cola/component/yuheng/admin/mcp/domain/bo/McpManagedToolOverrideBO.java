@@ -2,7 +2,6 @@ package top.egon.cola.component.yuheng.admin.mcp.domain.bo;
 
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -56,11 +55,11 @@ public class McpManagedToolOverrideBO {
             Boolean enabled,
             long revision
     ) {
-        String checkedToolId = McpJdbcJson.required(toolId, "toolId");
+        String checkedToolId = required(toolId, "toolId");
         String checkedGatewayGroupId =
-                McpJdbcJson.required(gatewayGroupId, "gatewayGroupId");
+                required(gatewayGroupId, "gatewayGroupId");
         String checkedOperationId =
-                McpJdbcJson.required(operationId, "operationId");
+                required(operationId, "operationId");
         Set<String> checkedPermissions = Set.copyOf(Objects.requireNonNull(
                 additionalPermissions,
                 "additionalPermissions"
@@ -91,5 +90,12 @@ public class McpManagedToolOverrideBO {
                 enabled,
                 revision
         );
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

@@ -2,9 +2,8 @@ package top.egon.cola.component.yuheng.admin.mcp.domain.bo;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpTaskRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.McpJdbcJson;
 import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -97,21 +96,21 @@ public class McpTaskBO {
             Instant createdAt,
             Instant updatedAt
     ) {
-        String checkedId = McpJdbcJson.required(id, "id");
-        String checkedPrincipalFingerprint = McpJdbcJson.required(
+        String checkedId = required(id, "id");
+        String checkedPrincipalFingerprint = required(
                 principalFingerprint,
                 "principalFingerprint"
         );
         String checkedSubjectId =
-                McpJdbcJson.required(subjectId, "subjectId");
-        String checkedTenantId = McpJdbcJson.required(tenantId, "tenantId");
-        String checkedClientId = McpJdbcJson.required(clientId, "clientId");
+                required(subjectId, "subjectId");
+        String checkedTenantId = required(tenantId, "tenantId");
+        String checkedClientId = required(clientId, "clientId");
         String checkedServerCode =
-                McpJdbcJson.required(serverCode, "serverCode");
+                required(serverCode, "serverCode");
         String checkedToolName =
-                McpJdbcJson.required(toolName, "toolName");
+                required(toolName, "toolName");
         String checkedRequestDigest = digest(requestDigest, "requestDigest");
-        String checkedState = JdbcMcpTaskRepository.state(state);
+        String checkedState = state(state);
         Map<String, Object> checkedInputPayload = copy(inputPayload);
         Map<String, Object> checkedResultPayload = copy(resultPayload);
         Map<String, Object> checkedErrorPayload = copy(errorPayload);
@@ -196,12 +195,35 @@ public class McpTaskBO {
      * @return 返回校验通过的摘要；returns the validated digest.
      */
     private static String digest(String value, String field) {
-        String digest = McpJdbcJson.required(value, field);
+        String digest = required(value, field);
         if (digest.length() != 64) {
             throw new IllegalArgumentException(
                     field + " must contain 64 characters"
             );
         }
         return digest;
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
+    }
+
+    private static final Set<String> STATES = Set.of(
+            "WORKING",
+            "INPUT_REQUIRED",
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED"
+    );
+
+    private static String state(String value) {
+        String candidate = required(value, "state");
+        if (!STATES.contains(candidate)) {
+            throw new IllegalArgumentException("unsupported task state");
+        }
+        return candidate;
     }
 }

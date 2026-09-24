@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.yuheng.admin.mcp.domain.exception.McpValidationException;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpArtifactMetadataRepository;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeServer;
@@ -25,8 +25,8 @@ class McpUnifiedReleaseTest {
     @Test
     void publishingGatewayReleaseRejectsUnknownLocalOperation() {
         GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
-        JdbcMcpArtifactMetadataRepository artifacts =
-                mock(JdbcMcpArtifactMetadataRepository.class);
+        McpArtifactMetadataRepository artifacts =
+                mock(McpArtifactMetadataRepository.class);
         when(catalog.findOperation("missing-operation"))
                 .thenReturn(Optional.empty());
         McpValidationService service = new McpValidationService(
@@ -47,7 +47,7 @@ class McpUnifiedReleaseTest {
     void rejectsDuplicateToolNameWithinOneServer() {
         McpValidationService service = new McpValidationService(
                 mock(GatewayCatalogRepository.class),
-                mock(JdbcMcpArtifactMetadataRepository.class),
+                mock(McpArtifactMetadataRepository.class),
                 new ObjectMapper()
         );
         McpRuleContent original = content("operation-1");

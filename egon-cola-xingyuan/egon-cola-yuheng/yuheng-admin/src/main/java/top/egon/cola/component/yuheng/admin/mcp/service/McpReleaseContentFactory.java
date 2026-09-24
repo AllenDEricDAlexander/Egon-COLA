@@ -3,6 +3,7 @@ package top.egon.cola.component.yuheng.admin.mcp.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
@@ -167,12 +168,12 @@ public class McpReleaseContentFactory {
      * @param objectMapper 参数 object映射器；parameter object mapper。
      */
     public McpReleaseContentFactory(
-            McpServerRepository servers,
-            McpCapabilityDraftRepository capabilities,
-            McpManagedToolOverrideRepository managedOverrides,
-            McpRemoteToolDraftRepository remoteTools,
-            McpRemoteProviderRepository remote,
-            McpArtifactMetadataRepository artifacts,
+            @Qualifier("mcpServerRepository") McpServerRepository servers,
+            @Qualifier("mpMcpCapabilityDraftRepository") McpCapabilityDraftRepository capabilities,
+            @Qualifier("mpMcpManagedToolOverrideRepository") McpManagedToolOverrideRepository managedOverrides,
+            @Qualifier("mpMcpRemoteToolDraftRepository") McpRemoteToolDraftRepository remoteTools,
+            @Qualifier("mpMcpRemoteProviderRepository") McpRemoteProviderRepository remote,
+            @Qualifier("mpMcpArtifactMetadataRepository") McpArtifactMetadataRepository artifacts,
             GatewayDraftJpaRepository drafts,
             GatewayCatalogRepository catalog,
             McpValidationService validation,

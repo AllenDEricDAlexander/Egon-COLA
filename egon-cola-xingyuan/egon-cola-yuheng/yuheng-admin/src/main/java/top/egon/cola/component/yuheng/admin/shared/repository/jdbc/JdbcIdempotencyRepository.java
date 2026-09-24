@@ -39,7 +39,6 @@ import top.egon.cola.component.yuheng.admin.mcp.domain.po.*;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.*;
 import top.egon.cola.component.yuheng.admin.mcp.repository.*;
 import top.egon.cola.component.yuheng.admin.mcp.repository.filesystem.*;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.*;
 import top.egon.cola.component.yuheng.admin.mcp.service.*;
 import top.egon.cola.component.yuheng.admin.observability.controller.*;
 import top.egon.cola.component.yuheng.admin.observability.controller.message.*;

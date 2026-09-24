@@ -4,12 +4,13 @@ package top.egon.cola.component.yuheng.admin.mcp.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.mcp.domain.exception.McpValidationException;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpValidationFindingVO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpValidationReportVO;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpArtifactMetadataRepository;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeApp;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimePrompt;
@@ -72,12 +73,12 @@ public class McpValidationService {
     private final GatewayCatalogRepository catalog;
 
     /**
-     * 中文说明：保存 artifacts 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpArtifactMetadataRepository}，由 {@code McpValidationService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by artifacts; its type is {@code JdbcMcpArtifactMetadataRepository}, and {@code McpValidationService} reads or updates it during its lifecycle.
+     * 中文说明：保存 artifacts 对应的状态、依赖或配置值；字段类型为 {@code McpArtifactMetadataRepository}，由 {@code McpValidationService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by artifacts; its type is {@code McpArtifactMetadataRepository}, and {@code McpValidationService} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code McpValidationService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final JdbcMcpArtifactMetadataRepository artifacts;
+    private final McpArtifactMetadataRepository artifacts;
 
     /**
      * 中文说明：保存 object映射器 对应的状态、依赖或配置值；字段类型为 {@code ObjectMapper}，由 {@code McpValidationService} 在其生命周期内读取或更新。
@@ -98,7 +99,7 @@ public class McpValidationService {
      */
     public McpValidationService(
             GatewayCatalogRepository catalog,
-            JdbcMcpArtifactMetadataRepository artifacts,
+            @Qualifier("mpMcpArtifactMetadataRepository") McpArtifactMetadataRepository artifacts,
             ObjectMapper objectMapper) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.artifacts = Objects.requireNonNull(artifacts, "artifacts");
