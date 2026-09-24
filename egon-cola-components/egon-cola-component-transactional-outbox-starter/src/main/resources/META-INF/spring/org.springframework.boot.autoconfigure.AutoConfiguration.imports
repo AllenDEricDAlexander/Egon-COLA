@@ -2,3 +2,5 @@ top.egon.cola.component.outbox.autoconfigure.OutboxMetricsAutoConfiguration
 top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfiguration
 top.egon.cola.component.outbox.autoconfigure.OutboxHttpAutoConfiguration
 top.egon.cola.component.outbox.autoconfigure.OutboxRabbitAutoConfiguration
+top.egon.cola.component.outbox.autoconfigure.OutboxStateMachineAutoConfiguration
+top.egon.cola.component.outbox.autoconfigure.OutboxMybatisPlusAutoConfiguration

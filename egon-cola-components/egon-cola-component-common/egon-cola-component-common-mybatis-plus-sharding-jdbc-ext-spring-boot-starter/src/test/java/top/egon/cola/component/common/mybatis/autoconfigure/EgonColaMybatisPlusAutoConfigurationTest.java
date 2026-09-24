@@ -377,6 +377,23 @@ class EgonColaMybatisPlusAutoConfigurationTest {
         assertThat(properties.getTenantId().ignores("test_business_record")).isFalse();
     }
 
+    @Test
+    void onlyExplicitlyScopedInfrastructureMapperMayUseAnIgnoredTable() {
+        runner(true)
+                .withPropertyValues("egon.cola.component.mybatis-plus.tenant-id.ignored-tables[0]=egon_cola_outbox_message")
+                .withUserConfiguration(ExplicitTenantScopeMapperConfiguration.class)
+                .run(context -> assertThat(context).hasNotFailed().hasBean("explicitOutboxMapperFactory"));
+
+        runner(true)
+                .withPropertyValues("egon.cola.component.mybatis-plus.tenant-id.ignored-tables[0]=egon_cola_outbox_message")
+                .withUserConfiguration(UnmarkedTenantScopeMapperConfiguration.class)
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure().toString())
+                            .contains("MODEL_TABLE_CANNOT_BE_IGNORED");
+                });
+    }
+
     private ApplicationContextRunner runner(boolean enabled) {
         return runnerWithoutValidator()
                 .withUserConfiguration(SafeOuterConfiguration.class)
@@ -414,6 +431,102 @@ class EgonColaMybatisPlusAutoConfigurationTest {
             interceptor.setInterceptors(List.of(new BlockAttackInnerInterceptor()));
             return interceptor;
         }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class ExplicitTenantScopeMapperConfiguration {
+
+        @Bean("explicitOutboxMapperFactory")
+        org.apache.ibatis.session.SqlSessionFactory explicitOutboxMapperFactory(
+                MybatisPlusInterceptor outer,
+                EgonColaModelValidationInterceptor validation,
+                EgonColaOriginalSqlGuardInterceptor original,
+                EgonColaIdentifierGenerator idGenerator,
+                com.baomidou.mybatisplus.core.handlers.MetaObjectHandler handler
+        ) {
+            return outboxFixtureFactory(outer, validation, original, idGenerator, handler,
+                    ExplicitOutboxMapper.class);
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class UnmarkedTenantScopeMapperConfiguration {
+
+        @Bean("unmarkedOutboxMapperFactory")
+        org.apache.ibatis.session.SqlSessionFactory unmarkedOutboxMapperFactory(
+                MybatisPlusInterceptor outer,
+                EgonColaModelValidationInterceptor validation,
+                EgonColaOriginalSqlGuardInterceptor original,
+                EgonColaIdentifierGenerator idGenerator,
+                com.baomidou.mybatisplus.core.handlers.MetaObjectHandler handler
+        ) {
+            return outboxFixtureFactory(outer, validation, original, idGenerator, handler,
+                    UnmarkedOutboxMapper.class);
+        }
+    }
+
+    private static org.apache.ibatis.session.SqlSessionFactory outboxFixtureFactory(
+            MybatisPlusInterceptor outer,
+            EgonColaModelValidationInterceptor validation,
+            EgonColaOriginalSqlGuardInterceptor original,
+            EgonColaIdentifierGenerator idGenerator,
+            com.baomidou.mybatisplus.core.handlers.MetaObjectHandler handler,
+            Class<?> mapper
+    ) {
+        com.baomidou.mybatisplus.core.MybatisConfiguration configuration =
+                new com.baomidou.mybatisplus.core.MybatisConfiguration();
+        configuration.setEnvironment(new org.apache.ibatis.mapping.Environment("outbox-contract-test",
+                new org.mybatis.spring.transaction.SpringManagedTransactionFactory(),
+                org.mockito.Mockito.mock(javax.sql.DataSource.class)));
+        configuration.addInterceptor(outer);
+        configuration.addInterceptor(validation);
+        configuration.addInterceptor(original);
+        com.baomidou.mybatisplus.core.config.GlobalConfig global =
+                new com.baomidou.mybatisplus.core.config.GlobalConfig();
+        global.setDbConfig(new com.baomidou.mybatisplus.core.config.GlobalConfig.DbConfig());
+        global.setMetaObjectHandler(handler);
+        global.setIdentifierGenerator(idGenerator);
+        com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils.setGlobalConfig(configuration, global);
+        configuration.addMapper(mapper);
+
+        String mapperXml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+                <mapper namespace="%s">
+                    <select id="selectActiveById" resultType="%s">SELECT id FROM egon_outbox.egon_cola_outbox_message WHERE id = #{id} AND tenant_id = 0 AND deleted_at IS NULL</select>
+                    <select id="selectActiveByIds" resultType="%s">SELECT id FROM egon_outbox.egon_cola_outbox_message WHERE tenant_id = 0 AND deleted_at IS NULL</select>
+                </mapper>
+                """.formatted(mapper.getName(), OutboxFixturePO.class.getName(), OutboxFixturePO.class.getName());
+        new org.apache.ibatis.builder.xml.XMLMapperBuilder(
+                new java.io.ByteArrayInputStream(mapperXml.getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                configuration, "outbox-contract-test.xml", configuration.getSqlFragments()).parse();
+        return new org.apache.ibatis.session.defaults.DefaultSqlSessionFactory(configuration);
+    }
+
+    interface UnmarkedOutboxMapper extends top.egon.cola.component.common.mybatis.extension.EgonColaMapper<OutboxFixturePO> {
+    }
+
+    @top.egon.cola.component.common.mybatis.extension.EgonColaExplicitTenantScopeMapper
+    interface ExplicitOutboxMapper extends top.egon.cola.component.common.mybatis.extension.EgonColaMapper<OutboxFixturePO> {
+
+        @Override
+        default int deleteVersionedById(@org.apache.ibatis.annotations.Param("et") OutboxFixturePO entity) {
+            throw new UnsupportedOperationException("OUTBOX_SOFT_DELETE_UNSUPPORTED");
+        }
+    }
+
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    @lombok.experimental.Accessors(chain = true)
+    @lombok.experimental.SuperBuilder
+    @lombok.EqualsAndHashCode(callSuper = true)
+    @com.baomidou.mybatisplus.annotation.TableName(value = "egon_cola_outbox_message", schema = "egon_outbox")
+    static class OutboxFixturePO extends top.egon.cola.component.common.mybatis.model.EgonModel<OutboxFixturePO> {
+
+        @com.baomidou.mybatisplus.annotation.TableField("fixture_value")
+        private String fixtureValue;
     }
 
     private static final class UnrelatedMetaObjectHandler

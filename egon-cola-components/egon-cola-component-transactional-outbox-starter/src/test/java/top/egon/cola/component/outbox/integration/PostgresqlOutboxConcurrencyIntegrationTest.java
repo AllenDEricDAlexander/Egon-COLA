@@ -3,7 +3,7 @@ package top.egon.cola.component.outbox.integration;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.outbox.store.OutboxRecord;
-import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
+import top.egon.cola.component.outbox.store.OutboxStore;
 
 import java.time.Duration;
 import java.util.List;
@@ -21,7 +21,7 @@ class PostgresqlOutboxConcurrencyIntegrationTest extends PostgresqlOutboxTestSup
 
     @Test
     void shouldClaimDisjointBatchesAndReleaseDatabaseLocksBeforeDelivery() throws Exception {
-        PostgresqlJdbcOutboxStore store = outboxStore();
+        OutboxStore store = outboxStore();
         new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 IntStream.range(0, 200).forEach(index ->
                         store.enqueue(newRecord("message-" + index))));
@@ -61,7 +61,7 @@ class PostgresqlOutboxConcurrencyIntegrationTest extends PostgresqlOutboxTestSup
                             select count(*)
                             from (
                                 select id
-                                from egon_cola_outbox_message
+                                from egon_outbox.egon_cola_outbox_message
                                 where message_id = ?
                                 for update nowait
                             ) locked_row

@@ -22,7 +22,7 @@ import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 import top.egon.cola.component.outbox.serialization.JacksonOutboxMessageSerializer;
 import top.egon.cola.component.outbox.store.OutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxStatus;
-import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
+import top.egon.cola.component.outbox.store.OutboxStore;
 import top.egon.cola.component.outbox.transaction.DefaultTransactionalOutbox;
 import top.egon.cola.component.outbox.transaction.OutboxAfterCommitBuffer;
 import top.egon.cola.component.outbox.transaction.OutboxTransactionGuard;
@@ -41,7 +41,7 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
     private static final ValidationUtils VALIDATION_UTILS =
             new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
-    private PostgresqlJdbcOutboxStore store;
+    private OutboxStore store;
     private final Map<String, DeliveryResult> results = new ConcurrentHashMap<>();
 
     @BeforeEach
@@ -56,25 +56,25 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
         store.enqueue(newRecord("active"));
         store.enqueue(newRecord("expired"));
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set next_attempt_at = clock_timestamp() + interval '1 hour'
                 where message_id = 'future'
                 """);
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'RETRY_WAIT',
                     next_attempt_at = clock_timestamp() - interval '1 second'
                 where message_id = 'retry'
                 """);
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'PROCESSING', locked_by = 'old',
                     locked_until = clock_timestamp() + interval '1 hour',
                     attempt_count = 1
                 where message_id = 'active'
                 """);
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'PROCESSING', locked_by = 'old',
                     locked_until = clock_timestamp() - interval '1 second',
                     attempt_count = 1
@@ -97,7 +97,7 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
         OutboxRecord oldClaim =
                 store.claimDue(1, "node-a:old-token", Duration.ofMillis(1)).getFirst();
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set locked_until = clock_timestamp() - interval '1 second'
                 where message_id = 'message-1'
                 """);
@@ -164,11 +164,11 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
         assertThat(status("message-1")).isEqualTo(OutboxStatus.RETRY_WAIT);
         assertThat(jdbcTemplate.queryForObject("""
                 select next_attempt_at > clock_timestamp()
-                from egon_cola_outbox_message
+                from egon_outbox.egon_cola_outbox_message
                 where message_id = 'message-1'
                 """, Boolean.class)).isTrue();
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set next_attempt_at = clock_timestamp() - interval '1 second'
                 where message_id = 'message-1'
                 """);
@@ -178,7 +178,7 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
         assertThat(status("message-1")).isEqualTo(OutboxStatus.DEAD);
         assertThat(jdbcTemplate.queryForObject("""
                 select last_error_code
-                from egon_cola_outbox_message
+                from egon_outbox.egon_cola_outbox_message
                 where message_id = 'message-1'
                 """, String.class)).isEqualTo("OUTBOX_RETRY_EXHAUSTED");
     }
@@ -240,7 +240,7 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
     private OutboxStatus status(String messageId) {
         return OutboxStatus.valueOf(jdbcTemplate.queryForObject("""
                 select status
-                from egon_cola_outbox_message
+                from egon_outbox.egon_cola_outbox_message
                 where message_id = ?
                 """, String.class, messageId));
     }

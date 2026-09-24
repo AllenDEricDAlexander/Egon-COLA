@@ -5,7 +5,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
 import top.egon.cola.component.outbox.store.NewOutboxRecord;
-import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
+import top.egon.cola.component.outbox.store.OutboxStore;
 
 import java.util.List;
 import java.util.Set;
@@ -23,7 +23,7 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
     @Test
     void shouldEnforceMessageAndIdempotencyUniquenessUnderConcurrentInsert()
             throws Exception {
-        PostgresqlJdbcOutboxStore store = outboxStore();
+        OutboxStore store = outboxStore();
         List<InsertOutcome> messageOutcomes = race(
                 store,
                 newRecord("same-message", "key-1", "a".repeat(64), 10),
@@ -34,7 +34,7 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
                 InsertOutcome.EXISTING
         );
 
-        jdbcTemplate.execute("truncate table egon_cola_outbox_message restart identity");
+        jdbcTemplate.execute("truncate table egon_outbox.egon_cola_outbox_message restart identity");
         List<InsertOutcome> idempotencyOutcomes = race(
                 store,
                 newRecord("message-1", "same-key", "a".repeat(64), 10),
@@ -48,19 +48,19 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
 
     @Test
     void shouldExposeRequiredSchemaAndUseClaimIndexes() {
-        PostgresqlJdbcOutboxStore store = outboxStore();
+        OutboxStore store = outboxStore();
         new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 IntStream.range(0, 1_000).forEach(index ->
                         store.enqueue(newRecord("plan-" + index))));
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'PROCESSING', locked_by = 'expired',
                     locked_until = clock_timestamp() - interval '1 second'
                 where id % 2 = 0
                 """);
-        jdbcTemplate.execute("analyze egon_cola_outbox_message");
+        physicalJdbcTemplate.execute("analyze egon_outbox.egon_cola_outbox_message");
 
-        Set<String> indexes = Set.copyOf(jdbcTemplate.queryForList("""
+        Set<String> indexes = Set.copyOf(physicalJdbcTemplate.queryForList("""
                 select indexname
                 from pg_indexes
                 where schemaname = current_schema()
@@ -73,7 +73,7 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
                 "idx_outbox_reclaim",
                 "idx_outbox_cleanup"
         );
-        assertThat(jdbcTemplate.queryForList("""
+        assertThat(physicalJdbcTemplate.queryForList("""
                 select column_name
                 from information_schema.columns
                 where table_schema = current_schema()
@@ -91,7 +91,7 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
             jdbcTemplate.execute("set local enable_seqscan = off");
             String duePlan = explain("""
                     select id
-                    from egon_cola_outbox_message
+                    from egon_outbox.egon_cola_outbox_message
                     where status in ('PENDING', 'RETRY_WAIT')
                       and next_attempt_at <= clock_timestamp()
                     order by next_attempt_at, id
@@ -99,7 +99,7 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
                     """);
             String reclaimPlan = explain("""
                     select id
-                    from egon_cola_outbox_message
+                    from egon_outbox.egon_cola_outbox_message
                     where status = 'PROCESSING'
                       and locked_until < clock_timestamp()
                     order by locked_until, id
@@ -118,7 +118,7 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
     }
 
     private List<InsertOutcome> race(
-            PostgresqlJdbcOutboxStore store,
+            OutboxStore store,
             NewOutboxRecord first,
             NewOutboxRecord second
     ) throws Exception {
@@ -136,7 +136,7 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
     }
 
     private InsertOutcome insert(
-            PostgresqlJdbcOutboxStore store,
+            OutboxStore store,
             NewOutboxRecord record,
             CyclicBarrier barrier
     ) throws Exception {

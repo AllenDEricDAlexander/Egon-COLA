@@ -4,7 +4,6 @@ import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -24,7 +23,6 @@ import top.egon.cola.component.outbox.event.OutboxCommittedEvent;
 import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 import top.egon.cola.component.outbox.serialization.JacksonOutboxMessageSerializer;
 import top.egon.cola.component.outbox.store.OutboxStore;
-import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
 import top.egon.cola.component.outbox.transaction.DefaultTransactionalOutbox;
 import top.egon.cola.component.outbox.transaction.OutboxAfterCommitBuffer;
 import top.egon.cola.component.outbox.transaction.OutboxTransactionGuard;
@@ -52,21 +50,16 @@ class TransactionalOutboxTransactionIntegrationTest extends PostgresqlOutboxTest
     @BeforeEach
     void setUpTransactionFixture() {
         jdbcTemplate.execute("""
-                create table if not exists outbox_test_order (
+                create table if not exists public.outbox_test_order (
                     id bigint primary key,
                     state varchar(32) not null
                 )
                 """);
-        jdbcTemplate.execute("truncate table outbox_test_order");
+        jdbcTemplate.execute("truncate table public.outbox_test_order");
         committedEvents.clear();
         transactionTemplate = new TransactionTemplate(transactionManager);
         outbox = createOutbox(
-                new PostgresqlJdbcOutboxStore(
-                        jdbcTemplate,
-                        new NamedParameterJdbcTemplate(dataSource),
-                        objectMapper,
-                        transactionManager
-                ),
+                outboxStore(),
                 dataSource,
                 event -> committedEvents.add((OutboxCommittedEvent) event)
         );
@@ -75,14 +68,14 @@ class TransactionalOutboxTransactionIntegrationTest extends PostgresqlOutboxTest
     @Test
     void shouldCommitBusinessAndOutboxRowsAndPublishAfterCommit() {
         OutboxReceipt receipt = transactionTemplate.execute(status -> {
-            jdbcTemplate.update("insert into outbox_test_order(id, state) values (1, 'CREATED')");
+            jdbcTemplate.update("insert into public.outbox_test_order(id, state) values (1, 'CREATED')");
             return outbox.enqueue(message("order-1"));
         });
 
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from outbox_test_order", Integer.class)).isEqualTo(1);
+                "select count(*) from public.outbox_test_order", Integer.class)).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from egon_cola_outbox_message", Integer.class)).isEqualTo(1);
+                "select count(*) from egon_outbox.egon_cola_outbox_message", Integer.class)).isEqualTo(1);
         assertThat(committedEvents).singleElement()
                 .extracting(OutboxCommittedEvent::messageIds)
                 .isEqualTo(List.of(receipt.messageId()));
@@ -91,15 +84,15 @@ class TransactionalOutboxTransactionIntegrationTest extends PostgresqlOutboxTest
     @Test
     void shouldRollBackBusinessAndOutboxRowsWithoutPublishing() {
         assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.update("insert into outbox_test_order(id, state) values (1, 'CREATED')");
+            jdbcTemplate.update("insert into public.outbox_test_order(id, state) values (1, 'CREATED')");
             outbox.enqueue(message("order-1"));
             throw new IllegalStateException("rollback");
         })).isInstanceOf(IllegalStateException.class);
 
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from outbox_test_order", Integer.class)).isZero();
+                "select count(*) from public.outbox_test_order", Integer.class)).isZero();
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from egon_cola_outbox_message", Integer.class)).isZero();
+                "select count(*) from egon_outbox.egon_cola_outbox_message", Integer.class)).isZero();
         assertThat(committedEvents).isEmpty();
     }
 
@@ -114,12 +107,12 @@ class TransactionalOutboxTransactionIntegrationTest extends PostgresqlOutboxTest
         );
 
         assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.update("insert into outbox_test_order(id, state) values (1, 'CREATED')");
+            jdbcTemplate.update("insert into public.outbox_test_order(id, state) values (1, 'CREATED')");
             failingOutbox.enqueue(message("order-1"));
         })).isInstanceOf(IllegalStateException.class);
 
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from outbox_test_order", Integer.class)).isZero();
+                "select count(*) from public.outbox_test_order", Integer.class)).isZero();
         assertThat(committedEvents).isEmpty();
     }
 

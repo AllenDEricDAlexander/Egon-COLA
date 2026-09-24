@@ -63,7 +63,7 @@ class ComponentContractGovernanceTest {
 
     private static final List<String> COMPONENT_EXCEPTIONS = List.of(
             "OutboxException", "OutboxConfigurationException", "OutboxIdempotencyConflictException",
-            "OutboxMessageResolutionException", "OutboxSerializationException", "OutboxStorageException",
+            "OutboxMessageResolutionException", "OutboxSerializationException", "OutboxStateMachineException", "OutboxStorageException",
             "OutboxTransactionMismatchException", "OutboxTransactionRequiredException",
             "OutboxTransactionSynchronizationException", "OutboxValidationException");
 
@@ -74,6 +74,7 @@ class ComponentContractGovernanceTest {
 
     private static final List<String> VALIDATOR_TYPES = List.of(
             OUTBOX_PACKAGE + ".store.OutboxSchemaValidator",
+            OUTBOX_PACKAGE + ".persistence.OutboxSchemaMetadataValidator",
             OUTBOX_PACKAGE + ".aop.TransactionalMessageMethodValidator",
             OUTBOX_PACKAGE + ".autoconfigure.OutboxConfigurationValidator",
             OUTBOX_PACKAGE + ".validation.OutboxMessageValidator");
@@ -133,7 +134,7 @@ class ComponentContractGovernanceTest {
                     .as("REQ-003 %s 不得直接继承 RuntimeException", name)
                     .isIn("CommonException", "OutboxException");
         }
-        // 组件没有业务规则拒绝语义，10 个异常都是技术失败，因此不得出现第二套异常根。
+        // 异常仍使用单一CommonException根；状态机异常另携带局部reason/retryable结果。
         assertThat(text(MAIN_SOURCES)).doesNotContain("extends RuntimeException");
     }
 
@@ -156,6 +157,27 @@ class ComponentContractGovernanceTest {
         IllegalStateException cause = new IllegalStateException("jdbc failure");
         for (String name : COMPONENT_EXCEPTIONS) {
             Class<?> type = commonException(name);
+            if ("OutboxStateMachineException".equals(name)) {
+                top.egon.cola.component.outbox.common.exception.OutboxStateMachineException rejected =
+                        new top.egon.cola.component.outbox.common.exception.OutboxStateMachineException(
+                                "OUTBOX_FSM_REJECTED", false, "context");
+                assertThat(rejected.getMessage()).isEqualTo("context");
+                assertThat(rejected.getReason()).isEqualTo("OUTBOX_FSM_REJECTED");
+                assertThat(rejected.isRetryable()).isFalse();
+                assertThat(rejected.getCause()).isNull();
+                top.egon.cola.component.outbox.common.exception.OutboxStateMachineException retryable =
+                        new top.egon.cola.component.outbox.common.exception.OutboxStateMachineException(
+                                "OUTBOX_FSM_EXECUTION_FAILED", true, "context", cause);
+                assertThat(retryable.getMessage()).isEqualTo("context");
+                assertThat(retryable.getReason()).isEqualTo("OUTBOX_FSM_EXECUTION_FAILED");
+                assertThat(retryable.isRetryable()).isTrue();
+                assertThat(retryable.getCause()).isSameAs(cause);
+                assertThat(List.of(type.getDeclaredMethods()))
+                        .noneMatch(method -> method.getName().equals("getCode")
+                                || method.getName().equals("code")
+                                || method.getName().equals("getStatus"));
+                continue;
+            }
             CommonException withoutCause = (CommonException) type
                     .getConstructor(String.class).newInstance("context");
             assertThat(withoutCause.getMessage()).as("%s 必须保留原 message", name).isEqualTo("context");
@@ -184,7 +206,7 @@ class ComponentContractGovernanceTest {
     void handwrittenEnumsImplementTheCommonEnumContract() throws Exception {
         List<String> headers = enumHeaders(MAIN_SOURCES);
 
-        assertThat(headers).as("本模块手写 enum 只有三个").hasSize(3);
+        assertThat(headers).as("本模块手写enum清单").hasSize(4);
         List<String> missingContract = new ArrayList<>();
         for (String header : headers) {
             if (!header.contains(EgonEnum.class.getSimpleName())
@@ -210,11 +232,10 @@ class ComponentContractGovernanceTest {
                 .containsExactly("ACK", "NACK", "TIMEOUT", "RETURNED");
         assertThat(codes(RabbitPublishOutcome.Kind.class)).containsExactly(0, 1, 2, 3);
 
-        // 状态列仍按常量名读写，SQL 字面量与 valueOf 解析保持原样。
+        // 状态列仍按常量名持久化；内部Store执行MP且状态目标来自既有生命周期图。
         String store = read(MAIN_SOURCES.resolve(
-                "top/egon/cola/component/outbox/store/PostgresqlJdbcOutboxStore.java"));
-        assertThat(store).contains("'PENDING'", "'PROCESSING'", "'RETRY_WAIT'")
-                .contains("OutboxStatus.valueOf(resultSet.getString(\"status\"))");
+                "top/egon/cola/component/outbox/store/MybatisPlusOutboxStore.java"));
+        assertThat(store).contains("implements OutboxStore", "OutboxLifecycleSignalEnum.ENQUEUE");
         assertThat(DeliveryResult.success().kind()).isEqualTo(DeliveryResult.Kind.SUCCESS);
         assertThat(RabbitPublishOutcome.ack().kind()).isEqualTo(RabbitPublishOutcome.Kind.ACK);
     }

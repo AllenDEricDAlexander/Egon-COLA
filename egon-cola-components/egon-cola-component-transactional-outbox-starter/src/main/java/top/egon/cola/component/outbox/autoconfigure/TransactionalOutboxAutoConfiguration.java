@@ -16,8 +16,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -48,7 +46,6 @@ import top.egon.cola.component.outbox.serialization.JacksonOutboxMessageSerializ
 import top.egon.cola.component.outbox.serialization.OutboxMessageSerializer;
 import top.egon.cola.component.outbox.store.OutboxSchemaValidator;
 import top.egon.cola.component.outbox.store.OutboxStore;
-import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
 import top.egon.cola.component.outbox.transaction.DefaultTransactionalOutbox;
 import top.egon.cola.component.outbox.transaction.OutboxAfterCommitBuffer;
 import top.egon.cola.component.outbox.transaction.OutboxTransactionGuard;
@@ -64,7 +61,7 @@ import java.util.List;
         "org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration"
 })
 @EnableConfigurationProperties(TransactionalOutboxProperties.class)
-@ConditionalOnClass({DataSource.class, JdbcTemplate.class})
+@ConditionalOnClass(DataSource.class)
 @ConditionalOnBean(DataSource.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.component.transactional-outbox",
@@ -109,20 +106,6 @@ public class TransactionalOutboxAutoConfiguration {
         return resolver.resolve(beanFactory, properties);
     }
 
-    @Bean(name = "outboxJdbcTemplate")
-    @ConditionalOnMissingBean(name = "outboxJdbcTemplate")
-    JdbcTemplate outboxJdbcTemplate(OutboxInfrastructure infrastructure) {
-        return new JdbcTemplate(infrastructure.dataSource());
-    }
-
-    @Bean(name = "outboxNamedParameterJdbcTemplate")
-    @ConditionalOnMissingBean(name = "outboxNamedParameterJdbcTemplate")
-    NamedParameterJdbcTemplate outboxNamedParameterJdbcTemplate(
-            OutboxInfrastructure infrastructure
-    ) {
-        return new NamedParameterJdbcTemplate(infrastructure.dataSource());
-    }
-
     @Bean
     @ConditionalOnMissingBean
     OutboxMessageValidator outboxMessageValidator(
@@ -151,23 +134,6 @@ public class TransactionalOutboxAutoConfiguration {
     @ConditionalOnMissingBean
     OutboxIdGenerator outboxIdGenerator() {
         return new UuidOutboxIdGenerator();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    OutboxStore outboxStore(
-            @Qualifier("outboxJdbcTemplate") JdbcTemplate jdbcTemplate,
-            @Qualifier("outboxNamedParameterJdbcTemplate")
-            NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-            ObjectProvider<ObjectMapper> objectMappers,
-            OutboxInfrastructure infrastructure
-    ) {
-        return new PostgresqlJdbcOutboxStore(
-                jdbcTemplate,
-                namedParameterJdbcTemplate,
-                requireObjectMapper(objectMappers),
-                infrastructure.transactionManager()
-        );
     }
 
     @Bean(initMethod = "validate")

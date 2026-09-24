@@ -3,7 +3,7 @@ package top.egon.cola.component.outbox.integration;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
-import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
+import top.egon.cola.component.outbox.store.OutboxStore;
 
 import java.time.Duration;
 
@@ -14,7 +14,7 @@ class PostgresqlOutboxCleanupIntegrationTest extends PostgresqlOutboxTestSupport
 
     @Test
     void shouldDeleteOnlyOldSuccessAndEndOnlyItsDeduplicationWindow() {
-        PostgresqlJdbcOutboxStore store = outboxStore();
+        OutboxStore store = outboxStore();
         for (String messageId : new String[]{
                 "old-success",
                 "recent-success",
@@ -26,28 +26,28 @@ class PostgresqlOutboxCleanupIntegrationTest extends PostgresqlOutboxTestSupport
             store.enqueue(newRecord(messageId));
         }
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'SUCCEEDED', completed_at = clock_timestamp() - interval '10 days'
                 where message_id = 'old-success'
                 """);
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'SUCCEEDED', completed_at = clock_timestamp()
                 where message_id = 'recent-success'
                 """);
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'PROCESSING', locked_by = 'owner',
                     locked_until = clock_timestamp() + interval '1 minute'
                 where message_id = 'processing'
                 """);
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'RETRY_WAIT'
                 where message_id = 'retry'
                 """);
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set status = 'DEAD', completed_at = clock_timestamp() - interval '10 days'
                 where message_id = 'dead'
                 """);
@@ -57,7 +57,7 @@ class PostgresqlOutboxCleanupIntegrationTest extends PostgresqlOutboxTestSupport
         assertThat(deleted).isEqualTo(1);
         assertThat(jdbcTemplate.queryForList("""
                 select message_id
-                from egon_cola_outbox_message
+                from egon_outbox.egon_cola_outbox_message
                 order by message_id
                 """, String.class))
                 .containsExactly("dead", "pending", "processing", "recent-success", "retry");

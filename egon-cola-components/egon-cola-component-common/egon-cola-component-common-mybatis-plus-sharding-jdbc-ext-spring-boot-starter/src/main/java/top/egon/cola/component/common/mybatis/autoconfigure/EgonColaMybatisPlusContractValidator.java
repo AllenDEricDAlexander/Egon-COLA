@@ -37,6 +37,7 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfigurationException;
+import top.egon.cola.component.common.mybatis.extension.EgonColaExplicitTenantScopeMapper;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaModelValidationInterceptor;
@@ -148,10 +149,17 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                 Class<?> model = arguments[0];
                 validateModel(model);
                 TableInfo table = TableInfoHelper.getTableInfo(model);
-                if (table == null || properties.getTenantId().ignores(normalizeTable(table.getTableName()))) {
+                if (table == null || properties.getTenantId().ignores(normalizeTable(table.getTableName()))
+                        && !mapper.isAnnotationPresent(EgonColaExplicitTenantScopeMapper.class)) {
                     throw failure("MODEL_TABLE_CANNOT_BE_IGNORED");
                 }
                 for (String method : List.of("selectActiveById", "selectActiveByIds", "deleteVersionedById")) {
+                    boolean implementedByDefault = Arrays.stream(mapper.getMethods())
+                            .filter(candidate -> candidate.getName().equals(method))
+                            .anyMatch(Method::isDefault);
+                    if (implementedByDefault) {
+                        continue;
+                    }
                     String id = mapper.getName() + '.' + method;
                     if (!configuration.hasStatement(id, false)
                             || configuration.getMappedStatement(id, false).getResource() == null

@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.mybatis.extension.EgonColaExplicitTenantScopeMapper;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.outbox.persistence.po.OutboxMessagePO;
 import top.egon.cola.component.outbox.store.OutboxStatus;
@@ -18,7 +19,8 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
-/** Explicit persistence operations for the technical outbox message table. */
+/** Explicit persistence operations with fixed tenant predicates for the technical outbox table. */
+@EgonColaExplicitTenantScopeMapper
 @Mapper
 @Validated
 public interface OutboxMessageDAO extends EgonColaMapper<OutboxMessagePO> {

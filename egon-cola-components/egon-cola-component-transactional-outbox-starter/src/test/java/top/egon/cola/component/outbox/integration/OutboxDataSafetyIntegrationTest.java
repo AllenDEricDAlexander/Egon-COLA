@@ -13,7 +13,7 @@ import top.egon.cola.component.outbox.event.OutboxDeadLetterEvent;
 import top.egon.cola.component.outbox.observability.MicrometerOutboxMetrics;
 import top.egon.cola.component.outbox.serialization.SerializedOutboxPayload;
 import top.egon.cola.component.outbox.store.OutboxRecord;
-import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
+import top.egon.cola.component.outbox.store.OutboxStore;
 import top.egon.cola.component.outbox.validation.OutboxMessageValidator;
 
 import java.time.Duration;
@@ -29,7 +29,7 @@ class OutboxDataSafetyIntegrationTest extends PostgresqlOutboxTestSupport {
 
     @Test
     void shouldPersistOnlySanitizedBoundedFailureSummaries() {
-        PostgresqlJdbcOutboxStore store = outboxStore();
+        OutboxStore store = outboxStore();
         store.enqueue(newRecord("message-1"));
         OutboxRecord claimed =
                 store.claimDue(1, "node-a:claim-1", Duration.ofSeconds(60)).getFirst();
@@ -47,7 +47,7 @@ class OutboxDataSafetyIntegrationTest extends PostgresqlOutboxTestSupport {
 
         String retryMessage = jdbcTemplate.queryForObject("""
                 select last_error_message
-                from egon_cola_outbox_message
+                from egon_outbox.egon_cola_outbox_message
                 where message_id = 'message-1'
                 """, String.class);
         assertThat(retryMessage)
@@ -55,7 +55,7 @@ class OutboxDataSafetyIntegrationTest extends PostgresqlOutboxTestSupport {
                 .isEqualTo("IllegalStateException");
 
         jdbcTemplate.update("""
-                update egon_cola_outbox_message
+                update egon_outbox.egon_cola_outbox_message
                 set next_attempt_at = clock_timestamp() - interval '1 second'
                 where message_id = 'message-1'
                 """);
@@ -66,7 +66,7 @@ class OutboxDataSafetyIntegrationTest extends PostgresqlOutboxTestSupport {
 
         String deadMessage = jdbcTemplate.queryForObject("""
                 select last_error_message
-                from egon_cola_outbox_message
+                from egon_outbox.egon_cola_outbox_message
                 where message_id = 'message-1'
                 """, String.class);
         assertThat(deadMessage)
@@ -89,7 +89,7 @@ class OutboxDataSafetyIntegrationTest extends PostgresqlOutboxTestSupport {
         assertThatThrownBy(() -> validator.validateEnvelope(message))
                 .isInstanceOf(OutboxValidationException.class);
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from egon_cola_outbox_message",
+                "select count(*) from egon_outbox.egon_cola_outbox_message",
                 Integer.class
         )).isZero();
 

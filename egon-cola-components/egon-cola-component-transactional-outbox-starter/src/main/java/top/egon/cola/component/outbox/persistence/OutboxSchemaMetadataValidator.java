@@ -8,6 +8,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.validation.BaseValidator;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.ddl.EgonColaDdlManifestBO;
 import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
@@ -32,7 +33,7 @@ import java.util.TreeMap;
 @Slf4j
 @Validated
 @RequiredArgsConstructor
-public class OutboxSchemaMetadataValidator {
+public class OutboxSchemaMetadataValidator extends BaseValidator {
 
     private static final String SCHEMA = "egon_outbox";
     private static final String MESSAGE_TABLE = "egon_cola_outbox_message";
@@ -119,6 +120,11 @@ public class OutboxSchemaMetadataValidator {
     private final ValidationUtils validationUtils;
 
     private final ResourcePatternResolver resources = new PathMatchingResourcePatternResolver();
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
 
     public void validate() {
         DataSource primary = ddlInitializer.physicalMetadataDataSource(routeFingerprint);
