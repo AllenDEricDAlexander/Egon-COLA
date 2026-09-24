@@ -50,4 +50,62 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+    <!-- 状态迁移只写生命周期那一组列：title/markdown/tags/links/sources/content_hash 与两个父级定位键、
+         策略快照、业务 revision 一律留在 SET 之外（Spec §7.3.7「内容列在插入时冻结」），所以并发的读者永远读不到
+         半改过的内容。谓词同时锁住 publication_version 与起止状态，这正是状态机的 CAS：
+         版本对不上或已经离开起始态的行，一行也不会被改写，业务侧据实得到 false 并换算成 409。
+         The migration writes the lifecycle column group only: title, markdown, tags, links, sources, content_hash, both
+         parent locators, the policy snapshot and the business revision all stay out of the SET (Spec §7.3.7 freezes the
+         content columns at insert), so a concurrent reader never sees half-edited content. The predicate locks
+         publication_version together with the from-statuses, which is exactly the state machine's compare-and-set: a row
+         whose version differs or that already left the from-state is never rewritten and the business side honestly gets
+         false and raises a 409. -->
+    <update id="transitionRevision">
+        UPDATE gateway_wiki_revision SET publication_status = #{et.publicationStatus},
+            review_status = #{et.reviewStatus},
+            publication_version = #{et.publicationVersion},
+            review_instance_id = #{et.reviewInstanceId,jdbcType=VARCHAR},
+            reviewer_actor_id = #{et.reviewerActorId,jdbcType=VARCHAR},
+            reviewed_at = #{et.reviewedAt,jdbcType=TIMESTAMP},
+            review_decision_code = #{et.reviewDecisionCode},
+            published_at = #{et.publishedAt,jdbcType=TIMESTAMP},
+            published_by_actor_id = #{et.publishedByActorId,jdbcType=VARCHAR},
+            archived_at = #{et.archivedAt,jdbcType=TIMESTAMP},
+            archived_by_actor_id = #{et.archivedByActorId,jdbcType=VARCHAR},
+            publication_error_code = #{et.publicationErrorCode,jdbcType=VARCHAR},
+            ever_published = #{et.everPublished,jdbcType=BOOLEAN},
+            version = version + 1,
+            update_user_id = #{actorUserId}, update_time = #{now,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND kb_id = #{et.kbId} AND page_id = #{et.pageId}
+            AND publication_version = #{expectedPublicationVersion}
+            AND publication_status = #{fromPublicationStatus} AND review_status = #{fromReviewStatus}
+            AND deleted_at IS NULL AND version = #{et.version}
+    </update>
+    <!-- 旧化只改发布状态：published_at/published_by_actor_id/review_* 全部保留，历史不是被改写而是被标记为过去
+         （Spec §7.3.7「旧行绝不复活，也不会被改写成草稿」）。id 与接替者的 id 不等这条谓词挡掉的是
+         REPEAT_PUBLICATION：同一行重新发布时不该先把自己旧化，否则唯一索引上会短暂出现两个非已发布行。
+         Superseding changes the publication status only: published_at, published_by_actor_id and the review columns all
+         stay, so history is marked past rather than rewritten (Spec §7.3.7: an old row never revives and is never
+         rewritten into a draft). The not-equal-to-the-replacing-key predicate is what keeps REPEAT_PUBLICATION from
+         superseding the very row it is about to publish. -->
+    <update id="supersedePrevious">
+        UPDATE gateway_wiki_revision SET publication_status = 'SUPERSEDED',
+            publication_version = publication_version + 1,
+            version = version + 1,
+            update_user_id = #{actorUserId}, update_time = #{now,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND kb_id = #{et.kbId} AND page_id = #{et.pageId}
+            AND id &lt;&gt; #{newRevisionId}
+            AND publication_status = 'PUBLISHED' AND publication_version = #{expectedPublicationVersion}
+            AND deleted_at IS NULL AND version = #{et.version}
+    </update>
+    <!-- 建图与内链闭合只认当前处于 PUBLISHED 且活跃的行，被替换与归档的发布自动出局，
+         这与 §7.3.4「stale 的已发布内容不得成为新答案的证据」同源。
+         The graph and the inline-link closure admit only active rows currently PUBLISHED, so superseded and archived
+         publications drop out automatically — the same rule that keeps stale wiki out of a new answer in §7.3.4. -->
+    <select id="selectPublishedRevisions" resultMap="WikiRevisionResultMap">
+        SELECT <include refid="columns"/> FROM gateway_wiki_revision
+        WHERE deleted_at IS NULL AND publication_status = 'PUBLISHED' AND kb_id = #{kbId}
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
 </mapper>

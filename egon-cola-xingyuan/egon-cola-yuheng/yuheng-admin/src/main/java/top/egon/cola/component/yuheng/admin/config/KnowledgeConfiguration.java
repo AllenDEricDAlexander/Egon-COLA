@@ -27,6 +27,8 @@ import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobT
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeSearchModeEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeJobStrategy;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeSearchStrategy;
+import top.egon.cola.component.yuheng.admin.wiki.domain.enums.WikiPublicationPolicyEnum;
+import top.egon.cola.component.yuheng.admin.wiki.service.WikiPublicationPolicyStrategy;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -116,6 +118,9 @@ import java.util.Map;
  * 用法 / Usage: 由 {@code GatewayAdminApplication} 的包扫描装配；{@code knowledgeJobStrategyRegistry} 与
  * {@code knowledgeJobTaskExecutor} 供 {@code KnowledgeJobServiceImpl} 与 {@code KnowledgeJobWorker} 按 bean 名限定注入，
  * 下面每个 RAG Bean 供 {@code DocumentIngestionStrategy} 按 bean 名限定注入。
+ * 第三张注册表 {@code wikiPublicationPolicyStrategyRegistry} 属于同一 Rule 9 事实（它是 Wiki 面的策略分发，
+ * 与知识摄取同在本装配点上），供 {@code WikiLifecycleServiceImpl}、{@code WikiServiceImpl} 与
+ * {@code WikiGenerationStrategy} 按 bean 名限定注入。
  */
 @Slf4j
 @Configuration(value = "knowledgeConfiguration", proxyBeanMethods = false)
@@ -234,6 +239,66 @@ public class KnowledgeConfiguration {
                     + java.util.Arrays.toString(KnowledgeSearchModeEnum.values()) + ", got " + resolved.keySet());
         }
         log.info("knowledge search strategy registry checked strategies={} modes={}",
+                resolved.size(), resolved.keySet());
+        return Collections.unmodifiableMap(resolved);
+    }
+
+    /**
+     * 中文说明：把容器里全部 {@link WikiPublicationPolicyStrategy} 归成不可变的 {@code 冻结策略 → Strategy} 注册表，
+     * 与上面两张注册表同构，也是 Rule 9 在发布策略维度的唯一分发事实来源：状态机、管理面与 worker 都只查这张表，
+     * 谁都不写 {@code if (policy == DIRECT)}。三条启动期不变量：条目必须声明策略（{@code null} 键视同重复的反面）、
+     * 同一策略只允许一个实现（重复即 {@link IllegalStateException}，因为「谁赢」会取决于 bean 顺序）、注册表不得为空
+     * （空表意味着没有任何草稿可落位，配置本身已经坏了）。
+     * 与检索侧的注册表<b>刻意不同</b>的一点：这里<b>不</b>要求覆盖 {@link WikiPublicationPolicyEnum} 的全部常量。
+     * {@code REVIEW_REQUIRED} 本期没有真实评审适配器，注册一个空壳实现就等于让状态机相信「评审可用」，
+     * 从而把评审事件放行成一次伪造的批准；缺键才是正确答案——{@code WikiLifecycleServiceImpl} 查不到策略时按
+     * {@code 503 WIKI_REVIEW_ADAPTER_NOT_CONFIGURED} 失败关闭，日后接入评审只需新增一个实现，不改状态机一行。
+     * English summary: Files every {@link WikiPublicationPolicyStrategy} in the container into the immutable
+     * {@code frozen policy → Strategy} registry, isomorphic to the two above and the single dispatch fact for the publication
+     * policy dimension under Rule 9: the state machine, the management face and the worker all look this map up, so nobody
+     * writes {@code if (policy == DIRECT)}. Three startup invariants: an entry must declare its policy (a null key is the
+     * mirror image of a duplicate), one policy admits one implementation (a duplicate raises
+     * {@link IllegalStateException}, because "who wins" would otherwise depend on bean order), and the registry may not be
+     * empty (an empty table drafts nothing, which means the configuration itself is broken).
+     * Where this deliberately differs from the retrieval registry: coverage of every {@link WikiPublicationPolicyEnum}
+     * constant is <b>not</b> required. {@code REVIEW_REQUIRED} has no real review adapter this release, and registering an
+     * empty shell for it would tell the state machine that review is available, letting a review event through as a
+     * fabricated approval; the missing key is the right answer — {@code WikiLifecycleServiceImpl} fails closed with
+     * {@code 503 WIKI_REVIEW_ADAPTER_NOT_CONFIGURED} when it finds no strategy, and wiring review later only means adding an
+     * implementation, not touching the machine.
+     *
+     * 用法 / Usage: 由 {@code WikiLifecycleServiceImpl}（状态迁移与草稿落位）与 {@code WikiServiceImpl}、
+     * {@code WikiGenerationStrategy}（「本期在登记的策略是哪一条」）按 bean 名限定注入，都只按键查表。
+     * @param wikiPublicationPolicyStrategies 参数 容器内全部发布策略实现；多元素集合注入因此刻意不带
+     *                                        {@code @Qualifier}，理由与 {@link #knowledgeJobStrategyRegistry(List)} 相同。
+     *                                        parameter every publication strategy in the container; a multi-element collection
+     *                                        injection, so the qualifier stays off for the same reason as in
+     *                                        {@link #knowledgeJobStrategyRegistry(List)}.
+     * @return 返回 不可变的策略到实现注册表；returns the immutable policy to strategy registry.
+     * @throws IllegalStateException 策略缺键、同一策略重复或注册表为空；a strategy without a policy, a duplicated policy, or an empty registry.
+     */
+    @Bean("wikiPublicationPolicyStrategyRegistry")
+    public Map<WikiPublicationPolicyEnum, WikiPublicationPolicyStrategy> wikiPublicationPolicyStrategyRegistry(
+            List<WikiPublicationPolicyStrategy> wikiPublicationPolicyStrategies) {
+        if (wikiPublicationPolicyStrategies == null || wikiPublicationPolicyStrategies.isEmpty()) {
+            throw new IllegalStateException("The wiki publication policy registry carries no strategy implementation");
+        }
+        EnumMap<WikiPublicationPolicyEnum, WikiPublicationPolicyStrategy> resolved =
+                new EnumMap<>(WikiPublicationPolicyEnum.class);
+        for (WikiPublicationPolicyStrategy strategy : wikiPublicationPolicyStrategies) {
+            WikiPublicationPolicyEnum policy = strategy == null ? null : strategy.policy();
+            if (policy == null) {
+                throw new IllegalStateException("Every wiki publication policy strategy must declare a "
+                        + "WikiPublicationPolicyEnum, got "
+                        + (strategy == null ? "null" : strategy.getClass().getName()));
+            }
+            WikiPublicationPolicyStrategy previous = resolved.put(policy, strategy);
+            if (previous != null) {
+                throw new IllegalStateException("Two wiki publication policy strategies serve " + policy + ": "
+                        + previous.getClass().getName() + " and " + strategy.getClass().getName());
+            }
+        }
+        log.info("wiki publication policy registry checked strategies={} policies={}",
                 resolved.size(), resolved.keySet());
         return Collections.unmodifiableMap(resolved);
     }

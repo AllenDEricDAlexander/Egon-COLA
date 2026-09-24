@@ -30,4 +30,78 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+    <!-- 指针切换是页面行唯一的写入形态：两个指针与业务 revision 一起换，技术 version 由守卫边界要求 +1。
+         期望值放在谓词里而不是先读后写，所以「读到 A 再写 B」这类竞态不会把对方的切换抹掉；空指针必须与
+         非空指针区分比较，而 = NULL 永远不成立，因此每个指针都写成「相等，或两边同时为空」。这里刻意不用
+         IS NOT DISTINCT FROM：那是分链路上的解析方言风险，而展开后的两条分支语义完全等价、任何解析器都认。
+         审计列的操作者显式绑定守卫上下文的当前用户，绝不复用行上残留的 update_user_id——那会让上一位写者
+         冒名签下这一次切换。
+         The pointer swap is the page row's only write shape: both pointers and the business revision move together while the
+         technical version must increment for the guarded boundary. The expectations sit in the predicate rather than in a
+         read-then-write, so a race can never erase the other side's swap, and an empty pointer must compare apart from a
+         populated one where = NULL never holds, so each pointer reads "equal, or both sides null". IS NOT DISTINCT FROM is
+         deliberately avoided: it is a parsing risk on the sharding chain while the expanded two branches are exactly
+         equivalent and universally understood. The audit operator binds the boundary's current user explicitly and never
+         reuses the row's stored update_user_id, which would let the previous writer sign this swap. -->
+    <update id="movePointers">
+        UPDATE gateway_wiki_page SET draft_revision_id = #{et.draftRevisionId,jdbcType=BIGINT},
+            published_revision_id = #{et.publishedRevisionId,jdbcType=BIGINT},
+            revision = #{et.revision}, version = version + 1,
+            update_user_id = #{actorUserId}, update_time = #{now,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND kb_id = #{et.kbId} AND slug = #{et.slug}
+            AND revision = #{expectedRevision}
+            AND (published_revision_id = #{expectedPublishedRevisionId,jdbcType=BIGINT}
+                OR (published_revision_id IS NULL AND #{expectedPublishedRevisionId,jdbcType=BIGINT} IS NULL))
+            AND (draft_revision_id = #{expectedDraftRevisionId,jdbcType=BIGINT}
+                OR (draft_revision_id IS NULL AND #{expectedDraftRevisionId,jdbcType=BIGINT} IS NULL))
+            AND deleted_at IS NULL AND version = #{et.version}
+    </update>
+    <!-- 目录可见性（Spec §7.3.7 与 API-023）：一行页面能在目录里被读到，靠的是它「当前可见的那一版」——
+         带草稿可见性时优先草稿指针、否则退回已发布指针，不带时只认已发布指针。两个指针都为空的页面
+         因为 JOIN 取不到修订而行外消失，这是如实结果而不是过滤规则：它确实没有任何可读内容。
+         检索是 slug 与标题的字面子串（转义由仓储完成），标签是 jsonb 数组的精确元素匹配，两者都发生在
+         分页之前，所以当页与总数共用同一谓词时才不会互相矛盾。
+         Catalog visibility: a page row is readable in the catalog through its currently visible revision — the draft pointer
+         when draft visibility is granted and a draft exists, otherwise the published pointer, and the published pointer only
+         otherwise. A page behind neither pointer leaves the result because the join finds no revision, which is the honest
+         outcome rather than a filter: it truly has no readable content. Search is literal substring over slug and title (the
+         repository escapes it) and the tag is an exact jsonb array element match, both applied before paging so the page and
+         the total cannot contradict each other. -->
+    <sql id="catalogFrom">
+        FROM gateway_wiki_page p
+        JOIN gateway_wiki_revision v ON v.id =
+        <choose>
+            <when test="includeDraft">COALESCE(p.draft_revision_id, p.published_revision_id)</when>
+            <otherwise>p.published_revision_id</otherwise>
+        </choose>
+            AND v.page_id = p.id AND v.kb_id = p.kb_id AND v.tenant_id = p.tenant_id AND v.deleted_at IS NULL
+    </sql>
+    <!-- 驱动表的活跃断言写在每条语句自己的文本里，理由与 knowledge 分块目录一致：契约测试按语句文本审查，
+         审查者不该为了确认只读活跃行而展开片段。
+         The driving table's active-row assertion stays in each statement's own text for the reason established on the
+         knowledge chunk catalog: the contract reviews statement text, and a reviewer should not have to expand a fragment. -->
+    <sql id="catalogScope">
+        AND p.kb_id = #{kbId}
+        <if test="searchPattern != null">
+            AND (p.slug ILIKE #{searchPattern} ESCAPE '\' OR v.title ILIKE #{searchPattern} ESCAPE '\')
+        </if>
+        <if test="tag != null">
+            AND v.tags @&gt; jsonb_build_array(CAST(#{tag} AS TEXT))
+        </if>
+    </sql>
+    <select id="selectCatalog" resultMap="WikiPageResultMap">
+        SELECT p.id, p.tenant_id, p.create_user_id, p.create_time, p.update_user_id, p.update_time,
+            p.deleted_at, p.version, p.kb_id, p.slug, p.draft_revision_id, p.published_revision_id, p.revision
+        <include refid="catalogFrom"/>
+        WHERE p.deleted_at IS NULL
+        <include refid="catalogScope"/>
+        ORDER BY p.create_time DESC, p.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countCatalog" resultType="long">
+        SELECT count(*)
+        <include refid="catalogFrom"/>
+        WHERE p.deleted_at IS NULL
+        <include refid="catalogScope"/>
+    </select>
 </mapper>
