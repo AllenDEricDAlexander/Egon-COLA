@@ -34,7 +34,7 @@ public class OutboxMessageRepository extends EgonColaRepository<OutboxMessageDAO
     private final OutboxMessageDAO baseMapper;
 
     @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egon.cola.component.mybatis-plus-top.top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
+    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;
 
     public int insertMessage(@NotNull @Valid OutboxMessagePO entity) {

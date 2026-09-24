@@ -19,7 +19,7 @@ public class OutboxTechnicalContextExecutor {
     private static final String TECHNICAL_TENANT_ID = "0";
     private static final String TECHNICAL_USER_ID = "system:outbox";
 
-    @Qualifier("egon.cola.component.mybatis-plus-top.top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
+    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;
 
     public <T> T execute(@NotNull Supplier<T> action) {
