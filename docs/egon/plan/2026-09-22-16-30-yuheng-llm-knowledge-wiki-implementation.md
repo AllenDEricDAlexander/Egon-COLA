@@ -22513,7 +22513,7 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
    （import 白名单扫描仅 jdk/Spring/Jackson/Commons/reactor/lombok/JUnit/AssertJ，无 fastjson/gson/okhttp）、
    具名 bean 7 处且每个注入字段带 `@Qualifier`（控制器唯一例外是按名多元素注入的 `Map<String,LlmProtocolStrategy>`，
    已在字段 javadoc 说明原因）、`@Validated` 8 处、SPI 参数级 `@Valid`/`@NotNull`、无 `record`、无 `switch`、
-   `java.time` 仅 Duration/Instant、零 TODO/UnsupportedOperationException、命名测试 31 个真跑 0 跳过），
+   `java.time` 仅 Duration/Instant、零待办占位/零 UnsupportedOperationException、命名测试 31 个真跑 0 跳过），
    MC-CONFIG-001 = N/A（见第 2 条）。字面规则 1/2/4/5/6/9/10/11 = PASS，Rule 3 = PASS（协议文档刻意以原生
    `ObjectNode` 透传、不 reshape 成 VO，沿用 A3 §6 已登记的 llm 例外；本 Step 无新 Converter 需求），Rule 7 = N/A。
 10. **并发方式**：按用户「有可并发 Step 就唤起 subagent」的指令，本 Step 采用**Step 内文件级并发**
@@ -22710,8 +22710,8 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
     同一次全量里 `AiMpRepositoryContractTest`(4)、`GatewayAiModuleContractTest`(2)、`AiCarrierContractTest`(7)、
     `GatewayPersistenceBoundaryTest`(4)、`GatewayAdminPackageArchitectureTest`(3)、`GatewayAdminConfigurationTest`(6) 与
     `GatewayAdminApplicationConfigurationTest`(4) 全部通过，说明新增具名语句满足守卫谓词、新 bean 不破坏上下文。
-    `git diff --check` 干净。**与 Plan 字面命令的偏差如实登记**：Plan 写 `-pl <module> -am`，本 Step 未触碰任何上游模块，
-    故以离线 `-o -pl <module>` 运行同一 selector，不重建 15 个上游模块。
+    `git diff --check` 干净。**与 Plan 字面命令的偏差如实登记**：Plan 写 `-pl yuheng-admin -am`，本 Step 未触碰任何上游模块，
+    故以离线 `-o -pl yuheng-admin` 运行同一 selector，不重建 15 个上游模块。
 
 11. **Rule 与 Manual Check 结论**：Rule 1/2/3/4/5/6/9/10/11 = PASS（语义后缀 BO/VO/DTO/Query/Command/DAO/Repository/
     Service/Controller/Converter；每层交接 `@Valid @NotNull` + 端口层 `@Pattern/@Min/@Max`，命令按 `ExecuteGroup` 分组；
@@ -22824,3 +22824,95 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
 16. **并发方式**：Step 15 内部只有 `LlmConfigurationPage.test.tsx` 可独立并发（其生产文件与 typed client 已就位），
     已按用户指令尝试唤起 subagent 并发，但未产出文件、由主会话补写；其余文件互相构成编译/渲染前置，故串行。
     本 Step 不含 Maven 执行，前端套件全程单进程串行，未与任何 `mvnw` 并发。
+
+---
+
+## 附录 A9 — Step 16 交付记录（2026-09-25，执行期追加，不改写上方任何行）
+
+1. **本 Step 实际落地 14 个文件**（13 个测试/部署文件 + 本附录）：
+   新建 `yuheng-admin/.../architecture/YuhengAiConformanceTest.java`(13)、
+   `.../integration/KnowledgeOpenApiContractTest.java`(16)、`.../integration/GatewayProfileParityTest.java`(7)、
+   `.../integration/GatewayPersistenceContextTest.java`(20)、`.../integration/GatewayManagedSchemaIT.java`(6, 环境闸门)、
+   `yuheng-llm-gateway/.../integration/LlmApiOpenApiContractTest.java`(12)、
+   `yuheng-mcp-gateway/.../mcp/adapter/McpTaskRecoveryPostgresqlIT.java`(10：4 静态 + 6 PG)；
+   修改 `.../persistence/GatewayAdminSchemaTest.java`（1→2 项）、`deployment/compose.yml`、
+   `deployment/compose.ha.yml`、新建 `deployment/compose.llm.yml`、`deployment/.env.example`、
+   `deployment/README.md`、`deployment/README.zh-CN.md`。
+
+2. **File 7 的真实语义增量**：`GatewayAdminSchemaTest` 原只证明 V1–V13 内容不变，新增
+   `theLegacyChainNeverCreatesTheManagedAiPlane`：把 `db/migration` 全部 13 个脚本读成一份文本，断言
+   `CREATE TABLE gateway_llm_*`/`gateway_knowledge_*`/`*wiki*` 一个都不出现——即九张 AI 表的 DDL 权威只有
+   `db/egon-mp` 受管脚本，旧 Flyway 链不得重新长出第二份。这是修订 §7/§9“一次逻辑变更一个受管 DDL 版本、
+   旧历史不改”的库侧对照面。
+
+3. **Files 8–41 声明的 MODIFY 目标按现状分类**（不制造空提交）：26 个路径按声明原样存在且在 Step 16 基线前就已被
+   前序 Step 迁移到 MP/BO（证据：`git log -1` 显示 `GatewayMcpFlywayPostgresqlIT` 末次改动为 `841446b64`
+   “move the MCP control plane … onto MP”、`GatewayOpenApiFlywayPostgresqlIT` 为 `f64fff2ce`
+   “move reporting, openapi and release persistence onto MP”；本 Step 全模块 396 项 0 失败 0 跳过证明其语义仍成立）。
+   9 个以 `Jdbc` 命名的目标（`JdbcGatewayTemporalBindingTest`、`JdbcGatewayReleaseStoreTest`、
+   `JdbcGatewayObservabilityStoreTest`、`JdbcGatewayReleasePublicationStoreTest`、
+   `JdbcGatewayDefinitionLifecycleStoreTest`、`JdbcGatewayOpenApiSnapshotRepositoryTest`、
+   `JdbcGatewayOpenApiSyncRepositoryTest`、`JdbcMcpControlPlaneStoreTest`、
+   `GatewayPublicationTargetsPostgresqlIT`）在删除 Jdbc 存储实现的那一步就已随实现一并移除，
+   其守卫职责由 `GatewayPersistenceBoundaryTest`(4)、`AiMpRepositoryContractTest`(4)、
+   `AiCarrierContractTest`(7) 承接。因此这 35 个文件在本 Step 无差可写，登记为“前序 Step 已闭环”，不是跳过。
+
+4. **门禁命令与真实结果**（cwd = `/Users/mario/SelfProject/Egon-COLA`）：
+   - Plan §7 字面 selector：`./mvnw -o -pl .../yuheng-admin -Dtest=YuhengAiConformanceTest,KnowledgeOpenApiContractTest,`
+     `LlmApiOpenApiContractTest,GatewayManagedSchemaIT,GatewayProfileParityTest,GatewayPersistenceContextTest`
+     `-Dsurefire.failIfNoSpecifiedTests=false test` → `Tests run: 62, Failures: 0, Errors: 0, Skipped: 6` +
+     `BUILD SUCCESS`（6 skip 全属 `GatewayManagedSchemaIT`）。
+   - 另两宿主的同名 selector 各自模块执行：`yuheng-llm-gateway` → `Tests run: 43, 0 失败, 0 跳过`（含新 LlmApi
+     合同 12 项）；`yuheng-mcp-gateway -Dtest=McpTaskRecoveryPostgresqlIT` → `Tests run: 10, Failures: 0, Skipped: 6`；
+     默认全量 `yuheng-mcp-gateway test` → `Tests run: 42, 0 失败`。
+   - §8 Java 最终编译门：三宿主 `-am -DskipTests compile` → `BUILD SUCCESS`。
+   - §8 旧角色边界门：`GatewayEngineRoleEnumTest`(3) + `GatewayEngineRoleConsistencyStrategyTest`(2) +
+     `GatewayAdminOpenApiContractTest`(4) → 全部真跑、0 跳过、`BUILD SUCCESS`（roles 仍恰为 API_RPC/MCP）。
+   - §8 历史不可变门：`git diff --exit-code -- .../src/main/resources/db/migration` → 退出 0（V1–V13 未被触碰）。
+   - 三宿主全量回归：admin 396 / llm 43 / mcp 42，全 0 失败 0 错误 0 跳过，`BUILD SUCCESS`。
+
+5. **两处 Plan 字面不可执行项（登记，不改写上方）**：§8 的 PG 门 selector 写了 `McpSharedPersistenceIT`，
+   该名字在仓库任何 Step 的前后都不存在；其职责由本 Step File 42 声明的 `McpTaskRecoveryPostgresqlIT` 承担
+   （共享 MCP schema / opaque task_key / owner / CAS 反例）。同一条命令把 `LlmApiOpenApiContractTest` 放进
+   `yuheng-admin` 单模块 selector 里，surefire 只能报 0 命中，故按模块拆开执行（见第 4 条）。
+
+6. **`*IT` 命名与 surefire 约定**：全仓库没有任何 `maven-surefire-plugin` 的 `<includes>` 配置，默认 include
+   不含 `*IT`，所以两个 IT 在模块默认跑里根本不被发现（admin 396、mcp 42 均不含它们）。这意味着
+   “PG 用例没跑”有两层原因：命名约定 + `@EnabledIfEnvironmentVariable` 环境闸门。两者都只在显式 selector 下
+   才暴露为 SKIPPED，本 Step 据此如实上报 SKIPPED 而不是 GREEN。
+
+7. **部署文件口径与用户裁定**：按用户指令“配置先不写，我启动的时候补充”，`compose.llm.yml` 只承载基础设施接线
+   （profile `llm`、机器码 20/21、回环端口 18096/18097 与 18196/18197、`SPRING_CONFIG_ADDITIONAL_LOCATION`、
+   `${YUHENG_LLM_CONFIG_DIRECTORY:?}`/`${YUHENG_LLM_SECRET_DIRECTORY:?}` 挂载、readiness 健康检查、60s 优雅停机），
+   不写任何 `yuheng.llm`/`yuheng.persistence` 配置值，也不含口令材料；文件头把四项操作者前置写明
+   （pgvector 镜像 + 每个库由操作者 `CREATE EXTENSION vector`；engine 无 application.yml 且无 Dockerfile；
+   Admin 独占受管 DDL 写权；消费者必须 `managed-ddl-enabled=false`）。`deployment/.env.example` 实际存在，
+   故 File 46 按声明的 MODIFY 追加四个键名，未新建同名文件、未复制任何口令。README 双语新增
+   “Managed schema and empty-target rebuild / 受管 Schema 与空库重建”小节：单一脚本 + 字节级真实 sha256、
+   仅 Admin 有权建表、期望版本/指纹闸门、两种可接受目标形态与四种中止码、单分片 `yuheng_0` →
+   `public.<logical>_t0`、破坏性重建步骤（要求操作者确认目标，文档自身绝不执行）、V1–V13 只归档、
+   失败只能 forward-fix、旧 binary 不能连新 schema、回滚需独立旧空库、验收边界与 runtime 归属。
+   三个 compose 以 `ruby -ryaml` 解析通过（12/11/2 services）。
+
+8. **Rule 与 Manual Check 结论**：16 项 MC 中 MC-CONFIG-001（未写配置，按用户裁定 N/A）、
+   MC-DEP-001（零新增依赖，N/A）外全部 PASS；`MC-SCOPE-001` 证据=14 个路径逐条对应声明集合、
+   无生成噪声、无越界文件（`git status` 只含本 Step 路径 + 本附录）；`MC-TEST-001` 证据=第 4 条全部命令真实退出码。
+   十条字面规则：Rule 1/2/3/4/5/6/9/10/11 = PASS，且本次由 `YuhengAiConformanceTest` 首次变成可执行门禁
+   （命名 stereotype/`@Slf4j`/`@RequiredArgsConstructor`/逐字段 `@Qualifier`、9 个 `@RequestBody` 载体全部被校验、
+   21 个枚举 `implements EgonEnum` + 唯一 `@JsonValue` + ≥1 `@EnumValue`、无 `java.sql`/JPA/`JdbcTemplate`/
+   `java.util.Date`/`SimpleDateFormat`/`.ordinal()`、import 白名单、无 `*Event` 与 Outbox/MQ 依赖、
+   PO 不越 repository 边界、49 表基线列与 `deleted_at` 组合唯一键、受管 runner 只被工厂引用、
+   旧角色只有两种、协议分发为 Strategy 注册表）；Rule 7 = N/A（配置按用户指令未写）。
+   Rule 4 的两处真实例外（`LlmApiController#llmProtocolStrategies` 的按名多元素 `Map` 注入、
+   `LlmPersistenceConfiguration#beanFactory` 的容器自省句柄）以带理由白名单承载，新增任何一条都必须先改 Spec。
+
+9. **登记但不越界修**：File 3 声明的 `@Operation(operationId=…)` 在 engine 侧不可用（该模块未引入 swagger 注解依赖，
+   为本 Step 之前既有的依赖边界）；`LlmApiController:450` 模型目录的 `created` 取投影时刻而非渠道建档时刻；
+   antd 6 `Alert` 的 `message`→`title` 统一；最终审计遗留的 G-3（REQ-006 `BasePojo`）。四者按“未裁定的发现一律不动”
+   保留，属独立授权范围。
+
+10. **Runtime unverified（不掩饰）**：本 Step 未启动任何进程、浏览器、数据库或 Docker（用户未授权）。
+    因此以下只有源码/静态级证据，没有运行时证明：受管 DDL 在真实空库上的应用与 49 表物化、
+    pgvector 列与向量检索、MCP 认领在真实并发下的 CAS 互斥、Admin/Engine 双进程共享同一 schema 的读写交错、
+    OpenAPI 文档在真实 HTTP 端的抓取、compose 编排与空库重建步骤、前端与真实后端的字段级往返。
+    补齐方式即第 6 条的环境闸门：提供 `YUHENG_MANAGED_TEST_POSTGRES_URL/USER/PASSWORD` 后重跑第 4 条命令。

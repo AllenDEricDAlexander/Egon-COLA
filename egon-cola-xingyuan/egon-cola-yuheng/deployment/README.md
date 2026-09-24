@@ -60,10 +60,16 @@ command is restricted to the locally marked demo project.
 | Demo RPC Provider | 18086 / 19091 | HTTP slot and Egon RPC slot |
 | Demo RPC Consumer | 18087 | Drives RPC→RPC forwarding |
 | Admin Web | 18090 | React management page |
+| LLM Engine 1 data / management | 18096 / 18097 | Native protocol endpoints, loopback-published (`compose.llm.yml`) |
+| LLM Engine 2 data / management | 18196 / 18197 | Second LLM replica, loopback-published |
 
 Persist each Engine's LKG directory independently. Tianshu Redis and the distributed rate-limit
 Redis must use separate instances and data volumes. Initialize two PostgreSQL databases so
 that Tianshu and Yuheng Admin Flyway histories cannot interfere with each other.
+The knowledge/Wiki plane stores embeddings in `vector` columns, so the PostgreSQL image must already ship pgvector and
+a privileged role must run `CREATE EXTENSION vector` inside `gateway_admin`; the application role never creates
+extensions. The LLM engine ships no application configuration and no Dockerfile, so `compose.llm.yml` expects the
+operator to supply both through the two mounted directories it declares.
 
 ## Health and release order
 
@@ -220,6 +226,39 @@ A valid upstream W3C `traceparent` sampling flag takes precedence; the local sam
 is used only when the caller provides no W3C Parent. High-cardinality fields such as Operation,
 Route, Provider Instance, and Event ID stay in spans and are not added to low-cardinality metric
 tags. Collector unavailability does not affect Yuheng business responses.
+
+## Managed schema and empty-target rebuild
+
+- All 49 Yuheng tables — the pre-existing gateway tables plus the knowledge/Wiki/LLM ones — come from one managed
+  script, `yuheng-admin/src/main/resources/db/egon-mp/20260922_001_yuheng_schema.sql`, registered in
+  `repository-manifest.json` as family `web` with a single entry. Its `sha256` is the digest of the final SQL bytes;
+  it is never guessed and never hand-edited.
+- Only `yuheng-admin` claims the DDL role. The LLM engine and every other consumer must keep
+  `yuheng.persistence.managed-ddl-enabled=false` and fail fast when they are configured to own it.
+- Before starting a build that carries a new manifest entry, `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_VERSION` and
+  `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_SHA256` must agree with that manifest. A mismatch aborts the start instead of
+  surfacing as a half-executed DDL run.
+- The runner accepts exactly two target shapes: a schema with no relations at all, or a schema whose `ddl_history`
+  prefix equals the manifest item for item, route fingerprint included. Anything else aborts with `REBUILD_REQUIRED`,
+  `MANIFEST_PREFIX_MISMATCH`, `CHECKSUM_MISMATCH` or `ROUTE_FINGERPRINT_MISMATCH`; it never repairs an unknown schema
+  in place, and it never touches a schema it does not own.
+- Every logical table routes to the single physical shard `yuheng_0` as `public.<logical>_t0`. Primary keys, tenant
+  unique keys, soft-delete lifecycle keys, foreign keys, check constraints and the partial `WHERE deleted_at IS NULL`
+  indexes are all declared inside the script, so a rebuilt target has one possible shape.
+- Rebuild procedure — destructive, and this document never executes it. The operator confirms the connection target
+  before every step: create the database and the pgvector extension through a privileged role, verify the target
+  schema is empty, start `yuheng-admin` alone and read its `managed ddl applied alias=… schema=… version=20260922_001`
+  line, compare `ddl_history` against the manifest, and only then start any consumer.
+- The pre-managed `db/migration/V1__…V13__…` scripts are retained unchanged for history and audit. They are not
+  re-executed, not edited, and not folded into the manifest.
+- Repair is forward-only: add a new script version plus a new manifest entry and recompute the checksum. Never edit an
+  applied script or its recorded checksum, and never rewrite `ddl_history`.
+- A binary older than `20260922_001` cannot run against the rebuilt schema, so binary rollback needs an independent,
+  empty old schema in its own database rather than a downgrade in place. No two versions may share one schema.
+- Acceptance boundary: the managed DDL, its 49 tables, the lifecycle keys and the vector dimension check are verified
+  against a real PostgreSQL by `GatewayManagedSchemaIT`, which stays disabled unless `YUHENG_MANAGED_TEST_POSTGRES_URL`
+  points at an authorized throwaway database. Static gates prove shape and history only; extension availability, shard
+  routing under load, and a live rebuild remain runtime evidence owned by the deployment platform.
 
 ## Known deployment boundaries
 

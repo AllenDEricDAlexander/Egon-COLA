@@ -1,0 +1,91 @@
+name: egon-cola-yuheng
+
+# LLM engine plane overlay. Start it together with the base file:
+#   docker compose -f compose.yml -f compose.llm.yml --profile llm up -d
+# Prerequisites this file cannot express, and that the operator owns:
+#   1. the PostgreSQL image in compose.yml must ship pgvector, and `CREATE EXTENSION vector` must
+#      already have run inside gateway_admin; the application role never creates extensions;
+#   2. yuheng-llm-gateway ships no application configuration and no Dockerfile - supply both, then
+#      mount the configuration at the path referenced by SPRING_CONFIG_ADDITIONAL_LOCATION below;
+#   3. yuheng-admin owns the managed DDL, so start it and let it reach readiness before this engine;
+#      the engine declares yuheng.persistence.managed-ddl-enabled=false and fails fast otherwise.
+services:
+  yuheng-llm-gateway:
+    profiles: ["llm"]
+    build:
+      context: ../yuheng-llm-gateway
+    environment:
+      SERVER_PORT: 18096
+      MANAGEMENT_SERVER_PORT: 18097
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "20"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_admin
+      SPRING_DATASOURCE_USERNAME: yuheng
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/run/egon-config/
+      TIANQUAN_SHOUBING_OAUTH_ISSUER: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+      TIANQUAN_SHOUBING_JWK_SET_URI: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+      YUHENG_LLM_SECRETS_ROOT: /run/secrets/yuheng-llm
+    volumes:
+      - ${YUHENG_LLM_CONFIG_DIRECTORY:?set YUHENG_LLM_CONFIG_DIRECTORY}:/run/egon-config:ro
+      - ${YUHENG_LLM_SECRET_DIRECTORY:?set YUHENG_LLM_SECRET_DIRECTORY}:/run/secrets/yuheng-llm:ro
+    depends_on:
+      yuheng-admin:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18096:18096"
+      - "127.0.0.1:18097:18097"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -ec 'exec 3<>/dev/tcp/127.0.0.1/18097;
+          printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3;
+          grep -q " 200 " <&3'
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    stop_grace_period: 60s
+    restart: unless-stopped
+
+  # Stateless second replica: it reads the same published snapshot through Postgres and holds no LKG
+  # directory, so it needs no volume of its own. Give it a distinct machine id and host ports.
+  yuheng-llm-gateway-2:
+    profiles: ["llm"]
+    build:
+      context: ../yuheng-llm-gateway
+    environment:
+      SERVER_PORT: 18096
+      MANAGEMENT_SERVER_PORT: 18097
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "21"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_admin
+      SPRING_DATASOURCE_USERNAME: yuheng
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/run/egon-config/
+      TIANQUAN_SHOUBING_OAUTH_ISSUER: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+      TIANQUAN_SHOUBING_JWK_SET_URI: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+      YUHENG_LLM_SECRETS_ROOT: /run/secrets/yuheng-llm
+    volumes:
+      - ${YUHENG_LLM_CONFIG_DIRECTORY:?set YUHENG_LLM_CONFIG_DIRECTORY}:/run/egon-config:ro
+      - ${YUHENG_LLM_SECRET_DIRECTORY:?set YUHENG_LLM_SECRET_DIRECTORY}:/run/secrets/yuheng-llm:ro
+    depends_on:
+      yuheng-admin:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18196:18096"
+      - "127.0.0.1:18197:18097"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -ec 'exec 3<>/dev/tcp/127.0.0.1/18097;
+          printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3;
+          grep -q " 200 " <&3'
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    stop_grace_period: 60s
+    restart: unless-stopped

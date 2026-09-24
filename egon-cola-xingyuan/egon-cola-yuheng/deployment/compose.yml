@@ -2,7 +2,10 @@ name: egon-cola-yuheng
 
 services:
   postgres:
-    image: postgres:16.6-alpine
+    # The AI plane stores embeddings in a pgvector `vector` column. The application role never runs
+    # CREATE EXTENSION, so the image must already ship pgvector and the operator must create the
+    # extension inside each managed database before the first Admin start.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: yuheng

@@ -1,5 +1,11 @@
 name: egon-cola-yuheng
 
+# Overlay for dual control-plane and dual data-plane replicas. Compose it with the base file, and
+# with compose.llm.yml when the LLM engine plane is deployed too. This overlay validates stateless
+# dual Yuheng Admin only: Admin stays the writer of the managed DDL, and the runner either finds the
+# installed prefix identical or fails the start (REBUILD_REQUIRED / MANIFEST_PREFIX_MISMATCH), so a
+# second replica never widens the schema by itself. PostgreSQL, Redis and Kafka remain single-node
+# and are not claimed to be highly available here.
 services:
   tianshu-admin:
     profiles: ["ha"]

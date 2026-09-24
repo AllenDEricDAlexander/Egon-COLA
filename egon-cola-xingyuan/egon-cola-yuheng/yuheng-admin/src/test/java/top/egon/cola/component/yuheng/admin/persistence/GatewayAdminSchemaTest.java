@@ -3,9 +3,12 @@ package top.egon.cola.component.yuheng.admin.persistence;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayAdminSchemaTest {
@@ -126,5 +129,41 @@ class GatewayAdminSchemaTest {
         assertTrue(openApi.contains(
                 "revision BIGINT NOT NULL DEFAULT 0"
         ));
+    }
+
+    /**
+     * 中文说明：九张 AI 表只能由受管脚本 {@code db/egon-mp} 创建；旧的 {@code V1__…V13__} 链里一张都不许出现，
+     * 否则同一个进程又会留下两个 DDL 权威。English summary: the nine AI tables are created only by the managed
+     * {@code db/egon-mp} script, so none of them may appear in the legacy {@code V1__…V13__} chain, or the process would
+     * carry two DDL authorities again.
+     */
+    @Test
+    void theLegacyChainNeverCreatesTheManagedAiPlane() throws IOException {
+        try (java.util.stream.Stream<java.nio.file.Path> legacy =
+                     java.nio.file.Files.list(java.nio.file.Path.of(
+                             "src/main/resources",
+                             "db/migration"
+                     ))) {
+            String history = legacy.filter(
+                    path -> path.getFileName().toString().endsWith(".sql")
+            ).map(path -> {
+                try {
+                    return java.nio.file.Files.readString(path, StandardCharsets.UTF_8);
+                } catch (IOException failure) {
+                    throw new UncheckedIOException(failure);
+                }
+            }).reduce("", (left, right) -> left + "\n" + right);
+
+            for (String aiTable : List.of(
+                    "gateway_llm_",
+                    "gateway_knowledge_",
+                    "gateway_wiki_"
+            )) {
+                assertFalse(
+                        history.contains("CREATE TABLE " + aiTable),
+                        () -> "the legacy chain must not create the AI plane: " + aiTable
+                );
+            }
+        }
     }
 }
