@@ -16,7 +16,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
@@ -31,7 +30,6 @@ import top.egon.cola.component.yuheng.admin.observability.controller.message.Gat
 import top.egon.cola.component.yuheng.admin.observability.controller.message.GatewayKafkaConsumerMetrics;
 import top.egon.cola.component.yuheng.admin.observability.controller.scheduled.GatewayObservabilityRetentionReaper;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayObservabilityRepository;
-import top.egon.cola.component.yuheng.admin.observability.repository.jdbc.JdbcGatewayObservabilityRepository;
 import top.egon.cola.component.yuheng.admin.observability.service.GatewayCallEventIngestService;
 import top.egon.cola.component.yuheng.admin.observability.service.GatewayObservabilityQueryService;
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleasePublicationRepository;
@@ -340,20 +338,6 @@ public class GatewayAdminConfiguration {
                 java.util.Base64.getDecoder().decode(masterKey),
                 keyVersion
         );
-    }
-
-    /**
-     * 中文说明：执行 网关可观测性存储 操作；该方法是 {@code GatewayAdminConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway observability store operation; this method is the invocation entry point on {@code GatewayAdminConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayAdminConfiguration.gatewayObservabilityStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param jdbcTemplate 参数 jdbc模板；parameter jdbc template。
-     * @return 返回 网关可观测性存储 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    GatewayObservabilityRepository gatewayObservabilityStore(
-            JdbcTemplate jdbcTemplate) {
-        return new JdbcGatewayObservabilityRepository(jdbcTemplate);
     }
 
     /**

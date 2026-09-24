@@ -41,4 +41,59 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}, version = version + 1
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+
+    <!-- GatewayAuditVO 是 record，只能按构造器顺序显式装配；before_summary/after_summary 在 VO 上声明为 Object，
+         因此沿用 PO 的 GatewayJsonbTypeHandler 读出 JSON 对象，successful 为原始 boolean 故用 _boolean。
+         GatewayAuditVO is a record, so it is wired positionally. before_summary/after_summary are declared Object on the
+         VO and reuse the PO's GatewayJsonbTypeHandler to read a JSON object; successful is a primitive boolean, hence _boolean. -->
+    <resultMap id="GatewayAuditResultMap" type="top.egon.cola.component.yuheng.admin.observability.domain.vo.GatewayAuditVO">
+        <constructor>
+            <arg column="id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="actor_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="actor_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="source" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="trace_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="resource_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="resource_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="action" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="before_summary" javaType="java.lang.Object" jdbcType="OTHER" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+            <arg column="after_summary" javaType="java.lang.Object" jdbcType="OTHER" typeHandler="top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+            <arg column="draft_revision" javaType="java.lang.Long" jdbcType="BIGINT"/>
+            <arg column="release_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="successful" javaType="_boolean" jdbcType="BOOLEAN"/>
+            <arg column="error_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="occurred_at" javaType="java.time.Instant" jdbcType="TIMESTAMP"/>
+        </constructor>
+    </resultMap>
+    <!-- 计数与分页共用的审计可见性片段：忠实复刻旧 Java audits(...) 的相关 EXISTS（网关组直挂或经发布回指），
+         并按 MP 列词汇补上 gg/r 的活跃谓词；可选等值条件仅在取值存在时参与。主表的 deleted_at IS NULL 留在
+         每个 select 体内，因为架构守护只按字面检查 select 正文，include 进来的片段不计入。
+         Shared audit visibility filter reproducing the correlated EXISTS of the legacy audits(...) (a resource attached
+         to a group directly or reached back through a release), extended with the gg/r active guards on the MP column
+         vocabulary; the optional equality predicates apply only when present. The mandatory a.deleted_at IS NULL stays
+         literally inside every select body because the architecture gate inspects select bodies, not included fragments. -->
+    <sql id="auditFilter">
+        EXISTS (SELECT 1 FROM gateway_group gg
+                WHERE gg.env = #{env} AND gg.namespace = #{namespace} AND gg.deleted_at IS NULL
+                  AND (gg.id = a.resource_id
+                       OR gg.id = (SELECT r.gateway_group_id FROM gateway_release r
+                                   WHERE r.id = a.release_id AND r.deleted_at IS NULL)))
+        <if test="actorId != null and actorId != ''">AND a.actor_id = #{actorId}</if>
+        <if test="resourceId != null and resourceId != ''">AND a.resource_id = #{resourceId}</if>
+        <if test="traceId != null and traceId != ''">AND a.trace_id = #{traceId}</if>
+        <if test="successful != null">AND a.successful = #{successful}</if>
+    </sql>
+
+    <select id="countAudits" resultType="long">
+        SELECT count(*) FROM gateway_audit_log a
+        WHERE a.deleted_at IS NULL AND <include refid="auditFilter"/>
+    </select>
+    <select id="selectAuditPage" resultMap="GatewayAuditResultMap">
+        SELECT id, actor_id, actor_type, source, trace_id, resource_type, resource_id, action,
+               before_summary, after_summary, draft_revision, release_id, successful, error_code, occurred_at
+        FROM gateway_audit_log a
+        WHERE a.deleted_at IS NULL AND <include refid="auditFilter"/>
+        ORDER BY occurred_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>

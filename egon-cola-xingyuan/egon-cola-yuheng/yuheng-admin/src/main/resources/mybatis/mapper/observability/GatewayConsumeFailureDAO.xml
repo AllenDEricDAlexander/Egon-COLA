@@ -35,4 +35,24 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}, version = version + 1
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+
+    <!-- 替代 JdbcGatewayObservabilityRepository.recordFailure 的 INSERT：以 (topic, partition_no, offset_no)
+         去重，Kafka 重放同一位点时返回 0 行。实体参数按受守卫边界的约定命名为 et，
+         由 EgonColaMetaObjectHandler 与主键生成器盖章技术列。
+         Replaces the INSERT of JdbcGatewayObservabilityRepository.recordFailure: it deduplicates on
+         (topic, partition_no, offset_no) so a Kafka replay of the same position affects 0 rows. The entity parameter is
+         named et as the guarded boundary expects, so the meta-object handler and key generator stamp the technical columns. -->
+    <insert id="insertIfAbsent">
+        INSERT INTO gateway_call_event_consume_failure (
+            id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
+            topic, partition_no, offset_no, event_id, failure_code, failure_message,
+            payload_sha256, payload_size, occurred_at
+        ) VALUES (
+            #{et.id}, #{et.tenantId}, #{et.createUserId}, #{et.createTime,jdbcType=TIMESTAMP},
+            #{et.updateUserId}, #{et.updateTime,jdbcType=TIMESTAMP}, #{et.deletedAt,jdbcType=TIMESTAMP}, #{et.version},
+            #{et.topic}, #{et.partitionNo}, #{et.offsetNo}, #{et.eventId}, #{et.failureCode},
+            #{et.failureMessage}, #{et.payloadSha256}, #{et.payloadSize}, #{et.occurredAt,jdbcType=TIMESTAMP}
+        )
+        ON CONFLICT (topic, partition_no, offset_no) DO NOTHING
+    </insert>
 </mapper>

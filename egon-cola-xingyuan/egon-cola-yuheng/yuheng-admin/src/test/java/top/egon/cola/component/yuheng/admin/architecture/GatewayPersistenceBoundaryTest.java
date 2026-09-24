@@ -49,7 +49,8 @@ class GatewayPersistenceBoundaryTest {
     private static final List<String> PORTS = List.of(
             "McpCapabilityDraftRepository", "McpApprovalRepository", "McpRemoteToolDraftRepository",
             "McpManagedToolOverrideRepository", "McpTaskRepository", "McpArtifactMetadataRepository",
-            "McpRemoteProviderRepository");
+            "McpRemoteProviderRepository", "GatewayObservabilityRepository", "GatewayAuditLogRepository",
+            "IdempotencyRepository");
 
     @Test
     @DisplayName("migrated persistence carriers are gone from every main source")

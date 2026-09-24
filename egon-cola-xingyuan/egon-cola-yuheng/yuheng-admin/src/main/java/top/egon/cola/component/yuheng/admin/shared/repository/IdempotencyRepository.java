@@ -1,6 +1,10 @@
 package top.egon.cola.component.yuheng.admin.shared.repository;
 
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.yuheng.admin.shared.domain.bo.IdempotencyBO;
 
 import java.util.Optional;
@@ -11,6 +15,7 @@ import java.util.Optional;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Validated
 public interface IdempotencyRepository {
 
     /**
@@ -23,7 +28,7 @@ public interface IdempotencyRepository {
      * @param key 参数 键；parameter key。
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
-    Optional<IdempotencyBO> find(String scopeType, String scopeId, String key);
+    Optional<IdempotencyBO> find(@NotBlank String scopeType, @NotBlank String scopeId, @NotBlank String key);
 
     /**
      * 中文说明：执行 save 操作；该方法是 {@code IdempotencyRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -32,7 +37,7 @@ public interface IdempotencyRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code IdempotencyRepository.save(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param record 参数 record；parameter record。
      */
-    void save(IdempotencyBO record);
+    void save(@NotNull @Valid IdempotencyBO record);
 
 
 }

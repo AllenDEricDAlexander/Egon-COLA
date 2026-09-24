@@ -35,4 +35,49 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}, version = version + 1
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+
+    <!-- GatewayProtocolCallDTO 的 value 分量是原始类型 long，故用 _long 别名命中 record 的规范构造器；
+         sum(request_count) 在 PostgreSQL 侧是 numeric，与旧 Java 的 getLong 取法一致。
+         The value component of GatewayProtocolCallDTO is a primitive long, hence the _long alias for the record's
+         canonical constructor; sum(request_count) is numeric on the PostgreSQL side, matching the legacy getLong read. -->
+    <resultMap id="GatewayProtocolCallResultMap" type="top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayProtocolCallDTO">
+        <constructor>
+            <arg column="protocol" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="value" javaType="_long" jdbcType="BIGINT"/>
+        </constructor>
+    </resultMap>
+
+    <!-- 替代 JdbcGatewayObservabilityRepository.project 的分钟聚合 UPSERT：新行以字面量 1 起步，
+         冲突时 request_count 自增一、error_count 与 duration_total_ms 由 EXCLUDED 累加、duration_max_ms 取 GREATEST。
+         实体参数按受守卫边界的约定命名为 et，由 EgonColaMetaObjectHandler 与主键生成器盖章技术列。
+         Replaces the minute-bucket upsert of JdbcGatewayObservabilityRepository.project: a fresh row starts at the
+         literal 1, and on conflict request_count grows by one, error_count and duration_total_ms sum from EXCLUDED
+         while duration_max_ms resolves through GREATEST. The entity parameter is named et as the guarded boundary
+         expects, so the meta-object handler and key generator stamp the technical columns. -->
+    <insert id="accumulate">
+        INSERT INTO gateway_call_metric_minute (
+            id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
+            bucket_at, env, namespace, protocol, gateway_group_id,
+            request_count, error_count, duration_total_ms, duration_max_ms
+        ) VALUES (
+            #{et.id}, #{et.tenantId}, #{et.createUserId}, #{et.createTime,jdbcType=TIMESTAMP},
+            #{et.updateUserId}, #{et.updateTime,jdbcType=TIMESTAMP}, #{et.deletedAt,jdbcType=TIMESTAMP}, #{et.version},
+            #{et.bucketAt,jdbcType=TIMESTAMP}, #{et.env}, #{et.namespace}, #{et.protocol}, #{et.gatewayGroupId},
+            1, #{et.errorCount}, #{et.durationTotalMs}, #{et.durationMaxMs}
+        )
+        ON CONFLICT (bucket_at, env, namespace, protocol, gateway_group_id) DO UPDATE SET
+            request_count = gateway_call_metric_minute.request_count + 1,
+            error_count = gateway_call_metric_minute.error_count + EXCLUDED.error_count,
+            duration_total_ms = gateway_call_metric_minute.duration_total_ms + EXCLUDED.duration_total_ms,
+            duration_max_ms = GREATEST(gateway_call_metric_minute.duration_max_ms, EXCLUDED.duration_max_ms)
+    </insert>
+    <!-- 替代 JdbcGatewayObservabilityRepository.dashboard 的协议分布查询，保留按协议升序的输出形状。
+         Replaces the protocol split of JdbcGatewayObservabilityRepository.dashboard, keeping the ascending protocol order. -->
+    <select id="selectProtocolCalls" resultMap="GatewayProtocolCallResultMap">
+        SELECT protocol, sum(request_count) AS value
+          FROM gateway_call_metric_minute
+         WHERE deleted_at IS NULL AND env = #{env} AND namespace = #{namespace} AND bucket_at &gt;= #{since,jdbcType=TIMESTAMP}
+         GROUP BY protocol
+         ORDER BY protocol
+    </select>
 </mapper>

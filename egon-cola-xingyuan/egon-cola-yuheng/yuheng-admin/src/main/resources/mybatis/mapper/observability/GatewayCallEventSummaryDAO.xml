@@ -46,4 +46,137 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}, version = version + 1
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+
+    <!-- GatewayRequestPointDTO 的 time/requests/errors/p50/p95/p99 六个分量中后五个是原始类型 long，
+         故用 _long 别名才能命中 record 的规范构造器。
+         Five of the six GatewayRequestPointDTO components are primitive longs, hence the _long alias so the record's
+         canonical constructor is resolved positionally. -->
+    <resultMap id="GatewayRequestPointResultMap" type="top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayRequestPointDTO">
+        <constructor>
+            <arg column="bucket_at" javaType="java.time.Instant" jdbcType="TIMESTAMP"/>
+            <arg column="requests" javaType="_long" jdbcType="BIGINT"/>
+            <arg column="errors" javaType="_long" jdbcType="BIGINT"/>
+            <arg column="p50_ms" javaType="_long" jdbcType="BIGINT"/>
+            <arg column="p95_ms" javaType="_long" jdbcType="BIGINT"/>
+            <arg column="p99_ms" javaType="_long" jdbcType="BIGINT"/>
+        </constructor>
+    </resultMap>
+    <!-- GatewayTraceVO 是 record，只能按构造器顺序显式装配；occurred_at→startedAt、operation_id→operationKey、
+         result_category→statusCategory、engine_node_id→engineInstanceId。
+         GatewayTraceVO is a record, so it is wired positionally: occurred_at→startedAt, operation_id→operationKey,
+         result_category→statusCategory, engine_node_id→engineInstanceId. -->
+    <resultMap id="GatewayTraceResultMap" type="top.egon.cola.component.yuheng.admin.observability.domain.vo.GatewayTraceVO">
+        <constructor>
+            <arg column="event_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="trace_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="occurred_at" javaType="java.time.Instant" jdbcType="TIMESTAMP"/>
+            <arg column="duration_ms" javaType="_long" jdbcType="BIGINT"/>
+            <arg column="protocol" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="gateway_group_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="operation_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="result_category" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="engine_node_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <arg column="provider_service" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        </constructor>
+    </resultMap>
+    <!-- 计数与分页共用的链路过滤片段，对应旧 Java 的 traceFilter(...)：env/namespace 恒定绑定，
+         其余等值条件仅在非空时参与。活跃谓词 deleted_at IS NULL 留在每个 select 体内，因为架构守护
+         只按字面检查 select 正文，include 进来的片段不计入。
+         Shared trace filter replacing the legacy traceFilter(...) helper: env/namespace are always bound and the
+         remaining equality predicates apply only when present. The mandatory deleted_at IS NULL guard stays literally
+         inside every select body because the architecture gate inspects select bodies, not included fragments. -->
+    <sql id="traceFilter">
+        env = #{env} AND namespace = #{namespace}
+        <if test="traceId != null and traceId != ''">AND trace_id = #{traceId}</if>
+        <if test="protocol != null and protocol != ''">AND protocol = #{protocol}</if>
+        <if test="statusCategory != null and statusCategory != ''">AND result_category = #{statusCategory}</if>
+    </sql>
+
+    <!-- 替代 JdbcGatewayObservabilityRepository.project 的首段 INSERT；不使用 useGeneratedKeys，
+         以便 int 返回值仍是 ON CONFLICT DO NOTHING 的真实影响行数（0 表示重复）。
+         实体参数按受守卫边界的约定命名为 et，由 EgonColaMetaObjectHandler 与主键生成器盖章技术列。
+         Replaces the first INSERT of JdbcGatewayObservabilityRepository.project. useGeneratedKeys is deliberately
+         absent so the int return stays the affected-row count of ON CONFLICT DO NOTHING (0 means duplicate). The
+         entity parameter is named et as the guarded boundary expects, so the meta-object handler and key generator
+         stamp the technical columns. -->
+    <insert id="insertIfAbsent">
+        INSERT INTO gateway_call_event_summary (
+            id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
+            event_id, trace_id, occurred_at, completed_at, duration_ms, protocol, access_zone, env, namespace,
+            gateway_group_id, operation_id, route_id, result_category, gateway_error_code, http_status,
+            grpc_status, engine_node_id, provider_service, attempt_count, expires_at
+        ) VALUES (
+            #{et.id}, #{et.tenantId}, #{et.createUserId}, #{et.createTime,jdbcType=TIMESTAMP},
+            #{et.updateUserId}, #{et.updateTime,jdbcType=TIMESTAMP}, #{et.deletedAt,jdbcType=TIMESTAMP}, #{et.version},
+            #{et.eventId}, #{et.traceId}, #{et.occurredAt,jdbcType=TIMESTAMP}, #{et.completedAt,jdbcType=TIMESTAMP},
+            #{et.durationMs}, #{et.protocol}, #{et.accessZone}, #{et.env}, #{et.namespace},
+            #{et.gatewayGroupId}, #{et.operationId}, #{et.routeId}, #{et.resultCategory},
+            #{et.gatewayErrorCode}, #{et.httpStatus}, #{et.grpcStatus},
+            #{et.engineNodeId}, #{et.providerService}, #{et.attemptCount}, #{et.expiresAt,jdbcType=TIMESTAMP}
+        )
+        ON CONFLICT (event_id) DO NOTHING
+    </insert>
+    <select id="countTraces" resultType="long">
+        SELECT count(*) FROM gateway_call_event_summary
+        WHERE deleted_at IS NULL AND <include refid="traceFilter"/>
+    </select>
+    <select id="selectTracePage" resultMap="GatewayTraceResultMap">
+        SELECT event_id, trace_id, occurred_at, duration_ms, protocol, gateway_group_id, operation_id,
+               result_category, engine_node_id, provider_service
+        FROM gateway_call_event_summary
+        WHERE deleted_at IS NULL AND <include refid="traceFilter"/>
+        ORDER BY occurred_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <!-- 替代 JdbcGatewayObservabilityRepository.dashboard 的分钟序列查询；旧 Java 的
+         Math.round(result.getDouble("p50_ms")) 已下推为 ROUND(percentile_cont(...)::numeric)::bigint，
+         对非负耗时与 Math.round 完全等价，且直接产出 bigint 供 record 的 long 分量装配。
+         Replaces the per-minute series of JdbcGatewayObservabilityRepository.dashboard; the legacy Java-side
+         Math.round(result.getDouble("p50_ms")) is pushed down as ROUND(percentile_cont(...)::numeric)::bigint, which is
+         exact for non-negative durations and already yields the bigint the record's long components need. -->
+    <select id="selectRequestSeries" resultMap="GatewayRequestPointResultMap">
+        SELECT date_trunc('minute', occurred_at) AS bucket_at,
+               count(*) AS requests,
+               count(*) FILTER (WHERE result_category &lt;&gt; 'SUCCESS') AS errors,
+               ROUND(percentile_cont(0.50) WITHIN GROUP (ORDER BY duration_ms)::numeric)::bigint AS p50_ms,
+               ROUND(percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms)::numeric)::bigint AS p95_ms,
+               ROUND(percentile_cont(0.99) WITHIN GROUP (ORDER BY duration_ms)::numeric)::bigint AS p99_ms
+        FROM gateway_call_event_summary
+        WHERE deleted_at IS NULL AND env = #{env} AND namespace = #{namespace} AND occurred_at &gt;= #{since,jdbcType=TIMESTAMP}
+        GROUP BY date_trunc('minute', occurred_at)
+        ORDER BY bucket_at
+    </select>
+    <!-- 替代 JdbcGatewayObservabilityRepository.dashboard 里 count(组) 的旧语句
+         SELECT count(*) FROM gateway_group WHERE env = ? AND namespace = ? AND deleted = FALSE，
+         deleted = FALSE 按 MP 词汇换成 deleted_at IS NULL。跨表只读语句托管在本文件，分组模块不再声明第二份 SQL。
+         Replaces the legacy group counter SELECT count(*) FROM gateway_group WHERE env = ? AND namespace = ? AND
+         deleted = FALSE, with deleted = FALSE restated as deleted_at IS NULL in the MP vocabulary. This cross-table read
+         is hosted here so the group module declares no second statement. -->
+    <select id="countActiveGroups" resultType="long">
+        SELECT count(*) FROM gateway_group
+        WHERE env = #{env} AND namespace = #{namespace} AND deleted_at IS NULL
+    </select>
+    <!-- 替代 JdbcGatewayObservabilityRepository.releaseSuccessRate 的旧语句，保留 total/succeeded 两键的
+         单行聚合形状（无 GROUP BY 的聚合恒返回一行，零发布时由门面换算为 0D 而非 NaN）。
+         Replaces the legacy releaseSuccessRate read, keeping the one-row total/succeeded aggregate shape; an ungrouped
+         aggregate always returns one row, so the facade still converts zero releases to 0D instead of NaN. -->
+    <select id="selectReleaseTotals" resultType="java.util.Map">
+        SELECT count(*) AS total,
+               count(*) FILTER (WHERE r.status = 'SUCCEEDED') AS succeeded
+          FROM gateway_release r
+          JOIN gateway_group g ON g.id = r.gateway_group_id
+         WHERE g.env = #{env} AND g.namespace = #{namespace}
+           AND r.deleted_at IS NULL AND g.deleted_at IS NULL
+    </select>
+    <!-- 取代旧 deleteExpired 的物理 DELETE：守护边界禁止硬删除，故改为盖写 deleted_at、update_user_id、
+         update_time 并递增 version。update_user_id/update_time 取自 MDC 守卫上下文，以满足
+         EgonColaTenantIdGuard 对写语句审计列的校验。
+         Replaces the physical DELETE of the legacy deleteExpired: the guarded boundary forbids hard deletes, so
+         deleted_at, update_user_id and update_time are stamped and version incremented. The audit columns come from the
+         MDC guard context so the starter's write-guard audit check is satisfied. -->
+    <update id="softDeleteExpired">
+        UPDATE gateway_call_event_summary SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+            update_user_id = #{operatorId}, update_time = #{now,jdbcType=TIMESTAMP}, version = version + 1
+        WHERE expires_at &lt; #{now,jdbcType=TIMESTAMP} AND deleted_at IS NULL AND tenant_id = #{tenantId}
+    </update>
 </mapper>

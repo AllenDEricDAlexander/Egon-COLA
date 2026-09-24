@@ -1,6 +1,10 @@
 package top.egon.cola.component.yuheng.admin.observability.repository;
 
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayAuditQueryDTO;
 import top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayTraceQueryDTO;
 import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO;
@@ -18,6 +22,7 @@ import java.time.Instant;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Validated
 public interface GatewayObservabilityRepository {
 
     /**
@@ -29,7 +34,7 @@ public interface GatewayObservabilityRepository {
      * @param expiresAt 参数 expiresAt；parameter expires at。
      * @return 返回 project 的处理结果；returns the result of the operation.
      */
-    boolean project(GatewayCallEventV1 event, Instant expiresAt);
+    boolean project(@NotNull GatewayCallEventV1 event, @NotNull Instant expiresAt);
 
     /**
      * 中文说明：执行 recordFailure 操作；该方法是 {@code GatewayObservabilityRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -38,7 +43,7 @@ public interface GatewayObservabilityRepository {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayObservabilityRepository.recordFailure(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param failure 参数 failure；parameter failure。
      */
-    void recordFailure(GatewayConsumeFailureBO failure);
+    void recordFailure(@NotNull @Valid GatewayConsumeFailureBO failure);
 
     /**
      * 中文说明：执行 traces 操作；该方法是 {@code GatewayObservabilityRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -48,7 +53,7 @@ public interface GatewayObservabilityRepository {
      * @param query 参数 query；parameter query。
      * @return 返回 traces 的处理结果；returns the result of the operation.
      */
-    GatewayPageVO<GatewayTraceVO> traces(GatewayTraceQueryDTO query);
+    GatewayPageVO<GatewayTraceVO> traces(@NotNull @Valid GatewayTraceQueryDTO query);
 
     /**
      * 中文说明：执行 dashboard 操作；该方法是 {@code GatewayObservabilityRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -60,7 +65,7 @@ public interface GatewayObservabilityRepository {
      * @param since 参数 since；parameter since。
      * @return 返回 dashboard 的处理结果；returns the result of the operation.
      */
-    GatewayDashboardVO dashboard(String env, String namespace, Instant since);
+    GatewayDashboardVO dashboard(@NotBlank String env, @NotBlank String namespace, @NotNull Instant since);
 
     /**
      * 中文说明：执行 audits 操作；该方法是 {@code GatewayObservabilityRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -70,7 +75,7 @@ public interface GatewayObservabilityRepository {
      * @param query 参数 query；parameter query。
      * @return 返回 audits 的处理结果；returns the result of the operation.
      */
-    GatewayPageVO<GatewayAuditVO> audits(GatewayAuditQueryDTO query);
+    GatewayPageVO<GatewayAuditVO> audits(@NotNull @Valid GatewayAuditQueryDTO query);
 
     /**
      * 中文说明：执行 deleteExpired 操作；该方法是 {@code GatewayObservabilityRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -80,7 +85,7 @@ public interface GatewayObservabilityRepository {
      * @param now 参数 now；parameter now。
      * @return 返回 deleteExpired 的处理结果；returns the result of the operation.
      */
-    int deleteExpired(Instant now);
+    int deleteExpired(@NotNull Instant now);
 
 
 
