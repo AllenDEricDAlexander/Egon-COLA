@@ -1,0 +1,10 @@
+{
+  "family": "component-outbox",
+  "scripts": [
+    {
+      "version": "20260924_001",
+      "path": "db/egon-outbox-mp/V20260924_001__initialize_outbox_mp_schema.sql",
+      "sha256": "2bae1d8a90cdc7bd5a2c0889ff73625593de2d5b5261f60e23c3b8d76e708902"
+    }
+  ]
+}
