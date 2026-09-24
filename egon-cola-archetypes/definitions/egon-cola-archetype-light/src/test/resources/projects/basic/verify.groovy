@@ -1147,7 +1147,6 @@ assertFile("src/main/java/it/pkg/facade/validation/NativeRpcValidationGroup.java
     assertFile("src/main/java/it/pkg/common/exception/${typeName}.java")
 }
 [
-    "ApiResponse",
     "GlobalExceptionHandler",
     "ResponseWrapperHandler",
     "GraphQlExceptionResolver",
@@ -1491,5 +1490,9 @@ repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main
     assert it.text.contains('deleteVersionedById') && it.text.contains('MP_OPTLOCK_VERSION_ORIGINAL')
     assert !it.text.contains('is_deleted')
 }
+
+assertMissing("src/main/java/it/pkg/adapter/handler/ApiResponse.java")
+assert assertFile("src/main/java/it/pkg/adapter/handler/ResponseWrapperHandler.java").text.contains("ResultRecord.success(body)")
+assert assertFile("src/main/java/it/pkg/adapter/filter/RequestContextFilter.java").text.contains('MDC.put("tenantId", tenantId.toString())')
 
 return true

@@ -112,6 +112,10 @@ Every layer reuses the common-core contracts instead of inventing local ones:
 4. Create school classes and courses.
 5. Schedule a course while enforcing class, course, semester, and time-conflict rules.
 
+HTTP requests carry `X-Tenant-Id` (a Long), `X-Operator-Id`, `X-Request-Id`, and `X-Trace-Id`. The existing filters bind these to `tenantId`, `userId`, `requestId`, and `traceId` in MDC and clear them when the request completes, including failures. Tenant values are normalized before cache and persistence access; malformed or overflowing values return HTTP 400. A missing tenant has no default and tenant-scoped persistence rejects it. Supply or overwrite identity headers at a trusted ingress; these headers are context propagation, not authentication.
+
+REST successes and handled failures use common-core `ResultRecord` (`success`, numeric `code`, string `status`, `message`, `data`, `traceId`, `timestamp`). Existing `ResultRecord` and `PageResultRecord` values are not wrapped again. Business status strings such as `USER_EXISTS` appear in `status`; GraphQL retains its protocol response.
+
 The same Application use cases serve HTTP, GraphQL, COLA RPC, and RabbitMQ entry points. User, permission, school-class, and course queries are implemented through Application boundaries rather than duplicated in protocol adapters.
 
 ## Persistence And Integrations

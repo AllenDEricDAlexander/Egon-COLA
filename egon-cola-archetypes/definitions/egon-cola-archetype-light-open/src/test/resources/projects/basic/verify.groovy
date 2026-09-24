@@ -396,4 +396,8 @@ def mainRoot = 'src/main/java/it/pkg'
 ].each { stalePath -> missing("${mainRoot}/${stalePath}") }
 missing("src/main/proto")
 
+missing("${mainRoot}/adapter/handler/ApiResponse.java")
+assert file("${mainRoot}/adapter/handler/ResponseWrapperHandler.java").text.contains("ResultRecord.success(body)")
+assert file("${mainRoot}/adapter/filter/RequestContextFilter.java").text.contains('MDC.put("tenantId", tenantId.toString())')
+
 return true

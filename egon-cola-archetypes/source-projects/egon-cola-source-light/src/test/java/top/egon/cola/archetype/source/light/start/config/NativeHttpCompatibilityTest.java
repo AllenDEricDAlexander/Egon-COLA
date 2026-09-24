@@ -32,9 +32,9 @@ class NativeHttpCompatibilityTest extends top.egon.cola.archetype.source.light.s
     void business_post_keeps_public_access_request_context_and_json_contract() throws Exception {
         when(userManage.create(any())).thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
         mockMvc.perform(post("/api/users").header("X-Operator-Id", "operator-1")
-                        .header("X-Request-Id", "request-1").contentType("application/json")
+                        .header("X-Tenant-Id", "42").header("X-Request-Id", "request-1").contentType("application/json")
                         .content("{\"externalId\":\"external-1\",\"name\":\"Mario\",\"email\":\"mario@example.com\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("OK"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(10000))
                 .andExpect(jsonPath("$.data.id").value("1001"))
                 .andExpect(jsonPath("$.data.name").value("Mario"));
         verify(userManage).create(new top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand(

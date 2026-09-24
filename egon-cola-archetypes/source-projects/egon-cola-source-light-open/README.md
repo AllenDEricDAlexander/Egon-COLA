@@ -81,6 +81,10 @@ src/main/java/${packageInPathFormat}
 
 Business domains come before protocol or technical details so `user` and `teaching` stay comparable across layers. `adapter` owns HTTP, GraphQL and RabbitMQ consumer concerns plus the published facade implementations, which call a use case `Manage` directly. `facade` owns the stable external contracts, their carriers, contract enums and contract assertions; it stays self-contained so it can be published on its own, and the open variant adds no RPC provider, shared RPC carrier or validation group. `application` coordinates use cases and transactions. `domain` owns business state, rules, and the query, event, and idempotency service contracts. `infrastructure` supplies MyBatis-Plus DAOs, `EgonModel` persistence objects, `EgonColaRepository` subclasses, and the implementations of the domain service contracts and outbound clients. `common` holds business-neutral primitives plus the exception roots every layer shares. `start` performs assembly and runtime configuration.
 
+HTTP requests carry `X-Tenant-Id` (a Long), `X-Operator-Id`, `X-Request-Id`, and `X-Trace-Id`. The existing filters bind these to `tenantId`, `userId`, `requestId`, and `traceId` in MDC and clear them when the request completes, including failures. Tenant values are normalized before cache and persistence access; malformed or overflowing values return HTTP 400. A missing tenant has no default and tenant-scoped persistence rejects it. Supply or overwrite identity headers at a trusted ingress; these headers are context propagation, not authentication.
+
+REST successes and handled failures use common-core `ResultRecord` (`success`, numeric `code`, string `status`, `message`, `data`, `traceId`, `timestamp`). Existing `ResultRecord` and `PageResultRecord` values are not wrapped again. Business status strings such as `USER_EXISTS` appear in `status`; GraphQL retains its protocol response.
+
 ## Dependency Graph
 
 ```text

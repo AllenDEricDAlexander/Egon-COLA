@@ -1,6 +1,8 @@
 package top.egon.cola.archetype.source.light.adapter.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.archetype.source.light.common.exception.TeachingUseCaseException;
 import top.egon.cola.archetype.source.light.common.exception.UserUseCaseException;
 import jakarta.validation.ValidationException;
@@ -15,29 +17,29 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     @ExceptionHandler(UserUseCaseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleUserFailure(UserUseCaseException exception) {
-        return ApiResponse.failure(exception.getStatus(), exception.getMessage());
+    public ResultRecord<Void> handleUserFailure(UserUseCaseException exception) {
+        return ResultRecord.failure(exception);
     }
 
     @ExceptionHandler(TeachingUseCaseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleTeachingFailure(TeachingUseCaseException exception) {
-        return ApiResponse.failure(exception.getStatus(), exception.getMessage());
+    public ResultRecord<Void> handleTeachingFailure(TeachingUseCaseException exception) {
+        return ResultRecord.failure(exception);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleValidationFailure(MethodArgumentNotValidException exception) {
+    public ResultRecord<Void> handleValidationFailure(MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("request validation failed");
-        return ApiResponse.failure("VALIDATION_ERROR", message);
+        return ResultRecord.failure(ResultCode.VALIDATION_ERROR.getCode(), ResultCode.VALIDATION_ERROR.getStatus(), message);
     }
 
     @ExceptionHandler({ValidationException.class, IllegalArgumentException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleValidationFailure(RuntimeException exception) {
-        return ApiResponse.failure("VALIDATION_ERROR", exception.getMessage());
+    public ResultRecord<Void> handleValidationFailure(RuntimeException exception) {
+        return ResultRecord.failure(ResultCode.VALIDATION_ERROR.getCode(), ResultCode.VALIDATION_ERROR.getStatus(), exception.getMessage());
     }
 }
