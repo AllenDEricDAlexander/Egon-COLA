@@ -13,6 +13,8 @@ import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeChunkBO
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentRevisionBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeJobBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeRetrievalHitBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeSearchQueryBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobStatusEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobTypeEnum;
 
@@ -641,4 +643,45 @@ public interface KnowledgeRepository {
      * @return 返回 终态是否由本方写入；returns whether this side wrote the terminal state.
      */
     boolean finish(@Valid @NotNull KnowledgeJobBO job, @Min(1) long leaseToken);
+
+    /**
+     * 中文说明：执行 searchVector 操作：在 SQL 内完成租户、知识库成员、文档活动修订、冻结嵌入空间与维度
+     * 全部谓词后，按 pgvector {@code cosine_distance} 升序取至多 {@code candidateLimit} 条候选证据
+     * （具名语句 {@code KnowledgeChunkDAO.searchVectorCandidates}），分数即 {@code 1 - cosine_distance}，
+     * 距离并列按稳定分块 id 确定化；取证范围来自 {@code query.sourceMode}，
+     * {@code WIKI} 只保留被当前已发布页面引用的分块，{@code BOTH} 附带页面 id 但不额外收窄。
+     * English summary: Executes the searchVector operation; once the SQL itself has applied the tenant, knowledge base
+     * membership, active-document, frozen embedding-space and dimension predicates, it takes at most
+     * {@code candidateLimit} candidate rows ascending by pgvector {@code cosine_distance}
+     * (named statement {@code KnowledgeChunkDAO.searchVectorCandidates}), the score being
+     * {@code 1 - cosine_distance} and equal distances breaking deterministically by stable chunk id. The evidence scope
+     * comes from {@code query.sourceMode}: {@code WIKI} keeps only chunks a currently published page cites, while
+     * {@code BOTH} attaches the page id without narrowing further.
+     *
+     * 用法 / Usage: {@code knowledgeRepository.searchVector(query)}，只由 {@code VectorKnowledgeSearchStrategy} 与
+     * {@code HybridKnowledgeSearchStrategy} 经策略调用；查询向量必须已由本知识库冻结的 LOCAL 嵌入 alias 产出，
+     * 维度不符即返回空列表（空间混用被 SQL 挡住），而不是回退到别的空间或别的算法。本方法是只读、不加锁的具名
+     * 语句，可以在任何事务之外调用，且 0 行绝不当失败处理——“无证据”与“依赖故障”是两个世界。
+     * @param query 参数 类型化召回入参；parameter the typed recall argument.
+     * @return 返回 候选证据载体列表；returns the candidate evidence carriers.
+     */
+    List<@Valid @NotNull KnowledgeRetrievalHitBO> searchVector(@Valid @NotNull KnowledgeSearchQueryBO query);
+
+    /**
+     * 中文说明：执行 searchKeyword 操作：与 {@link #searchVector(KnowledgeSearchQueryBO)} 同一套联结与授权谓词，
+     * 匹配条件换成对分块正文的 {@code ILIKE} 字面子串（本方法负责先把 {@code \}、{@code %}、{@code _} 转义
+     * 再在两端加通配，因此用户输入的 {@code %} 绝不成为通配符），排序按稳定分块 id，
+     * 不声明任何全文相关度（Spec §7.3.4 拒绝把 simple 分词宣称为中文全文检索）。
+     * English summary: Executes the searchKeyword operation using the very same joins and authorization predicates as
+     * {@link #searchVector(KnowledgeSearchQueryBO)}, replacing the match with a literal {@code ILIKE} substring over the
+     * chunk body. This method escapes {@code \}, {@code %} and {@code _} before wrapping wildcards, so a user-supplied
+     * {@code %} never becomes a wildcard. Ordering is by stable chunk id and no full-text relevance is claimed, since
+     * Spec §7.3.4 refuses to present simple tokenization as Chinese full-text search.
+     *
+     * 用法 / Usage: {@code knowledgeRepository.searchKeyword(query)}，只由 {@code KeywordKnowledgeSearchStrategy} 与
+     * {@code HybridKnowledgeSearchStrategy} 经策略调用；本路径不触达嵌入模型，KEYWORD 一次嵌入调用都不该发生。
+     * @param query 参数 类型化召回入参，{@code keyword} 必填；parameter the typed recall argument, whose {@code keyword} is required.
+     * @return 返回 候选证据载体列表；returns the candidate evidence carriers.
+     */
+    List<@Valid @NotNull KnowledgeRetrievalHitBO> searchKeyword(@Valid @NotNull KnowledgeSearchQueryBO query);
 }

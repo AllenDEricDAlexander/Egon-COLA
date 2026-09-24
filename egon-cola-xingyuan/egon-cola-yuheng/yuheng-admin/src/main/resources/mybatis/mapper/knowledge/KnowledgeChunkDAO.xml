@@ -35,4 +35,103 @@
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
     </update>
+    <!-- Step 13 授权检索：出站形态是引用所需的那组列，向量/metadata/租户/审计一律不进出站面；
+         content 在 SQL 侧就截到引用节选上限 1000，因为进提示词的就是节选本身。
+         The Step 13 retrieval projection carries exactly the citation column set, never the vector, metadata, tenant or
+         audit columns, and cuts content to the 1000-character excerpt bound in SQL because that excerpt is what reaches
+         the prompt. -->
+    <resultMap id="KnowledgeRetrievalHitMap" type="top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeRetrievalHitBO">
+        <result column="hit_kb_id" property="kbId"/>
+        <result column="hit_chunk_id" property="chunkId"/>
+        <result column="hit_document_id" property="documentId"/>
+        <result column="hit_document_revision_id" property="documentRevisionId"/>
+        <result column="hit_page_id" property="pageId"/>
+        <result column="hit_file_name" property="fileName"/>
+        <result column="hit_source_hash" property="sourceHash"/>
+        <result column="hit_content" property="content"/>
+        <result column="hit_score" property="score"/>
+    </resultMap>
+    <!-- 授权范围在 SQL 先行（Spec §11.2.6「内容读取必须加入KB成员和当前可见版本条件，外层Controller权限不能代替SQL范围」）：
+         修订必须是该文档当前的活动修订，成员谓词直接读 gateway_knowledge_base.members 的 jsonb，
+         四张表各自 deleted_at IS NULL，并以 tenant_id 等值把跨租户联结堵死（守卫边界仍会追加本租户谓词）。
+         Authorization precedes in SQL (Spec §11.2.6: content reads must carry the KB-member and currently-visible-version
+         conditions; the outer controller check never substitutes for the SQL scope): the revision must be that document's
+         current active revision, the membership predicate reads gateway_knowledge_base.members jsonb directly, every one of
+         the four tables asserts deleted_at IS NULL, and tenant_id equality closes cross-tenant joins (the guarded boundary
+         still appends its own tenant predicate). -->
+    <sql id="authorizedRetrievalFrom">
+        FROM gateway_knowledge_chunk c
+        JOIN gateway_knowledge_revision r ON r.id = c.revision_id AND r.kb_id = c.kb_id
+            AND r.tenant_id = c.tenant_id AND r.deleted_at IS NULL
+        JOIN gateway_knowledge_document d ON d.id = r.document_id AND d.kb_id = r.kb_id
+            AND d.tenant_id = r.tenant_id AND d.deleted_at IS NULL AND d.active_revision_id = r.id
+        JOIN gateway_knowledge_base b ON b.id = c.kb_id AND b.tenant_id = c.tenant_id AND b.deleted_at IS NULL
+    </sql>
+    <!-- 驱动表的活跃断言刻意写在每条语句自己的文本里（不藏进 <include>）：AiMpRepositoryContractTest 的
+         「每条 select 必须自带 deleted_at 谓词」按语句文本审查，审查者也应当无需展开片段就能看出这条召回只读活跃行。
+         其余范围谓词仍然共用一个片段，两条腿不可能各自放宽一半。
+         The driving table's active-row assertion stays in each statement's own text rather than inside an <include>: the
+         mapper contract reviews every select's text for its deleted_at predicate, and a reviewer should not have to expand
+         a fragment to see that this recall reads active rows only. Every remaining scope predicate still comes from one
+         shared fragment, so the two legs cannot each relax half of it. -->
+    <sql id="authorizedRetrievalScope">
+        AND c.kb_id = #{kbId}
+        AND c.embedding_space_id = #{embeddingSpaceId} AND c.dimensions = #{dimensions}
+        AND EXISTS (SELECT 1 FROM jsonb_array_elements(b.members) AS member WHERE member ->&gt;&gt; 'actorId' = #{actorId})
+    </sql>
+    <!-- 已发布 Wiki 血缘：页面指针 published_revision_id 指向的那一版才算数，且该版必须仍是 PUBLISHED 且活跃，
+         因此被替换或归档的发布自动失格（Spec §7.3.4「禁止新问答采用 stale Wiki」）。探针额外带上冻结版本自身的
+         content_hash，于是页面记录的是旧 hash 时 containment 直接不成立——stale 检查在 SQL 里完成，
+         不靠服务侧二次比对。sources 以字符串存 documentRevisionId/chunkId/sourceHash（与 WikiSourceDTO 同形），
+         故比较侧显式 CAST 成文本。
+         Published wiki lineage counts only the revision the page pointer names, and that revision must still be
+         PUBLISHED and active, so a superseded or archived publication disqualifies itself automatically (Spec §7.3.4
+         forbids stale wiki in a new answer). sources stores documentRevisionId/chunkId as strings, matching
+         WikiSourceDTO, hence the explicit text cast on the comparison side. -->
+    <sql id="publishedPageLineage">
+        SELECT wp.id
+        FROM gateway_wiki_page wp
+        JOIN gateway_wiki_revision wr ON wr.id = wp.published_revision_id AND wr.tenant_id = wp.tenant_id
+            AND wr.kb_id = wp.kb_id AND wr.deleted_at IS NULL AND wr.publication_status = 'PUBLISHED'
+        WHERE wp.deleted_at IS NULL AND wp.tenant_id = c.tenant_id AND wp.kb_id = c.kb_id
+            AND wr.sources @&gt; jsonb_build_array(jsonb_build_object('documentRevisionId', CAST(c.revision_id AS TEXT),
+                'chunkId', CAST(c.id AS TEXT), 'sourceHash', r.content_hash))
+    </sql>
+    <select id="searchVectorCandidates" resultMap="KnowledgeRetrievalHitMap">
+        SELECT c.kb_id AS hit_kb_id, c.id AS hit_chunk_id, r.document_id AS hit_document_id,
+            r.id AS hit_document_revision_id, r.file_name AS hit_file_name, r.content_hash AS hit_source_hash,
+            left(c.content, 1000) AS hit_content,
+            1 - cosine_distance(c.embedding, CAST(#{queryVector,typeHandler=top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayVectorTypeHandler} AS vector)) AS hit_score
+            <if test="attachPageLineage">, (<include refid="publishedPageLineage"/> LIMIT 1) AS hit_page_id</if>
+        <include refid="authorizedRetrievalFrom"/>
+        WHERE c.deleted_at IS NULL
+        <include refid="authorizedRetrievalScope"/>
+        <if test="requirePublishedPage">
+            AND EXISTS (<include refid="publishedPageLineage"/>)
+        </if>
+        ORDER BY cosine_distance(c.embedding, CAST(#{queryVector,typeHandler=top.egon.cola.component.yuheng.admin.shared.dao.typehandler.GatewayVectorTypeHandler} AS vector)) ASC, c.id ASC
+        LIMIT #{candidateLimit}
+    </select>
+    <!-- 关键词路：Spec §7.3.4 明确「不把 PostgreSQL simple 分词宣称为中文全文检索」，所以这里只做转义后的
+         字面子串匹配（pattern 已由仓储把 \ % _ 转义并加两端通配后绑定，ESCAPE 用反斜杠），
+         排序按稳定分块 id 确定化，名次分由服务侧按 RRF k=60 折算；没有任何“取全表再过滤”的退路。
+         The keyword leg: Spec §7.3.4 explicitly refuses to present PostgreSQL simple tokenization as Chinese full-text
+         search, so this is escaped literal substring matching only (the repository escapes \ % _, wraps the wildcards and
+         binds it, with backslash as ESCAPE). Ordering is deterministic by stable chunk id and the rank score comes from the
+         service's RRF k=60 fusion; there is no read-then-filter escape hatch. -->
+    <select id="searchKeywordCandidates" resultMap="KnowledgeRetrievalHitMap">
+        SELECT c.kb_id AS hit_kb_id, c.id AS hit_chunk_id, r.document_id AS hit_document_id,
+            r.id AS hit_document_revision_id, r.file_name AS hit_file_name, r.content_hash AS hit_source_hash,
+            left(c.content, 1000) AS hit_content, NULL AS hit_score
+            <if test="attachPageLineage">, (<include refid="publishedPageLineage"/> LIMIT 1) AS hit_page_id</if>
+        <include refid="authorizedRetrievalFrom"/>
+        WHERE c.deleted_at IS NULL
+        <include refid="authorizedRetrievalScope"/>
+        AND c.content ILIKE #{keywordPattern} ESCAPE '\'
+        <if test="requirePublishedPage">
+            AND EXISTS (<include refid="publishedPageLineage"/>)
+        </if>
+        ORDER BY c.id ASC
+        LIMIT #{candidateLimit}
+    </select>
 </mapper>

@@ -48,6 +48,8 @@ import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeChunkBO
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentRevisionBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeJobBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeRetrievalHitBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeSearchQueryBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeAnswerCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMemberDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeUploadCommandDTO;
@@ -1299,6 +1301,23 @@ class KnowledgeJobWorkerTest {
         @Override
         public List<KnowledgeChunkBO> listChunksOfRevision(String revisionId) {
             return chunksOf(revisionId);
+        }
+
+        /**
+         * 中文说明：Step 13 的授权检索端口不在上传、租约与摄取的证据范围内，本替身一律拒绝被触达：
+         * 摄取路径若哪天悄悄调起召回，测试必须立刻变红，而不是靠一个空列表把越界掩饰成无事发生。
+         * English summary: Step 13's authorized retrieval ports sit outside this upload, lease and ingestion evidence, so the
+         * substitute refuses both calls: if ingestion ever starts recalling, the test goes red at once instead of an empty
+         * list disguising the breach as nothing having happened.
+         */
+        @Override
+        public List<KnowledgeRetrievalHitBO> searchVector(KnowledgeSearchQueryBO query) {
+            throw new AssertionError("authorized retrieval must not be reached by upload, lease or ingestion");
+        }
+
+        @Override
+        public List<KnowledgeRetrievalHitBO> searchKeyword(KnowledgeSearchQueryBO query) {
+            throw new AssertionError("authorized retrieval must not be reached by upload, lease or ingestion");
         }
 
         // ------------------------------------------------------------------------------------------- 作业与租约

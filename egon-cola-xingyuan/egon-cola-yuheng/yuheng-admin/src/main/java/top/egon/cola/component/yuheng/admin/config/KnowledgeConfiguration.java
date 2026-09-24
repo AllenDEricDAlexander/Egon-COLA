@@ -24,7 +24,9 @@ import top.egon.cola.component.rag.extract.TikaRagDocumentExtractor;
 import top.egon.cola.component.yuheng.admin.config.properties.KnowledgeModelClientProperties;
 import top.egon.cola.component.yuheng.admin.config.properties.KnowledgeProperties;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobTypeEnum;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeSearchModeEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeJobStrategy;
+import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeSearchStrategy;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -183,6 +185,55 @@ public class KnowledgeConfiguration {
             }
         }
         log.info("knowledge job strategy registry checked strategies={} types={}",
+                resolved.size(), resolved.keySet());
+        return Collections.unmodifiableMap(resolved);
+    }
+
+    /**
+     * 中文说明：把容器里的全部 {@link KnowledgeSearchStrategy} 归出<b>不可变的 {@code EnumMap}</b>注册表
+     * {@code knowledgeSearchStrategyRegistry}（{@code Map<KnowledgeSearchModeEnum, KnowledgeSearchStrategy>}），
+     * 这是 Rule 9 在检索侧的唯一分发事实来源：{@code VECTOR}/{@code KEYWORD}/{@code HYBRID} 三键必须齐备，
+     * 同一模式出现两个实现、或某个实现漏声明 {@code mode()}，都在启动期 {@link IllegalStateException} 失败关闭，
+     * 而不是等到一次真实问答才发现「混合召回悄悄退化成向量召回」。空列表同样直接拒绝启动。
+     * English summary: Builds the <b>unmodifiable {@code EnumMap}</b> registry {@code knowledgeSearchStrategyRegistry}
+     * ({@code Map<KnowledgeSearchModeEnum, KnowledgeSearchStrategy>}) out of every {@link KnowledgeSearchStrategy} in the
+     * container, which is the single dispatch fact on the retrieval side under Rule 9: the three keys
+     * {@code VECTOR}/{@code KEYWORD}/{@code HYBRID} must all be present, and two implementations for one mode or an
+     * implementation that forgot {@code mode()} fail closed at startup with {@link IllegalStateException} rather than letting a
+     * real question discover that hybrid recall quietly degraded into vector recall. An empty list is refused the same way.
+     *
+     * 用法 / Usage: 由 {@code KnowledgeRetrievalServiceImpl} 按名注入并只按枚举查表；
+     * 键类型是枚举而非 {@code String}，因此 Spring 走「按名取单个 bean」而不是把多元素注入收窄，
+     * 与 {@code knowledgeJobStrategyRegistry} 完全同构。
+     * @param knowledgeSearchStrategies 参数 容器内的全部检索策略；parameter every retrieval strategy in the container.
+     * @return 返回 不可变的模式到策略注册表；returns the immutable mode to strategy registry.
+     * @throws IllegalStateException 策略缺模式、同一模式重复或注册表为空；a strategy without a mode, a duplicated mode, or an empty registry.
+     */
+    @Bean("knowledgeSearchStrategyRegistry")
+    public Map<KnowledgeSearchModeEnum, KnowledgeSearchStrategy> knowledgeSearchStrategyRegistry(
+            List<KnowledgeSearchStrategy> knowledgeSearchStrategies) {
+        if (knowledgeSearchStrategies == null || knowledgeSearchStrategies.isEmpty()) {
+            throw new IllegalStateException("The knowledge search strategy registry carries no strategy implementation");
+        }
+        EnumMap<KnowledgeSearchModeEnum, KnowledgeSearchStrategy> resolved =
+                new EnumMap<>(KnowledgeSearchModeEnum.class);
+        for (KnowledgeSearchStrategy strategy : knowledgeSearchStrategies) {
+            KnowledgeSearchModeEnum mode = strategy == null ? null : strategy.mode();
+            if (mode == null) {
+                throw new IllegalStateException("Every knowledge search strategy must declare a KnowledgeSearchModeEnum, got "
+                        + (strategy == null ? "null" : strategy.getClass().getName()));
+            }
+            KnowledgeSearchStrategy previous = resolved.put(mode, strategy);
+            if (previous != null) {
+                throw new IllegalStateException("Two knowledge search strategies serve " + mode + ": "
+                        + previous.getClass().getName() + " and " + strategy.getClass().getName());
+            }
+        }
+        if (!resolved.keySet().equals(new java.util.HashSet<>(java.util.Arrays.asList(KnowledgeSearchModeEnum.values())))) {
+            throw new IllegalStateException("The knowledge search strategy registry misses modes "
+                    + java.util.Arrays.toString(KnowledgeSearchModeEnum.values()) + ", got " + resolved.keySet());
+        }
+        log.info("knowledge search strategy registry checked strategies={} modes={}",
                 resolved.size(), resolved.keySet());
         return Collections.unmodifiableMap(resolved);
     }

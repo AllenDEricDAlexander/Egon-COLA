@@ -28,6 +28,7 @@ import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeChunkPe
 import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeDocumentPersistenceConverter;
 import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeDocumentRevisionPersistenceConverter;
 import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeJobPersistenceConverter;
+import top.egon.cola.component.yuheng.admin.knowledge.dao.KnowledgeChunkDAO;
 import top.egon.cola.component.yuheng.admin.knowledge.dao.KnowledgeDocumentDAO;
 import top.egon.cola.component.yuheng.admin.knowledge.dao.KnowledgeJobDAO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeBaseBO;
@@ -35,6 +36,8 @@ import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeChunkBO
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentRevisionBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeJobBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeRetrievalHitBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeSearchQueryBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobStatusEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobTypeEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.po.KnowledgeBasePO;
@@ -153,6 +156,14 @@ public class MpKnowledgeRepository implements KnowledgeRepository {
 
     @Qualifier("knowledgeJobDAO")
     private final KnowledgeJobDAO knowledgeJobDAO;
+
+    /** 中文说明：Step 13 授权检索的两条具名语句入口；跨表联结、jsonb 成员谓词与 pgvector 排序都在 XML 里，
+     *  本类只负责把端口上的十进制字符串 id、冻结空间/维度与取证范围翻译成语句参数。
+     *  English summary: the entry point of the two Step 13 retrieval statements; the cross-table joins, the jsonb membership
+     *  predicate and the pgvector ordering all live in the XML, so this class only translates the port-side decimal-string id,
+     *  the frozen space and dimensions and the evidence scope into statement arguments. */
+    @Qualifier("knowledgeChunkDAO")
+    private final KnowledgeChunkDAO knowledgeChunkDAO;
 
     /** 中文说明：租约时长来自 {@code yuheng.knowledge.lease}（缺省 120 秒），认领写回时用它算到期时刻；
      *  心跳周期 30 秒是 worker 侧的节奏，不在本类。 English summary: the lease length comes from {@code yuheng.knowledge.lease} (two minutes by default) and decides the expiry stamped at claim; the 30-second heartbeat cadence belongs to the worker, not this class. */
@@ -1090,6 +1101,86 @@ public class MpKnowledgeRepository implements KnowledgeRepository {
                 .eq(status != null, KnowledgeJobPO::getStatus, status == null ? null : status.wireValue())
                 .orderByDesc(KnowledgeJobPO::getCreateTime)
                 .orderByDesc(KnowledgeJobPO::getId);
+    }
+
+    /**
+     * 中文说明：执行 searchVector 操作；把端口入参翻译成具名语句 {@code searchVectorCandidates} 的八个绑定参数，
+     * 其中取证范围折算成「是否带出已发布页面 id」与「是否要求候选被该页面引用」两个布尔，
+     * 因此两种模式的差异完全留在 SQL 内，Java 侧没有任何按模式分支的取数代码。返回空列表即本路无证据。
+     * English summary: Executes the searchVector operation; the port argument becomes the eight bound parameters of the
+     * named statement {@code searchVectorCandidates}, where the evidence scope turns into the two booleans "read out a
+     * published page id" and "require that page to cite the chunk", so the whole difference between the scopes stays inside
+     * the SQL and no fetch code branches on the scope in Java. An empty list means this leg found no evidence.
+     *
+     * 用法 / Usage: {@code knowledgeRepository.searchVector(query)}，只经 {@code Vector}/{@code Hybrid} 两路策略调用；
+     * 只读不加锁，可在事务之外调用，向量与冻结维度不符时由 SQL 谓词直接归零而不是换空间重查。
+     * @param query 参数 类型化召回入参；parameter the typed recall argument.
+     * @return 返回 候选证据载体列表；returns the candidate evidence carriers.
+     */
+    @Override
+    public List<KnowledgeRetrievalHitBO> searchVector(KnowledgeSearchQueryBO query) {
+        return knowledgeChunkDAO.searchVectorCandidates(
+                idOf(query.getKbId()),
+                query.getActorId(),
+                query.getEmbeddingSpaceId(),
+                query.getDimensions(),
+                query.getQueryVector(),
+                query.getSourceMode().attachesPageLineage(),
+                query.getSourceMode().requiresPublishedPage(),
+                query.getCandidateLimit()
+        );
+    }
+
+    /**
+     * 中文说明：执行 searchKeyword 操作；与向量路同一套授权谓词，差别只在匹配条件换成转义后的字面子串。
+     * 转义在这里做而不在 SQL 里做，因为 {@code \}、{@code %}、{@code _} 的转义顺序必须先反斜杠、
+     * 再通配符，交给 SQL 字符串拼接就会重开「用户输入变通配符」的门；转义后在两端加 {@code %} 并整体作为
+     * 一个绑定参数传出，配合 XML 里的 {@code ESCAPE '\'} 使用。返回空列表即本路无证据。
+     * English summary: Executes the searchKeyword operation under the same authorization predicates as the vector leg, the
+     * only difference being an escaped literal substring match. The escaping happens here rather than in SQL because the
+     * order matters — backslash first, then the wildcards — and letting SQL concatenate the value would reopen the door
+     * where user input becomes a wildcard. The escaped keyword is wrapped with {@code %} on both sides and sent as one
+     * bound parameter, matching the {@code ESCAPE '\'} in the XML. An empty list means this leg found no evidence.
+     *
+     * 用法 / Usage: {@code knowledgeRepository.searchKeyword(query)}，只经 {@code Keyword}/{@code Hybrid} 两路策略调用；
+     * 本方法不触达嵌入模型，KEYWORD 一次嵌入调用都不该发生。
+     * @param query 参数 类型化召回入参；parameter the typed recall argument.
+     * @return 返回 候选证据载体列表；returns the candidate evidence carriers.
+     */
+    @Override
+    public List<KnowledgeRetrievalHitBO> searchKeyword(KnowledgeSearchQueryBO query) {
+        return knowledgeChunkDAO.searchKeywordCandidates(
+                idOf(query.getKbId()),
+                query.getActorId(),
+                query.getEmbeddingSpaceId(),
+                query.getDimensions(),
+                keywordPattern(query.getKeyword()),
+                query.getSourceMode().attachesPageLineage(),
+                query.getSourceMode().requiresPublishedPage(),
+                query.getCandidateLimit()
+        );
+    }
+
+    /**
+     * 中文说明：把字面关键词转成安全的 {@code ILIKE} 模式：先转义 {@code \}，再转义 {@code %} 与 {@code _}，
+     * 最后在两端加通配；顺序错了会把自家加的转义符再转一次。入参为空即按校验失败抛出，
+     * 因为「空关键词」不是一种检索意图，而是调用方漏填了本路必需字段。
+     * English summary: Turns a literal keyword into a safe {@code ILIKE} pattern: escape {@code \} first, then
+     * {@code %} and {@code _}, and only then wrap the wildcards — the reverse order would escape the escape characters
+     * this method just added. A blank argument fails validation, because an empty keyword is not a retrieval intent but a
+     * caller that forgot a field this leg requires.
+     * @param keyword 参数 字面关键词；parameter the literal keyword.
+     * @return 返回 绑定用的匹配模式；returns the bound match pattern.
+     */
+    private static String keywordPattern(String keyword) {
+        if (keyword == null || keyword.isEmpty()) {
+            throw validation("the keyword retrieval leg requires a non-empty keyword");
+        }
+        String escaped = keyword
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
+        return "%" + escaped + "%";
     }
 
     /**
