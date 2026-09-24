@@ -19825,7 +19825,7 @@ interface KnowledgeCitationConverter extends BaseForwardConverter<KnowledgeChunk
 - Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/integration/KnowledgeJobWorkerTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/bo/KnowledgeBaseBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/bo/KnowledgeDocumentBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/bo/KnowledgeDocumentRevisionBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/bo/KnowledgeChunkBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/bo/KnowledgeJobBO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/dto/KnowledgeMembersCommandDTO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/dto/KnowledgeReindexCommandDTO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/dto/KnowledgeRetryCommandDTO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/dto/KnowledgePageQueryDTO.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/repository/KnowledgeRepository.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/KnowledgeService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/impl/KnowledgeServiceImpl.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/KnowledgeJobService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/impl/KnowledgeJobServiceImpl.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/DocumentIngestionStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/scheduled/KnowledgeJobWorker.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/controller/KnowledgeController.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/controller/KnowledgeDocumentController.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/controller/KnowledgeJobController.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/repository/impl/MpKnowledgeRepository.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/KnowledgeJobStrategy.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/KnowledgeModelClientService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/impl/KnowledgeModelClientServiceImpl.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/KnowledgeConfiguration.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/properties/KnowledgeProperties.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/properties/KnowledgeModelClientProperties.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeBasePersistenceConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeDocumentPersistenceConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeDocumentRevisionPersistenceConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeChunkPersistenceConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeJobPersistenceConverter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeCitationConverter.java`
 - Commit: `feat(yuheng): 完成资料上传、摄取任务与原子版本发布`（仅候选逻辑检查点；按AGENTS全部步骤最多一个最终提交，不逐Step自动commit）
 
-### Step 13 — 完成授权检索与来源可追溯问答
+### Step 13 — 完成授权检索与来源可追溯问答【已COMMITTED 2026-09-25：见文末附录A6；17个路径（7个声明文件+10个授权的同Step支撑文件），本Step未写任何 YAML（用户指令），勿重跑】
 
 - Requirements: REQ-004, REQ-006, REQ-011
 - Dependencies: Step 12完成其声明的验证；全部前序模型/访问合同可用。
@@ -22581,3 +22581,69 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
     `MC-SCOPE-001`/`MC-TEST-001` 证据为 38 个全为声明/授权路径 + 316 真跑 0 跳过。
 11. **并发方式**：延续附录 A4 第 10 条，Step 内文件级并发（不相交文件分派 subagent），
     Step 之间仍按 Plan Dependencies 串行；所有 maven 验证由主线集中执行，同一模块未并行两个 `mvnw`。
+
+
+## 附录 A6 — Step 13 交付记录（2026-09-25，执行期追加，不改写上方任何行）
+
+1. **提交**：Step 13 基线 `b52391e91`（附录 A5 文档提交），代码提交 `5efbb1f23`
+   `feat(yuheng): 完成授权检索与来源可追溯问答`，17 个路径、+2305/−86。一个 Step 一个 path-limited 提交（用户既有裁定，
+   覆盖本 Plan「全部步骤最多一个最终提交」的原句）。
+
+2. **仍未写任何配置**：延续用户指令「直接写代码就行了，sql 写到 resource 下，配置先不写」。Rule 7 与 MC-CONFIG-001
+   继续是证据支撑的 N/A。检索侧因此把 Spec 要求的边界做成实现内常量并在类注释里声明：每路候选上限 50、
+   topK 缺省 8 / 上限 20、提示词上限 60000 字符、单次生成 token 上界 1024、5 秒检索预算（单调时钟核对，超时 503）。
+   接入配置时只需替换常量读取点，不改变任何行为口径。
+
+3. **同 Step 的未声明支撑路径（按附录 A3/A5 同一机制授权，非新增业务能力）**：本 Step 的可见结果被 Plan 写成
+   「use Repository named method」「授权/当前来源/space 过滤在 SQL 先行」，但 7 个声明文件里没有任何端口、DAO、XML 或
+   BO 可以承载这句话——`KnowledgeRepository` 当时没有检索端口。因此补齐：
+   `domain/enums/KnowledgeSearchModeEnum`、`domain/enums/KnowledgeSourceModeEnum`、
+   `domain/bo/KnowledgeSearchQueryBO`、`domain/bo/KnowledgeRetrievalHitBO`、
+   `knowledge/dao/KnowledgeChunkDAO`（两条具名语句）、`resources/mybatis/mapper/knowledge/KnowledgeChunkDAO.xml`、
+   `knowledge/repository/KnowledgeRepository`（两条端口）、`knowledge/repository/impl/MpKnowledgeRepository`、
+   `config/KnowledgeConfiguration`（`knowledgeSearchStrategyRegistry`）与
+   `test/.../KnowledgeJobWorkerTest`（Step 12 的仓储替身必须实现新增端口，两处一律抛 `AssertionError`，
+   使「摄取路径悄悄调起召回」立刻变红）。
+
+4. **引用投影器改指召回载体**：Step 12 把 `KnowledgeCitationConverter` 声明为本 Step 的唯一出站投影，其源当时是
+   `KnowledgeChunkPO` 行模型；Step 13 交付后它唯一的调用方就是检索服务，故源类型改为 `KnowledgeRetrievalHitBO`，
+   八个字段全部显式按名映射，`excerpt` 保留 `@Named` 的代理对安全 1000 字裁剪，删除已无必要的 bigint→文本辅助方法。
+   `unmappedTargetPolicy=ERROR` 与「不可逆投影走 `BaseForwardConverter`、无 `toSource`」两条约束保持不变。
+
+5. **stale 判定留在 SQL 内**：Wiki 血缘探针 `publishedPageLineage` 以 `published_revision_id` 指针 + `PUBLISHED` +
+   `sources @> [{documentRevisionId, chunkId, sourceHash}]` 三重条件成立才算已发布来源，`sourceHash` 直接取冻结版本行自身的
+   `content_hash`，因此页面记录旧 hash 时 containment 在 SQL 内就不成立，不需要（也不允许）服务侧二次比对来「补救」。
+
+6. **KEYWORD 分数口径**：子串匹配没有相似度刻度，SQL 显式产出 `NULL AS hit_score`；关键词路把「确定性排序中的位次」
+   折算成与混合路同尺度的 `1/(60+rank)` 并在类注释里写明它是排序位次而非真实性置信度（Spec §7.3.4 对 `score` 的定义即
+   「检索排序分数」）。绝不把结果列表下标当标识或分数使用。
+
+7. **每条 select 自带活跃行谓词**：`AiMpRepositoryContractTest` 按语句文本审查 `deleted_at IS NULL` 且不展开 `<include>`，
+   首跑即在 329 项中断出 1 项 FAIL。修正方式不是放宽守卫，而是把驱动表 `c` 的活跃断言写进两条召回语句自己的文本，
+   其余范围谓词（kb、空间、维度、成员 jsonb）继续共用 `authorizedRetrievalScope` 片段，两腿不可能各自放宽一半。
+
+8. **验证**：`./mvnw -o -pl ...yuheng-admin -Dtest=KnowledgeRetrievalServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+   → `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0`；模块全量
+   `./mvnw -o -pl ...yuheng-admin test` → `Tests run: 329, Failures: 0, Errors: 0, Skipped: 0` + `BUILD SUCCESS`
+   （Step 12 基线为 316，新增 13 项即本 Step 的命名测试）。`git diff --check` 干净。
+   13 项测试固定的事实包括：授权读先于任何模型与取数调用、KEYWORD 零嵌入调用、混合两腿共用同一份授权入参且按稳定
+   分块标识去重、零证据 NO_EVIDENCE 且生成调用为零、依赖失败保持 503 不与无证据混同、交付前撤权 403 与活动修订被替换
+   后丢证据、topK 缺省与上限、未知模式字面量与缺失冻结空间都按 422 失败、404/403 顺序、出站引用只带可追溯事实且
+   节选与提示词受声明上限约束。
+
+9. **Rule 与 Manual Check 结论**：Rule 1/2/3/4/5/6/9/10/11 = PASS（策略与服务的具名 bean、`@RequiredArgsConstructor` +
+   逐属性 `@Qualifier`、`@Slf4j`、`@Validated` + 端口层 `@Valid/@NotNull/@Pattern`、MapStruct + `BaseForwardConverter`、
+   `@EnumValue`/`@JsonValue` 无 ordinal、仅 commons-lang3/jdk、`java.time.Duration`、Rule 9 的枚举注册表启动期
+   fail-closed）；Rule 7 = N/A（未写配置）。17 项 Manual Check 中 MC-CONFIG-001 = N/A、MC-DEP-001 = N/A（零新依赖），
+   其余 PASS；`MC-SCOPE-001` 证据为 17 个路径全部属于本 Step 声明或上述同 Step 授权支撑，
+   `MC-TEST-001` 证据为 13 项真跑 0 跳过 + 模块 329 项 0 失败。
+
+10. **Runtime unverified（登记，不掩饰）**：SQL 侧一切行为本 Step 只有源码级证据——租户等值、`members` jsonb 成员谓词、
+    `d.active_revision_id = r.id` 联结、`cosine_distance` 排序与 `1-distance`、`vector_dims(embedding)=dimensions` 检查、
+    `ILIKE ... ESCAPE` 转义、`sources @>` 与 GIN 命中、`LIMIT`/`FOR UPDATE` 之外的边界追加谓词行为，
+    都需要授权的隔离 PostgreSQL 才能验收；本会话未启动任何数据库或容器（用户未授权，且明确禁止为验证启动 Docker）。
+    另外 `KnowledgeController` 的 API-022 HTTP 层证据属 Step 12 与 Step 16 的合同测试，本 Step 不重复覆盖。
+
+11. **并发方式与偏差**：本 Step 的测试文件按「Step 内文件级并发」派给 subagent，但该 subagent 结束时未落盘任何文件
+    （只回述了计划），因此由主线自行写完 13 项测试并复核；这是执行事实而非裁剪，登记为偏差。
+    同一模块始终只有一个 `mvnw` 在跑；Step 之间仍按 Plan Dependencies 串行。
