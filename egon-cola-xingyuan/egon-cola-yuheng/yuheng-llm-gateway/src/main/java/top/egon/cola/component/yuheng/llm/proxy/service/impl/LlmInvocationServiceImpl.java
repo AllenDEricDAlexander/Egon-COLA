@@ -93,6 +93,7 @@ public class LlmInvocationServiceImpl implements LlmInvocationService {
                 candidates.size(), safeAttempts);
         return new LlmInvocationResultVO()
                 .setStatus(200)
+                .setCandidates(candidates)
                 .setHeaders(safeHeaders(command));
     }
 

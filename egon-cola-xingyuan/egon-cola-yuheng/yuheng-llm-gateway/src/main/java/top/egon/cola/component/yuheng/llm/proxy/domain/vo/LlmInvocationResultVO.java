@@ -10,9 +10,12 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
+import top.egon.cola.component.yuheng.llm.proxy.domain.bo.LlmModelSnapshotBO;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -56,6 +59,34 @@ public class LlmInvocationResultVO {
      *  the same-protocol Strategy attaches the publisher once the first frame validates, so null here means "routed, no
      *  upstream stream yet" and never an empty success. */
     private Flux<DataBuffer> body;
+
+    /** 中文说明：本次路由产出的<b>有序候选 route</b>（优先级、权重已在路由阶段定序）。编排方从这里取首条候选并把其余候选
+     *  留给至多 {@code yuheng.llm.maximum-attempts} 次安全尝试，因此<b>不需要</b>为了拿到 route 而重读快照或再抽一次签：
+     *  一次请求一份配置、一次准入判定、一个加权结果。null/空表示「尚未路由」，此时必须先调用路由端口。
+     *  English summary: the ordered candidate routes this routing pass produced, already ordered by priority and weight. The
+     *  orchestrator takes the head from here and keeps the rest for its at most {@code yuheng.llm.maximum-attempts} safe
+     *  attempts, so it never has to re-read the snapshot or draw the weighted pick a second time just to obtain a route:
+     *  one configuration read, one admission decision and one weighted result per request. Null or empty means "not routed
+     *  yet", in which case the routing port must be called first. */
+    private List<LlmModelSnapshotBO.RouteBO> candidates;
+
+    /**
+     * 中文说明：返回 candidates 的不可变快照副本，避免写出阶段与重试循环共享同一条可变列表。
+     * English summary: Returns an immutable snapshot of candidates so the write-out stage and the retry loop never share a
+     * mutable list.
+     */
+    public List<LlmModelSnapshotBO.RouteBO> getCandidates() {
+        return candidates == null ? null : Collections.unmodifiableList(new ArrayList<>(candidates));
+    }
+
+    /**
+     * 中文说明：写入时复制 candidates，保持路由顺序且不与路由端口共享其内部列表。
+     * English summary: Defensively copies candidates, preserving the routing order without sharing the port's own list.
+     */
+    public LlmInvocationResultVO setCandidates(List<LlmModelSnapshotBO.RouteBO> candidates) {
+        this.candidates = candidates == null ? null : new ArrayList<>(candidates);
+        return this;
+    }
 
     /**
      * 中文说明：返回 headers 的不可变快照副本，避免下游写出阶段修改已进入异步任务的头集合。
