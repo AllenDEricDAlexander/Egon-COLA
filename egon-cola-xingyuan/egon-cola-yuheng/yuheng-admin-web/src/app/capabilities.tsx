@@ -14,6 +14,11 @@ export type Capability =
   | 'yuheng:mcp:test'
   | 'yuheng:mcp:approve'
   | 'yuheng:mcp:runtime:read'
+  | 'yuheng:knowledge:read'
+  | 'yuheng:knowledge:write'
+  | 'yuheng:knowledge:admin'
+  | 'yuheng:llm:read'
+  | 'yuheng:llm:write'
 
 const CapabilityContext = createContext<ReadonlySet<string>>(new Set())
 

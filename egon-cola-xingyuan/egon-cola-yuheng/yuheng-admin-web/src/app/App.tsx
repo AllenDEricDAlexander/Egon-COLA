@@ -1,9 +1,9 @@
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {ConfigProvider, Result} from 'antd'
 import zhCN from 'antd/locale/zh_CN'
-import {lazy, Suspense} from 'react'
+import {lazy, Suspense, type ReactNode} from 'react'
 import {createBrowserRouter, Navigate, RouterProvider} from 'react-router-dom'
-import {CapabilityProvider} from './capabilities'
+import {CapabilityProvider, type Capability} from './capabilities'
 import {AuthProvider} from '../auth/AuthContext'
 import {LoginPage} from '../auth/LoginPage'
 import {RequireAuth, RequireCapability} from '../auth/RouteGuards'
@@ -16,12 +16,12 @@ const DashboardPage = lazy(() =>
   })),
 )
 const GatewayGroupsPage = lazy(() =>
-  import('../features/yuheng-groups/GatewayGroupsPage').then((module) => ({
+  import('../features/gateway-groups/GatewayGroupsPage').then((module) => ({
     default: module.GatewayGroupsPage,
   })),
 )
 const GatewayGroupDetailPage = lazy(() =>
-  import('../features/yuheng-groups/GatewayGroupDetailPage').then((module) => ({
+  import('../features/gateway-groups/GatewayGroupDetailPage').then((module) => ({
     default: module.GatewayGroupDetailPage,
   })),
 )
@@ -90,9 +90,58 @@ const McpRemoteProvidersPage = lazy(() =>
     default: module.McpRemoteProvidersPage,
   })),
 )
+const KnowledgeBasesPage = lazy(() =>
+  import('../features/knowledge/KnowledgeBasesPage').then((module) => ({
+    default: module.KnowledgeBasesPage,
+  })),
+)
+const KnowledgeBasePage = lazy(() =>
+  import('../features/knowledge/KnowledgeBasePage').then((module) => ({
+    default: module.KnowledgeBasePage,
+  })),
+)
+const WikiPage = lazy(() =>
+  import('../features/wiki/WikiPage').then((module) => ({
+    default: module.WikiPage,
+  })),
+)
+const LlmConfigurationPage = lazy(() =>
+  import('../features/llm/LlmConfigurationPage').then((module) => ({
+    default: module.LlmConfigurationPage,
+  })),
+)
+
+// 员工知识工作区与模型网关：同一 AuthProvider/AdminLayout 下的独立分支，
+// 只按各自 read 能力放行，不复用也不放宽旧管理根的 yuheng:read。
+const guarded = (capability: Capability, node: ReactNode) => (
+  <RequireCapability capability={capability}>{node}</RequireCapability>
+)
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  {
+    path: '/',
+    element: <RequireAuth><AdminLayout /></RequireAuth>,
+    errorElement: <Result status="error" title="页面加载失败" subTitle="请返回上一页或刷新。" />,
+    children: [
+      {
+        path: 'knowledge',
+        element: guarded('yuheng:knowledge:read', <KnowledgeBasesPage />),
+      },
+      {
+        path: 'knowledge/:kbId',
+        element: guarded('yuheng:knowledge:read', <KnowledgeBasePage />),
+      },
+      {
+        path: 'knowledge/:kbId/wiki/:pageId',
+        element: guarded('yuheng:knowledge:read', <WikiPage />),
+      },
+      {
+        path: 'llm/configuration',
+        element: guarded('yuheng:llm:read', <LlmConfigurationPage />),
+      },
+    ],
+  },
   {
     path: '/',
     element: (

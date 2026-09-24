@@ -7,8 +7,10 @@ import {
     EyeOutlined,
     KeyOutlined,
     LogoutOutlined,
+    ReadOutlined,
     RobotOutlined,
     ShareAltOutlined,
+    ThunderboltOutlined,
 } from '@ant-design/icons'
 import {Badge, Space} from 'antd'
 import {useQueryClient} from '@tanstack/react-query'
@@ -63,6 +65,24 @@ const navigation: readonly GatewayNavItem[] = [
     ],
   },
   {
+    key: 'knowledge',
+    icon: <ReadOutlined />,
+    label: '企业知识',
+    capability: 'yuheng:knowledge:read',
+    children: [
+      {key: '/knowledge', path: '/knowledge', activePathPrefixes: ['/knowledge'], icon: <ReadOutlined />, label: '知识库', capability: 'yuheng:knowledge:read'},
+    ],
+  },
+  {
+    key: 'llm',
+    icon: <ThunderboltOutlined />,
+    label: '模型网关',
+    capability: 'yuheng:llm:read',
+    children: [
+      {key: '/llm/configuration', path: '/llm/configuration', icon: <ThunderboltOutlined />, label: '模型与渠道', capability: 'yuheng:llm:read'},
+    ],
+  },
+  {
     key: 'observability',
     icon: <EyeOutlined />,
     label: '观测与审计',
@@ -78,11 +98,19 @@ export const AdminLayout = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const auth = useAuth()
+  // 能力必须在渲染顶层逐个显式订阅（不能在循环里调用 Hook），再交给导航剪枝。
   const canRead = useCapability('yuheng:read')
   const canReadMcp = useCapability('yuheng:mcp:read')
+  const canReadKnowledge = useCapability('yuheng:knowledge:read')
+  const canReadLlm = useCapability('yuheng:llm:read')
 
   const embedded = (window as WujieRuntimeWindow).$wujie?.props?.embedded === true
-  const items: EnterpriseNavigationItem[] = filterNavigation(navigation, canRead, canReadMcp)
+  const items: EnterpriseNavigationItem[] = filterNavigation(navigation, {
+    'yuheng:read': canRead,
+    'yuheng:mcp:read': canReadMcp,
+    'yuheng:knowledge:read': canReadKnowledge,
+    'yuheng:llm:read': canReadLlm,
+  })
 
   const config: EnterpriseLayoutConfig = {
     platformName: 'Yuheng Admin',
@@ -124,12 +152,11 @@ export const AdminLayout = () => {
 
 const filterNavigation = (
   entries: readonly GatewayNavItem[],
-  canRead: boolean,
-  canReadMcp: boolean,
+  granted: Partial<Record<Capability, boolean>>,
 ): EnterpriseNavigationItem[] => entries.flatMap((item): EnterpriseNavigationItem[] => {
-  const permitted = item.capability === 'yuheng:mcp:read' ? canReadMcp : canRead
-  if (!permitted) return []
-  const children = item.children ? filterNavigation(item.children, canRead, canReadMcp) : []
+  // 未在本页显式订阅的能力一律按“无权限”处理，导航不放宽。
+  if (!granted[item.capability]) return []
+  const children = item.children ? filterNavigation(item.children, granted) : []
   if (item.children && children.length === 0) return []
   return [{
     key: item.key,
