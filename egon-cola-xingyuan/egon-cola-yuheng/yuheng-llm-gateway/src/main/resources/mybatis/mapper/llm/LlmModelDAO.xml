@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  中文说明：数据面进程自有的 gateway_llm_model 语句集。resultMap 与列集合逐列复刻控制面 yuheng-admin 同名 XML，因为两个
+  进程共享同一张由 V14 受管 DDL 建立的表；差异只在本进程不新增任何写语句，只补引擎按 alias 点查与有界目录读的具名查询。
+  三个 jsonb 列（protocols/allowed_subjects/routes）在本进程以 String 承载“已编码 JSON 文本”原样读回，与
+  yuheng-mcp-gateway 自有 jsonb 处理器对 String 载体的语义一致：引擎对这两张表只有 SELECT 授权、永不写 jsonb，
+  因此不引用控制面自有的处理器类名，避免把列绑定耦合到一个不属于本部署单元的类型；结构化解码统一发生在
+  MpLlmConfigurationRepository 内并由 Jackson 完成，失败即失败关闭。每条 select 语句体都自带 deleted_at IS NULL，
+  租户条件由 EgonColaTenantIdTenantLineHandler 依受信 MDC 注入，最终 SQL 守卫在执行前证明每个别名只命中一个租户。
+  English summary: The data-plane statement set for gateway_llm_model. Its resultMap and column list replicate the
+  control-plane XML of the same name column for column because both processes share the one table created by the managed
+  V14 DDL; the only difference is that this process adds no writing statement and instead adds the bounded engine reads,
+  the alias point-read and the capped catalog read. The three jsonb columns (protocols/allowed_subjects/routes) are
+  carried here as String holding the already-encoded JSON text, matching what the yuheng-mcp-gateway own jsonb handler
+  declares for a String carrier: the engine holds SELECT-only grants on these configuration tables and never writes
+  jsonb, so it references no control-plane handler class and keeps column binding free of a type outside this deployable.
+  Structural decoding happens once inside MpLlmConfigurationRepository through Jackson and fails closed. Every select
+  body carries its own deleted_at IS NULL, tenancy is injected from the trusted MDC by
+  EgonColaTenantIdTenantLineHandler, and the final-SQL guard proves one tenant per alias before execution.
+-->
+<mapper namespace="top.egon.cola.component.yuheng.llm.proxy.dao.LlmModelDAO">
+    <resultMap id="LlmModelResultMap" type="top.egon.cola.component.yuheng.llm.proxy.domain.po.LlmModelPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="model_key" property="modelKey"/>
+        <result column="name" property="name"/>
+        <result column="kind" property="kind"/>
+        <result column="protocols" property="protocols"/>
+        <result column="enabled" property="enabled"/>
+        <result column="dimensions" property="dimensions"/>
+        <result column="embedding_space_id" property="embeddingSpaceId"/>
+        <result column="allowed_subjects" property="allowedSubjects"/>
+        <result column="routes" property="routes"/>
+        <result column="revision" property="revision"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, model_key, name, kind, protocols, enabled, dimensions, embedding_space_id, allowed_subjects, routes, revision</sql>
+    <select id="selectActiveById" resultMap="LlmModelResultMap">
+        SELECT <include refid="columns"/> FROM gateway_llm_model WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="LlmModelResultMap">
+        SELECT <include refid="columns"/> FROM gateway_llm_model WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <!--
+      中文说明：引擎按客户端 alias 点查活跃模型行，走 pk_gateway_llm_model 的等值路径，detail 结果 0..1；
+      没有这一行就是 404，调用方不得伪造快照，也不得退化成“取第一个可用模型”。
+      English summary: The engine point-reads the active model row by the client alias along the equality path of
+      pk_gateway_llm_model, yielding 0..1 detail rows; a missing row is a 404, so the caller may neither fabricate a
+      snapshot nor degrade to "whichever model happens to be first".
+    -->
+    <select id="selectActiveByModelKey" resultMap="LlmModelResultMap">
+        SELECT <include refid="columns"/> FROM gateway_llm_model WHERE deleted_at IS NULL AND model_key = #{modelKey}
+    </select>
+    <!--
+      中文说明：有界目录读，供 GET /v1/models 使用：按稳定 id 升序、LIMIT 由 repository 传入正数上限（配置表被部署
+      约束在各 1000 行以内），不访问上游动态发现；地址与凭据引用由投影出的 BO 保留在服务端，响应 VO 不映射它们。
+      English summary: The bounded catalog read behind GET /v1/models: ordered by the stable id ascending with a positive
+      LIMIT supplied by the repository (the configuration tables are deployment-capped at 1000 rows each) and with no
+      upstream dynamic discovery. Base URL and secret reference stay server-side in the projected BO and are never mapped
+      into the response VO.
+    -->
+    <select id="selectActiveCatalog" resultMap="LlmModelResultMap">
+        SELECT <include refid="columns"/> FROM gateway_llm_model WHERE deleted_at IS NULL ORDER BY id ASC LIMIT #{limit}
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_llm_model SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>

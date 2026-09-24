@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  中文说明：数据面进程自有的 gateway_llm_channel 语句集。它逐列复刻控制面 yuheng-admin 同名 XML 的 resultMap 与列集合，
+  因为两个进程共享同一张由 V14 受管 DDL 建立的表；差异只在本进程不新增任何写语句，只补引擎按 routes[] 渠道 key 批量
+  点查的具名只读查询。每条 select 语句体都自带 deleted_at IS NULL，租户条件由 EgonColaTenantIdTenantLineHandler 依受信
+  MDC 注入，最终 SQL 守卫在执行前证明每个别名只命中一个租户，因此方法签名不接受任何租户参数。本表不含知识库语句，
+  也不返回凭据值：secret_ref 只是本地密钥引用，解析发生在引擎内部且永不进入响应。
+  English summary: The data-plane statement set for gateway_llm_channel. It replicates the control-plane XML of the same
+  name column for column because both processes share the one table created by the managed V14 DDL; the only difference is
+  that this process adds no writing statement and instead adds the bounded read-only lookup by the channel keys a model's
+  routes[] declare. Every select body carries its own deleted_at IS NULL, tenancy is injected from the trusted MDC by
+  EgonColaTenantIdTenantLineHandler, and the final-SQL guard proves one tenant per alias before execution, so no method
+  takes a tenant parameter. This file holds no knowledge-base statement and returns no credential value: secret_ref is
+  only a local secret reference, resolved inside the engine and never surfaced in a response.
+-->
+<mapper namespace="top.egon.cola.component.yuheng.llm.proxy.dao.LlmChannelDAO">
+    <resultMap id="LlmChannelResultMap" type="top.egon.cola.component.yuheng.llm.proxy.domain.po.LlmChannelPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="channel_key" property="channelKey"/>
+        <result column="name" property="name"/>
+        <result column="deployment" property="deployment"/>
+        <result column="protocol" property="protocol"/>
+        <result column="base_url" property="baseUrl"/>
+        <result column="secret_ref" property="secretRef"/>
+        <result column="enabled" property="enabled"/>
+        <result column="connect_timeout_ms" property="connectTimeoutMs"/>
+        <result column="header_timeout_ms" property="headerTimeoutMs"/>
+        <result column="idle_timeout_ms" property="idleTimeoutMs"/>
+        <result column="total_timeout_ms" property="totalTimeoutMs"/>
+        <result column="max_concurrent" property="maxConcurrent"/>
+        <result column="revision" property="revision"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, channel_key, name, deployment, protocol, base_url, secret_ref, enabled, connect_timeout_ms, header_timeout_ms, idle_timeout_ms, total_timeout_ms, max_concurrent, revision</sql>
+    <select id="selectActiveById" resultMap="LlmChannelResultMap">
+        SELECT <include refid="columns"/> FROM gateway_llm_channel WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="LlmChannelResultMap">
+        SELECT <include refid="columns"/> FROM gateway_llm_channel WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <!--
+      中文说明：引擎按模型 routes[] 声明的渠道 key 批量点查活跃行，走 pk_gateway_llm_channel 的等值 IN 路径；
+      集合并不为空且至多 64 个 key 的约束由 MpLlmConfigurationRepository 在发起查询前失败关闭，这里不写
+      “空集合退化为全表”的兜底分支，因为无界读正是必须被禁止的行为。
+      English summary: The engine batch point-reads active rows by the channel keys a model's routes[] declare, along the
+      equality-IN path of pk_gateway_llm_channel. The non-empty and at-most-64-keys bound is failed closed by
+      MpLlmConfigurationRepository before the query is issued; there is deliberately no fallback that degrades an empty
+      collection into a full scan, since an unbounded read is exactly the behaviour that must stay forbidden.
+    -->
+    <select id="selectActiveByChannelKeys" resultMap="LlmChannelResultMap">
+        SELECT <include refid="columns"/> FROM gateway_llm_channel WHERE deleted_at IS NULL AND channel_key IN
+        <foreach collection="channelKeys" item="channelKey" open="(" separator="," close=")">#{channelKey}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE gateway_llm_channel SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+</mapper>
