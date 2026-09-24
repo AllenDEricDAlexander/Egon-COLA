@@ -17765,7 +17765,7 @@ retain old V1-V13 unchanged; deployment docs do not execute DROP, services or ex
 - Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/architecture/GatewayManagedDdlConfigurationTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayPersistenceConfiguration.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayPersistenceContextComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayPersistenceProperties.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/config/McpPersistenceConfiguration.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/config/McpPersistenceContextComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/config/McpPersistenceProperties.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmPersistenceConfiguration.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmPersistenceContextComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmPersistenceProperties.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayManagedDdlConfiguration.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayManagedDdlFactory.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayPersistenceContextFilter.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/bootstrap/GatewayAdminApplication.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/shared/controller/GatewayAdminExceptionHandler.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application.yml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application-local.yml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application-operations.yml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/egon-mp/20260922_001_yuheng_schema.sql`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/egon-mp/repository-manifest.json`
 - Commit: `feat(yuheng): 切换唯一MP数据源并建立空库受管DDL`（仅候选逻辑检查点；按AGENTS全部步骤最多一个最终提交，不逐Step自动commit）
 
-### Step 10 — 完成LLM配置管理和本地embedding路由
+### Step 10 — 完成LLM配置管理和本地embedding路由【已COMMITTED 2026-09-24：见文末附录A3；29个路径全部落地，本Step未写任何 YAML（用户指令），勿重跑】
 
 - Requirements: REQ-002, REQ-003, REQ-011, REQ-013
 - Dependencies: Step 9完成其声明的验证；全部前序模型/访问合同可用。
@@ -22410,3 +22410,59 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
 4. **`@Qualifier("beanFactory")` 被删除**：`ConfigurableListableBeanFactory` 是 Spring 的 resolvable dependency，没有叫 `beanFactory` 的 bean，伪造名字只会在真启动时炸；改为按类型注入（与 `yuheng-starter-openapi-web{mvc,flux}` 的既有写法一致）。
 5. **遗留裁定**：租户键前缀取 `yuheng.persistence.*`（本 Step 声明的三个记录类），而 MCP 进程仍存在 `egon.cola.component.yuheng.engine.mcp.persistence.tenant-id` 供给 `mcpGatewayPersistenceContext`/`MpMcpRuntimeTaskStore`；两键收敛不在 Step 9 声明路径内，记为 Step 10 待办。`McpGatewayEngineApplication` 只扫 `…engine.bootstrap`，故 `mcpPersistenceConfiguration` 需宿主显式 import 才生效——同样是 Step 9 声明路径之外的运行期待办。
 6. **证据**：`./mvnw -o -pl …/yuheng-admin -am -Dtest=GatewayManagedDdlConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test` → Tests run: 8, Failures: 0；`./mvnw -o -pl …/yuheng-admin test` → Tests run: 309, Failures: 0, Errors: 0, BUILD SUCCESS；`./mvnw -o -pl …/yuheng-mcp-gateway,…/yuheng-llm-gateway -am -DskipTests test-compile` → BUILD SUCCESS。空库真建表、`ddl_history` 落行、消费者就绪时序仍为 **Runtime unverified**（需用户授权的隔离 PostgreSQL，本 Plan 不启动 Docker/服务）。
+
+---
+
+## 附录 A3 — Step 10 落地澄清（2026-09-24，追加于文末，不改动上方任何行号）
+
+1. **提交事实**：基线 `554b4c1a3` → 单提交 `e5529cfd3`（29 个声明路径，+5870 行，全部为新增文件，未删改任何既有文件）。
+   门禁：`./mvnw -o -pl …/yuheng-llm-gateway -am -Dtest=LlmRoutingContractTest -Dsurefire.failIfNoSpecifiedTests=false test`
+   → Tests run: 6, Failures: 0, Errors: 0, BUILD SUCCESS；`./mvnw -o -pl …/yuheng-admin test`
+   → Tests run: 309, Failures: 0, Errors: 0, BUILD SUCCESS；`git diff --cached --check` 干净。
+2. **仍然不写配置（延续附录 A2 第 1 条）**：本 Step 同样零 `application*.yml`。运维启动期必须补
+   `yuheng.llm.{enabled,allowed-local-cidrs,allowed-cloud-hosts,secrets-root,max-request-bytes,max-frame-bytes,maximum-attempts,streaming-threads}`
+   与 `yuheng.llm.identity.{resource-uri,service-token-audience}`；`enabled=true` 而缺 secrets-root 或身份两项时，
+   `LlmGatewayProperties` 的 `@AssertTrue` 在绑定阶段失败关闭，不会退化成匿名出网。
+   连带：MC-CONFIG-001 与 Rule 7 在本 Step 只能是 **N/A + Runtime unverified**。
+3. **依赖越界按「删推测代码」处理而不是偷偷加依赖**：本 Step 的 `LlmGatewayConfiguration` 原计划提供 Spring Security 的
+   `authenticationEntryPoint`/`accessDeniedHandler` 两个 bean，但 `yuheng-llm-gateway` 的编译类路径上没有
+   spring-security-core，而 `pom.xml` 不是本 Step 的声明路径（「不得擅自引入依赖」是硬约束）。因此把这两个
+   尚无任何消费者的 bean 及其私有 helper（`writeNativeError`/`entryPath`/`ENTRY_PROTOCOLS`/`DEFAULT_PROTOCOL`）删除，
+   类 javadoc 改述为「各协议原生错误对象由 Step 11 的四协议 Strategy 产出」。**这是需求覆盖面的真实收缩**，
+   REQ-002/REQ-003 的最终审计必须按 Partial 计，而不是因为编译通过就算满足；若需恢复该形态，须先批准加 security 依赖并修订 Step 11。
+4. **两处真实编译缺陷**（agent 落盘代码，已在本 Step 路径内修正，非范围扩张）：
+   `LlmClientCredentialFilter.BearerCarriedRequest` 的 `getHeaders`/`getHeaderNames` 返回 `List`/`Set`，
+   而 jakarta 签名要求 `Enumeration<String>`，改为 `Collections.enumeration(...)`（对下游只呈现 Bearer、隐藏 `x-api-key` 的行为不变）；
+   `LlmConfigurationController` 缺 `import org.springframework.web.bind.annotation.RestController`。
+5. **一次自我造成的破坏与可验证恢复（记录以免被当成干净落地）**：清理行尾空白时用了
+   `sed -E 's/[ \t]+$//'`，BSD sed 把括号内的 `\t` 读作字面量 `t`，于是**所有以 `t` 结尾的行被吃掉最后一个字符**
+   （例如 `@Test` → `@Tes`）。恢复方式：按会话 transcript 的 Write/Edit 逐条重放，并用「每行只差行尾空白字符」作硬校验，
+   29 个文件中 28 个校验通过后原样恢复；`LlmGatewayConfiguration` 的最终形态来自脚本化删除、transcript 中不存在，
+   故逐行检查修复（`so Boo` → `so Boot`，并删除因删码而失效的 `StringUtils` import）。
+   恢复后两扇门在**最终字节**上重跑仍为 6/6 与 309/309 绿。教训：本仓库禁用 `sed` 的 `\t`，行尾清理一律用 `[[:space:]]`。
+6. **Rule 3 在本 Step 有一处记录在案的例外**：`yuheng-llm-gateway` 的 `MpLlmConfigurationRepository` 以
+   `RouteBO.builder()` + 私有静态 helper 手写 PO→BO，而不是 MapStruct/`BaseConverter`。原因是该映射要把 jsonb 文本
+   解码成结构化集合、逐字段 fail-closed 校验，并把模型行与一次 IN 查询取回的渠道行做关联合成，MapStruct 表达不了；
+   Admin 侧四个简单 BO↔PO/BO→VO 场景则全部走 MapStruct + `BaseConverter`/`BaseForwardConverter`
+   （`unmappedTargetPolicy = ERROR`）。该例外计入最终审计的 Rule 3 清单，不做静默豁免。
+7. **MC-JSON-001 的判定依据**：`MpLlmConfigurationRepository` 里的 `JsonMapper.builder().build()` 静态 jsonb 解码器
+   与本仓库既有已提交主代码同形（`MpGatewayDefinitionReportRepository`、`GatewayReportCanonicalizer`、
+   `GatewayRuleCanonicalizer`、`GatewayCallEventSerializer`、`GatewayRuleJsonCodec`），属列级 JSON 解码的房规，
+   不是第二套 JSON 实现（全仓无 Gson/fastjson）；`LlmGatewayConfiguration` javadoc 里「禁止另起第二套 JSON 实现」
+   约束的是错误编码注入的 `jacksonObjectMapper`。
+8. **附录 A2 第 5 条的两项移交仍未闭合**（均不在 Step 10 声明路径内）：`yuheng-mcp-gateway` 仍以
+   `egon.cola.component.yuheng.engine.mcp.persistence.*` 供给 `mcpGatewayPersistenceContext`/`MpMcpRuntimeTaskStore`，
+   与 `yuheng.persistence.*` 两键并存；`McpGatewayEngineApplication` 的 `scanBasePackages` 仍只有
+   `…mcp.engine.bootstrap`，`mcpPersistenceConfiguration` 需宿主显式 import 才生效。二者都是运行期事实，移交 Step 16 的部署说明与最终审计。
+9. **本 Step 已知限制（不做未批准的扩张修正）**：`findModelsByChannelKey` 无 jsonb 包含查询可用，改为有界扫描
+   （100/页、1000 上限，超限抛 `YUHENG_ADMIN_LLM_MODEL_SCAN_LIMIT`）；MP 默认 `NOT_NULL` 更新策略使全量替换无法把
+   `secret_ref`/`dimensions`/`embedding_space_id` 置空；创建竞态返回的冲突携带 0 哨兵 revision；
+   因 `LlmChannelVO.revision` 带 `@Min(1)`，创建成功后 revision 即为 1。
+10. **Step 11 必须遵守的契约**：`llmProtocolStrategyRegistry` 固定四条不可变映射
+    （`openAiChatProtocolStrategy`/`openAiEmbeddingProtocolStrategy`/`openAiResponsesProtocolStrategy`/`anthropicMessagesProtocolStrategy`），
+    只允许把 value 换成同名的 Strategy 引用，不允许增删协议条目；`llmStreamingExecutor` 线程数取
+    `yuheng.llm.streaming-threads`、队列容量恒 0，饱和即抛 `TaskRejectedException`，协议面须在提交前翻译成 429。
+11. **门禁结论**：16 项 Manual Check 中 15 项 PASS（各自证据见执行记录：29 个路径全为声明路径、无新依赖、
+    具名 bean 12 处、`@RequiredArgsConstructor`+`@Qualifier` 8 个注入类、`@Valid` 14 处、MapStruct 4 个、
+    `java.time` 仅 Clock/Instant、无 fastjson/gson、路由用 Strategy 而非 if 分支、命名测试 6/6 真跑），
+    MC-CONFIG-001 = N/A（见第 2 条）。字面规则 1/2/4/5/6/9/10/11 = PASS，Rule 3 = PASS 带第 6 条例外，Rule 7 = N/A（见第 2 条）。
