@@ -1,49 +1,66 @@
 package top.egon.cola.component.yuheng.admin.release.repository;
 
-
-import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanupCandidateBO;
 import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleasePublicationBO;
+import top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * 中文说明：{@code GatewayReleasePublicationRepository} 是接口契约，位于当前 Gateway 模块的相关包中，负责网关发布Publication存储相关的职责与边界。
- * English summary: {@code GatewayReleasePublicationRepository} is an interface contract in the current Gateway module; it owns the gateway release publication store-related responsibility and boundary.
- *
- * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ * 发布编排持久化端口：领域服务依赖的面向业务对象的发布操作记录读写契约。
+ * English summary: Persistence port for release orchestration used by domain services in terms of business objects.
+ * <p>
+ * 端口方法集合按调用方（发布协调器、分块回收器与草稿运行时投影）实际调用的集合梳理，只暴露业务语义，
+ * 不暴露技术主键、行模型、DAO 或查询链。
+ * English summary: The method set mirrors exactly what callers (the publication coordinator, the chunk garbage
+ * collector and the runtime projection) invoke; no technical id, row model, DAO or query chain is exposed.</p>
+ * <p>
+ * 端口以 {@code @Validated} 声明载体与不透明标识的 Bean Validation；实现侧通过表级受守卫仓储与 MapStruct 转换器完成读写。
+ * English summary: The port declares Bean Validation on carriers and opaque identifiers; implementations use the
+ * guarded table repositories and MapStruct converters.</p>
  */
+@Validated
 public interface GatewayReleasePublicationRepository {
 
     /**
-     * 中文说明：执行 insertAll 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the insert all operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 登记一次发布尝试的全部操作。
+     * English summary: Registers all operations for one release attempt.
+     * <p>
+     * 用法 / Usage: 同一尝试的操作集整体写入，实现侧在同一事务内提交，避免半个操作集可见。
+     * English summary: The operation set for one attempt is written as a whole inside a single transaction.</p>
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.insertAll(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param operations 参数 operations；parameter operations。
+     * @param operations 发布操作集合 / publication operations
      */
-    void insertAll(List<GatewayReleasePublicationBO> operations);
+    void insertAll(@Valid List<GatewayReleasePublicationBO> operations);
 
     /**
-     * 中文说明：执行 findAttempt 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the find attempt operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 按尝试编号读取该尝试的全部操作，含完整文档正文。
+     * English summary: Reads every operation of an attempt, including full document payloads.
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.findAttempt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param releaseId 参数 发布Id；parameter release id。
-     * @param attemptNo 参数 attemptNo；parameter attempt no。
-     * @return 返回 findAttempt 的处理结果；returns the result of the operation.
+     * @param releaseId 发布 ID / release id
+     * @param attemptNo 尝试序号 / attempt number
+     * @return 按阶段顺序排列的操作列表 / operations ordered by phase order
      */
-    List<GatewayReleasePublicationBO> findAttempt(String releaseId, int attemptNo);
+    List<GatewayReleasePublicationBO> findAttempt(@NotBlank String releaseId, int attemptNo);
 
     /**
      * 读取发布阶段元数据而不加载历史完整文档。
-     * / Reads publication metadata without loading historical full documents.
+     * English summary: Reads publication metadata without loading historical full documents.
+     * <p>
+     * 用法 / Usage: 默认委托 {@link #findAttempt}；列投影语义在受守卫边界内由全行读取近似（守卫边界会校验每一列），
+     * 因此实现不再单独投影，只保持调用方可见的返回值一致。
+     * English summary: Delegates to {@link #findAttempt} by default; the column projection is approximated by a
+     * full-row read because the guarded boundary validates every column, so only the caller-visible result stays the
+     * same.</p>
      *
-     * @param releaseId 发布Id / release id
-     * @param attemptNo attempt编号 / attempt number
-     * @return 发布阶段元数据 / publication metadata
+     * @param releaseId 发布 ID / release id
+     * @param attemptNo 尝试序号 / attempt number
+     * @return 按阶段顺序排列的元数据列表 / metadata ordered by phase order
      */
     default List<GatewayReleasePublicationBO> findAttemptMetadata(
             String releaseId,
@@ -53,10 +70,14 @@ public interface GatewayReleasePublicationRepository {
 
     /**
      * 读取一个发布阶段的完整内容。
-     * / Reads the full content for one publication phase.
+     * English summary: Reads the full content for one publication phase.
+     * <p>
+     * 用法 / Usage: 默认从 {@link #findAttempt} 结果中按阶段顺序过滤取首个，与被替换的历史实现语义一致。
+     * English summary: By default filters the {@link #findAttempt} result by phase order and takes the first, matching
+     * the implementation it replaces.</p>
      *
-     * @param releaseId 发布Id / release id
-     * @param attemptNo attempt编号 / attempt number
+     * @param releaseId  发布 ID / release id
+     * @param attemptNo  尝试序号 / attempt number
      * @param phaseOrder 阶段序号 / phase order
      * @return 匹配的发布阶段 / matching publication phase
      */
@@ -70,69 +91,79 @@ public interface GatewayReleasePublicationRepository {
     }
 
     /**
-     * 中文说明：执行 nextIncomplete 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the next incomplete operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 查询该尝试内第一个尚未成功的操作。
+     * English summary: Queries the first not-yet-successful operation of an attempt.
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.nextIncomplete(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param releaseId 参数 发布Id；parameter release id。
-     * @param attemptNo 参数 attemptNo；parameter attempt no。
-     * @return 返回 nextIncomplete 的处理结果；returns the result of the operation.
+     * @param releaseId 发布 ID / release id
+     * @param attemptNo 尝试序号 / attempt number
+     * @return 待执行操作 / operation to run
      */
     Optional<GatewayReleasePublicationBO> nextIncomplete(
-            String releaseId,
+            @NotBlank String releaseId,
             int attemptNo);
 
     /**
-     * 中文说明：执行 findChunkCleanupCandidates 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the find chunk cleanup candidates operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 查询到期且可安全清理的不可变分块。
+     * English summary: Queries due immutable chunks that can be cleaned safely.
+     * <p>
+     * 用法 / Usage: 只有当前无待发布版本、无活跃草稿依赖且已有同作用域后继激活成功的旧分块才会返回。
+     * English summary: Only legacy chunks with no pending release in the group, no dependent active draft and a
+     * successfully activated successor in the same scope are returned.</p>
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.findChunkCleanupCandidates(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param successorActivatedBefore 参数 successorActivatedBefore；parameter successor activated before。
-     * @return 返回 findChunkCleanupCandidates 的处理结果；returns the result of the operation.
+     * @param successorActivatedBefore 后继激活的截止时间 / latest allowed successor activation instant
+     * @return 待清理分块 / chunks to clean
      */
     List<GatewayChunkCleanupCandidateBO> findChunkCleanupCandidates(
             Instant successorActivatedBefore);
 
     /**
-     * 中文说明：执行 resolveDocument 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the resolve document operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 记录已解析的文档正文、期望版本并把操作推进到 RESOLVED。
+     * English summary: Records the resolved document content and expected version and advances the operation to RESOLVED.
+     * <p>
+     * 用法 / Usage: 仅推进尚未成功的操作；已成功的操作不允许再次解析，未命中任何行时抛出异常。
+     * English summary: Only not-yet-successful operations advance; a successful operation cannot be resolved again and a
+     * write matching no row raises.</p>
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.resolveDocument(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param changeId 参数 changeId；parameter change id。
-     * @param expectedVersion 参数 expectedVersion；parameter expected version。
-     * @param documentContent 参数 documentContent；parameter document content。
-     * @param now 参数 now；parameter now。
+     * @param changeId        外部变更 ID / external change id
+     * @param expectedVersion 期望配置版本 / expected configuration version
+     * @param documentContent 文档正文 / document content
+     * @param now             解析时间 / resolution time
      */
     void resolveDocument(
-            String changeId,
+            @NotBlank String changeId,
             long expectedVersion,
             String documentContent,
             Instant now);
 
     /**
-     * 中文说明：执行 markSubmitted 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the mark submitted operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 把操作标记为已提交到外部引擎。
+     * English summary: Marks an operation as submitted to the external engine.
+     * <p>
+     * 用法 / Usage: 只有 RESOLVED 且已带期望版本的操作可提交，未命中时抛出异常。
+     * English summary: Only a RESOLVED operation carrying an expected version can be submitted; a miss raises.</p>
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.markSubmitted(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param changeId 参数 changeId；parameter change id。
-     * @param now 参数 now；parameter now。
+     * @param changeId 外部变更 ID / external change id
+     * @param now      提交时间 / submission time
      */
-    void markSubmitted(String changeId, Instant now);
+    void markSubmitted(@NotBlank String changeId, Instant now);
 
     /**
-     * 中文说明：执行 markResult 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the mark result operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 记录外部引擎操作结果并推进发布游标。
+     * English summary: Records an external engine result and advances the release cursor.
+     * <p>
+     * 用法 / Usage: 只接受终态结果，成功结果必须带目标版本；非终态或越界的当前状态抛出异常，未命中行同样抛出。
+     * English summary: Only terminal results are accepted and a successful result requires a target version; a
+     * non-terminal status or a state outside the accepted set raises, as does a write matching no row.</p>
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.markResult(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param changeId 参数 changeId；parameter change id。
-     * @param targetVersion 参数 targetVersion；parameter target version。
-     * @param status 参数 status；parameter status。
-     * @param errorCode 参数 errorCode；parameter error code。
-     * @param errorMessage 参数 error消息；parameter error message。
-     * @param now 参数 now；parameter now。
+     * @param changeId      外部变更 ID / external change id
+     * @param targetVersion 引擎目标版本 / engine target version
+     * @param status        外部结果状态 / external result status
+     * @param errorCode     错误码 / error code
+     * @param errorMessage  错误说明 / error message
+     * @param now           结果时间 / result time
      */
     void markResult(
-            String changeId,
+            @NotBlank String changeId,
             Long targetVersion,
             GatewayPublicationStatusEnum status,
             String errorCode,
@@ -140,20 +171,14 @@ public interface GatewayReleasePublicationRepository {
             Instant now);
 
     /**
-     * 中文说明：执行 markChunkCleaned 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the mark chunk cleaned operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
+     * 标记分块已成功清理。
+     * English summary: Marks a chunk as cleaned successfully.
+     * <p>
+     * 用法 / Usage: 仅命中已是 SUCCESS 且带目标版本的 CHUNK 阶段，未命中时抛出异常。
+     * English summary: Only a CHUNK phase already SUCCESS with a target version is matched; a miss raises.</p>
      *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationRepository.markChunkCleaned(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param changeId 参数 changeId；parameter change id。
-     * @param now 参数 now；parameter now。
+     * @param changeId 外部变更 ID / external change id
+     * @param now      清理时间 / cleanup time
      */
-    void markChunkCleaned(String changeId, Instant now);
-
-
-
-
-
-
-
-
+    void markChunkCleaned(@NotBlank String changeId, Instant now);
 }

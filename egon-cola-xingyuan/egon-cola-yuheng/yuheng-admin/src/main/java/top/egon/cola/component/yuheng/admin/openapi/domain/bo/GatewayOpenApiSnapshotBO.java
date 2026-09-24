@@ -59,7 +59,7 @@ public class GatewayOpenApiSnapshotBO {
      * 中文说明：按原持久化载体的构造契约逐项校验并规范化 {@code snapshot} 的业务字段，失败时抛出与原实现一致的 {@code IllegalArgumentException} 或 {@code NullPointerException}。
      * English summary: Validates and normalizes each business field of {@code snapshot} against the construction contract of the legacy carrier, raising the same {@code IllegalArgumentException} or {@code NullPointerException} the original implementation raised.
      *
-     * 用法 / Usage: 由 {@code JdbcGatewayOpenApiSnapshotRepository} 的写入与装载边界调用；/ Call it from the write and load boundaries of {@code JdbcGatewayOpenApiSnapshotRepository}.
+     * 用法 / Usage: 由 {@code MpGatewayOpenApiSnapshotRepository} 的写入与装载边界调用；/ Call it from the write and load boundaries of {@code MpGatewayOpenApiSnapshotRepository}.
      * @param snapshot 参数 快照；parameter snapshot。
      * @return 返回规范化后的同一载体；returns the same carrier after normalization.
      */
