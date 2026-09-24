@@ -16491,6 +16491,56 @@ never change behavior merely to eliminate a compile error; source/test assertion
 > 管理面租户 MDC 不在本 Step 发明，由 Step 9 已声明的 `GatewayPersistenceContextComponent` 承担（`GatewayCallEventV1` 不含租户）；
 > File 16/17（`GatewayCallEventIngestService`/`GatewayCallEventConsumerHandler`）经核对**无需改动**：同事务投影、
 > 成功后 `commitSync`、失败 rewind、毒记录先落库均已实现且已有测试保护；mapper XML 与 DAO 接口按 Step 7 先例（`McpTaskDAO.xml`）视为本 Step 的生成产物。
+>
+> **续做前必读的三条新证据（2026-09-24 复核，已改变本 Step 的判断）：**
+>
+> (A) **本 Step 是全模块第一处自定义 XML 语句。** 扫描 49 个 mapper XML 后确认：Step 5/6 迁移后**没有任何** XML 含
+> 非样板语句（只有 `selectActiveById`/`selectActiveByIds`/`deleteVersionedById`），即可表达的路径一律走
+> `Wrappers.lambdaQuery()` + 受守卫仓储。只有本 Step 的 5 类语句必须落 XML（`ON CONFLICT (event_id) DO NOTHING`、
+> 分钟累积 upsert 的 `GREATEST`/`EXCLUDED`、`date_trunc`+`percentile_cont`、审计的跨表 `EXISTS`、毒记录
+> `ON CONFLICT (topic,partition_no,offset_no)`）。**因此不要再尝试用 Wrapper 表达它们，也不要把可 Wrapper 化的查询
+> 硬写成 XML。** 已落盘的 `MpIdempotencyRepository` 用 `list(Wrappers.lambdaQuery())` 三列组合键、未新增
+> `selectByKey`，经核对是**正确**的（不是漏做），其 `IdempotencyDAO.xml` 保持样板即可。
+>
+> (B) **今日 Flyway schema 里没有 MP 列。** `V1..V13` 中只有 `V7`（MCP 控制面）含 `tenant_id`/`deleted_at`；
+> `gateway_group` 仍是 `id VARCHAR(64)` + `deleted BOOLEAN NOT NULL DEFAULT FALSE` + `created_at/updated_at`。
+> 也就是说 Step 3 的 49 个行模型指向的列要由 **Step 9「切换唯一 MP 数据源并建立空库受管DDL」** 才真正存在，
+> 本 Step 的模块测试全部 mock DAO、不触真实 SQL。结论：XML 一律按 **MP 列词表**（`tenant_id`/`deleted_at`/
+> `create_time`/`version`/bigint `id`）书写，被迁移的旧谓词 `deleted = FALSE` 必须改写为 `deleted_at IS NULL`，
+> 真实执行证明属于 Step 9 的 `*PersistenceIT`，在最终审计里记为 **Runtime unverified**，不得声称已验证。
+>
+> (C) **唯一仍未定的设计点：dashboard 的跨表聚合归属。** `project`/`recordFailure`/`traces`/`audits`/`deleteExpired`
+> 的语句都落在自己表的 DAO+XML 上，无争议；但 `dashboard` 额外读 `gateway_group`（分组计数）与
+> `gateway_release JOIN gateway_group`（发布成功率），这两张表由 `group`/`release` 子包拥有。三条可选路径：
+> ①分组计数改用 `group` 子包已有受守卫仓储 + `Wrappers`（`deleted_at`/`tenant_id` 由守卫补齐，最省且不新增 SQL）；
+> ②成功率两条 COUNT 写进 `GatewayCallEventSummaryDAO.xml`（把外表聚合塞进 summary 表，违背「一表一行模型」的所有权直觉）；
+> ③在 `observability` 下新建只读聚合 DAO+XML（新增文件，超出本 Step 声明的 19 个路径）。
+> **建议取 ①+②中最小者：分组计数走 ①，成功率因需 JOIN 走 ② 且只放这一条语句**，并在提交说明里把该跨表读取显式记为
+> 对本 Step 声明路径的补充说明；若你更倾向 ③，需要先批准新增文件。此项未定则 `MpGatewayObservabilityRepository`
+> 的 `dashboard` 不得凭猜测落笔。
+>
+> **已定的 DAO 自定义方法契约（Agent 与门面必须共用，勿另起名）：**
+> **【Step 8 复检 2026-09-24 / Step 8 re-inspection】** 三个 subagent 产物落盘后逐行核对，确认下列硬冲突（模块当前**不可编译**，因此 Step 8 仍为 PARKED，未产生 commit）：
+> ① **DAO 接口与 XML 绑定名不一致**：`GatewayCallEventSummaryDAO`/`GatewayAuditLogDAO` 被改写成扁平入参（`countTraces(env, namespace, traceId, protocol, statusCategory)`、`selectTracePage(..., limit, offset)`、`softDeleteExpired(now, tenantId, operatorId)`、`selectTracePage` 返回 `List<...PO>`），而两份 XML 实际绑定 `#{query.*}` 并以 `<constructor>` resultMap 直接产出 `GatewayTraceVO`/`GatewayAuditVO`。**收敛方向：以 XML + 门面已实现的查询对象契约为准**（即本条下方原始清单），重写两个 DAO 接口的自定义段与 javadoc `@param`。
+> ② **`ON CONFLICT DO NOTHING` + Java 侧 `catch (DuplicateKeyException)` 在 PostgreSQL 上是错误设计**：任何语句报错都会中止整个事务（`current transaction is aborted`），捕获后继续执行 `accumulate` 必然失败。故幂等写入**不能**走「受守卫 save + 捕获冲突」，也不该由门面手抄 `tenant_id`/雪花 `id`/`version`（自定义 XML 不经过 `EgonColaMetaObjectHandler` 盖章）。**决定：改为「先查后插」——以 `getBaseMapper().exists(Wrappers.lambdaQuery()...)` 判定重复后返回 false，首投才走受守卫 `save()`**；真并发窗口下仍可能抛冲突，但抛错只会导致重投、绝不双计，此为 Step 8 显式记录的行为差异。`project`/`recordFailure`/分钟桶三处同此模式。
+> ③ 由 ② 派生：`GatewayCallMetricMinuteDAO.accumulate` 的 `<insert>` 内 `#{row.id}/#{row.tenantId}/#{row.version}` 永不被盖章，**须改写为纯 `<update>` 增量语句**（新桶由守卫 `save()` 插入，仅已存在桶走 `accumulate`）；两份 `insertIfAbsent`（summary、consume failure）在该设计下确为死代码，删除。
+> ④ 仍缺两条 XML 语句：`GatewayCallMetricMinuteDAO.xml` 的 `selectProtocolCalls`（`GatewayProtocolCallDTO` 是 record，需 `<constructor>` resultMap，聚合列 `sum(request_count) AS value`）与 `GatewayCallEventSummaryDAO.xml` 的 `selectReleaseTotals`（旧 `gateway_release` 联 `gateway_group` 的 total/succeeded 计数，含 `deleted_at IS NULL` 于 select 正文）。
+> ⑤ 收尾顺序：改完 ①③④ 后跑 `./mvnw -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin test-compile` → `test`（预期约 294：原 295 减去退役的 JDBC 测试）→ `-Dtest=GatewayKafkaMpProjectionTest`；并把 `GatewayKafkaMpProjectionTest` 里 `contains(...)` 的 XML 文本断言按落盘 XML 的**真实换行**校准（当前按单行 SQL 书写，多半失配）。最后一次性 path-limited commit。
+>
+> `GatewayCallEventSummaryDAO`：`int insertIfAbsent(GatewayCallEventSummaryPO row)`、
+> `long countTraces(@Param("query") GatewayTraceQueryDTO query)`、
+> `List<GatewayTraceVO> selectTracePage(@Param("query") GatewayTraceQueryDTO query)`、
+> `List<GatewayRequestPointDTO> selectRequestSeries(@Param("env") String env, @Param("namespace") String namespace, @Param("since") Instant since)`、
+> `int softDeleteExpired(@Param("now") Instant now, @Param("tenantId") Long tenantId)`；
+> `GatewayCallMetricMinuteDAO`：`int accumulate(GatewayCallMetricMinutePO row)`；
+> `GatewayConsumeFailureDAO`：`int insertIfAbsent(GatewayConsumeFailureRecordPO row)`；
+> `GatewayAuditLogDAO`：`long countAudits(@Param("query") GatewayAuditQueryDTO query)`、
+> `List<GatewayAuditVO> selectAuditPage(@Param("query") GatewayAuditQueryDTO query)`。
+> 分页 `LIMIT/OFFSET` 由 `GatewayTraceQueryDTO/GatewayAuditQueryDTO` 的 `page/size` 在 XML 内以
+> `#{query.size}`/`#{query.offset}`（或新增只读 accessor）计算，**不得**用 `${}` 拼接。
+> 记录型 VO/DTO 必须用 `<resultMap><constructor>` 显式映射（MyBatis 不能按 resultType 构造 record），
+> 并把旧 Java 侧 `Math.round(getDouble(...))` 下推为 SQL `ROUND(...::numeric)::bigint`。
+> 全部写语句正文含 `tenant_id`、全部 `<select>` 正文含 `deleted_at IS NULL`、变更型方法不返回 `void`、只用 `#{}`。
 
 - Requirements: REQ-009, REQ-010, REQ-011, REQ-014, REQ-016
 - Dependencies: Step 7完成其声明的验证；全部前序模型/访问合同可用。
