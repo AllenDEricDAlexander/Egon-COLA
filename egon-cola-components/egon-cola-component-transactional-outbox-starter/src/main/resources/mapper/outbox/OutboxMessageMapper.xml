@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.outbox.persistence.dao.OutboxMessageDAO">
+    <resultMap id="outboxMessageResultMap" type="top.egon.cola.component.outbox.persistence.po.OutboxMessagePO" autoMapping="false">
+        <id column="id" property="id" javaType="java.lang.Long" jdbcType="BIGINT"/>
+        <result column="tenant_id" property="tenantId" javaType="java.lang.Long" jdbcType="BIGINT"/>
+        <result column="create_user_id" property="createUserId" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" javaType="java.time.Instant" jdbcType="TIMESTAMP_WITH_TIMEZONE"/>
+        <result column="update_user_id" property="updateUserId" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="update_time" property="updateTime" javaType="java.time.Instant" jdbcType="TIMESTAMP_WITH_TIMEZONE"/>
+        <result column="deleted_at" property="deletedAt" javaType="java.time.LocalDateTime" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version" javaType="java.lang.Long" jdbcType="BIGINT"/>
+        <result column="message_id" property="messageId" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="idempotency_key" property="idempotencyKey" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="message_fingerprint" property="messageFingerprint" javaType="java.lang.String" jdbcType="CHAR"/>
+        <result column="channel" property="channel" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="destination" property="destination" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="payload" property="payload" javaType="java.lang.String" jdbcType="LONGVARCHAR"/>
+        <result column="content_type" property="contentType" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="schema_version" property="schemaVersion" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="headers_json" property="headersJson" javaType="java.lang.String" jdbcType="LONGVARCHAR"/>
+        <result column="trace_id" property="traceId" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="status" property="status" javaType="top.egon.cola.component.outbox.store.OutboxStatus"
+                typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+        <result column="attempt_count" property="attemptCount" javaType="java.lang.Integer" jdbcType="INTEGER"/>
+        <result column="max_attempts" property="maxAttempts" javaType="java.lang.Integer" jdbcType="INTEGER"/>
+        <result column="next_attempt_at" property="nextAttemptAt" javaType="java.time.Instant" jdbcType="TIMESTAMP_WITH_TIMEZONE"/>
+        <result column="locked_by" property="lockedBy" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="locked_until" property="lockedUntil" javaType="java.time.Instant" jdbcType="TIMESTAMP_WITH_TIMEZONE"/>
+        <result column="last_error_code" property="lastErrorCode" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result column="last_error_message" property="lastErrorMessage" javaType="java.lang.String" jdbcType="LONGVARCHAR"/>
+        <result column="created_at" property="createdAt" javaType="java.time.Instant" jdbcType="TIMESTAMP_WITH_TIMEZONE"/>
+        <result column="updated_at" property="updatedAt" javaType="java.time.Instant" jdbcType="TIMESTAMP_WITH_TIMEZONE"/>
+        <result column="completed_at" property="completedAt" javaType="java.time.Instant" jdbcType="TIMESTAMP_WITH_TIMEZONE"/>
+    </resultMap>
+
+    <sql id="outboxMessageColumns">
+        id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
+        message_id, idempotency_key, message_fingerprint, channel, destination, payload, content_type,
+        schema_version, headers_json, trace_id, status, attempt_count, max_attempts, next_attempt_at,
+        locked_by, locked_until, last_error_code, last_error_message, created_at, updated_at, completed_at
+    </sql>
+
+    <insert id="insertMessage">
+        INSERT INTO egon_outbox.egon_cola_outbox_message (
+            id, message_id, idempotency_key, message_fingerprint, channel, destination,
+            payload, content_type, schema_version, headers_json, trace_id, status,
+            attempt_count, max_attempts, next_attempt_at, locked_by, locked_until,
+            last_error_code, last_error_message, created_at, updated_at, completed_at,
+            tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version
+        ) VALUES (
+            #{et.id}, #{et.messageId}, #{et.idempotencyKey,jdbcType=VARCHAR}, #{et.messageFingerprint},
+            #{et.channel}, #{et.destination}, #{et.payload,jdbcType=LONGVARCHAR}, #{et.contentType},
+            #{et.schemaVersion,jdbcType=VARCHAR}, #{et.headersJson,jdbcType=LONGVARCHAR},
+            #{et.traceId,jdbcType=VARCHAR}, #{et.status,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler},
+            #{et.attemptCount}, #{et.maxAttempts}, #{et.nextAttemptAt}, #{et.lockedBy,jdbcType=VARCHAR},
+            #{et.lockedUntil,jdbcType=TIMESTAMP_WITH_TIMEZONE}, #{et.lastErrorCode,jdbcType=VARCHAR},
+            #{et.lastErrorMessage,jdbcType=LONGVARCHAR}, clock_timestamp(), clock_timestamp(),
+            #{et.completedAt,jdbcType=TIMESTAMP_WITH_TIMEZONE}, #{et.tenantId}, #{et.createUserId},
+            #{et.createTime}, #{et.updateUserId}, #{et.updateTime}, #{et.deletedAt,jdbcType=TIMESTAMP}, #{et.version}
+        )
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <insert id="insertMigrationMessage">
+        INSERT INTO egon_outbox.egon_cola_outbox_message (
+            id, message_id, idempotency_key, message_fingerprint, channel, destination,
+            payload, content_type, schema_version, headers_json, trace_id, status,
+            attempt_count, max_attempts, next_attempt_at, locked_by, locked_until,
+            last_error_code, last_error_message, created_at, updated_at, completed_at,
+            tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version
+        ) VALUES (
+            #{et.id}, #{et.messageId}, #{et.idempotencyKey,jdbcType=VARCHAR}, #{et.messageFingerprint},
+            #{et.channel}, #{et.destination}, #{et.payload,jdbcType=LONGVARCHAR}, #{et.contentType},
+            #{et.schemaVersion,jdbcType=VARCHAR}, #{et.headersJson,jdbcType=LONGVARCHAR},
+            #{et.traceId,jdbcType=VARCHAR}, #{et.status,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler},
+            #{et.attemptCount}, #{et.maxAttempts}, #{et.nextAttemptAt}, #{et.lockedBy,jdbcType=VARCHAR},
+            #{et.lockedUntil,jdbcType=TIMESTAMP_WITH_TIMEZONE}, #{et.lastErrorCode,jdbcType=VARCHAR},
+            #{et.lastErrorMessage,jdbcType=LONGVARCHAR}, #{et.createdAt}, #{et.updatedAt},
+            #{et.completedAt,jdbcType=TIMESTAMP_WITH_TIMEZONE}, #{et.tenantId}, #{et.createUserId},
+            #{et.createTime}, #{et.updateUserId}, #{et.updateTime}, #{et.deletedAt,jdbcType=TIMESTAMP}, #{et.version}
+        )
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <select id="selectExistingByIdentity" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND (message_id = #{messageId}
+            OR (#{idempotencyKey,jdbcType=VARCHAR} IS NOT NULL AND idempotency_key = #{idempotencyKey,jdbcType=VARCHAR}))
+        ORDER BY id
+    </select>
+
+    <select id="selectDueForUpdate" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND ((status IN ('PENDING', 'RETRY_WAIT') AND next_attempt_at &lt;= clock_timestamp())
+            OR (status = 'PROCESSING' AND locked_until &lt; clock_timestamp()))
+        ORDER BY next_attempt_at, id
+        FOR UPDATE SKIP LOCKED
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByMessageIdsForUpdate" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND message_id IN
+        <foreach collection="messageIds" item="messageId" open="(" separator="," close=")">
+            #{messageId}
+        </foreach>
+          AND ((status IN ('PENDING', 'RETRY_WAIT') AND next_attempt_at &lt;= clock_timestamp())
+            OR (status = 'PROCESSING' AND locked_until &lt; clock_timestamp()))
+        ORDER BY next_attempt_at, id
+        FOR UPDATE SKIP LOCKED
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateClaim">
+        UPDATE egon_outbox.egon_cola_outbox_message
+        SET status = #{target,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler},
+            attempt_count = attempt_count + 1,
+            locked_by = #{owner},
+            locked_until = clock_timestamp() + (#{leaseMillis} * interval '1 millisecond'),
+            updated_at = clock_timestamp(),
+            update_user_id = #{updateUserId},
+            update_time = #{updateTime},
+            version = version + 1
+        WHERE id = #{id}
+          AND version = #{version}
+          AND status = #{source,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler}
+          AND tenant_id = 0
+          AND deleted_at IS NULL
+    </update>
+
+    <select id="selectProcessingForUpdate" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE id = #{id}
+          AND status = 'PROCESSING'
+          AND locked_by = #{owner}
+          AND tenant_id = 0
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <update id="updateSucceeded">
+        UPDATE egon_outbox.egon_cola_outbox_message
+        SET status = #{target,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler},
+            locked_by = NULL,
+            locked_until = NULL,
+            last_error_code = NULL,
+            last_error_message = NULL,
+            completed_at = clock_timestamp(),
+            updated_at = clock_timestamp(),
+            update_user_id = #{updateUserId},
+            update_time = #{updateTime},
+            version = version + 1
+        WHERE id = #{id}
+          AND version = #{version}
+          AND status = 'PROCESSING'
+          AND locked_by = #{owner}
+          AND tenant_id = 0
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateRetry">
+        UPDATE egon_outbox.egon_cola_outbox_message
+        SET status = #{target,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler},
+            next_attempt_at = clock_timestamp() + (#{delayMillis} * interval '1 millisecond'),
+            locked_by = NULL,
+            locked_until = NULL,
+            last_error_code = #{errorCode,jdbcType=VARCHAR},
+            last_error_message = #{errorMessage,jdbcType=LONGVARCHAR},
+            completed_at = NULL,
+            updated_at = clock_timestamp(),
+            update_user_id = #{updateUserId},
+            update_time = #{updateTime},
+            version = version + 1
+        WHERE id = #{id}
+          AND version = #{version}
+          AND status = 'PROCESSING'
+          AND locked_by = #{owner}
+          AND tenant_id = 0
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateDead">
+        UPDATE egon_outbox.egon_cola_outbox_message
+        SET status = #{target,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler},
+            locked_by = NULL,
+            locked_until = NULL,
+            last_error_code = #{errorCode,jdbcType=VARCHAR},
+            last_error_message = #{errorMessage,jdbcType=LONGVARCHAR},
+            completed_at = clock_timestamp(),
+            updated_at = clock_timestamp(),
+            update_user_id = #{updateUserId},
+            update_time = #{updateTime},
+            version = version + 1
+        WHERE id = #{id}
+          AND version = #{version}
+          AND status = 'PROCESSING'
+          AND locked_by = #{owner}
+          AND tenant_id = 0
+          AND deleted_at IS NULL
+    </update>
+
+    <select id="selectExpiredSucceededForUpdate" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND status = 'SUCCEEDED'
+          AND completed_at &lt; clock_timestamp() - (#{retentionMillis} * interval '1 millisecond')
+        ORDER BY completed_at, id
+        FOR UPDATE SKIP LOCKED
+        LIMIT #{limit}
+    </select>
+
+    <delete id="deleteSucceededByIds">
+        DELETE FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND status = 'SUCCEEDED'
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="countBacklog" resultType="long">
+        SELECT count(*)
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND status IN ('PENDING', 'PROCESSING', 'RETRY_WAIT')
+    </select>
+
+    <select id="selectMigrationPage" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND id &gt; #{afterId}
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectActiveById" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE id = #{id}
+          AND tenant_id = 0
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="outboxMessageResultMap">
+        SELECT <include refid="outboxMessageColumns"/>
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE tenant_id = 0
+          AND deleted_at IS NULL
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id
+    </select>
+</mapper>

@@ -1,5 +1,6 @@
 package top.egon.cola.component.outbox.store;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
 import top.egon.cola.component.common.core.enums.EgonEnum;
 
 public enum OutboxStatus implements EgonEnum {
@@ -10,6 +11,8 @@ public enum OutboxStatus implements EgonEnum {
     DEAD(4, "DEAD");
 
     private final int code;
+
+    @EnumValue
     private final String message;
 
     OutboxStatus(int code, String message) {
