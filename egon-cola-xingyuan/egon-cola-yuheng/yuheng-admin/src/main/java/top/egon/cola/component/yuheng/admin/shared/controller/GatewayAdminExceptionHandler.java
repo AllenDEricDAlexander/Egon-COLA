@@ -3,9 +3,9 @@ package top.egon.cola.component.yuheng.admin.shared.controller;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -181,9 +181,9 @@ public class GatewayAdminExceptionHandler {
      * @param error 参数 error；parameter error。
      * @return 返回 optimisticLock 的处理结果；returns the result of the operation.
      */
-    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<GatewayAdminErrorVO> optimisticLock(
-            ObjectOptimisticLockingFailureException error) {
+            OptimisticLockingFailureException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
                         "YUHENG_ADMIN_REVISION_CONFLICT",

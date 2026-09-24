@@ -1,0 +1,10 @@
+{
+  "family": "web",
+  "scripts": [
+    {
+      "version": "20260922_001",
+      "path": "db/egon-mp/20260922_001_yuheng_schema.sql",
+      "sha256": "75e0acbae654fb332e6cfe45d9b21b08ead3ac775d6bfc648455b700e9d8e606"
+    }
+  ]
+}
