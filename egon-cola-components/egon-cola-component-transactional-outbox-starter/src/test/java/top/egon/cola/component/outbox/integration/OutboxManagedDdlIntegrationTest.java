@@ -138,7 +138,10 @@ class OutboxManagedDdlIntegrationTest {
         Assertions.assertEquals(expectedTopology.fingerprint(), target.routeFingerprint());
         Assertions.assertNotSame(primary, target.dataSource());
         Assertions.assertTrue(initializer.isReadyFor(primary, expectedTopology.fingerprint()));
+        Assertions.assertSame(primary, initializer.physicalMetadataDataSource(expectedTopology.fingerprint()));
         Assertions.assertFalse(initializer.isReadyFor(mock(DataSource.class), expectedTopology.fingerprint()));
+        Assertions.assertThrows(IllegalStateException.class,
+                () -> initializer.physicalMetadataDataSource("a".repeat(64)));
     }
 
     @Test

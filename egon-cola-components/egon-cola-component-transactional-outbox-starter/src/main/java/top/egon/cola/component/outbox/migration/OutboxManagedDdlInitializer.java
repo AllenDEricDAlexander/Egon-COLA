@@ -105,6 +105,18 @@ public class OutboxManagedDdlInitializer {
                 && current.routeFingerprint().equals(routeFingerprint);
     }
 
+    /** Returns the retained physical PRIMARY only for read-only metadata checks after DDL readiness. */
+    public DataSource physicalMetadataDataSource(@NotBlank String routeFingerprint) {
+        if (routeFingerprint == null || routeFingerprint.isBlank()) {
+            throw new IllegalArgumentException("OUTBOX_DDL_ROUTE_FINGERPRINT_REQUIRED");
+        }
+        ReadinessBO current = readiness;
+        if (current == null || !current.routeFingerprint().equals(routeFingerprint)) {
+            throw new IllegalStateException("OUTBOX_DDL_READINESS_MISSING");
+        }
+        return current.primaryDataSource();
+    }
+
     private void validateStorageTopology() {
         if (shardingProperties.getMode() != ModeEnum.SHARDING
                 || shardingProperties.getConfigStyle() != ConfigStyleEnum.NATIVE
