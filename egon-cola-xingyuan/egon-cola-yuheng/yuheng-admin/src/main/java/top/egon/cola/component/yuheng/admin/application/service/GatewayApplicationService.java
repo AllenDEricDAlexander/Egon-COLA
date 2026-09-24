@@ -151,7 +151,7 @@ public class GatewayApplicationService {
                 actor.actorId(),
                 now
         );
-        applications.saveAndFlush(application);
+        applications.save(application);
         audit(actor, request, application.getId(), "CREATE", Map.of(
                 "bindingId", binding.bindingId(),
                 "bizCode", scope.bizCode(),
@@ -256,7 +256,7 @@ public class GatewayApplicationService {
                 actor.actorId(),
                 clock.instant()
         );
-        applications.flush();
+        application = applications.save(application);
         audit(actor, request, id, "UPDATE", Map.of(
                 "displayName", application.getDisplayName(),
                 "revision", application.getRevision()

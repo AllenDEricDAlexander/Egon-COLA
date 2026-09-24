@@ -208,7 +208,7 @@ public class GatewayGroupService {
                 actor.actorId(),
                 clock.instant()
         );
-        groups.flush();
+        group = groups.save(group);
         audit(
                 actor,
                 request,
@@ -245,7 +245,7 @@ public class GatewayGroupService {
             RequestAuditContext request) {
         GatewayGroupBO group = required(id);
         group.setEnabled(enabled, actor.actorId(), clock.instant());
-        groups.flush();
+        group = groups.save(group);
         audit(
                 actor,
                 request,

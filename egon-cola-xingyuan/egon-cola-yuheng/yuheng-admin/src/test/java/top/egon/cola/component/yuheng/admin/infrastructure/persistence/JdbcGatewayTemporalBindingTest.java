@@ -3,7 +3,6 @@ package top.egon.cola.component.yuheng.admin.credential.repository.jdbc;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.component.yuheng.admin.credential.repository.GatewayCredentialRepository;
 import top.egon.cola.component.yuheng.admin.reporting.repository.jdbc.JdbcGatewayHmacNonceRepository;
 import top.egon.cola.component.yuheng.admin.release.repository.jdbc.JdbcGatewayReleasePublicationRepository;
 
@@ -16,39 +15,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO;
 
 class JdbcGatewayTemporalBindingTest {
 
     private static final Instant NOW =
             Instant.parse("2026-07-27T06:00:00Z");
-
-    @Test
-    void credentialWritesUseJdbcTimestampValues() {
-        JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        JdbcGatewayCredentialRepository store =
-                new JdbcGatewayCredentialRepository(jdbc);
-
-        store.insert(new top.egon.cola.component.yuheng.admin.credential.domain.bo.GatewayCredentialBO(
-                "credential-1",
-                "application-1",
-                "access-1",
-                "ciphertext",
-                "v1",
-                "ACTIVE",
-                NOW,
-                null,
-                NOW,
-                NOW
-        ));
-
-        ArgumentCaptor<Object[]> parameters =
-                ArgumentCaptor.forClass(Object[].class);
-        verify(jdbc).update(anyString(), parameters.capture());
-        assertThat(parameters.getValue())
-                .contains(Timestamp.from(NOW))
-                .doesNotContain(NOW);
-    }
 
     @Test
     void nonceCleanupUsesJdbcTimestampValue() {

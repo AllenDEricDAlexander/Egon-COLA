@@ -1,6 +1,7 @@
 package top.egon.cola.component.yuheng.admin.catalog.repository;
 
 
+import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualHierarchyDTO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationDefinitionBO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.bo.GatewayOperationBO;
@@ -18,6 +19,7 @@ import java.util.Optional;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Validated
 public interface GatewayCatalogRepository {
 
     /**
