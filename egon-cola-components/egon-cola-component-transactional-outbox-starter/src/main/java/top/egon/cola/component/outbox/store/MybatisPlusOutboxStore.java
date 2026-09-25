@@ -136,13 +136,8 @@ public class MybatisPlusOutboxStore implements OutboxStore {
                 return false;
             }
             OutboxStatus target = lifecycle.evaluate(
-                    current.getStatus().getMessage(), OutboxLifecycleSignalEnum.DELIVERY_RETRYABLE,
+                    current.getStatus().getMessage(), OutboxLifecycleSignalEnum.SCHEDULE_RETRY,
                     current.getAttemptCount(), current.getMaxAttempts());
-            if (target == OutboxStatus.DEAD) {
-                return repository.updateDead(id, current.getVersion(), leaseOwner, target,
-                        sanitize(errorCode, 64), sanitize(errorMessage, 2000), clock.instant(),
-                        TECHNICAL_USER_ID) == 1;
-            }
             return repository.updateRetry(id, current.getVersion(), leaseOwner, target, delay.toMillis(),
                     sanitize(errorCode, 64), sanitize(errorMessage, 2000), clock.instant(),
                     TECHNICAL_USER_ID) == 1;
