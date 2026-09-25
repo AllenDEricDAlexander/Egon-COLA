@@ -9,6 +9,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 import top.egon.cola.component.outbox.persistence.OutboxSchemaMetadataValidator;
 import top.egon.cola.component.outbox.persistence.OutboxTechnicalContextExecutor;
 import top.egon.cola.component.outbox.persistence.converter.OutboxMessageConverter;
@@ -31,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /** Verifies that the MP insert model keeps the existing positive Snowflake primary-key contract. */
@@ -149,6 +152,21 @@ class OutboxLongPrimaryKeyTest {
                 "PROCESSING", OutboxLifecycleSignalEnum.SCHEDULE_RETRY, 3, 3);
     }
 
+    @Test
+    void migrationModeRejectsEnqueueBeforeConversionOrRepositoryWrite() {
+        OutboxMessageRepository repository = mock(OutboxMessageRepository.class);
+        OutboxMessageConverter converter = mock(OutboxMessageConverter.class);
+        OutboxLifecycleService lifecycle = mock(OutboxLifecycleService.class);
+        OutboxMpStorageProperties storageProperties = new OutboxMpStorageProperties().setMigrationMode(true);
+        MybatisPlusOutboxStore store = store(repository, converter, lifecycle,
+                mock(TransactionTemplate.class), storageProperties);
+
+        assertThatThrownBy(() -> store.enqueue(record("message-1", "key-1", "a".repeat(64))))
+                .isInstanceOf(OutboxConfigurationException.class)
+                .hasMessage("OUTBOX_MIGRATION_MODE");
+        verifyNoInteractions(converter, repository, lifecycle);
+    }
+
     private static MybatisPlusOutboxStore store(
             OutboxMessageRepository repository,
             OutboxMessageConverter converter
@@ -165,11 +183,21 @@ class OutboxLongPrimaryKeyTest {
             OutboxLifecycleService lifecycle,
             TransactionTemplate transaction
     ) {
+        return store(repository, converter, lifecycle, transaction, new OutboxMpStorageProperties());
+    }
+
+    private static MybatisPlusOutboxStore store(
+            OutboxMessageRepository repository,
+            OutboxMessageConverter converter,
+            OutboxLifecycleService lifecycle,
+            TransactionTemplate transaction,
+            OutboxMpStorageProperties storageProperties
+    ) {
         EgonColaMybatisPlusProperties properties = new EgonColaMybatisPlusProperties();
         return new MybatisPlusOutboxStore(repository, converter,
                 new OutboxTechnicalContextExecutor(properties), lifecycle,
                 transaction,
-                mock(OutboxSchemaMetadataValidator.class), Clock.systemUTC());
+                mock(OutboxSchemaMetadataValidator.class), Clock.systemUTC(), storageProperties);
     }
 
     private static OutboxMessagePO insertModel(NewOutboxRecord record) {

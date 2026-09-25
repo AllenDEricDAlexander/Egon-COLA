@@ -11,6 +11,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
+import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
 import top.egon.cola.component.outbox.common.exception.OutboxStorageException;
 import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
@@ -59,9 +61,15 @@ public class MybatisPlusOutboxStore implements OutboxStore {
     @Qualifier("egonColaMybatisPlusClock")
     private final Clock clock;
 
+    @Qualifier("outboxMpStorageProperties")
+    private final OutboxMpStorageProperties storageProperties;
+
     @Override
     public OutboxReceipt enqueue(@NotNull @Valid NewOutboxRecord record) {
         Objects.requireNonNull(record, "record");
+        if (storageProperties.isMigrationMode()) {
+            throw new OutboxConfigurationException("OUTBOX_MIGRATION_MODE");
+        }
         try {
             return technicalContext.execute(() -> {
                 OutboxMessagePO message = converter.toInsertPO(record);

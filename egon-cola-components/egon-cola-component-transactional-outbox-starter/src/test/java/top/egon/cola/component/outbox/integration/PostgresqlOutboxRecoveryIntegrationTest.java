@@ -9,6 +9,7 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.outbox.api.UuidOutboxIdGenerator;
+import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
 import top.egon.cola.component.outbox.deadletter.OutboxDeadLetterNotifier;
 import top.egon.cola.component.outbox.delivery.DefaultDeliveryFailureClassifier;
@@ -217,7 +218,8 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
                 Runnable::run,
                 properties,
                 context.getBean("outboxStateMachineClock", Clock.class),
-                context.getBean(OutboxLifecycleService.class)
+                context.getBean(OutboxLifecycleService.class),
+                context.getBean("outboxMpStorageProperties", OutboxMpStorageProperties.class)
         );
     }
 

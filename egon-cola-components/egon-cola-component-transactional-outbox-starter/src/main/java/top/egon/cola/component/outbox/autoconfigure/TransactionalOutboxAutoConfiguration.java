@@ -284,7 +284,8 @@ public class TransactionalOutboxAutoConfiguration {
             @Qualifier("outboxDeliveryExecutor") TaskExecutor taskExecutor,
             @Qualifier("outboxStateMachineOutboxProperties") TransactionalOutboxProperties properties,
             @Qualifier("outboxStateMachineClock") Clock clock,
-            @Qualifier("outboxLifecycleService") OutboxLifecycleService lifecycleService
+            @Qualifier("outboxLifecycleService") OutboxLifecycleService lifecycleService,
+            @Qualifier("outboxMpStorageProperties") ObjectProvider<OutboxMpStorageProperties> storageProperties
     ) {
         return new OutboxDispatcher(
                 store,
@@ -297,7 +298,8 @@ public class TransactionalOutboxAutoConfiguration {
                 taskExecutor,
                 properties,
                 clock,
-                lifecycleService
+                lifecycleService,
+                storageProperties.getIfAvailable(OutboxMpStorageProperties::new)
         );
     }
 

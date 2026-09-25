@@ -18,11 +18,20 @@ public class OutboxTechnicalContextExecutor {
 
     private static final String TECHNICAL_TENANT_ID = "0";
     private static final String TECHNICAL_USER_ID = "system:outbox";
+    private static final String MIGRATION_USER_ID = "system:outbox:migration";
 
     @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;
 
     public <T> T execute(@NotNull Supplier<T> action) {
+        return executeWithUser(action, TECHNICAL_USER_ID);
+    }
+
+    public <T> T executeMigration(@NotNull Supplier<T> action) {
+        return executeWithUser(action, MIGRATION_USER_ID);
+    }
+
+    private <T> T executeWithUser(Supplier<T> action, String userId) {
         if (action == null) {
             throw new IllegalArgumentException("OUTBOX_TECHNICAL_ACTION_REQUIRED");
         }
@@ -36,7 +45,7 @@ public class OutboxTechnicalContextExecutor {
         String previousUserId = MDC.get(userIdMdcKey);
         try {
             MDC.put(tenantMdcKey, TECHNICAL_TENANT_ID);
-            MDC.put(userIdMdcKey, TECHNICAL_USER_ID);
+            MDC.put(userIdMdcKey, userId);
             return action.get();
         } finally {
             restore(userIdMdcKey, previousUserId);

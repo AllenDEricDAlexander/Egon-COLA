@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
+import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
 import top.egon.cola.component.outbox.common.exception.OutboxStateMachineException;
 import top.egon.cola.component.outbox.deadletter.OutboxDeadLetterNotifier;
@@ -91,6 +92,8 @@ public class OutboxDispatcher {
     private final Clock clock;
     @Qualifier("outboxLifecycleService")
     private final OutboxLifecycleService lifecycleService;
+    @Qualifier("outboxMpStorageProperties")
+    private final OutboxMpStorageProperties storageProperties;
     private volatile Semaphore deliveryPermits;
     private final AtomicBoolean coordinatorScheduled = new AtomicBoolean();
     private final AtomicBoolean fullPollRequested = new AtomicBoolean();
@@ -124,11 +127,17 @@ public class OutboxDispatcher {
     }
 
     public void submitDue() {
+        if (storageProperties.isMigrationMode()) {
+            return;
+        }
         fullPollRequested.set(true);
         scheduleCoordinator();
     }
 
     public void submitMessageIds(Collection<String> messageIds) {
+        if (storageProperties.isMigrationMode()) {
+            return;
+        }
         if (messageIds == null || messageIds.isEmpty()) {
             return;
         }

@@ -23,6 +23,7 @@ import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingPropertie
 import top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardingDataSourceBootstrapper.LogicalDataSourceFactory;
 import top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardingTopologyValidator;
 import top.egon.cola.component.outbox.migration.OutboxLogicalDataSourceFactory;
+import top.egon.cola.component.outbox.migration.OutboxLegacyMigrationService;
 import top.egon.cola.component.outbox.migration.OutboxManagedDdlInitializer;
 import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 import top.egon.cola.component.outbox.persistence.OutboxSchemaMetadataValidator;
@@ -178,7 +179,28 @@ public class OutboxMybatisPlusAutoConfiguration {
         validateStoreInfrastructure(infrastructure, mybatisProperties, shardingProperties,
                 storageProperties, beanFactory);
         return new MybatisPlusOutboxStore(repository, converter, technicalContext, lifecycle,
-                workerTransaction, metadataValidator, clock);
+                workerTransaction, metadataValidator, clock, storageProperties);
+    }
+
+    @Bean("outboxLegacyMigrationService")
+    @ConditionalOnMissingBean(name = "outboxLegacyMigrationService")
+    @ConditionalOnProperty(prefix = "egon.cola.component.transactional-outbox", name = "enabled",
+            havingValue = "true", matchIfMissing = true)
+    public OutboxLegacyMigrationService outboxLegacyMigrationService(
+            @Qualifier("outboxManagedDdlInitializer") OutboxManagedDdlInitializer ddlInitializer,
+            @Qualifier("egonColaShardingRouteFingerprint") String routeFingerprint,
+            @Qualifier("outboxMessageRepository") OutboxMessageRepository repository,
+            @Qualifier("outboxMessageConverterImpl") OutboxMessageConverter converter,
+            @Qualifier("outboxHeadersConverter") OutboxHeadersConverter headersConverter,
+            @Qualifier("outboxMessageValidator") OutboxMessageValidator messageValidator,
+            @Qualifier("outboxTechnicalContextExecutor") OutboxTechnicalContextExecutor technicalContext,
+            @Qualifier("outboxMpStorageProperties") OutboxMpStorageProperties storageProperties,
+            @Qualifier("outboxWorkerTransactionTemplate") TransactionTemplate workerTransaction,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
+    ) {
+        return new OutboxLegacyMigrationService(
+                ddlInitializer, routeFingerprint, repository, converter, headersConverter, messageValidator,
+                technicalContext, storageProperties, workerTransaction, validationUtils);
     }
 
     private static void validateStoreInfrastructure(

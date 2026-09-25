@@ -2,6 +2,7 @@ package top.egon.cola.component.outbox.dispatch;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
 import top.egon.cola.component.outbox.deadletter.OutboxDeadLetterNotifier;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,10 +50,12 @@ class OutboxDispatcherTest {
     private final RecordingMetrics metrics = new RecordingMetrics();
     private final OutboxLifecycleService lifecycleService = mock(OutboxLifecycleService.class);
     private final List<OutboxDeadLetterEvent> deadEvents = new ArrayList<>();
+    private final AtomicInteger taskSubmissions = new AtomicInteger();
     private OutboxDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
+        taskSubmissions.set(0);
         TransactionalOutboxProperties properties = new TransactionalOutboxProperties();
         properties.getPolling().setBatchSize(10);
         properties.getPolling().setConcurrency(2);
@@ -67,6 +71,32 @@ class OutboxDispatcherTest {
                 new DeliveryHandlerRegistry(List.of(handler)),
                 properties
         );
+    }
+
+    @Test
+    void migrationModeDoesNotScheduleOrTouchTheStoreFromEitherEntryPoint() {
+        store.add(record(1, "message-1", "http", 1, 10));
+        TransactionalOutboxProperties properties = new TransactionalOutboxProperties();
+        OutboxMpStorageProperties storageProperties = new OutboxMpStorageProperties().setMigrationMode(true);
+        DeliveryHandlerRegistry registry = new DeliveryHandlerRegistry(List.of(handler));
+        OutboxDispatcher maintenanceDispatcher = dispatcher(registry, properties, storageProperties);
+
+        maintenanceDispatcher.submitDue();
+        maintenanceDispatcher.submitMessageIds(List.of("message-1"));
+
+        assertThat(store.claimDueCount).isZero();
+        assertThat(store.claimByMessageIdsCount).isZero();
+        assertThat(store.backlogCount).isZero();
+        assertThat(store.succeeded).isEmpty();
+        assertThat(store.retried).isEmpty();
+        assertThat(store.dead).isEmpty();
+        assertThat(handler.results).isEmpty();
+        assertThat(handler.deliveryCount).isZero();
+        assertThat(taskSubmissions).hasValue(0);
+        assertThat(metrics.deliveryCount).isZero();
+        assertThat(metrics.retryCount).isZero();
+        assertThat(metrics.deadCount).isZero();
+        assertThat(metrics.leaseLostCount).isZero();
     }
 
     @Test
@@ -209,6 +239,14 @@ class OutboxDispatcherTest {
             DeliveryHandlerRegistry registry,
             TransactionalOutboxProperties properties
     ) {
+        return dispatcher(registry, properties, new OutboxMpStorageProperties());
+    }
+
+    private OutboxDispatcher dispatcher(
+            DeliveryHandlerRegistry registry,
+            TransactionalOutboxProperties properties,
+            OutboxMpStorageProperties storageProperties
+    ) {
         return new OutboxDispatcher(
                 store,
                 registry,
@@ -217,10 +255,14 @@ class OutboxDispatcherTest {
                 new OutboxDeadLetterNotifier(List.of(deadEvents::add)),
                 metrics,
                 new OutboxWorkerIdentity("node-a"),
-                Runnable::run,
+                task -> {
+                    taskSubmissions.incrementAndGet();
+                    task.run();
+                },
                 properties,
                 Clock.fixed(Instant.parse("2026-07-24T12:00:00Z"), ZoneOffset.UTC),
-                lifecycleService
+                lifecycleService,
+                storageProperties
         );
     }
 
@@ -256,6 +298,7 @@ class OutboxDispatcherTest {
 
         private final Map<String, DeliveryResult> results = new LinkedHashMap<>();
         private final Map<String, Error> errors = new LinkedHashMap<>();
+        private int deliveryCount;
 
         @Override
         public String channel() {
@@ -268,6 +311,7 @@ class OutboxDispatcherTest {
 
         @Override
         public DeliveryResult deliver(DeliveryContext context) {
+            deliveryCount++;
             Error error = errors.get(context.messageId());
             if (error != null) {
                 throw error;
@@ -281,6 +325,7 @@ class OutboxDispatcherTest {
         private int leaseLostCount;
         private int retryCount;
         private int deadCount;
+        private int deliveryCount;
 
         @Override
         public void enqueue(boolean created) {
@@ -292,6 +337,7 @@ class OutboxDispatcherTest {
 
         @Override
         public void delivery(String channel, String result, Duration duration) {
+            deliveryCount++;
         }
 
         @Override
@@ -327,6 +373,9 @@ class OutboxDispatcherTest {
         private final List<String> dead = new ArrayList<>();
         private final Map<String, String> deadCodes = new LinkedHashMap<>();
         private boolean allowOwnerUpdate = true;
+        private int claimDueCount;
+        private int claimByMessageIdsCount;
+        private int backlogCount;
 
         void add(OutboxRecord... added) {
             records.addAll(List.of(added));
@@ -342,6 +391,7 @@ class OutboxDispatcherTest {
 
         @Override
         public List<OutboxRecord> claimDue(int limit, String leaseOwner, Duration leaseDuration) {
+            claimDueCount++;
             return records.stream().limit(limit).map(record -> withOwner(record, leaseOwner)).toList();
         }
 
@@ -352,6 +402,7 @@ class OutboxDispatcherTest {
                 String leaseOwner,
                 Duration leaseDuration
         ) {
+            claimByMessageIdsCount++;
             return records.stream()
                     .filter(record -> requestedIds.contains(record.messageId()))
                     .limit(limit)
@@ -403,6 +454,7 @@ class OutboxDispatcherTest {
 
         @Override
         public long countBacklog() {
+            backlogCount++;
             return records.size();
         }
 
