@@ -10,9 +10,11 @@ import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.outbox.dispatch.OutboxDispatcher;
 import top.egon.cola.component.outbox.dispatch.OutboxPoller;
 import top.egon.cola.component.outbox.store.OutboxStore;
+import top.egon.cola.component.outbox.statemachine.OutboxLifecycleService;
 import top.egon.cola.component.outbox.transaction.OutboxAfterCommitBuffer;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -23,6 +25,7 @@ class TransactionalOutboxAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(
                     OutboxMetricsAutoConfiguration.class,
                     TransactionalOutboxAutoConfiguration.class,
+                    OutboxStateMachineAutoConfiguration.class,
                     OutboxHttpAutoConfiguration.class,
                     OutboxRabbitAutoConfiguration.class
             ));
@@ -36,12 +39,16 @@ class TransactionalOutboxAutoConfigurationTest {
 
     @Test
     void shouldCreateOneCoreRuntimeForUniqueInfrastructure() {
-        configuredContext()
-                .run(context -> assertThat(context)
+        configuredContext().run(context -> {
+            assertThat(context)
                         .hasSingleBean(TransactionalOutbox.class)
                         .hasSingleBean(OutboxDispatcher.class)
                         .hasSingleBean(OutboxAfterCommitBuffer.class)
-                        .hasSingleBean(TransactionalMessageAop.class));
+                        .hasSingleBean(TransactionalMessageAop.class);
+            assertThat(context.getBean("outboxStateMachineOutboxProperties"))
+                    .isSameAs(context.getBean(TransactionalOutboxProperties.class));
+            assertThat(context).hasSingleBean(OutboxLifecycleService.class);
+        });
     }
 
     @Test
@@ -85,6 +92,7 @@ class TransactionalOutboxAutoConfigurationTest {
                         () -> mock(PlatformTransactionManager.class)
                 )
                 .withBean(ObjectMapper.class, ObjectMapper::new)
+                .withBean("egonColaMybatisPlusClock", Clock.class, Clock::systemUTC)
                 .withBean(OutboxStore.class, () -> mock(OutboxStore.class))
                 .withPropertyValues(
                         "egon.cola.component.transactional-outbox.storage.validate-schema=false",

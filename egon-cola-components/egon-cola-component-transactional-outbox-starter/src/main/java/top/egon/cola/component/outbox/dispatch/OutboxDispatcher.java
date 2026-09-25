@@ -1,9 +1,12 @@
 package top.egon.cola.component.outbox.dispatch;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
+import top.egon.cola.component.outbox.common.exception.OutboxStateMachineException;
 import top.egon.cola.component.outbox.deadletter.OutboxDeadLetterNotifier;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryFailureClassifier;
@@ -13,7 +16,10 @@ import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.component.outbox.event.OutboxDeadLetterEvent;
 import top.egon.cola.component.outbox.observability.OutboxMetrics;
 import top.egon.cola.component.outbox.retry.OutboxRetryPolicy;
+import top.egon.cola.component.outbox.statemachine.OutboxLifecycleService;
+import top.egon.cola.component.outbox.statemachine.OutboxLifecycleSignalEnum;
 import top.egon.cola.component.outbox.store.OutboxRecord;
+import top.egon.cola.component.outbox.store.OutboxStatus;
 import top.egon.cola.component.outbox.store.OutboxStore;
 
 import java.time.Clock;
@@ -21,57 +27,94 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Slf4j
+@RequiredArgsConstructor
 public class OutboxDispatcher {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OutboxDispatcher.class);
     private static final String HANDLER_MISSING = "OUTBOX_HANDLER_MISSING";
     private static final String DESTINATION_INVALID = "OUTBOX_DESTINATION_INVALID";
     private static final String RETRY_EXHAUSTED = "OUTBOX_RETRY_EXHAUSTED";
+    private static final Map<DeliveryResult.Kind, OutboxLifecycleSignalEnum> SIGNALS_BY_RESULT =
+            createSignalsByResult();
+    private static final Map<OutboxLifecycleSignalEnum, Set<OutboxStatus>> ALLOWED_TARGETS_BY_SIGNAL = Map.of(
+            OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED, Set.of(OutboxStatus.SUCCEEDED),
+            OutboxLifecycleSignalEnum.DELIVERY_RETRYABLE, Set.of(OutboxStatus.RETRY_WAIT, OutboxStatus.DEAD),
+            OutboxLifecycleSignalEnum.DELIVERY_PERMANENT, Set.of(OutboxStatus.DEAD)
+    );
+    private static final Map<OutboxStatus, OutboxLifecycleTargetAction> TARGET_ACTIONS = createTargetActions();
 
+    private static Map<DeliveryResult.Kind, OutboxLifecycleSignalEnum> createSignalsByResult() {
+        EnumMap<DeliveryResult.Kind, OutboxLifecycleSignalEnum> signals =
+                new EnumMap<>(DeliveryResult.Kind.class);
+        signals.put(DeliveryResult.Kind.SUCCESS, OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED);
+        signals.put(DeliveryResult.Kind.RETRYABLE_FAILURE, OutboxLifecycleSignalEnum.DELIVERY_RETRYABLE);
+        signals.put(DeliveryResult.Kind.PERMANENT_FAILURE, OutboxLifecycleSignalEnum.DELIVERY_PERMANENT);
+        return Collections.unmodifiableMap(signals);
+    }
+
+    private static Map<OutboxStatus, OutboxLifecycleTargetAction> createTargetActions() {
+        EnumMap<OutboxStatus, OutboxLifecycleTargetAction> actions = new EnumMap<>(OutboxStatus.class);
+        actions.put(OutboxStatus.SUCCEEDED, OutboxDispatcher::markSucceededTarget);
+        actions.put(OutboxStatus.RETRY_WAIT, OutboxDispatcher::markRetryTarget);
+        actions.put(OutboxStatus.DEAD, OutboxDispatcher::markDeadTarget);
+        return Collections.unmodifiableMap(actions);
+    }
+
+    @Qualifier("outboxStore")
     private final OutboxStore store;
+    @Qualifier("deliveryHandlerRegistry")
     private final DeliveryHandlerRegistry handlerRegistry;
+    @Qualifier("deliveryFailureClassifier")
     private final DeliveryFailureClassifier failureClassifier;
+    @Qualifier("outboxRetryPolicy")
     private final OutboxRetryPolicy retryPolicy;
+    @Qualifier("outboxDeadLetterNotifier")
     private final OutboxDeadLetterNotifier deadLetterNotifier;
+    @Qualifier("outboxMetrics")
     private final OutboxMetrics metrics;
+    @Qualifier("outboxWorkerIdentity")
     private final OutboxWorkerIdentity workerIdentity;
+    @Qualifier("outboxDeliveryExecutor")
     private final TaskExecutor taskExecutor;
+    @Qualifier("outboxStateMachineOutboxProperties")
     private final TransactionalOutboxProperties properties;
+    @Qualifier("outboxStateMachineClock")
     private final Clock clock;
-    private final Semaphore deliveryPermits;
+    @Qualifier("outboxLifecycleService")
+    private final OutboxLifecycleService lifecycleService;
+    private volatile Semaphore deliveryPermits;
     private final AtomicBoolean coordinatorScheduled = new AtomicBoolean();
     private final AtomicBoolean fullPollRequested = new AtomicBoolean();
     private final Object pendingMonitor = new Object();
     private final Set<String> pendingMessageIds = new LinkedHashSet<>();
 
-    public OutboxDispatcher(
-            OutboxStore store,
-            DeliveryHandlerRegistry handlerRegistry,
-            DeliveryFailureClassifier failureClassifier,
-            OutboxRetryPolicy retryPolicy,
-            OutboxDeadLetterNotifier deadLetterNotifier,
-            OutboxMetrics metrics,
-            OutboxWorkerIdentity workerIdentity,
-            TaskExecutor taskExecutor,
-            TransactionalOutboxProperties properties,
-            Clock clock
-    ) {
-        this.store = store;
-        this.handlerRegistry = handlerRegistry;
-        this.failureClassifier = failureClassifier;
-        this.retryPolicy = retryPolicy;
-        this.deadLetterNotifier = deadLetterNotifier;
-        this.metrics = metrics;
-        this.workerIdentity = workerIdentity;
-        this.taskExecutor = taskExecutor;
-        this.properties = properties;
-        this.clock = clock;
+    @PostConstruct
+    void initialize() {
+        initializeDeliveryPermits();
+    }
+
+    private Semaphore deliveryPermits() {
+        Semaphore permits = deliveryPermits;
+        if (permits == null) {
+            initializeDeliveryPermits();
+            permits = deliveryPermits;
+        }
+        return permits;
+    }
+
+    private synchronized void initializeDeliveryPermits() {
+        if (deliveryPermits != null) {
+            return;
+        }
         int capacity = Math.max(
                 1,
                 properties.getPolling().getConcurrency()
@@ -138,7 +181,7 @@ public class OutboxDispatcher {
             }
             coordinatorScheduled.set(false);
             metrics.wakeupRejected();
-            LOGGER.warn("Transactional outbox coordinator submission was rejected");
+            log.warn("Transactional outbox coordinator submission was rejected");
         }
     }
 
@@ -181,13 +224,13 @@ public class OutboxDispatcher {
         try {
             records = claimOperation.claim(reservedPermits);
         } catch (RuntimeException | Error failure) {
-            deliveryPermits.release(reservedPermits);
+            deliveryPermits().release(reservedPermits);
             throw failure;
         }
 
         int unusedPermits = reservedPermits - records.size();
         if (unusedPermits > 0) {
-            deliveryPermits.release(unusedPermits);
+            deliveryPermits().release(unusedPermits);
         }
         metrics.claimed(records.size());
         try {
@@ -202,7 +245,7 @@ public class OutboxDispatcher {
     private int reservePermits() {
         int reserved = 0;
         int batchSize = properties.getPolling().getBatchSize();
-        while (reserved < batchSize && deliveryPermits.tryAcquire()) {
+        while (reserved < batchSize && deliveryPermits().tryAcquire()) {
             reserved++;
         }
         return reserved;
@@ -216,15 +259,15 @@ public class OutboxDispatcher {
                 try {
                     deliver(record);
                 } finally {
-                    deliveryPermits.release();
+                    deliveryPermits().release();
                 }
             });
         } catch (RuntimeException exception) {
             if (started.get()) {
                 throw exception;
             }
-            deliveryPermits.release();
-            LOGGER.warn("Transactional outbox delivery submission was rejected");
+            deliveryPermits().release();
+            log.warn("Transactional outbox delivery submission was rejected");
         }
     }
 
@@ -280,7 +323,7 @@ public class OutboxDispatcher {
             metricResult = metricResult(result);
             applyResult(record, result);
         } catch (Error error) {
-            LOGGER.error(
+            log.error(
                     "Fatal transactional outbox delivery error for internal record {}",
                     record.id()
             );
@@ -299,25 +342,43 @@ public class OutboxDispatcher {
     }
 
     private void applyResult(OutboxRecord record, DeliveryResult result) {
-        switch (result.kind()) {
-            case SUCCESS -> transition(
-                    store.markSucceeded(record.id(), record.lockedBy()),
-                    record
-            );
-            case RETRYABLE_FAILURE -> applyRetryableFailure(record, result);
-            case PERMANENT_FAILURE -> markDead(
-                    record,
-                    sanitize(result.code(), 64),
-                    sanitize(result.message(), 512)
+        OutboxLifecycleSignalEnum signal = SIGNALS_BY_RESULT.get(result.kind());
+        if (signal == null) {
+            throw new OutboxStateMachineException(
+                    "OUTBOX_FSM_EXECUTION_FAILED",
+                    false,
+                    "No outbox lifecycle signal is registered for delivery result " + result.kind()
             );
         }
+        OutboxStatus target = lifecycleService.evaluate(
+                OutboxStatus.PROCESSING.getMessage(),
+                signal,
+                record.attemptCount(),
+                record.maxAttempts()
+        );
+        if (target == null || !ALLOWED_TARGETS_BY_SIGNAL.get(signal).contains(target)) {
+            throw unexpectedTarget(signal, target);
+        }
+        OutboxLifecycleTargetAction action = TARGET_ACTIONS.get(target);
+        if (action == null) {
+            throw unexpectedTarget(signal, target);
+        }
+        action.apply(this, record, result, signal);
     }
 
-    private void applyRetryableFailure(OutboxRecord record, DeliveryResult result) {
-        if (record.attemptCount() >= record.maxAttempts()) {
-            markDead(record, RETRY_EXHAUSTED, sanitize(result.code(), 512));
-            return;
-        }
+    private void markSucceededTarget(
+            OutboxRecord record,
+            DeliveryResult result,
+            OutboxLifecycleSignalEnum signal
+    ) {
+        transition(store.markSucceeded(record.id(), record.lockedBy()), record);
+    }
+
+    private void markRetryTarget(
+            OutboxRecord record,
+            DeliveryResult result,
+            OutboxLifecycleSignalEnum signal
+    ) {
         boolean updated = store.markRetry(
                 record.id(),
                 record.lockedBy(),
@@ -328,6 +389,30 @@ public class OutboxDispatcher {
         if (transition(updated, record)) {
             metrics.retry(record.channel());
         }
+    }
+
+    private void markDeadTarget(
+            OutboxRecord record,
+            DeliveryResult result,
+            OutboxLifecycleSignalEnum signal
+    ) {
+        boolean exhausted = signal == OutboxLifecycleSignalEnum.DELIVERY_RETRYABLE;
+        markDead(
+                record,
+                exhausted ? RETRY_EXHAUSTED : sanitize(result.code(), 64),
+                sanitize(exhausted ? result.code() : result.message(), 512)
+        );
+    }
+
+    private static OutboxStateMachineException unexpectedTarget(
+            OutboxLifecycleSignalEnum signal,
+            OutboxStatus target
+    ) {
+        return new OutboxStateMachineException(
+                "OUTBOX_FSM_EXECUTION_FAILED",
+                false,
+                "Unexpected outbox lifecycle target " + target + " for signal " + signal
+        );
     }
 
     private void markDead(OutboxRecord record, String errorCode, String errorMessage) {
@@ -355,7 +440,7 @@ public class OutboxDispatcher {
     private boolean transition(boolean updated, OutboxRecord record) {
         if (!updated) {
             metrics.leaseLost();
-            LOGGER.warn(
+            log.warn(
                     "Transactional outbox lease ownership was lost for internal record {}",
                     record.id()
             );
@@ -367,7 +452,7 @@ public class OutboxDispatcher {
         try {
             metrics.updateBacklog(store.countBacklog());
         } catch (RuntimeException exception) {
-            LOGGER.warn("Transactional outbox backlog measurement failed");
+            log.warn("Transactional outbox backlog measurement failed");
         }
     }
 
@@ -383,6 +468,17 @@ public class OutboxDispatcher {
             }
         });
         return sanitized.toString();
+    }
+
+    @FunctionalInterface
+    private interface OutboxLifecycleTargetAction {
+
+        void apply(
+                OutboxDispatcher dispatcher,
+                OutboxRecord record,
+                DeliveryResult result,
+                OutboxLifecycleSignalEnum signal
+        );
     }
 
     @FunctionalInterface

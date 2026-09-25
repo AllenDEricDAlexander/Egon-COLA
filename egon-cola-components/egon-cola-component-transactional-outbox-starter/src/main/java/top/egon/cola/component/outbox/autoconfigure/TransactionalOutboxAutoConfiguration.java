@@ -44,6 +44,7 @@ import top.egon.cola.component.outbox.retry.ExponentialJitterRetryPolicy;
 import top.egon.cola.component.outbox.retry.OutboxRetryPolicy;
 import top.egon.cola.component.outbox.serialization.JacksonOutboxMessageSerializer;
 import top.egon.cola.component.outbox.serialization.OutboxMessageSerializer;
+import top.egon.cola.component.outbox.statemachine.OutboxLifecycleService;
 import top.egon.cola.component.outbox.store.OutboxSchemaValidator;
 import top.egon.cola.component.outbox.store.OutboxStore;
 import top.egon.cola.component.outbox.transaction.DefaultTransactionalOutbox;
@@ -270,18 +271,20 @@ public class TransactionalOutboxAutoConfiguration {
         return scheduler;
     }
 
-    @Bean
+    @Bean("outboxDispatcher")
     @ConditionalOnMissingBean
     OutboxDispatcher outboxDispatcher(
-            OutboxStore store,
-            DeliveryHandlerRegistry handlerRegistry,
-            DeliveryFailureClassifier failureClassifier,
-            OutboxRetryPolicy retryPolicy,
-            OutboxDeadLetterNotifier deadLetterNotifier,
-            OutboxMetrics metrics,
-            OutboxWorkerIdentity workerIdentity,
+            @Qualifier("outboxStore") OutboxStore store,
+            @Qualifier("deliveryHandlerRegistry") DeliveryHandlerRegistry handlerRegistry,
+            @Qualifier("deliveryFailureClassifier") DeliveryFailureClassifier failureClassifier,
+            @Qualifier("outboxRetryPolicy") OutboxRetryPolicy retryPolicy,
+            @Qualifier("outboxDeadLetterNotifier") OutboxDeadLetterNotifier deadLetterNotifier,
+            @Qualifier("outboxMetrics") OutboxMetrics metrics,
+            @Qualifier("outboxWorkerIdentity") OutboxWorkerIdentity workerIdentity,
             @Qualifier("outboxDeliveryExecutor") TaskExecutor taskExecutor,
-            TransactionalOutboxProperties properties
+            @Qualifier("outboxStateMachineOutboxProperties") TransactionalOutboxProperties properties,
+            @Qualifier("outboxStateMachineClock") Clock clock,
+            @Qualifier("outboxLifecycleService") OutboxLifecycleService lifecycleService
     ) {
         return new OutboxDispatcher(
                 store,
@@ -293,7 +296,8 @@ public class TransactionalOutboxAutoConfiguration {
                 workerIdentity,
                 taskExecutor,
                 properties,
-                Clock.systemUTC()
+                clock,
+                lifecycleService
         );
     }
 

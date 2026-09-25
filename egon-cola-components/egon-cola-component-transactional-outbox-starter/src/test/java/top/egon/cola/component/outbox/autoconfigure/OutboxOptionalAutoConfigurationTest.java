@@ -14,6 +14,7 @@ import top.egon.cola.component.outbox.common.exception.OutboxConfigurationExcept
 import top.egon.cola.component.outbox.store.OutboxStore;
 
 import javax.sql.DataSource;
+import java.time.Clock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +27,7 @@ class OutboxOptionalAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(
                     OutboxMetricsAutoConfiguration.class,
                     TransactionalOutboxAutoConfiguration.class,
+                    OutboxStateMachineAutoConfiguration.class,
                     OutboxHttpAutoConfiguration.class,
                     OutboxRabbitAutoConfiguration.class
             ))
@@ -35,6 +37,7 @@ class OutboxOptionalAutoConfigurationTest {
                     () -> mock(PlatformTransactionManager.class)
             )
             .withBean(ObjectMapper.class, ObjectMapper::new)
+            .withBean("egonColaMybatisPlusClock", Clock.class, Clock::systemUTC)
             .withBean(OutboxStore.class, () -> mock(OutboxStore.class))
             .withPropertyValues(
                     "egon.cola.component.transactional-outbox.storage.validate-schema=false",

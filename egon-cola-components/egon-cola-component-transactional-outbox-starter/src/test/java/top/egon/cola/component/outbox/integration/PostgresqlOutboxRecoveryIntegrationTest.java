@@ -20,6 +20,7 @@ import top.egon.cola.component.outbox.dispatch.OutboxDispatcher;
 import top.egon.cola.component.outbox.dispatch.OutboxWorkerIdentity;
 import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 import top.egon.cola.component.outbox.serialization.JacksonOutboxMessageSerializer;
+import top.egon.cola.component.outbox.statemachine.OutboxLifecycleService;
 import top.egon.cola.component.outbox.store.OutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxStatus;
 import top.egon.cola.component.outbox.store.OutboxStore;
@@ -215,7 +216,8 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
                 new OutboxWorkerIdentity("node-a"),
                 Runnable::run,
                 properties,
-                Clock.systemUTC()
+                context.getBean("outboxStateMachineClock", Clock.class),
+                context.getBean(OutboxLifecycleService.class)
         );
     }
 

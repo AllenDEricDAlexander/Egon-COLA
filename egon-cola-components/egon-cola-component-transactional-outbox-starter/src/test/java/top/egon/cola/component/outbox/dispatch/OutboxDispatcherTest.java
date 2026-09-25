@@ -12,10 +12,13 @@ import top.egon.cola.component.outbox.delivery.DeliveryHandlerRegistry;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.component.outbox.event.OutboxDeadLetterEvent;
 import top.egon.cola.component.outbox.observability.OutboxMetrics;
+import top.egon.cola.component.outbox.common.exception.OutboxStateMachineException;
 import top.egon.cola.component.outbox.store.NewOutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxStatus;
 import top.egon.cola.component.outbox.store.OutboxStore;
+import top.egon.cola.component.outbox.statemachine.OutboxLifecycleService;
+import top.egon.cola.component.outbox.statemachine.OutboxLifecycleSignalEnum;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -29,12 +32,21 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class OutboxDispatcherTest {
 
     private final RecordingOutboxStore store = new RecordingOutboxStore();
     private final RecordingDeliveryHandler handler = new RecordingDeliveryHandler();
     private final RecordingMetrics metrics = new RecordingMetrics();
+    private final OutboxLifecycleService lifecycleService = mock(OutboxLifecycleService.class);
     private final List<OutboxDeadLetterEvent> deadEvents = new ArrayList<>();
     private OutboxDispatcher dispatcher;
 
@@ -44,6 +56,13 @@ class OutboxDispatcherTest {
         properties.getPolling().setBatchSize(10);
         properties.getPolling().setConcurrency(2);
         properties.getDelivery().setQueueCapacity(8);
+        when(lifecycleService.evaluate(anyString(), eq(OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED), anyInt(), anyInt()))
+                .thenReturn(OutboxStatus.SUCCEEDED);
+        when(lifecycleService.evaluate(anyString(), eq(OutboxLifecycleSignalEnum.DELIVERY_RETRYABLE), anyInt(), anyInt()))
+                .thenAnswer(invocation -> invocation.<Integer>getArgument(2)
+                        >= invocation.<Integer>getArgument(3) ? OutboxStatus.DEAD : OutboxStatus.RETRY_WAIT);
+        when(lifecycleService.evaluate(anyString(), eq(OutboxLifecycleSignalEnum.DELIVERY_PERMANENT), anyInt(), anyInt()))
+                .thenReturn(OutboxStatus.DEAD);
         dispatcher = dispatcher(
                 new DeliveryHandlerRegistry(List.of(handler)),
                 properties
@@ -52,7 +71,7 @@ class OutboxDispatcherTest {
 
     @Test
     void shouldMarkSuccessfulDeliveryWithCurrentOwner() {
-        store.add(record(1, "message-1", "http", 1, 10));
+        store.add(record(1, "message-1", "http", 11, 10));
         handler.results.put("message-1", DeliveryResult.success());
 
         dispatcher.dispatchDue();
@@ -60,6 +79,7 @@ class OutboxDispatcherTest {
         assertThat(store.succeeded).containsExactly("message-1");
         assertThat(store.retried).isEmpty();
         assertThat(store.dead).isEmpty();
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED, 11, 10);
     }
 
     @Test
@@ -73,6 +93,8 @@ class OutboxDispatcherTest {
         dispatcher.dispatchDue();
 
         assertThat(store.retried.get("message-1")).isEqualTo(Duration.ofSeconds(2));
+        assertThat(metrics.retryCount).isEqualTo(1);
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_RETRYABLE, 2, 10);
     }
 
     @Test
@@ -92,8 +114,11 @@ class OutboxDispatcherTest {
         assertThat(store.dead).containsExactly("poison");
         assertThat(store.deadCodes.get("poison")).isEqualTo("OUTBOX_RETRY_EXHAUSTED");
         assertThat(store.succeeded).containsExactly("healthy");
+        assertThat(metrics.deadCount).isEqualTo(1);
         assertThat(deadEvents).extracting(OutboxDeadLetterEvent::messageId)
                 .containsExactly("poison");
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_RETRYABLE, 10, 10);
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED, 1, 10);
     }
 
     @Test
@@ -105,6 +130,34 @@ class OutboxDispatcherTest {
         dispatcher.dispatchDue();
 
         assertThat(metrics.leaseLostCount).isEqualTo(1);
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED, 1, 10);
+    }
+
+    @Test
+    void shouldNotCountRetryWhenTheStoreRejectsTheOldOwner() {
+        store.add(record(1, "message-1", "http", 2, 10));
+        store.allowOwnerUpdate = false;
+        handler.results.put("message-1", DeliveryResult.retryableFailure("HTTP_503", "unavailable"));
+
+        dispatcher.dispatchDue();
+
+        assertThat(store.retried).isEmpty();
+        assertThat(metrics.retryCount).isZero();
+        assertThat(metrics.leaseLostCount).isEqualTo(1);
+    }
+
+    @Test
+    void shouldNotPublishDeadLetterWhenTheStoreRejectsTheOldOwner() {
+        store.add(record(1, "message-1", "http", 1, 10));
+        store.allowOwnerUpdate = false;
+        handler.results.put("message-1", DeliveryResult.permanentFailure("INVALID", "invalid"));
+
+        dispatcher.dispatchDue();
+
+        assertThat(store.dead).isEmpty();
+        assertThat(metrics.deadCount).isZero();
+        assertThat(metrics.leaseLostCount).isEqualTo(1);
+        assertThat(deadEvents).isEmpty();
     }
 
     @Test
@@ -117,6 +170,7 @@ class OutboxDispatcherTest {
         assertThat(store.succeeded).isEmpty();
         assertThat(store.retried).isEmpty();
         assertThat(store.dead).isEmpty();
+        org.mockito.Mockito.verifyNoInteractions(lifecycleService);
     }
 
     @Test
@@ -131,6 +185,24 @@ class OutboxDispatcherTest {
 
         assertThat(store.deadCodes.get("missing")).isEqualTo("OUTBOX_HANDLER_MISSING");
         assertThat(store.succeeded).containsExactly("healthy");
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_PERMANENT, 1, 10);
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED, 1, 10);
+    }
+
+    @Test
+    void shouldRejectUnexpectedLifecycleTargetBeforeWriting() {
+        store.add(record(1, "message-1", "http", 1, 10));
+        handler.results.put("message-1", DeliveryResult.success());
+        when(lifecycleService.evaluate(anyString(), eq(OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED), anyInt(), anyInt()))
+                .thenReturn(OutboxStatus.PROCESSING);
+
+        assertThatThrownBy(dispatcher::dispatchDue)
+                .isInstanceOf(OutboxStateMachineException.class);
+
+        assertThat(store.succeeded).isEmpty();
+        assertThat(store.retried).isEmpty();
+        assertThat(store.dead).isEmpty();
+        verify(lifecycleService).evaluate("PROCESSING", OutboxLifecycleSignalEnum.DELIVERY_SUCCEEDED, 1, 10);
     }
 
     private OutboxDispatcher dispatcher(
@@ -147,7 +219,8 @@ class OutboxDispatcherTest {
                 new OutboxWorkerIdentity("node-a"),
                 Runnable::run,
                 properties,
-                Clock.fixed(Instant.parse("2026-07-24T12:00:00Z"), ZoneOffset.UTC)
+                Clock.fixed(Instant.parse("2026-07-24T12:00:00Z"), ZoneOffset.UTC),
+                lifecycleService
         );
     }
 
@@ -206,6 +279,8 @@ class OutboxDispatcherTest {
     private static final class RecordingMetrics implements OutboxMetrics {
 
         private int leaseLostCount;
+        private int retryCount;
+        private int deadCount;
 
         @Override
         public void enqueue(boolean created) {
@@ -221,10 +296,12 @@ class OutboxDispatcherTest {
 
         @Override
         public void retry(String channel) {
+            retryCount++;
         }
 
         @Override
         public void dead(String channel) {
+            deadCount++;
         }
 
         @Override

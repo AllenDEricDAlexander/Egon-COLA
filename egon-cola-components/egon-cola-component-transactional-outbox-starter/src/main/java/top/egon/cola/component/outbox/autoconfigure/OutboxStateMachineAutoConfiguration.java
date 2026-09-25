@@ -77,6 +77,19 @@ public class OutboxStateMachineAutoConfiguration {
                     OutboxStateMachineProperties.PREFIX + "-" + OutboxStateMachineProperties.class.getName(),
                     "outboxStateMachineProperties"
             );
+            String[] outboxPropertiesNames = beanFactory.getBeanNamesForType(
+                    TransactionalOutboxProperties.class, true, false);
+            if (outboxPropertiesNames.length != 1) {
+                throw new OutboxConfigurationException(
+                        "Transactional outbox properties must have exactly one bean for state-machine alias"
+                );
+            }
+            registerAliasIfAvailable(
+                    beanFactory,
+                    aliases,
+                    outboxPropertiesNames[0],
+                    "outboxStateMachineOutboxProperties"
+            );
             registerAliasIfAvailable(beanFactory, aliases, "egonColaMybatisPlusClock", "outboxStateMachineClock");
             String objectMapperName = selectObjectMapper(beanFactory);
             if (objectMapperName != null) {
