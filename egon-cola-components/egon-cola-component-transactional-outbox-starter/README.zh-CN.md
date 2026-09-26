@@ -12,7 +12,7 @@ PostgreSQL 本地事务，再通过 HTTP、RabbitMQ 或自定义通道异步投�
 
 | 模块 | 用途 |
 |---|---|
-| `egon-cola-component-transactional-outbox-starter` | 公开 API、PostgreSQL/JDBC 存储、轮询、重试、清理、HTTP/RabbitMQ 适配、自动配置、指标、单测和集成测试 |
+| `egon-cola-component-transactional-outbox-starter` | CQE Outbox API、基于 MP 的 PostgreSQL 存储、技术与可选业务 Statemachine、轮询、重试、清理、投递适配、受管 DDL、维护迁移、指标和测试 |
 
 单测仍按组件包路径放在 `src/test/java` 下；集成测试和可执行示例统一放在
 `src/test/java/top/egon/cola/component/outbox/integration` 下，并通过 Maven
@@ -39,6 +39,108 @@ Failsafe 执行。
 可选的 `idempotencyKey` 会在对应记录仍保留时阻止重复 outbox 记录。同一个 key
 如果对应不同的消息内容会直接报冲突，不会静默接受；`availableAt` 不参与内容指纹。
 
+## 状态机与 CQE
+
+Starter 使用两个职责分离的 Spring Statemachine：
+
+| 状态机 | 所有者 | 决策范围 | 已提交事实的权威存储 |
+|---|---|---|---|
+| Outbox 生命周期 | 本 Starter，始终启用 | 是否允许入队、领取、回收、重试、完成或进入死信状态 | 基于 MP 的 `egon_outbox.egon_cola_outbox_message` 行 |
+| 业务事件 | 消费方应用，可选启用 | 已发生的业务事实能否推进已注册聚合状态 | 应用业务行与事件 receipt，在同一事务写入 |
+
+生命周期状态包括 `__NEW__`、`PENDING`、`PROCESSING`、`RETRY_WAIT`、`SUCCEEDED` 和
+`DEAD`。状态机决定迁移是否合法；数据库的 owner/version 条件仍决定哪个 worker
+可以提交。`DELIVERY_RETRYABLE` 根据尝试次数选择 `RETRY_WAIT` 或 `DEAD`。Store 的
+显式 `SCHEDULE_RETRY` 操作只负责在 Dispatcher 已决定目标状态后安排下一次重试。
+
+CQE 保持应用边界清晰：
+
+| 角色 | 职责 |
+|---|---|
+| `Command` | 校验并授权状态变更，在同一个本地事务更新业务聚合并 enqueue 由此产生的 Event |
+| `Query` | 只读取业务事实，不进入任一状态机，也不发布 Event |
+| `Event` | 记录已经发生的事实；outbox 负责可靠投递，`OutboxCommittedEvent` 仅用于本地唤醒 |
+
+### 可选的业务事件消费者
+
+`statemachine` 投递通道默认关闭。只有注册了应用自有定义及业务聚合持久化实现后，才启用：
+
+```yaml
+egon:
+  cola:
+    component:
+      transactional-outbox:
+        state-machine:
+          execution-timeout: 100ms
+          claim-evaluation-timeout: 1s
+          business:
+            enabled: true
+            timeout: 5s
+```
+
+| 配置键 | 默认值 | 含义 |
+|---|---:|---|
+| `egon.cola.component.transactional-outbox.state-machine.execution-timeout` | `100ms` | 一次内存状态迁移的最长执行时间 |
+| `egon.cola.component.transactional-outbox.state-machine.claim-evaluation-timeout` | `1s` | 技术消息领取状态决策的时间预算 |
+| `egon.cola.component.transactional-outbox.state-machine.business.enabled` | `false` | 仅为 `true` 时注册可选业务消费者 |
+| `egon.cola.component.transactional-outbox.state-machine.business.timeout` | `5s` | 单次业务迁移及事务的最长执行时间 |
+
+MyBatis-Plus Store 的受管结构与显式迁移配置如下：
+
+| 配置键 | 默认值 | 含义 |
+|---|---:|---|
+| `egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name` | `sqlSessionFactory` | Store 使用的 Common MP `SqlSessionFactory` |
+| `egon.cola.component.transactional-outbox.storage.mp.migration-mode` | `false` | 维护搬迁期间阻止本实例 enqueue 和调度投递 |
+| `egon.cola.component.transactional-outbox.storage.mp.migration-lock-timeout` | `30s` | 等待来源表维护锁的最长时间 |
+| `egon.cola.component.transactional-outbox.storage.mp.manifest-resource` | `db/egon-outbox-mp/manifest.json` | Common MP 加载的受管 DDL manifest |
+
+启用业务适配后，注册一个名为 `outboxBusinessStateMachineContextExecutor` 的
+`BusinessStateMachineContextExecutor` Bean，以及至少一个
+`BusinessStateMachineDefinitionStrategy`。每个定义提供唯一 destination
+`machineKey:definitionVersion`、每次创建全新且平面单 region 的
+`StateMachineFactory<String, String>`，以及应用自有的
+`BusinessStateMachineRepository`。定义应在开启业务事务前校验 payload。Factory
+不能返回缓存或已启动的状态机，不能使用 deferred events；状态 Action 不得产生数据库、网络或消息代理副作用。
+
+Repository 必须在事件 tenant 内锁定业务聚合，读取权威状态、版本和 receipt 指纹，并在一次事务中
+写入新状态/版本及已消费 `eventId` 的 receipt。`saveTransition` 应基于已加载版本执行 compare-and-set。
+Starter 不会为业务应用创建聚合表或 receipt 表。
+
+生产方在 Command 事务中通过现有 outbox 发送已发生的事实。`eventId` 是业务 receipt 身份；
+`OutboxMessage.messageId` 是传输身份，两者可以不同：
+
+```java
+BusinessStateMachineEvent event = BusinessStateMachineEvent.builder()
+        .eventId(eventId)
+        .tenantId(tenantId)
+        .machineKey("order-payment")
+        .definitionVersion(1)
+        .businessId(orderId)
+        .eventType("PAYMENT_CONFIRMED")
+        .expectedVersion(orderVersion)
+        .occurredAt(clock.instant())
+        .payload(objectMapper.createObjectNode().put("paymentReference", paymentReference))
+        .build();
+
+transactionalOutbox.enqueue(OutboxMessage.builder()
+        .idempotencyKey("payment-confirmed:" + eventId)
+        .channel("statemachine")
+        .destination("order-payment:1")
+        .contentType("application/json")
+        .schemaVersion("1")
+        .headers(Map.of(
+                "egon-event-id", event.getEventId(),
+                "egon-tenant-id", event.getTenantId().toString(),
+                "egon-machine-key", event.getMachineKey(),
+                "egon-definition-version", event.getDefinitionVersion().toString()))
+        .payload(event)
+        .build());
+```
+
+消费者先校验 envelope 与 tenant，再访问聚合。已持久化且指纹相同的 `eventId` 会在版本校验前返回成功；
+相同身份但内容不同属于永久冲突。未来版本可重试，过期版本属于永久失败。任何数据库或迁移错误都会回滚
+业务状态与 receipt，之后由既有 outbox 重试/死信流程处理。投递仍是 at-least-once，其他外部消费者仍需自行幂等。
+
 ## 不适用的场景
 
 以下需求不适合使用本组件：
@@ -49,7 +151,7 @@ Failsafe 执行。
 - 业务数据和 outbox 表位于不同数据库；
 - 需要 Inbox、管理后台、重放 API 或自动声明 Broker 拓扑。
 
-兼容边界是 Java 21、Spring Boot 3.5.x、PostgreSQL 和命令式 Spring JDBC。
+兼容边界是 Java 21、Spring Boot 3.5.x、PostgreSQL、Egon COLA MyBatis-Plus 和命令式 Spring 事务。
 组件不依赖 Redis。
 
 ## Maven 依赖
@@ -77,38 +179,111 @@ Failsafe 执行。
 </dependencies>
 ```
 
-应用还需要提供唯一的 `ObjectMapper`、JDBC `DataSource` 以及与之匹配的
-`PlatformTransactionManager`。只在使用 HTTP 投递时增加 `spring-web`，只在使用
-RabbitMQ 投递时增加 `spring-rabbit`。
+Starter 传递依赖 Common MP 扩展与 Spring Statemachine core。应用需要将 Common MP 配置为单个
+native PostgreSQL `PRIMARY`，并提供现有 MyBatis-Plus `SqlSessionFactory` 和匹配的
+`DataSourceTransactionManager`。业务写入和 enqueue 必须使用同一本地数据库事务。仅 HTTP 投递时
+增加 `spring-web`，仅 RabbitMQ 投递时增加 `spring-rabbit`。
 
 组件异常位于 `top.egon.cola.component.outbox.common.exception`，统一继承 common-core 的
 `CommonException`，因此各 starter 的 `getCode()`、`getStatus()` 与 `isRetryable()` 保持一致。
 Starter 仅在应用尚未定义时发布规范的 `egonColaValidationUtils` Bean，并注入自身的
 validator；这些 validator 继承 `BaseValidator`，并保留各自的协议校验。
 
-## PostgreSQL 迁移
+## 受管 MP Schema 与旧数据搬迁
 
-引入 starter **不会自动建表**，也不会替业务应用执行 Flyway。请复制：
+运行期 Store 使用 Egon COLA MyBatis-Plus 扩展，由 Starter 传递引入；不再保留 JDBC fallback。
+首次启动前先创建专用且为空的 PostgreSQL schema，并授予应用所需 DDL 权限：
 
-```text
-src/main/resources/
-db/transactional-outbox/postgresql/V1__create_transactional_outbox_schema.sql
+```sql
+CREATE SCHEMA egon_outbox;
 ```
 
-到消费应用自己的 `classpath:db` 迁移序列，并改成该应用的下一个 Flyway 版本，例如
-`V42__create_transactional_outbox_schema.sql`。不要直接把组件内文件放入自动扫描目录而
-不分配消费端自己的版本号。
+启动时，逻辑数据源 hook 会在创建 logical datasource 前，为唯一物理 `PRIMARY` 调用共享的
+`EgonColaPostgreDdlRunner`。唯一受管脚本是
+`db/egon-outbox-mp/V20260924_001__initialize_outbox_mp_schema.sql`，其校验清单为
+`db/egon-outbox-mp/manifest.json`（`family: component-outbox`）。Runner 创建/校验消息表与
+`ddl_history`，不发现或修改旧表。非空且没有有效受管历史的 schema 会快速失败。不要复制该脚本到
+应用迁移目录、编辑组件 SQL 或手工修复 checksum。
 
-启动时默认校验表结构；缺少预期表结构会快速失败。只有在其他地方完成结构校验时才建议关闭：
+Common MP 必须配置为单个 native PostgreSQL `PRIMARY`、`LOCAL` 事务，以及两条指向受管表的
+`SINGLE` route。下面 datasource 与 transaction-manager 必须是业务 Command 使用的同一数据源。
+合并配置时保留宿主现有 `ignored-tables` 和 mapper locations：
 
 ```yaml
 egon:
   cola:
     component:
       transactional-outbox:
+        enabled: true
         storage:
-          validate-schema: false
+          data-source-bean-name: orderDataSource
+          transaction-manager-bean-name: orderTransactionManager
+          validate-schema: true
+          mp:
+            sql-session-factory-bean-name: sqlSessionFactory
+            migration-mode: false
+            migration-lock-timeout: 30s
+            manifest-resource: db/egon-outbox-mp/manifest.json
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          ignored-tables:
+            - egon_cola_outbox_message
+        ddl:
+          enabled: true
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: NATIVE
+          transaction-default-type: LOCAL
+          native-rules-resource: classpath:sharding/outbox-native.yml
+      cache:
+        enabled: false # 仅适用于本来就没有缓存需求的新宿主。
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
 ```
+
+物理数据源凭据由宿主的 secret 配置管理。唯一 `PRIMARY` 的名称由宿主决定；native rules 必须把以下两张表
+准确路由到该主数据源和 schema：
+
+```yaml
+databaseName: egon
+rules:
+  - !SINGLE
+    tables:
+      - primary.egon_outbox.egon_cola_outbox_message
+      - primary.egon_outbox.ddl_history
+transaction:
+  defaultType: LOCAL
+```
+
+将示例 `primary` 替换为实际配置的 `PRIMARY` 名称。保留应用业务表的 route，不使用 `*.*.*`，运行期 mapper
+也不应读取旧来源 schema。只有新宿主确实没有缓存需求时才可设置 `cache.enabled: false`；已有宿主保留现有缓存配置。
+`mapper-locations` 必须覆盖 `mapper/outbox/OutboxMessageMapper.xml`，否则启动校验失败。
+
+如果存在旧数据，不要复制旧 `V1` 文件启动切换。保持
+`db/transactional-outbox/postgresql/V1__create_transactional_outbox_schema.sql` 不变，并将旧表保留在原 schema。
+旧 schema 仅作为显式、只读搬迁来源，不用于运行期 Store。
+
+受控搬迁时，先停止**所有**新旧生产者和 worker，并等待在途事务结束。随后在每个新实例启用
+`migration-mode: true`。该本地开关拒绝新的 `enqueue`、`submitDue` 和 `submitMessageIds` 调用；它不能停止其他副本或旧进程。
+受管 DDL 就绪后，使用 `OutboxLegacyMigrationService` 维护 Bean 和显式旧来源 schema：
+
+```java
+OutboxMigrationResult result = outboxLegacyMigrationService.migrate(
+        "legacy_outbox", 100, false);
+if (!result.isVerified()) {
+    throw new IllegalStateException("Do not switch traffic before verifying every outbox row");
+}
+```
+
+`verifyOnly: true` 只读比较。复制模式保留旧消息的全部 22 列，包括原始 payload/header 字符串、身份、指纹、五种状态、尝试次数、
+owner 和时间戳。目标额外设置技术 tenant `0`、搬迁审计身份、`deleted_at = NULL` 与 `version = 0`。每批独立提交。
+中断或提交结果未知时可以显式重试：完全匹配的身份会跳过；ID、message ID、key 或内容冲突会停止，且不会覆盖已有数据。
+只有完整比较来源与目标、确认没有缺失/多余/不同记录时 `verified` 才为真，单看行数不够。服务不会在启动时运行、清空来源或自动切换 `migration-mode`。
+
+只有报告验证通过且所有新消费者/定义都已就绪后，才部署 `migration-mode: false` 并重新启用生产者。保留旧表与 SQL 历史。
+新表开始接收写入前，可用旧应用版本和旧表回退；新写入开始后旧表就已过期，不能只改配置回退。先停写并向前核对修复。
 
 ## 直接 API 示例
 
@@ -210,8 +385,9 @@ egon:
           transaction-manager-bean-name: orderTransactionManager
 ```
 
-对于 `DataSourceTransactionManager`，启动校验还会检查事务管理器持有的就是选定
-`DataSource`。业务写入和 outbox 写入必须使用同一个数据库事务。
+启动校验会检查选定 `DataSourceTransactionManager` 持有 Common MP 选定的数据源，且指定的
+`SqlSessionFactory` 使用相同数据源及 `SpringManagedTransactionFactory`。业务写入和 outbox 写入必须处于同一个
+本地 PostgreSQL 事务；logical datasource 名称相同并不能证明跨库原子性。
 
 ## 核心运行配置
 
@@ -404,7 +580,7 @@ egon:
 
 ## PostgreSQL 集成测试
 
-默认 Maven Reactor 不连接开发机上的 PostgreSQL。需要验证真实 PostgreSQL 事务、租约、
+默认 Maven Reactor 不连接开发机上的 PostgreSQL。需要验证真实 PostgreSQL 事务、租约、旧数据复制/续跑、
 并发恢复和查询计划时，确保 Docker 可用并执行：
 
 ```bash
@@ -414,14 +590,15 @@ EGON_OUTBOX_TEST_POSTGRES_ENABLED=true ./mvnw -B -ntp \
 ```
 
 测试使用隔离的 PostgreSQL 16.6 Testcontainer，不读取本机 PostgreSQL 用户名或密码。
+`OutboxMpMigrationIntegrationTest` 也受该开关控制：`test-compile` 会编译它，但只有显式设置该环境变量才会执行。
 GitHub CI 的 `CI Backend` 任务为整个 Reactor 设置
 `EGON_OUTBOX_TEST_POSTGRES_ENABLED=true`，因此这组测试始终执行、不会 assume-skip；
 Docker 或数据库启动失败会使任务失败，不会静默跳过。
 
 ## 明确的支持边界
 
-支持：Java 21、Spring Boot 3.5.x、PostgreSQL、命令式 JDBC 事务、HTTP 投递、
-RabbitMQ 投递和自定义同步 handler。
+支持：Java 21、Spring Boot 3.5.x、PostgreSQL、基于 Egon MP Store 的命令式 Spring 事务、技术生命周期及可选业务 Statemachine、
+HTTP 投递、RabbitMQ 投递和自定义同步 handler。
 
-不支持：Reactive/R2DBC 事务、跨数据库事务、分布式事务、exactly-once、自动执行
-Flyway、Admin/UI、重放 API、Inbox 处理和自动声明 Broker 拓扑。
+不支持：Reactive/R2DBC 事务、跨数据库事务、分布式事务、exactly-once、自动旧数据搬迁或破坏性回滚、
+Admin/UI、重放 API、Inbox 处理和自动声明 Broker 拓扑。

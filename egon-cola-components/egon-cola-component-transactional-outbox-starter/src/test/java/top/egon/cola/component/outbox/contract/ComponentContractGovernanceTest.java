@@ -1,5 +1,6 @@
 package top.egon.cola.component.outbox.contract;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
@@ -27,10 +28,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +60,21 @@ class ComponentContractGovernanceTest {
     private static final Path MAIN_SOURCES = Path.of("src/main/java");
 
     private static final Path POM = Path.of("pom.xml");
+
+    private static final Path MANAGED_OUTBOX_SQL = Path.of(
+            "src/main/resources/db/egon-outbox-mp/V20260924_001__initialize_outbox_mp_schema.sql");
+
+    private static final Path MANAGED_OUTBOX_MANIFEST = Path.of(
+            "src/main/resources/db/egon-outbox-mp/manifest.json");
+
+    private static final Path LEGACY_OUTBOX_SQL = Path.of(
+            "src/main/resources/db/transactional-outbox/postgresql/V1__create_transactional_outbox_schema.sql");
+
+    private static final String LEGACY_OUTBOX_SQL_SHA256 =
+            "611d47e890618364c6c89d2967c4159ba5bde02756c52165799a6d6a0ca6b7f8";
+
+    private static final Pattern OUTBOX_CONFIG_KEY = Pattern.compile(
+            "`(egon\\.cola\\.component\\.transactional-outbox\\.[a-z0-9.-]+)`");
 
     private static final String OUTBOX_PACKAGE = "top.egon.cola.component.outbox";
 
@@ -324,6 +343,107 @@ class ComponentContractGovernanceTest {
                 .doesNotContain("RabbitTemplate")
                 .doesNotContain("RedisTemplate")
                 .doesNotContain("KafkaTemplate");
+    }
+
+    @Test
+    void technicalAndBusinessStateMachinesKeepSeparateOwnershipAndTheBusinessAdapterIsOptIn() throws Exception {
+        Path technicalRunnerPath = MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/statemachine/OutboxLifecycleService.java");
+        Path dispatcherPath = MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/dispatch/OutboxDispatcher.java");
+        Path businessServicePath = MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/statemachine/BusinessStateMachineService.java");
+        Path businessAutoConfigurationPath = MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/autoconfigure/OutboxBusinessStateMachineAutoConfiguration.java");
+        Path businessEventPath = MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/statemachine/BusinessStateMachineEvent.java");
+
+        assertThat(read(technicalRunnerPath)).contains("StateMachineExecutionService", "OutboxLifecycleStateMachineFactory");
+        assertThat(read(dispatcherPath)).contains("OutboxLifecycleService", "OutboxMpStorageProperties")
+                .doesNotContain("PostgresqlJdbcOutboxStore");
+        assertThat(read(businessServicePath)).contains(
+                "BusinessStateMachineDefinitionStrategy", "transactionTemplate.execute",
+                "definition.repository().lockAndLoad", "definition.repository().saveTransition", "appliedFingerprint");
+        assertThat(read(businessAutoConfigurationPath))
+                .contains(".business", "name = \"enabled\"", "havingValue = \"true\"")
+                .contains("outboxBusinessStateMachineDeliveryHandler");
+        assertThat(read(businessEventPath)).contains(
+                "eventId", "tenantId", "machineKey", "definitionVersion", "businessId", "eventType", "occurredAt");
+        assertThat(MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/store/PostgresqlJdbcOutboxStore.java")).doesNotExist();
+    }
+
+    @Test
+    void managedMpMigrationHasOneChecksummedVersionAndKeepsLegacySqlImmutable() throws Exception {
+        Path managedSql = MANAGED_OUTBOX_SQL;
+        Path manifest = MANAGED_OUTBOX_MANIFEST;
+        Path legacySql = LEGACY_OUTBOX_SQL;
+        byte[] sqlBytes = Files.readAllBytes(managedSql);
+        JsonNode root = new ObjectMapper().readTree(Files.readAllBytes(manifest));
+
+        assertThat(root.path("family").asText()).isEqualTo("component-outbox");
+        assertThat(root.path("scripts").isArray()).isTrue();
+        assertThat(root.path("scripts").size()).isEqualTo(1);
+        JsonNode script = root.path("scripts").get(0);
+        assertThat(script.path("version").asText()).isEqualTo("20260924_001");
+        assertThat(script.path("path").asText()).isEqualTo(
+                "db/egon-outbox-mp/V20260924_001__initialize_outbox_mp_schema.sql");
+        assertThat(script.path("sha256").asText()).isEqualTo(sha256(sqlBytes));
+        assertThat(sha256(Files.readAllBytes(legacySql))).isEqualTo(LEGACY_OUTBOX_SQL_SHA256);
+
+        String store = read(MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/store/MybatisPlusOutboxStore.java"));
+        String migration = read(MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/migration/OutboxLegacyMigrationService.java"));
+        String configuration = read(MAIN_SOURCES.resolve(
+                "top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfiguration.java"));
+        assertThat(store).contains("OutboxMessageRepository", "storageProperties.isMigrationMode()")
+                .doesNotContain("PostgresqlJdbcOutboxStore");
+        assertThat(migration).contains("LOCK TABLE", "READ_COMMITTED", "insertMigrationMessage",
+                "selectExistingByIdentity", "verifyAllRows", "verified");
+        assertThat(configuration).contains("outboxLegacyMigrationService", "OutboxLegacyMigrationService");
+        assertThat(Files.exists(MAIN_SOURCES.resolve("top/egon/cola/component/outbox/store/PostgresqlJdbcOutboxStore.java")))
+                .isFalse();
+    }
+
+    @Test
+    void englishAndChineseReadmesDocumentTheSameCqeMpAndMigrationKeys() throws Exception {
+        String english = read(Path.of("README.md"));
+        String chinese = read(Path.of("README.zh-CN.md"));
+        Set<String> englishKeys = documentedOutboxConfigKeys(english);
+        Set<String> chineseKeys = documentedOutboxConfigKeys(chinese);
+        Set<String> requiredKeys = Set.of(
+                "egon.cola.component.transactional-outbox.state-machine.execution-timeout",
+                "egon.cola.component.transactional-outbox.state-machine.claim-evaluation-timeout",
+                "egon.cola.component.transactional-outbox.state-machine.business.enabled",
+                "egon.cola.component.transactional-outbox.state-machine.business.timeout",
+                "egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name",
+                "egon.cola.component.transactional-outbox.storage.mp.migration-mode",
+                "egon.cola.component.transactional-outbox.storage.mp.migration-lock-timeout",
+                "egon.cola.component.transactional-outbox.storage.mp.manifest-resource");
+
+        assertThat(englishKeys).containsExactlyInAnyOrderElementsOf(requiredKeys);
+        assertThat(chineseKeys).containsExactlyInAnyOrderElementsOf(requiredKeys);
+        for (String readme : List.of(english, chinese)) {
+            assertThat(readme).contains("Command", "Query", "Event", "BusinessStateMachineEvent",
+                    "BusinessStateMachineDefinitionStrategy", "BusinessStateMachineRepository",
+                    "OutboxLegacyMigrationService", "verified", "egon_outbox");
+            assertThat(readme).doesNotContain("V42__create_transactional_outbox_schema.sql",
+                    "PostgreSQL/JDBC store", "PostgresqlJdbcOutboxStore");
+        }
+    }
+
+    private static String sha256(byte[] value) throws NoSuchAlgorithmException {
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value));
+    }
+
+    private static Set<String> documentedOutboxConfigKeys(String readme) {
+        Set<String> keys = new java.util.LinkedHashSet<>();
+        Matcher matcher = OUTBOX_CONFIG_KEY.matcher(readme);
+        while (matcher.find()) {
+            keys.add(matcher.group(1));
+        }
+        return Set.copyOf(keys);
     }
 
     // 算法第 6 行：消费者、反射名称与 README 同一步更新，旧路径零残留，包声明与目录一致。
