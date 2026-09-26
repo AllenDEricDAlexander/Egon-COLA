@@ -18,6 +18,7 @@ import top.egon.cola.component.outbox.autoconfigure.OutboxStateMachineAutoConfig
 import top.egon.cola.component.outbox.autoconfigure.OutboxStateMachineProperties;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfiguration;
 import top.egon.cola.component.outbox.common.exception.OutboxStateMachineException;
+import top.egon.cola.component.outbox.store.OutboxStore;
 import top.egon.cola.component.outbox.store.OutboxStatus;
 
 import javax.sql.DataSource;
@@ -206,6 +207,11 @@ class OutboxLifecycleServiceTest {
         @Bean
         com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
             return new com.fasterxml.jackson.databind.ObjectMapper();
+        }
+
+        @Bean
+        OutboxStore outboxStore() {
+            return org.mockito.Mockito.mock(OutboxStore.class);
         }
     }
 
