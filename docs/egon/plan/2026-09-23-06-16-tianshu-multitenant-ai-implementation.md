@@ -3649,9 +3649,9 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter`
-- Verification command: `mvn -q -Dtest=DdcTenantRedisKeyTest,DdcTenantCallbackTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
+- Validation working directory: repository root
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Dtest=DdcTenantRedisKeyTest,DdcTenantCallbackTest,DdcRedisKeysTest,DdcAutoConfigurationTest,DdcRegistrySubscriptionCoordinatorTest,DdcConfigLeaseRedisRepositoryTest,DdcRedisClusterSlotContractTest,DdcRedisRepositoryTest,DdcServiceRegistryRedisRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Expected result: Starter与Admin的所列9个聚焦测试GREEN；相关生产/测试源码编译退出0；租户、版本、否定分支、同slot与旧兼容断言均通过；当前计划阶段尚未运行。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
