@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package egon.tianshu.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.component.rpc.tianshu.contract.proto.v1";
+option java_outer_classname = "DdcAiResourceProto";
+
+service DdcAiResourceService {
+  rpc GetPrompt(AiResourceQuery) returns (AiPromptResult);
+  rpc GetSkill(AiResourceQuery) returns (AiSkillResult);
+}
+
+message AiResourceQuery {
+  string biz_code = 1;
+  string namespace_code = 2;
+  string env = 3;
+  string app_code = 4;
+  string resource_key = 5;
+  optional int64 version_no = 6;
+  optional string resource_id = 7;
+}
+
+enum AiNodeType {
+  AI_NODE_TYPE_UNSPECIFIED = 0;
+  DIRECTORY = 1;
+  FILE = 2;
+}
+
+message AiNode {
+  string path = 1;
+  AiNodeType node_type = 2;
+  optional string content = 3;
+}
+
+message AiPromptResult {
+  string resource_id = 1;
+  string resource_key = 2;
+  string version_id = 3;
+  int64 version_no = 4;
+  string content_sha256 = 5;
+  string template = 6;
+}
+
+message AiSkillResult {
+  string resource_id = 1;
+  string resource_key = 2;
+  string version_id = 3;
+  int64 version_no = 4;
+  string content_sha256 = 5;
+  repeated AiNode files = 6;
+}
