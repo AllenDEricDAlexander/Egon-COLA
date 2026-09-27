@@ -193,7 +193,9 @@ public class OutboxLegacyMigrationService {
     private void validateTargetNotStarted(int batchSize) {
         long afterId = 0;
         while (true) {
-            List<OutboxMessagePO> targetRows = repository.selectMigrationPage(afterId, batchSize);
+            long pageCursor = afterId;
+            List<OutboxMessagePO> targetRows = technicalContext.executeMigration(
+                    () -> repository.selectMigrationPage(pageCursor, batchSize));
             if (targetRows.isEmpty()) {
                 return;
             }
@@ -426,7 +428,9 @@ public class OutboxLegacyMigrationService {
                 }
             }
             if (!targetDone && targetIndex >= targetPage.size()) {
-                targetPage = repository.selectMigrationPage(targetCursor, batchSize);
+                long pageCursor = targetCursor;
+                targetPage = technicalContext.executeMigration(
+                        () -> repository.selectMigrationPage(pageCursor, batchSize));
                 targetIndex = 0;
                 if (targetPage.isEmpty()) {
                     targetDone = true;

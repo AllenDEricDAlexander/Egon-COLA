@@ -7,6 +7,10 @@ import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflict
 import top.egon.cola.component.outbox.store.NewOutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxStore;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CyclicBarrier;
@@ -47,12 +51,12 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
     }
 
     @Test
-    void shouldExposeRequiredSchemaAndUseClaimIndexes() {
+    void shouldExposeRequiredSchemaAndUseClaimIndexes() throws Exception {
         OutboxStore store = outboxStore();
         new TransactionTemplate(transactionManager).executeWithoutResult(status ->
                 IntStream.range(0, 1_000).forEach(index ->
                         store.enqueue(newRecord("plan-" + index))));
-        jdbcTemplate.update("""
+        physicalJdbcTemplate.update("""
                 update egon_outbox.egon_cola_outbox_message
                 set status = 'PROCESSING', locked_by = 'expired',
                     locked_until = clock_timestamp() - interval '1 second'
@@ -87,34 +91,41 @@ class PostgresqlOutboxQueryPlanIntegrationTest extends PostgresqlOutboxTestSuppo
                 "completed_at"
         );
 
-        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-            jdbcTemplate.execute("set local enable_seqscan = off");
-            String duePlan = explain("""
-                    select id
-                    from egon_outbox.egon_cola_outbox_message
-                    where status in ('PENDING', 'RETRY_WAIT')
-                      and next_attempt_at <= clock_timestamp()
-                    order by next_attempt_at, id
-                    limit 100
-                    """);
-            String reclaimPlan = explain("""
-                    select id
-                    from egon_outbox.egon_cola_outbox_message
-                    where status = 'PROCESSING'
-                      and locked_until < clock_timestamp()
-                    order by locked_until, id
-                    limit 100
-                    """);
-            assertThat(duePlan).contains("idx_outbox_claim");
-            assertThat(reclaimPlan).contains("idx_outbox_reclaim");
-        });
+        String duePlan = explain("""
+                select id
+                from egon_outbox.egon_cola_outbox_message
+                where status in ('PENDING', 'RETRY_WAIT')
+                  and next_attempt_at <= clock_timestamp()
+                order by next_attempt_at, id
+                limit 100
+                """);
+        String reclaimPlan = explain("""
+                select id
+                from egon_outbox.egon_cola_outbox_message
+                where status = 'PROCESSING'
+                  and locked_until < clock_timestamp()
+                order by locked_until, id
+                limit 100
+                """);
+        assertThat(duePlan).contains("idx_outbox_claim");
+        assertThat(reclaimPlan).contains("idx_outbox_reclaim");
     }
 
-    private String explain(String query) {
-        return jdbcTemplate.query(
-                "explain (format json) " + query,
-                resultSet -> resultSet.next() ? resultSet.getString(1) : ""
-        );
+    private String explain(String query) throws SQLException {
+        try (Connection connection = physicalJdbcTemplate.getDataSource().getConnection()) {
+            connection.setAutoCommit(false);
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("SET LOCAL enable_seqscan = off");
+                try (ResultSet result = statement.executeQuery("EXPLAIN (FORMAT JSON) " + query)) {
+                    String plan = result.next() ? result.getString(1) : "";
+                    connection.commit();
+                    return plan;
+                }
+            } catch (SQLException failure) {
+                connection.rollback();
+                throw failure;
+            }
+        }
     }
 
     private List<InsertOutcome> race(

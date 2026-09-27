@@ -52,12 +52,12 @@ public class OutboxMessageRepository extends EgonColaRepository<OutboxMessageDAO
         return getBaseMapper().selectExistingByIdentity(messageId, idempotencyKey);
     }
 
-    public List<OutboxMessagePO> selectDueForUpdate(@Min(1) @Max(10_000) int limit) {
+    public List<OutboxMessagePO> selectDueCandidates(@Min(1) @Max(10_000) int limit) {
         requireBatchLimit(limit);
-        return getBaseMapper().selectDueForUpdate(limit);
+        return getBaseMapper().selectDueCandidates(limit);
     }
 
-    public List<OutboxMessagePO> selectByMessageIdsForUpdate(
+    public List<OutboxMessagePO> selectByMessageIdsCandidates(
             @NotNull @Size(max = 10_000) Collection<@NotBlank @Size(max = 64) String> messageIds,
             @Min(1) @Max(10_000) int limit
     ) {
@@ -73,7 +73,11 @@ public class OutboxMessageRepository extends EgonColaRepository<OutboxMessageDAO
             return List.of();
         }
         requireBatchLimit(limit);
-        return getBaseMapper().selectByMessageIdsForUpdate(messageIds, limit);
+        return getBaseMapper().selectByMessageIdsCandidates(messageIds, limit);
+    }
+
+    public boolean tryAcquireTransactionLock(@Positive long id) {
+        return Boolean.TRUE.equals(getBaseMapper().tryAcquireTransactionLock(id));
     }
 
     public int updateClaim(
@@ -135,20 +139,21 @@ public class OutboxMessageRepository extends EgonColaRepository<OutboxMessageDAO
                 id, version, owner, target, errorCode, errorMessage, updateTime, updateUserId));
     }
 
-    public List<OutboxMessagePO> selectExpiredSucceededForUpdate(
+    public List<OutboxMessagePO> selectExpiredSucceededCandidates(
             @Min(0) long retentionMillis,
             @Min(1) @Max(10_000) int limit
     ) {
         requireBatchLimit(limit);
-        return getBaseMapper().selectExpiredSucceededForUpdate(retentionMillis, limit);
+        return getBaseMapper().selectExpiredSucceededCandidates(retentionMillis, limit);
     }
 
-    public int deleteSucceededByIds(@NotNull @Size(max = 10_000) Collection<@NotNull @Positive Long> ids) {
-        if (ids == null) {
-            throw new IllegalArgumentException("OUTBOX_MESSAGE_IDS_REQUIRED");
-        }
-        requireCollectionBound(ids.size());
-        return ids.isEmpty() ? 0 : getBaseMapper().deleteSucceededByIds(ids);
+    public int deleteSucceededByIdVersion(
+            @Positive long id,
+            @Min(0) long version,
+            @Min(0) long retentionMillis
+    ) {
+        return requireAtMostOne("deleteSucceededByIdVersion", getBaseMapper().deleteSucceededByIdVersion(
+                id, version, retentionMillis));
     }
 
     public long countBacklog() {

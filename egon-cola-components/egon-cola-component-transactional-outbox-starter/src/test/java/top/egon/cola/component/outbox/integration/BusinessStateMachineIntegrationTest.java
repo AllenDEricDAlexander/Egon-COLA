@@ -77,15 +77,6 @@ class BusinessStateMachineIntegrationTest extends PostgresqlOutboxTestSupport {
     static void createValidator() {
         validatorFactory = Validation.buildDefaultValidatorFactory();
         validationUtils = new ValidationUtils(validatorFactory.getValidator());
-    }
-
-    @AfterAll
-    static void closeValidator() {
-        validatorFactory.close();
-    }
-
-    @BeforeEach
-    void prepareBusinessFixture() {
         jdbcTemplate.execute("""
                 ALTER TABLE public.outbox_test_order
                     ADD COLUMN IF NOT EXISTS tenant_id bigint NOT NULL DEFAULT 7,
@@ -95,6 +86,15 @@ class BusinessStateMachineIntegrationTest extends PostgresqlOutboxTestSupport {
                     ADD COLUMN IF NOT EXISTS facts jsonb NOT NULL DEFAULT '{}'::jsonb,
                     ADD COLUMN IF NOT EXISTS applied_receipts jsonb NOT NULL DEFAULT '{}'::jsonb
                 """);
+    }
+
+    @AfterAll
+    static void closeValidator() {
+        validatorFactory.close();
+    }
+
+    @BeforeEach
+    void prepareBusinessFixture() {
         jdbcTemplate.update("""
                 INSERT INTO public.outbox_test_order
                     (id, state, tenant_id, business_id, definition_version, version, facts, applied_receipts)
@@ -379,7 +379,9 @@ class BusinessStateMachineIntegrationTest extends PostgresqlOutboxTestSupport {
 
     private int receiptCount() {
         return jdbcTemplate.queryForObject(
-                "SELECT jsonb_object_length(applied_receipts) FROM public.outbox_test_order WHERE id = 1",
+                "SELECT count(*) FROM public.outbox_test_order AS order_row "
+                        + "CROSS JOIN LATERAL jsonb_object_keys(order_row.applied_receipts) AS receipt(key) "
+                        + "WHERE order_row.id = 1",
                 Integer.class);
     }
 

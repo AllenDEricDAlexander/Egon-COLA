@@ -9,7 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
 
@@ -19,7 +18,6 @@ import java.time.Duration;
 @AllArgsConstructor
 @Accessors(chain = true)
 @Builder
-@Validated
 public class OutboxMpStorageProperties {
 
     public static final String PREFIX = "egon.cola.component.transactional-outbox.storage.mp";

@@ -1,6 +1,7 @@
 package top.egon.cola.component.outbox.store;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ import java.util.function.Supplier;
 public class MybatisPlusOutboxStore implements OutboxStore {
 
     private static final String TECHNICAL_USER_ID = "system:outbox";
+    private static final int MAX_CANDIDATE_LIMIT = 10_000;
 
     @Qualifier("outboxMessageRepository")
     private final OutboxMessageRepository repository;
@@ -73,6 +75,9 @@ public class MybatisPlusOutboxStore implements OutboxStore {
         try {
             return technicalContext.execute(() -> {
                 OutboxMessagePO message = converter.toInsertPO(record);
+                if (message.getNextAttemptAt() == null) {
+                    message.setNextAttemptAt(clock.instant());
+                }
                 message.setId(SnowflakeIdGenerator.nextLongId());
                 message.setStatus(lifecycle.evaluate(
                         OutboxLifecycleStateMachineFactory.NEW_STATE,
@@ -91,19 +96,19 @@ public class MybatisPlusOutboxStore implements OutboxStore {
     }
 
     @Override
-    public List<OutboxRecord> claimDue(@Positive int limit, @NotNull String leaseOwner,
+    public List<OutboxRecord> claimDue(@Positive @Max(10_000) int limit, @NotNull String leaseOwner,
                                       @NotNull Duration leaseDuration) {
         requireLease(leaseOwner, leaseDuration);
         return inWorkerTransaction("Failed to claim due outbox messages", () -> {
-            List<OutboxMessagePO> candidates = repository.selectDueForUpdate(limit);
-            return claim(candidates, leaseOwner, leaseDuration);
+            List<OutboxMessagePO> candidates = repository.selectDueCandidates(candidateScanLimit(limit));
+            return claim(candidates, limit, leaseOwner, leaseDuration);
         });
     }
 
     @Override
     public List<OutboxRecord> claimByMessageIds(
             Collection<String> messageIds,
-            @Positive int limit,
+            @Positive @Max(10_000) int limit,
             @NotNull String leaseOwner,
             @NotNull Duration leaseDuration
     ) {
@@ -112,8 +117,9 @@ public class MybatisPlusOutboxStore implements OutboxStore {
         }
         requireLease(leaseOwner, leaseDuration);
         return inWorkerTransaction("Failed to claim selected outbox messages", () -> {
-            List<OutboxMessagePO> candidates = repository.selectByMessageIdsForUpdate(messageIds, limit);
-            return claim(candidates, leaseOwner, leaseDuration);
+            List<OutboxMessagePO> candidates = repository.selectByMessageIdsCandidates(
+                    messageIds, candidateScanLimit(limit));
+            return claim(candidates, limit, leaseOwner, leaseDuration);
         });
     }
 
@@ -169,14 +175,25 @@ public class MybatisPlusOutboxStore implements OutboxStore {
     }
 
     @Override
-    public int deleteSucceeded(@NotNull Duration retention, @Positive int limit) {
+    public int deleteSucceeded(@NotNull Duration retention, @Positive @Max(10_000) int limit) {
         if (retention == null || retention.isNegative()) {
             throw new IllegalArgumentException("OUTBOX_RETENTION_INVALID");
         }
         return inWorkerTransaction("Failed to clean up outbox messages", () -> {
-            List<Long> expiredIds = repository.selectExpiredSucceededForUpdate(retention.toMillis(), limit)
-                    .stream().map(OutboxMessagePO::getId).toList();
-            return repository.deleteSucceededByIds(expiredIds);
+            List<OutboxMessagePO> candidates = repository.selectExpiredSucceededCandidates(
+                    retention.toMillis(), candidateScanLimit(limit));
+            int deleted = 0;
+            for (OutboxMessagePO candidate : candidates) {
+                if (deleted >= limit) {
+                    break;
+                }
+                if (!repository.tryAcquireTransactionLock(candidate.getId())) {
+                    continue;
+                }
+                deleted += repository.deleteSucceededByIdVersion(
+                        candidate.getId(), candidate.getVersion(), retention.toMillis());
+            }
+            return deleted;
         });
     }
 
@@ -190,9 +207,20 @@ public class MybatisPlusOutboxStore implements OutboxStore {
         metadataValidator.validate();
     }
 
-    private List<OutboxRecord> claim(List<OutboxMessagePO> candidates, String leaseOwner, Duration leaseDuration) {
-        java.util.ArrayList<OutboxRecord> claimed = new java.util.ArrayList<>(candidates.size());
+    private List<OutboxRecord> claim(
+            List<OutboxMessagePO> candidates,
+            int requestedLimit,
+            String leaseOwner,
+            Duration leaseDuration
+    ) {
+        java.util.ArrayList<OutboxRecord> claimed = new java.util.ArrayList<>(Math.min(requestedLimit, candidates.size()));
         for (OutboxMessagePO candidate : candidates) {
+            if (claimed.size() >= requestedLimit) {
+                break;
+            }
+            if (!repository.tryAcquireTransactionLock(candidate.getId())) {
+                continue;
+            }
             OutboxLifecycleSignalEnum signal = candidate.getStatus() == OutboxStatus.PROCESSING
                     ? OutboxLifecycleSignalEnum.RECLAIM : OutboxLifecycleSignalEnum.CLAIM;
             OutboxStatus target = lifecycle.evaluate(candidate.getStatus().getMessage(), signal,
@@ -210,6 +238,10 @@ public class MybatisPlusOutboxStore implements OutboxStore {
             claimed.add(toRecord(updated));
         }
         return List.copyOf(claimed);
+    }
+
+    private int candidateScanLimit(int requestedLimit) {
+        return (int) Math.min(MAX_CANDIDATE_LIMIT, (long) requestedLimit * 4L);
     }
 
     private OutboxReceipt resolveExisting(NewOutboxRecord record) {

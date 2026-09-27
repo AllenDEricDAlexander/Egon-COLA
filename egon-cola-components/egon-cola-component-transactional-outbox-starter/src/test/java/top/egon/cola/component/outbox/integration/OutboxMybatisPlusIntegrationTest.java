@@ -3,8 +3,10 @@ package top.egon.cola.component.outbox.integration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
+import org.springframework.aop.support.AopUtils;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
+import top.egon.cola.component.outbox.store.MybatisPlusOutboxStore;
 import top.egon.cola.component.outbox.store.NewOutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxStatus;
@@ -30,8 +32,7 @@ class OutboxMybatisPlusIntegrationTest extends PostgresqlOutboxTestSupport {
     void shouldPersistAndTransitionThroughManagedMpStoreWhileRestoringTenantContext() {
         assertThat(context).isNotNull();
         assertThat(context.containsBean("outboxSchemaValidator")).isTrue();
-        assertThat(store.getClass().getName())
-                .isEqualTo("top.egon.cola.component.outbox.store.MybatisPlusOutboxStore");
+        assertThat(AopUtils.getTargetClass(store)).isEqualTo(MybatisPlusOutboxStore.class);
         MDC.put("tenantId", "42");
         MDC.put("userId", "business-user");
         try {
@@ -68,8 +69,8 @@ class OutboxMybatisPlusIntegrationTest extends PostgresqlOutboxTestSupport {
                     """);
             OutboxRecord retried = store.claimDue(1, "worker-mp:lease-2", Duration.ofSeconds(60)).getFirst();
             assertThat(retried.attemptCount()).isEqualTo(2);
-            assertThat(store.markRetry(retried.id(), "worker-mp:lease-2", Duration.ZERO,
-                    "TEMPORARY", "retry budget exhausted")).isTrue();
+            assertThat(store.markDead(retried.id(), "worker-mp:lease-2",
+                    "OUTBOX_RETRY_EXHAUSTED", "retry budget exhausted")).isTrue();
             assertThat(jdbcTemplate.queryForObject("""
                     select status from egon_outbox.egon_cola_outbox_message where message_id = 'message-mp-1'
                     """, String.class)).isEqualTo(OutboxStatus.DEAD.getMessage());

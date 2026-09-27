@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -16,11 +17,14 @@ import top.egon.cola.component.outbox.annotation.TransactionalMessage;
 import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.outbox.autoconfigure.OutboxHttpAutoConfiguration;
 import top.egon.cola.component.outbox.autoconfigure.OutboxMetricsAutoConfiguration;
+import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
+import top.egon.cola.component.outbox.autoconfigure.OutboxStateMachineAutoConfiguration;
 import top.egon.cola.component.outbox.autoconfigure.OutboxRabbitAutoConfiguration;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfiguration;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
+import top.egon.cola.component.outbox.store.OutboxStore;
 import top.egon.cola.component.outbox.common.exception.OutboxMessageResolutionException;
 import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 
@@ -56,7 +60,7 @@ class TransactionalMessageAnnotationSampleTest extends PostgresqlOutboxTestSuppo
                     Integer.class
             )).isEqualTo(1);
             assertThat(jdbcTemplate.queryForObject(
-                    "select count(*) from egon_cola_outbox_message",
+                    "select count(*) from egon_outbox.egon_cola_outbox_message",
                     Integer.class
             )).isEqualTo(1);
 
@@ -67,7 +71,7 @@ class TransactionalMessageAnnotationSampleTest extends PostgresqlOutboxTestSuppo
                     Integer.class
             )).isZero();
             assertThat(jdbcTemplate.queryForObject(
-                    "select count(*) from egon_cola_outbox_message",
+                    "select count(*) from egon_outbox.egon_cola_outbox_message",
                     Integer.class
             )).isEqualTo(1);
         });
@@ -76,15 +80,22 @@ class TransactionalMessageAnnotationSampleTest extends PostgresqlOutboxTestSuppo
     private ApplicationContextRunner contextRunner() {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
+                        ConfigurationPropertiesAutoConfiguration.class,
                         AopAutoConfiguration.class,
                         TransactionAutoConfiguration.class,
                         OutboxMetricsAutoConfiguration.class,
                         TransactionalOutboxAutoConfiguration.class,
+                        OutboxStateMachineAutoConfiguration.class,
                         OutboxHttpAutoConfiguration.class,
                         OutboxRabbitAutoConfiguration.class
                 ))
                 .withUserConfiguration(AnnotationSampleConfiguration.class)
                 .withBean("dataSource", DataSource.class, () -> dataSource)
+                .withBean("outboxStore", OutboxStore.class, PostgresqlOutboxTestSupport::outboxStore)
+                .withBean("outboxMpStorageProperties", OutboxMpStorageProperties.class,
+                        OutboxMpStorageProperties::new)
+                .withBean("egonColaMybatisPlusClock", java.time.Clock.class,
+                        () -> context.getBean("egonColaMybatisPlusClock", java.time.Clock.class))
                 .withBean(
                         "transactionManager",
                         PlatformTransactionManager.class,

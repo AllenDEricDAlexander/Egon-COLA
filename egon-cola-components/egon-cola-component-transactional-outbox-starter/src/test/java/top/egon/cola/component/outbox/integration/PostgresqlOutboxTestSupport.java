@@ -44,6 +44,7 @@ abstract class PostgresqlOutboxTestSupport {
         if (!postgresql.isRunning()) {
             postgresql.start();
         }
+        new JdbcTemplate(containerDataSource(postgresql)).execute("CREATE SCHEMA IF NOT EXISTS egon_outbox");
         PGSimpleDataSource physicalDataSource = containerDataSource(postgresql);
         physicalDataSource.setCurrentSchema("egon_outbox");
         physicalJdbcTemplate = new JdbcTemplate(physicalDataSource);
@@ -85,12 +86,15 @@ abstract class PostgresqlOutboxTestSupport {
         properties.put("egon.cola.component.transactional-outbox.annotation.enabled", "false");
         properties.put("egon.cola.component.transactional-outbox.polling.enabled", "false");
         properties.put("egon.cola.component.transactional-outbox.storage.validate-schema", "true");
-        properties.put("egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name", "sqlSessionFactory");
-
         context = new SpringApplicationBuilder(TestApplication.class)
                 .web(WebApplicationType.NONE)
                 .properties(properties)
-                .run();
+                .run(
+                        "--egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name=sqlSessionFactory",
+                        "--egon.cola.component.transactional-outbox.storage.mp.migration-mode=false",
+                        "--egon.cola.component.transactional-outbox.storage.mp.migration-lock-timeout=30s",
+                        "--egon.cola.component.transactional-outbox.storage.mp.manifest-resource=db/egon-outbox-mp/manifest.json"
+                );
         dataSource = context.getBean(DataSource.class);
         jdbcTemplate = new JdbcTemplate(dataSource);
         transactionManager = context.getBean(PlatformTransactionManager.class);
@@ -153,7 +157,8 @@ abstract class PostgresqlOutboxTestSupport {
     }
 
     @org.springframework.boot.SpringBootConfiguration
-    @EnableAutoConfiguration
+    @EnableAutoConfiguration(excludeName =
+            "top.egon.cola.component.common.cache.autoconfigure.EgonColaCacheAutoConfiguration")
     static class TestApplication {
     }
 

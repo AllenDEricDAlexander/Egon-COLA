@@ -1,5 +1,9 @@
 package top.egon.cola.component.outbox.store;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 
 import java.time.Duration;
@@ -8,30 +12,34 @@ import java.util.List;
 
 public interface OutboxStore {
 
-    OutboxReceipt enqueue(NewOutboxRecord record);
+    OutboxReceipt enqueue(@NotNull @Valid NewOutboxRecord record);
 
-    List<OutboxRecord> claimDue(int limit, String leaseOwner, Duration leaseDuration);
+    List<OutboxRecord> claimDue(
+            @Positive @Max(10_000) int limit,
+            @NotNull String leaseOwner,
+            @NotNull Duration leaseDuration
+    );
 
     List<OutboxRecord> claimByMessageIds(
             Collection<String> messageIds,
-            int limit,
-            String leaseOwner,
-            Duration leaseDuration
+            @Positive @Max(10_000) int limit,
+            @NotNull String leaseOwner,
+            @NotNull Duration leaseDuration
     );
 
-    boolean markSucceeded(long id, String leaseOwner);
+    boolean markSucceeded(@Positive long id, @NotNull String leaseOwner);
 
     boolean markRetry(
-            long id,
-            String leaseOwner,
-            Duration delay,
+            @Positive long id,
+            @NotNull String leaseOwner,
+            @NotNull Duration delay,
             String errorCode,
             String errorMessage
     );
 
-    boolean markDead(long id, String leaseOwner, String errorCode, String errorMessage);
+    boolean markDead(@Positive long id, @NotNull String leaseOwner, String errorCode, String errorMessage);
 
-    int deleteSucceeded(Duration retention, int limit);
+    int deleteSucceeded(@NotNull Duration retention, @Positive @Max(10_000) int limit);
 
     long countBacklog();
 

@@ -184,9 +184,12 @@ class OutboxMessageConverterTest {
         String namespace = "top.egon.cola.component.outbox.persistence.dao.OutboxMessageDAO.";
         assertThat(configuration.hasStatement(namespace + "insertMessage", false)).isTrue();
         assertThat(configuration.hasStatement(namespace + "insertMigrationMessage", false)).isTrue();
-        assertThat(configuration.hasStatement(namespace + "selectDueForUpdate", false)).isTrue();
+        assertThat(configuration.hasStatement(namespace + "selectDueCandidates", false)).isTrue();
+        assertThat(configuration.hasStatement(namespace + "selectByMessageIdsCandidates", false)).isTrue();
+        assertThat(configuration.hasStatement(namespace + "tryAcquireTransactionLock", false)).isTrue();
         assertThat(configuration.hasStatement(namespace + "updateClaim", false)).isTrue();
-        assertThat(configuration.hasStatement(namespace + "deleteSucceededByIds", false)).isTrue();
+        assertThat(configuration.hasStatement(namespace + "selectExpiredSucceededCandidates", false)).isTrue();
+        assertThat(configuration.hasStatement(namespace + "deleteSucceededByIdVersion", false)).isTrue();
         assertThat(configuration.hasStatement(namespace + "selectActiveById", false)).isTrue();
         assertThat(configuration.hasStatement(namespace + "selectActiveByIds", false)).isTrue();
         assertThat(configuration.hasStatement(namespace + "deleteVersionedById", false)).isFalse();

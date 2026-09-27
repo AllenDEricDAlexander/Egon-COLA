@@ -1,6 +1,7 @@
 package top.egon.cola.component.outbox.persistence.dao;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -34,12 +35,14 @@ public interface OutboxMessageDAO extends EgonColaMapper<OutboxMessagePO> {
             @Param("idempotencyKey") @Size(max = 256) String idempotencyKey
     );
 
-    List<OutboxMessagePO> selectDueForUpdate(@Param("limit") @Min(1) int limit);
+    List<OutboxMessagePO> selectDueCandidates(@Param("limit") @Min(1) @Max(10_000) int limit);
 
-    List<OutboxMessagePO> selectByMessageIdsForUpdate(
+    List<OutboxMessagePO> selectByMessageIdsCandidates(
             @Param("messageIds") @NotEmpty Collection<@NotBlank @Size(max = 64) String> messageIds,
-            @Param("limit") @Min(1) int limit
+            @Param("limit") @Min(1) @Max(10_000) int limit
     );
+
+    Boolean tryAcquireTransactionLock(@Param("id") @Positive long id);
 
     int updateClaim(
             @Param("id") @Positive long id,
@@ -89,12 +92,16 @@ public interface OutboxMessageDAO extends EgonColaMapper<OutboxMessagePO> {
             @Param("updateUserId") @NotBlank @Size(max = 128) String updateUserId
     );
 
-    List<OutboxMessagePO> selectExpiredSucceededForUpdate(
+    List<OutboxMessagePO> selectExpiredSucceededCandidates(
             @Param("retentionMillis") @Min(0) long retentionMillis,
-            @Param("limit") @Min(1) int limit
+            @Param("limit") @Min(1) @Max(10_000) int limit
     );
 
-    int deleteSucceededByIds(@Param("ids") @NotEmpty Collection<@Positive Long> ids);
+    int deleteSucceededByIdVersion(
+            @Param("id") @Positive long id,
+            @Param("version") @Min(0) long version,
+            @Param("retentionMillis") @Min(0) long retentionMillis
+    );
 
     long countBacklog();
 
@@ -104,7 +111,7 @@ public interface OutboxMessageDAO extends EgonColaMapper<OutboxMessagePO> {
     );
 
     @Override
-    default int deleteVersionedById(@Param("et") @NotNull @Valid OutboxMessagePO entity) {
+    default int deleteVersionedById(@Param("et") OutboxMessagePO entity) {
         throw new UnsupportedOperationException("OUTBOX_SOFT_DELETE_UNSUPPORTED");
     }
 }

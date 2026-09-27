@@ -95,6 +95,24 @@ class OutboxLongPrimaryKeyTest {
     }
 
     @Test
+    void missingAvailableAtUsesTheStoreClockBeforeTheMpInsert() {
+        OutboxMessageRepository repository = mock(OutboxMessageRepository.class);
+        OutboxMessageConverter converter = mock(OutboxMessageConverter.class);
+        when(converter.toInsertPO(any(NewOutboxRecord.class))).thenAnswer(invocation -> insertModel(
+                invocation.getArgument(0)));
+        when(repository.insertMessage(any(OutboxMessagePO.class))).thenReturn(1);
+        NewOutboxRecord record = new NewOutboxRecord("message-default-time", "key-default-time", "a".repeat(64),
+                "test", "orders", "{}", "application/json", "1", "{}", "trace-1", null, 3);
+
+        store(repository, converter).enqueue(record);
+
+        org.mockito.ArgumentCaptor<OutboxMessagePO> inserted =
+                org.mockito.ArgumentCaptor.forClass(OutboxMessagePO.class);
+        org.mockito.Mockito.verify(repository).insertMessage(inserted.capture());
+        assertThat(inserted.getValue().getNextAttemptAt()).isNotNull();
+    }
+
+    @Test
     void anAmbiguousExistingIdentityIsNeverReportedAsIdempotentSuccess() {
         OutboxMessageRepository repository = mock(OutboxMessageRepository.class);
         OutboxMessageConverter converter = mock(OutboxMessageConverter.class);

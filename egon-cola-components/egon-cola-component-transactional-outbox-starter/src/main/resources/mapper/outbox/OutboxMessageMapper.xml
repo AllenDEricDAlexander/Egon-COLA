@@ -91,11 +91,11 @@
         WHERE tenant_id = 0
           AND deleted_at IS NULL
           AND (message_id = #{messageId}
-            OR (#{idempotencyKey,jdbcType=VARCHAR} IS NOT NULL AND idempotency_key = #{idempotencyKey,jdbcType=VARCHAR}))
+            OR idempotency_key = #{idempotencyKey,jdbcType=VARCHAR})
         ORDER BY id
     </select>
 
-    <select id="selectDueForUpdate" resultMap="outboxMessageResultMap">
+    <select id="selectDueCandidates" resultMap="outboxMessageResultMap">
         SELECT <include refid="outboxMessageColumns"/>
         FROM egon_outbox.egon_cola_outbox_message
         WHERE tenant_id = 0
@@ -103,11 +103,10 @@
           AND ((status IN ('PENDING', 'RETRY_WAIT') AND next_attempt_at &lt;= clock_timestamp())
             OR (status = 'PROCESSING' AND locked_until &lt; clock_timestamp()))
         ORDER BY next_attempt_at, id
-        FOR UPDATE SKIP LOCKED
         LIMIT #{limit}
     </select>
 
-    <select id="selectByMessageIdsForUpdate" resultMap="outboxMessageResultMap">
+    <select id="selectByMessageIdsCandidates" resultMap="outboxMessageResultMap">
         SELECT <include refid="outboxMessageColumns"/>
         FROM egon_outbox.egon_cola_outbox_message
         WHERE tenant_id = 0
@@ -119,8 +118,15 @@
           AND ((status IN ('PENDING', 'RETRY_WAIT') AND next_attempt_at &lt;= clock_timestamp())
             OR (status = 'PROCESSING' AND locked_until &lt; clock_timestamp()))
         ORDER BY next_attempt_at, id
-        FOR UPDATE SKIP LOCKED
         LIMIT #{limit}
+    </select>
+
+    <select id="tryAcquireTransactionLock" resultType="java.lang.Boolean">
+        SELECT pg_try_advisory_xact_lock(id)
+        FROM egon_outbox.egon_cola_outbox_message
+        WHERE id = #{id}
+          AND tenant_id = 0
+          AND deleted_at IS NULL
     </select>
 
     <update id="updateClaim">
@@ -138,6 +144,8 @@
           AND status = #{source,javaType=top.egon.cola.component.outbox.store.OutboxStatus,typeHandler=com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler}
           AND tenant_id = 0
           AND deleted_at IS NULL
+          AND ((status IN ('PENDING', 'RETRY_WAIT') AND next_attempt_at &lt;= clock_timestamp())
+            OR (status = 'PROCESSING' AND locked_until &lt; clock_timestamp()))
     </update>
 
     <select id="selectProcessingForUpdate" resultMap="outboxMessageResultMap">
@@ -212,7 +220,7 @@
           AND deleted_at IS NULL
     </update>
 
-    <select id="selectExpiredSucceededForUpdate" resultMap="outboxMessageResultMap">
+    <select id="selectExpiredSucceededCandidates" resultMap="outboxMessageResultMap">
         SELECT <include refid="outboxMessageColumns"/>
         FROM egon_outbox.egon_cola_outbox_message
         WHERE tenant_id = 0
@@ -220,19 +228,17 @@
           AND status = 'SUCCEEDED'
           AND completed_at &lt; clock_timestamp() - (#{retentionMillis} * interval '1 millisecond')
         ORDER BY completed_at, id
-        FOR UPDATE SKIP LOCKED
         LIMIT #{limit}
     </select>
 
-    <delete id="deleteSucceededByIds">
+    <delete id="deleteSucceededByIdVersion">
         DELETE FROM egon_outbox.egon_cola_outbox_message
         WHERE tenant_id = 0
           AND deleted_at IS NULL
           AND status = 'SUCCEEDED'
-          AND id IN
-        <foreach collection="ids" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
+          AND id = #{id}
+          AND version = #{version}
+          AND completed_at &lt; clock_timestamp() - (#{retentionMillis} * interval '1 millisecond')
     </delete>
 
     <select id="countBacklog" resultType="long">

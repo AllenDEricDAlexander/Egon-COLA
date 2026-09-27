@@ -1,6 +1,8 @@
 package top.egon.cola.component.outbox.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.Assertions;
@@ -8,6 +10,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
@@ -19,6 +24,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 import org.testcontainers.containers.PostgreSQLContainer;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.ddl.EgonColaDdlManifestBO;
@@ -38,6 +44,7 @@ import top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties;
 import top.egon.cola.component.outbox.autoconfigure.OutboxMybatisPlusAutoConfiguration;
 import top.egon.cola.component.outbox.migration.OutboxLogicalDataSourceFactory;
 import top.egon.cola.component.outbox.migration.OutboxManagedDdlInitializer;
+import top.egon.cola.component.outbox.persistence.dao.OutboxMessageDAO;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
@@ -168,9 +175,17 @@ class OutboxManagedDdlIntegrationTest {
                 });
         for (String invalidSetting : List.of(
                 OutboxMpStorageProperties.PREFIX + ".migration-lock-timeout=0s",
-                OutboxMpStorageProperties.PREFIX + ".manifest-resource=https://example.invalid/manifest.json")) {
+                    OutboxMpStorageProperties.PREFIX + ".manifest-resource=https://example.invalid/manifest.json")) {
             storageConfigurationRunner().withPropertyValues(invalidSetting)
-                    .run(context -> Assertions.assertNotNull(context.getStartupFailure()));
+                    .run(context -> {
+                        Assertions.assertNull(context.getStartupFailure());
+                        OutboxMpStorageProperties properties = context.getBean(
+                                "outboxMpStorageProperties", OutboxMpStorageProperties.class);
+                        ValidationUtils validationUtils = context.getBean(
+                                "egonColaValidationUtils", ValidationUtils.class);
+                        Assertions.assertThrows(ConstraintViolationException.class,
+                                () -> validationUtils.validate(properties));
+                    });
         }
     }
 
@@ -323,6 +338,9 @@ class OutboxManagedDdlIntegrationTest {
                 .withConfiguration(AutoConfigurations.of(
                         ConfigurationPropertiesAutoConfiguration.class,
                         ValidationAutoConfiguration.class))
+                .withPropertyValues("egon.cola.component.transactional-outbox.enabled=false")
+                .withPropertyValues(OutboxMpStorageProperties.PREFIX
+                        + ".sql-session-factory-bean-name=outboxSqlSessionFactory")
                 .withUserConfiguration(OutboxMybatisPlusAutoConfiguration.class, TestDependenciesConfiguration.class);
     }
 
@@ -465,6 +483,15 @@ class OutboxManagedDdlIntegrationTest {
         @Bean("outboxStateMachineObjectMapper")
         ObjectMapper outboxStateMachineObjectMapper() {
             return new ObjectMapper();
+        }
+
+        @Bean("outboxSqlSessionFactory")
+        SqlSessionFactory outboxSqlSessionFactory() {
+            MybatisConfiguration configuration = new MybatisConfiguration();
+            configuration.setEnvironment(new Environment("outbox-ddl-test",
+                    new SpringManagedTransactionFactory(), mock(DataSource.class)));
+            configuration.addMapper(OutboxMessageDAO.class);
+            return new DefaultSqlSessionFactory(configuration);
         }
     }
 }
