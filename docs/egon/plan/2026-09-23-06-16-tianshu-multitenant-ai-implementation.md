@@ -90,7 +90,7 @@
 | Step 3 | Step 1, Step 2 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 5个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 4 | Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 22个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 5 | Step 4 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 47个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 6 | Step 5 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 26个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 6 | Step 5 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 27个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 7 | Step 1, Step 2, Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 6个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 8 | Step 7 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 70个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 9 | Step 8 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 37个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -194,7 +194,7 @@
 
 ## 5. Change File Tree
 
-唯一变更路径481个，顺序触及591次；同一路径在后续Step的编辑各有不同语义。以下目录是定位树；完整精确路径每个只在表内出现一次。
+唯一变更路径482个，顺序触及592次；同一路径在后续Step的编辑各有不同语义。以下目录是定位树；完整精确路径每个只在表内出现一次。
 ```text
 egon-cola-components/egon-cola-component-common/...-mp-sdj-ext-starter  [Step 1–2]
 egon-cola-components/egon-cola-component-rpc/...-tianshu-adapter      [Step 3–5,17]
@@ -609,6 +609,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcAiToggleDTO.java` | CREATE：基线不存在 | DdcAiToggleDTO | class enabled=false | Step 5 | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcRedisAuthDTO.java` | CREATE：基线不存在 | DdcRedisAuthDTO | class username；秘密不写toString | Step 5 | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcTenantProperties.java` | CREATE：基线不存在 | DdcTenantProperties | class tenantId及redis认证信息，关闭时可不填、默认适配器启用时必填 | Step 5 | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/tenant/DdcTenantMessageDTO.java` | CREATE：基线不存在 | DdcTenantMessageDTO<T> | 正Long tenantId＋@Valid非空payload；belongsToTenant只匹配确切订阅tenant；payload不进入toString | Step 6 | REQ-013 | DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/config/DdcConfigChangeListener.java` | SHA256 53f195d4bbfd | DdcConfigChangeListener | 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 18 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcConfigOutboxContractTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java` | SHA256 b40c67ee00fd | DdcCatalogSubscription | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java` | SHA256 b5d18aebfa71 | DdcInstanceSubscription | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
@@ -3042,7 +3043,34 @@ assertContextBeanWiringThenAssertExistingSignatureAndNonceFailures();
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的错tenant包络拒绝，异常/异步回调恢复MDC，重复/乱序不倒退；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisKeys.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/tenant/DdcTenantMessageDTO.java`
+
+- Purpose: 为配置发布和服务注册Topic增加可信tenant外层，不改变既有业务payload字段。
+- Symbols: `DdcTenantMessageDTO<T>`
+- Repository evidence: 当前类型不存在；这是原Spec §15.2 明确规定的外层通知DTO，使用Starter共享model层。
+- Dependencies and consumers: 前置 Step 5；本步先完成两个测试合同，再供配置/注册发布者、订阅者消费。
+- Why now: 同租户键/Topic隔离与回调校验需要在线协议携带可验证tenant；只换Topic无法检测错租户envelope。
+- Contract/signature changes: 普通class使用完整Lombok；字段为 `@NotNull @Positive Long tenantId` 和 `@NotNull @Valid T payload`；提供 `belongsToTenant(Long expectedTenantId)` 精确匹配；payload从 `toString` 排除。配置通知仍包裹原 `DdcPublishMessage`，注册通知仍包裹原 `DdcRegistryEvent`，旧payload字段不变。
+- Input/output and state mapping: 发送端取已验证的Starter tenant；接收端仅与本地配置tenant比较。匹配后原样交付同一payload，不从envelope切换MDC/tenant，不修改ACK、revision或fencing字段。
+- Error and edge behavior: 空/非正tenant、空payload或tenant不等于订阅tenant均不得交给业务listener；listener记录安全告警并丢弃，不回退到旧裸消息、不把消息tenant当可信上下文。序列化验证沿用当前Redisson Topic codec，不添加多态Jackson默认类型或新codec依赖。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；`DTO`语义后缀；tenant/payload注解约束并在消费边界显式匹配；class使用@Data/@NoArgsConstructor/@AllArgsConstructor/@Accessors(chain=true)/@Builder；payload不进入日志诊断；只使用现有Jackson/Redisson与JDK；本次不增加持久化和业务Event。
+- Implementation pseudocode:
+
+```java
+var envelope = new DdcTenantMessageDTO<>(trustedTenantId, existingPayload);
+if (envelope == null || envelope.getTenantId() == null
+        || !envelope.belongsToTenant(configuredTenantId)
+        || envelope.getPayload() == null) {
+    log.warn("Discarding Tianshu topic message with an invalid tenant envelope");
+    return;
+}
+listener.onMessage(envelope.getPayload());
+```
+
+- Verification contribution: `DdcTenantCallbackTest`验证包络字段/既有payload不变、匹配tenant通过、缺失或错tenant在callback前被拒绝并安全丢弃。
+- After this file: DTO仅提供外层合同；生产/消费接线与同slot及本地状态隔离仍由后续本Step文件完成。
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisKeys.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcRedisKeys`
@@ -3067,7 +3095,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfiguration.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfiguration.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcAutoConfiguration`
@@ -3092,7 +3120,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcCatalogSubscription`
@@ -3117,7 +3145,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcInstanceSubscription`
@@ -3142,7 +3170,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcRedisKeysTest.java`
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcRedisKeysTest.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcRedisKeysTest`
@@ -3168,7 +3196,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfigurationTest.java`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfigurationTest.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcAutoConfigurationTest`
@@ -3194,7 +3222,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcRegistrySubscriptionCoordinatorTest`
@@ -3220,7 +3248,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepository.java`
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepository.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcConfigLeaseRedisRepository`
@@ -3245,7 +3273,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java`
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcRedisRepository`
@@ -3270,7 +3298,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcServiceRegistryRedisRepository`
@@ -3295,7 +3323,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepositoryTest.java`
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepositoryTest.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcRedisRepositoryTest`
@@ -3321,7 +3349,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisClusterSlotContractTest.java`
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisClusterSlotContractTest.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcRedisClusterSlotContractTest`
@@ -3347,7 +3375,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepositoryTest.java`
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepositoryTest.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcConfigLeaseRedisRepositoryTest`
@@ -3373,7 +3401,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`
 
 - Purpose: DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言
 - Symbols: `DdcServiceRegistryRedisRepositoryTest`
@@ -3399,7 +3427,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcActiveRegistrationIndex.java`
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcActiveRegistrationIndex.java`
 
 - Purpose: 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcActiveRegistrationIndex`
@@ -3424,7 +3452,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLeaseSessionHolder.java`
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLeaseSessionHolder.java`
 
 - Purpose: 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcLeaseSessionHolder`
@@ -3449,7 +3477,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLocalConfigState.java`
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLocalConfigState.java`
 
 - Purpose: 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcLocalConfigState`
@@ -3474,7 +3502,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/config/DdcConfigChangeListener.java`
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/config/DdcConfigChangeListener.java`
 
 - Purpose: 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcConfigChangeListener`
@@ -3499,7 +3527,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`
+#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`
 
 - Purpose: 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcManagedRegistrySubscription`
@@ -3524,7 +3552,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java`
+#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java`
 
 - Purpose: 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除
 - Symbols: `DdcRegistrySubscriptionCoordinator`
@@ -3549,7 +3577,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishResourceLockRegistry.java`
+#### File 24 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishResourceLockRegistry.java`
 
 - Purpose: 锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号
 - Symbols: `PublishResourceLockRegistry`
@@ -3574,7 +3602,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 24 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishCompletionWaiterRegistry.java`
+#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishCompletionWaiterRegistry.java`
 
 - Purpose: 锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号
 - Symbols: `PublishCompletionWaiterRegistry`
@@ -3599,7 +3627,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcScopeGate.java`
+#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcScopeGate.java`
 
 - Purpose: 锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号
 - Symbols: `DdcScopeGate`
@@ -3624,12 +3652,12 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcTenantRedisKeyTest,DdcTenantCallbackTest聚焦本文件的锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisClientFactory.java`
+#### File 27 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisClientFactory.java`
 
 - Purpose: 锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号
 - Symbols: `DdcRedisClientFactory`
 - Repository evidence: 当前存在，SHA256前12位`857f50eea111`；源符号`DdcRedisClientFactory`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 5；本步25个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 5；本步26个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号。
 - Contract/signature changes: DdcRedisClientFactory的具体签名/配置/字段变更：锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号；按修订稿§9/§11保持原wire字段。
@@ -3655,7 +3683,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcTenantRedisKeyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/DdcTenantCallbackTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisKeys.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcRedisKeysTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisClusterSlotContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcActiveRegistrationIndex.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLeaseSessionHolder.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLocalConfigState.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/config/DdcConfigChangeListener.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishResourceLockRegistry.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishCompletionWaiterRegistry.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcScopeGate.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisClientFactory.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcTenantRedisKeyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/DdcTenantCallbackTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/tenant/DdcTenantMessageDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisKeys.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcRedisKeysTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisClusterSlotContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcActiveRegistrationIndex.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLeaseSessionHolder.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/state/DdcLocalConfigState.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/config/DdcConfigChangeListener.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishResourceLockRegistry.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/PublishCompletionWaiterRegistry.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcScopeGate.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisClientFactory.java`
 - Commit: `feat(tianshu): step-6--redis--topic-------tenant`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
 
 ### Step 7 — 定义唯一分布式DDL与启动只读就绪校验
@@ -15912,7 +15940,7 @@ Step 7在全新隔离PostgreSQL目标上用MP-SDJ runner创建`V20260922_001__ti
 | REQ-010 | 原Spec§4/§19 | Step 3, Step 24 | `egon-cola-xingyuan/egon-cola-tianshu/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | compile, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
 | REQ-011 | 原Spec§4/§19 | Step 2, Step 3, Step 5, Step 6, Step 7, Step 8, Step 9, Step 10, Step 11, Step 18, Step 23, Step 24 | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaTianshuDdlManifestTest.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java`, `egon-cola-xingyuan/egon-cola-tianshu/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcTenantRedisKeyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/DdcTenantCallbackTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPageResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigItemPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcPublishTaskPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcLegacyBehaviorContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcArchitectureContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/notification/DdcConfigOutboxContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/event/DdcConfigDispatchPreparedEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | EgonColaTianshuDdlManifestTest, compile, DdcTenantIsolationTest,DdcTenantBootstrapTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest, DdcTianshuDdlContractTest, DdcMetadataRepositoryContractTest, DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcConfigOutboxContractTest, DdcLegacyImportContractTest, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
 | REQ-012 | 原Spec§4/§19 | Step 15, Step 16, Step 20, Step 22, Step 24 | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiPromotionServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiPromotionCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiResourceControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | DdcAiPromotionServiceTest, DdcAiResourceControllerTest,DdcAiOpenApiContractTest, DdcAiClientContract, AiVersionsUI, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
-| REQ-013 | 原Spec§4/§19 | Step 5, Step 6, Step 8, Step 9, Step 10, Step 11, Step 19, Step 20, Step 23, Step 24 | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcTenantRedisKeyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/DdcTenantCallbackTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPageResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigItemPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcPublishTaskPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcLegacyBehaviorContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcArchitectureContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryOutboxTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/event/DdcRegistryRevisionEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | DdcTenantIsolationTest,DdcTenantBootstrapTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest, DdcMetadataRepositoryContractTest, DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcRegistryOutboxTest, DdcAiClientContract, DdcLegacyImportContractTest, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
+| REQ-013 | 原Spec§4/§19 | Step 5, Step 6, Step 8, Step 9, Step 10, Step 11, Step 19, Step 20, Step 23, Step 24 | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcTenantRedisKeyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/DdcTenantCallbackTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/tenant/DdcTenantMessageDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPageResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigItemPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcPublishTaskPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcLegacyBehaviorContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcArchitectureContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryOutboxTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/event/DdcRegistryRevisionEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | DdcTenantIsolationTest,DdcTenantBootstrapTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest, DdcMetadataRepositoryContractTest, DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcRegistryOutboxTest, DdcAiClientContract, DdcLegacyImportContractTest, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
 | REQ-014 | 原Spec§4/§19 | Step 5, Step 6, Step 15, Step 20, Step 21, Step 24 | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcTenantRedisKeyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/DdcTenantCallbackTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiPromotionServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiPromotionCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | DdcTenantIsolationTest,DdcTenantBootstrapTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest, DdcAiPromotionServiceTest, DdcAiClientContract, AiDraftUI, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
 | REQ-015 | 修订稿§4/§19 | Step 1, Step 2, Step 3, Step 4, Step 5, Step 8, Step 9, Step 10, Step 11, Step 16, Step 24 | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/contract/EgonColaLifecycleContractTest.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/autoconfigure/EgonColaMybatisPlusProperties.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaTianshuDdlManifestTest.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java`, `egon-cola-xingyuan/egon-cola-tianshu/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/contract/DdcAiJavaContractTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/contract/DdcAiStableVersionSelectorTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPageResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigItemPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcPublishTaskPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcLegacyBehaviorContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcArchitectureContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiResourceControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | EgonColaLifecycleContractTest, EgonColaTianshuDdlManifestTest, compile, DdcAiJavaContractTest,DdcAiStableVersionSelectorTest, DdcTenantIsolationTest,DdcTenantBootstrapTest, DdcMetadataRepositoryContractTest, DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcAiResourceControllerTest,DdcAiOpenApiContractTest, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
 | REQ-016 | 修订稿§4/§19 | Step 3, Step 4, Step 24 | `egon-cola-xingyuan/egon-cola-tianshu/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/contract/DdcAiJavaContractTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/contract/DdcAiStableVersionSelectorTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | compile, DdcAiJavaContractTest,DdcAiStableVersionSelectorTest, DdcProfileParityTest,DdcEndToEndContractTest | 对应Step完成条件与§8受控运行证据；当前为计划未执行 |
