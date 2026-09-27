@@ -83,7 +83,7 @@ export const KnowledgeJobsPanel = ({ kbId }: { kbId: string }) => {
         <Alert
           type="error"
           showIcon
-          message={retry.error instanceof Error ? retry.error.message : '重试失败'}
+          title={retry.error instanceof Error ? retry.error.message : '重试失败'}
           description={retryConflict ? '任务版本已变化，请刷新后再决定' : undefined}
         />
       )}

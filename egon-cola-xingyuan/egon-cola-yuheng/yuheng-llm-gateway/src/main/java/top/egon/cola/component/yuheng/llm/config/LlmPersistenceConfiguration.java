@@ -73,10 +73,14 @@ public class LlmPersistenceConfiguration implements SmartInitializingSingleton {
     public LlmPersistenceContextComponent llmPersistenceContextComponent(
             @Qualifier(LlmPersistenceProperties.BEAN_NAME)
             LlmPersistenceProperties persistenceProperties) {
-        if (persistenceProperties.isManagedDdlEnabled() != mybatisPlusProperties.getDdl().isEnabled()) {
+        Boolean managedDdlEnabled = persistenceProperties.getManagedDdlEnabled();
+        if (managedDdlEnabled == null) {
+            throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_FLAG_REQUIRED");
+        }
+        if (managedDdlEnabled.booleanValue() != mybatisPlusProperties.getDdl().isEnabled()) {
             throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_FLAG_CONFLICT");
         }
-        if (persistenceProperties.isManagedDdlEnabled()) {
+        if (managedDdlEnabled) {
             throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_ROLE_MISMATCH");
         }
         return new LlmPersistenceContextComponent(persistenceProperties, mybatisPlusProperties);

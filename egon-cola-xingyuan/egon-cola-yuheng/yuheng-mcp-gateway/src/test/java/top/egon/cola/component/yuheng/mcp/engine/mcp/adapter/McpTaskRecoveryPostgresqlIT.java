@@ -14,8 +14,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -23,7 +25,19 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +45,24 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGuardInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
+import top.egon.cola.component.yuheng.mcp.engine.config.McpPersistenceContextComponent;
+import top.egon.cola.component.yuheng.mcp.engine.config.McpPersistenceProperties;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.support.McpGatewayPersistenceContext;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.converter.McpTaskPersistenceConverter;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.dao.McpTaskDAO;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.domain.enums.McpPersistentTaskStateEnum;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.domain.po.McpTaskRecordPO;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.repository.McpTaskPersistenceRepository;
+import top.egon.cola.component.yuheng.mcp.task.domain.McpTask;
+import top.egon.cola.component.yuheng.mcp.task.service.McpTaskStore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,24 +71,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * 中文说明：{@code McpTaskRecoveryPostgresqlIT} 验收 MCP 任务恢复的“共享库”那一半：控制面与数据面确实指向同一张
  * {@code gateway_mcp_task_instance}（同一份受管 SQL 的同一指纹、逐列一致的投影），而认领互斥不是 Mock 的自我实现——
  * 占有者、租约到期、业务 {@code revision}、技术 {@code version}、租户范围与 {@code task_key} 幂等键在真 Postgres 上
- * 各自命中或各自落空，影响 0 行的分支绝不会被读成成功。协议任务标识必须是不可翻译的 {@code varchar} 字符串
+ * 各自命中或各自落空，影响 0 行的分支绝不会被读成成功。PostgreSQL 子测试还通过实际 {@code McpTaskDAO.xml} 与
+ * {@code MpMcpRuntimeTaskStore} 验证 transition/cancel 的生产 CAS：两个独立 store 在同一读取版本上并发，唯一一个
+ * 可以迁移；SQL 将 owner、lease 和显式空 payload 清空。协议任务标识必须是不可翻译的 {@code varchar} 字符串
  * （绝不 {@code parseUUID}、绝不 base64 转 {@code Long}），这条按列类型与投影断言。
  * English summary: {@code McpTaskRecoveryPostgresqlIT} accepts the shared-database half of MCP task recovery: both planes
  * really address one {@code gateway_mcp_task_instance} (one managed SQL script under one fingerprint, column-for-column
  * identical projections), and claim mutual exclusion is not a mock implementing itself - owner, lease expiry, business
  * {@code revision}, technical {@code version}, tenant scoping and the {@code task_key} idempotency key each hit or miss on
- * a real Postgres, so a zero-row branch is never read back as success. Because the protocol task identifier must stay an
- * untranslatable {@code varchar} (no {@code parseUUID}, no base64-to-{@code Long}), that is asserted through the column
- * type and the projections.
+ * a real Postgres, so a zero-row branch is never read back as success. The PostgreSQL test also runs transition/cancel
+ * through the production {@code McpTaskDAO.xml} and {@code MpMcpRuntimeTaskStore}: two independent stores racing from the
+ * same observed version yield one winner and SQL clears owner, lease and explicit null payloads. Because the protocol task
+ * identifier must stay an untranslatable {@code varchar} (no {@code parseUUID}, no base64-to-{@code Long}), that is
+ * asserted through the column type and the projections.
  *
  * 用法 / Usage: 不依赖 Spring 上下文、不启动 Docker、不起常驻进程。静态部分总是执行；需要真实库的部分在内层类，只有显式
  * 提供 {@code YUHENG_MANAGED_TEST_POSTGRES_URL/USER/PASSWORD} 时才运行，schema 名随机、结束即删。缺环境时内层类整体
- * SKIPPED，即 Plan §8 的“缺环境必须标 SKIPPED 未验收”，不能当作 GREEN。受守卫 MP 路径本身（租户注入、乐观锁插件、
- * {@code EgonColaRepository} 写守卫）由 {@code McpGatewayEngineTaskStoreConfigurationTest} 等配置边界测试负责，本类只补
- * 它们在库里的真语义反例。/ The static part always executes; the database part lives in the nested class and runs only when
+ * SKIPPED，即 Plan §8 的“缺环境必须标 SKIPPED 未验收”，不能当作 GREEN。真实 Mapper 测试安装 tenant-line、乐观锁与
+ * SQL guard 插件，并将结果写到随机 schema。/ The static part always executes; the database part lives in the nested class and runs only when
  * an isolated acceptance database is supplied explicitly, under a random schema that is dropped afterwards. Without those
  * variables it is SKIPPED, which is the Plan's "missing environment is reported SKIPPED, never accepted", not GREEN.
- * The guarded MyBatis-Plus path itself belongs to the configuration-boundary tests and is not repeated here.
+ * Its production adapter case executes the real Mapper with the tenant-line, optimistic-lock and original-SQL guard plugins.
  */
 class McpTaskRecoveryPostgresqlIT {
 
@@ -149,17 +184,37 @@ class McpTaskRecoveryPostgresqlIT {
         List<String> reads = statements(DATA_PLANE_MAPPER, "select");
         List<String> writes = statements(DATA_PLANE_MAPPER, "update");
 
-        assertThat(dataPlane).as("both reads and the versioned logical delete are mapped").hasSize(3);
+        assertThat(dataPlane).as("two reads, the versioned logical delete and two state CAS updates are mapped")
+                .hasSize(5);
         assertThat(reads).hasSize(2);
-        assertThat(writes).hasSize(1);
+        assertThat(writes).hasSize(3);
         for (String body : reads) {
             assertThat(body).as("a guarded read never drops the soft-delete filter").contains("deleted_at IS NULL");
         }
         for (String body : writes) {
             assertThat(body).as("a bulk write by state alone is never mapped").contains("id = #{");
-            assertThat(body).as("the logical delete carries the technical version CAS")
-                    .contains("version = #{MP_OPTLOCK_VERSION_ORIGINAL}");
+            assertThat(body).as("every write carries the technical version CAS")
+                    .containsPattern("version = #\\{(MP_OPTLOCK_VERSION_ORIGINAL|et\\.version)}");
         }
+        String transition = mappedStatement(DATA_PLANE_MAPPER, "transitionTask").replaceAll("\\s+", " ");
+        assertThat(transition)
+                .contains("tenant_id = #{et.tenantId}")
+                .contains("deleted_at IS NULL")
+                .contains("state = #{expectedState}")
+                .contains("revision = #{expectedRevision}")
+                .contains("worker_owner = NULL")
+                .contains("lease_until = NULL")
+                .contains("input_payload = #{et.inputPayload")
+                .contains("result_payload = #{et.resultPayload")
+                .contains("error_payload = #{et.errorPayload");
+        String cancel = mappedStatement(DATA_PLANE_MAPPER, "cancelTask").replaceAll("\\s+", " ");
+        assertThat(cancel)
+                .contains("tenant_id = #{et.tenantId}")
+                .contains("deleted_at IS NULL")
+                .contains("state = #{expectedState}")
+                .contains("revision = #{expectedRevision}")
+                .contains("worker_owner = NULL")
+                .contains("lease_until = NULL");
         for (String body : dataPlane) {
             assertThat(body).contains(LOGICAL_TABLE);
             assertThat(body).as("no statement hard-codes the physical shard").doesNotContain(PHYSICAL_TABLE);
@@ -202,13 +257,13 @@ class McpTaskRecoveryPostgresqlIT {
     )
     class OnPostgres {
 
-        private final String jdbcUrl = environment("YUHENG_MANAGED_TEST_POSTGRES_URL");
+        private final String schema = "yuheng_mcp_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+
+        private final String jdbcUrl = withCurrentSchema(environment("YUHENG_MANAGED_TEST_POSTGRES_URL"), schema);
 
         private final String user = environment("YUHENG_MANAGED_TEST_POSTGRES_USER");
 
         private final String password = environment("YUHENG_MANAGED_TEST_POSTGRES_PASSWORD");
-
-        private final String schema = "yuheng_mcp_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
 
         private final Instant baseTime = Instant.parse("2026-09-22T16:30:00Z");
 
@@ -311,6 +366,165 @@ class McpTaskRecoveryPostgresqlIT {
             assertThat(transition(id, "WORKING", 4L, baseTime.plusSeconds(20)))
                     .as("replaying the same transition now affects no row")
                     .isZero();
+        }
+
+        @Test
+        @DisplayName("生产 runtime store 经 MyBatis Mapper CAS 原子清空 owner/lease，两个并发 store 只有一个命中")
+        void productionRuntimeStoresUseTheMappedCasAndClearOwnerLease() throws Exception {
+            update("CREATE VIEW gateway_mcp_task_instance "
+                    + "AS SELECT * FROM gateway_mcp_task_instance_t0");
+            String taskKey = "opaque-task-key-adapter-transition";
+            long taskId = insertTask(TENANT, taskKey, "WORKING", "worker-a", baseTime.plusSeconds(60), 4L);
+            update("""
+                    UPDATE gateway_mcp_task_instance_t0
+                       SET input_payload = '{"old":"input"}'::jsonb,
+                           result_payload = '{"old":"result"}'::jsonb,
+                           error_payload = '{"old":"error"}'::jsonb
+                     WHERE id = ?
+                    """, taskId);
+
+            SqlSessionFactory mapperFactory = taskMapperFactory();
+            CyclicBarrier bothStoresReadTheSameVersion = new CyclicBarrier(2);
+            MpMcpRuntimeTaskStore firstStore = productionStore(
+                    new SqlSessionTemplate(mapperFactory).getMapper(McpTaskDAO.class),
+                    bothStoresReadTheSameVersion);
+            MpMcpRuntimeTaskStore secondStore = productionStore(
+                    new SqlSessionTemplate(mapperFactory).getMapper(McpTaskDAO.class),
+                    bothStoresReadTheSameVersion);
+            CountDownLatch ready = new CountDownLatch(2);
+            CountDownLatch start = new CountDownLatch(1);
+            ExecutorService workers = Executors.newFixedThreadPool(2);
+            try {
+                Future<Boolean> first = workers.submit(() -> {
+                    ready.countDown();
+                    start.await();
+                    return firstStore.transition(transitionIntent(taskKey, "worker-a", 4L)).block(Duration.ofSeconds(10));
+                });
+                Future<Boolean> second = workers.submit(() -> {
+                    ready.countDown();
+                    start.await();
+                    return secondStore.transition(transitionIntent(taskKey, "worker-a", 4L)).block(Duration.ofSeconds(10));
+                });
+                assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+                start.countDown();
+                assertThat(List.of(first.get(15, TimeUnit.SECONDS), second.get(15, TimeUnit.SECONDS)))
+                        .as("both stores observed the same pre-transition revision, so the database CAS chooses one")
+                        .containsExactlyInAnyOrder(true, false);
+            } finally {
+                workers.shutdownNow();
+            }
+
+            assertThat(stateOf(taskId)).isEqualTo("COMPLETED");
+            assertThat(revisionOf(taskId)).isEqualTo(5L);
+            assertThat(versionOf(taskId)).isEqualTo(1L);
+            assertThat(single("SELECT worker_owner IS NULL AND lease_until IS NULL "
+                    + "FROM gateway_mcp_task_instance_t0 WHERE id = ?", taskId)).isEqualTo(Boolean.TRUE);
+            assertThat(single("SELECT input_payload IS NULL AND result_payload IS NULL AND error_payload IS NULL "
+                    + "FROM gateway_mcp_task_instance_t0 WHERE id = ?", taskId)).isEqualTo(Boolean.TRUE);
+
+            String cancelTaskKey = "opaque-task-key-adapter-cancel";
+            long cancelId = insertTask(TENANT, cancelTaskKey, "WORKING", "worker-b", baseTime.plusSeconds(60), 9L);
+            MpMcpRuntimeTaskStore cancelStore = productionStore(
+                    new SqlSessionTemplate(mapperFactory).getMapper(McpTaskDAO.class), null);
+            assertThat(cancelStore.cancel(cancelTaskKey, McpTask.State.WORKING, 9L, baseTime.plusSeconds(20))
+                    .block(Duration.ofSeconds(10))).isTrue();
+            assertThat(stateOf(cancelId)).isEqualTo("CANCELLED");
+            assertThat(revisionOf(cancelId)).isEqualTo(10L);
+            assertThat(versionOf(cancelId)).isEqualTo(1L);
+            assertThat(single("SELECT worker_owner IS NULL AND lease_until IS NULL "
+                    + "FROM gateway_mcp_task_instance_t0 WHERE id = ?", cancelId)).isEqualTo(Boolean.TRUE);
+        }
+
+        private MpMcpRuntimeTaskStore productionStore(McpTaskDAO mapper, CyclicBarrier readBarrier) {
+            EgonColaMybatisPlusProperties mybatisProperties = new EgonColaMybatisPlusProperties();
+            McpTaskPersistenceRepository repository = new McpTaskPersistenceRepository(mapper, mybatisProperties) {
+                @Override
+                public java.util.Optional<McpTaskRecordPO> findActiveByTaskKey(String key) {
+                    try (Connection connection = open(); PreparedStatement statement = connection.prepareStatement("""
+                            SELECT id, tenant_id, version, state, revision, task_key, worker_owner, lease_until
+                              FROM gateway_mcp_task_instance_t0
+                             WHERE tenant_id = ? AND task_key = ? AND deleted_at IS NULL
+                            """)) {
+                        statement.setLong(1, TENANT);
+                        statement.setString(2, key);
+                        try (ResultSet result = statement.executeQuery()) {
+                            if (!result.next()) {
+                                return java.util.Optional.empty();
+                            }
+                            Timestamp lease = result.getTimestamp("lease_until");
+                            McpTaskRecordPO row = McpTaskRecordPO.builder()
+                                    .id(result.getLong("id"))
+                                    .tenantId(result.getLong("tenant_id"))
+                                    .version(result.getLong("version"))
+                                    .state(McpPersistentTaskStateEnum.fromWire(result.getString("state")))
+                                    .revision(result.getLong("revision"))
+                                    .taskKey(result.getString("task_key"))
+                                    .workerOwner(result.getString("worker_owner"))
+                                    .leaseUntil(lease == null ? null : lease.toInstant())
+                                    .build();
+                            if (readBarrier != null) {
+                                readBarrier.await(5, TimeUnit.SECONDS);
+                            }
+                            return java.util.Optional.of(row);
+                        }
+                    } catch (Exception failure) {
+                        throw new IllegalStateException("Could not read the MCP task acceptance row", failure);
+                    }
+                }
+            };
+            McpPersistenceProperties persistenceProperties = new McpPersistenceProperties()
+                    .setTenantId(TENANT)
+                    .setIdentityTenantId(TENANT)
+                    .setServiceUserId("mcp-postgresql-acceptance")
+                    .setExpectedSchemaVersion("20260922_001")
+                    .setExpectedSchemaSha256("0".repeat(64))
+                    .setManagedDdlEnabled(false);
+            McpGatewayPersistenceContext persistenceContext = new McpGatewayPersistenceContext(
+                    new McpPersistenceContextComponent(persistenceProperties, mybatisProperties),
+                    persistenceProperties);
+            McpTaskPersistenceConverter converter = new McpTaskPersistenceConverter(
+                    new ObjectMapper().findAndRegisterModules());
+            return new MpMcpRuntimeTaskStore(repository, converter, persistenceContext, 16);
+        }
+
+        private SqlSessionFactory taskMapperFactory() {
+            try {
+                DriverManagerDataSource source = new DriverManagerDataSource(jdbcUrl, user, password);
+                MybatisConfiguration configuration = new MybatisConfiguration();
+                configuration.setMapUnderscoreToCamelCase(true);
+                EgonColaMybatisPlusProperties mybatisProperties = new EgonColaMybatisPlusProperties();
+                MybatisPlusInterceptor plugins = new MybatisPlusInterceptor();
+                plugins.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantLineHandler() {
+                    @Override
+                    public net.sf.jsqlparser.expression.Expression getTenantId() {
+                        return new net.sf.jsqlparser.expression.LongValue(
+                                EgonColaTenantIdProvider.currentTenantId());
+                    }
+                }));
+                GlobalConfig global = new GlobalConfig();
+                global.setDbConfig(new GlobalConfig.DbConfig());
+                MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();
+                factory.setDataSource(source);
+                factory.setConfiguration(configuration);
+                factory.setGlobalConfig(global);
+                factory.setPlugins(plugins, new EgonColaOriginalSqlGuardInterceptor(mybatisProperties));
+                factory.setMapperLocations(new ClassPathResource("mybatis/mapper/mcp/McpTaskDAO.xml"));
+                return factory.getObject();
+            } catch (Exception failure) {
+                throw new IllegalStateException("Could not create a test MyBatis session for the production MCP mapper", failure);
+            }
+        }
+
+        private McpTaskStore.Transition transitionIntent(String taskKey, String expectedWorkerOwner, long expectedRevision) {
+            return new McpTaskStore.Transition(taskKey,
+                    McpTask.State.WORKING,
+                    McpTask.State.COMPLETED,
+                    expectedRevision,
+                    expectedWorkerOwner,
+                    null,
+                    null,
+                    null,
+                    baseTime.plusSeconds(10));
         }
 
         @Test
@@ -585,6 +799,16 @@ class McpTaskRecoveryPostgresqlIT {
         return bodies;
     }
 
+    private static String mappedStatement(Path mapper, String id) {
+        Matcher statement = MAPPED_STATEMENT.matcher(stripXmlComments(read(mapper)));
+        while (statement.find()) {
+            if (id.equals(statement.group(2))) {
+                return statement.group(3);
+            }
+        }
+        throw new AssertionError("missing mapped statement " + id + " in " + mapper);
+    }
+
     private static List<String> digestsOf(String manifest) {
         List<String> digests = new ArrayList<>();
         Matcher declared = SHA256_ENTRY.matcher(manifest);
@@ -624,7 +848,7 @@ class McpTaskRecoveryPostgresqlIT {
         for (int index = 0; index < parameters.length; index++) {
             Object parameter = parameters[index];
             if (parameter instanceof Instant instant) {
-                statement.setObject(index + 1, LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
+                statement.setObject(index + 1, OffsetDateTime.ofInstant(instant, ZoneOffset.UTC));
             } else {
                 statement.setObject(index + 1, parameter);
             }
@@ -637,6 +861,10 @@ class McpTaskRecoveryPostgresqlIT {
             throw new IllegalStateException("Missing acceptance environment variable " + name);
         }
         return value;
+    }
+
+    private static String withCurrentSchema(String jdbcUrl, String schema) {
+        return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "currentSchema=" + schema;
     }
 
     private static int countOccurrences(String text, String needle) {

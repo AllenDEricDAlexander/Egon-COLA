@@ -6,9 +6,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.yuheng.admin.application.domain.exception.GatewayApplicationAlreadyExistsException;
 import top.egon.cola.component.yuheng.admin.mcp.domain.exception.McpValidationException;
 import top.egon.cola.component.yuheng.admin.shared.domain.exception.GatewayAdminIdempotencyConflictException;
@@ -38,6 +42,50 @@ import java.util.List;
         entityDomainName = "Gateway Admin 管理实体域",
         interfaceGroupCode = "yuheng-admin")
 public class GatewayAdminExceptionHandler {
+
+    @ExceptionHandler(CommonException.class)
+    public ResponseEntity<GatewayAdminErrorVO> common(CommonException error) {
+        return ResponseEntity.status(error.getCode()).body(new GatewayAdminErrorVO(
+                error.getStatus(),
+                error.getMessage(),
+                null,
+                List.of(),
+                Instant.now()
+        ));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<GatewayAdminErrorVO> uploadTooLarge(MaxUploadSizeExceededException error) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new GatewayAdminErrorVO(
+                "KNOWLEDGE_FILE_TOO_LARGE",
+                "the uploaded document exceeds the configured size ceiling",
+                null,
+                List.of(),
+                Instant.now()
+        ));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<GatewayAdminErrorVO> unsupportedRequestMediaType(HttpMediaTypeNotSupportedException error) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(new GatewayAdminErrorVO(
+                "YUHENG_ADMIN_MEDIA_TYPE_UNSUPPORTED",
+                "the request media type is not supported",
+                null,
+                List.of(),
+                Instant.now()
+        ));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<GatewayAdminErrorVO> missingRequestPart(MissingServletRequestPartException error) {
+        return ResponseEntity.unprocessableEntity().body(new GatewayAdminErrorVO(
+                "YUHENG_ADMIN_VALIDATION_FAILED",
+                "required multipart field is missing",
+                null,
+                List.of(new GatewayAdminFieldErrorVO(error.getRequestPartName(), "REQUIRED", "must be provided")),
+                Instant.now()
+        ));
+    }
 
     /**
      * 中文说明：执行 制品Conflict 操作；该方法是 {@code GatewayAdminExceptionHandler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

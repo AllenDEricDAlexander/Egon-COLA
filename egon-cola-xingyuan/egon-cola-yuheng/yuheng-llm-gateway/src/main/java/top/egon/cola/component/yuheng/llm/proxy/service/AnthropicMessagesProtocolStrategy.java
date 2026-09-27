@@ -46,6 +46,7 @@ import top.egon.cola.component.yuheng.llm.config.LlmGatewayProperties;
 import top.egon.cola.component.yuheng.llm.proxy.domain.bo.LlmModelSnapshotBO;
 import top.egon.cola.component.yuheng.llm.proxy.domain.dto.LlmInvocationCommandDTO;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmCapabilityEnum;
+import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmDeploymentEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmProtocolEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.exception.LlmInvocationException;
 import top.egon.cola.component.yuheng.llm.proxy.domain.vo.LlmInvocationResultVO;
@@ -523,8 +524,9 @@ public class AnthropicMessagesProtocolStrategy implements LlmProtocolStrategy {
      * English summary: The single orchestration entry. Channel facts first close an unsound attempt before any egress (a
      * dangling or disabled channel, a foreign protocol, a missing address or timeout budget are all 503
      * {@code model_unavailable}, never a guess), and the credential is resolved only under
-     * {@code yuheng.llm.secrets-root} from {@code secretRef} (traversal, a non-regular file or a blank value are 503 and the
-     * value never reaches a log or an error). A single same-protocol POST then leaves through a JDK {@link HttpClient} built
+     * {@code yuheng.llm.secrets-root} from {@code secretRef}; no-auth LOCAL may omit the reference, while CLOUD requires a
+     * valid file (traversal, a non-regular file or a blank value are 503 and the value never reaches a log or an error).
+     * A single same-protocol POST then leaves through a JDK {@link HttpClient} built
      * on the spot from the channel's connect and header budgets: the unary face answers through {@link #decodeUnaryResponse}
      * as one bounded body, while the streaming face blocks until <b>one complete valid frame</b> (a
      * {@code message_start}, {@code ping} allowed ahead of it) has been validated before the publisher is attached to
@@ -556,13 +558,16 @@ public class AnthropicMessagesProtocolStrategy implements LlmProtocolStrategy {
         Duration budget = Duration.ofMillis(streaming
                 ? channel.getHeaderTimeoutMs() : channel.getTotalTimeoutMs());
         Instant deadline = Instant.now().plus(Duration.ofMillis(channel.getTotalTimeoutMs()));
-        HttpRequest egress = HttpRequest.newBuilder(endpoint(channel, command))
+        HttpRequest.Builder egressBuilder = HttpRequest.newBuilder(endpoint(channel, command))
                 .timeout(budget)
                 .header(CONTENT_TYPE_HEADER, JSON_MEDIA_TYPE)
                 .header(ACCEPT_HEADER, streaming ? "text/event-stream" : JSON_MEDIA_TYPE)
-                .header(VERSION_HEADER, ANTHROPIC_VERSION)
-                .header(API_KEY_HEADER, secret)
-                .header(AUTHORIZATION_HEADER, "Bearer " + secret)
+                .header(VERSION_HEADER, ANTHROPIC_VERSION);
+        if (secret != null) {
+            egressBuilder.header(API_KEY_HEADER, secret)
+                    .header(AUTHORIZATION_HEADER, "Bearer " + secret);
+        }
+        HttpRequest egress = egressBuilder
                 .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                 .build();
         HttpResponse<InputStream> response = send(egress, channel, command);
@@ -1446,10 +1451,12 @@ public class AnthropicMessagesProtocolStrategy implements LlmProtocolStrategy {
 
     /**
      * 中文说明：核对渠道事实可支撑一次尝试：渠道已解析且启用、协议必须与入口协议一致（同协议是选择条件而非分支）、
-     * 地址与密钥引用非空、四段超时预算与并发预算为正；否则 503 {@code model_unavailable}，日志只给渠道 key。
+     * 地址、部署形态、四段超时预算与并发预算为正；CLOUD 必须配置凭据引用，无认证 LOCAL 可为空；否则 503
+     * {@code model_unavailable}，日志只给渠道 key。
      * English summary: Proves the channel facts support one attempt: the channel resolved and is enabled, its protocol equals
-     * the ingress protocol (same-protocol is a selection criterion rather than a branch), the address and secret reference are
-     * present and the four timeout and concurrency budgets are positive; otherwise a 503 {@code model_unavailable} whose log
+     * the ingress protocol (same-protocol is a selection criterion rather than a branch), the deployment/address and the
+     * four timeout and concurrency budgets are valid; CLOUD needs a credential reference, while auth-free LOCAL may omit
+     * one. Otherwise a 503 {@code model_unavailable} whose log
      * names only the channel key.
      *
      * 用法 / Usage: 仅由 {@link #exchange} 调用。
@@ -1462,7 +1469,12 @@ public class AnthropicMessagesProtocolStrategy implements LlmProtocolStrategy {
         LlmModelSnapshotBO.ChannelBO channel = route.getChannel();
         if (channel == null || !Boolean.TRUE.equals(channel.getEnabled())
                 || channel.getProtocol() != protocol()
-                || StringUtils.isBlank(channel.getBaseUrl()) || StringUtils.isBlank(channel.getSecretRef())
+                || (channel.getDeployment() != LlmDeploymentEnum.LOCAL
+                && channel.getDeployment() != LlmDeploymentEnum.CLOUD)
+                || StringUtils.isBlank(channel.getBaseUrl())
+                || (channel.getDeployment() == LlmDeploymentEnum.CLOUD
+                && (StringUtils.isBlank(channel.getSecretRef())
+                || StringUtils.isBlank(gatewayProperties.getSecretsRoot())))
                 || !positive(channel.getConnectTimeoutMs()) || !positive(channel.getHeaderTimeoutMs())
                 || !positive(channel.getIdleTimeoutMs()) || !positive(channel.getTotalTimeoutMs())
                 || !positive(channel.getMaxConcurrent())) {
@@ -1489,8 +1501,10 @@ public class AnthropicMessagesProtocolStrategy implements LlmProtocolStrategy {
         try {
             URI parsed = URI.create(StringUtils.removeEnd(StringUtils.trimToEmpty(channel.getBaseUrl()), "/")
                     + MESSAGES_PATH);
-            boolean http = "https".equalsIgnoreCase(parsed.getScheme()) || "http".equalsIgnoreCase(parsed.getScheme());
-            if (!parsed.isAbsolute() || StringUtils.isBlank(parsed.getHost()) || !http
+            boolean https = "https".equalsIgnoreCase(parsed.getScheme());
+            boolean localHttp = channel.getDeployment() == LlmDeploymentEnum.LOCAL
+                    && "http".equalsIgnoreCase(parsed.getScheme());
+            if (!parsed.isAbsolute() || StringUtils.isBlank(parsed.getHost()) || !(https || localHttp)
                     || parsed.getUserInfo() != null || parsed.getQuery() != null || parsed.getFragment() != null) {
                 throw new IllegalArgumentException("unusable endpoint");
             }
@@ -1517,16 +1531,22 @@ public class AnthropicMessagesProtocolStrategy implements LlmProtocolStrategy {
      * @return 返回 凭据值，只交给出网请求头；returns the credential value, handed only to the egress request headers.
      */
     private String credential(LlmModelSnapshotBO.ChannelBO channel, LlmInvocationCommandDTO command) {
+        if (channel.getSecretRef() == null && channel.getDeployment() == LlmDeploymentEnum.LOCAL) {
+            return null;
+        }
+        String reference = StringUtils.trimToNull(channel.getSecretRef());
         String root = StringUtils.trimToNull(gatewayProperties.getSecretsRoot());
-        if (root == null) {
+        if (root == null || reference == null) {
             log.error("llm messages secrets root is unconfigured alias={} protocol={} channel={}",
                     command.getModel(), protocol(), channel.getChannelKey());
             throw modelUnavailable();
         }
         try {
             Path mountRoot = Path.of(root).toAbsolutePath().normalize();
-            Path secret = mountRoot.resolve(channel.getSecretRef().trim()).normalize();
-            if (!secret.startsWith(mountRoot) || !Files.isRegularFile(secret)) {
+            Path referencePath = Path.of(reference);
+            Path secret = mountRoot.resolve(referencePath).normalize();
+            if (reference.contains("..") || referencePath.isAbsolute()
+                    || !secret.startsWith(mountRoot) || !Files.isRegularFile(secret)) {
                 throw modelUnavailable();
             }
             String value = Files.readString(secret, StandardCharsets.UTF_8).trim();

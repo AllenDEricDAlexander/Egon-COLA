@@ -177,7 +177,7 @@ export const WikiPage = () => {
             <Alert
               type="info"
               showIcon
-              message={`正在查看历史版本 ${revisionId}`}
+              title={`正在查看历史版本 ${revisionId}`}
               description="历史版本只读；恢复内容需要保存为新草稿后重新发布。"
             />
           )}
@@ -185,7 +185,7 @@ export const WikiPage = () => {
             <Alert
               type="info"
               showIcon
-              message="只读模式"
+              title="只读模式"
               description="当前账号在本知识库不是 EDITOR/OWNER，只能阅读；编辑、发布与下线不可用。"
             />
           )}
@@ -193,7 +193,7 @@ export const WikiPage = () => {
             <Alert
               type="error"
               showIcon
-              message={mutationError instanceof Error ? mutationError.message : '操作失败'}
+              title={mutationError instanceof Error ? mutationError.message : '操作失败'}
               description={isConflict(mutationError)
                 ? '页面已被他人更新：你的草稿已保留在本地，请刷新比较后再提交。'
                 : undefined}

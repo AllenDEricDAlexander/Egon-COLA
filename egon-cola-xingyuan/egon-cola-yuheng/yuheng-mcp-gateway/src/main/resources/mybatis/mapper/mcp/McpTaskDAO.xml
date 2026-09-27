@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <!--
-  中文说明：数据面进程自有的 gateway_mcp_task_instance 语句集，只覆盖 EgonColaMapper 继承来的受守卫语句
-  （按主键活跃读取、批量活跃读取、版本化逻辑删除），不新增任何按状态批量写入的自定义语句；列集合与控制面
-  yuheng-admin 的同名 XML 逐列一致，因为两个进程共享同一张表。
-  English summary: The data-plane statement set for gateway_mcp_task_instance. It only overrides the guarded statements
-  inherited from EgonColaMapper (active read by primary key, batch active read, versioned logical delete) and adds no
-  custom statement that writes by state alone; the column list matches the control plane's XML of the same name column
-  for column because both processes share the one table.
+  中文说明：数据面进程自有的 gateway_mcp_task_instance 语句集，包含继承自 EgonColaMapper 的受守卫读取/逻辑删除，
+  以及 transitionTask/cancelTask 两条逐行 CAS。两条 CAS 显式携带 id、tenant、活跃谓词、技术 version、业务 state/revision
+  和期望 owner，并显式将 owner/lease 写 NULL；没有按状态批量写入。表列投影与控制面逐列一致。
+  English summary: The data-plane statement set for gateway_mcp_task_instance, containing the guarded reads/logical delete
+  inherited from EgonColaMapper plus two per-row transitionTask/cancelTask CAS updates. Each update binds id, tenant, active
+  predicate, technical version, business state/revision and expected owner, and explicitly sets owner/lease to NULL; no
+  write is keyed by state alone. The projected columns match the control plane column-for-column.
 -->
 <mapper namespace="top.egon.cola.component.yuheng.mcp.engine.mcp.dao.McpTaskDAO">
     <resultMap id="McpTaskResultMap" type="top.egon.cola.component.yuheng.mcp.engine.mcp.domain.po.McpTaskRecordPO">
@@ -58,5 +58,24 @@
         UPDATE gateway_mcp_task_instance SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version = version + 1,
             update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
         WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
+    <update id="transitionTask">
+        UPDATE gateway_mcp_task_instance SET state = #{et.state},
+            input_payload = #{et.inputPayload,typeHandler=top.egon.cola.component.yuheng.mcp.engine.mcp.dao.typehandler.McpJsonbTypeHandler,jdbcType=OTHER},
+            result_payload = #{et.resultPayload,typeHandler=top.egon.cola.component.yuheng.mcp.engine.mcp.dao.typehandler.McpJsonbTypeHandler,jdbcType=OTHER},
+            error_payload = #{et.errorPayload,typeHandler=top.egon.cola.component.yuheng.mcp.engine.mcp.dao.typehandler.McpJsonbTypeHandler,jdbcType=OTHER},
+            worker_owner = NULL, lease_until = NULL, revision = #{et.revision}, version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{et.version}
+            AND state = #{expectedState} AND revision = #{expectedRevision}
+            AND ((#{expectedWorkerOwnerNull} = TRUE AND worker_owner IS NULL)
+                OR (#{expectedWorkerOwnerNull} = FALSE AND worker_owner = #{expectedWorkerOwner,jdbcType=VARCHAR}))
+    </update>
+    <update id="cancelTask">
+        UPDATE gateway_mcp_task_instance SET state = #{et.state}, worker_owner = NULL, lease_until = NULL,
+            revision = #{et.revision}, version = version + 1,
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime,jdbcType=TIMESTAMP}
+        WHERE id = #{et.id} AND tenant_id = #{et.tenantId} AND deleted_at IS NULL AND version = #{et.version}
+            AND state = #{expectedState} AND revision = #{expectedRevision}
     </update>
 </mapper>

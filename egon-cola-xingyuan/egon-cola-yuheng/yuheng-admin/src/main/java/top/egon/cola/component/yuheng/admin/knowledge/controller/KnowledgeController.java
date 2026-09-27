@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.groups.Default;
 import java.net.URI;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,11 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeAnswerCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeBaseCommandDTO;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMemberDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMembersCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgePageQueryDTO;
+import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeMembersConverter;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeAnswerVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeBaseVO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeMembersVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgePageVO;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeService;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
@@ -43,15 +43,15 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
  * 中文说明：{@code KnowledgeController} 是原业务 Spec §9.2.8–§9.2.13 与 §9.2.22（API-008–013、API-022）的接口控制器，
  * 只负责把既有 HTTP 路径、operationId、状态码与裸 JSON shape 交付给 {@link KnowledgeService}：
  * 知识库的分页只读返回 {@code items/page/size/total}，单个读取与完整替换返回已提交投影，
- * 成员读写返回 {@code {actorId, role}} 载体列表，接地问答返回带引用的答案投影。
+ * 成员读写返回含权威revision的 {@code {members, revision}} 快照，接地问答返回带引用的答案投影。
  * 身份由已认证主体解析为 {@link AdminActor} 并作为业务合同的第一个入参，租户不进入任何参数；
  * READER/EDITOR/OWNER 的角色判定、{@code KB_CREATE} 权限、幂等意图复用与 revision CAS 全部在业务合同层完成，
  * 本类不含任何权限分支、仓储访问或错误包装，也不投影原文、提示词、向量与密钥。
  * English summary: {@code KnowledgeController} is the interface controller of §9.2.8–§9.2.13 and §9.2.22
  * (API-008–013, API-022) of the primary business Spec and only delivers the original paths, operationIds, status codes and
  * bare JSON shapes through {@link KnowledgeService}: the paged read answers {@code items/page/size/total}, the single read
- * and the full replace answer with the committed projection, the member operations answer with the
- * {@code {actorId, role}} carriers, and the grounded question answers with the cited answer projection. The identity is
+ * and the full replace answer with the committed projection, the member operations answer with the authoritative
+ * {@code {members, revision}} snapshot, and the grounded question answers with the cited answer projection. The identity is
  * resolved from the authenticated principal into an {@link AdminActor} passed as the first business argument, tenancy never
  * becomes a parameter; the READER/EDITOR/OWNER decision, the {@code KB_CREATE} capability, idempotency reuse and the
  * revision CAS all live in the business contract, so this class holds no permission branch, no repository access, no error
@@ -98,6 +98,9 @@ public class KnowledgeController {
      */
     @Qualifier("knowledgeServiceImpl")
     private final KnowledgeService knowledgeService;
+
+    @Qualifier("knowledgeMembersConverter")
+    private final KnowledgeMembersConverter knowledgeMembersConverter;
 
     /**
      * 中文说明：执行 listKnowledgeBases 操作（API-008）；page 从 1 开始、size 有效范围 1–100，越界由业务合同按
@@ -249,42 +252,30 @@ public class KnowledgeController {
     }
 
     /**
-     * 中文说明：执行 listKnowledgeMembers 操作（API-012）；输出顺序稳定，每位成员只有 {@code actorId} 与
-     * typed {@code role}，绝不携带知识库内容；能力面沿用类级只读要求，OWNER/READER 的成员判定由业务合同完成，
-     * 本类不判断角色；无成员时返回空列表而不是 null。
-     * English summary: Executes the listKnowledgeMembers operation (API-012) in a stable order, projecting only each member's
-     * {@code actorId} and typed {@code role} and never any knowledge content. The capability stays the class-level read one
-     * while the OWNER-versus-READER membership decision belongs to the business contract, so this class checks no role; an
-     * empty member set answers with an empty list rather than null.
+     * 中文说明：执行 listKnowledgeMembers 操作（API-012）；OWNER 可见，返回稳定排序的 {@code {members, revision}}
+     * 快照，使成员集合与用于CAS的知识库业务版本来自同一读取。
+     * English summary: Executes the listKnowledgeMembers operation (API-012) for an OWNER and returns the stable
+     * {@code {members, revision}} snapshot so the member list and its CAS revision come from one read.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code knowledgeController.listKnowledgeMembers(kbId, actor)}。
      * @param kbId 参数 知识库十进制字符串 id；parameter decimal-string knowledge base id.
      * @param actor 参数 已验证的管理身份；parameter the verified management actor.
-     * @return 返回 成员载体列表；returns the member carriers.
+     * @return 返回 成员与权威版本；returns members with the authoritative revision.
      */
     @Operation(operationId = "listKnowledgeMembers")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/knowledge-bases/{kbId}/members")
-    public List<KnowledgeMemberDTO> listKnowledgeMembers(
+    public KnowledgeMembersVO listKnowledgeMembers(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")
             @PathVariable String kbId,
             AdminActor actor) {
-        return knowledgeService.listMembers(
-                actor,
-                kbId
-        );
+        return knowledgeMembersConverter.toTarget(knowledgeService.listMembers(actor, kbId));
     }
 
-    // 已知规范冲突（登记而非在本 Step 内改写）：Spec §9.2.12–013 把线上形态定为 {members[], revision}，
-    // 而本 Plan 的两个成员方法都返回 List<KnowledgeMemberDTO>，库存里也没有成员投影 VO，新建一个会越出本文件的写入范围；
-    // revision 暂由 API-010 重读获得，差异计入最终审计。
-    // Registered conflict, not rewritten here: Spec §9.2.12-013 pin the wire as {members[], revision}, while this Plan
-    // returns List<KnowledgeMemberDTO> from both member methods with no member projection VO in the inventory, so the
-    // revision is re-read through API-010 instead.
     /**
-     * 中文说明：执行 replaceKnowledgeMembers 操作（API-013）；仅 OWNER 能力可发起，200 返回替换后的权威成员集合；
+     * 中文说明：执行 replaceKnowledgeMembers 操作（API-013）；仅 OWNER 能力可发起，200 返回替换后的权威成员集合与版本；
      * 请求体为 {@code {members[], expectedRevision}}，元素唯一、总数受限、角色落在 {@code READER/EDITOR/OWNER} 词汇表内，
      * owner 自身可见性不得被移除；替换以期望 revision 做 CAS，不匹配为 409 并携带现值，
      * 0 行写入绝不返回成功；成员变化会提升 revision，使正在执行的输出需再次授权。
@@ -300,26 +291,23 @@ public class KnowledgeController {
      * @param kbId 参数 知识库十进制字符串 id；parameter decimal-string knowledge base id.
      * @param command 参数 成员完整替换命令；parameter the full members replacement command.
      * @param actor 参数 已验证的管理身份；parameter the verified management actor.
-     * @return 返回 已提交的成员载体列表；returns the committed member carriers.
+     * @return 返回 已提交成员与权威版本；returns the committed members and authoritative revision.
      */
     @Operation(operationId = "replaceKnowledgeMembers")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/knowledge-bases/{kbId}/members")
     @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:admin','CAP_*')")
-    public List<KnowledgeMemberDTO> replaceKnowledgeMembers(
+    public KnowledgeMembersVO replaceKnowledgeMembers(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")
             @PathVariable String kbId,
             @Valid @RequestBody KnowledgeMembersCommandDTO command,
             AdminActor actor) {
-        List<KnowledgeMemberDTO> members = knowledgeService.replaceMembers(
-                actor,
-                kbId,
-                command
-        );
-        log.debug("YUHENG_KNOWLEDGE_MEMBERS_REPLACED kbId={}", kbId);
-        return members;
+        KnowledgeMembersVO view = knowledgeMembersConverter.toTarget(
+                knowledgeService.replaceMembers(actor, kbId, command));
+        log.debug("YUHENG_KNOWLEDGE_MEMBERS_REPLACED kbId={} revision={}", kbId, view.getRevision());
+        return view;
     }
 
     /**

@@ -104,10 +104,14 @@ public class GatewayPersistenceConfiguration implements SmartInitializingSinglet
     public GatewayPersistenceContextComponent gatewayPersistenceContextComponent(
             @Qualifier(GatewayPersistenceProperties.BEAN_NAME)
             GatewayPersistenceProperties persistenceProperties) {
-        if (persistenceProperties.isManagedDdlEnabled() != mybatisPlusProperties.getDdl().isEnabled()) {
+        Boolean managedDdlEnabled = persistenceProperties.getManagedDdlEnabled();
+        if (managedDdlEnabled == null) {
+            throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_FLAG_REQUIRED");
+        }
+        if (managedDdlEnabled.booleanValue() != mybatisPlusProperties.getDdl().isEnabled()) {
             throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_FLAG_CONFLICT");
         }
-        if (!persistenceProperties.isManagedDdlEnabled()) {
+        if (!managedDdlEnabled) {
             throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_ROLE_MISMATCH");
         }
         return new GatewayPersistenceContextComponent(persistenceProperties, mybatisPlusProperties);

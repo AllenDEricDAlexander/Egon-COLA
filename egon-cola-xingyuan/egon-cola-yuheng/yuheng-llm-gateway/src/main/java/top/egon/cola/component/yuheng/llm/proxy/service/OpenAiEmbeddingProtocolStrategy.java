@@ -409,11 +409,14 @@ public class OpenAiEmbeddingProtocolStrategy implements LlmProtocolStrategy {
         log.info("llm embeddings egress alias={} protocol={} channel={} bytes={}",
                 command.getModel(), protocol(), channel.getChannelKey(), requestBody.length);
         try {
-            HttpRequest upstreamRequest = HttpRequest.newBuilder(endpoint)
+            HttpRequest.Builder upstreamRequestBuilder = HttpRequest.newBuilder(endpoint)
                     .timeout(Duration.ofMillis(responseBudgetMs(channel)))
                     .header("Content-Type", "application/json")
-                    .header("Accept", "application/json")
-                    .header("Authorization", "Bearer " + credential)
+                    .header("Accept", "application/json");
+            if (credential != null) {
+                upstreamRequestBuilder.header("Authorization", "Bearer " + credential);
+            }
+            HttpRequest upstreamRequest = upstreamRequestBuilder
                     .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
                     .build();
             HttpResponse<InputStream> response =
@@ -503,10 +506,13 @@ public class OpenAiEmbeddingProtocolStrategy implements LlmProtocolStrategy {
         }
     }
 
-    /** 中文说明：凭据解析：只接受 {@code yuheng.llm.secrets-root} 之下的规范化路径，拒绝绝对引用、{@code ..} 穿越、非普通文件与空白内容；读取失败按「本渠道不可用」而不是「换渠道」处理，凭据值与引用名都不进日志。 English summary: credential resolution: only a normalized path under {@code yuheng.llm.secrets-root} is accepted, so an absolute reference, a {@code ..} traversal, a non-regular file or a blank value is refused; a read failure means "this channel is unavailable" rather than "try another channel", and neither the value nor the reference name reaches a log. */
+    /** 中文说明：本地 embedding 有 secretRef 时只解析 {@code yuheng.llm.secrets-root} 下的规范化文件；无认证 LOCAL 可省略引用并不发送上游凭据头，引用无效或读取失败即拒绝本次尝试。 English summary: when a local embedding channel has a secretRef it resolves only to a normalized file under {@code yuheng.llm.secrets-root}; an auth-free LOCAL channel may omit it and sends no credential header, while invalid/unreadable references refuse this attempt. */
     private String resolveCredential(LlmInvocationCommandDTO command, LlmModelSnapshotBO.ChannelBO channel) {
-        String root = StringUtils.trimToNull(gatewayProperties.getSecretsRoot());
+        if (channel.getSecretRef() == null) {
+            return null;
+        }
         String reference = StringUtils.trimToNull(channel.getSecretRef());
+        String root = StringUtils.trimToNull(gatewayProperties.getSecretsRoot());
         if (root == null || reference == null || reference.contains("..")) {
             throw unresolvableCredential(command, channel);
         }

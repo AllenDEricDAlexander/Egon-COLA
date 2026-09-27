@@ -26,11 +26,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.rag.chunk.RagChunkingStrategyEnum;
 import top.egon.cola.component.yuheng.admin.config.properties.KnowledgeProperties;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeBaseBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumentRevisionBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeJobBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeUploadReceiptBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeAnswerCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeBaseCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMemberDTO;
@@ -171,7 +173,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     );
 
     /** 切分配置冻结时的策略名 / the strategy name frozen into the chunking configuration. */
-    private static final String CHUNKING_STRATEGY = "FIXED_WINDOW";
+    private static final String CHUNKING_STRATEGY = RagChunkingStrategyEnum.TOKEN.name();
 
     @Qualifier("knowledgeRepository")
     private final KnowledgeRepository knowledgeRepository;
@@ -396,11 +398,10 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<KnowledgeMemberDTO> listMembers(
+    public KnowledgeBaseBO listMembers(
             AdminActor actor,
             String kbId) {
-        KnowledgeBaseBO base = requireVisibleBase(actor, kbId, OWNER_ONLY);
-        return copyMembers(membersOf(base));
+        return requireVisibleBase(actor, kbId, OWNER_ONLY);
     }
 
     /**
@@ -423,7 +424,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public List<KnowledgeMemberDTO> replaceMembers(
+    public KnowledgeBaseBO replaceMembers(
             AdminActor actor,
             String kbId,
             KnowledgeMembersCommandDTO command) {
@@ -442,7 +443,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 members.size(),
                 actor.actorId()
         );
-        return copyMembers(membersOf(committed));
+        return committed;
     }
 
     /**
@@ -508,7 +509,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KnowledgeDocumentVO uploadDocument(
+    public KnowledgeUploadReceiptBO uploadDocument(
             AdminActor actor,
             String kbId,
             KnowledgeUploadCommandDTO command,
@@ -555,7 +556,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 revision.getByteCount(),
                 actor.actorId()
         );
-        return documentView(bound);
+        return uploadReceipt(bound.getId(), revision.getId(), job);
     }
 
     /**
@@ -957,7 +958,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      * @param requestHash 参数 本次请求摘要；parameter this request's digest.
      * @return 返回 文档投影；returns the document projection.
      */
-    private KnowledgeDocumentVO replayedUpload(
+    private KnowledgeUploadReceiptBO replayedUpload(
             KnowledgeDocumentBO known,
             KnowledgeJobBO existing,
             String requestHash) {
@@ -965,6 +966,15 @@ public class KnowledgeServiceImpl implements KnowledgeService {
         KnowledgeDocumentBO document = known == null
                 ? requireDocument(existing.getKbId(), existing.getResourceId())
                 : known;
+        JsonNode payload = existing.getPayload();
+        String revisionId = payload == null ? null : StringUtils.trimToNull(payload.path("revisionId").asText());
+        if (revisionId == null) {
+            throw new CommonException(
+                    500,
+                    "KNOWLEDGE_UPLOAD_RECEIPT_UNAVAILABLE",
+                    "the stored ingestion intent has no revision receipt"
+            );
+        }
         log.info(
                 "KNOWLEDGE_UPLOAD_REPLAYED kbId={} documentId={} jobId={} status={}",
                 document.getKbId(),
@@ -972,7 +982,19 @@ public class KnowledgeServiceImpl implements KnowledgeService {
                 existing.getId(),
                 existing.getStatus()
         );
-        return documentView(document);
+        return uploadReceipt(document.getId(), revisionId, existing);
+    }
+
+    private static KnowledgeUploadReceiptBO uploadReceipt(
+            String documentId,
+            String revisionId,
+            KnowledgeJobBO job) {
+        return KnowledgeUploadReceiptBO.builder()
+                .documentId(documentId)
+                .revisionId(revisionId)
+                .jobId(job.getId())
+                .status(job.getStatus())
+                .build();
     }
 
     /**

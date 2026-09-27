@@ -556,12 +556,15 @@ public class OpenAiChatProtocolStrategy implements LlmProtocolStrategy {
         log.info("llm chat egress alias={} protocol={} channel={} priority={} deployment={} stream={} bytes={}",
                 command.getModel(), protocol(), channel.getChannelKey(), route.getPriority(),
                 channel.getDeployment(), streaming, requestBody.length);
-        HttpRequest upstreamRequest = HttpRequest.newBuilder(endpoint)
+        HttpRequest.Builder upstreamRequestBuilder = HttpRequest.newBuilder(endpoint)
                 .timeout(Duration.ofMillis(streaming
                         ? channel.getHeaderTimeoutMs().longValue() : responseBudgetMs(channel)))
                 .header("Content-Type", "application/json")
-                .header("Accept", streaming ? "text/event-stream" : "application/json")
-                .header("Authorization", "Bearer " + credential)
+                .header("Accept", streaming ? "text/event-stream" : "application/json");
+        if (credential != null) {
+            upstreamRequestBuilder.header("Authorization", "Bearer " + credential);
+        }
+        HttpRequest upstreamRequest = upstreamRequestBuilder
                 .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
                 .build();
         try {
@@ -955,7 +958,8 @@ public class OpenAiChatProtocolStrategy implements LlmProtocolStrategy {
         try {
             URI base = URI.create(StringUtils.trimToEmpty(channel.getBaseUrl()));
             boolean schemeAllowed = "https".equalsIgnoreCase(base.getScheme())
-                    || "http".equalsIgnoreCase(base.getScheme());
+                    || channel.getDeployment() == LlmDeploymentEnum.LOCAL
+                    && "http".equalsIgnoreCase(base.getScheme());
             if (!base.isAbsolute() || !schemeAllowed || StringUtils.isBlank(base.getHost())
                     || base.getUserInfo() != null || base.getQuery() != null || base.getFragment() != null) {
                 throw new IllegalArgumentException("the configured chat channel base url is not egressable");
@@ -970,10 +974,14 @@ public class OpenAiChatProtocolStrategy implements LlmProtocolStrategy {
         }
     }
 
-    /** 中文说明：凭据解析：只接受 {@code yuheng.llm.secrets-root} 之下的规范化路径，拒绝绝对引用、{@code ..} 穿越、非普通文件与空白内容；读取失败按「本渠道不可用」而不是「换渠道」处理，凭据值与引用名都不进日志。 English summary: credential resolution: only a normalized path under {@code yuheng.llm.secrets-root} is accepted, so an absolute reference, a {@code ..} traversal, a non-regular file or a blank value is refused; a read failure means "this channel is unavailable" rather than "try another channel", and neither the value nor the reference name reaches a log. */
+    /** 中文说明：有 secretRef 时只解析 {@code yuheng.llm.secrets-root} 下的规范化文件；仅无认证 LOCAL 可省略引用并不发送上游凭据头，CLOUD 缺失引用仍失败关闭。 English summary: a configured secretRef resolves only to a normalized file below {@code yuheng.llm.secrets-root}; only auth-free LOCAL may omit it and send no upstream credential header, while CLOUD still fails closed without one. */
     private String resolveCredential(LlmInvocationCommandDTO command, LlmModelSnapshotBO.ChannelBO channel) {
+        String configuredReference = channel.getSecretRef();
+        if (configuredReference == null && channel.getDeployment() == LlmDeploymentEnum.LOCAL) {
+            return null;
+        }
+        String reference = StringUtils.trimToNull(configuredReference);
         String root = StringUtils.trimToNull(gatewayProperties.getSecretsRoot());
-        String reference = StringUtils.trimToNull(channel.getSecretRef());
         if (root == null || reference == null || reference.contains("..")) {
             throw unresolvableCredential(command, channel);
         }

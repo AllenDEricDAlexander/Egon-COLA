@@ -88,7 +88,7 @@ export const OpenApiSyncPage = () => {
           className="section-row"
           type="warning"
           showIcon
-          message="存在同步失败记录"
+          title="存在同步失败记录"
           description="请结合错误码、构建号和快照状态处理，不要将未完成的 Group 发布为聚合 Definition Set。"
         />
       )}

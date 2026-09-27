@@ -45,6 +45,10 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>yuheng-starter-openapi-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-tianquan-shoubing-starter</artifactId>
         </dependency>
         <dependency>

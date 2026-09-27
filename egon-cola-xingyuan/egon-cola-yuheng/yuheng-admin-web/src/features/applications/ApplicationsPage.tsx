@@ -322,7 +322,7 @@ export const ApplicationsPage = () => {
           className="section-row"
           type="warning"
           showIcon
-          message="OpenAPI 同步状态暂不可用"
+          title="OpenAPI 同步状态暂不可用"
           description={<QueryFailure error={openapiSync.error} />}
           action={<Button onClick={() => void openapiSync.refetch()}>重试</Button>}
         />
@@ -401,7 +401,7 @@ export const ApplicationsPage = () => {
           <Alert
             type="warning"
             showIcon
-            message="Secret 只显示一次，请立即保存到 Secret 管理系统"
+            title="Secret 只显示一次，请立即保存到 Secret 管理系统"
             description={<JsonPanel title="新 Credential" value={issued} />}
           />
         )}

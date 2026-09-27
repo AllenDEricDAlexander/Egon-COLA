@@ -54,6 +54,7 @@ import top.egon.cola.component.yuheng.llm.config.LlmGatewayProperties;
 import top.egon.cola.component.yuheng.llm.proxy.domain.bo.LlmModelSnapshotBO;
 import top.egon.cola.component.yuheng.llm.proxy.domain.dto.LlmInvocationCommandDTO;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmCapabilityEnum;
+import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmDeploymentEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmProtocolEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.exception.LlmInvocationException;
 import top.egon.cola.component.yuheng.llm.proxy.domain.vo.LlmInvocationResultVO;
@@ -565,7 +566,8 @@ public class OpenAiResponsesProtocolStrategy implements LlmProtocolStrategy {
      * 本方法从不在事务或锁内等待上游：只读配置快照事务早已结束，等待只受渠道超时预算与看门狗关闭约束。
      * English summary: The single orchestration entry. {@link #requireUsableChannel} fails closed first (engine disabled,
      * missing or disabled channel, a channel protocol that is not OPENAI_RESPONSES, route capabilities not covering the
-     * command's required ones, a malformed base URL or an unconfigured secret root → 503), then
+     * command's required ones, an unusable base URL, or a missing CLOUD credential/root → 503; a null secretRef is valid
+     * only for an unauthenticated LOCAL channel), then
      * {@link #encodeRequest} plus serialization runs (400/413), the credential is resolved from {@code secretRef} under
      * {@code yuheng.llm.secrets-root} only (the normalized path must provably stay inside that root, and a
      * non-regular, oversized or blank file is a 503), and a JDK-native {@link HttpClient} is built <b>locally</b> from
@@ -596,11 +598,15 @@ public class OpenAiResponsesProtocolStrategy implements LlmProtocolStrategy {
         byte[] requestBody = serialize(encodeRequest(command, route), command);
         URI target = upstreamUri(channel);
         boolean streaming = Boolean.TRUE.equals(command.getStream());
-        HttpRequest httpRequest = HttpRequest.newBuilder(target)
+        String credential = resolveCredential(channel);
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(target)
                 .timeout(Duration.ofMillis(streaming ? channel.getHeaderTimeoutMs() : channel.getTotalTimeoutMs()))
                 .header("Accept", streaming ? "text/event-stream" : "application/json")
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + resolveCredential(channel))
+                .header("Content-Type", "application/json");
+        if (credential != null) {
+            requestBuilder.header("Authorization", "Bearer " + credential);
+        }
+        HttpRequest httpRequest = requestBuilder
                 .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
                 .build();
         HttpClient client = HttpClient.newBuilder()
@@ -644,12 +650,14 @@ public class OpenAiResponsesProtocolStrategy implements LlmProtocolStrategy {
     }
 
     /**
-     * 中文说明：出网前的就地准入：引擎开关、渠道存在与启用、同协议、能力覆盖、baseUrl 形态与密钥根配置，
-     * 任一不成立都以 503 {@code model_unavailable} 失败关闭——绝不静默改用别的协议或别的渠道，
+     * 中文说明：出网前的就地准入：引擎开关、渠道存在与启用、同协议、能力覆盖、baseUrl 形态，以及 CLOUD 凭据引用/密钥根；
+     * 无认证 LOCAL 可以没有 {@code secretRef}。任一必需条件不成立都以 503 {@code model_unavailable} 失败关闭——
+     * 绝不静默改用别的协议或别的渠道，
      * 也绝不把「渠道引用悬空」读成「随便挑一个」。
      * English summary: The in-place admission gate before egress: the engine switch, channel presence and enablement,
-     * same-protocol, capability coverage, base URL shape and the secret root, each failing closed with 503
-     * {@code model_unavailable} — never silently another protocol or channel, and never a dangling channel reference
+     * same-protocol, capability coverage, base URL shape, and CLOUD credential/root; an unauthenticated LOCAL channel may
+     * omit {@code secretRef}. Missing required facts fail closed with 503 {@code model_unavailable} — never another
+     * protocol or channel, and never a dangling channel reference
      * read as "pick any".
      *
      * 用法 / Usage: 仅由 {@link #exchange} 调用。/ called only by {@link #exchange}.
@@ -668,11 +676,16 @@ public class OpenAiResponsesProtocolStrategy implements LlmProtocolStrategy {
             reason = "channel unresolved or disabled";
         } else if (channel.getProtocol() != protocol()) {
             reason = "channel protocol is not the ingress protocol";
-        } else if (!channel.getBaseUrl().startsWith("https://")
+        } else if (channel.getDeployment() == null
+                || (channel.getDeployment() != LlmDeploymentEnum.LOCAL
+                && channel.getDeployment() != LlmDeploymentEnum.CLOUD)
+                || StringUtils.isBlank(channel.getBaseUrl())
                 || !route.getCapabilities().containsAll(command.getRequiredCapabilities())) {
             reason = "base URL or capability coverage unusable";
-        } else if (StringUtils.isBlank(gatewayProperties.getSecretsRoot())) {
-            reason = "secret root unconfigured";
+        } else if (channel.getDeployment() == LlmDeploymentEnum.CLOUD
+                && (StringUtils.isBlank(channel.getSecretRef())
+                || StringUtils.isBlank(gatewayProperties.getSecretsRoot()))) {
+            reason = "cloud credential is unavailable";
         }
         if (reason != null) {
             log.warn("llm responses route rejected, alias={} protocol={} channelKey={} reason={}", command.getModel(),
@@ -754,11 +767,20 @@ public class OpenAiResponsesProtocolStrategy implements LlmProtocolStrategy {
      * @throws LlmInvocationException 503 {@code model_unavailable}；raised when the reference cannot be resolved safely.
      */
     private String resolveCredential(LlmModelSnapshotBO.ChannelBO channel) {
-        String root = gatewayProperties.getSecretsRoot();
+        if (channel.getSecretRef() == null && channel.getDeployment() == LlmDeploymentEnum.LOCAL) {
+            return null;
+        }
+        String reference = StringUtils.trimToNull(channel.getSecretRef());
+        String root = StringUtils.trimToNull(gatewayProperties.getSecretsRoot());
+        if (root == null || reference == null) {
+            throw nativeError(HttpURLConnection.HTTP_UNAVAILABLE, "model_unavailable", null,
+                    "The channel credential cannot be resolved for this model alias", true);
+        }
         try {
             Path rootPath = Path.of(root).toAbsolutePath().normalize();
-            Path resolved = rootPath.resolve(channel.getSecretRef()).normalize();
-            if (channel.getSecretRef().indexOf('\0') >= 0 || resolved.equals(rootPath)
+            Path resolved = rootPath.resolve(reference).normalize();
+            if (reference.indexOf('\0') >= 0 || reference.contains("..") || Path.of(reference).isAbsolute()
+                    || resolved.equals(rootPath)
                     || !resolved.startsWith(rootPath) || !Files.isRegularFile(resolved)) {
                 throw new IOException("the secret reference leaves the mounted root");
             }
@@ -782,12 +804,13 @@ public class OpenAiResponsesProtocolStrategy implements LlmProtocolStrategy {
     }
 
     /**
-     * 中文说明：把渠道 baseUrl 与本协议端点合成为出网 URI：必须是 HTTPS 绝对地址、有主机、无 userinfo、无查询、
+     * 中文说明：把渠道 baseUrl 与本协议端点合成为出网 URI：CLOUD 必须 HTTPS，LOCAL 可用受本地白名单约束的 HTTP，
+     * 地址必须绝对、有主机、无 userinfo、无查询、
      * 无片段（携带这些的一律 503，因为它们是出网自证）；baseUrl 已带路径段（通常含版本前缀）时只追加
      * {@code responses}，根地址则补 {@code /v1/responses}。跳转在本面根本不存在：客户端与上游都收不到 3xx 重定向，
      * 因为 {@link HttpClient} 以 {@code Redirect.NEVER} 构造，401/407 等状态由 {@link #upstreamRejected} 承担。
-     * English summary: Composes the egress URI from the channel base URL and this face's endpoint: it must be an absolute
-     * HTTPS URL with a host and without userinfo, query or fragment (any of those is a 503, since they are egress
+     * English summary: Composes the egress URI from the channel base URL and this face's endpoint: CLOUD must use HTTPS,
+     * while LOCAL may use allowlisted HTTP; it must be absolute with a host and without userinfo, query or fragment (any of those is a 503, since they are egress
      * self-assertions); a base URL that already carries a path segment (typically the version prefix) only gets
      * {@code responses} appended while a bare origin receives {@code /v1/responses}. Redirection simply does not exist on
      * this face, because the {@link HttpClient} is built with {@code Redirect.NEVER} and statuses such as 401 or 407 are
@@ -807,7 +830,10 @@ public class OpenAiResponsesProtocolStrategy implements LlmProtocolStrategy {
             }
             String target = path.isEmpty() ? DEFAULT_VERSION_PREFIX + "/" + RESPONSES_PATH
                     : path + "/" + RESPONSES_PATH;
-            if (!base.isAbsolute() || !"https".equalsIgnoreCase(base.getScheme())
+            boolean secure = "https".equalsIgnoreCase(base.getScheme());
+            boolean localHttp = channel.getDeployment() == LlmDeploymentEnum.LOCAL
+                    && "http".equalsIgnoreCase(base.getScheme());
+            if (!base.isAbsolute() || !(secure || localHttp)
                     || StringUtils.isBlank(base.getHost()) || base.getUserInfo() != null
                     || base.getRawQuery() != null || base.getRawFragment() != null) {
                 throw new IOException("the channel base URL is not a clean HTTPS origin");

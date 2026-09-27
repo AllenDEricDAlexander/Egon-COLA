@@ -1,6 +1,13 @@
 package top.egon.cola.component.yuheng.admin.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
+import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import java.io.IOException;
@@ -15,6 +22,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,7 +38,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.apache.ibatis.session.SqlSessionFactory;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.LongValue;
+import top.egon.cola.component.yuheng.admin.llm.dao.LlmChannelDAO;
+import top.egon.cola.component.yuheng.admin.llm.dao.LlmModelDAO;
+import top.egon.cola.component.yuheng.admin.llm.domain.po.LlmChannelPO;
+import top.egon.cola.component.yuheng.admin.llm.domain.po.LlmModelPO;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.ddl.EgonColaDdlManifestBO;
 import top.egon.cola.component.common.mybatis.ddl.EgonColaDdlResult;
@@ -56,13 +73,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * is of type {@code vector}. Every expectation is derived from the SQL text rather than mirrored off the live schema, so
  * this class never freezes whatever the database happens to look like today.
  *
- * 用法 / Usage: 仅在显式提供隔离验收库 {@code YUHENG_MANAGED_TEST_POSTGRES_URL/USER/PASSWORD} 时运行，schema 名随机、
- * 结束即删；本仓库不启动 Docker、不起常驻进程，也没有任何镜像自带 pgvector，所以缺这三项环境变量时本类整体不执行——
- * 那正是 Plan §8 "PG/sharding/vector" 闸门的“缺环境必须标 SKIPPED 未验收”，不能当作 GREEN。
+ * 用法 / Usage: 仅在显式提供专用隔离验收数据库及 {@code YUHENG_MANAGED_TEST_POSTGRES_URL/USER/PASSWORD} 时运行。
+ * 脚本把物理表固定创建在 {@code public}，因此目标数据库必须为空且已由操作者安装 pgvector；若 runner 本轮返回
+ * {@code APPLIED}，本类只删除脚本声明的49张表与 {@code ddl_history}，绝不删除 public schema、扩展或其它对象。
+ * 另一个随机schema只用于验证未知非空目标被拒绝。缺环境变量时本类整体不执行——那正是 Plan §8
+ * "PG/sharding/vector" 闸门的“缺环境必须标 SKIPPED 未验收”，不能当作 GREEN。
  * 库级不变量之外的读写语义（CAS 谓词、0 行不判成功、租户注入）由 {@code GatewayPublicationMpTest} 等受守卫 MP 边界
- * 测试负责，本类不重复。/ Run only when an isolated acceptance database is supplied explicitly; the schema name is
- * random and dropped afterwards. This repository starts no Docker, no long-running process, and no shipped image carries
- * pgvector, so without those three variables the class does not execute at all — exactly the Plan's "missing environment
+ * 测试负责，本类不重复。/ Run only when a dedicated isolated acceptance database is supplied explicitly. The script
+ * targets {@code public}, so the database must be empty and pgvector must already be installed by the operator. When this
+ * run reports {@code APPLIED}, only the 49 declared tables and {@code ddl_history} are removed; the public schema,
+ * extension, and unrelated objects are retained. A random secondary schema is used only for the unknown-nonempty-target
+ * rejection case. Without the three variables the class does not execute at all — exactly the Plan's "missing environment
  * is reported SKIPPED, never accepted" gate, not GREEN. Read/write semantics beyond the database invariants belong to
  * the guarded MP boundary tests such as {@code GatewayPublicationMpTest} and are not repeated here.
  */
@@ -89,7 +110,7 @@ class GatewayManagedSchemaIT {
 
     /** 只比较脚本命名规范内的约束：列内联 CHECK 由 PG 自动命名，不在声明集合里。
      * Only the naming convention the script declares is compared; inline column checks carry generated names. */
-    private static final List<String> DECLARED_CONSTRAINT_PREFIXES = List.of("pk_", "uq_", "fk_", "ck_");
+    private static final List<String> DECLARED_CONSTRAINT_PREFIXES = List.of("pk_", "uq_", "uk_", "fk_", "ck_");
 
     /** SQLSTATE 23505：唯一约束或唯一索引冲突，PostgreSQL 与 JDBC 映射无关 / unique violation, independent of driver mapping. */
     private static final String UNIQUE_VIOLATION = "23505";
@@ -102,7 +123,7 @@ class GatewayManagedSchemaIT {
 
     private final String password = requiredEnvironment("YUHENG_MANAGED_TEST_POSTGRES_PASSWORD");
 
-    private final String schema = "yuheng_managed_" + suffix();
+    private static final String SCHEMA = "public";
 
     private final String foreignSchema = "yuheng_foreign_" + suffix();
 
@@ -114,14 +135,18 @@ class GatewayManagedSchemaIT {
     private List<EgonColaDdlResult> firstRun;
 
     @BeforeAll
-    void applyTheManagedBaselineIntoAFreshEmptySchema() throws SQLException {
-        execute("CREATE SCHEMA " + schema);
-        firstRun = runner().run(List.of(target(schema)));
+    void applyTheManagedBaselineIntoThePublicSchema() throws SQLException {
+        firstRun = runner().run(List.of(target(SCHEMA)));
     }
 
     @AfterAll
     void dropTheAcceptanceSchemas() throws SQLException {
-        execute("DROP SCHEMA IF EXISTS " + schema + " CASCADE");
+        if (firstRun != null && firstRun.stream().anyMatch(result -> result.status() == EgonColaDdlResult.StatusEnum.APPLIED)) {
+            for (String table : declaredNames(DECLARED_TABLE, sql())) {
+                execute("DROP TABLE IF EXISTS " + SCHEMA + "." + table + " CASCADE");
+            }
+            execute("DROP TABLE IF EXISTS " + SCHEMA + ".ddl_history CASCADE");
+        }
         execute("DROP SCHEMA IF EXISTS " + foreignSchema + " CASCADE");
     }
 
@@ -143,12 +168,12 @@ class GatewayManagedSchemaIT {
                 .as("nothing but the declared tables and the runner journal exists in the schema")
                 .containsExactlyInAnyOrderElementsOf(withJournal(declaredTables));
 
-        assertThat(runner().run(List.of(target(schema))).get(0).status())
+        assertThat(runner().run(List.of(target(SCHEMA))).get(0).status())
                 .as("a second managed run never re-executes the applied version")
                 .isEqualTo(EgonColaDdlResult.StatusEnum.SKIPPED);
-        assertThat(scalar("SELECT count(*) FROM " + schema + ".ddl_history")).isEqualTo("1");
+        assertThat(scalar("SELECT count(*) FROM " + SCHEMA + ".ddl_history")).isEqualTo("1");
         assertThat(scalar("SELECT script || '|' || type || '|' || version || '|' || checksum || '|'"
-                + " || route_fingerprint || '|' || tenant_id FROM " + schema + ".ddl_history"))
+                + " || route_fingerprint || '|' || tenant_id FROM " + SCHEMA + ".ddl_history"))
                 .isEqualTo(manifest.scripts().get(0).path() + "|SQL|"
                         + manifest.scripts().get(0).version() + "|" + routeFingerprint + "|"
                         + routeFingerprint + "|0");
@@ -166,11 +191,79 @@ class GatewayManagedSchemaIT {
     }
 
     @Test
+    @DisplayName("真实 MyBatis-Plus updateById 将完整替换中的 nullable LLM 列清成 SQL NULL")
+    void mybatisPlusFullReplacementClearsNullableLlmConfigurationColumns() throws Exception {
+        execute("CREATE VIEW public.gateway_llm_channel AS SELECT * FROM public.gateway_llm_channel_t0");
+        execute("CREATE VIEW public.gateway_llm_model AS SELECT * FROM public.gateway_llm_model_t0");
+        try {
+            execute("""
+                    INSERT INTO public.gateway_llm_channel_t0
+                        (id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
+                         channel_key, name, deployment, protocol, base_url, secret_ref, enabled,
+                         connect_timeout_ms, header_timeout_ms, idle_timeout_ms, total_timeout_ms, max_concurrent, revision)
+                    VALUES
+                        (900000000000000001, 9001, 'acceptance', CURRENT_TIMESTAMP, 'acceptance', CURRENT_TIMESTAMP,
+                         NULL, 0, 'llm-null-channel', 'LLM nullable channel', 'LOCAL', 'OPENAI_CHAT',
+                         'http://127.0.0.1:8000/v1', 'llm/local-main', TRUE, 2000, 30000, 60000, 120000, 4, 1)
+                    """);
+            execute("""
+                    INSERT INTO public.gateway_llm_model_t0
+                        (id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
+                         model_key, name, kind, protocols, enabled, dimensions, embedding_space_id,
+                         allowed_subjects, routes, revision)
+                    VALUES
+                        (900000000000000002, 9001, 'acceptance', CURRENT_TIMESTAMP, 'acceptance', CURRENT_TIMESTAMP,
+                         NULL, 0, 'llm-null-model', 'LLM nullable model', 'CHAT', '["OPENAI_CHAT"]'::jsonb, TRUE,
+                         1536, 'local:temporary-space', '["svc:wiki-indexer"]'::jsonb,
+                         '[{"channelKey":"llm-null-channel","upstreamModel":"qwen-local","priority":1,"weight":100,"capabilities":["TEXT"]}]'::jsonb,
+                         1)
+                    """);
+
+            SqlSessionFactory sessionFactory = llmMapperFactory();
+            SqlSessionTemplate sessions = new SqlSessionTemplate(sessionFactory);
+            LlmChannelDAO channelDAO = sessions.getMapper(LlmChannelDAO.class);
+            LlmModelDAO modelDAO = sessions.getMapper(LlmModelDAO.class);
+            Instant updateTime = Instant.parse("2026-09-27T00:00:00Z");
+
+            assertThat(channelDAO.updateById(LlmChannelPO.builder()
+                    .id(900000000000000001L)
+                    .tenantId(9001L)
+                    .version(0L)
+                    .updateUserId("llm-null-acceptance")
+                    .updateTime(updateTime)
+                    .secretRef(null)
+                    .build()))
+                    .as("the generated BaseMapper update must bind SQL NULL for secret_ref")
+                    .isEqualTo(1);
+            assertThat(scalar("SELECT (secret_ref IS NULL)::text FROM public.gateway_llm_channel_t0 "
+                    + "WHERE id=900000000000000001 AND version=1")).isEqualTo("true");
+
+            assertThat(modelDAO.updateById(LlmModelPO.builder()
+                    .id(900000000000000002L)
+                    .tenantId(9001L)
+                    .version(0L)
+                    .updateUserId("llm-null-acceptance")
+                    .updateTime(updateTime)
+                    .dimensions(null)
+                    .embeddingSpaceId(null)
+                    .build()))
+                    .as("the generated BaseMapper update must bind SQL NULL for both CHAT-only nullable columns")
+                    .isEqualTo(1);
+            assertThat(scalar("SELECT (dimensions IS NULL AND embedding_space_id IS NULL)::text "
+                    + "FROM public.gateway_llm_model_t0 WHERE id=900000000000000002 AND version=1"))
+                    .isEqualTo("true");
+        } finally {
+            execute("DROP VIEW IF EXISTS public.gateway_llm_channel");
+            execute("DROP VIEW IF EXISTS public.gateway_llm_model");
+        }
+    }
+
+    @Test
     @DisplayName("软删除唯一键真的组合 deleted_at，存活唯一键真的排除已删行")
     void combinesDeletedAtIntoLifecycleKeysAndExcludesDeletedRowsFromActiveKeys() throws SQLException {
         List<String> lifecycleDefinitions = query("SELECT pg_get_constraintdef(c.oid) FROM pg_catalog.pg_constraint c "
                 + "JOIN pg_catalog.pg_namespace n ON n.oid=c.connamespace "
-                + "WHERE n.nspname='" + schema + "' AND c.conname LIKE 'uq!_%!_life!_%' ESCAPE '!'");
+                + "WHERE n.nspname='" + SCHEMA + "' AND c.conname LIKE 'uq!_%!_life!_%' ESCAPE '!'");
         assertThat(lifecycleDefinitions)
                 .as("the script must actually declare lifecycle keys before this proves anything")
                 .isNotEmpty();
@@ -178,7 +271,7 @@ class GatewayManagedSchemaIT {
                 .as("every lifecycle unique key ends with the soft-delete column, so a repeated delete stays distinct")
                 .allSatisfy(definition -> assertThat(definition).matches("(?s).*\\(.*deleted_at\\)$"));
 
-        List<String> activeDefinitions = query("SELECT indexdef FROM pg_indexes WHERE schemaname='" + schema + "'"
+        List<String> activeDefinitions = query("SELECT indexdef FROM pg_indexes WHERE schemaname='" + SCHEMA + "'"
                 + " AND indexname LIKE 'uq!_%!_active!_%' ESCAPE '!'");
         assertThat(activeDefinitions)
                 .as("the script must actually declare active keys")
@@ -213,7 +306,7 @@ class GatewayManagedSchemaIT {
                 .as("re-deleting in the same microsecond is exactly the collision the caller answers with a "
                         + "fresh-transaction retry")
                 .isEqualTo(UNIQUE_VIOLATION);
-        assertThat(scalar("SELECT count(*) FROM " + schema + ".gateway_hmac_nonce_t0 WHERE nonce = '" + retired + "'"))
+        assertThat(scalar("SELECT count(*) FROM " + SCHEMA + ".gateway_hmac_nonce_t0 WHERE nonce = '" + retired + "'"))
                 .as("only the distinct-microsecond pair survived")
                 .isEqualTo("2");
     }
@@ -222,14 +315,14 @@ class GatewayManagedSchemaIT {
     @DisplayName("pgvector 列以 vector 类型物化并带维度 CHECK，缺扩展时脚本本身就会失败")
     void materializesTheVectorColumnWithItsDimensionCheck() throws SQLException {
         assertThat(scalar("SELECT udt_name FROM information_schema.columns "
-                + "WHERE table_schema='" + schema + "' AND table_name='gateway_knowledge_chunk_t0' "
+                + "WHERE table_schema='" + SCHEMA + "' AND table_name='gateway_knowledge_chunk_t0' "
                 + "AND column_name='embedding'"))
                 .as("an untyped column would silently accept anything")
                 .isEqualTo("vector");
         assertThat(query("SELECT pg_get_constraintdef(c.oid) FROM pg_catalog.pg_constraint c "
                 + "JOIN pg_catalog.pg_namespace n ON n.oid=c.connamespace "
-                + "WHERE n.nspname='" + schema + "' AND c.contype='c' AND c.conrelid='"
-                + schema + ".gateway_knowledge_chunk_t0'::regclass"))
+                + "WHERE n.nspname='" + SCHEMA + "' AND c.contype='c' AND c.conrelid='"
+                + SCHEMA + ".gateway_knowledge_chunk_t0'::regclass"))
                 .as("the stored dimensionality is enforced by the database, not by the application")
                 .anySatisfy(definition -> assertThat(definition).contains("vector_dims"));
     }
@@ -258,11 +351,35 @@ class GatewayManagedSchemaIT {
     private EgonColaDdlTargetBO target(String targetSchema) {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName("org.postgresql.Driver");
-        dataSource.setUrl(jdbcUrl);
+        dataSource.setUrl(jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "currentSchema=" + targetSchema);
         dataSource.setUsername(user);
         dataSource.setPassword(password);
         return new EgonColaDdlTargetBO("yuheng_0", targetSchema, EgonColaDdlTargetBO.RoleEnum.SHARD,
                 (DataSource) dataSource, manifest, routeFingerprint);
+    }
+
+    private SqlSessionFactory llmMapperFactory() throws Exception {
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        configuration.setMapUnderscoreToCamelCase(true);
+        MybatisPlusInterceptor plugins = new MybatisPlusInterceptor();
+        plugins.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantLineHandler() {
+            @Override
+            public Expression getTenantId() {
+                return new LongValue(9001L);
+            }
+        }));
+        plugins.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
+        GlobalConfig global = new GlobalConfig();
+        global.setDbConfig(new GlobalConfig.DbConfig());
+        MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();
+        factory.setDataSource(target(SCHEMA).dataSource());
+        factory.setConfiguration(configuration);
+        factory.setGlobalConfig(global);
+        factory.setPlugins(plugins);
+        factory.setMapperLocations(
+                new ClassPathResource("mybatis/mapper/llm/LlmChannelDAO.xml"),
+                new ClassPathResource("mybatis/mapper/llm/LlmModelDAO.xml"));
+        return factory.getObject();
     }
 
     private static EgonColaDdlManifestBO readManifest() {
@@ -314,7 +431,7 @@ class GatewayManagedSchemaIT {
     private void insertNonce(long id, String nonce, String deletedAt) throws SQLException {
         try (Connection connection = DriverManager.getConnection(jdbcUrl, user, password);
              PreparedStatement statement = connection.prepareStatement(
-                     "INSERT INTO " + schema + ".gateway_hmac_nonce_t0 (id, tenant_id, create_user_id, create_time,"
+                     "INSERT INTO " + SCHEMA + ".gateway_hmac_nonce_t0 (id, tenant_id, create_user_id, create_time,"
                              + " update_user_id, update_time, deleted_at, version, access_key, nonce, expires_at)"
                              + " VALUES (?,9001,'it',CURRENT_TIMESTAMP,'it',CURRENT_TIMESTAMP,?::timestamp(6),0,"
                              + "'ak-contract',?,CURRENT_TIMESTAMP + interval '1 hour')")) {
@@ -342,13 +459,13 @@ class GatewayManagedSchemaIT {
     private Set<String> relations() throws SQLException {
         return new LinkedHashSet<>(query("SELECT c.relname FROM pg_catalog.pg_class c "
                 + "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace "
-                + "WHERE n.nspname='" + schema + "' AND c.relkind IN ('r','p','v','m','S','f')"));
+                + "WHERE n.nspname='" + SCHEMA + "' AND c.relkind IN ('r','p','v','m','S','f')"));
     }
 
     private Set<String> liveConstraints() throws SQLException {
         Set<String> names = new LinkedHashSet<>();
         for (String name : query("SELECT c.conname FROM pg_catalog.pg_constraint c "
-                + "JOIN pg_catalog.pg_namespace n ON n.oid=c.connamespace WHERE n.nspname='" + schema + "'")) {
+                + "JOIN pg_catalog.pg_namespace n ON n.oid=c.connamespace WHERE n.nspname='" + SCHEMA + "'")) {
             if (DECLARED_CONSTRAINT_PREFIXES.stream().anyMatch(name::startsWith)) {
                 names.add(name);
             }
@@ -360,7 +477,7 @@ class GatewayManagedSchemaIT {
      * Standalone indexes are every index minus the ones backing a named constraint. */
     private Set<String> liveIndexes() throws SQLException {
         List<String> indexes = new ArrayList<>(
-                query("SELECT indexname FROM pg_indexes WHERE schemaname='" + schema + "'"));
+                query("SELECT indexname FROM pg_indexes WHERE schemaname='" + SCHEMA + "'"));
         indexes.removeAll(liveConstraints());
         return new LinkedHashSet<>(indexes);
     }

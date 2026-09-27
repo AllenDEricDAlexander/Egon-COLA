@@ -87,8 +87,8 @@ export const ReleasesPage = () => {
         {validation.error && <QueryFailure error={validation.error} />}
         {validation.data && (
           <Card title={validation.data.valid ? '校验通过' : '校验未通过'} className="section-row">
-            {validation.data.errors.map((issue) => <Alert key={`${issue.path}:${issue.code}`} type="error" showIcon message={`${issue.path} · ${issue.code}`} description={issue.message} />)}
-            {validation.data.warnings.map((issue) => <Alert key={`${issue.path}:${issue.code}`} type="warning" showIcon message={`${issue.path} · ${issue.code}`} description={issue.message} />)}
+            {validation.data.errors.map((issue) => <Alert key={`${issue.path}:${issue.code}`} type="error" showIcon title={`${issue.path} · ${issue.code}`} description={issue.message} />)}
+            {validation.data.warnings.map((issue) => <Alert key={`${issue.path}:${issue.code}`} type="warning" showIcon title={`${issue.path} · ${issue.code}`} description={issue.message} />)}
           </Card>
         )}
         {diff.data && <JsonPanel title="与基线的结构化 Diff" value={diff.data} />}

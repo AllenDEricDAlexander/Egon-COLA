@@ -4,6 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -118,18 +124,16 @@ import top.egon.cola.component.yuheng.llm.proxy.service.LlmServletStreamComponen
  *
  * 用法 / Usage: 由 Spring MVC 按上表五个端点暴露，请求体为该协议原生 JSON、响应为原生 JSON 或原生 SSE；
  * {@code stream:true} 时由 {@link LlmServletStreamComponent} 在有界流式线程池上逐帧写出并在提交前完成首帧屏障。
- * 本类不开事务、不碰持久层写、不解析密钥、不做健康探测，也没有任何数据库访问：唯一的读是 {@code findSnapshot} 的路由
- * 复核与 {@code findCatalog} 的目录投影。admin 的 {@code @Operation}/{@code @ApiResponses} 注解在本模块不可用
- * （{@code swagger-annotations-jakarta} 在 common-core 中是 {@code provided}/{@code optional}，gateway 不依赖
- * openapi starter），因此 operationId 逐字写在本 javadoc 与每个方法的注释首行。
+ * 本类不开事务、不碰持久层写、不解析密钥、不做健康探测；唯一的读是 {@code findSnapshot} 的路由复核与
+ * {@code findCatalog} 的目录投影。五个方法用代码优先 OpenAPI 注解声明 operation、原生响应与 bearerAuth；
+ * 由部署配置控制的文档发布默认关闭，启用时专属 MVC OpenAPI Starter 会保护文档路径。
  * / Exposed through the five mappings above: the request body is that protocol's native JSON and the response is
  * native JSON or native SSE; with {@code stream:true} the frames are written by {@link LlmServletStreamComponent} on
  * the bounded streaming executor behind a pre-commit first-frame barrier. This class opens no transaction, writes no
  * persistence, resolves no secret, probes nothing and touches no database beyond the routing snapshot re-read and the
- * catalog projection. The admin {@code @Operation}/{@code @ApiResponses} annotations are unavailable in this module
- * ({@code swagger-annotations-jakarta} is {@code provided}/{@code optional} in common-core and the gateway does not
- * depend on the openapi starter), so the operationIds are recorded verbatim in this javadoc and in the first line of
- * every method comment.
+ * catalog projection. The five methods declare code-first OpenAPI operations, native responses and {@code bearerAuth}.
+ * Document publication is disabled by default and, when enabled by deployment configuration, the dedicated MVC OpenAPI
+ * starter protects the documentation path.
  */
 @Slf4j
 @Validated
@@ -354,6 +358,41 @@ public class LlmApiController {
      * @param response 参数 当前响应，由 {@link LlmServletStreamComponent} 写出原生状态、安全头与 body；parameter the current response, written natively by {@link LlmServletStreamComponent}.
      * @throws IOException 客户端断连或容器写出失败；raised when the client disconnects or the container refuses the write.
      */
+    @Operation(operationId = "createLlmChatCompletion", summary = "Create an OpenAI Chat Completions response",
+            description = "Forwards the native Chat Completions document to a same-protocol route.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class))))
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Native Chat Completions response or SSE stream",
+                    content = {@Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class)),
+                            @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
+                                    schema = @Schema(type = "string"))}),
+            @ApiResponse(responseCode = "400", description = "Invalid native request or unsupported parameter",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "401", description = "Enterprise service identity is missing or invalid",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "403", description = "The service identity cannot use this model alias",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "404", description = "The model alias is unavailable",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "413", description = "The request exceeds the configured bound",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "415", description = "The request media type is unsupported",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "422", description = "The configured route cannot satisfy the request policy",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "429", description = "The channel is saturated or rate limited",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "502", description = "The upstream response is invalid for this protocol",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "503", description = "No usable same-protocol route is available",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "504", description = "The upstream request exceeded its timeout budget",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class)))
+    })
     @PostMapping(CHAT_COMPLETIONS_PATH)
     public void createLlmChatCompletion(HttpServletRequest request, HttpServletResponse response) throws IOException {
         invokeEntry(LlmProtocolEnum.OPENAI_CHAT, request, response);
@@ -376,6 +415,37 @@ public class LlmApiController {
      * @param response 参数 当前响应；parameter the current response.
      * @throws IOException 写出失败；raised when the write-out fails.
      */
+    @Operation(operationId = "createLlmEmbeddings", summary = "Create local embeddings",
+            description = "Forwards the native OpenAI Embeddings document to a local same-protocol route.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class))))
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Native Embeddings response",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid native request or unsupported parameter",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "401", description = "Enterprise service identity is missing or invalid",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "403", description = "The service identity cannot use this model alias",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "404", description = "The model alias is unavailable",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "413", description = "The request exceeds the configured bound",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "415", description = "The request media type is unsupported",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "422", description = "Embedding egress is restricted to a local route",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "429", description = "The local embedding channel is saturated",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "503", description = "No usable local embedding route is available",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "504", description = "The local embedding request exceeded its timeout budget",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class)))
+    })
     @PostMapping(EMBEDDINGS_PATH)
     public void createLlmEmbeddings(HttpServletRequest request, HttpServletResponse response) throws IOException {
         invokeEntry(LlmProtocolEnum.OPENAI_EMBEDDING, request, response);
@@ -394,6 +464,41 @@ public class LlmApiController {
      * @param response 参数 当前响应；parameter the current response.
      * @throws IOException 写出失败；raised when the write-out fails.
      */
+    @Operation(operationId = "createLlmResponse", summary = "Create an OpenAI Responses response",
+            description = "Forwards the native Responses document and typed stream to a same-protocol route.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class))))
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Native Responses result or typed SSE stream",
+                    content = {@Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class)),
+                            @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
+                                    schema = @Schema(type = "string"))}),
+            @ApiResponse(responseCode = "400", description = "Invalid native request or unsupported parameter",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "401", description = "Enterprise service identity is missing or invalid",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "403", description = "The service identity cannot use this model alias",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "404", description = "The model alias is unavailable",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "413", description = "The request exceeds the configured bound",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "415", description = "The request media type is unsupported",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "422", description = "The configured route cannot satisfy request policy",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "429", description = "The channel is saturated or rate limited",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "502", description = "The upstream response is invalid for this protocol",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "503", description = "No usable same-protocol route is available",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "504", description = "The upstream request exceeded its timeout budget",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class)))
+    })
     @PostMapping(RESPONSES_PATH)
     public void createLlmResponse(HttpServletRequest request, HttpServletResponse response) throws IOException {
         invokeEntry(LlmProtocolEnum.OPENAI_RESPONSES, request, response);
@@ -416,6 +521,41 @@ public class LlmApiController {
      * @param response 参数 当前响应；parameter the current response.
      * @throws IOException 写出失败；raised when the write-out fails.
      */
+    @Operation(operationId = "createLlmMessage", summary = "Create an Anthropic Messages response",
+            description = "Forwards the native Anthropic Messages document and typed stream to a same-protocol route.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class))))
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Native Anthropic Messages result or typed SSE stream",
+                    content = {@Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class)),
+                            @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
+                                    schema = @Schema(type = "string"))}),
+            @ApiResponse(responseCode = "400", description = "Invalid native request or unsupported parameter",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "401", description = "Enterprise service identity is missing or invalid",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "403", description = "The service identity cannot use this model alias",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "404", description = "The model alias is unavailable",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "413", description = "The request exceeds the configured bound",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "415", description = "The request media type is unsupported",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "422", description = "The configured route cannot satisfy request policy",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "429", description = "The channel is saturated or rate limited",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "502", description = "The upstream response is invalid for this protocol",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "503", description = "No usable same-protocol route is available",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "504", description = "The upstream request exceeded its timeout budget",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class)))
+    })
     @PostMapping(MESSAGES_PATH)
     public void createLlmMessage(HttpServletRequest request, HttpServletResponse response) throws IOException {
         invokeEntry(LlmProtocolEnum.ANTHROPIC_MESSAGES, request, response);
@@ -426,34 +566,45 @@ public class LlmApiController {
      * {@code findCatalog()} 的只读目录投影成原生 {@code {"object":"list","data":[…]}}：只保留当前身份被授权且 enabled
      * 的 alias、按 id 升序、最多 {@value #CATALOG_MAX_ENTRIES} 条，每项固定 {@code object:"model"} 与
      * {@code owned_by:"yuheng"}，不做上游动态发现、不返回地址或凭据、也不泄漏供应商真实模型名。
-     * {@code created} 为本次目录投影的 {@link Instant} 秒值——只读快照不携带 alias 创建时间，伪造历史时间戳比给出
-     * 投影时刻更不可信，故在此如实给出投影时刻并在类注释中登记。失败（含无身份 401）按 OpenAI 目录面的原生错误对象出网。
+     * {@code created} 为模型持久化 {@code create_time} 对应的 {@link Instant} 秒值。失败（含无身份 401）按 OpenAI
+     * 目录面的原生错误对象出网。
      * English summary: Executes the listLlmModels operation (API-003, {@code GET /v1/models}, Spec §9.2.3), the only
      * entry that routes nothing: {@code findCatalog()} is projected into the native
      * {@code {"object":"list","data":[…]}} document, keeping only the enabled aliases this identity is authorized for in
      * ascending id order and at most {@value #CATALOG_MAX_ENTRIES} entries, each with a fixed {@code object:"model"} and
      * {@code owned_by:"yuheng"}, with no upstream discovery, no address or credential and no vendor model name. The
-     * {@code created} value is the epoch seconds of this projection instant, because the read-only snapshot carries no
-     * alias creation time and inventing a historical timestamp is less truthful than reporting the projection moment, which
-     * is therefore recorded as an assumption in the class comment. Failures, including a missing identity as 401, leave as
-     * that OpenAI catalog face's native error object.
+     * {@code created} value is the persisted model {@code create_time} as epoch seconds. Failures, including a missing
+     * identity as 401, leave as that OpenAI catalog face's native error object.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code GET /v1/models}，无 body；成功 200 为原生 list 文档。
      * @param request 参数 当前请求，只提供已认证主体；parameter the current request, supplying only the authenticated principal.
      * @param response 参数 当前响应，由 {@link LlmServletStreamComponent#writeUnary} 写出；parameter the current response, written by {@link LlmServletStreamComponent#writeUnary}.
      * @throws IOException 写出失败；raised when the write-out fails.
      */
+    @Operation(operationId = "listLlmModels", summary = "List model aliases available to this service identity",
+            description = "Returns only enabled aliases authorized for the authenticated service subject.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Native model catalog",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "401", description = "Enterprise service identity is missing or invalid",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "403", description = "The service identity cannot list model aliases",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class))),
+            @ApiResponse(responseCode = "503", description = "The model configuration catalog is unavailable",
+                    content = @Content(schema = @Schema(implementation = JsonNode.class)))
+    })
     @GetMapping(MODELS_PATH)
     public void listLlmModels(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Instant started = Instant.now();
         LlmInvocationCommandDTO command = catalogCommand(authenticatedSubject(request));
-        long projectedAt = Instant.now().getEpochSecond();
         ArrayNode data = objectMapper.createArrayNode();
         for (LlmModelSnapshotBO alias : authorizedCatalog(command)) {
             ObjectNode entry = data.addObject();
             entry.put("id", alias.getModelKey());
             entry.put("object", "model");
-            entry.put("created", projectedAt);
+            entry.put("created", alias.getCreatedAt().getEpochSecond());
             entry.put("owned_by", CATALOG_OWNER);
         }
         ObjectNode document = objectMapper.createObjectNode();

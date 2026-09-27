@@ -121,7 +121,7 @@ export const KnowledgeAnswerPanel = ({ kbId }: { kbId: string }) => {
             <Alert
               type="info"
               showIcon
-              message="未找到可引用资料"
+              title="未找到可引用资料"
               description="空结果不是故障：本轮不生成任何引用，也不编造回答。"
             />
           )}
@@ -164,7 +164,7 @@ export const KnowledgeAnswerPanel = ({ kbId }: { kbId: string }) => {
             <Alert
               type="warning"
               showIcon
-              message="来源已变化"
+              title="来源已变化"
               description="冻结 hash 与该版本的当前 hash 不一致，回答的引用可能已过期。"
             />
           )}

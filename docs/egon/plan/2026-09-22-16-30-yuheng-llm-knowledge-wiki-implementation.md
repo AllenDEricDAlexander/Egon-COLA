@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-22 16:30 CST` |
-| Updated | `2026-09-23 06:25 CST` |
+| Updated | `2026-09-27 12:02 CST` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | Yuheng admin40既有表+9AI表全量MP/受管DDL，新LLM engine、MCP两共享消费者、单SPA；旧数据不迁 |
@@ -23,11 +23,11 @@
 
 ## 1. Summary
 
-本Plan按已关闭的全量空库决策安排16个依赖有序检查点，覆盖49业务表和共享MCP消费者、四协议engine、知识库、Wiki DIRECT及单SPA。它实现修订Spec及保留的原业务合同；本轮只写文档，没有执行Plan。
+原Plan的16个依赖有序步骤已在当前主线落地，覆盖49张表、共享MCP消费者、四协议engine、知识库、Wiki DIRECT及单SPA。附录A1–A10记录实施和独立运行复核；A11是用户授权的纠正Step 17，关闭知识API、MCP真实Mapper CAS/部署装配和LLM OpenAPI/nullable映射缺口。完整模块测试与一次性PostgreSQL/pgvector门禁通过。完整服务到真实本地模型、Tianshu/Kafka和compose的E2E仍为Runtime unverified，因此最终Spec符合性保持PARTIAL，等待用户审核。
 
-当前是Review，不是Ready。用户批准原业务和破坏式范围，并要求本轮制定计划，但尚未批准这份完整实施计划。旧数据无需迁移；历史SQL不可改；新的受管目标必须为空。部署者选择并确认目标后按runbook重建，应用不会自行DROP数据库或伪造history。
+文档仍为Review，供用户审核实施结果与A10/A11结论。用户批准原业务和破坏式范围；旧数据无需迁移，历史SQL不可改，受管DDL只应用到指定空目标。部署runbook不会自动DROP数据库或伪造history。
 
-本次后端源码/SQL/manifest人工编写；不调用正在制作的generator，也不自制替代生成器。MapStruct/Lombok编译期处理器正常保留。所有独立步骤属于同一逻辑功能交付，按用户AGENTS最多一个最终path-limited commit，不在每检查点自动提交。
+本次后端源码/SQL/manifest人工编写；不调用正在制作的generator，也不自制替代生成器。MapStruct/Lombok编译期处理器正常保留。原16个步骤按Plan所裁定的每Step path-limited commit执行；本次纠正作为单独Step 17以一个path-limited commit交付。
 
 ## 2. Target Spec and Effective Design
 
@@ -22917,3 +22917,161 @@ Status=Review，不是Ready/Implemented。当前只完成Spec/Plan；生产源�
     pgvector 列与向量检索、MCP 认领在真实并发下的 CAS 互斥、Admin/Engine 双进程共享同一 schema 的读写交错、
     OpenAPI 文档在真实 HTTP 端的抓取、compose 编排与空库重建步骤、前端与真实后端的字段级往返。
     补齐方式即第 6 条的环境闸门：提供 `YUHENG_MANAGED_TEST_POSTGRES_URL/USER/PASSWORD` 后重跑第 4 条命令。
+
+## 附录 A10 — 实施后独立复核与运行时测试（2026-09-27）
+
+1. **审计基线**：`main`，HEAD=`deaac908d`（`fix(outbox): use parser-compatible transactional claim locks`）。审计对象仍为本文、原业务Spec与2026-09-22 Java/CQE修订；保持用户范围，只检查 `egon-cola-xingyuan/egon-cola-yuheng`。archetypes并行改动原样保留。
+
+2. **模块/React测试与编译**（所有 Maven 使用离线模式）：
+   - `./mvnw -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin test` → 396 tests，0 failures/errors/skips，BUILD SUCCESS。
+   - MCP gateway → 42 tests，0 failures/errors/skips，BUILD SUCCESS；LLM gateway → 43 tests，0 failures/errors/skips，BUILD SUCCESS；runtime-core → 100 tests，0 failures/errors/skips，BUILD SUCCESS。
+   - 三个 executable 模块 `-am -DskipTests compile` → 41 个reactor项目BUILD SUCCESS。
+   - SPA `bun run test` → 33 files/183 tests pass；`bun run typecheck` pass；`bun run build` pass。Vitest输出jsdom未实现伪元素 `getComputedStyle` 的提示；Vite提示favicon资源缺失且Dashboard chunk超过900KB，未导致失败。
+
+3. **隔离PostgreSQL/pgvector门禁**：因当前 shell 未提供 `YUHENG_MANAGED_TEST_POSTGRES_URL/USER/PASSWORD`，在Docker中启动一次性 PostgreSQL 16 + pgvector，仅绑定随机 `127.0.0.1` 端口并使用空数据库；在测试数据库预装 `vector`，测试完成后删除容器。既有本机 PostgreSQL未连接，最终容器停止，`public`中无遗留业务表或测试schema。
+   - `GatewayManagedSchemaIT` → 6 tests，0 failures/errors/skips：受管runner真实创建/校验49张表、约束与索引、软删除唯一键、重复微秒语义和pgvector列；测试后清理本轮APPLIED的49表及`ddl_history`，保留public schema和扩展。
+   - `McpTaskRecoveryPostgresqlIT` → 10 tests，0 failures/errors/skips：测试schema中的task表约束、owner/lease谓词、CAS与幂等唯一键。
+   - 两个集成测试此前未能按其随机schema夹具实际执行：Admin DDL脚本固定写`public`；MCP JDBC URL未将测试schema加入search_path，且Instant按无时区值绑定。为完成本次已授权测试，仅修正这两个Plan声明的测试文件：Admin对齐public目标并只清理本轮创建的表，约束前缀检查补`uk_`，MCP测试连接设置随机schema并以UTC `OffsetDateTime`绑定Instant。两项门禁随后通过。
+
+4. **当前可证明的范围**：Java单测/模块测试、SPA jsdom/typecheck/build、PG中的DDL与表级约束均有本次执行证据；构建日志中的历史POM model warning与前述Vite/jsdom提示未造成失败。`git diff --check`对本轮两个Yuheng测试文件通过。
+
+5. **仍未完成的实现要求（PARTIAL）**：
+   - MCP应用入口 `McpGatewayEngineApplication` 只扫描 `engine.bootstrap`；`McpPersistenceConfiguration` 与 `McpTaskPersistenceRepository` 位于扫描范围外，源码中未见显式 `@Import`/生产 `@MapperScan`。`McpGatewayEngineContextTest` 直接给配置注入mock DAO/Repository，不能证明真实应用装配；需要真实主入口上下文测试。
+   - `MpMcpRuntimeTaskStore.transition/cancel` 用 `EgonColaRepository.updateById` 更新只含非空字段的PO；`worker_owner`、`lease_until`在builder中为null且PO未配置 `updateStrategy=ALWAYS`，因此无法清空，旧owner/lease可能残留。需要具名Mapper CAS语句或等效组件能力，并绑定tenant/id/技术version/业务state/revision/owner后显式写NULL。
+   - 本次 `McpTaskRecoveryPostgresqlIT` 的6个PostgreSQL断言是测试内直接执行SQL，不调用 `MpMcpRuntimeTaskStore`；两次claim也以相同version连续执行而非两个进程并发。因此通过结果只证明表级SQL约束/条件，不能证明生产适配器或双进程竞态。
+   - 知识库 wire contract仍有未裁定冲突：有效业务Spec的API-015要求multipart file及 `documentId/expectedRevision`，Web typed client发送 `FormData`，而 `KnowledgeDocumentController` 用 `@RequestBody KnowledgeUploadCommandDTO` 接收JSON；API-012/013要求 `{members, revision}`，当前两个Controller都返回 `List<KnowledgeMemberDTO>`。这不是测试夹具差异，需按批准Spec修正实现或正式修订API Spec。
+   - LLM engine没有 `@Operation/@ApiResponses`，模块也不引入OpenAPI starter；当前operationId只写在注释中，不能生成Spec要求的代码优先OpenAPI operation。需补真实文档产物或经用户批准变更该合同。
+   - `MpLlmConfigurationRepository`仍手工用builder构造PO→BO/通道投影；此前执行记录将其登记为MapStruct/BaseConverter例外，但未见用户对该字面Java规则例外的批准。模型全量替换也经 `updateById`，默认非空字段策略不能把`secret_ref`、`dimensions`、`embedding_space_id`等可空字段清为NULL。
+   - 没有启动Admin/LLM/MCP完整应用、浏览器或本地embedding服务；LLM gateway运行所需配置由用户在部署启动时补充。真实HTTP往返、local embedding推理、Tianshu注册、Kafka外部broker及compose联调仍为Runtime unverified。
+
+6. **本轮差异边界**：生产实现未改；仅修改Plan已声明的 `GatewayManagedSchemaIT` 与 `McpTaskRecoveryPostgresqlIT` 两个测试夹具。其它工作区改动未触碰、不提交。
+
+## 附录 A11 — A10 未闭环问题修复计划（2026-09-27）
+
+1. **授权与范围**：用户于 2026-09-27 指示“把未闭环问题修复一下”。此 Step 只关闭 A10 以及实现测试明确揭示的 Yuheng 缺口，范围仍为 `egon-cola-xingyuan/egon-cola-yuheng` 与本 Plan；不触碰 archetypes、code-generator、common MP、其它平台模块，不调用代码生成器，不增加第三方依赖。现有 `yuheng-starter-openapi-webmvc` 是 Spec 所需 OpenAPI 能力的本仓库实现，Step 17 只把它接入现有 LLM executable。
+
+2. **Step 17 — 关闭 A10 合同与生产持久化缺口（Verified）**：一个限定 corrective Step，完成后对下面所有文件运行差异审查、验证和一次 path-limited commit，提交建议 `fix(yuheng): close A10 implementation gaps`。不改受管 DDL、manifest、配置密钥或业务公开路径。
+   本Step锁定基线：`main` / `a380b8f778a01d435b733f79b67c9858c1ac4c66`；开始时 index 为空。并行的 archetypes、common MP、skills 与其它路径变化保持在提交范围之外。
+
+   - **Knowledge/API-012/013/015 与摄取输入**：修正 admin controller/service/BO/VO/MapStruct 转换及其 OpenAPI 合同测试；POST 使用 multipart `file`、可选 `documentId`/条件 `expectedRevision`，必带 `Idempotency-Key`，202 只含 `documentId/revisionId/jobId/status`；成员 GET/PUT 同一快照返回 `members/revision`；错误统一映射大小/媒体类型/缺失 multipart part。worker 回归测试直接断言生产 upload payload 的 `revisionId` 与有效 `RagChunkingStrategyEnum`，移除测试侧 payload 修补。
+   - **MCP 可执行装配、部署身份和状态 CAS**：入口显式扫描 persistence config/feature beans 并 MapperScan task/approval DAO；`McpGatewayPersistenceContext` 只委托 `yuheng.persistence.*`，删除旧 `@Value` 配置源；Admin/MCP/LLM 的 `managed-ddl-enabled` 都是同约束的必填 Boolean，Admin=true、consumer=false。transition/cancel 走具名 SQL，WHERE 含 id/tenant/active/技术 version/业务 state+revision/期望 owner，SET 显式清空 owner/lease 并推进版本与审计。测试验证扫描、必填属性缺失失败、MDC 键/值安装与恢复、适配器与 CAS 的真实 PostgreSQL 行为，以及两个并发独立 store 的唯一胜者。
+   - **LLM OpenAPI 与空值更新/投影**：仅复用现有 MVC OpenAPI Starter，5 个 LLM HTTP handler 使用真实 `@Operation/@ApiResponses/@SecurityRequirement` 和 `bearerAuth` scheme；文档默认关闭，显式开启后只受 `SCOPE_yuheng.openapi.read` 保护且不自动发布到 Tianshu。admin 的 `secret_ref`、`dimensions`、`embedding_space_id` 完整替换可写 NULL；engine snapshot/channels 使用 MapStruct 加 Egon `BaseForwardConverter` 投影，`LOCAL` 无认证可携带空 `secretRef`，云端无凭据 fail closed。
+
+   - **Step 17 文件范围**：
+
+     `docs/egon/plan/2026-09-22-16-30-yuheng-llm-knowledge-wiki-implementation.md`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/controller/KnowledgeController.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/controller/KnowledgeDocumentController.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/dto/KnowledgeUploadCommandDTO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/bo/KnowledgeUploadReceiptBO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/vo/KnowledgeUploadReceiptVO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/domain/vo/KnowledgeMembersVO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeUploadReceiptConverter.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/converter/KnowledgeMembersConverter.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/KnowledgeService.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/knowledge/service/impl/KnowledgeServiceImpl.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/shared/controller/GatewayAdminExceptionHandler.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayPersistenceProperties.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/GatewayPersistenceConfiguration.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/integration/KnowledgeOpenApiContractTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/integration/GatewayProfileParityTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/integration/GatewayPersistenceContextTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/integration/KnowledgeJobWorkerTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/integration/GatewayManagedSchemaIT.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/McpGatewayEngineApplication.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/bootstrap/config/McpGatewayEngineConfiguration.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/config/McpPersistenceContextComponent.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/config/McpPersistenceConfiguration.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/config/McpPersistenceProperties.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/mcp/adapter/support/McpGatewayPersistenceContext.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/mcp/dao/McpTaskDAO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/mcp/repository/McpTaskPersistenceRepository.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/mcp/adapter/MpMcpRuntimeTaskStore.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/mybatis/mapper/mcp/McpTaskDAO.xml`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/yuheng/mcp/engine/bootstrap/McpGatewayEngineContextTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/yuheng/mcp/engine/bootstrap/McpGatewayEngineTaskStoreConfigurationTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/yuheng/mcp/engine/mcp/adapter/McpTaskRecoveryPostgresqlIT.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/pom.xml`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/controller/LlmApiController.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmOpenApiConfiguration.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmPersistenceProperties.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmPersistenceConfiguration.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application.yml`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/bo/LlmModelSnapshotBO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/bo/LlmModelSnapshotProjectionBO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/repository/LlmModelSnapshotConverter.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/repository/impl/MpLlmConfigurationRepository.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/OpenAiChatProtocolStrategy.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/OpenAiEmbeddingProtocolStrategy.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/OpenAiResponsesProtocolStrategy.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/service/AnthropicMessagesProtocolStrategy.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmApiOpenApiContractTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmLocalCredentialEgressTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmModelSnapshotConverterTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/domain/po/LlmChannelPO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/llm/domain/po/LlmModelPO.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/integration/LlmNullableConfigurationPersistenceTest.java`；
+     `egon-cola-xingyuan/egon-cola-yuheng/deployment/README.md`；
+     `egon-cola-xingyuan/egon-cola-yuheng/deployment/README.zh-CN.md`。
+
+3. **Step 17 validation gates**：
+
+   - RED/GREEN：知识上传/成员合同测试、摄取 worker producer-consumer 测试、LLM annotation/converter/null-strategy 测试、MCP wiring/XML/adapter CAS 测试；禁止把直接 SQL-only 夹具当作 production adapter 证据。
+   - Java：Maven 离线运行 admin、MCP gateway、LLM gateway 及需要的依赖 reactor focused tests，再运行三个 executable `-am -DskipTests compile`；所有命名测试必须 0 skip。
+   - 真库：使用此前批准的随机端口 PostgreSQL 16 + pgvector 一次性容器和随机 schema，运行 Admin DDL/知识库空值更新门禁及 MCP 真实 MP Mapper/adapter 状态 CAS；另用两个独立 runtime-store 实例并发提交同一 revision，断言只有一个赢家且 owner/lease 被 SQL 显式置空；清理仅本轮创建的 schema/table/container。
+   - Contract：`LlmApiOpenApiContractTest` 反射验证 operationId/status/security metadata；Yuheng Java/Plan strict validators、`git diff --check`、git path audit 均通过。未启动完整 Admin/LLM/MCP、浏览器、Kafka broker、模型或 Tianshu 外部服务时，继续如实标记 HTTP/E2E/local model/broker runtime 未验证。
+   - 设计与治理：无新第三方依赖；无数据库结构变化；无代码生成；扩展 existing simple-layer architecture，MCP owner/lease 状态迁移沿用现有自定义 Mapper SQL/CAS 模式，不新增业务层级。
+
+4. **Step 17 state/evidence boundary**：原 Plan 16 Steps 已实施，A10 曾记录 `PARTIAL`。Step 17 是用户直接授权的 corrective closure，以下测试和门禁已通过；完成 path-limited commit 后，本 Step 为 `Committed`。最终 Spec 仍为 `PARTIAL`，因为完整 Admin/LLM/MCP boot、真实 embedding inference、Tianshu/Kafka 与 compose 联调未在本 Step 运行。
+
+5. **Step 17 verification evidence**：
+
+   - Admin 完整套件：`./mvnw -o -f egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/pom.xml test` → 400 tests，0 failures/errors/skips，BUILD SUCCESS；PostgreSQL 16 + pgvector 隔离容器中 `GatewayManagedSchemaIT` → 7/7，含受管49表物化、约束/索引与实际 MyBatis-Plus `updateById` 将 `secret_ref`、`dimensions`、`embedding_space_id` 清为 SQL NULL。测试夹具创建的两张逻辑视图由 `finally` 删除，受管业务表和 `ddl_history` 由 `@AfterAll` 删除。
+   - MCP 完整套件：`./mvnw -o -f egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/pom.xml test` → 47 tests，0 failures/errors/skips，BUILD SUCCESS；隔离 PostgreSQL 中 `McpTaskRecoveryPostgresqlIT` → 11/11，实际安装 `TenantLineInnerInterceptor`、`OptimisticLockerInnerInterceptor` 与 `EgonColaOriginalSqlGuardInterceptor`，经 production store/repository/mapper 执行 transition/cancel；两个独立 store barrier-confirm 同一 pre-write version，仅一个迁移成功，PostgreSQL 验证 owner、lease 和 payload NULL、revision/version 自增。随机 schema 由 `@AfterAll` 删除。
+   - LLM 完整套件：`./mvnw -o -f egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/pom.xml test` → 47 tests，0 failures/errors/skips，BUILD SUCCESS；其中 `LlmApiOpenApiContractTest` 锁定五个真实 OpenAPI operation/security metadata 与每个 alias 的持久化 `create_time`→Unix秒结果，`LlmModelSnapshotConverterTest` 锁定 MapStruct 投影和空值，`LlmLocalCredentialEgressTest` 用 loopback HTTP fixture 验证四协议无凭据 LOCAL 省略 Authorization/x-api-key，并在缺凭据 CLOUD 路由出网前失败。
+   - 跨进程身份配置：`GatewayProfileParityTest` 与 `GatewayPersistenceContextTest` → 7+20 tests 通过；MCP 主入口包扫描、`@MapperScan`、真实 `McpPersistenceConfiguration` 属性绑定、MDC 安装/恢复与缺少 managed-DDL flag 拒绝由 MCP context tests 覆盖。
+   - 文档/源码：`python3 .agents/skills/egon-coding-writing-plan/scripts/validate_plan.py docs/egon/plan/2026-09-22-16-30-yuheng-llm-knowledge-wiki-implementation.md --strict` 与 `git diff --check` 均通过；最终 dirty-path 核对只提交本Step明确列出的 Yuheng/Plan/deployment 路径。
+
+6. **Step 17 Literal Rule Gate**：
+
+   | Rule | Applicability | Status | Evidence |
+   | --- | --- | --- | --- |
+   | Rule 1 | Applicable | PASS | 新增 carriers/converters 为 `*BO/*VO/*Converter`；Admin/LLM/MCP module test compile通过 |
+   | Rule 2 | Applicable | PASS | multipart file/text part、method constraint、service DTO 与 converter handoff 有契约测试；MCP config `@Validated` 缺项测试通过 |
+   | Rule 3 | Applicable | PASS | 三个新投影 converters 均使用 MapStruct 并实现 Egon `BaseForwardConverter`；生成实现由各模块 Maven compile/test 验证 |
+   | Rule 4 | Applicable | PASS | 新 Spring beans 有稳定名称，构造注入与 `@Qualifier` 保持；业务实现保留安全 `@Slf4j` |
+   | Rule 5 | Applicable | PASS | 仅复用 JDK、已存在 Apache Commons/Spring/Jackson 与仓库内部 MVC OpenAPI Starter，无第三方依赖新增 |
+   | Rule 6 | Applicable | PASS | 协议 JSON 仍使用 Jackson；OpenAPI/native multipart operation 与 response 注解经反射测试 |
+   | Rule 7 | Applicable | PASS | Admin profiles 已包含等键 upload limits；Admin/MCP/LLM `yuheng.persistence` key/constraint parity 测试通过；LLM OpenAPI 为单配置文件服务 |
+   | Rule 9 | Applicable | PASS | 复用现有四协议 Strategy、`McpTaskStore` 和状态/CAS路径；无新增协议/状态分支式 orchestrator |
+   | Rule 10 | Applicable | PASS | touched timestamps use `Instant/Duration`；MCP SQL UTC/precision gates保留，测试未加入 legacy date types |
+   | Rule 11 | Applicable | PASS | 仅沿用既有 simple-layer/feature-local、MP Repository/DAO 与策略组织；无新层或 archetype 触碰 |
+
+7. **Step 17 Blocking Manual Check Gate**：
+
+   | Check ID | Applicability | Status | Evidence / finding |
+   | --- | --- | --- | --- |
+   | `MC-ARCH-001` | Applicable | PASS | Step 17 paths remain inside existing Yuheng traditional layered modules; no archetypes changed |
+   | `MC-REUSE-001` | Applicable | PASS | Reuses existing MP starter, MapStruct/BaseForwardConverter, Spring MVC OpenAPI starter and PGvector runtime |
+   | `MC-DEP-001` | Applicable | PASS | Only dependency delta is existing in-repo `yuheng-starter-openapi-webmvc`; no third-party coordinates |
+   | `MC-NAME-001` | Applicable | PASS | New BO/VO/Converter types use semantic suffixes; access objects remain DAO/Repository |
+   | `MC-VALID-001` | Applicable | PASS | Multipart parts and revision handoff validate; required persistence roles fail closed; profile tests pass |
+   | `MC-MODEL-001` | Applicable | PASS | New mutable carriers use Lombok class baseline; existing PO inheritance remains `@SuperBuilder`-compatible |
+   | `MC-CONVERT-001` | Applicable | PASS | MapStruct owns all new PO/BO/VO projections; no setter/JSON mapping bypass |
+   | `MC-LOG-001` | Applicable | PASS | Touched concrete business classes retain safe `@Slf4j` and do not log secrets or payloads |
+   | `MC-BEAN-001` | Applicable | PASS | Touched Spring beans have explicit names, final constructor injection and `@Qualifier` |
+   | `MC-UTIL-001` | Applicable | PASS | No new general utility/helper library; loopback test uses JDK `HttpServer` |
+   | `MC-JSON-001` | Applicable | PASS | Spring Boot Jackson remains the sole protocol JSON stack; native wire annotations are explicit |
+   | `MC-TIME-001` | Applicable | PASS | Test and production time contracts remain on `java.time`/UTC instants |
+   | `MC-CONFIG-001` | Applicable | PASS | Shared persistence key/constraint set is checked across all three roles; Admin profile keys remain aligned |
+   | `MC-PATTERN-001` | Applicable | PASS | Existing protocol strategies and per-row CAS implement the variation/state boundaries; no ceremonial abstraction |
+   | `MC-SCOPE-001` | Applicable | PASS | Dirty-path review is limited to Yuheng, Plan and deployment documentation; unrelated work remains untouched |
+   | `MC-TEST-001` | Applicable | PASS | Full module suites and real PostgreSQL/pgvector/loopback gates passed with complete exit status |
+   | `MC-BLOCKER-001` | Applicable | PASS | A10 code/API/persistence gaps are closed; full-service/local-model/Tianshu/Kafka/compose E2E remains explicitly Runtime unverified, keeping overall Spec status PARTIAL |
+
+8. **Step 17 范围补充（2026-09-27，用户要求修复全部未闭环问题）**：对照 A10 后确认两项记录仍未修复，现纳入本 corrective Step：
+   - API-003 的 `created` 必须取模型行继承的 `create_time`（`Instant`）并转换为 Unix 秒，不取请求投影时刻；通过 snapshot、projection BO 与 MapStruct converter 保留该值，并由 OpenAPI 合同测试断言不同 alias 的持久化时间分别原样输出。新增/更新文件：`egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/bo/LlmModelSnapshotBO.java`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/domain/bo/LlmModelSnapshotProjectionBO.java`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/repository/LlmModelSnapshotConverter.java`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/proxy/controller/LlmApiController.java`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmApiOpenApiContractTest.java`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmModelSnapshotConverterTest.java`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmRoutingContractTest.java`。
+   - Ant Design 6 的 `Alert` 标题属性统一为 `title`，清理 SPA 中 44 个 `Alert.message` 告警点，覆盖16个仍使用旧属性的 TSX 页面/组件；只改属性名，保留提示内容、类型、描述和显示条件。新增 Step 17 文件范围：`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/components/GatewayScopeFilter.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/components/QueryState.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/DraftPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/interface-catalog/OperationPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/knowledge/KnowledgeAnswerPanel.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/knowledge/KnowledgeBasePage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/knowledge/KnowledgeBasesPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/knowledge/KnowledgeJobsPanel.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/llm/LlmConfigurationPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/providers/ProvidersPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleasesPage.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/wiki/WikiGraphPanel.tsx`、`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/wiki/WikiPage.tsx`。
+   - 补充 RED/GREEN 与最终门禁：`./mvnw -o -f …/yuheng-llm-gateway/pom.xml -Dtest=LlmApiOpenApiContractTest#aModelCatalogSnapshotCarriesItsPersistedCreationInstant test` 曾以 1 failure、0 error 明确失败于缺少 `createdAt` 字段；实现后 LLM 完整套件 47/47 通过。SPA `bun run test` → 33 files/183 tests pass，`bun run typecheck` pass，`bun run build` pass；JS/TS AST 检查解析70个TSX文件及63个 Alert opening tags，剩余 `Alert.message` 为0。Vitest仍输出既有 jsdom `getComputedStyle`/跨 Document 提示；构建提示favicon资源缺失与Dashboard chunk偏大，均未导致失败。Plan `--strict` 与 Yuheng/Plan `git diff --check` 均通过。范围仍只在 Yuheng Java、单 SPA 与本 Plan，不引入架构层或依赖。

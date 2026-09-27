@@ -17,6 +17,7 @@ import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmDeploymentEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmModelKindEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmProtocolEnum;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -69,6 +70,10 @@ public class LlmModelSnapshotBO {
     @NotBlank
     @Size(max = 128)
     private String name;
+
+    /** 中文说明：模型 alias 的持久化创建时刻，目录协议将其转换为 Unix 秒。 English summary: the persisted model alias creation instant, converted to Unix seconds by the catalog protocol. */
+    @NotNull
+    private Instant createdAt;
 
     /** 中文说明：模型种类 CHAT/EMBEDDING；embedding 的本地化约束由消费方在本载体之上强制。 English summary: the CHAT/EMBEDDING kind; the embedding locality constraint is enforced by consumers above this carrier. */
     @NotNull
@@ -273,9 +278,9 @@ public class LlmModelSnapshotBO {
         @Size(max = 2048)
         private String baseUrl;
 
-        /** 中文说明：本地密钥引用（不是凭据值）；敏感，禁止进入日志与错误体。 English summary: the local secret reference rather than a credential value; sensitive and forbidden in logs and error bodies. */
-        @NotBlank
+        /** 中文说明：部署密钥引用（不是凭据值）；仅无认证 LOCAL 渠道可为空，敏感且禁止进入日志/错误体。 English summary: the deployment secret reference rather than a credential value; it may be null only for an unauthenticated LOCAL channel and is forbidden in logs/errors. */
         @Size(max = 128)
+        @Pattern(regexp = "^[a-zA-Z0-9][a-zA-Z0-9/_-]{0,127}$")
         private String secretRef;
 
         /** 中文说明：渠道启停位；停用在过滤阶段拒绝，不在本层伪造替换渠道。 English summary: the channel enablement flag; disabled channels are rejected during filtering and never silently substituted here. */

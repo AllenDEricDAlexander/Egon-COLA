@@ -45,14 +45,14 @@ export const GatewayScopeFilter = ({
       <Alert
         type="error"
         showIcon
-        message="Tianshu Scope 加载失败"
+        title="Tianshu Scope 加载失败"
         action={<a onClick={() => void bindings.refetch()}>重试</a>}
       />
     )
   }
   const available = bindings.data ?? []
   if (!available.length) {
-    return <Alert type="info" showIcon message="暂无可用 Tianshu Scope Binding" />
+    return <Alert type="info" showIcon title="暂无可用 Tianshu Scope Binding" />
   }
   return (
     <Row gutter={[8, 8]}>

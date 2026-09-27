@@ -13,7 +13,7 @@ export const QueryFailure = ({
     <Alert
       type="error"
       showIcon
-      message={apiError?.message ?? '数据加载失败'}
+      title={apiError?.message ?? '数据加载失败'}
       description={
         <Space direction="vertical">
           <Typography.Text code>{apiError?.code ?? 'UNKNOWN_ERROR'}</Typography.Text>

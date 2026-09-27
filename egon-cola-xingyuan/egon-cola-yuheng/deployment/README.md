@@ -235,6 +235,19 @@ tags. Collector unavailability does not affect Yuheng business responses.
   it is never guessed and never hand-edited.
 - Only `yuheng-admin` claims the DDL role. The LLM engine and every other consumer must keep
   `yuheng.persistence.managed-ddl-enabled=false` and fail fast when they are configured to own it.
+- Admin, MCP and LLM processes share the required `yuheng.persistence.tenant-id`, `identity-tenant-id`, `service-user-id`,
+  `expected-schema-version`, `expected-schema-sha256`, and `managed-ddl-enabled` properties; the expected schema
+  version/digest must match `repository-manifest.json`. Only Admin sets the DDL flag to `true`; MCP/LLM consumers set it to
+  `false`. Missing identity/fingerprint/role keys fail startup. The MCP store, audit MDC and schema-consumer role share this
+  one property source. Environment variable names are
+  `YUHENG_PERSISTENCE_TENANT_ID`, `YUHENG_PERSISTENCE_IDENTITY_TENANT_ID`,
+  `YUHENG_PERSISTENCE_SERVICE_USER_ID`, `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_VERSION`,
+  `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_SHA256`, and `YUHENG_PERSISTENCE_MANAGED_DDL_ENABLED`.
+- The LLM engine's `/v3/api-docs/yuheng-llm` is disabled by default. Publish it only after setting
+  `YUHENG_LLM_OPENAPI_ENABLED=true` and supplying `YUHENG_LLM_OPENAPI_BIZ_CODE`,
+  `YUHENG_LLM_OPENAPI_APPLICATION_CODE`, `YUHENG_LLM_OPENAPI_RESOURCE_URI`,
+  `YUHENG_LLM_OPENAPI_ARTIFACT_VERSION`, and `YUHENG_LLM_OPENAPI_BUILD_ID`. The document endpoint requires
+  `SCOPE_yuheng.openapi.read` and is not automatically registered with Tianshu.
 - Before starting a build that carries a new manifest entry, `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_VERSION` and
   `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_SHA256` must agree with that manifest. A mismatch aborts the start instead of
   surfacing as a half-executed DDL run.

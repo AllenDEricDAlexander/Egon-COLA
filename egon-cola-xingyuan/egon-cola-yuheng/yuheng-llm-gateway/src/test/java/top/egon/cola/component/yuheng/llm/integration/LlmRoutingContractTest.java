@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -222,6 +223,7 @@ class LlmRoutingContractTest {
         return new LlmModelSnapshotBO()
                 .setModelKey("text-embedding-local")
                 .setName("本地向量模型")
+                .setCreatedAt(Instant.parse("2026-09-21T08:00:00Z"))
                 .setKind(kind)
                 .setEnabled(Boolean.TRUE)
                 .setProtocols(List.of(LlmProtocolEnum.OPENAI_CHAT, LlmProtocolEnum.OPENAI_EMBEDDING))

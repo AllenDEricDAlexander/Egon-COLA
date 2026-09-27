@@ -436,13 +436,13 @@ export const DraftPage = () => {
         <Alert
           type="info"
           showIcon
-          message={`当前 Revision：${draft.data.revision}；保存必须匹配该版本，409 不会自动覆盖。`}
+          title={`当前 Revision：${draft.data.revision}；保存必须匹配该版本，409 不会自动覆盖。`}
         />
         {localConflict && (
           <Alert
             type="error"
             showIcon
-            message="Draft 已被其他操作者修改"
+            title="Draft 已被其他操作者修改"
             description={`服务端 Revision：${localConflict.currentRevision ?? '未知'}。本地表单仍保留，请比较后手工处理。`}
           />
         )}
@@ -609,23 +609,23 @@ export const DraftPage = () => {
             />
           </Form.Item>
           {currentOperation?.loading && (
-            <Alert type="info" showIcon message="正在从服务端读取 Operation Protocol…" />
+            <Alert type="info" showIcon title="正在从服务端读取 Operation Protocol…" />
           )}
           {currentOperation?.error && (
-            <Alert type="error" showIcon message={currentOperation.error} />
+            <Alert type="error" showIcon title={currentOperation.error} />
           )}
           {currentOperation?.protocol && (
             <Alert
               type={currentOperation.protocol === 'HTTP' ? 'success' : 'info'}
               showIcon
-              message={`Operation Protocol：${currentOperation.protocol === 'RPC' ? 'RPC / gRPC' : 'HTTP'}`}
+              title={`Operation Protocol：${currentOperation.protocol === 'RPC' ? 'RPC / gRPC' : 'HTTP'}`}
               description={currentOperation.protocol === 'RPC'
                 ? '协议来自服务端 Operation；RPC 保持既有聚合路径，不能选择 WebSocket 或 Streaming Transport。'
                 : `协议来自服务端 Operation；外部访问：${currentOperation.externalAccessible ? '允许' : '不允许'}`}
             />
           )}
           {!currentOperation && currentOperationId && (
-            <Alert type="info" showIcon message="移出 Operation ID 输入框后读取服务端协议。" />
+            <Alert type="info" showIcon title="移出 Operation ID 输入框后读取服务端协议。" />
           )}
           <Form.Item
             name="host"
@@ -672,7 +672,7 @@ export const DraftPage = () => {
           <Alert
             type="warning"
             showIcon
-            message="Provider 只能通过注册中心发现，本表单不提供静态 URL。"
+            title="Provider 只能通过注册中心发现，本表单不提供静态 URL。"
           />
 
           {currentTransportState.transportEditable && (
@@ -692,7 +692,7 @@ export const DraftPage = () => {
                 <Alert
                   type="info"
                   showIcon
-                  message="OPENAI_HTTP 只提供透明流式传输默认值"
+                  title="OPENAI_HTTP 只提供透明流式传输默认值"
                   description="Route Override 优先；未覆盖值来自 Profile，保存时不会展开为完整默认配置。"
                 />
               )}
@@ -752,7 +752,7 @@ export const DraftPage = () => {
                 <Alert
                   type="warning"
                   showIcon
-                  message={currentTransportState.transparentResponseNotice}
+                  title={currentTransportState.transparentResponseNotice}
                 />
               )}
 
@@ -844,7 +844,7 @@ export const DraftPage = () => {
                 />
               </Form.Item>
               {currentTransportState.retryNotice && (
-                <Alert type="warning" showIcon message={currentTransportState.retryNotice} />
+                <Alert type="warning" showIcon title={currentTransportState.retryNotice} />
               )}
             </Card>
           )}
@@ -904,7 +904,7 @@ export const DraftPage = () => {
             <Select options={['FAIL_CLOSED', 'FAIL_OPEN'].map((value) => ({ value }))} />
           </Form.Item>
           <Form.Item name="allowedOrigins" label="CORS Origins（逗号分隔）"><Input /></Form.Item>
-          {warnings.map((warning) => <Alert key={warning} type="warning" showIcon message={warning} />)}
+          {warnings.map((warning) => <Alert key={warning} type="warning" showIcon title={warning} />)}
           <Form.Item name="advancedContent" label="高级扩展 JSON（单位必须显式）"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
           <Form.Item name="changeReason" label="变更原因" rules={[{ required: true }]}><Input /></Form.Item>

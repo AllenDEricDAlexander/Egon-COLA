@@ -18,6 +18,7 @@ import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmProtocolEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.po.LlmChannelPO;
 import top.egon.cola.component.yuheng.llm.proxy.domain.po.LlmModelPO;
 import top.egon.cola.component.yuheng.llm.proxy.repository.LlmConfigurationRepository;
+import top.egon.cola.component.yuheng.llm.proxy.repository.LlmModelSnapshotConverter;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -51,7 +52,8 @@ import java.util.concurrent.Callable;
  * HTTP, so not even an incidental transaction is opened here. Neither a PO nor a persistence object leaves the port:
  * jsonb columns come back as encoded text and are parsed by Jackson into typed BOs, a missing row is reported honestly
  * as {@link Optional#empty()}, and configuration that does not hold (an absent or out-of-range route array, an unknown
- * protocol or capability wire value, an empty required channel column) raises a stable error code instead of
+ * protocol or capability wire value, an empty required channel column; {@code secret_ref} is nullable only for a LOCAL
+ * channel with no authentication) raises a stable error code instead of
  * fabricating a channel, swallowing the failure or pretending an empty success.
  *
  * 用法 / Usage: 由业务 Service 以 bean 名 {@code mpLlmConfigurationRepository} 注入；快照读一次请求一次，至多两次尝试
@@ -92,6 +94,9 @@ public class MpLlmConfigurationRepository implements LlmConfigurationRepository 
     /** 中文说明：部署绑定的受信持久化身份上下文，保证每条语句都在正确租户与技术服务主体的 MDC 下执行并在 finally 还原。 English summary: the trusted deployment-bound persistence identity context, so every statement runs under the right tenant and technical service principal MDC and is restored in a finally block. */
     @Qualifier("llmPersistenceContextComponent")
     private final LlmPersistenceContextComponent persistenceContextComponent;
+
+    @Qualifier("llmModelSnapshotConverter")
+    private final LlmModelSnapshotConverter snapshotConverter;
 
     /**
      * 中文说明：读取一个 alias 的只读一致快照：先按 {@code model_key} 具名点查模型行，再按其 route 声明的渠道 key
@@ -185,7 +190,7 @@ public class MpLlmConfigurationRepository implements LlmConfigurationRepository 
      * @param model 参数 已读到的活跃模型行；parameter the active model row that was read.
      * @return 返回 与持久层顺序一致的 route 列表；returns the routes in persisted order.
      */
-    private static List<LlmModelSnapshotBO.RouteBO> parseRoutes(LlmModelPO model) {
+    private List<LlmModelSnapshotBO.RouteBO> parseRoutes(LlmModelPO model) {
         JsonNode routes = readJson(model.getRoutes(), "routes", model.getModelKey());
         if (!routes.isArray() || routes.isEmpty() || routes.size() > MAX_ROUTE_COUNT) {
             throw invalid(model.getModelKey(), "routes must hold 1.." + MAX_ROUTE_COUNT + " entries");
@@ -201,13 +206,12 @@ public class MpLlmConfigurationRepository implements LlmConfigurationRepository 
             for (JsonNode capability : capabilityNode) {
                 capabilities.add(LlmCapabilityEnum.fromWire(text(capability)));
             }
-            parsed.add(LlmModelSnapshotBO.RouteBO.builder()
-                    .channelKey(requiredText(route, "channelKey", 64, model.getModelKey()))
-                    .upstreamModel(requiredText(route, "upstreamModel", 128, model.getModelKey()))
-                    .priority(requiredInt(route, "priority", 0, 1_000, model.getModelKey()))
-                    .weight(requiredInt(route, "weight", 1, 1_000, model.getModelKey()))
-                    .capabilities(capabilities)
-                    .build());
+            parsed.add(snapshotConverter.toRoute(
+                    requiredText(route, "channelKey", 64, model.getModelKey()),
+                    requiredText(route, "upstreamModel", 128, model.getModelKey()),
+                    requiredInt(route, "priority", 0, 1_000, model.getModelKey()),
+                    requiredInt(route, "weight", 1, 1_000, model.getModelKey()),
+                    capabilities));
         }
         return parsed;
     }
@@ -256,14 +260,27 @@ public class MpLlmConfigurationRepository implements LlmConfigurationRepository 
      * @param channels 参数 按渠道 key 索引的活跃渠道行，目录读传空表；parameter the active channel rows indexed by key, empty for the catalog read.
      * @return 返回 合成后的只读快照；returns the composed read-only snapshot.
      */
-    private static LlmModelSnapshotBO toSnapshot(LlmModelPO model,
-                                                 List<LlmModelSnapshotBO.RouteBO> routes,
-                                                 Map<String, LlmChannelPO> channels) {
+    private LlmModelSnapshotBO toSnapshot(LlmModelPO model,
+                                          List<LlmModelSnapshotBO.RouteBO> routes,
+                                          Map<String, LlmChannelPO> channels) {
+        required(model.getModelKey(), "model_key", model.getModelKey());
+        required(model.getName(), "name", model.getModelKey());
+        required(model.getKind(), "kind", model.getModelKey());
+        required(model.getEnabled(), "enabled", model.getModelKey());
+        required(model.getRevision(), "revision", model.getModelKey());
         List<LlmModelSnapshotBO.RouteBO> resolved = new ArrayList<>(routes.size());
         for (LlmModelSnapshotBO.RouteBO route : routes) {
             LlmChannelPO channel = channels.get(route.getChannelKey());
-            resolved.add(route.setChannel(channel == null ? null : toChannel(channel)));
+            resolved.add(snapshotConverter.withChannel(route, channel == null ? null : toChannel(channel)));
         }
+        return snapshotConverter.toTarget(snapshotConverter.toProjection(
+                model,
+                parseProtocols(model),
+                parseAllowedSubjects(model),
+                resolved));
+    }
+
+    private static List<LlmProtocolEnum> parseProtocols(LlmModelPO model) {
         JsonNode protocolNode = readJson(model.getProtocols(), "protocols", model.getModelKey());
         if (!protocolNode.isArray() || protocolNode.isEmpty() || protocolNode.size() > LlmProtocolEnum.values().length) {
             throw invalid(model.getModelKey(), "protocols must be a non-empty array of at most four entries");
@@ -275,6 +292,10 @@ public class MpLlmConfigurationRepository implements LlmConfigurationRepository 
         if (distinctProtocols.size() != protocolNode.size()) {
             throw invalid(model.getModelKey(), "protocols must not repeat");
         }
+        return new ArrayList<>(distinctProtocols);
+    }
+
+    private static List<String> parseAllowedSubjects(LlmModelPO model) {
         List<String> subjects = new ArrayList<>();
         JsonNode subjectNode = readJson(model.getAllowedSubjects(), "allowed_subjects", model.getModelKey());
         if (!subjectNode.isArray() || subjectNode.size() > 100) {
@@ -283,46 +304,32 @@ public class MpLlmConfigurationRepository implements LlmConfigurationRepository 
         for (JsonNode subject : subjectNode) {
             subjects.add(text(subject));
         }
-        return LlmModelSnapshotBO.builder()
-                .modelKey(model.getModelKey())
-                .name(model.getName())
-                .kind(required(model.getKind(), "kind", model.getModelKey()))
-                .enabled(required(model.getEnabled(), "enabled", model.getModelKey()))
-                .protocols(new ArrayList<>(distinctProtocols))
-                .dimensions(model.getDimensions())
-                .embeddingSpaceId(model.getEmbeddingSpaceId())
-                .allowedSubjects(subjects)
-                .revision(required(model.getRevision(), "revision", model.getModelKey()))
-                .routes(resolved)
-                .build();
+        return subjects;
     }
 
     /**
-     * 中文说明：把活跃渠道行映射为一次尝试需要的渠道事实；必填列缺失即失败关闭，因为半截配置会被误读成“渠道不可用”
-     * 之外的含义。
+     * 中文说明：把活跃渠道行映射为一次尝试需要的渠道事实；必填列缺失即失败关闭；仅 LOCAL 无认证渠道可令
+     * {@code secret_ref} 为 SQL NULL。
      * English summary: Maps an active channel row onto the channel facts one attempt needs, failing closed on a missing
-     * required column because partial configuration would be read as something other than "this channel is unusable".
+     * required column; only an unauthenticated LOCAL channel may carry SQL NULL for {@code secret_ref}.
      *
      * 用法 / Usage: 仅由 {@link #toSnapshot(LlmModelPO, List, Map)} 调用。/ Called only by
      * {@link #toSnapshot(LlmModelPO, List, Map)}.
      * @param channel 参数 已读到的活跃渠道行；parameter the active channel row that was read.
      * @return 返回 渠道业务投影；returns the business projection of the channel.
      */
-    private static LlmModelSnapshotBO.ChannelBO toChannel(LlmChannelPO channel) {
+    private LlmModelSnapshotBO.ChannelBO toChannel(LlmChannelPO channel) {
         String channelKey = required(channel.getChannelKey(), "channel_key", channel.getChannelKey());
-        return LlmModelSnapshotBO.ChannelBO.builder()
-                .channelKey(channelKey)
-                .deployment(required(channel.getDeployment(), "deployment", channelKey))
-                .protocol(required(channel.getProtocol(), "protocol", channelKey))
-                .baseUrl(required(channel.getBaseUrl(), "base_url", channelKey))
-                .secretRef(required(channel.getSecretRef(), "secret_ref", channelKey))
-                .enabled(required(channel.getEnabled(), "enabled", channelKey))
-                .connectTimeoutMs(requiredTimeout(channel.getConnectTimeoutMs(), channelKey))
-                .headerTimeoutMs(requiredTimeout(channel.getHeaderTimeoutMs(), channelKey))
-                .idleTimeoutMs(requiredTimeout(channel.getIdleTimeoutMs(), channelKey))
-                .totalTimeoutMs(requiredTimeout(channel.getTotalTimeoutMs(), channelKey))
-                .maxConcurrent(requiredTimeout(channel.getMaxConcurrent(), channelKey))
-                .build();
+        required(channel.getDeployment(), "deployment", channelKey);
+        required(channel.getProtocol(), "protocol", channelKey);
+        required(channel.getBaseUrl(), "base_url", channelKey);
+        required(channel.getEnabled(), "enabled", channelKey);
+        requiredTimeout(channel.getConnectTimeoutMs(), channelKey);
+        requiredTimeout(channel.getHeaderTimeoutMs(), channelKey);
+        requiredTimeout(channel.getIdleTimeoutMs(), channelKey);
+        requiredTimeout(channel.getTotalTimeoutMs(), channelKey);
+        requiredTimeout(channel.getMaxConcurrent(), channelKey);
+        return snapshotConverter.toChannel(channel);
     }
 
     /**

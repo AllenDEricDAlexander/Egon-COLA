@@ -106,7 +106,7 @@ export const KnowledgeBasesPage = () => {
           <Alert
             type="error"
             showIcon
-            message={create.error instanceof Error ? create.error.message : '创建失败'}
+            title={create.error instanceof Error ? create.error.message : '创建失败'}
             description={conflict ? '已有同名意图被拒绝，请调整名称后重试' : undefined}
           />
         )}

@@ -1,0 +1,23 @@
+springdoc:
+  api-docs:
+    enabled: ${YUHENG_LLM_OPENAPI_ENABLED:false}
+    version: OPENAPI_3_1
+  group-configs:
+    - group: yuheng-llm
+      paths-to-match:
+        - /v1/**
+
+egon:
+  cola:
+    component:
+      yuheng:
+        openapi:
+          enabled: ${YUHENG_LLM_OPENAPI_ENABLED:false}
+          publish-to-ddc: false
+          published-groups:
+            - yuheng-llm
+          biz-code: ${YUHENG_LLM_OPENAPI_BIZ_CODE:}
+          application-code: ${YUHENG_LLM_OPENAPI_APPLICATION_CODE:}
+          resource-uri: ${YUHENG_LLM_OPENAPI_RESOURCE_URI:}
+          artifact-version: ${YUHENG_LLM_OPENAPI_ARTIFACT_VERSION:}
+          build-id: ${YUHENG_LLM_OPENAPI_BUILD_ID:}

@@ -339,9 +339,9 @@ class GatewayPersistenceContextTest {
         assertThat(nothing.getServiceUserId()).isNull();
         assertThat(nothing.getExpectedSchemaVersion()).isNull();
         assertThat(nothing.getExpectedSchemaSha256()).isNull();
-        assertThat(nothing.isManagedDdlEnabled()).isFalse();
+        assertThat(nothing.getManagedDdlEnabled()).isNull();
         assertThat(violatedProperties(nothing)).containsExactlyInAnyOrder("tenantId", "identityTenantId",
-                "serviceUserId", "expectedSchemaVersion", "expectedSchemaSha256");
+                "serviceUserId", "expectedSchemaVersion", "expectedSchemaSha256", "managedDdlEnabled");
 
         GatewayPersistenceProperties hostile = new GatewayPersistenceProperties()
                 .setTenantId(0L)
@@ -350,7 +350,7 @@ class GatewayPersistenceContextTest {
                 .setExpectedSchemaVersion(" ")
                 .setExpectedSchemaSha256("75e0acba-not-sixty-four-hex");
         assertThat(violatedProperties(hostile)).contains("tenantId", "identityTenantId", "serviceUserId",
-                "expectedSchemaVersion", "expectedSchemaSha256");
+                "expectedSchemaVersion", "expectedSchemaSha256", "managedDdlEnabled");
 
         ConfigurationProperties binding = GatewayPersistenceProperties.class
                 .getAnnotation(ConfigurationProperties.class);

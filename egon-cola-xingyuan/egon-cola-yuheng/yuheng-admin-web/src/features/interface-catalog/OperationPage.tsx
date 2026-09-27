@@ -70,7 +70,7 @@ const OpenApiUnavailable = () => (
   <Alert
     showIcon
     type="info"
-    message="当前 Operation 没有 OpenAPI source"
+    title="当前 Operation 没有 OpenAPI source"
     description="MANUAL 或 RPC_DESCRIPTOR Operation 不生成伪 OpenAPI Fragment。"
   />
 )
@@ -205,7 +205,7 @@ export const OperationPage = () => {
         <Alert
           showIcon
           type="error"
-          message={openApiQuery.error instanceof GatewayApiError
+          title={openApiQuery.error instanceof GatewayApiError
             ? openApiQuery.error.message
             : 'OpenAPI Fragment 加载失败'}
           description={openApiQuery.error instanceof GatewayApiError
@@ -233,12 +233,12 @@ export const OperationPage = () => {
                 下载完整 OpenAPI 文档
               </Button>
             </Space>
-            {actionError && <Alert showIcon type="warning" message={actionError} />}
+            {actionError && <Alert showIcon type="warning" title={actionError} />}
             <Card size="small" title="OpenAPI Operation JSON">
               <pre aria-label="OpenAPI Operation JSON" className="json-panel">{openApiJson(openApiQuery.data)}</pre>
             </Card>
           </Space>
-        ) : <Alert showIcon type="info" message="暂无 OpenAPI Fragment" />
+        ) : <Alert showIcon type="info" title="暂无 OpenAPI Fragment" />
   ) : <OpenApiUnavailable />
 
   return (
@@ -271,7 +271,7 @@ export const OperationPage = () => {
             </Popconfirm>
           </Space>
         )}
-        {actionError && <Alert showIcon type="warning" message={actionError} style={{ marginTop: 16 }} />}
+        {actionError && <Alert showIcon type="warning" title={actionError} style={{ marginTop: 16 }} />}
       </Card>
       {current && (
         <Tabs

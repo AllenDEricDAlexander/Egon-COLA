@@ -1,6 +1,7 @@
 package top.egon.cola.component.yuheng.admin.llm.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
@@ -43,10 +44,10 @@ public class LlmModelPO extends EgonModel<LlmModelPO> {
     @TableField("enabled")
     private Boolean enabled;
 
-    @TableField("dimensions")
+    @TableField(value = "dimensions", updateStrategy = FieldStrategy.ALWAYS)
     private Integer dimensions;
 
-    @TableField("embedding_space_id")
+    @TableField(value = "embedding_space_id", updateStrategy = FieldStrategy.ALWAYS)
     private String embeddingSpaceId;
 
     @TableField(value = "allowed_subjects", typeHandler = GatewayJsonbTypeHandler.class)

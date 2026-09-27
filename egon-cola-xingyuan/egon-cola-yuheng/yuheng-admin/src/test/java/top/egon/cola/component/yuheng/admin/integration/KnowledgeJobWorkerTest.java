@@ -50,6 +50,7 @@ import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeDocumen
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeJobBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeRetrievalHitBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeSearchQueryBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeUploadReceiptBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeAnswerCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMemberDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeUploadCommandDTO;
@@ -60,7 +61,6 @@ import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobT
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeMemberRoleEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeRevisionStatusEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeAnswerVO;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeDocumentVO;
 import top.egon.cola.component.yuheng.admin.knowledge.repository.KnowledgeRepository;
 import top.egon.cola.component.yuheng.admin.knowledge.service.DocumentIngestionStrategy;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeJobStrategy;
@@ -86,13 +86,8 @@ import top.egon.cola.component.yuheng.admin.shared.repository.IdempotencyReposit
  * 并换掉持有者，{@code heartbeat}/{@code finish}/{@code activateRevision} 一旦令牌或到期时刻不再匹配就返回
  * {@code false}，{@code stageChunks} 逐条校验向量长度/有限/非零并累计写入行数；断言只问「库里的最终事实」，
  * 不镜像实现的当前行为。
- * <b>为摄取用例补齐的输入</b>：{@code DocumentIngestionStrategy} 只认作业 payload 里的 {@code revisionId}/
- * {@code sourceRevisionId} 键（它自己的契约就这么写的），而 {@code KnowledgeServiceImpl.ingestPayload} 生成的载荷
- * 里<b>没有</b>这两个键（它只冻结 baseId/contentHash/dimensions/embeddingSpace/fileName/mediaType/model），因此真实
- * 上传产出的 {@code DOCUMENT_INGEST} 行在现状态下必然以 {@code KNOWLEDGE_VALIDATION_FAILED} 收束。该缺陷只如实上报、
- * 不改别人的文件；为了让屏障与围栏语义有可断言的对象，{@link Fixture} 在真实上传之后用
- * {@link ScriptedKnowledgeStore#freezeSourceRevisionInPayload} 只往那一行的 payload 里补上「本作业对应的修订 id」，
- * 三行本身仍然全部由生产代码写出。除该键名之外，本类不对 payload 结构作任何断言。
+ * 摄取作业的 payload 必须冻结 {@code revisionId}，且 chunking configuration 必须使用组件定义的闭合 strategy；
+ * 这样 worker 可以准确定位 staging revision，并且重试不会悄悄退化成另一个分块策略。
  * English summary: {@code KnowledgeJobWorkerTest} pins Step 12's three ingestion and publication invariants, each taken
  * from the business Spec rather than from the implementation: (1) API-015 must commit the document row, the STAGING
  * revision row holding the original bytes and the {@code DOCUMENT_INGEST} job row in one single write set, a rejected
@@ -104,10 +99,8 @@ import top.egon.cola.component.yuheng.admin.shared.repository.IdempotencyReposit
  * leaves the previous active revision untouched — activation is allowed only after every vector validates and
  * {@code stageChunks} succeeded, so staged rows can never expose a half-built index to retrieval. The persistence side
  * is the scripted fake below, which genuinely evaluates those CAS predicates instead of mirroring production behaviour.
- * Two cross-writer contract breaks are reported rather than patched: the upload payload carries no source revision
- * pointer even though the ingestion strategy reads exactly that key (so {@link Fixture} supplies it for the ingestion
- * cases only), and the chunking configuration is frozen under the name {@code FIXED_WINDOW}, which is not a member of
- * the closed {@link RagChunkingStrategyEnum} vocabulary, so ingestion always degrades to the {@code TOKEN} fallback.
+ * The upload payload and frozen chunking strategy are asserted at the producer/consumer boundary so a missing revision
+ * pointer or unsupported strategy cannot be hidden by a test-only payload repair.
  *
  * 用法 / Usage: 纯 JUnit 5 + AssertJ，直接 {@code new} 生产类，不启动 Spring 容器、不用 Mockito、不用 H2、不联网：
  * {@code ./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=KnowledgeJobWorkerTest
@@ -164,7 +157,7 @@ class KnowledgeJobWorkerTest {
         byte[] original = "yuheng runbook\nrestart order: tianshu, xingyuan, yuheng\n"
                 .getBytes(StandardCharsets.UTF_8);
 
-        KnowledgeDocumentVO uploaded = fixture.upload(EDITOR, "runbook.md", "text/markdown", original,
+        KnowledgeUploadReceiptBO uploaded = fixture.upload(EDITOR, "runbook.md", "text/markdown", original,
                 "upload-intent-00000001");
 
         // 一次上传恰好三行业务数据：不多（不重复排队），不少（不留孤立修订或孤立作业）。
@@ -191,14 +184,15 @@ class KnowledgeJobWorkerTest {
         // 嵌入空间与维度按知识库的冻结值快照写入，杜绝「这次上传换了另一套维度口径」。
         assertThat(revision.getEmbeddingSpaceId()).isEqualTo(EMBEDDING_SPACE);
         assertThat(revision.getDimensions()).isEqualTo(DIMENSIONS);
+        assertThat(revision.getChunkingConfig().path("strategy").asText())
+                .isEqualTo(RagChunkingStrategyEnum.TOKEN.name());
 
-        // 作业行与文档行互相指向：resourceId 是文档、文档的 latestJobId 是这条作业，客户端据此轮询 API-019。
-        // 作业与「哪一条修订」的绑定本应落在 payload，但真实上传的载荷里没有该键（见类注释上报的缺陷），
-        // 所以这里只固定确实存在的闭环链接，不去断言一个尚未被写出的键，也不把这个缺口当成正确行为。
+        // 作业行与文档、staging 修订互相指向：客户端用 jobId 轮询 API-019，worker 按 revisionId 定位来源。
         assertThat(job.getType()).isEqualTo(KnowledgeJobTypeEnum.DOCUMENT_INGEST);
         assertThat(job.getStatus()).isEqualTo(KnowledgeJobStatusEnum.QUEUED);
         assertThat(job.getStage()).isEqualTo(KnowledgeJobStageEnum.QUEUED);
         assertThat(job.getResourceId()).isEqualTo(document.getId());
+        assertThat(job.getPayload().path("revisionId").asText()).isEqualTo(revision.getId());
         assertThat(job.getKbId()).isEqualTo(fixture.kbId());
         assertThat(job.getActorId()).isEqualTo(EDITOR.actorId());
         assertThat(job.getAttempt()).isZero();
@@ -214,9 +208,10 @@ class KnowledgeJobWorkerTest {
         // 文档指针：latestJobId 已闭环，activeRevisionId 仍是旧值，所以上传永不把半成品索引暴露给检索。
         assertThat(document.getLatestJobId()).isEqualTo(job.getId());
         assertThat(document.getActiveRevisionId()).isNull();
-        assertThat(uploaded.getId()).isEqualTo(document.getId());
-        assertThat(uploaded.getLatestJobId()).isEqualTo(job.getId());
-        assertThat(uploaded.getActiveRevisionId()).isNull();
+        assertThat(uploaded.getDocumentId()).isEqualTo(document.getId());
+        assertThat(uploaded.getRevisionId()).isEqualTo(revision.getId());
+        assertThat(uploaded.getJobId()).isEqualTo(job.getId());
+        assertThat(uploaded.getStatus()).isEqualTo(KnowledgeJobStatusEnum.QUEUED);
 
         // Spec §7.3.3「外部 LLM 不属于 PG 事务」：上传路径上模型端口一次都没被碰过。
         assertThat(fixture.model.embedCalls()).isZero();
@@ -567,7 +562,7 @@ class KnowledgeJobWorkerTest {
         }
 
         /** 中文说明：纯粹走一遍生产上传路径，不做任何补偿，供原子性与零写入断言使用。 English summary: The production upload path exactly as it is, without compensation, for the atomicity and zero-write assertions. */
-        private KnowledgeDocumentVO upload(AdminActor actor, String fileName, String mediaType, byte[] content,
+        private KnowledgeUploadReceiptBO upload(AdminActor actor, String fileName, String mediaType, byte[] content,
                 String idempotencyKey) {
             return knowledgeService.uploadDocument(actor, kbId, KnowledgeUploadCommandDTO.builder()
                     .fileName(fileName)
@@ -578,18 +573,13 @@ class KnowledgeJobWorkerTest {
 
         /**
          * 中文说明：走完生产上传，再只为作业行补上「本作业摄取哪一条修订」这一个键，返回三行主键。
-         * 文档行、修订行（含原件字节、SHA-256、冻结空间/维度）与作业行全部由 {@code KnowledgeServiceImpl} 写出；
-         * 唯一被测试补齐的是生产载荷缺失的 {@code revisionId} 键，因为 {@code DocumentIngestionStrategy} 的契约
-         * 就是从这两个键里读来源修订（详见类注释上报的跨写者缺陷）。
-         * English summary: Runs the production upload and then supplies only the one key the committed payload is
-         * missing — which revision this job ingests — returning the three keys. The document row, the revision row (raw
-         * bytes, SHA-256, frozen space and dimensions) and the job row are all written by {@code KnowledgeServiceImpl};
-         * the only compensation is the absent {@code revisionId} key, because the strategy's contract reads the source
-         * revision out of exactly those two keys (see the cross-writer defect recorded in the class note).
+         * 文档行、修订行与含来源 revisionId 的作业行均由 {@code KnowledgeServiceImpl} 写出，本 helper 不修改提交结果。
+         * English summary: The production service writes the document, revision and job with its source revision id; this
+         * helper does not mutate the committed result.
          */
         private Queued ingestibleUpload(String body, String intent, String documentId) {
             KnowledgeDocumentBO current = documentId == null ? null : store.document(documentId);
-            KnowledgeDocumentVO uploaded = knowledgeService.uploadDocument(EDITOR, kbId,
+            KnowledgeUploadReceiptBO uploaded = knowledgeService.uploadDocument(EDITOR, kbId,
                     KnowledgeUploadCommandDTO.builder()
                             .fileName(current == null ? "runbook.md" : current.getFileName())
                             .mediaType("text/markdown")
@@ -597,9 +587,8 @@ class KnowledgeJobWorkerTest {
                             .documentId(documentId)
                             .expectedRevision(current == null ? null : current.getRevision())
                             .build(), intent);
-            KnowledgeDocumentRevisionBO revision = store.newestRevisionOf(uploaded.getId());
-            store.freezeSourceRevisionInPayload(uploaded.getLatestJobId(), revision.getId());
-            return new Queued(uploaded.getId(), revision.getId(), uploaded.getLatestJobId());
+            KnowledgeDocumentRevisionBO revision = store.newestRevisionOf(uploaded.getDocumentId());
+            return new Queued(uploaded.getDocumentId(), revision.getId(), uploaded.getJobId());
         }
 
         /** 中文说明：领走本知识库里唯一一条可认领作业。/ Takes the only claimable job of this knowledge base. */
@@ -1060,15 +1049,6 @@ class KnowledgeJobWorkerTest {
          * this Step: {@code KnowledgeServiceImpl.ingestPayload} never writes that key while the strategy's contract reads
          * the source revision out of the payload (reported in the class note; production code is what should change).
          */
-        private void freezeSourceRevisionInPayload(String jobId, String revisionId) {
-            KnowledgeJobBO row = jobId == null ? null : jobs.get(jobId);
-            if (row == null || !(row.getPayload() instanceof ObjectNode payload)) {
-                throw new AssertionError("the committed job row carries no object payload to complete: " + jobId);
-            }
-            payload.put("revisionId", revisionId);
-            events.add("UPDATE:jobpayload:" + row.getId());
-        }
-
         private long leaseTakeovers() {
             return leaseTakeovers;
         }

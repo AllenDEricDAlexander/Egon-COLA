@@ -18,6 +18,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -27,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -35,6 +41,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -42,7 +49,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -58,6 +67,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.yuheng.llm.config.LlmGatewayConfiguration;
 import top.egon.cola.component.yuheng.llm.config.LlmGatewayProperties;
+import top.egon.cola.component.yuheng.llm.config.LlmOpenApiConfiguration;
 import top.egon.cola.component.yuheng.llm.proxy.controller.LlmApiController;
 import top.egon.cola.component.yuheng.llm.proxy.domain.bo.LlmModelSnapshotBO;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmDeploymentEnum;
@@ -94,10 +104,9 @@ import top.egon.cola.component.yuheng.llm.proxy.service.OpenAiResponsesProtocolS
  * {@code @ExceptionHandler}（本模块没有独立的 advice 类），以及用本模块 {@link LlmGatewayProperties} 与
  * {@link LlmGatewayConfiguration#llmProtocolStrategyRegistry()} 真实装配出来的 Strategy 与
  * {@link LlmServletStreamComponent}（目录面的断言读的是它真实写出的字节）。
- * 注意（runtime-unverified）：{@code /v3/api-docs} 与已发布的 {@code openapi: 3.1.0} 文档本身在 standalone MockMvc
- * 下不存在，本模块也不依赖 openapi starter（{@code swagger-annotations-jakarta} 在 common-core 里是
- * {@code provided}/{@code optional}，控制器因此不声明 {@code @Operation}），operationId 的实际载体是「处理器方法名 +
- * 方法 javadoc 首行」，本类从反射与源码两侧同时钉住它；文档是否真的发布出来只能由启动服务证明，此处不伪造。
+ * 本模块复用 Yuheng MVC OpenAPI Starter；每个 handler 声明真实 {@code @Operation/@ApiResponses/}
+ * {@code @SecurityRequirement}，统一 bearerAuth scheme。文档默认关闭，本类反射验证 code-first 元数据与安全开关，
+ * 不启动需要外部 PostgreSQL/ShardingSphere/Tianquan/Tianshu 配置的完整服务。
  * English summary: {@code LlmApiOpenApiContractTest} is the Step 16 File 3 gate over the model entry. It pins (1) that
  * the native surface is exactly the five {@code method + path + operationId} triples of API-001/002/003/029/030, with the
  * annotation view and the source view equal item by item, no sixth entry point and nothing mounted under admin's
@@ -120,11 +129,10 @@ import top.egon.cola.component.yuheng.llm.proxy.service.OpenAiResponsesProtocolS
  * (this module has no separate advice class), and Strategies plus the {@link LlmServletStreamComponent} wired for real
  * through this module's {@link LlmGatewayProperties} and
  * {@link LlmGatewayConfiguration#llmProtocolStrategyRegistry()}, whose bytes the catalogue assertions read back.
- * Runtime-unverified on purpose: {@code /v3/api-docs} and the published {@code openapi: 3.1.0} document do not exist
- * under standalone MockMvc, and this module pulls in no openapi starter ({@code swagger-annotations-jakarta} is
- * {@code provided}/{@code optional} in common-core, so the controller declares no {@code @Operation}); the real carrier
- * of an operationId is the handler name plus the first line of its javadoc, which this class pins from reflection and
- * from source text at once, while whether the document is ever published stays a booted-service fact and is not faked.
+ * The module now reuses Yuheng's MVC OpenAPI starter. Each handler carries {@code @Operation/@ApiResponses/}
+ * {@code @SecurityRequirement}, and the shared scheme is {@code bearerAuth}; publication remains disabled by default.
+ * This test verifies code-first metadata and the toggle without booting the full service, which requires external operator
+ * configuration.
  *
  * 用法 / Usage: 注解事实走反射（{@link AnnotatedElementUtils} 与私有静态成员的反射读取），面清单与 operationId 另读
  * 本模块 {@code src/main/java} 下的控制器源码文本，错误 shape 与目录 shape 全部由 standalone MockMvc 真实发起请求、
@@ -189,7 +197,7 @@ class LlmApiOpenApiContractTest {
     }
 
     @Test
-    @DisplayName("每个入口都声明非空 operationId：处理器名与方法 javadoc 首行必须给出同一个值")
+    @DisplayName("每个入口都声明真实 operationId、响应状态和 bearerAuth 安全要求")
     void everyEntryHandlerDeclaresANonBlankOperationIdInItsOwnNameAndJavadoc() {
         String source = readControllerSource();
         Map<String, String> annotated = annotatedEntries();
@@ -210,11 +218,32 @@ class LlmApiOpenApiContractTest {
             assertThat(javadoc).as("the javadoc of %s records the API id", entry.path()).contains(entry.apiId());
             assertThat(javadoc).as("the javadoc of %s records the exact route", entry.path())
                     .contains(entry.route());
+            Operation operation = AnnotatedElementUtils.findMergedAnnotation(handler, Operation.class);
+            assertThat(operation).as("code-first operation for %s", entry.path()).isNotNull();
+            assertThat(operation.operationId()).isEqualTo(entry.operationId());
+            ApiResponses responses = AnnotatedElementUtils.findMergedAnnotation(handler, ApiResponses.class);
+            assertThat(responses).as("native response metadata for %s", entry.path()).isNotNull();
+            assertThat(Arrays.stream(responses.value())
+                    .map(io.swagger.v3.oas.annotations.responses.ApiResponse::responseCode).toList())
+                    .contains("200", "401", "403", "503");
+            assertThat(Arrays.stream(handler.getAnnotationsByType(SecurityRequirement.class))
+                    .map(SecurityRequirement::name).toList()).containsExactly("bearerAuth");
+            assertThat(operation.requestBody().required())
+                    .as("POST handlers document native JSON bodies, while the GET catalog has none")
+                    .isEqualTo(!"GET".equals(entry.verb()));
         }
-        // swagger-annotations-jakarta 在本模块是 provided/optional，控制器不声明 @Operation：这里证明「没有第二套
-        // operationId 载体」，其上唯一的载体就是被反射与 javadoc 同时钉住的那个处理器名（见类注释的 runtime-unverified）。
-        assertThat(swaggerAnnotatedHandlers(LlmApiController.class)).as("no @Operation carrier exists in this module")
-                .isEmpty();
+
+        SecurityScheme bearer = LlmOpenApiConfiguration.class.getAnnotation(SecurityScheme.class);
+        assertThat(bearer).isNotNull();
+        assertThat(bearer.name()).isEqualTo("bearerAuth");
+        assertThat(bearer.type()).isEqualTo(SecuritySchemeType.HTTP);
+        assertThat(bearer.scheme()).isEqualTo("bearer");
+        assertThat(yamlValues("springdoc.api-docs.enabled"))
+                .containsExactly("${YUHENG_LLM_OPENAPI_ENABLED:false}");
+        assertThat(yamlValues("egon.cola.component.yuheng.openapi.enabled"))
+                .containsExactly("${YUHENG_LLM_OPENAPI_ENABLED:false}");
+        assertThat(yamlValues("egon.cola.component.yuheng.openapi.publish-to-ddc"))
+                .containsExactly("false");
     }
 
     @Test
@@ -495,16 +524,27 @@ class LlmApiOpenApiContractTest {
     }
 
     @Test
+    @DisplayName("模型目录快照保留持久化创建时刻，供原生 created Unix 秒投影")
+    void aModelCatalogSnapshotCarriesItsPersistedCreationInstant() {
+        assertThat(Arrays.stream(LlmModelSnapshotBO.class.getDeclaredFields())
+                .map(Field::getName))
+                .as("API-003 created is derived from the stored model creation instant")
+                .contains("createdAt");
+    }
+
+    @Test
     @DisplayName("目录面只投影被授权且启用的 alias，任何 baseUrl/secretRef/凭据材料都不进响应字节")
     void theCatalogueFaceProjectsOnlyAuthorizedAliasesAndNoCredentialMaterial() throws Exception {
         LlmGatewayProperties properties = gatewayProperties();
         Fixture fixture = fixture(properties, realFaces(properties));
+        Instant aCreatedAt = Instant.parse("2021-02-03T04:05:06.987654Z");
+        Instant bCreatedAt = Instant.parse("2022-03-04T05:06:07.123456Z");
         when(fixture.repository.findCatalog()).thenReturn(Arrays.asList(
-                catalogAlias("b-chat", Boolean.TRUE, List.of(SUBJECT)),
-                catalogAlias("a-chat", Boolean.TRUE, List.of(SUBJECT)),
+                catalogAlias("b-chat", Boolean.TRUE, List.of(SUBJECT), bCreatedAt),
+                catalogAlias("a-chat", Boolean.TRUE, List.of(SUBJECT), aCreatedAt),
                 null,
-                catalogAlias("c-chat", Boolean.FALSE, List.of(SUBJECT)),
-                catalogAlias("d-chat", Boolean.TRUE, List.of("svc:someone-else"))));
+                catalogAlias("c-chat", Boolean.FALSE, List.of(SUBJECT), aCreatedAt),
+                catalogAlias("d-chat", Boolean.TRUE, List.of("svc:someone-else"), bCreatedAt)));
 
         MvcResult result = fixture.mockMvc.perform(get("/v1/models").principal(namedSubject(SUBJECT))).andReturn();
         String raw = result.getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -519,8 +559,9 @@ class LlmApiOpenApiContractTest {
             assertThat(fieldNames(entry)).containsExactlyInAnyOrder("id", "object", "created", "owned_by");
             assertThat(entry.path("object").asText()).isEqualTo("model");
             assertThat(entry.path("owned_by").asText()).isEqualTo("yuheng");
-            assertThat(entry.path("created").asLong()).isGreaterThan(1_700_000_000L);
             assertThat(entry.path("id").asText()).isIn("a-chat", "b-chat");
+            assertThat(entry.path("created").asLong()).isEqualTo(
+                    ("a-chat".equals(entry.path("id").asText()) ? aCreatedAt : bCreatedAt).getEpochSecond());
         }
         assertThat(document.path("data").get(0).path("id").asText()).as("the projection is alias-ascending")
                 .isEqualTo("a-chat");
@@ -644,10 +685,12 @@ class LlmApiOpenApiContractTest {
      * @param allowedSubjects 参数 授权主体清单；parameter the authorized subject list.
      * @return 返回 目录条目；returns the catalogue entry.
      */
-    private static LlmModelSnapshotBO catalogAlias(String modelKey, boolean enabled, List<String> allowedSubjects) {
+    private static LlmModelSnapshotBO catalogAlias(
+            String modelKey, boolean enabled, List<String> allowedSubjects, Instant createdAt) {
         return new LlmModelSnapshotBO()
                 .setModelKey(modelKey)
                 .setName("上游真机 alias")
+                .setCreatedAt(createdAt)
                 .setKind(LlmModelKindEnum.CHAT)
                 .setEnabled(enabled)
                 .setProtocols(List.of(LlmProtocolEnum.OPENAI_CHAT))
@@ -708,10 +751,12 @@ class LlmApiOpenApiContractTest {
                 throw new IllegalStateException("One handler cannot be both a GET and a POST entry: " + method);
             }
             if (get != null) {
-                entries.put("GET " + solePath(get.value()), method.getName());
+                Operation operation = AnnotatedElementUtils.findMergedAnnotation(method, Operation.class);
+                entries.put("GET " + solePath(get.value()), operation == null ? "" : operation.operationId());
             }
             if (post != null) {
-                entries.put("POST " + solePath(post.value()), method.getName());
+                Operation operation = AnnotatedElementUtils.findMergedAnnotation(method, Operation.class);
+                entries.put("POST " + solePath(post.value()), operation == null ? "" : operation.operationId());
             }
         }
         return entries;
@@ -827,18 +872,6 @@ class LlmApiOpenApiContractTest {
         return files;
     }
 
-    private static List<String> swaggerAnnotatedHandlers(Class<?> type) {
-        List<String> handlers = new ArrayList<>();
-        for (Method method : type.getDeclaredMethods()) {
-            for (Annotation annotation : method.getAnnotations()) {
-                if (annotation.annotationType().getName().startsWith("io.swagger")) {
-                    handlers.add(method.getName() + " " + annotation);
-                }
-            }
-        }
-        return handlers;
-    }
-
     private static boolean hasAnnotation(Class<?> type, String methodName,
             Class<? extends Annotation> annotation) {
         for (Method method : type.getDeclaredMethods()) {
@@ -875,6 +908,16 @@ class LlmApiOpenApiContractTest {
         } catch (IOException failure) {
             throw new IllegalStateException("The controller source could not be read", failure);
         }
+    }
+
+    private static List<String> yamlValues(String key) {
+        YamlPropertiesFactoryBean loader = new YamlPropertiesFactoryBean();
+        loader.setResources(new ClassPathResource("application.yml"));
+        Properties properties = loader.getObject();
+        assertThat(properties).isNotNull();
+        String value = properties.getProperty(key);
+        assertThat(value).as("YAML key %s", key).isNotNull();
+        return List.of(value);
     }
 
     /** 中文说明：从 surefire 工作目录向上找到本模块根，绝不依赖任何绝对路径常量。 English summary: Walks up from surefire's working directory to this module's root, so no absolute path constant is ever needed. */

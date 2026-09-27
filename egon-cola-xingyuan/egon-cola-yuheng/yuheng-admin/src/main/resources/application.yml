@@ -12,6 +12,10 @@ spring:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
   lifecycle:
     timeout-per-shutdown-phase: 20s
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
   flyway:
     locations: classpath:db/migration
 

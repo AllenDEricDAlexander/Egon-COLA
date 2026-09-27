@@ -35,7 +35,6 @@ public class KnowledgeUploadCommandDTO {
     private String fileName;
 
     /** 受支持媒体类型，不能仅信任客户端 Content-Type / validated media type. */
-    @NotBlank
     @Size(max = 128)
     private String mediaType;
 

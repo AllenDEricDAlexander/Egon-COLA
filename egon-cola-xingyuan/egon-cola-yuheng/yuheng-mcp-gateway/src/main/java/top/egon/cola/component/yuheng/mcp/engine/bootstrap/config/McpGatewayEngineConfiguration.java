@@ -71,6 +71,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import top.egon.cola.component.yuheng.mcp.engine.config.McpGatewayEngineProperties;
+import top.egon.cola.component.yuheng.mcp.engine.config.McpPersistenceContextComponent;
+import top.egon.cola.component.yuheng.mcp.engine.config.McpPersistenceProperties;
 import top.egon.cola.component.yuheng.mcp.engine.rule.domain.McpGatewayCompiledRulesDTO;
 import top.egon.cola.component.yuheng.mcp.engine.rule.service.McpGatewayRuleCompilerStrategy;
 import top.egon.cola.component.yuheng.mcp.engine.bootstrap.lifecycle.McpGatewayEngineRuntime;
@@ -387,23 +389,19 @@ public class McpGatewayEngineConfiguration {
      * English summary: Executes the gateway mcp persistence identity context operation; this method is the invocation entry point on {@code McpGatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code McpGatewayEngineConfiguration.mcpGatewayPersistenceContext(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param persistenceTenantId 参数 部署绑定的数值租户标识；parameter the deployment-bound numeric tenant identifier。
-     * @param persistenceTechnicalPrincipal 参数 写入审计列的技术主体；parameter the technical principal written into the audit columns。
+     * @param persistenceContextComponent 参数 受管 schema 消费者的唯一身份上下文；parameter the single identity context of the managed-schema consumer.
+     * @param persistenceProperties 参数 同一部署身份的配置；parameter the configuration for that same deployment identity.
      * @return 返回 网关MCP持久化身份上下文 的处理结果；returns the result of the operation.
      */
     @Bean("mcpGatewayPersistenceContext")
     public McpGatewayPersistenceContext mcpGatewayPersistenceContext(
-            @Value(
-                    "${egon.cola.component.yuheng.engine.mcp.persistence."
-                            + "tenant-id}"
-            ) String persistenceTenantId,
-            @Value(
-                    "${egon.cola.component.yuheng.engine.mcp.persistence."
-                            + "technical-principal}"
-            ) String persistenceTechnicalPrincipal) {
+            @Qualifier("mcpPersistenceContextComponent")
+            McpPersistenceContextComponent persistenceContextComponent,
+            @Qualifier(McpPersistenceProperties.BEAN_NAME)
+            McpPersistenceProperties persistenceProperties) {
         return new McpGatewayPersistenceContext(
-                persistenceTenantId,
-                persistenceTechnicalPrincipal
+                persistenceContextComponent,
+                persistenceProperties
         );
     }
 

@@ -73,12 +73,17 @@ public class McpPersistenceConfiguration implements SmartInitializingSingleton {
             @Qualifier(McpPersistenceProperties.BEAN_NAME) McpPersistenceProperties persistenceProperties,
             @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
             EgonColaMybatisPlusProperties mybatisPlusProperties) {
-        if (persistenceProperties.isManagedDdlEnabled() != mybatisPlusProperties.getDdl().isEnabled()) {
+        Boolean managedDdlEnabled = persistenceProperties.getManagedDdlEnabled();
+        if (managedDdlEnabled == null) {
+            log.error("the MCP engine requires the managed DDL role flag to be configured");
+            throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_FLAG_REQUIRED");
+        }
+        if (managedDdlEnabled.booleanValue() != mybatisPlusProperties.getDdl().isEnabled()) {
             log.error("deployment managed-ddl flag {} disagrees with the component ddl flag {}",
-                    persistenceProperties.isManagedDdlEnabled(), mybatisPlusProperties.getDdl().isEnabled());
+                    managedDdlEnabled, mybatisPlusProperties.getDdl().isEnabled());
             throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_FLAG_CONFLICT");
         }
-        if (persistenceProperties.isManagedDdlEnabled()) {
+        if (managedDdlEnabled) {
             log.error("the MCP engine only consumes the managed schema and must never own managed DDL");
             throw new EgonColaMybatisPlusConfigurationException("MANAGED_DDL_ROLE_MISMATCH");
         }

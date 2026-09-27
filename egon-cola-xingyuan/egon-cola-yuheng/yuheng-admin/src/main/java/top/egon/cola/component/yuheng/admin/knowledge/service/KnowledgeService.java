@@ -6,9 +6,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeBaseBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeUploadReceiptBO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeAnswerCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeBaseCommandDTO;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMemberDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMembersCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgePageQueryDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeReindexCommandDTO;
@@ -29,7 +30,8 @@ import java.util.List;
  * 每个方法都以已验证的 {@link AdminActor} 作为第一个参数，权限判定（OWNER 取 {@code ownerActorId} 或 members 中角色为
  * OWNER 的成员，EDITOR/READER 取自 {@code members}，创建要求 {@code KB_CREATE} 作用域或角色）全部落在本层，
  * 仓储端口不做角色判断；租户与审计操作者仍由守卫上下文决定，任何方法都不接受调用方自报租户。
- * 返回值只有既有 VO/分页载体，绝不泄漏 PO，也不携带原文字节、提取文本、提示词或向量。
+ * 返回值使用业务载体、既有 VO 或分页载体，Controller 再通过单向转换形成 wire projection；绝不泄漏 PO，
+ * 也不携带超出对应操作合同的原文字节、提取文本、提示词或向量。
  * English summary: {@code KnowledgeService} is the business contract behind API-008–018 and API-022 of the knowledge
  * management plane: knowledge-base create, page, read and full replace, member read and replace, document page, upload,
  * revision read and delete, reindex job creation and the grounded answer entry point. Every method takes the verified
@@ -157,12 +159,12 @@ public interface KnowledgeService {
      * English summary: API-012 reads the member list, which Spec §9.2 reserves for OWNER, in a stable order, projecting only each member's
      * {@code actorId} and typed {@code role} and no knowledge base content.
      *
-     * 用法 / Usage: {@code knowledgeServiceImpl.listMembers(actor, kbId)}；无附加成员时返回空列表而不是 null。
+     * 用法 / Usage: {@code knowledgeServiceImpl.listMembers(actor, kbId)}；返回包含权威revision的业务快照。
      * @param actor 参数 已验证的管理身份；parameter the verified management actor.
      * @param kbId 参数 知识库十进制字符串 id；parameter decimal-string knowledge base id.
-     * @return 返回 成员载体列表；returns the member carriers.
+     * @return 返回 知识库业务快照，由Controller投影成成员响应；returns the business snapshot projected by the controller.
      */
-    List<KnowledgeMemberDTO> listMembers(
+    KnowledgeBaseBO listMembers(
             @NotNull AdminActor actor,
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$") String kbId
@@ -178,13 +180,13 @@ public interface KnowledgeService {
      * success.
      *
      * 用法 / Usage: {@code knowledgeServiceImpl.replaceMembers(actor, kbId, command)}；
-     * 返回替换后的权威成员集合。
+     * 返回替换后的权威知识库快照，revision与members由同一CAS提交。
      * @param actor 参数 已验证的管理身份；parameter the verified management actor.
      * @param kbId 参数 知识库十进制字符串 id；parameter decimal-string knowledge base id.
      * @param command 参数 成员完整替换命令；parameter the full members replacement command.
-     * @return 返回 已提交的成员载体列表；returns the committed member carriers.
+     * @return 返回 已提交的知识库业务快照；returns the committed knowledge-base snapshot.
      */
-    List<KnowledgeMemberDTO> replaceMembers(
+    KnowledgeBaseBO replaceMembers(
             @NotNull AdminActor actor,
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$") String kbId,
@@ -235,9 +237,9 @@ public interface KnowledgeService {
      * @param command 参数 上传命令；parameter the upload command.
      * @param idempotencyKey 参数 可选 {@code Idempotency-Key} 请求头值，至多 64 字符；parameter optional
      *                       {@code Idempotency-Key} header value, at most 64 characters.
-     * @return 返回 已提交的文档投影；returns the committed document projection.
+     * @return 返回 与文档、修订及作业同事务提交的四字段上传回执；returns the committed four-field upload receipt.
      */
-    KnowledgeDocumentVO uploadDocument(
+    KnowledgeUploadReceiptBO uploadDocument(
             @NotNull AdminActor actor,
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$") String kbId,

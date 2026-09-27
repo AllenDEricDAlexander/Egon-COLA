@@ -26,7 +26,7 @@ export const WikiGraphPanel = ({ kbId, pageId }: { kbId: string; pageId?: string
           <Alert
             type="warning"
             showIcon
-            message="已达到图输出上限"
+            title="已达到图输出上限"
             description="仅展示授权范围内的部分节点，请缩小范围后重试。"
           />
         )}

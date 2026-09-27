@@ -27,8 +27,9 @@ import java.util.concurrent.Callable;
  * 每次读写都先进入受信任身份上下文（{@link McpGatewayPersistenceContext}）再走该表的受守卫边界，因此同租户过滤、
  * 仅活跃行（{@code deleted_at IS NULL}）与技术 {@code version} 乐观锁是结构性的。旧语句的
  * {@code state}/{@code revision}/{@code worker_owner}/租约与尝试计数谓词先经本表具名查询下推并在新分配的行上
- * 逐字复核，随后只走继承的 {@code save/updateById/removeById}：{@code updateById} 以 {@code id}+读取到的
- * {@code version} 做单行 CAS，两个并发工作者读到同一行时只有一个能命中，认领互斥与“影响 0 行即失败”的语义不变，
+ * 逐字复核；普通非空更新走继承的 {@code save/updateById/removeById}，必须写 {@code NULL} 的状态迁移/取消走具名
+ * 单行 CAS，在同一 UPDATE 中复核 id/tenant/version/state/revision/owner 并清空 owner/lease。两个并发工作者读到
+ * 同一行时只有一个能命中，认领互斥与“影响 0 行即失败”的语义不变，
  * 业务 {@code revision} 只在命中时自增。协议任务标识只经 {@code task_key} 查询，绝不做 {@code parseUUID} 或
  * base64 转 {@code Long}；到期清理由旧的“一条按状态批量 {@code DELETE}/{@code UPDATE}”改为“具名查询至多
  * {@code batchLimit} 行的 {@code id}+{@code version}，再逐行受保护 CAS 或版本化逻辑删除”，逻辑删除时间戳由组件的
@@ -38,9 +39,10 @@ import java.util.concurrent.Callable;
  * ({@link McpGatewayPersistenceContext}) and then the table's guarded boundary, so same-tenant filtering, active rows
  * only ({@code deleted_at IS NULL}) and the technical {@code version} optimistic lock are structural. The legacy
  * {@code state}/{@code revision}/{@code worker_owner}, lease and attempt-counting predicates are pushed down through this
- * table's named queries and then re-checked literally on the freshly loaded row, after which only the inherited
- * {@code save/updateById/removeById} are used: {@code updateById} performs the single-row compare-and-set on {@code id}
- * plus the {@code version} that was read, so two workers that loaded the same row cannot both win, which keeps claim
+ * table's named queries and then re-checked literally on the freshly loaded row. Ordinary non-null updates use inherited
+ * {@code save/updateById/removeById}; transitions/cancellation that must write SQL {@code NULL}s use a named per-row CAS
+ * which re-checks id/tenant/version/state/revision/owner and clears owner/lease in the same UPDATE. Two workers that
+ * loaded the same row cannot both win, which keeps claim
  * mutual exclusion and the "zero rows is never success" contract intact while the business {@code revision} increments
  * only on a hit. The protocol task identifier is queried through {@code task_key} alone, with no {@code parseUUID} or
  * base64-to-{@code Long}. Expiry sweeps become "read at most {@code batchLimit} rows' {@code id}+{@code version} by a
@@ -215,15 +217,14 @@ public class MpMcpRuntimeTaskStore implements McpTaskStore {
      * 中文说明：执行 transition 操作；旧语句的 {@code WHERE id = ? AND state = ? AND revision = ?
      * AND (worker_owner IS NULL | worker_owner = ?)} 全部在新分配行上逐字复核，随后写入目标状态、三个载荷、
      * 业务修订自增与时间；行缺失、谓词不匹配或影响 0 行都返回 {@code false}。
-     * 注意：{@code updateById} 只下发非空字段，故旧语句无条件写 {@code NULL} 的
-     * {@code worker_owner}/{@code lease_until} 与被清空载荷无法经该 API 表达，已按阻塞项上报。
+     * 具名 CAS 在同一 UPDATE 中显式写入 {@code worker_owner=NULL}/{@code lease_until=NULL}，并通过 JSONB TypeHandler
+     * 显式清空为 null 的 payload。
      * English summary: Executes the transition operation; the legacy
      * {@code WHERE id = ? AND state = ? AND revision = ? AND (worker_owner IS NULL | worker_owner = ?)} is re-checked
      * literally on the freshly loaded row, after which the target state, the three payloads, the incremented business
      * revision and the timestamp are written; a missing row, an unmatched predicate or a zero-row effect returns
-     * {@code false}. Note that {@code updateById} only pushes non-null fields, so the columns the legacy statement wrote
-     * as {@code NULL} unconditionally - {@code worker_owner}/{@code lease_until} and a payload cleared to
-     * {@code null} - are not expressible through that API and were reported as a blocker.
+     * {@code false}. The named CAS explicitly sets {@code worker_owner=NULL}/{@code lease_until=NULL}; null payload values
+     * are bound through the dedicated JSONB TypeHandler and clear their columns in that same update.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code mcpRuntimeTaskStore.transition(transition)}。
      * @param transition 参数 迁移意图；parameter the transition intent.
@@ -243,30 +244,29 @@ public class MpMcpRuntimeTaskStore implements McpTaskStore {
                 return false;
             }
             McpTaskRecordPO row = current.get();
-            return taskPersistenceRepository.updateById(McpTaskRecordPO.builder()
-                    .id(row.getId())
-                    .version(row.getVersion())
-                    .state(McpTaskPersistenceConverter.stateColumnOf(transition.targetState()))
-                    .inputPayload(taskPersistenceConverter.payloadNode(transition.inputPayload()))
-                    .resultPayload(taskPersistenceConverter.payloadNode(transition.resultPayload()))
-                    .errorPayload(taskPersistenceConverter.payloadNode(transition.errorPayload()))
-                    .revision(nextRevision(transition.expectedRevision()))
-                    .updateTime(transition.now())
-                    .build());
+            row.setState(McpTaskPersistenceConverter.stateColumnOf(transition.targetState()))
+                    .setInputPayload(taskPersistenceConverter.payloadNode(transition.inputPayload()))
+                    .setResultPayload(taskPersistenceConverter.payloadNode(transition.resultPayload()))
+                    .setErrorPayload(taskPersistenceConverter.payloadNode(transition.errorPayload()))
+                    .setRevision(nextRevision(transition.expectedRevision()))
+                    .setUpdateUserId(persistenceContext.serviceUserId())
+                    .setUpdateTime(transition.now());
+            return taskPersistenceRepository.compareAndSetTransition(row,
+                    McpTaskPersistenceConverter.stateColumnOf(transition.expectedState()),
+                    transition.expectedRevision(),
+                    transition.expectedWorkerOwner());
         });
     }
 
     /**
      * 中文说明：执行 cancel 操作；等价于旧 {@code UPDATE ... SET state = 'CANCELLED', revision = revision + 1,
-     * updated_at = ? WHERE id = ? AND state = ? AND revision = ?}：状态与修订在新分配行上复核后单行 CAS，
-     * 行缺失、不匹配或影响 0 行都返回 {@code false}。旧语句同时清空的
-     * {@code worker_owner}/{@code lease_until} 受 {@code updateById} 的非空下发限制，已按阻塞项上报。
+     * updated_at = ? WHERE id = ? AND state = ? AND revision = ?}：状态与修订在数据库 CAS 中复核，取消和
+     * {@code worker_owner}/{@code lease_until} 清空由同一单行 UPDATE 提交；行缺失、不匹配或影响 0 行都返回 {@code false}。
      * English summary: Executes the cancel operation; the equivalent of the legacy
      * {@code UPDATE ... SET state = 'CANCELLED', revision = revision + 1, updated_at = ? WHERE id = ? AND state = ? AND
-     * revision = ?}: state and revision are re-checked on the freshly loaded row and then a single-row compare-and-set
-     * moves it, so a missing row, a mismatch or a zero-row effect returns {@code false}. The
-     * {@code worker_owner}/{@code lease_until} the legacy statement also cleared are limited by the non-null push-down of
-     * {@code updateById} and were reported as a blocker.
+     * revision = ?}: state, revision and technical version are re-checked in the same single-row compare-and-set that
+     * moves the state and clears {@code worker_owner}/{@code lease_until}, so a missing row, mismatch or zero-row effect
+     * returns {@code false}.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code mcpRuntimeTaskStore.cancel(taskId, expectedState, expectedRevision, now)}。
      * @param taskId 参数 协议任务标识；parameter the protocol task identifier.
@@ -293,13 +293,13 @@ public class MpMcpRuntimeTaskStore implements McpTaskStore {
                 return false;
             }
             McpTaskRecordPO row = current.get();
-            return taskPersistenceRepository.updateById(McpTaskRecordPO.builder()
-                    .id(row.getId())
-                    .version(row.getVersion())
-                    .state(McpPersistentTaskStateEnum.CANCELLED)
-                    .revision(nextRevision(expectedRevision))
-                    .updateTime(now)
-                    .build());
+            row.setState(McpPersistentTaskStateEnum.CANCELLED)
+                    .setRevision(nextRevision(expectedRevision))
+                    .setUpdateUserId(persistenceContext.serviceUserId())
+                    .setUpdateTime(now);
+            return taskPersistenceRepository.compareAndSetCancellation(row,
+                    McpTaskPersistenceConverter.stateColumnOf(expectedState),
+                    expectedRevision);
         });
     }
 

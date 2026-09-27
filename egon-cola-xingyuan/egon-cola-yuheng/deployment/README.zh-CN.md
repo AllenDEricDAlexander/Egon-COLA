@@ -219,6 +219,18 @@ MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
   以 `family: web`、单条目登记。其中的 `sha256` 是最终 SQL 字节的摘要，不猜、不手改。
 - 只有 `yuheng-admin` 承担 DDL 职责。LLM engine 等所有消费方必须保持
   `yuheng.persistence.managed-ddl-enabled=false`；若被配成拥有该职责，启动即失败。
+- Admin、MCP engine 与 LLM engine 共用必填部署配置 `yuheng.persistence.tenant-id`、`identity-tenant-id`、
+  `service-user-id`、`expected-schema-version`、`expected-schema-sha256` 与 `managed-ddl-enabled`；schema 版本/摘要
+  必须与 `repository-manifest.json` 一致。只有 Admin 的 DDL 标志为 `true`，MCP/LLM consumers 必须为 `false`；
+  缺任一身份/指纹/角色键时启动失败，MCP store、审计 MDC 与 schema consumer 共用这一配置源。环境变量名为
+  `YUHENG_PERSISTENCE_TENANT_ID`、`YUHENG_PERSISTENCE_IDENTITY_TENANT_ID`、
+  `YUHENG_PERSISTENCE_SERVICE_USER_ID`、`YUHENG_PERSISTENCE_EXPECTED_SCHEMA_VERSION`、
+  `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_SHA256`、`YUHENG_PERSISTENCE_MANAGED_DDL_ENABLED`。
+- LLM engine 的 `/v3/api-docs/yuheng-llm` 默认关闭。仅在企业部署明确开启
+  `YUHENG_LLM_OPENAPI_ENABLED=true` 并提供 `YUHENG_LLM_OPENAPI_BIZ_CODE`、
+  `YUHENG_LLM_OPENAPI_APPLICATION_CODE`、`YUHENG_LLM_OPENAPI_RESOURCE_URI`、
+  `YUHENG_LLM_OPENAPI_ARTIFACT_VERSION` 与 `YUHENG_LLM_OPENAPI_BUILD_ID` 后发布；文档接口要求
+  `SCOPE_yuheng.openapi.read`，且不向 Tianshu 自动注册。
 - 启动带新清单条目的构建前，`YUHENG_PERSISTENCE_EXPECTED_SCHEMA_VERSION` 与
   `YUHENG_PERSISTENCE_EXPECTED_SCHEMA_SHA256` 必须与清单一致；不一致会在任何连接动作之前中止，而不是表现成一次
   半途而废的 DDL。

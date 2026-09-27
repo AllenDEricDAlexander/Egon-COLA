@@ -62,5 +62,6 @@ public class McpPersistenceProperties {
     private String expectedSchemaSha256;
 
     /** 中文说明：本进程是否持有受管 DDL 职责，只有 Admin 可以为真。 English summary: whether this process owns managed DDL; only Admin may be true. */
-    private boolean managedDdlEnabled;
+    @NotNull
+    private Boolean managedDdlEnabled;
 }

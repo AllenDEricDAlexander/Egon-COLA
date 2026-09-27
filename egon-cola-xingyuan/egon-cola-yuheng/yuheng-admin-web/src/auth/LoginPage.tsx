@@ -25,7 +25,7 @@ export const LoginPage = () => {
         <Typography.Paragraph type="secondary">
             通过 Yuheng 的公开身份接口登录；USER AT/RT 仅由 Tianquan-Shoubing 写入 HttpOnly Cookie。
         </Typography.Paragraph>
-        {auth.error && <Alert type="error" showIcon message={auth.error} />}
+        {auth.error && <Alert type="error" showIcon title={auth.error} />}
         <Form<LoginForm>
           layout="vertical"
           initialValues={{ tenantId: import.meta.env.VITE_DEFAULT_TENANT_ID ?? 'default' }}

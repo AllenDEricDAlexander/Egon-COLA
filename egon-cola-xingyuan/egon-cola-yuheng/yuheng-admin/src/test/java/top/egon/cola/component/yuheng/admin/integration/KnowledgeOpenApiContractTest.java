@@ -27,14 +27,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.hamcrest.Matchers;
+import org.mockito.ArgumentCaptor;
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.mock.web.MockPart;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -50,6 +56,12 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.yuheng.admin.knowledge.controller.KnowledgeController;
 import top.egon.cola.component.yuheng.admin.knowledge.controller.KnowledgeDocumentController;
 import top.egon.cola.component.yuheng.admin.knowledge.controller.KnowledgeJobController;
+import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeMembersConverter;
+import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeUploadReceiptConverter;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeBaseBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.bo.KnowledgeUploadReceiptBO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMemberDTO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeUploadCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeEgressPolicyEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobStatusEnum;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeJobTypeEnum;
@@ -57,9 +69,12 @@ import top.egon.cola.component.yuheng.admin.knowledge.domain.enums.KnowledgeMemb
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeBaseVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeDocumentVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeJobVO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeMembersVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgePageVO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeUploadReceiptVO;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeJobService;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeService;
+import top.egon.cola.component.yuheng.admin.shared.controller.GatewayAdminExceptionHandler;
 import top.egon.cola.component.yuheng.admin.llm.controller.LlmConfigurationController;
 import top.egon.cola.component.yuheng.admin.llm.domain.vo.LlmChannelVO;
 import top.egon.cola.component.yuheng.admin.llm.domain.vo.LlmModelVO;
@@ -77,12 +92,15 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -124,7 +142,8 @@ class KnowledgeOpenApiContractTest {
 
     private static final List<Class<?>> WIRE_CARRIERS = List.of(
             KnowledgeBaseVO.class, KnowledgeDocumentVO.class, KnowledgeJobVO.class,
-            KnowledgePageVO.class, WikiPageVO.class, LlmChannelVO.class, LlmModelVO.class);
+            KnowledgePageVO.class, KnowledgeMembersVO.class, KnowledgeUploadReceiptVO.class,
+            WikiPageVO.class, LlmChannelVO.class, LlmModelVO.class);
 
     /** LLM 网关原生入口的合同来源 / where the native LLM entry-point contract is read from. */
     private static final Path LLM_ENTRY_CONTROLLER = Path.of("..").resolve("yuheng-llm-gateway")
@@ -295,6 +314,67 @@ class KnowledgeOpenApiContractTest {
     }
 
     @Test
+    @DisplayName("API-012/013 返回成员集合与其CAS revision的同一权威快照")
+    void memberOperationsReturnTheMembersAndRevisionEnvelope() throws Exception {
+        List<KnowledgeMemberDTO> members = List.of(
+                KnowledgeMemberDTO.builder()
+                        .actorId("svc:yuheng-admin-operator")
+                        .role(KnowledgeMemberRoleEnum.OWNER)
+                        .build(),
+                KnowledgeMemberDTO.builder()
+                        .actorId("employee-2")
+                        .role(KnowledgeMemberRoleEnum.READER)
+                        .build());
+        when(knowledgeService.listMembers(any(), any())).thenReturn(KnowledgeBaseBO.builder()
+                .members(members)
+                .revision(7L)
+                .build());
+        when(knowledgeService.replaceMembers(any(), any(), any())).thenReturn(KnowledgeBaseBO.builder()
+                .members(members)
+                .revision(8L)
+                .build());
+
+        mockMvc(knowledgeController())
+                .perform(get(ADMIN_BASE + "/knowledge-bases/7001/members"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.revision").value(7))
+                .andExpect(jsonPath("$.members[0].actorId").value("svc:yuheng-admin-operator"))
+                .andExpect(jsonPath("$.members[0].role").value("OWNER"));
+
+        mockMvc(knowledgeController())
+                .perform(put(ADMIN_BASE + "/knowledge-bases/7001/members")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("members", List.of(
+                                Map.of("actorId", "svc:yuheng-admin-operator", "role", "OWNER"),
+                                Map.of("actorId", "employee-2", "role", "READER")),
+                                "expectedRevision", 7)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.revision").value(8))
+                .andExpect(jsonPath("$.members[1].actorId").value("employee-2"));
+    }
+
+    @Test
+    @DisplayName("API-015 multipart size/media/missing-file failures map to stable 413/415/422 admin errors")
+    void uploadBoundaryFailuresHaveStableStatusAndErrorCodes() {
+        GatewayAdminExceptionHandler handler = new GatewayAdminExceptionHandler();
+
+        var tooLarge = handler.uploadTooLarge(new MaxUploadSizeExceededException(20_971_520L));
+        assertThat(tooLarge.getStatusCode().value()).isEqualTo(413);
+        assertThat(tooLarge.getBody().code()).isEqualTo("KNOWLEDGE_FILE_TOO_LARGE");
+
+        var unsupported = handler.unsupportedRequestMediaType(
+                new HttpMediaTypeNotSupportedException("unsupported request media type"));
+        assertThat(unsupported.getStatusCode().value()).isEqualTo(415);
+        assertThat(unsupported.getBody().code()).isEqualTo("YUHENG_ADMIN_MEDIA_TYPE_UNSUPPORTED");
+
+        var missing = handler.missingRequestPart(new MissingServletRequestPartException("file"));
+        assertThat(missing.getStatusCode().value()).isEqualTo(422);
+        assertThat(missing.getBody().code()).isEqualTo("YUHENG_ADMIN_VALIDATION_FAILED");
+        assertThat(missing.getBody().errors()).singleElement()
+                .satisfies(error -> assertThat(error.path()).isEqualTo("file"));
+    }
+
+    @Test
     @DisplayName("知识面没有任何匿名放行路径，全部落在管理面鉴权与文档分组过滤之内")
     void noKnowledgeOperationIsPubliclyReachable() throws IOException {
         String security = Files.readString(SECURITY_CONFIGURATION, StandardCharsets.UTF_8);
@@ -357,7 +437,7 @@ class KnowledgeOpenApiContractTest {
                 .setDimensions(null)
                 .setRevision(1L));
 
-        MvcResult result = mockMvc(new KnowledgeController(knowledgeService))
+        MvcResult result = mockMvc(knowledgeController())
                 .perform(post(ADMIN_BASE + "/knowledge-bases")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "kb-create-1")
@@ -383,23 +463,31 @@ class KnowledgeOpenApiContractTest {
     @Test
     @DisplayName("四个异步受理返回 202、作业 Location 与 Retry-After: 2")
     void theFourAsyncAcceptancesAnswerTwentyTwoWithTheJobPollingAddress() throws Exception {
-        when(knowledgeService.uploadDocument(any(), any(), any(), any())).thenReturn(document("9100"));
+        when(knowledgeService.uploadDocument(any(), any(), any(), any())).thenReturn(uploadReceipt("9100"));
         when(knowledgeService.createReindexJob(any(), any(), any(), any(), any())).thenReturn(job("9101"));
         when(knowledgeJobService.retryJob(any(), any(), any(), any())).thenReturn(job("9102"));
         when(wikiService.createGenerationJob(any(), any(), any(), any())).thenReturn(job("9103"));
 
-        mockMvc(new KnowledgeDocumentController(knowledgeService))
-                .perform(post(ADMIN_BASE + "/knowledge-bases/7001/documents")
-                        .contentType(MediaType.APPLICATION_JSON)
+        MvcResult upload = mockMvc(knowledgeDocumentController())
+                .perform(multipart(ADMIN_BASE + "/knowledge-bases/7001/documents")
+                        .file(new MockMultipartFile(
+                                "file",
+                                "handbook.pdf",
+                                MediaType.APPLICATION_PDF_VALUE,
+                                "handbook-pdf-bytes".getBytes(StandardCharsets.UTF_8)))
                         .header("Idempotency-Key", "doc-upload-1")
-                        .content(body("fileName", "handbook.pdf",
-                                "mediaType", "application/pdf",
-                                "content", "aGFuZGJvb2sucGRm")))
+                        )
                 .andExpect(status().isAccepted())
                 .andExpect(locationAt(ADMIN_BASE + "/knowledge-jobs/9100"))
-                .andExpect(header().string("Retry-After", "2"));
+                .andExpect(header().string("Retry-After", "2"))
+                .andExpect(jsonPath("$.documentId").value("8001"))
+                .andExpect(jsonPath("$.revisionId").value("8101"))
+                .andExpect(jsonPath("$.jobId").value("9100"))
+                .andExpect(jsonPath("$.status").value("QUEUED"))
+                .andReturn();
+        assertThat(fieldNames(upload)).containsExactlyInAnyOrder("documentId", "revisionId", "jobId", "status");
 
-        mockMvc(new KnowledgeDocumentController(knowledgeService))
+        mockMvc(knowledgeDocumentController())
                 .perform(post(ADMIN_BASE + "/knowledge-bases/7001/documents/8001/reindex-jobs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", "reindex-1")
@@ -426,11 +514,36 @@ class KnowledgeOpenApiContractTest {
     }
 
     @Test
+    @DisplayName("API-015 multipart update parts bind documentId and expectedRevision before reaching the service")
+    void multipartUploadBindsOptionalDocumentIdentityAndExpectedRevision() throws Exception {
+        when(knowledgeService.uploadDocument(any(), any(), any(), any())).thenReturn(uploadReceipt("9104"));
+        MockPart documentId = new MockPart("documentId", "8002".getBytes(StandardCharsets.UTF_8));
+        documentId.getHeaders().setContentType(MediaType.TEXT_PLAIN);
+        MockPart expectedRevision = new MockPart("expectedRevision", "3".getBytes(StandardCharsets.UTF_8));
+        expectedRevision.getHeaders().setContentType(MediaType.TEXT_PLAIN);
+
+        mockMvc(knowledgeDocumentController())
+                .perform(multipart(ADMIN_BASE + "/knowledge-bases/7001/documents")
+                        .file(new MockMultipartFile("file", "handbook.pdf", MediaType.APPLICATION_PDF_VALUE,
+                                "handbook-pdf-bytes".getBytes(StandardCharsets.UTF_8)))
+                        .part(documentId, expectedRevision)
+                        .header("Idempotency-Key", "doc-upload-update"))
+                .andExpect(status().isAccepted())
+                .andExpect(locationAt(ADMIN_BASE + "/knowledge-jobs/9104"));
+
+        ArgumentCaptor<KnowledgeUploadCommandDTO> command = ArgumentCaptor.forClass(KnowledgeUploadCommandDTO.class);
+        verify(knowledgeService).uploadDocument(any(), eq("7001"), command.capture(), eq("doc-upload-update"));
+        assertThat(command.getValue().getDocumentId()).isEqualTo("8002");
+        assertThat(command.getValue().getExpectedRevision()).isEqualTo(3L);
+        assertThat(command.getValue().getContent()).containsExactly("handbook-pdf-bytes".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
     @DisplayName("软删文档与撤回发布返回 204 且没有响应体")
     void deleteAndUnpublishAnswerTwentyFourWithNoBody() throws Exception {
         when(knowledgeService.deleteDocument(any(), any(), any(), any())).thenReturn(document(null));
 
-        mockMvc(new KnowledgeDocumentController(knowledgeService))
+        mockMvc(knowledgeDocumentController())
                 .perform(delete(ADMIN_BASE + "/knowledge-bases/7001/documents/8001")
                         .param("expectedRevision", "3"))
                 .andExpect(status().isNoContent())
@@ -481,7 +594,7 @@ class KnowledgeOpenApiContractTest {
                         .setItems(List.of(new LlmChannelVO().setKey("local-a").setSecretRef("llm/local-a")))
                         .setPage(1).setSize(20).setTotal(1L));
 
-        MvcResult emptyPage = mockMvc(new KnowledgeController(knowledgeService))
+        MvcResult emptyPage = mockMvc(knowledgeController())
                 .perform(get(ADMIN_BASE + "/knowledge-bases"))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -510,21 +623,21 @@ class KnowledgeOpenApiContractTest {
         // exception escapes while the test is still being wired rather than travelling through the controller advice.
         doThrow(new GatewayAdminNotFoundException("knowledge base not found"))
                 .when(knowledgeService).listBases(any(), any());
-        mockMvc(new KnowledgeController(knowledgeService))
+        mockMvc(knowledgeController())
                 .perform(get(ADMIN_BASE + "/knowledge-bases"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").exists());
 
         doThrow(new GatewayAdminRevisionConflictException(7L))
                 .when(knowledgeService).listBases(any(), any());
-        mockMvc(new KnowledgeController(knowledgeService))
+        mockMvc(knowledgeController())
                 .perform(get(ADMIN_BASE + "/knowledge-bases"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.currentRevision").value(7));
 
         doThrow(new IllegalStateException("Tianshu registration is unavailable"))
                 .when(knowledgeService).listBases(any(), any());
-        mockMvc(new KnowledgeController(knowledgeService))
+        mockMvc(knowledgeController())
                 .perform(get(ADMIN_BASE + "/knowledge-bases"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("YUHENG_ADMIN_TIANSHU_UNAVAILABLE"));
@@ -533,7 +646,7 @@ class KnowledgeOpenApiContractTest {
     @Test
     @DisplayName("被校验拒绝的请求不触达业务合同，也没有成功可返回")
     void aRejectedRequestNeverReachesTheBusinessContract() throws Exception {
-        mockMvc(new KnowledgeController(knowledgeService))
+        mockMvc(knowledgeController())
                 .perform(post(ADMIN_BASE + "/knowledge-bases")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -598,6 +711,14 @@ class KnowledgeOpenApiContractTest {
                 .setControllerAdvice(new GatewayAdminExceptionHandler())
                 .setCustomArgumentResolvers(new GatewayAdminActorArgumentResolver())
                 .build();
+    }
+
+    private KnowledgeController knowledgeController() {
+        return new KnowledgeController(knowledgeService, new KnowledgeMembersConverter());
+    }
+
+    private KnowledgeDocumentController knowledgeDocumentController() {
+        return new KnowledgeDocumentController(knowledgeService, new KnowledgeUploadReceiptConverter());
     }
 
     /** 中文说明：控制器刻意按当前部署上下文拼装绝对 {@code Location}，本测试固定的是合同路径本身加上部署主机；
@@ -671,6 +792,15 @@ class KnowledgeOpenApiContractTest {
                         "priority", 0,
                         "weight", 100)),
                 "expectedRevision", expectedRevision);
+    }
+
+    private KnowledgeUploadReceiptBO uploadReceipt(String jobId) {
+        return KnowledgeUploadReceiptBO.builder()
+                .documentId("8001")
+                .revisionId("8101")
+                .jobId(jobId)
+                .status(KnowledgeJobStatusEnum.QUEUED)
+                .build();
     }
 
     private KnowledgeDocumentVO document(String latestJobId) {

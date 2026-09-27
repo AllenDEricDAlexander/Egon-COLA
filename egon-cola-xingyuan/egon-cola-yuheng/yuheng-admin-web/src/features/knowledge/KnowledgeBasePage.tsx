@@ -241,7 +241,7 @@ export const KnowledgeBasePage = () => {
                     <Alert
                       type="error"
                       showIcon
-                      message={remove.error instanceof Error ? remove.error.message : '删除失败'}
+                      title={remove.error instanceof Error ? remove.error.message : '删除失败'}
                       description={isConflict(remove.error) ? '版本已变化，请刷新后确认。' : undefined}
                     />
                   )}
@@ -316,7 +316,7 @@ export const KnowledgeBasePage = () => {
                     <Alert
                       type="error"
                       showIcon
-                      message={generate.error instanceof Error ? generate.error.message : '生成失败'}
+                      title={generate.error instanceof Error ? generate.error.message : '生成失败'}
                     />
                   )}
                 </Space>
@@ -362,7 +362,7 @@ export const KnowledgeBasePage = () => {
                   <Alert
                     type="info"
                     showIcon
-                    message="只有知识库所有者可修改设置与成员"
+                    title="只有知识库所有者可修改设置与成员"
                     description={`当前角色：${membership ?? '未知'}；缺少 yuheng:knowledge:admin 能力时始终只读。`}
                   />
                 )}
@@ -370,7 +370,7 @@ export const KnowledgeBasePage = () => {
                   <Alert
                     type="error"
                     showIcon
-                    message={settingsError instanceof Error ? settingsError.message : '保存失败'}
+                    title={settingsError instanceof Error ? settingsError.message : '保存失败'}
                     description={isConflict(settingsError)
                       ? '版本已被他人推进，请刷新后再提交。'
                       : undefined}
@@ -466,14 +466,14 @@ export const KnowledgeBasePage = () => {
           <Alert
             type="info"
             showIcon
-            message="支持 MD/TXT/PDF/DOCX/XLSX，单个 1–20 MiB"
+            title="支持 MD/TXT/PDF/DOCX/XLSX，单个 1–20 MiB"
             description="上传成功只代表任务已受理，索引结果在处理任务页查看。"
           />
           {upload.isError && (
             <Alert
               type="error"
               showIcon
-              message={upload.error instanceof Error ? upload.error.message : '上传失败'}
+              title={upload.error instanceof Error ? upload.error.message : '上传失败'}
               description={isConflict(upload.error) ? '该资料版本已变化，请重新选择。' : undefined}
             />
           )}

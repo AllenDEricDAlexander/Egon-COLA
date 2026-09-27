@@ -239,7 +239,7 @@ export const LlmConfigurationPage = () => {
       <Alert
         type="info"
         showIcon
-        message="渠道与模型 alias 是独立字典"
+        title="渠道与模型 alias 是独立字典"
         description="页面只显示部署引用名，密钥解析值永不返回前端；配置变更的并发只由 expectedRevision 控制。"
       />
       <Tabs
@@ -269,7 +269,7 @@ export const LlmConfigurationPage = () => {
                   <Alert
                     type="error"
                     showIcon
-                    message={channelError instanceof Error ? channelError.message : '保存渠道失败'}
+                    title={channelError instanceof Error ? channelError.message : '保存渠道失败'}
                     description={isConflict(channelError)
                       ? '渠道版本已被他人推进：你的输入已保留，请刷新比较后再提交。'
                       : undefined}
@@ -364,7 +364,7 @@ export const LlmConfigurationPage = () => {
                   <Alert
                     type="error"
                     showIcon
-                    message={saveModel.error instanceof Error ? saveModel.error.message : '保存模型失败'}
+                    title={saveModel.error instanceof Error ? saveModel.error.message : '保存模型失败'}
                     description={isConflict(saveModel.error)
                       ? '模型版本已被他人推进：你的输入已保留，请刷新比较后再提交。'
                       : undefined}
@@ -618,7 +618,7 @@ export const LlmConfigurationPage = () => {
             <Alert
               type="error"
               showIcon
-              message="嵌入模型的路由包含 CLOUD 渠道"
+              title="嵌入模型的路由包含 CLOUD 渠道"
               description="嵌入必须全部落在 LOCAL 渠道；已拒绝提交，请改用本地渠道，系统不会回退到云端嵌入。"
             />
           )}

@@ -1,18 +1,21 @@
 package top.egon.cola.component.yuheng.admin.knowledge.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import java.io.IOException;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -24,17 +27,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgePageQueryDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeReindexCommandDTO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeUploadCommandDTO;
+import top.egon.cola.component.yuheng.admin.knowledge.converter.KnowledgeUploadReceiptConverter;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeDocumentRevisionVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeDocumentVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeJobVO;
 import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgePageVO;
+import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgeUploadReceiptVO;
 import top.egon.cola.component.yuheng.admin.knowledge.service.KnowledgeService;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
+import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 
@@ -103,6 +111,9 @@ public class KnowledgeDocumentController {
     @Qualifier("knowledgeServiceImpl")
     private final KnowledgeService knowledgeService;
 
+    @Qualifier("knowledgeUploadReceiptConverter")
+    private final KnowledgeUploadReceiptConverter knowledgeUploadReceiptConverter;
+
     /**
      * 中文说明：执行 listKnowledgeDocuments 操作（API-014）；READER 及以上可见，仅 {@code page}、{@code size}
      * 两个查询参数，返回活跃文档的 {@code items/page/size/total}，每行只有稳定身份、文件名、活动修订指针、
@@ -140,66 +151,87 @@ public class KnowledgeDocumentController {
         );
     }
 
-    // 已知规范冲突（登记而非在本 Step 内改写）：Spec §9.2.15 定 multipart/form-data 与四字段精简 202 体
-    // {documentId, revisionId, jobId, status}，而本 Plan 已在 Step 2 提交 JSON 载体 KnowledgeUploadCommandDTO
-    // （fileName/mediaType/content bytes）与完整 KnowledgeDocumentVO，库存里也没有精简投影 VO。
-    // 状态码、Location 与 Retry-After 依 Spec；传输与响应体依 Plan，差异计入最终审计。
-    // Registered conflict, not rewritten here: Spec §9.2.15 pins multipart plus a slim four-field 202 body, while this Plan
-    // committed the JSON KnowledgeUploadCommandDTO and the full KnowledgeDocumentVO in Step 2, with no slim projection in
-    // the inventory. Status codes follow the Spec, transport and body follow the Plan.
     /**
      * 中文说明：执行 uploadKnowledgeDocument 操作（API-015）；EDITOR 及以上方可为，202 只表示已持久、不表示已索引，
-     * {@code Location} 指向该文档 {@code latestJobId} 的 API-019 轮询地址并带 {@code Retry-After: 2}。
+     * {@code Location} 指向回执 {@code jobId} 的 API-019 轮询地址并带 {@code Retry-After: 2}。
      * 业务合同在同一事务内写入文档行、{@code STAGING} 修订（原件字节、字节数、内容 hash）与
      * {@code DOCUMENT_INGEST} 作业行，失败即整体回滚且不留孤立作业，解析与本地嵌入都在事务与锁之外由 worker 执行，
      * 因此在作业成功前旧活动修订始终可检索。文件过大为 413、媒体类型未支持为 415、字节与字段不合法为 422、
-     * 嵌入别名不可用为 503；{@code Idempotency-Key} 按原合同为必带项，绑定为可选 Header 后由业务合同复核。
+     * 嵌入别名不可用为 503；{@code Idempotency-Key} 必带；multipart仅包含file及可选documentId/expectedRevision，
+     * 202回执不暴露文档详情。
      * English summary: Executes the uploadKnowledgeDocument operation (API-015), EDITOR or above, where a 202 only means
-     * durably persisted and not yet indexed, with a {@code Location} of the API-019 polling address of that document's
-     * {@code latestJobId} plus {@code Retry-After: 2}. The business contract writes the document row, the {@code STAGING}
+     * durably persisted and not yet indexed, with a {@code Location} of the API-019 polling address of the receipt's
+     * {@code jobId} plus {@code Retry-After: 2}. The business contract writes the document row, the {@code STAGING}
      * revision (raw bytes, byte count, content hash) and the {@code DOCUMENT_INGEST} job row inside one transaction,
      * rolling back entirely with no orphan job on failure, while parsing and local embedding run outside the transaction and
      * the locks on the worker side — so the previous active revision stays searchable until the job succeeds. An oversized
      * file is 413, an unsupported media type 415, invalid bytes or fields 422 and an unavailable embedding alias 503;
-     * {@code Idempotency-Key} is mandatory per the contract yet bound as an optional header and re-checked by the business
-     * contract.
+     * {@code Idempotency-Key} is mandatory per the contract and re-checked by the business layer.
      *
      * 用法 / Usage: 调用方式 / Usage:
-     * {@code knowledgeDocumentController.uploadKnowledgeDocument(kbId, command, actor, idempotencyKey)}。
+     * {@code knowledgeDocumentController.uploadKnowledgeDocument(kbId, file, documentId, expectedRevision, actor, idempotencyKey)}。
      * @param kbId 参数 知识库十进制字符串 id；parameter decimal-string knowledge base id.
-     * @param command 参数 上传命令；parameter the upload command.
+     * @param file 参数 原始 multipart 文件；parameter the original multipart file.
+     * @param documentId 参数 可选的已有文档 ID；parameter the optional existing document id.
+     * @param expectedRevision 参数 更新现有文档时必须提供；parameter the required current revision when updating.
      * @param actor 参数 已验证的管理身份；parameter the verified management actor.
-     * @param idempotencyKey 参数 可选 {@code Idempotency-Key} 请求头，缺省与复核由业务合同决定；parameter the
-     *                       optional {@code Idempotency-Key} header whose presence rules stay with the business contract.
-     * @return 返回 已提交文档投影与 202 受理状态；returns the committed document projection in a 202 acceptance.
+     * @param idempotencyKey 参数 必填 {@code Idempotency-Key} 请求头；parameter the required {@code Idempotency-Key} header.
+     * @return 返回 documentId/revisionId/jobId/status 202 回执；returns the four-field 202 receipt.
      */
     @Operation(operationId = "uploadKnowledgeDocument")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
-    @PostMapping("/knowledge-bases/{kbId}/documents")
+    @PostMapping(value = "/knowledge-bases/{kbId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
-    public ResponseEntity<KnowledgeDocumentVO> uploadKnowledgeDocument(
+    public ResponseEntity<KnowledgeUploadReceiptVO> uploadKnowledgeDocument(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")
             @PathVariable String kbId,
-            @Valid @RequestBody KnowledgeUploadCommandDTO command,
+            @Parameter(description = "原始文件，1–20MiB；支持类型由文件名扩展名与内容共同验证", required = true)
+            @RequestPart("file") MultipartFile file,
+            @Parameter(description = "追加已有文档版本时提供；创建文档时省略")
+            @RequestPart(value = "documentId", required = false) String documentId,
+            @Parameter(description = "十进制正整数；提供documentId时必须匹配文档当前revision",
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(type = "integer", format = "int64"))
+            @Pattern(regexp = "^[1-9][0-9]{0,18}$")
+            @RequestPart(value = "expectedRevision", required = false) String expectedRevision,
             AdminActor actor,
             @RequestHeader(value = "Idempotency-Key",
-                    required = false) String idempotencyKey) {
-        KnowledgeDocumentVO view = knowledgeService.uploadDocument(
+                    required = true) String idempotencyKey) throws IOException {
+        KnowledgeUploadCommandDTO command = new KnowledgeUploadCommandDTO()
+                .setFileName(file.getOriginalFilename())
+                .setMediaType(file.getContentType())
+                .setContent(file.getBytes())
+                .setDocumentId(documentId)
+                .setExpectedRevision(parseExpectedRevision(expectedRevision));
+        KnowledgeUploadReceiptVO view = knowledgeUploadReceiptConverter.toTarget(knowledgeService.uploadDocument(
                 actor,
                 kbId,
                 command,
                 idempotencyKey
-        );
-        log.debug("YUHENG_KNOWLEDGE_DOCUMENT_UPLOADED kbId={} documentId={} latestJobId={} status={}",
+        ));
+        log.debug("YUHENG_KNOWLEDGE_DOCUMENT_UPLOADED kbId={} documentId={} jobId={} status={}",
                 kbId,
-                view.getId(),
-                view.getLatestJobId(),
+                view.getDocumentId(),
+                view.getJobId(),
                 view.getStatus()
         );
-        return accepted(view.getLatestJobId(), view);
+        return accepted(view.getJobId(), view);
+    }
+
+    private static Long parseExpectedRevision(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value);
+        } catch (NumberFormatException invalid) {
+            throw new CommonException(
+                    422,
+                    "YUHENG_ADMIN_VALIDATION_FAILED",
+                    "expectedRevision must be a positive 64-bit integer");
+        }
     }
 
     /**

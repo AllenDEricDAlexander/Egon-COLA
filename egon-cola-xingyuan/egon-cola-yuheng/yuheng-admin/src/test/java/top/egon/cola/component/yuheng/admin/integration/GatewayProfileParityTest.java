@@ -23,7 +23,6 @@ import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.FileSystemResource;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 
 /**
  * 中文说明：{@code GatewayProfileParityTest} 把 Rule 7「多环境配置文件必须保持配置一致，但值不一定一致」落到本 Plan
@@ -81,7 +80,6 @@ class GatewayProfileParityTest {
 
     private static final Pattern FIELD = Pattern.compile("private\\s+[\\w.<>, ]+?\\s+(\\w+);");
     private static final Pattern SIXTY_FOUR_HEX = Pattern.compile("[0-9a-f]{64}");
-    private static final Pattern MDC_KEY_LITERAL = Pattern.compile("(TENANT_MDC_KEY|USER_MDC_KEY)\\s*=\\s*\"([^\"]+)\"");
     private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
     private static final Pattern LINE_COMMENT = Pattern.compile("//[^\\n]*");
 
@@ -96,7 +94,7 @@ class GatewayProfileParityTest {
         expected.put("service-user-id", List.of("NotBlank", "Size"));
         expected.put("expected-schema-version", List.of("NotBlank", "Size"));
         expected.put("expected-schema-sha256", List.of("NotBlank", "Pattern"));
-        expected.put("managed-ddl-enabled", List.of());
+        expected.put("managed-ddl-enabled", List.of("NotNull"));
 
         Map<String, Map<String, List<String>>> observed = new LinkedHashMap<>();
         IDENTITY_BINDINGS.forEach((module, relativePath) -> observed.put(module,
@@ -220,17 +218,23 @@ class GatewayProfileParityTest {
     @Test
     @DisplayName("跨进程携带租户的 MDC 键与组件默认键同源")
     void theMdcKeysMatchTheComponentDefaults() {
+        EgonColaMybatisPlusProperties defaults = new EgonColaMybatisPlusProperties();
         String componentDefaults = new EgonColaMybatisPlusProperties().getAudit().getUserIdMdcKey();
-        Map<String, String> mcpKeys = mdcKeys(source("yuheng-mcp-gateway",
+        String mcpAdapter = source("yuheng-mcp-gateway",
                 "src/main/java/top/egon/cola/component/yuheng/mcp/engine/mcp/adapter/support/"
-                        + "McpGatewayPersistenceContext.java"));
-
-        assertThat(mcpKeys).containsEntry("TENANT_MDC_KEY", EgonColaTenantIdProvider.DEFAULT_MDC_KEY);
-        assertThat(mcpKeys).containsEntry("USER_MDC_KEY", componentDefaults);
+                        + "McpGatewayPersistenceContext.java");
+        assertThat(mcpAdapter)
+                .contains("persistenceContextComponent.call(null, work)")
+                .contains("persistenceProperties.getServiceUserId()")
+                .doesNotContain("TENANT_MDC_KEY", "USER_MDC_KEY", "MDC.put(\"tenantId\"", "MDC.put(\"userId\"");
+        assertThat(defaults.getTenantId().getMdcKey()).isEqualTo("tenantId");
+        assertThat(componentDefaults).isEqualTo("userId");
 
         for (Map.Entry<String, String> entry : Map.of(
                 "yuheng-admin", "src/main/java/top/egon/cola/component/yuheng/admin/config/"
                         + "GatewayPersistenceContextComponent.java",
+                "yuheng-mcp-gateway", "src/main/java/top/egon/cola/component/yuheng/mcp/engine/config/"
+                        + "McpPersistenceContextComponent.java",
                 "yuheng-llm-gateway", "src/main/java/top/egon/cola/component/yuheng/llm/config/"
                         + "LlmPersistenceContextComponent.java").entrySet()) {
             String context = source(entry.getKey(), entry.getValue());
@@ -281,15 +285,6 @@ class GatewayProfileParityTest {
             }
         }
         throw new AssertionError("no field declaration for key " + kebabKey);
-    }
-
-    private static Map<String, String> mdcKeys(String source) {
-        Map<String, String> keys = new LinkedHashMap<>();
-        java.util.regex.Matcher matcher = MDC_KEY_LITERAL.matcher(source);
-        while (matcher.find()) {
-            keys.put(matcher.group(1), matcher.group(2));
-        }
-        return keys;
     }
 
     private static String kebab(String name) {

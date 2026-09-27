@@ -21,20 +21,19 @@ import java.util.Optional;
 /**
  * 中文说明：{@code McpTaskPersistenceRepository} 是数据面进程访问共享表 {@code gateway_mcp_task_instance} 的唯一受守卫
  * 边界，复用 {@link EgonColaRepository} 的租户过滤、仅活跃行读取与技术 {@code version} 乐观锁 CAS；继承的
- * {@code save/updateById/removeById/list} 是最终语句，本类只再暴露具名扫描查询（按协议键、可认领、不可用、到期终态），
- * 谓词逐字对应旧手写 JDBC 语句，并且一律带 {@code limit} 上限——受守卫 API 不接受只按状态的批量写。
+ * {@code save/updateById/removeById/list} 保留为通用守卫路径，本类还暴露带上限的具名扫描和 transition/cancel
+ * 单行 CAS；谓词对应旧手写 JDBC 语义，绝不按状态批量写。
  * English summary: {@code McpTaskPersistenceRepository} is the only guarded boundary through which the data-plane process
  * touches the shared table {@code gateway_mcp_task_instance}; it reuses the tenant filtering, active-row reads and the
  * technical {@code version} optimistic lock of {@link EgonColaRepository}. The inherited
- * {@code save/updateById/removeById/list} are the final statements and this class adds only the named scan queries (by
- * protocol key, claimable, unavailable, expired terminal) whose predicates match the legacy hand-written JDBC statements
- * verbatim and are always capped by {@code limit}, because the guarded API accepts no bulk write keyed by state alone.
+ * {@code save/updateById/removeById/list} remain the generic guarded path; this class also exposes bounded named scans and
+ * one-row transition/cancel CAS operations matching the legacy JDBC semantics. Writes keyed only by state are forbidden.
  *
- * 用法 / Usage: 业务侧只经本类的具名查询取回活跃行的 {@code id}+{@code version}，再走继承的受保护单行 CAS 或
- * 版本化逻辑删除；禁止裸 Wrapper 绕过守卫，也禁止自定义按状态批量写入的语句。/ Business code takes only the
- * {@code id}+{@code version} of active rows from the named queries here and then uses the inherited protected single-row
- * compare-and-set or versioned logical delete; a raw wrapper that bypasses the guards and a custom bulk write by state are
- * both forbidden.
+ * 用法 / Usage: 业务代码只经本类访问 mapper；普通完整行更新走继承 API，必须写 NULL 的迁移/取消走本类具名 CAS，
+ * 过期批次先按具名查询取 {@code id}+{@code version}，再逐行版本化逻辑删除。裸 Wrapper 与按状态批量写均禁止。
+ * / Business code reaches the mapper only through this repository: ordinary full-row updates use inherited APIs, NULL-clearing
+ * transitions/cancellation use the named CAS methods here, and expiry scans are followed by per-row versioned logical delete.
+ * Raw wrappers and state-only bulk writes are forbidden.
  */
 @Slf4j
 @Repository("mcpTaskPersistenceRepository")
@@ -66,6 +65,45 @@ public class McpTaskPersistenceRepository extends EgonColaRepository<McpTaskDAO,
     @Override
     protected EgonColaMybatisPlusProperties getProperties() {
         return properties;
+    }
+
+    /**
+     * 中文说明：把有 owner/payload 清空语义的状态迁移交给具名单行 CAS；通用 updateById 的非空字段策略无法表达这些 NULL。
+     * English summary: Routes state transitions that must clear owner/payload columns through the named single-row CAS;
+     * the generic updateById non-null field strategy cannot express those NULL values.
+     * @param entity 携带观察到的身份/版本与目标业务字段；the entity carrying the observed identity/version and target fields.
+     * @param expectedState 观察到的状态；the observed state.
+     * @param expectedRevision 观察到的业务修订；the observed business revision.
+     * @param expectedWorkerOwner 观察到的 worker owner，可为空；the observed worker owner, nullable.
+     * @return CAS 是否影响且仅影响一行；whether the compare-and-set affected exactly one row.
+     */
+    public boolean compareAndSetTransition(
+            McpTaskRecordPO entity,
+            McpPersistentTaskStateEnum expectedState,
+            long expectedRevision,
+            String expectedWorkerOwner) {
+        Objects.requireNonNull(entity, "entity");
+        Objects.requireNonNull(expectedState, "expectedState");
+        return mapper.transitionTask(entity, expectedState, expectedRevision,
+                expectedWorkerOwner == null, expectedWorkerOwner) == 1;
+    }
+
+    /**
+     * 中文说明：把取消交给具名单行 CAS；旧占有者与租约必须在同一 UPDATE 中清空。
+     * English summary: Routes cancellation through the named single-row CAS so the previous owner and lease are cleared
+     * by the same UPDATE.
+     * @param entity 携带观察到的身份/版本与目标业务字段；the entity carrying the observed identity/version and target fields.
+     * @param expectedState 观察到的状态；the observed state.
+     * @param expectedRevision 观察到的业务修订；the observed business revision.
+     * @return CAS 是否影响且仅影响一行；whether the compare-and-set affected exactly one row.
+     */
+    public boolean compareAndSetCancellation(
+            McpTaskRecordPO entity,
+            McpPersistentTaskStateEnum expectedState,
+            long expectedRevision) {
+        Objects.requireNonNull(entity, "entity");
+        Objects.requireNonNull(expectedState, "expectedState");
+        return mapper.cancelTask(entity, expectedState, expectedRevision) == 1;
     }
 
     /**

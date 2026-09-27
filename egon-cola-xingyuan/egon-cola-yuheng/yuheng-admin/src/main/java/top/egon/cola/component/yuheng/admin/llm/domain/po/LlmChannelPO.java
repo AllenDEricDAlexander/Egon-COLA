@@ -1,6 +1,7 @@
 package top.egon.cola.component.yuheng.admin.llm.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,7 +43,7 @@ public class LlmChannelPO extends EgonModel<LlmChannelPO> {
     @TableField("base_url")
     private String baseUrl;
 
-    @TableField("secret_ref")
+    @TableField(value = "secret_ref", updateStrategy = FieldStrategy.ALWAYS)
     private String secretRef;
 
     @TableField("enabled")
