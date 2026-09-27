@@ -3261,9 +3261,9 @@ assertExistingStartHeartbeatRecoveryAndCloseContracts(state, sessions, subscript
 - Repository evidence: 当前类型不存在；这是原Spec §15.2 明确规定的外层通知DTO，使用Starter共享model层。
 - Dependencies and consumers: 前置 Step 5；本步先完成两个测试合同，再供配置/注册发布者、订阅者消费。
 - Why now: 同租户键/Topic隔离与回调校验需要在线协议携带可验证tenant；只换Topic无法检测错租户envelope。
-- Contract/signature changes: 普通class使用完整Lombok；字段为 `@NotNull @Positive Long tenantId` 和 `@NotNull @Valid T payload`；提供 `belongsToTenant(Long expectedTenantId)` 精确匹配；payload从 `toString` 排除。配置通知仍包裹原 `DdcPublishMessage`，注册通知仍包裹原 `DdcRegistryEvent`，旧payload字段不变。
+- Contract/signature changes: 普通class使用完整Lombok；字段为 `@NotNull @Positive Long tenantId` 和 `@NotNull @Valid T payload`；提供 `belongsToTenant(Long expectedTenantId)` 精确匹配；payload从 `toString` 排除。RTopic的 `DdcConfigChangeListener` 和 `DdcManagedRegistrySubscription` 在非代理边界先调用现有 `ValidationUtils.validate(envelope)`，再作精确tenant匹配。配置通知仍包裹原 `DdcPublishMessage`，注册通知仍包裹原 `DdcRegistryEvent`，旧payload字段不变。
 - Input/output and state mapping: 发送端取已验证的Starter tenant；接收端仅与本地配置tenant比较。匹配后原样交付同一payload，不从envelope切换MDC/tenant，不修改ACK、revision或fencing字段。
-- Error and edge behavior: 空/非正tenant、空payload或tenant不等于订阅tenant均不得交给业务listener；listener记录安全告警并丢弃，不回退到旧裸消息、不把消息tenant当可信上下文。序列化验证沿用当前Redisson Topic codec，不添加多态Jackson默认类型或新codec依赖。
+- Error and edge behavior: Bean Validation constraint violation、空/非正tenant、空payload或tenant不等于订阅tenant均不得交给业务listener；listener记录安全告警并丢弃，不回退到旧裸消息、不把消息tenant当可信上下文。序列化验证沿用当前Redisson Topic codec，不添加多态Jackson默认类型或新codec依赖。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；`DTO`语义后缀；tenant/payload注解约束并在消费边界显式匹配；class使用@Data/@NoArgsConstructor/@AllArgsConstructor/@Accessors(chain=true)/@Builder；payload不进入日志诊断；只使用现有Jackson/Redisson与JDK；本次不增加持久化和业务Event。
 - Implementation pseudocode:
@@ -3720,7 +3720,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Repository evidence: 当前存在，SHA256前12位`53f195d4bbfd`；源符号`DdcConfigChangeListener`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 5；本步19个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除。
-- Contract/signature changes: DdcConfigChangeListener的具体签名/配置/字段变更：本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除。
+- Contract/signature changes: DdcConfigChangeListener改收tenant envelope和现有ValidationUtils；先执行Bean Validation，再比较配置tenant和checksum；原ACK/reconcile不删除。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -3745,7 +3745,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Repository evidence: 当前存在，SHA256前12位`0110cca25206`；源符号`DdcManagedRegistrySubscription`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 5；本步20个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除。
-- Contract/signature changes: DdcManagedRegistrySubscription的具体签名/配置/字段变更：本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除。
+- Contract/signature changes: DdcManagedRegistrySubscription持有tenantId、Boot ObjectMapper和ValidationUtils；先validate typed envelope再校验exact tenant；原ACK/reconcile不删除。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -4017,7 +4017,7 @@ assertHeartbeatUsesOnlyEachClientsTenantRegistration(clientA, clientB);
 - Repository evidence: 当前存在，SHA256前12位`90b3137c2e`；Step 5已绑定同一DdcTenantProperties到runtime RPC factory。
 - Dependencies and consumers: Step 5 `DdcTenantProperties`、Boot `jacksonObjectMapper`；本步Starter coordinator需tenant和mapper。
 - Why now: 这是Starter registry subscription的实际Direct RPC构建入口。
-- Contract/signature changes: @Bean显式名不变/稳定；method params用Qualifier，要求positive tenant与Jackson mapper；coordinator构造参数含tenant与mapper；`ddcConfigClient`作为稳定bean alias并保留`ddcRpcConfigClient`旧名。
+- Contract/signature changes: @Bean显式名不变/稳定；method params用Qualifier，要求positive tenant、Jackson mapper和现有ValidationUtils；coordinator构造参数含tenant、mapper和validator；`ddcConfigClient`作为稳定bean alias并保留`ddcRpcConfigClient`旧名。
 - Input/output and state mapping: DdcTenantProperties.tenantId贯通client、签名和registry subscription；Rabbit/HTTP wire保持原样。
 - Error and edge behavior: 缺tenant、missing mapper、禁用registry分别按properties校验/条件关闭；不创建默认tenant。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-BEAN-001, MC-JSON-001。
