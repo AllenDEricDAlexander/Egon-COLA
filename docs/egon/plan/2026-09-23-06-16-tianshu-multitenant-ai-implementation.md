@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-28 02:04 Asia/Shanghai` |
+| Updated | `2026-09-28 02:24 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -4207,10 +4207,13 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 - Implementation pseudocode:
 
 ```java
-var properties = bind(strategySource("outbox_message", "egon_outbox"));
+Map<String, Object> values = validSource();
+values.put(PREFIX + ".tables.outbox_message.type", "SINGLE");
+values.put(PREFIX + ".tables.outbox_message.data-source", "master_data");
+values.put(PREFIX + ".tables.outbox_message.schema", "egon_outbox");
+var properties = bind(values);
 var profile = singleStrategy.toRoutingProfile("outbox_message", properties.getTables().get("outbox_message"), properties.getDataSources());
-assertThat(profile.actualNodes().get(new PartitionKeyBO(0, 0)).getFirst().schema()).isEqualTo("egon_outbox");
-assertThat(singleStrategy.toRoutingProfile("ordinary_table", defaultPublicTable, sources).actualNodes().get(key).getFirst().schema()).isEqualTo("public");
+assertThat(profile.actualNodes().values().iterator().next().getFirst().schema()).isEqualTo("egon_outbox");
 ```
 
 - Verification contribution: binder and typed route profile distinguish explicit `egon_outbox` from the backward-compatible public default.
@@ -4231,8 +4234,8 @@ assertThat(singleStrategy.toRoutingProfile("ordinary_table", defaultPublicTable,
 - Implementation pseudocode:
 
 ```java
-var table = bindTable("STANDARD_TENANT_ID", "egon_outbox");
-assertThatThrownBy(() -> factory.create(table.type(), table)).hasMessageContaining("SCHEMA_OVERRIDE_REQUIRES_SINGLE");
+var properties = bindStrategyPropertiesWithStandardTableSchema("egon_outbox");
+assertThatThrownBy(() -> factory.create(properties)).hasMessageContaining("SCHEMA_OVERRIDE_REQUIRES_SINGLE");
 var legacySingle = new TableProperties("SINGLE", "primary", null, null, null);
 assertThat(singleStrategy.toRoutingProfile("legacy_table", legacySingle, primarySources).actualNodes().get(key).getFirst().schema()).isEqualTo("public");
 ```
