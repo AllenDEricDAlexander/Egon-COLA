@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-27 20:14 Asia/Shanghai` |
+| Updated | `2026-09-27 20:19 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -89,7 +89,7 @@
 | Step 2 | Step 1 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 2个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 3 | Step 1, Step 2 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 5个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 4 | Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 22个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 5 | Step 4 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 42个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 5 | Step 4 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 45个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 6 | Step 5 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 26个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 7 | Step 1, Step 2, Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 6个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 8 | Step 7 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 70个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -194,7 +194,7 @@
 
 ## 5. Change File Tree
 
-唯一变更路径473个，顺序触及583次；同一路径在后续Step的编辑各有不同语义。以下目录是定位树；完整精确路径每个只在表内出现一次。
+唯一变更路径479个，顺序触及589次；同一路径在后续Step的编辑各有不同语义。以下目录是定位树；完整精确路径每个只在表内出现一次。
 ```text
 egon-cola-components/egon-cola-component-common/...-mp-sdj-ext-starter  [Step 1–2]
 egon-cola-components/egon-cola-component-rpc/...-tianshu-adapter      [Step 3–5,17]
@@ -683,6 +683,10 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcHmacScopeTest.java` | SHA256 b7e63676134a | DdcRpcHmacScopeTest | tenant-aware principal/operator来源及secret遮蔽回归 | Step 5 | REQ-013 REQ-015 | DdcTenantIsolationTest,DdcRpcHmacScopeTest |
 
 
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcConfigRpcProviderTest.java` | SHA256 2e49e41710a6 | DdcConfigRpcProviderTest | 用显式tenant-bearing Principal fixture回归原配置Provider请求/确认语义 | Step 5 | REQ-013 REQ-015 | DdcConfigRpcProviderTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcManagementRpcProviderTest.java` | SHA256 9e0def3bfeeb | DdcManagementRpcProviderTest | 用显式tenant-bearing Principal fixture回归原管理Provider读语义 | Step 5 | REQ-013 REQ-015 | DdcManagementRpcProviderTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcRegistryRpcProviderTest.java` | SHA256 7a50f957cf22 | DdcRegistryRpcProviderTest | 用显式tenant-bearing Principal fixture回归原Registry注册/租约/查询语义 | Step 5 | REQ-013 REQ-015 | DdcRegistryRpcProviderTest |
+
 ## 6. Prerequisites, Constraints, and Plan Clarifications
 
 ### 6.1 Repository and worktree baseline
@@ -706,7 +710,7 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 
 ### 6.4 Plan Clarifications
 
-2026-09-27执行复核补齐Step 5的现有运行组装路径：DdcRpcSecurityConfiguration把租户注册表和finally恢复的上下文执行器接入服务端拦截器；DdcRpcAutoConfiguration把DdcTenantProperties传入运行时客户端工厂。原Step 5只有组件工厂和ConfigData入口，实际RPC Bean仍不会携带tenant；Admin安全链也不会构造新filter，故无法达到本步已批准§9.5合同。同步纳入受HMAC v2、AI_READ映射、tenant资源身份与optional安全错误影响的既有测试，并把验证改为仓库根目录reactor命令，因为两个首要测试分别位于Admin与RPC adapter模块。未增加依赖、外部字段、授权规则或服务端功能；DdcRpcAutoConfiguration保留Step 17的后续AI端口语义。
+2026-09-27执行复核补齐Step 5的现有运行组装路径：DdcRpcSecurityConfiguration把租户注册表和finally恢复的上下文执行器接入服务端拦截器；DdcRpcAutoConfiguration把DdcTenantProperties传入运行时客户端工厂。原Step 5只有组件工厂和ConfigData入口，实际RPC Bean仍不会携带tenant；Admin安全链也不会构造新filter，故无法达到本步已批准§9.5合同。同步纳入受HMAC v2、AI_READ映射、tenant资源身份与optional安全错误影响的既有测试，并把验证改为仓库根目录reactor命令，因为两个首要测试分别位于Admin与RPC adapter模块。补入的DdcConfigRpcProviderTest、DdcManagementRpcProviderTest、DdcRegistryRpcProviderTest只适配tenant-bearing Principal构造，不改原Provider业务断言。未增加依赖、外部字段、授权规则或服务端功能；DdcRpcAutoConfiguration保留Step 17的后续AI端口语义。
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -2843,13 +2847,83 @@ assertServerBindingAndSignedMetadataUseTheSameTenant(tenant.getTenantId(), canon
 - Verification contribution: DdcActiveActiveAdminIT test compilation proves constructor/protocol updates; execution is held for its existing controlled Testcontainers gate.
 - After this file: Later Failsafe profile can exercise the existing active-active fixture with an explicit tenant.
 
+#### File 43 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcConfigRpcProviderTest.java`
+
+- Purpose: 为既有配置RPC Provider测试提供必需的tenant-bearing service Principal。
+- Symbols: `DdcConfigRpcProviderTest`
+- Repository evidence: 当前SHA256前12位`2e49e41710a6`；fixture直接构造DdcServicePrincipal并验证原配置操作。
+- Dependencies and consumers: File 10的新Principal完整可信租户字段；业务Provider生产代码不变。
+- Why now: Principal不再允许由无tenant上下文创建，旧fixture须明确登记租户。
+- Contract/signature changes: fixture传入正tenantId、identityTenantId和namespacePatterns；原业务 scope/operation断言保持。
+- Input/output and state mapping: 测试主体代表tenant-a映射到存储租户101，RPC payload字段保持原样。
+- Error and edge behavior: 不给测试主体或生产主体提供默认租户构造路径。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
+- Literal rule enforcement: Rule 2 principal必须带非空可信上下文；Rule 6原RPC业务wire不变；Rule 11继续验证现有三层Provider/RPC适配。
+- Implementation pseudocode:
+
+```java
+DdcServicePrincipal principal = new DdcServicePrincipal(credentialId, "SDK",
+        appPatterns, envPatterns, bizPatterns, operations, app, env, biz,
+        101L, "tenant-a", Set.of("orders-*"));
+assertProviderReceivesOriginalConfigScopeAndRegisteredTenant(principal);
+```
+
+- Verification contribution: DdcConfigRpcProviderTest保持旧注册/拉取/确认行为并确认新的Principal形状可构造。
+- After this file: 配置Provider已有正向fixture与tenant身份一致。
+
+#### File 44 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcManagementRpcProviderTest.java`
+
+- Purpose: 为管理RPC Provider回归fixture注入显式tenant principal。
+- Symbols: `DdcManagementRpcProviderTest`
+- Repository evidence: 当前SHA256前12位`9e0def3bfeeb`；测试构造service Principal验证管理只读调用。
+- Dependencies and consumers: File 10新的Principal tenant/namespace identity字段。
+- Why now: 非HMAC测试fixture同样不得保留旧tenantless Principal API。
+- Contract/signature changes: 构造tenant 101/tenant-a的已登记管理Principal；原管理facade方法和返回断言不变。
+- Input/output and state mapping: scope仍来自原管理请求；trusted tenant只存在认证上下文。
+- Error and edge behavior: 不从管理请求参数或PLATFORM注册身份推导租户。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；管理Provider认证上下文不可缺tenant；不改管理proto字段；保持原管理Port/Facade链。
+- Implementation pseudocode:
+
+```java
+DdcServicePrincipal principal = principalForRegisteredTenant(
+        "management-a", "MANAGEMENT", 101L, "tenant-a", Set.of("orders-*"));
+runWithGrpcContext(principal, () -> assertManagementReadUsesExistingScope());
+```
+
+- Verification contribution: DdcManagementRpcProviderTest既有catalog/config读行为在tenant Principal下保持。
+- After this file: 管理Provider测试不再构造tenantless身份。
+
+#### File 45 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcRegistryRpcProviderTest.java`
+
+- Purpose: 为Registry RPC Provider回归fixture注入显式tenant principal。
+- Symbols: `DdcRegistryRpcProviderTest`
+- Repository evidence: 当前SHA256前12位`7a50f957cf22`；测试直接构造service Principal验证注册/心跳/注销/查询。
+- Dependencies and consumers: File 10新的Principal tenant/namespace identity字段。
+- Why now: 可信Registry调用线程必须与真实RPC认证后使用相同tenant形状。
+- Contract/signature changes: 构造tenant 101/tenant-a的登记Registry Principal；原lease和catalog断言保持。
+- Input/output and state mapping: 注册/查找业务scope由既有request提供，tenant来源固定于Principal上下文。
+- Error and edge behavior: 不从Registry request scope推导或覆盖tenant身份。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Provider上下文必须有可信tenant；既有Registry wire兼容；沿用现有RPC adapter和Provider边界。
+- Implementation pseudocode:
+
+```java
+DdcServicePrincipal principal = principalForRegisteredTenant(
+        "registry-a", "REGISTRY", 101L, "tenant-a", Set.of("orders-*"));
+runWithGrpcContext(principal, () -> assertRegistryLeaseOperationsUnchanged());
+```
+
+- Verification contribution: DdcRegistryRpcProviderTest保留原服务注册/租约/目录行为并验证tenant Principal形状。
+- After this file: Registry Provider测试身份与服务端注册tenant配置一致。
+
 - Validation working directory: 仓库根目录
-- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter -am -Dtest=DdcTenantIsolationTest,DdcTenantBootstrapTest,DdcRpcServerInterceptorTest,DdcRpcRequestSignerTest,DdcRpcClientInterceptorFactoryTest,DdcRpcClientFactoryTest,DdcRpcAutoConfigurationTest,DdcConfigDataLocationResolverTest,DdcConfigDataLoaderTest,DdcConfigDataSpringApplicationTest,DdcAdminSecurityIntegrationTest,DdcRpcHmacScopeTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter -am -Dtest=DdcTenantIsolationTest,DdcTenantBootstrapTest,DdcRpcServerInterceptorTest,DdcRpcRequestSignerTest,DdcRpcClientInterceptorFactoryTest,DdcRpcClientFactoryTest,DdcRpcAutoConfigurationTest,DdcConfigDataLocationResolverTest,DdcConfigDataLoaderTest,DdcConfigDataSpringApplicationTest,DdcAdminSecurityIntegrationTest,DdcRpcHmacScopeTest,DdcConfigRpcProviderTest,DdcManagementRpcProviderTest,DdcRegistryRpcProviderTest -Dsurefire.failIfNoSpecifiedTests=false test`；DdcActiveActiveAdminIT只test-compile，本步不启用其Testcontainers Failsafe profile。
 - Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantContextDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantBindingDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcCredentialTenantDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantAdminProperties.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantRegistry.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantContextExecutor.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantContextFilter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcServicePrincipal.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcServerInterceptor.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcHmacCredential.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcScopeExtractor.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminAuthenticationEntryPoint.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcCanonicalRequest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcMetadataKeys.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcClientInterceptorFactory.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcOperation.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcOperationResolver.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactory.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataResource.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLocationResolver.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataFetcher.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLoader.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcTenantProperties.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcAiResourceProperties.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcAiToggleDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcRedisAuthDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcSecurityConfiguration.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcServerInterceptorTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcRequestSignerTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcClientInterceptorFactoryTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactoryTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfigurationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLocationResolverTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLoaderTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataSpringApplicationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityIntegrationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcHmacScopeTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcActiveActiveAdminIT.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantContextDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantBindingDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcCredentialTenantDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantAdminProperties.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantRegistry.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantContextExecutor.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantContextFilter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcServicePrincipal.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcServerInterceptor.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcHmacCredential.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcScopeExtractor.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminAuthenticationEntryPoint.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcCanonicalRequest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcMetadataKeys.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcClientInterceptorFactory.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcOperation.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcOperationResolver.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactory.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataResource.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLocationResolver.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataFetcher.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLoader.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcTenantProperties.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcAiResourceProperties.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcAiToggleDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcRedisAuthDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcSecurityConfiguration.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcServerInterceptorTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcRequestSignerTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/security/DdcRpcClientInterceptorFactoryTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactoryTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfigurationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLocationResolverTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataLoaderTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/configdata/DdcConfigDataSpringApplicationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityIntegrationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcHmacScopeTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcActiveActiveAdminIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcConfigRpcProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcManagementRpcProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcRegistryRpcProviderTest.java`
 - Commit: `feat(tianshu): step-5-------------configdata`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
 
 ### Step 6 — 为Redis键、Topic及本地状态加入tenant
