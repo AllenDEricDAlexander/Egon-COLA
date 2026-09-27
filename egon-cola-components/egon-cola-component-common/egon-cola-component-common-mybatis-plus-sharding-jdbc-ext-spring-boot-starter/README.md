@@ -4,6 +4,8 @@ Consuming this starter requires PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC.
 
 Recommended STRATEGY yaml uses `tenant_id` first, then a business root such as `order_id` for orders/order_items (`COMPLEX_TENANT_THEN_BUSINESS`). The default transaction type is LOCAL. In STRATEGY the `transaction-default-type` value is always emitted as the generated rule's `defaultType`; in NATIVE it is only the fallback for a host YAML that omits `defaultType`. Validation accepts exactly `LOCAL` or `XA` and rejects anything else with `LOCAL_TRANSACTION_REQUIRED`. Selecting XA (`transaction-default-type: XA`) forwards the value only — this starter does not depend on an XA transaction provider, so the host must add the provider and its recovery manager itself.
 
+`tables.<name>.schema` is optional and defaults to `public`. A non-public schema is supported only for `SINGLE` tables; other table strategies reject it with `SCHEMA_OVERRIDE_REQUIRES_SINGLE`. The resolved schema is included in the routing profile and topology fingerprint.
+
 ```yaml
 egon:
   cola:
@@ -40,6 +42,10 @@ egon:
             users:
               type: SINGLE
               data-source: master_data
+            outbox_message:
+              type: SINGLE
+              data-source: master_data
+              schema: egon_outbox
             dict_region:
               type: BROADCAST
             orders:

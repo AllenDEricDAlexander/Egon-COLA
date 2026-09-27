@@ -90,9 +90,17 @@ MyBatis-Plus Store 的受管结构与显式迁移配置如下：
 | 配置键 | 默认值 | 含义 |
 |---|---:|---|
 | `egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name` | `sqlSessionFactory` | Store 使用的 Common MP `SqlSessionFactory` |
+| `egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl` | `true` | bootstrap 时执行组件 manifest；设为 `false` 时只准备只读结构校验，要求 schema 已存在 |
 | `egon.cola.component.transactional-outbox.storage.mp.migration-mode` | `false` | 维护搬迁期间阻止本实例 enqueue 和调度投递 |
 | `egon.cola.component.transactional-outbox.storage.mp.migration-lock-timeout` | `30s` | 等待来源表维护锁的最长时间 |
 | `egon.cola.component.transactional-outbox.storage.mp.manifest-resource` | `db/egon-outbox-mp/manifest.json` | Common MP 加载的受管 DDL manifest |
+
+`auto-initialize-ddl` 只控制逻辑数据源 bootstrap 是否执行建表脚本。设为
+`false` 后，组件仍会只读校验已安装的 manifest、history、列、索引和约束；
+schema 缺失或漂移会导致启动失败。它与 `migration-mode` 相互独立，后者只在
+维护期间阻止本实例 enqueue 和调度投递。宿主若单独管理组件 schema，可设为
+`false`；天枢正常运行配置如此设置，显式迁移 CLI 则用同一个组件 initializer
+执行 DDL。
 
 启用业务适配后，注册一个名为 `outboxBusinessStateMachineContextExecutor` 的
 `BusinessStateMachineContextExecutor` Bean，以及至少一个
@@ -221,6 +229,7 @@ egon:
           validate-schema: true
           mp:
             sql-session-factory-bean-name: sqlSessionFactory
+            auto-initialize-ddl: true
             migration-mode: false
             migration-lock-timeout: 30s
             manifest-resource: db/egon-outbox-mp/manifest.json

@@ -21,7 +21,6 @@ import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO.PartitionKeyBO;
 import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties;
-import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties.ConfigStyleEnum;
 import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties.DataSourceRoleEnum;
 import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties.ModeEnum;
 import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties.PhysicalDataSourceProperties;
@@ -40,7 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Initializes the fixed outbox schema through the shared managed-DDL runner. */
+/** Prepares the fixed outbox schema through the shared managed-DDL runner or read-only verification path. */
 @Slf4j
 @Validated
 @RequiredArgsConstructor
@@ -90,13 +89,20 @@ public class OutboxManagedDdlInitializer {
         TopologyBO topology = topologyValidator.validate(shardingProperties, yaml);
         validateTransactionAndSingleNodes(topology, primary.name());
         EgonColaDdlManifestBO manifest = loadManifest();
-        DataSource scopedDataSource = new SchemaScopedDataSource(primaryDataSource, OUTBOX_SCHEMA);
-        List<EgonColaDdlResult> results = ddlRunner.run(List.of(new EgonColaDdlTargetBO(
-                primary.name(), OUTBOX_SCHEMA, RoleEnum.MASTER_DATA, scopedDataSource, manifest, topology.fingerprint())));
-        validateRunnerResults(results, manifest, primary.name());
-        readiness = new ReadinessBO(primaryDataSource, topology.fingerprint());
-        log.info("outbox managed DDL ready: schema={} scripts={} routeFingerprint={}",
-                OUTBOX_SCHEMA, results.size(), topology.fingerprint());
+        if (storageProperties.isAutoInitializeDdl()) {
+            DataSource scopedDataSource = new SchemaScopedDataSource(primaryDataSource, OUTBOX_SCHEMA);
+            List<EgonColaDdlResult> results = ddlRunner.run(List.of(new EgonColaDdlTargetBO(
+                    primary.name(), OUTBOX_SCHEMA, RoleEnum.MASTER_DATA, scopedDataSource, manifest,
+                    topology.fingerprint())));
+            validateRunnerResults(results, manifest, primary.name());
+            readiness = new ReadinessBO(primaryDataSource, topology.fingerprint());
+            log.info("outbox managed DDL ready: schema={} scripts={} routeFingerprint={}",
+                    OUTBOX_SCHEMA, results.size(), topology.fingerprint());
+        } else {
+            readiness = new ReadinessBO(primaryDataSource, topology.fingerprint());
+            log.info("outbox managed DDL skipped; read-only schema validation required: schema={} routeFingerprint={}",
+                    OUTBOX_SCHEMA, topology.fingerprint());
+        }
     }
 
     public boolean isReadyFor(@NotNull DataSource primaryDataSource, @NotBlank String routeFingerprint) {
@@ -105,7 +111,7 @@ public class OutboxManagedDdlInitializer {
                 && current.routeFingerprint().equals(routeFingerprint);
     }
 
-    /** Returns the retained physical PRIMARY only for read-only metadata checks after DDL readiness. */
+    /** Returns the retained physical PRIMARY only for read-only metadata checks after bootstrap readiness. */
     public DataSource physicalMetadataDataSource(@NotBlank String routeFingerprint) {
         if (routeFingerprint == null || routeFingerprint.isBlank()) {
             throw new IllegalArgumentException("OUTBOX_DDL_ROUTE_FINGERPRINT_REQUIRED");
@@ -119,9 +125,8 @@ public class OutboxManagedDdlInitializer {
 
     private void validateStorageTopology() {
         if (shardingProperties.getMode() != ModeEnum.SHARDING
-                || shardingProperties.getConfigStyle() != ConfigStyleEnum.NATIVE
                 || !"LOCAL".equals(shardingProperties.getTransactionDefaultType())) {
-            throw new IllegalStateException("OUTBOX_NATIVE_LOCAL_SHARDING_REQUIRED");
+            throw new IllegalStateException("OUTBOX_SHARDING_LOCAL_REQUIRED");
         }
         if (shardingProperties.getDataSources() == null || shardingProperties.getDataSources().size() != 1
                 || shardingProperties.getDataSources().getFirst().role() != DataSourceRoleEnum.PRIMARY) {

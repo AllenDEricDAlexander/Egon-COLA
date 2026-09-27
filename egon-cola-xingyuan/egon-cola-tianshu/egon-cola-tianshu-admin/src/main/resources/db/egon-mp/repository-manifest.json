@@ -1,0 +1,10 @@
+{
+  "family": "tianshu",
+  "scripts": [
+    {
+      "version": "20260922_001",
+      "path": "db/egon-mp/V20260922_001__tianshu_platform.sql",
+      "sha256": "c2fdefad7c3ed1244757f9b6e4d78df82ad51d9e4870e9e47eda5f57e9370678"
+    }
+  ]
+}

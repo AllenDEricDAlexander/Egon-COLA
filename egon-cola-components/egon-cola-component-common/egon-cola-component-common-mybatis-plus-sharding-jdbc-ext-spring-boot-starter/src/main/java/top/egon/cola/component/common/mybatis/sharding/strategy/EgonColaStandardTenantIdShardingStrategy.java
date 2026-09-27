@@ -8,6 +8,7 @@ import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO.PartitionKeyBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO.TableKindEnum;
+import top.egon.cola.component.common.mybatis.sharding.algorithm.EgonColaStandardTenantIdShardingAlgorithm;
 import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties.PhysicalDataSourceProperties;
 import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties.TableProperties;
 
@@ -24,8 +25,7 @@ import java.util.Map;
 public class EgonColaStandardTenantIdShardingStrategy implements EgonColaShardingStrategy {
 
     static final String TYPE = "STANDARD_TENANT_ID";
-    private static final String ALGORITHM =
-            "top.egon.cola.component.common.mybatis.sharding.algorithm.EgonColaLongTenantShardingAlgorithm";
+    private static final String ALGORITHM = EgonColaStandardTenantIdShardingAlgorithm.class.getName();
 
     @Override
     public String type() {
@@ -48,13 +48,22 @@ public class EgonColaStandardTenantIdShardingStrategy implements EgonColaShardin
         EgonColaRoutingProfileBO profile = toRoutingProfile(logicalTable, table, dataSources);
         List<EgonColaPhysicalTargetBO> nodes = profile.actualNodes().get(new PartitionKeyBO(0, 0));
         String actual = EgonColaShardingStrategyNodes.joinNodes(nodes);
+        List<String> databaseTargets = nodes.stream().map(EgonColaPhysicalTargetBO::group).toList();
+        List<String> tableTargets = nodes.stream().map(EgonColaPhysicalTargetBO::table).toList();
         return "tables:\n  " + logicalTable + ":\n    actualDataNodes: " + actual
                 + "\n    databaseStrategy:\n      standard:\n        shardingColumn: tenant_id\n"
                 + "        shardingAlgorithmName: " + logicalTable + "_database\n"
                 + "    tableStrategy:\n      standard:\n        shardingColumn: tenant_id\n"
                 + "        shardingAlgorithmName: " + logicalTable + "_table\n"
-                + "shardingAlgorithms:\n  " + logicalTable + "_database:\n    type: CLASS_BASED\n"
-                + "    props:\n      strategy: STANDARD\n      algorithmClassName: " + ALGORITHM + "\n";
+                + "shardingAlgorithms:\n"
+                + standardAlgorithm(logicalTable + "_database", databaseTargets)
+                + standardAlgorithm(logicalTable + "_table", tableTargets);
+    }
+
+    private static String standardAlgorithm(String name, List<String> targetOrder) {
+        return "  " + name + ":\n    type: CLASS_BASED\n    props:\n"
+                + "      strategy: STANDARD\n      algorithmClassName: " + ALGORITHM + "\n"
+                + "      target-order: " + String.join(",", targetOrder) + "\n";
     }
 
     @Override

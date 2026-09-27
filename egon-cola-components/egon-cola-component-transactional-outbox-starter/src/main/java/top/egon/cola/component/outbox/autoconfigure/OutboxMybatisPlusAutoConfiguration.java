@@ -210,12 +210,11 @@ public class OutboxMybatisPlusAutoConfiguration {
             OutboxMpStorageProperties storageProperties,
             ConfigurableListableBeanFactory beanFactory
     ) {
-        if (shardingProperties.getConfigStyle() != EgonColaShardingProperties.ConfigStyleEnum.NATIVE
-                || shardingProperties.getMode() != EgonColaShardingProperties.ModeEnum.SHARDING
+        if (shardingProperties.getMode() != EgonColaShardingProperties.ModeEnum.SHARDING
                 || shardingProperties.getDataSources() == null || shardingProperties.getDataSources().size() != 1
                 || shardingProperties.getDataSources().getFirst().role()
                 != EgonColaShardingProperties.DataSourceRoleEnum.PRIMARY) {
-            throw new OutboxConfigurationException("OUTBOX_NATIVE_SINGLE_PRIMARY_REQUIRED");
+            throw new OutboxConfigurationException("OUTBOX_SINGLE_PRIMARY_REQUIRED");
         }
         if (!mybatisProperties.getTenantId().ignores("egon_cola_outbox_message")) {
             throw new OutboxConfigurationException("OUTBOX_TENANT_TABLE_IGNORE_REQUIRED");

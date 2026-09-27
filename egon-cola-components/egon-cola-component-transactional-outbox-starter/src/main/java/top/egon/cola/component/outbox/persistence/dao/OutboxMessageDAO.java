@@ -13,6 +13,7 @@ import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.mybatis.extension.EgonColaExplicitTenantScopeMapper;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.outbox.persistence.po.OutboxMessagePO;
 import top.egon.cola.component.outbox.store.OutboxStatus;
 
@@ -113,5 +114,12 @@ public interface OutboxMessageDAO extends EgonColaMapper<OutboxMessagePO> {
     @Override
     default int deleteVersionedById(@Param("et") OutboxMessagePO entity) {
         throw new UnsupportedOperationException("OUTBOX_SOFT_DELETE_UNSUPPORTED");
+    }
+
+    @Override
+    @Validated(EgonColaModelValidationGroups.Restore.class)
+    default int restoreVersionedById(
+            @Param("et") @Valid @NotNull(groups = EgonColaModelValidationGroups.Restore.class) OutboxMessagePO entity) {
+        throw new UnsupportedOperationException("OUTBOX_RESTORE_UNSUPPORTED");
     }
 }

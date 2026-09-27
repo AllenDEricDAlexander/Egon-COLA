@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import org.apache.ibatis.binding.MapperProxyFactory;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.junit.jupiter.api.AfterAll;
@@ -25,10 +27,13 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.ddl.EgonColaPostgreDdlRunner;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties;
 import top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardingTopologyValidator;
 import top.egon.cola.component.outbox.delivery.DeliveryHandlerRegistry;
+import top.egon.cola.component.outbox.persistence.dao.OutboxMessageDAO;
+import top.egon.cola.component.outbox.persistence.po.OutboxMessagePO;
 import top.egon.cola.component.outbox.persistence.repository.OutboxMessageRepository;
 import top.egon.cola.component.outbox.persistence.OutboxTechnicalContextExecutor;
 import top.egon.cola.component.outbox.store.MybatisPlusOutboxStore;
@@ -97,6 +102,26 @@ class OutboxMybatisPlusAutoConfigurationTest {
     }
 
     @Test
+    void acceptsValidatedStrategyProfileForOutboxStore() {
+        contextRunner.withPropertyValues("test.outbox.strategy-config-style=true")
+                .run(context -> assertThat(context).hasNotFailed()
+                        .hasSingleBean(OutboxStore.class)
+                        .hasSingleBean(MybatisPlusOutboxStore.class));
+    }
+
+    @Test
+    void technicalOutboxRestoreMethodIsAnUnsupportedMapperDefault() throws Exception {
+        var method = OutboxMessageDAO.class.getMethod("restoreVersionedById", EgonModel.class);
+        assertThat(method.isDefault()).isTrue();
+        OutboxMessageDAO mapper = new MapperProxyFactory<>(OutboxMessageDAO.class)
+                .newInstance(mock(SqlSession.class));
+
+        assertThatThrownBy(() -> mapper.restoreVersionedById(new OutboxMessagePO()))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("OUTBOX_RESTORE_UNSUPPORTED");
+    }
+
+    @Test
     void generatedConstructorsRetainTheExactCommonMpPropertiesQualifier() {
         assertThat(propertiesQualifier(OutboxMessageRepository.class,
                 EgonColaMybatisPlusProperties.class)).isEqualTo(COMMON_MP_PROPERTIES_BEAN);
@@ -131,7 +156,7 @@ class OutboxMybatisPlusAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure().toString())
-                            .contains("OUTBOX_NATIVE_SINGLE_PRIMARY_REQUIRED");
+                            .contains("OUTBOX_SINGLE_PRIMARY_REQUIRED");
                 });
     }
 
@@ -182,14 +207,17 @@ class OutboxMybatisPlusAutoConfigurationTest {
 
         @Bean("egon.cola.component.mybatis-plus.sharding-top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties")
         EgonColaShardingProperties shardingProperties(
-                @org.springframework.beans.factory.annotation.Value("${test.outbox.multiple-primary:false}") boolean multiplePrimary
+                @org.springframework.beans.factory.annotation.Value("${test.outbox.multiple-primary:false}") boolean multiplePrimary,
+                @org.springframework.beans.factory.annotation.Value("${test.outbox.strategy-config-style:false}") boolean strategyConfigStyle
         ) {
             List<EgonColaShardingProperties.PhysicalDataSourceProperties> sources = multiplePrimary
                     ? List.of(primary("primary_a"), primary("primary_b"))
                     : List.of(primary("primary_a"));
             return EgonColaShardingProperties.builder()
                     .mode(EgonColaShardingProperties.ModeEnum.SHARDING)
-                    .configStyle(EgonColaShardingProperties.ConfigStyleEnum.NATIVE)
+                    .configStyle(strategyConfigStyle
+                            ? EgonColaShardingProperties.ConfigStyleEnum.STRATEGY
+                            : EgonColaShardingProperties.ConfigStyleEnum.NATIVE)
                     .transactionDefaultType("LOCAL")
                     .dataSources(sources)
                     .tables(Map.of())

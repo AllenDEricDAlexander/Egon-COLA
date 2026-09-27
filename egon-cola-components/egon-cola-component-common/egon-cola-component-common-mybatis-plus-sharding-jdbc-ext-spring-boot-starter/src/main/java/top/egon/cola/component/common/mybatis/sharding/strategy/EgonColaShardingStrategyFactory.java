@@ -43,6 +43,9 @@ public class EgonColaShardingStrategyFactory {
         EgonColaShardingStrategy strategy = create(type);
         if (table != null) {
             validationUtils.validate(table);
+            if (!EgonColaSingleTableShardingStrategy.TYPE.equals(type) && !"public".equals(table.schema())) {
+                throw new EgonColaMybatisPlusConfigurationException("SCHEMA_OVERRIDE_REQUIRES_SINGLE");
+            }
             strategy.validateTable(table);
         }
         return strategy;

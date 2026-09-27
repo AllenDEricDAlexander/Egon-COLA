@@ -49,7 +49,7 @@ public class EgonColaSingleTableShardingStrategy implements EgonColaShardingStra
                                                      List<PhysicalDataSourceProperties> dataSources) {
         validateTable(table);
         EgonColaShardingStrategyNodes.requirePrimary(dataSources, table.dataSource());
-        EgonColaPhysicalTargetBO node = new EgonColaPhysicalTargetBO(table.dataSource(), "public", logicalTable);
+        EgonColaPhysicalTargetBO node = new EgonColaPhysicalTargetBO(table.dataSource(), table.schema(), logicalTable);
         return EgonColaShardingStrategyNodes.simple(logicalTable, TableKindEnum.SINGLE, List.of(node));
     }
 

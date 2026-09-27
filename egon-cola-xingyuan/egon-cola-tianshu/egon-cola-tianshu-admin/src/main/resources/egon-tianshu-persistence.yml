@@ -1,0 +1,54 @@
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          mdc-key: tenantId
+          ignored-tables: [egon_cola_outbox_message, ddl_history]
+        ddl:
+          enabled: false
+        lifecycle:
+          history-read-statements: []
+          restore-statements: []
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: tianshu_0
+              logical-name: tianshu_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: ${TIANSHU_JDBC_URL}
+              username: ${TIANSHU_DB_USERNAME}
+              password: ${TIANSHU_DB_PASSWORD}
+          tables:
+            ddc_biz: { type: STANDARD_TENANT_ID }
+            ddc_env: { type: STANDARD_TENANT_ID }
+            ddc_app: { type: STANDARD_TENANT_ID }
+            ddc_namespace: { type: STANDARD_TENANT_ID }
+            ddc_namespace_env_app: { type: STANDARD_TENANT_ID }
+            ddc_config_item: { type: STANDARD_TENANT_ID }
+            ddc_config_version: { type: STANDARD_TENANT_ID }
+            ddc_publish_task: { type: STANDARD_TENANT_ID }
+            ddc_publish_ack: { type: STANDARD_TENANT_ID }
+            ddc_instance: { type: STANDARD_TENANT_ID }
+            ddc_operation_log: { type: STANDARD_TENANT_ID }
+            ddc_ai_resource: { type: STANDARD_TENANT_ID }
+            ddc_ai_version: { type: STANDARD_TENANT_ID }
+            ddc_ai_draft_node: { type: STANDARD_TENANT_ID }
+            ddc_ai_version_node: { type: STANDARD_TENANT_ID }
+            ddc_ai_publication: { type: STANDARD_TENANT_ID }
+            egon_cola_outbox_message: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+            ddl_history: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+      transactional-outbox:
+        storage:
+          data-source-bean-name: dataSource
+          transaction-manager-bean-name: transactionManager
+          validate-schema: true
+          mp:
+            sql-session-factory-bean-name: sqlSessionFactory
+            auto-initialize-ddl: false
+            manifest-resource: db/egon-outbox-mp/manifest.json

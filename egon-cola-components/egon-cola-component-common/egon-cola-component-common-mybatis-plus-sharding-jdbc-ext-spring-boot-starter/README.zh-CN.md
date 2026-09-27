@@ -4,6 +4,8 @@
 
 推荐 STRATEGY：订单/明细使用 `COMPLEX_TENANT_THEN_BUSINESS`（先 `tenant_id` 再 `order_id`）。默认事务 LOCAL。STRATEGY 下 `transaction-default-type` 一定作为生成规则的 `defaultType` 写出；NATIVE 下它只是宿主 YAML 未写 `defaultType` 时的回退。校验只接受 `LOCAL` 或 `XA`，其他取值以 `LOCAL_TRANSACTION_REQUIRED` 失败。选择 XA（`transaction-default-type: XA`）只是转发该取值：本 starter 不依赖任何 XA 事务 provider，宿主必须自行引入 provider 及其恢复管理器。
 
+`tables.<name>.schema` 可选，缺省为 `public`。仅 `SINGLE` 表支持非 `public` schema；其他表策略配置时以 `SCHEMA_OVERRIDE_REQUIRES_SINGLE` 拒绝。解析后的 schema 会纳入路由 profile 和拓扑指纹。
+
 ```yaml
 egon:
   cola:
@@ -40,6 +42,10 @@ egon:
             users:
               type: SINGLE
               data-source: master_data
+            outbox_message:
+              type: SINGLE
+              data-source: master_data
+              schema: egon_outbox
             dict_region:
               type: BROADCAST
             orders:

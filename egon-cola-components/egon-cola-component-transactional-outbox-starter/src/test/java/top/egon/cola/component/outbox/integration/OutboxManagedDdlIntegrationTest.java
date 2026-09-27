@@ -78,6 +78,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class OutboxManagedDdlIntegrationTest {
@@ -152,6 +153,79 @@ class OutboxManagedDdlIntegrationTest {
     }
 
     @Test
+    void autoInitializeDdlFalseSkipsRunnerAndPreparesReadiness() {
+        storageConfigurationRunner()
+                .withPropertyValues(OutboxMpStorageProperties.PREFIX + ".auto-initialize-ddl=false")
+                .run(context -> {
+                    ValidationUtils validationUtils = context.getBean(ValidationUtils.class);
+                    EgonColaShardingProperties shardingProperties = context.getBean(
+                            "egon.cola.component.mybatis-plus.sharding-top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties",
+                            EgonColaShardingProperties.class);
+                    OutboxMpStorageProperties storageProperties = context.getBean(
+                            "outboxMpStorageProperties", OutboxMpStorageProperties.class);
+                    EgonColaShardingTopologyValidator topologyValidator = context.getBean(
+                            EgonColaShardingTopologyValidator.class);
+                    EgonColaPostgreDdlRunner runner = mock(EgonColaPostgreDdlRunner.class);
+                    when(runner.run(anyList())).thenAnswer(invocation -> {
+                        EgonColaDdlTargetBO target = (EgonColaDdlTargetBO) ((List<?>) invocation.getArgument(0)).getFirst();
+                        return target.manifest().scripts().stream()
+                                .map(script -> new EgonColaDdlResult(target.alias(), target.schema(), script.version(),
+                                        script.sha256(), StatusEnum.APPLIED, Duration.ZERO))
+                                .toList();
+                    });
+                    OutboxManagedDdlInitializer initializer = new OutboxManagedDdlInitializer(runner,
+                            topologyValidator, validationUtils, shardingProperties, storageProperties, new ObjectMapper());
+                    DataSource primary = mock(DataSource.class);
+                    byte[] yaml = BASE_YAML.getBytes(StandardCharsets.UTF_8);
+                    String fingerprint = topologyValidator.validate(shardingProperties, yaml).fingerprint();
+
+                    initializer.initialize(Map.of("primary", primary), yaml);
+
+                    verifyNoInteractions(runner);
+                    assertSame(primary, initializer.physicalMetadataDataSource(fingerprint));
+                    assertTrue(initializer.isReadyFor(primary, fingerprint));
+                });
+    }
+
+    @Test
+    void autoInitializeDdlDefaultsToTrueAcrossExistingConstructionPaths() {
+        OutboxMpStorageProperties noArgs = new OutboxMpStorageProperties();
+        OutboxMpStorageProperties builder = OutboxMpStorageProperties.builder().build();
+        OutboxMpStorageProperties legacyAllArgs = new OutboxMpStorageProperties(
+                "sqlSessionFactory", false, Duration.ofSeconds(30), "db/egon-outbox-mp/manifest.json");
+
+        assertTrue(noArgs.isAutoInitializeDdl());
+        assertTrue(builder.isAutoInitializeDdl());
+        assertTrue(legacyAllArgs.isAutoInitializeDdl());
+    }
+
+    @Test
+    void strategyConfigUsesResolvedOutboxSingleSchemaRoute() {
+        ValidationUtils validationUtils = new ValidationUtils(VALIDATOR_FACTORY.getValidator());
+        EgonColaShardingProperties nativeProperties = shardingPropertiesWithoutPostgres();
+        byte[] yaml = BASE_YAML.getBytes(StandardCharsets.UTF_8);
+        TopologyBO resolvedOutboxTopology = new EgonColaShardingTopologyValidator(validationUtils)
+                .validate(nativeProperties, yaml);
+        EgonColaShardingProperties strategyProperties = shardingPropertiesWithoutPostgres()
+                .setConfigStyle(ConfigStyleEnum.STRATEGY);
+        EgonColaShardingTopologyValidator topologyValidator = mock(EgonColaShardingTopologyValidator.class);
+        when(topologyValidator.validate(any(EgonColaShardingProperties.class), any(byte[].class)))
+                .thenReturn(resolvedOutboxTopology);
+        EgonColaPostgreDdlRunner runner = mock(EgonColaPostgreDdlRunner.class);
+        OutboxMpStorageProperties storageProperties = new OutboxMpStorageProperties().setAutoInitializeDdl(false);
+        OutboxManagedDdlInitializer initializer = new OutboxManagedDdlInitializer(runner, topologyValidator,
+                validationUtils, strategyProperties, storageProperties, new ObjectMapper());
+        DataSource primary = mock(DataSource.class);
+
+        initializer.initialize(Map.of("primary", primary), yaml);
+
+        verify(topologyValidator).validate(strategyProperties, yaml);
+        verifyNoInteractions(runner);
+        assertTrue(initializer.isReadyFor(primary, resolvedOutboxTopology.fingerprint()));
+        assertSame(primary, initializer.physicalMetadataDataSource(resolvedOutboxTopology.fingerprint()));
+    }
+
+    @Test
     void bindsNamedMpStoragePropertiesAndRegistersTheManagedHookWithoutPostgres() {
         storageConfigurationRunner()
                 .withPropertyValues(
@@ -162,6 +236,8 @@ class OutboxManagedDdlIntegrationTest {
                     Assertions.assertEquals("outboxSqlSessionFactory",
                             context.getBean("outboxMpStorageProperties", OutboxMpStorageProperties.class)
                                     .getSqlSessionFactoryBeanName());
+                    Assertions.assertTrue(context.getBean("outboxMpStorageProperties",
+                            OutboxMpStorageProperties.class).isAutoInitializeDdl());
                     Assertions.assertTrue(context.getBean("outboxMpStorageProperties", OutboxMpStorageProperties.class)
                             .isMigrationMode());
                     Assertions.assertEquals(Duration.ofSeconds(12),

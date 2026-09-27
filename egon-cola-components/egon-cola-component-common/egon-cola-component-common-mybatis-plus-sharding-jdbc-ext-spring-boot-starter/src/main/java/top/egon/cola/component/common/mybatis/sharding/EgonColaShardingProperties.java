@@ -15,6 +15,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.enums.EgonEnum;
 
@@ -158,6 +159,18 @@ public class EgonColaShardingProperties {
             String dataSource,
             String shardingColumn,
             List<String> tableColumns,
-            String rootKeyName) {
+            String rootKeyName,
+            @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}") String schema) {
+
+        public TableProperties(String type, String dataSource, String shardingColumn,
+                               List<String> tableColumns, String rootKeyName) {
+            this(type, dataSource, shardingColumn, tableColumns, rootKeyName, "public");
+        }
+
+        @ConstructorBinding
+        public TableProperties {
+            schema = schema == null ? "public" : schema;
+            tableColumns = tableColumns == null ? null : List.copyOf(tableColumns);
+        }
     }
 }

@@ -102,9 +102,18 @@ legacy migration are:
 | Configuration key | Default | Meaning |
 |---|---:|---|
 | `egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name` | `sqlSessionFactory` | Existing Common MP `SqlSessionFactory` used by the Store |
+| `egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl` | `true` | Runs the component manifest during bootstrap; `false` prepares read-only schema validation and requires an existing schema |
 | `egon.cola.component.transactional-outbox.storage.mp.migration-mode` | `false` | Blocks local enqueue and dispatch while maintenance migration is active |
 | `egon.cola.component.transactional-outbox.storage.mp.migration-lock-timeout` | `30s` | Maximum wait for the source-table maintenance lock |
 | `egon.cola.component.transactional-outbox.storage.mp.manifest-resource` | `db/egon-outbox-mp/manifest.json` | Managed DDL manifest loaded by Common MP |
+
+`auto-initialize-ddl` controls schema creation during logical datasource
+bootstrap. With `false`, the component still validates the installed manifest,
+history, columns, indexes, and constraints read-only; an absent or drifted schema
+fails startup. This is independent from `migration-mode`, which blocks local
+enqueue and dispatch during maintenance. Hosts that initialize the component
+schema separately can use `false`; Tianshu uses it for normal startup and its
+explicit migration CLI invokes the same component initializer with DDL enabled.
 
 With the adapter enabled, register one named
 `BusinessStateMachineContextExecutor` bean named
@@ -254,6 +263,7 @@ egon:
           validate-schema: true
           mp:
             sql-session-factory-bean-name: sqlSessionFactory
+            auto-initialize-ddl: true
             migration-mode: false
             migration-lock-timeout: 30s
             manifest-resource: db/egon-outbox-mp/manifest.json

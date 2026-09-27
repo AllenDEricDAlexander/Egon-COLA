@@ -28,6 +28,9 @@ public class OutboxMpStorageProperties {
 
     private boolean migrationMode;
 
+    @Builder.Default
+    private boolean autoInitializeDdl = true;
+
     @NotNull
     @Builder.Default
     private Duration migrationLockTimeout = Duration.ofSeconds(30);
@@ -36,6 +39,15 @@ public class OutboxMpStorageProperties {
     @Pattern(regexp = "db/egon-outbox-mp/manifest\\.json")
     @Builder.Default
     private String manifestResource = "db/egon-outbox-mp/manifest.json";
+
+    public OutboxMpStorageProperties(String sqlSessionFactoryBeanName, boolean migrationMode,
+                                     Duration migrationLockTimeout, String manifestResource) {
+        this.sqlSessionFactoryBeanName = sqlSessionFactoryBeanName;
+        this.migrationMode = migrationMode;
+        this.migrationLockTimeout = migrationLockTimeout;
+        this.manifestResource = manifestResource;
+        this.autoInitializeDdl = true;
+    }
 
     @AssertTrue(message = "Outbox MP migration lock timeout must be positive")
     public boolean isMigrationLockTimeoutPositive() {
