@@ -2987,7 +2987,7 @@ assertContextBeanWiringThenAssertExistingSignatureAndNonceFailures();
 - Observable outcome: 同业务编码跨tenant不共享Redis/local map/waiter/锁；保留原业务fencing。
 - End state: 同业务编码跨tenant不共享Redis/local map/waiter/锁；保留原业务fencing；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001
+- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-UTIL-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11
 - Ordered files:
 
