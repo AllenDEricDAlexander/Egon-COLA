@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-28 06:22 Asia/Shanghai` |
+| Updated | `2026-09-28 06:36 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -576,8 +576,8 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingProperties.java` | SHA256 08b3aae7fc32 | EgonColaShardingProperties.TableProperties | 增加schema默认public、保留五参数构造器并拷贝tableColumns | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaSingleTableShardingStrategy.java` | SHA256 73e66292ab22 | EgonColaSingleTableShardingStrategy | 使用schema构建SINGLE实际节点/profile/native YAML，默认public | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaShardingStrategyFactory.java` | SHA256 4cd10f8d8447 | EgonColaShardingStrategyFactory | 非SINGLE策略拒绝自定义schema，避免静默忽略 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
-| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaStandardTenantIdShardingStrategy.java` | SHA256 ec316fc7ab80 | EgonColaStandardTenantIdShardingStrategy | 补齐引用的database/table两个Standard算法定义 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
-| CREATE | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/algorithm/EgonColaStandardTenantIdShardingAlgorithm.java` | CREATE：基线不存在 | EgonColaStandardTenantIdShardingAlgorithm | 正tenant按可用target稳定模数选择；range/非法键拒绝；替代不兼容的two-level algorithm | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaStandardTenantIdShardingStrategy.java` | SHA256 ec316fc7ab80 | EgonColaStandardTenantIdShardingStrategy | 输出database/table两个算法配置及与legacy-v1 profile顺序一致的target-order | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
+| CREATE | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/algorithm/EgonColaStandardTenantIdShardingAlgorithm.java` | CREATE：基线不存在 | EgonColaStandardTenantIdShardingAlgorithm | 按配置target-order筛选available targets并执行positive tenant modulo；range/非法target拒绝 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/bootstrap/EgonColaShardingYamlLoader.java` | SHA256 65151321424a | EgonColaShardingYamlLoader | 聚合STANDARD_TENANT_ID片段为单一!SHARDING规则，其他策略片段保持；坏片段/重复Standard键拒绝 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.md` | SHA256 764053d54012 | Common MP README | 记录SINGLE schema默认public及覆盖方式 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.zh-CN.md` | SHA256 131ac91ad395 | Common MP README.zh-CN | 同步英文配置合同 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
@@ -4215,8 +4215,11 @@ runner().withPropertyValues(strategyPropertiesWithStandardAndOutboxSingleTables(
 });
 runner().withPropertyValues(strategyPropertiesWithNonSingleSchemaOverride())
   .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining("SCHEMA_OVERRIDE_REQUIRES_SINGLE"));
-var algorithm = new EgonColaStandardTenantIdShardingAlgorithm();
-assertThat(algorithm.doSharding(List.of("group_a", "group_b"), preciseTenantValue(3L))).isEqualTo("group_b");
+  var algorithm = new EgonColaStandardTenantIdShardingAlgorithm();
+var properties = new Properties();
+properties.setProperty("target-order", "group_b,group_a");
+algorithm.init(properties);
+assertThat(algorithm.doSharding(List.of("group_a", "group_b"), preciseTenantValue(3L))).isEqualTo("group_a");
 assertThatThrownBy(() -> algorithm.doSharding(List.of("group_a"), rangeTenantValue())).hasMessageContaining("TENANT_RANGE_FORBIDDEN");
 ```
 
@@ -4360,31 +4363,34 @@ strategy.validateTable(table);
 - Repository evidence: the current fragment emits `logicalTable_table` in `tableStrategy` but only declares `logicalTable_database` in `shardingAlgorithms`.
 - Dependencies and consumers: the shared STRATEGY YAML loader and Common MP topology validator.
 - Why now: the accepted Tianshu profile maps 16 business tables to STANDARD_TENANT_ID; a missing algorithm prevents those routes from being accepted even after YAML rule aggregation.
-- Contract/signature changes: retain the same actual nodes and `tenant_id` strategy; declare the database and table algorithm names using the new `EgonColaStandardTenantIdShardingAlgorithm` and STANDARD configuration.
-- Input/output and state mapping: one Standard logical table yields one table rule and two algorithm configurations; each selects deterministically from its actual target names using positive tenant id modulo target count, matching the current legacy-v1 resolver for the one-target Tianshu topology.
+- Contract/signature changes: retain the same actual nodes and `tenant_id` strategy; declare database/table algorithm names with the new `EgonColaStandardTenantIdShardingAlgorithm`, STANDARD type and route-profile ordered `target-order` properties.
+- Input/output and state mapping: one Standard logical table yields one table rule and two algorithm configurations; each maps the positive tenant ID modulo its declared target order, exactly preserving the existing `TENANT_LEGACY` route-profile ordering.
 - Error and edge behavior: no new strategy, dependency, route type, or table schema is added; invalid tenant ids and unavailable targets retain existing algorithm behavior.
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-PATTERN-001。
 - Literal rule enforcement: Rule 3 preserves routing value objects; Rule 9 retains the existing Strategy; Rule 11 keeps tenant routing in Common MP.
 - Implementation pseudocode:
 
 ```java
-private static String standardAlgorithm(String name) {
+private static String standardAlgorithm(String name, List<String> targetOrder) {
     return "  " + name + ":\\n    type: CLASS_BASED\\n    props:\\n"
             + "      strategy: STANDARD\\n      algorithmClassName: "
-            + EgonColaStandardTenantIdShardingAlgorithm.class.getName() + "\\n";
+            + EgonColaStandardTenantIdShardingAlgorithm.class.getName() + "\\n"
+        + "      target-order: " + String.join(",", targetOrder) + "\\n";
 }
 
 EgonColaRoutingProfileBO profile = toRoutingProfile(logicalTable, table, dataSources);
-String actual = EgonColaShardingStrategyNodes.joinNodes(
-        profile.actualNodes().get(new PartitionKeyBO(0, 0)));
+List<EgonColaPhysicalTargetBO> nodes = profile.actualNodes().get(new PartitionKeyBO(0, 0));
+String actual = EgonColaShardingStrategyNodes.joinNodes(nodes);
+List<String> databaseTargets = nodes.stream().map(EgonColaPhysicalTargetBO::group).toList(); // preserves profile group order
+List<String> tableTargets = nodes.stream().map(EgonColaPhysicalTargetBO::table).toList(); // same order as legacy-v1 nodes
 return "tables:\\n  " + logicalTable + ":\\n    actualDataNodes: " + actual
         + "\\n    databaseStrategy:\\n      standard:\\n        shardingColumn: tenant_id\\n"
         + "        shardingAlgorithmName: " + logicalTable + "_database\\n"
         + "    tableStrategy:\\n      standard:\\n        shardingColumn: tenant_id\\n"
         + "        shardingAlgorithmName: " + logicalTable + "_table\\n"
         + "shardingAlgorithms:\\n"
-        + standardAlgorithm(logicalTable + "_database")
-        + standardAlgorithm(logicalTable + "_table");
+        + standardAlgorithm(logicalTable + "_database", databaseTargets)
+        + standardAlgorithm(logicalTable + "_table", tableTargets);
 ```
 
 - Verification contribution: the Common MP YAML integration test parses the produced Standard rule and confirms the logical table's database/table algorithm names both exist; direct algorithm assertions verify positive selection and forbidden ranges.
@@ -4397,9 +4403,9 @@ return "tables:\\n  " + logicalTable + ":\\n    actualDataNodes: " + actual
 - Repository evidence: `EgonColaLongTenantShardingAlgorithm` calls the two-level profile parser, requires `_tN_bN` targets and slot/bucket properties; it cannot route the Standard strategy's `_tN` legacy profile.
 - Dependencies and consumers: existing ShardingSphere `StandardShardingAlgorithm<Long>` API and `EgonColaStandardTenantIdShardingStrategy`; no new dependency.
 - Why now: parseable YAML alone is insufficient if the referenced algorithm still requires unrelated two-level profile properties; Tianshu business tables use one-level `tenant_id` routing.
-- Contract/signature changes: accept positive tenant IDs and a nonempty candidate set; sort candidate names and select by `Long.remainderUnsigned(tenantId,targetCount)`; reject invalid keys and range sharding.
-- Input/output and state mapping: database and table Standard algorithms use the tenant key and actual candidate names provided by ShardingSphere; the 1×1 Tianshu topology resolves to its single physical target.
-- Error and edge behavior: null/zero/negative tenant or empty target collection fails with `SHARDING_KEY`; range input fails with `TENANT_RANGE_FORBIDDEN`; no database or thread-local context is accessed.
+- Contract/signature changes: `init` requires a unique comma-separated `target-order` property; precise routing filters that declared order by current available candidates and selects by `Long.remainderUnsigned(tenantId,targetCount)`; reject invalid keys, missing candidates and range sharding.
+- Input/output and state mapping: database/table Standard algorithms consume orders generated from `EgonColaRoutingProfileBO.actualNodes`, preserving `legacy-v1` target selection irrespective of the Collection iteration order supplied by ShardingSphere; Tianshu's 1×1 topology resolves to its single physical target.
+- Error and edge behavior: null/zero/negative tenant fails with `SHARDING_KEY`; missing target-order fails with `STANDARD_TARGET_ORDER_REQUIRED`; blank/duplicate order entries fail with `STANDARD_TARGET_ORDER_INVALID`; an order with no current candidates fails with `SHARDING_TARGET_UNAVAILABLE`; range input fails with `TENANT_RANGE_FORBIDDEN`; no database or thread-local context is accessed.
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-LOG-001, MC-UTIL-001, MC-PATTERN-001。
 - Literal rule enforcement: Rule 1 uses the semantic algorithm role; Rule 4 follows existing algorithm `@Slf4j` convention; Rule 5 uses only JDK and ShardingSphere APIs; Rule 9 keeps route selection in the existing Strategy; Rule 11 stays in Common MP.
 - Implementation pseudocode:
@@ -4407,10 +4413,21 @@ return "tables:\\n  " + logicalTable + ":\\n    actualDataNodes: " + actual
 ```java
 @Slf4j
 public final class EgonColaStandardTenantIdShardingAlgorithm implements StandardShardingAlgorithm<Long> {
-    @Override public void init(Properties properties) { }
+    private volatile List<String> targetOrder = List.of();
+    @Override public void init(Properties properties) {
+        if (properties == null) throw new IllegalArgumentException("STANDARD_TARGET_ORDER_REQUIRED");
+        Set<String> unique = new LinkedHashSet<>();
+        for (String candidate : required(properties, "target-order").split(",", -1)) {
+            String target = candidate.trim();
+            if (target.isBlank() || !unique.add(target)) throw new IllegalArgumentException("STANDARD_TARGET_ORDER_INVALID");
+        }
+        targetOrder = List.copyOf(unique);
+    }
     @Override public String doSharding(Collection<String> available, PreciseShardingValue<Long> value) {
-        requirePositiveTenantAndTargets(value, available);
-        List<String> targets = available.stream().sorted().toList();
+        requirePositiveTenant(value);
+        if (available == null) throw new IllegalArgumentException("SHARDING_KEY");
+        List<String> targets = targetOrder.stream().filter(available::contains).toList();
+        if (targets.isEmpty()) throw new IllegalArgumentException("SHARDING_TARGET_UNAVAILABLE");
         return targets.get((int) Long.remainderUnsigned(value.getValue(), targets.size()));
     }
     @Override public Collection<String> doSharding(Collection<String> available, RangeShardingValue<Long> value) {
