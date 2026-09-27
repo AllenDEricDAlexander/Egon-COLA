@@ -6,9 +6,9 @@ import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 
 /**
  * 生成 Tianshu 配置、租约、发布和服务注册使用的 Redis 键。
- * 当前键格式版本为 v3，所有键均以 {@code tianshu:v3:} 开头。
+ * 当前键格式为 {@code tianshu:v4:tenant:<tenantId>:{<slotHash>}:<suffix>}。
  * Generates Redis keys used by Tianshu configuration, leases, publications, and service registry.
- * The current key format version is v3, and every key starts with {@code tianshu:v3:}.
+ * The v4 format isolates keys and hash slots by tenant.
  */
 public final class DdcRedisKeys {
 
@@ -20,7 +20,7 @@ public final class DdcRedisKeys {
     /**
      * 当前 Tianshu Redis 键格式版本。 Current Tianshu Redis key format version.
      */
-    private static final String KEY_VERSION = "v3";
+    private static final String KEY_VERSION = "v4";
 
     /**
      * 禁止实例化键生成工具类。 Prevents instantiation of the key-generation utility.
@@ -35,10 +35,11 @@ public final class DdcRedisKeys {
      * @param env     环境编码。 environment code
      * @param appCode 应用编码。 application code
      * @param key     配置键。 configuration key
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 配置 Redis 键。 configuration Redis key
      */
-    public static String config(String bizCode, String env, String appCode, String key) {
-        return buildKey(configTag(bizCode, env, appCode), "config", key);
+    public static String config(Long tenantId, String bizCode, String env, String appCode, String key) {
+        return buildKey(tenantId, configTag(tenantId, bizCode, env, appCode), "config", key);
     }
 
     /**
@@ -48,10 +49,11 @@ public final class DdcRedisKeys {
      * @param env     环境编码。 environment code
      * @param appCode 应用编码。 application code
      * @param key     配置键。 configuration key
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 版本 Redis 键。 version Redis key
      */
-    public static String version(String bizCode, String env, String appCode, String key) {
-        return buildKey(configTag(bizCode, env, appCode), "version", key);
+    public static String version(Long tenantId, String bizCode, String env, String appCode, String key) {
+        return buildKey(tenantId, configTag(tenantId, bizCode, env, appCode), "version", key);
     }
 
     /**
@@ -60,10 +62,11 @@ public final class DdcRedisKeys {
      * @param bizCode 业务编码。 business code
      * @param env     环境编码。 environment code
      * @param appCode 应用编码。 application code
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 配置变更 Topic 名称。 configuration-change topic name
      */
-    public static String topic(String bizCode, String env, String appCode) {
-        return buildKey(configTag(bizCode, env, appCode), "topic");
+    public static String topic(Long tenantId, String bizCode, String env, String appCode) {
+        return buildKey(tenantId, configTag(tenantId, bizCode, env, appCode), "topic");
     }
 
     /**
@@ -73,14 +76,17 @@ public final class DdcRedisKeys {
      * @param env      环境编码。 environment code
      * @param appCode  应用编码。 application code
      * @param changeId 变更标识。 change identifier
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 发布幂等 Redis 键。 publication-idempotency Redis key
      */
     public static String publishIdempotency(
+            Long tenantId,
             String bizCode,
             String env,
             String appCode,
             String changeId) {
-        return buildKey(configTag(bizCode, env, appCode), "publish", "idempotency", changeId);
+        return buildKey(tenantId, configTag(tenantId, bizCode, env, appCode),
+                "publish", "idempotency", changeId);
     }
 
     /**
@@ -90,14 +96,17 @@ public final class DdcRedisKeys {
      * @param env        环境编码。 environment code
      * @param appCode    应用编码。 application code
      * @param instanceId 实例标识。 instance identifier
+     * @param tenantId   存储租户标识。 storage tenant identifier
      * @return 配置租约 Redis 键。 configuration-lease Redis key
      */
     public static String configLeaseInstance(
+            Long tenantId,
             String bizCode,
             String env,
             String appCode,
             String instanceId) {
-        return buildKey(configTag(bizCode, env, appCode), "lease", "instance", instanceId);
+        return buildKey(tenantId, configTag(tenantId, bizCode, env, appCode),
+                "lease", "instance", instanceId);
     }
 
     /**
@@ -106,10 +115,12 @@ public final class DdcRedisKeys {
      * @param bizCode 业务编码。 business code
      * @param env     环境编码。 environment code
      * @param appCode 应用编码。 application code
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 租约实例集合 Redis 键。 lease-instance collection Redis key
      */
-    public static String configLeaseInstances(String bizCode, String env, String appCode) {
-        return buildKey(configTag(bizCode, env, appCode), "lease", "instances");
+    public static String configLeaseInstances(Long tenantId, String bizCode, String env, String appCode) {
+        return buildKey(tenantId, configTag(tenantId, bizCode, env, appCode),
+                "lease", "instances");
     }
 
     /**
@@ -117,30 +128,36 @@ public final class DdcRedisKeys {
      *
      * @param serviceKey 规范服务键。 canonical service key
      * @param instanceId 实例标识。 instance identifier
+     * @param tenantId   存储租户标识。 storage tenant identifier
      * @return 注册实例 Redis 键。 registry-instance Redis key
      */
-    public static String registryInstance(DdcServiceKey serviceKey, String instanceId) {
-        return buildKey(registryTag(serviceKey), "registry", "instance", instanceId);
+    public static String registryInstance(Long tenantId, DdcServiceKey serviceKey, String instanceId) {
+        return buildKey(tenantId, registryTag(tenantId, serviceKey),
+                "registry", "instance", instanceId);
     }
 
     /**
      * 生成以稳定服务标识结尾的服务定义键。 Generates a service-definition key ending in the stable service identifier.
      *
      * @param serviceKey 规范服务键。 canonical service key
+     * @param tenantId   存储租户标识。 storage tenant identifier
      * @return 服务定义 Redis 键。 service-definition Redis key
      */
-    public static String registryService(DdcServiceKey serviceKey) {
-        return buildKey(registryTag(serviceKey), "registry", "service", serviceKey.serviceId());
+    public static String registryService(Long tenantId, DdcServiceKey serviceKey) {
+        return buildKey(tenantId, registryTag(tenantId, serviceKey),
+                "registry", "service", serviceKey.serviceId());
     }
 
     /**
      * 生成以稳定服务标识结尾的服务修订键。 Generates a service-revision key ending in the stable service identifier.
      *
      * @param serviceKey 规范服务键。 canonical service key
+     * @param tenantId   存储租户标识。 storage tenant identifier
      * @return 服务修订 Redis 键。 service-revision Redis key
      */
-    public static String registryRevision(DdcServiceKey serviceKey) {
-        return buildKey(registryTag(serviceKey), "registry", "revision", serviceKey.serviceId());
+    public static String registryRevision(Long tenantId, DdcServiceKey serviceKey) {
+        return buildKey(tenantId, registryTag(tenantId, serviceKey),
+                "registry", "revision", serviceKey.serviceId());
     }
 
     /**
@@ -151,15 +168,18 @@ public final class DdcRedisKeys {
      * @param appCode  应用编码。 application code
      * @param kind     服务类型。 service kind
      * @param protocol 服务协议。 service protocol
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 服务目录 Redis 键。 service-catalog Redis key
      */
     public static String registryCatalog(
+            Long tenantId,
             String bizCode,
             String env,
             String appCode,
             DdcServiceKind kind,
             String protocol) {
-        return buildKey(registryTag(bizCode, env, appCode, kind), "registry", "catalog", protocol);
+        return buildKey(tenantId, registryTag(tenantId, bizCode, env, appCode, kind),
+                "registry", "catalog", protocol);
     }
 
     /**
@@ -170,16 +190,19 @@ public final class DdcRedisKeys {
      * @param appCode  应用编码。 application code
      * @param kind     服务类型。 service kind
      * @param protocol 服务协议。 service protocol
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 目录修订 Redis 键。 catalog-revision Redis key
      */
     public static String registryCatalogRevision(
+            Long tenantId,
             String bizCode,
             String env,
             String appCode,
             DdcServiceKind kind,
             String protocol) {
         return buildKey(
-                registryTag(bizCode, env, appCode, kind),
+                tenantId,
+                registryTag(tenantId, bizCode, env, appCode, kind),
                 "registry", "catalog-revision", protocol
         );
     }
@@ -192,33 +215,38 @@ public final class DdcRedisKeys {
      * @param appCode  应用编码。 application code
      * @param kind     服务类型。 service kind
      * @param protocol 服务协议。 service protocol
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 注册变更 Topic 名称。 registry-change topic name
      */
     public static String registryTopic(
+            Long tenantId,
             String bizCode,
             String env,
             String appCode,
             DdcServiceKind kind,
             String protocol) {
-        return buildKey(registryTag(bizCode, env, appCode, kind), "registry", "topic", protocol);
+        return buildKey(tenantId, registryTag(tenantId, bizCode, env, appCode, kind),
+                "registry", "topic", protocol);
     }
 
     /**
-     * 生成跨作用域的全局服务目录键。 Generates the cross-scope global service-catalog key.
+     * 生成tenant内跨物理服务scope的全局目录键。 Generates the tenant-local global service-catalog key.
      *
-     * @return 固定的全局服务目录 Redis 键。 fixed global service-catalog Redis key
+     * @param tenantId 存储租户标识。 storage tenant identifier
+     * @return 当前tenant的全局服务目录Redis键。 tenant-local global service-catalog Redis key
      */
-    public static String globalRegistryCatalog() {
-        return PREFIX + ":" + KEY_VERSION + ":{registry-catalog}:services";
+    public static String globalRegistryCatalog(Long tenantId) {
+        return buildKey(tenantId, tag(tenantId(tenantId) + "\nregistry-catalog"), "services");
     }
 
     /**
-     * 生成跨作用域的全局服务目录修订键。 Generates the cross-scope global service-catalog revision key.
+     * 生成tenant内跨物理服务scope的目录修订键。 Generates the tenant-local global service-catalog revision key.
      *
-     * @return 固定的全局目录修订 Redis 键。 fixed global catalog-revision Redis key
+     * @param tenantId 存储租户标识。 storage tenant identifier
+     * @return 当前tenant的全局目录修订Redis键。 tenant-local global catalog-revision Redis key
      */
-    public static String globalRegistryCatalogRevision() {
-        return PREFIX + ":" + KEY_VERSION + ":{registry-catalog}:revision";
+    public static String globalRegistryCatalogRevision(Long tenantId) {
+        return buildKey(tenantId, tag(tenantId(tenantId) + "\nregistry-catalog"), "revision");
     }
 
     /**
@@ -227,20 +255,23 @@ public final class DdcRedisKeys {
      * @param bizCode 业务编码。 business code
      * @param env     环境编码。 environment code
      * @param appCode 应用编码。 application code
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 带花括号的摘要 tag。 digest tag enclosed in braces
      */
-    private static String configTag(String bizCode, String env, String appCode) {
-        return tag(bizCode + "\n" + env + "\n" + appCode);
+    private static String configTag(Long tenantId, String bizCode, String env, String appCode) {
+        return tag(tenantId(tenantId) + "\n" + bizCode + "\n" + env + "\n" + appCode);
     }
 
     /**
-     * 从规范服务键计算服务作用域 hash tag。 Computes a service-scope hash tag from a canonical service key.
+     * 从tenant和规范服务键计算服务作用域hash tag。 Computes a service-scope hash tag from tenant and canonical service key.
      *
      * @param serviceKey 规范服务键。 canonical service key
+     * @param tenantId   存储租户标识。 storage tenant identifier
      * @return 带花括号的摘要 tag。 digest tag enclosed in braces
      */
-    private static String registryTag(DdcServiceKey serviceKey) {
+    private static String registryTag(Long tenantId, DdcServiceKey serviceKey) {
         return registryTag(
+                tenantId,
                 serviceKey.bizCode(),
                 serviceKey.env(),
                 serviceKey.appCode(),
@@ -255,14 +286,17 @@ public final class DdcRedisKeys {
      * @param env     环境编码。 environment code
      * @param appCode 应用编码。 application code
      * @param kind    服务类型。 service kind
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 带花括号的摘要 tag。 digest tag enclosed in braces
      */
     private static String registryTag(
+            Long tenantId,
             String bizCode,
             String env,
             String appCode,
             DdcServiceKind kind) {
-        return tag(bizCode + "\n" + env + "\n" + appCode + "\n" + kind.name());
+        return tag(tenantId(tenantId) + "\n" + bizCode + "\n" + env
+                + "\n" + appCode + "\n" + kind.name());
     }
 
     /**
@@ -286,13 +320,22 @@ public final class DdcRedisKeys {
     }
 
     /**
-     * 组合带版本和作用域 tag 的 Redis 键。 Builds a versioned Redis key with its scope tag.
+     * 组合tenant、版本和作用域tag生成Redis键。 Builds a Redis key with tenant, version, and scope tag.
      *
      * @param scopeTag Redis Cluster 作用域 tag。 Redis Cluster scope tag
      * @param parts    剩余键段。 remaining key segments
+     * @param tenantId 存储租户标识。 storage tenant identifier
      * @return 完整 Redis 键。 complete Redis key
      */
-    private static String buildKey(String scopeTag, String... parts) {
-        return PREFIX + ":" + KEY_VERSION + ":" + scopeTag + ":" + String.join(":", parts);
+    private static String buildKey(Long tenantId, String scopeTag, String... parts) {
+        return PREFIX + ":" + KEY_VERSION + ":tenant:" + tenantId(tenantId)
+                + ":" + scopeTag + ":" + String.join(":", parts);
+    }
+
+    private static long tenantId(Long tenantId) {
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalArgumentException("tenantId must be a positive Long");
+        }
+        return tenantId;
     }
 }

@@ -105,7 +105,7 @@ class DdcRuntimeCoordinatorTest {
                 mock(DdcRefreshService.class),
                 subscription(new ArrayList<>()),
                 properties(true),
-                new DdcLocalConfigState(),
+                new DdcLocalConfigState(101L),
                 serviceTokens
         );
 
@@ -126,7 +126,7 @@ class DdcRuntimeCoordinatorTest {
                 mock(DdcRefreshService.class),
                 subscription(events),
                 properties(true),
-                new DdcLocalConfigState(),
+                new DdcLocalConfigState(101L),
                 serviceTokens
         );
         coordinator.start();
@@ -156,7 +156,7 @@ class DdcRuntimeCoordinatorTest {
                 mock(DdcRefreshService.class),
                 subscription(new ArrayList<>()),
                 properties(true),
-                new DdcLocalConfigState(),
+                new DdcLocalConfigState(101L),
                 serviceTokens
         );
         coordinator.start();
@@ -290,7 +290,7 @@ class DdcRuntimeCoordinatorTest {
     void reconciliationFailureKeepsReadyStateAndLocalMetadata() {
         RecordingAdminClient adminClient = new RecordingAdminClient(new ArrayList<>());
         DdcRefreshService refreshService = mock(DdcRefreshService.class);
-        DdcLocalConfigState repository = new DdcLocalConfigState();
+        DdcLocalConfigState repository = new DdcLocalConfigState(101L);
         repository.updateVersion("switch", 1L);
         repository.updateChecksum("switch", "last-known-good");
         DdcRuntimeCoordinator coordinator = coordinator(
@@ -385,7 +385,7 @@ class DdcRuntimeCoordinatorTest {
                 refreshService,
                 subscription,
                 properties,
-                new DdcLocalConfigState()
+                new DdcLocalConfigState(101L)
         );
     }
 
@@ -411,7 +411,7 @@ class DdcRuntimeCoordinatorTest {
             DdcProperties properties,
             DdcLocalConfigState repository,
             RecordingServiceTokens serviceTokens) {
-        DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
+        DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder(101L);
         DdcInstanceIdentity identity = new DdcInstanceIdentity(
                 "instance-1",
                 "retail",

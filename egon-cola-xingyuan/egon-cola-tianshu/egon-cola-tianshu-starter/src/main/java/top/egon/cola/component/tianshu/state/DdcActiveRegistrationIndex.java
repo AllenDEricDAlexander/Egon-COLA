@@ -9,15 +9,24 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 按租约标识索引当前客户端进程创建的服务注册。
- * / Indexes service registrations created by the current client process by lease identifier.
+ * 按租户和租约标识索引当前客户端进程创建的服务注册。
+ * / Indexes service registrations created by the current client process by tenant and lease identifier.
  */
 public final class DdcActiveRegistrationIndex {
+
+    private final long tenantId;
 
     /**
      * 当前活跃注册，键为租约标识。 / Active registrations keyed by lease identifier.
      */
-    private final Map<String, ActiveRegistration> registrations = new ConcurrentHashMap<>();
+    private final Map<TenantLeaseKey, ActiveRegistration> registrations = new ConcurrentHashMap<>();
+
+    public DdcActiveRegistrationIndex(Long tenantId) {
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalArgumentException("tenantId must be positive");
+        }
+        this.tenantId = tenantId;
+    }
 
     /**
      * 记录成功注册的服务租约。
@@ -27,7 +36,8 @@ public final class DdcActiveRegistrationIndex {
      * @param session    Admin 签发的租约会话 / lease session issued by Admin
      */
     public void put(DdcServiceKey serviceKey, DdcLeaseSession session) {
-        registrations.put(session.leaseId(), new ActiveRegistration(serviceKey, session.instanceId()));
+        registrations.put(new TenantLeaseKey(tenantId, session.leaseId()),
+                new ActiveRegistration(serviceKey, session.instanceId()));
     }
 
     /**
@@ -40,7 +50,7 @@ public final class DdcActiveRegistrationIndex {
      * @throws DdcException 租约不存在或实例不匹配时抛出 / if the lease is absent or the instance does not match
      */
     public DdcServiceKey require(String instanceId, String leaseId) {
-        ActiveRegistration registration = registrations.get(leaseId);
+        ActiveRegistration registration = registrations.get(new TenantLeaseKey(tenantId, leaseId));
         if (registration == null || !registration.instanceId().equals(instanceId)) {
             throw new DdcException(DdcErrorStatus.LEASE_MISMATCH);
         }
@@ -54,7 +64,7 @@ public final class DdcActiveRegistrationIndex {
      * @param leaseId 租约标识 / lease identifier
      */
     public void remove(String leaseId) {
-        registrations.remove(leaseId);
+        registrations.remove(new TenantLeaseKey(tenantId, leaseId));
     }
 
     /**
@@ -72,5 +82,8 @@ public final class DdcActiveRegistrationIndex {
      * @param instanceId 注册实例标识 / registered instance identifier
      */
     private record ActiveRegistration(DdcServiceKey serviceKey, String instanceId) {
+    }
+
+    private record TenantLeaseKey(long tenantId, String leaseId) {
     }
 }

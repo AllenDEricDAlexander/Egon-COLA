@@ -5,8 +5,10 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.redis.DdcRedisClientFactory;
 
 /**
@@ -14,7 +16,7 @@ import top.egon.cola.component.tianshu.redis.DdcRedisClientFactory;
  * Configures the Redisson client shared by configuration-publication and service-registry subscriptions.
  */
 @AutoConfiguration(before = {DdcAutoConfiguration.class, DdcRegistryAutoConfiguration.class})
-@EnableConfigurationProperties(DdcProperties.class)
+@EnableConfigurationProperties({DdcProperties.class, DdcTenantProperties.class})
 public class DdcRedisAutoConfiguration {
 
     /**
@@ -31,8 +33,13 @@ public class DdcRedisAutoConfiguration {
                     + "${egon.cola.component.tianshu.redis.enabled:true}) || "
                     + "${egon.cola.component.tianshu.registry.enabled:false}"
     )
-    public RedissonClient ddcRedissonClient(DdcProperties properties) {
+    public RedissonClient ddcRedissonClient(
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
+            DdcProperties properties,
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+            DdcTenantProperties tenantProperties) {
         DdcProperties.Redis redis = properties.getRedis();
+        tenantProperties.requireTenantId();
         return DdcRedisClientFactory.create(
                 redis.getMode(),
                 redis.getNodes(),
@@ -40,6 +47,7 @@ public class DdcRedisAutoConfiguration {
                 redis.getHost(),
                 redis.getPort(),
                 redis.getPassword(),
+                tenantProperties.requireRedisUsername(),
                 redis.getDatabase()
         );
     }

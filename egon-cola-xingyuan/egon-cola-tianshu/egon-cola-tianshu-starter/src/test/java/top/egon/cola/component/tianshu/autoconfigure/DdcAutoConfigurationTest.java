@@ -1,5 +1,6 @@
 package top.egon.cola.component.tianshu.autoconfigure;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,9 +15,11 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.tianshu.state.DdcLocalConfigState;
@@ -40,6 +43,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(OutputCaptureExtension.class)
 class DdcAutoConfigurationTest {
+
+    private final ValidationUtils validationUtils = new ValidationUtils(
+            Validation.buildDefaultValidatorFactory().getValidator());
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -71,6 +77,7 @@ class DdcAutoConfigurationTest {
                     DdcRedisAutoConfiguration.class,
                     DdcAutoConfiguration.class
             ))
+            .withBean("egonColaValidationUtils", ValidationUtils.class, () -> validationUtils)
             .withBean(
                     IdpServiceOAuth2Client.class,
                     () -> mock(IdpServiceOAuth2Client.class)
@@ -82,6 +89,8 @@ class DdcAutoConfigurationTest {
                             DdcRedisAutoConfiguration.class,
                             DdcAutoConfiguration.class
                     ))
+                    .withBean("egonColaValidationUtils", ValidationUtils.class,
+                            () -> validationUtils)
                     .withBean(
                             DdcConfigClient.class,
                             () -> mock(DdcConfigClient.class)
@@ -159,13 +168,17 @@ class DdcAutoConfigurationTest {
     }
 
     @Test
-    void createsDedicatedRedisClientWhenApplicationClientExists() {
+    void createsDedicatedRedisClientWhenApplicationClientExists() throws Exception {
         RedissonClient applicationClient = mock(RedissonClient.class);
         RedissonClient dedicatedClient = dedicatedClient();
+        AtomicReference<Config> configuredRedis = new AtomicReference<>();
 
         try (MockedStatic<Redisson> redisson = mockStatic(Redisson.class)) {
             redisson.when(() -> Redisson.create(org.mockito.ArgumentMatchers.any(Config.class)))
-                    .thenReturn(dedicatedClient);
+                    .thenAnswer(invocation -> {
+                        configuredRedis.set(invocation.getArgument(0));
+                        return dedicatedClient;
+                    });
             redisContextRunner.withBean(
                             "applicationRedissonClient",
                             RedissonClient.class,
@@ -173,15 +186,42 @@ class DdcAutoConfigurationTest {
                     )
                     .withPropertyValues(
                             "egon.cola.component.tianshu.enabled=true",
-                            "egon.cola.component.tianshu.redis.enabled=true"
+                            "egon.cola.component.tianshu.redis.enabled=true",
+                            "egon.cola.component.tianshu.tenant-id=101",
+                            "egon.cola.component.tianshu.redis.username=tenant-user"
                     )
                     .run(context -> {
                         assertThat(context.getBean("ddcRedissonClient"))
                                 .isSameAs(dedicatedClient);
                         assertThat(context.getBean("applicationRedissonClient"))
                                 .isSameAs(applicationClient);
+                        assertThat(configuredRedis.get().toYAML())
+                                .contains("username: \"tenant-user\"");
                     });
         }
+    }
+
+    @Test
+    void refusesToCreateRedisClientWithoutTenantOrTenantAclUsername() {
+        redisContextRunner.withPropertyValues(
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=true",
+                        "egon.cola.component.tianshu.redis.username=tenant-user")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage("egon.cola.component.tianshu.tenant-id must be a positive Long");
+                });
+
+        redisContextRunner.withPropertyValues(
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=true",
+                        "egon.cola.component.tianshu.tenant-id=101")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage("egon.cola.component.tianshu.redis.username is required when Redis is enabled");
+                });
     }
 
     @Test
@@ -197,7 +237,9 @@ class DdcAutoConfigurationTest {
                 )
                 .withPropertyValues(
                         "egon.cola.component.tianshu.enabled=true",
-                        "egon.cola.component.tianshu.redis.enabled=true"
+                        "egon.cola.component.tianshu.redis.enabled=true",
+                        "egon.cola.component.tianshu.tenant-id=101",
+                        "egon.cola.component.tianshu.redis.username=tenant-user"
                 )
                 .run(context -> {
                     assertThat(context.getBean("ddcRedissonClient"))
@@ -236,7 +278,7 @@ class DdcAutoConfigurationTest {
     }
 
     @Test
-    void subscribesOnlyToPhysicalV3Topic() {
+    void subscribesOnlyToPhysicalV4TenantTopic() {
         RedissonClient client = mock(RedissonClient.class);
         RTopic topic = mock(RTopic.class);
         DdcProperties properties = new DdcProperties();
@@ -244,13 +286,15 @@ class DdcAutoConfigurationTest {
         properties.setEnv("dev");
         properties.setAppCode("order");
         properties.setNamespace("namespace-a");
-        when(client.getTopic(DdcRedisKeys.topic("retail", "dev", "order")))
+        when(client.getTopic(DdcRedisKeys.topic(101L, "retail", "dev", "order")))
                 .thenReturn(topic);
 
-        RTopic result = new DdcAutoConfiguration().ddcRedisTopic(client, properties);
+        DdcTenantProperties tenantProperties = new DdcTenantProperties();
+        tenantProperties.setTenantId(101L);
+        RTopic result = new DdcAutoConfiguration().ddcRedisTopic(client, properties, tenantProperties);
 
         assertThat(result).isSameAs(topic);
-        verify(client).getTopic(DdcRedisKeys.topic("retail", "dev", "order"));
+        verify(client).getTopic(DdcRedisKeys.topic(101L, "retail", "dev", "order"));
     }
 
     private RedissonClient dedicatedClient() {

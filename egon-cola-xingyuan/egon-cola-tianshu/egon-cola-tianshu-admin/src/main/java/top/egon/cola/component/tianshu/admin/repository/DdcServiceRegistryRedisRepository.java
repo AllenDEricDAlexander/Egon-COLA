@@ -11,6 +11,7 @@ import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
+import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationAuthenticationException;
 import top.egon.cola.component.tianshu.admin.security.registration.VerifiedDdcRegistrationIdentity;
@@ -25,6 +26,7 @@ import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceQuery;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,6 +35,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.function.IntSupplier;
 
 public class DdcServiceRegistryRedisRepository {
 
@@ -40,7 +44,7 @@ public class DdcServiceRegistryRedisRepository {
 
     private final ObjectMapper objectMapper;
 
-    private final Set<DdcServiceKey> knownServiceKeys = ConcurrentHashMap.newKeySet();
+    private final Set<TenantServiceKey> knownServiceKeys = ConcurrentHashMap.newKeySet();
 
     public DdcServiceRegistryRedisRepository(RedissonClient redissonClient,
                                              ObjectMapper objectMapper) {
@@ -56,6 +60,7 @@ public class DdcServiceRegistryRedisRepository {
     public void register(
             DdcServiceInstance instance,
             VerifiedDdcRegistrationIdentity registration) {
+        long tenantId = tenantId();
         DdcServiceKey serviceKey = instance.serviceKey();
         RLock lock = serviceLock(serviceKey);
         lock.lock();
@@ -79,7 +84,7 @@ public class DdcServiceRegistryRedisRepository {
         } finally {
             lock.unlock();
         }
-        knownServiceKeys.add(serviceKey);
+        knownServiceKeys.add(new TenantServiceKey(tenantId, serviceKey));
     }
 
     public DdcLeaseOperationResult heartbeat(
@@ -175,9 +180,10 @@ public class DdcServiceRegistryRedisRepository {
             String env,
             String appCode,
             long resourceVersion) {
+        long tenantId = tenantId();
         int removed = 0;
         Set<String> catalog = redissonClient.<String>getSet(
-                DdcRedisKeys.globalRegistryCatalog(),
+                DdcRedisKeys.globalRegistryCatalog(tenantId),
                 StringCodec.INSTANCE
         ).readAll();
         for (String member : catalog) {
@@ -260,7 +266,7 @@ public class DdcServiceRegistryRedisRepository {
     }
 
     public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey, Instant now) {
-        knownServiceKeys.add(serviceKey);
+        knownServiceKeys.add(new TenantServiceKey(tenantId(), serviceKey));
         Collection<String> expired = serviceInstances(serviceKey)
                 .valueRange(Double.NEGATIVE_INFINITY, true, now.toEpochMilli(), true);
         expired.forEach(instanceId -> expire(serviceKey, instanceId, now));
@@ -293,11 +299,13 @@ public class DdcServiceRegistryRedisRepository {
 
     public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query,
                                                     Instant now) {
+        long tenantId = tenantId();
         String catalogKey = query.hasExactCatalogScope()
                 ? DdcRedisKeys.registryCatalog(
+                        tenantId,
                         query.bizCode(), query.env(), query.appCode(),
                         query.serviceKind(), query.protocol())
-                : DdcRedisKeys.globalRegistryCatalog();
+                : DdcRedisKeys.globalRegistryCatalog(tenantId);
         Set<String> members = redissonClient.<String>getSet(
                 catalogKey, StringCodec.INSTANCE).readAll();
         List<DdcServiceKey> serviceKeys = new ArrayList<>();
@@ -311,25 +319,45 @@ public class DdcServiceRegistryRedisRepository {
         serviceKeys.sort(DdcServiceKey::compareTo);
         String revisionKey = query.hasExactCatalogScope()
                 ? DdcRedisKeys.registryCatalogRevision(
+                        tenantId,
                         query.bizCode(), query.env(), query.appCode(),
                         query.serviceKind(), query.protocol())
-                : DdcRedisKeys.globalRegistryCatalogRevision();
+                : DdcRedisKeys.globalRegistryCatalogRevision(tenantId);
         return new DdcServiceCatalogSnapshot(
                 query, redissonClient.getAtomicLong(revisionKey).get(), serviceKeys, now);
     }
 
     public int expireKnown(Instant now) {
         int removed = 0;
-        for (DdcServiceKey serviceKey : List.copyOf(knownServiceKeys)) {
-            int before = serviceInstances(serviceKey).size();
-            getInstances(serviceKey, now);
-            int after = serviceInstances(serviceKey).size();
-            removed += Math.max(0, before - after);
-            if (after == 0) {
-                knownServiceKeys.remove(serviceKey);
-            }
+        for (TenantServiceKey tenantServiceKey : List.copyOf(knownServiceKeys)) {
+            long tenantId = tenantServiceKey.tenantId();
+            DdcServiceKey serviceKey = tenantServiceKey.serviceKey();
+            int expired = withTenant(tenantId, () -> {
+                int before = serviceInstances(serviceKey).size();
+                getInstances(serviceKey, now);
+                int after = serviceInstances(serviceKey).size();
+                if (after == 0) {
+                    knownServiceKeys.remove(tenantServiceKey);
+                }
+                return Math.max(0, before - after);
+            });
+            removed += expired;
         }
         return removed;
+    }
+
+    private int withTenant(long tenantId, IntSupplier action) {
+        Map<String, String> previous = MDC.getCopyOfContextMap();
+        try {
+            MDC.put("tenantId", Long.toString(tenantId));
+            return action.getAsInt();
+        } finally {
+            if (previous == null) {
+                MDC.clear();
+            } else {
+                MDC.setContextMap(previous);
+            }
+        }
     }
 
     private void expire(DdcServiceKey serviceKey, String instanceId, Instant now) {
@@ -447,11 +475,11 @@ public class DdcServiceRegistryRedisRepository {
         lock.lock();
         try {
             boolean added = redissonClient.<String>getSet(
-                    DdcRedisKeys.globalRegistryCatalog(), StringCodec.INSTANCE
+                    DdcRedisKeys.globalRegistryCatalog(tenantId()), StringCodec.INSTANCE
             ).add(serviceKey.canonicalValue());
             if (added) {
                 redissonClient.getAtomicLong(
-                        DdcRedisKeys.globalRegistryCatalogRevision()).incrementAndGet();
+                        DdcRedisKeys.globalRegistryCatalogRevision(tenantId())).incrementAndGet();
             }
         } finally {
             lock.unlock();
@@ -466,11 +494,11 @@ public class DdcServiceRegistryRedisRepository {
                 return;
             }
             boolean removed = redissonClient.<String>getSet(
-                    DdcRedisKeys.globalRegistryCatalog(), StringCodec.INSTANCE
+                    DdcRedisKeys.globalRegistryCatalog(tenantId()), StringCodec.INSTANCE
             ).remove(serviceKey.canonicalValue());
             if (removed) {
                 redissonClient.getAtomicLong(
-                        DdcRedisKeys.globalRegistryCatalogRevision()).incrementAndGet();
+                        DdcRedisKeys.globalRegistryCatalogRevision(tenantId())).incrementAndGet();
             }
         } finally {
             lock.unlock();
@@ -479,17 +507,18 @@ public class DdcServiceRegistryRedisRepository {
 
     private RBucket<String> instanceBucket(DdcServiceKey serviceKey, String instanceId) {
         return redissonClient.getBucket(
-                DdcRedisKeys.registryInstance(serviceKey, instanceId), StringCodec.INSTANCE);
+                DdcRedisKeys.registryInstance(tenantId(), serviceKey, instanceId), StringCodec.INSTANCE);
     }
 
     private RScoredSortedSet<String> serviceInstances(DdcServiceKey serviceKey) {
         return redissonClient.getScoredSortedSet(
-                DdcRedisKeys.registryService(serviceKey), StringCodec.INSTANCE);
+                DdcRedisKeys.registryService(tenantId(), serviceKey), StringCodec.INSTANCE);
     }
 
     private RSet<String> serviceCatalog(DdcServiceKey serviceKey) {
         return redissonClient.getSet(
                 DdcRedisKeys.registryCatalog(
+                        tenantId(),
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
                 StringCodec.INSTANCE
@@ -497,32 +526,34 @@ public class DdcServiceRegistryRedisRepository {
     }
 
     private RAtomicLong serviceRevision(DdcServiceKey serviceKey) {
-        return redissonClient.getAtomicLong(DdcRedisKeys.registryRevision(serviceKey));
+        return redissonClient.getAtomicLong(DdcRedisKeys.registryRevision(tenantId(), serviceKey));
     }
 
     private RAtomicLong catalogRevision(DdcServiceKey serviceKey) {
         return redissonClient.getAtomicLong(DdcRedisKeys.registryCatalogRevision(
+                tenantId(),
                 serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                 serviceKey.serviceKind(), serviceKey.protocol()));
     }
 
     private RLock serviceLock(DdcServiceKey serviceKey) {
         return redissonClient.getLock(
-                DdcRedisKeys.registryInstance(serviceKey, "scope") + ":lock");
+                DdcRedisKeys.registryInstance(tenantId(), serviceKey, "scope") + ":lock");
     }
 
     private RLock globalCatalogLock() {
-        return redissonClient.getLock(DdcRedisKeys.globalRegistryCatalog() + ":lock");
+        return redissonClient.getLock(DdcRedisKeys.globalRegistryCatalog(tenantId()) + ":lock");
     }
 
     private void publishEvent(DdcServiceKey serviceKey,
                               long serviceRevision,
                               long catalogRevision) {
         redissonClient.getTopic(DdcRedisKeys.registryTopic(
+                tenantId(),
                 serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                 serviceKey.serviceKind(), serviceKey.protocol()), StringCodec.INSTANCE
-        ).publish(json(new DdcRegistryEvent(
-                serviceKey, serviceRevision, catalogRevision)));
+        ).publish(json(new DdcTenantMessageDTO<>(tenantId(), new DdcRegistryEvent(
+                serviceKey, serviceRevision, catalogRevision))));
     }
 
     private String instanceJson(DdcServiceInstance instance, long revision) {
@@ -586,6 +617,22 @@ public class DdcServiceRegistryRedisRepository {
     private Duration ttl(Instant now, Instant expiresAt) {
         long seconds = Math.max(1L, Duration.between(now, expiresAt).toSeconds());
         return Duration.ofSeconds(seconds);
+    }
+
+    private long tenantId() {
+        String value = MDC.get("tenantId");
+        try {
+            long tenantId = Long.parseLong(value);
+            if (tenantId > 0 && Long.toString(tenantId).equals(value)) {
+                return tenantId;
+            }
+        } catch (NumberFormatException ignored) {
+            // A request without trusted tenant MDC is rejected below.
+        }
+        throw new IllegalStateException("A positive trusted tenantId is required for Tianshu Redis access");
+    }
+
+    private record TenantServiceKey(long tenantId, DdcServiceKey serviceKey) {
     }
 
     private record CatalogUpdate(long revision, boolean changed) {

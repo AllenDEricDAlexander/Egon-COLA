@@ -1,5 +1,6 @@
 package top.egon.cola.component.rpc.tianshu.autoconfigure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.redisson.api.RedissonClient;
@@ -22,6 +23,7 @@ import top.egon.cola.component.tianshu.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.tianshu.listener.registry.DdcRegistrySubscriptionCoordinator;
 import top.egon.cola.component.tianshu.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.tianshu.service.registry.DdcRegistrySnapshotLoader;
@@ -121,7 +123,7 @@ public class DdcRpcAutoConfiguration {
         return factory.configClient();
     }
 
-    @Bean
+    @Bean({"ddcConfigClient", "ddcRpcConfigClient"})
     @ConditionalOnProperty(
             prefix = "egon.cola.component.tianshu",
             name = "enabled",
@@ -161,15 +163,23 @@ public class DdcRpcAutoConfiguration {
         );
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(name = "ddcRpcRegistrySubscriptions", destroyMethod = "close")
     @ConditionalOnBean({RpcDdcRegistrySnapshotLoader.class, RedissonClient.class})
     public DdcRegistrySubscriptionCoordinator ddcRpcRegistrySubscriptions(
-            RpcDdcRegistrySnapshotLoader loader,
+            @Qualifier("rpcDdcRegistrySnapshotLoader") RpcDdcRegistrySnapshotLoader loader,
             @Qualifier("ddcRedissonClient") RedissonClient redissonClient,
-            DdcProperties properties) {
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
+            DdcProperties properties,
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+            DdcTenantProperties tenantProperties,
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils) {
         return new DdcRegistrySubscriptionCoordinator(
                 loader,
                 redissonClient,
+                tenantProperties.requireTenantId(),
+                objectMapper,
+                validationUtils,
                 properties.getRegistry().getReconcileIntervalSeconds()
         );
     }

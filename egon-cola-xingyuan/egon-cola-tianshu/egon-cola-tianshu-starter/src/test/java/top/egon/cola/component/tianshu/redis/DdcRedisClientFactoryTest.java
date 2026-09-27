@@ -50,6 +50,23 @@ class DdcRedisClientFactoryTest {
     }
 
     @Test
+    void appliesTenantAclUsernameToEveryTopology() throws Exception {
+        var single = DdcRedisClientFactory.configuration(
+                "SINGLE", List.of(), "", "redis-single", 6379,
+                "password", "tenant-user", 0);
+        var sentinel = DdcRedisClientFactory.configuration(
+                "SENTINEL", List.of("redis://sentinel:26379"), "master",
+                "ignored", 6379, "password", "tenant-user", 0);
+        var cluster = DdcRedisClientFactory.configuration(
+                "CLUSTER", List.of("redis://cluster:6379"), "", "ignored",
+                6379, "password", "tenant-user", 0);
+
+        assertThat(single.toYAML()).contains("username: \"tenant-user\"");
+        assertThat(sentinel.toYAML()).contains("username: \"tenant-user\"");
+        assertThat(cluster.toYAML()).contains("username: \"tenant-user\"");
+    }
+
+    @Test
     void rejectsSentinelWithoutMasterAndNonUrlClusterNodes() {
         assertThatThrownBy(() -> DdcRedisClientFactory.configuration(
                 "SENTINEL",

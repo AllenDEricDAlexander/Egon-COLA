@@ -30,6 +30,7 @@ import top.egon.cola.component.tianshu.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.tianshu.listener.config.DdcConfigChangeListener;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
 import top.egon.cola.component.tianshu.model.instance.DdcInstanceIdentity;
+import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 import top.egon.cola.component.tianshu.service.refresh.DdcConfigurationPropertiesRebinder;
 import top.egon.cola.component.tianshu.service.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.tianshu.state.DdcLocalConfigState;
@@ -37,6 +38,7 @@ import top.egon.cola.component.tianshu.service.binding.DdcValueBindingRegistry;
 import top.egon.cola.component.tianshu.service.lifecycle.DdcAckDelivery;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcAckDeliveryProperties;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.tianshu.service.binding.DdcFieldBindingService;
 import top.egon.cola.component.tianshu.api.extension.DdcInstanceIdProvider;
@@ -48,6 +50,7 @@ import top.egon.cola.component.tianshu.service.refresh.DdcRefreshService;
 import top.egon.cola.component.tianshu.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.tianshu.service.refresh.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.tianshu.redis.DdcRedisTopicSubscription;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client;
 
@@ -61,6 +64,7 @@ import java.util.List;
 @EnableConfigurationProperties({
         DdcProperties.class,
         DdcAckDeliveryProperties.class,
+        DdcTenantProperties.class,
         IdpStarterProperties.class
 })
 @ConditionalOnProperty(prefix = "egon.cola.component.tianshu", name = "enabled", havingValue = "true", matchIfMissing = false)
@@ -104,10 +108,12 @@ public class DdcAutoConfiguration {
      *
      * @return 本地配置状态。 local configuration state
      */
-    @Bean
+    @Bean(name = "ddcLocalConfigState")
     @ConditionalOnMissingBean
-    public DdcLocalConfigState ddcLocalConfigState() {
-        return new DdcLocalConfigState();
+    public DdcLocalConfigState ddcLocalConfigState(
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+            DdcTenantProperties tenantProperties) {
+        return new DdcLocalConfigState(tenantProperties.getTenantId());
     }
 
     /**
@@ -302,23 +308,30 @@ public class DdcAutoConfiguration {
      * @param refreshService 配置刷新服务。 configuration refresh service
      * @return Redis 配置变更监听器。 Redis configuration-change listener
      */
-    @Bean
+    @Bean(name = "ddcConfigChangeListener")
     @ConditionalOnProperty(
             prefix = "egon.cola.component.tianshu.redis",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
     )
-    public DdcConfigChangeListener ddcConfigChangeListener(DdcProperties properties,
-                                                         DdcRefreshService refreshService) {
-        return new DdcConfigChangeListener(properties, refreshService);
+    public DdcConfigChangeListener ddcConfigChangeListener(
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
+            DdcProperties properties,
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+            DdcTenantProperties tenantProperties,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils,
+            @Qualifier("ddcRefreshService") DdcRefreshService refreshService) {
+        return new DdcConfigChangeListener(
+                properties, tenantProperties, refreshService, validationUtils);
     }
 
     /**
-     * 创建当前业务、环境和应用 v3 配置变更 Topic。 Creates the v3 configuration-change topic for the current business, environment, and application.
+     * 创建当前tenant、业务、环境和应用 v4 配置变更 Topic。 Creates the tenant-scoped v4 configuration-change topic.
      *
      * @param redissonClient Tianshu Redisson 客户端。 Tianshu Redisson client
      * @param properties     Tianshu 作用域属性。 Tianshu scope properties
+     * @param tenantProperties Tianshu tenant and Redis ACL properties.
      * @return 配置变更 Topic。 configuration-change topic
      */
     @Bean("ddcRedisTopic")
@@ -329,10 +342,15 @@ public class DdcAutoConfiguration {
             havingValue = "true",
             matchIfMissing = true
     )
-    public RTopic ddcRedisTopic(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
-                                DdcProperties properties) {
+    public RTopic ddcRedisTopic(
+            @Qualifier("ddcRedissonClient") RedissonClient redissonClient,
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
+            DdcProperties properties,
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+            DdcTenantProperties tenantProperties) {
         return redissonClient.getTopic(
                 DdcRedisKeys.topic(
+                        tenantProperties.requireTenantId(),
                         properties.getBizCode(),
                         properties.getEnv(),
                         properties.getAppCode()
@@ -347,14 +365,17 @@ public class DdcAutoConfiguration {
      * @param listener 配置变更监听器。 configuration-change listener
      * @return Redis 订阅句柄。 Redis subscription handle
      */
-    @Bean
+    @Bean(name = "ddcRedisChangeSubscription")
     @ConditionalOnBean(name = "ddcRedisTopic")
-    public DdcRedisTopicSubscription<DdcPublishMessage> ddcRedisChangeSubscription(
+    @SuppressWarnings("unchecked")
+    public DdcRedisTopicSubscription<DdcTenantMessageDTO<DdcPublishMessage>> ddcRedisChangeSubscription(
             @Qualifier("ddcRedisTopic") RTopic topic,
-            DdcConfigChangeListener listener) {
+            @Qualifier("ddcConfigChangeListener") DdcConfigChangeListener listener) {
+        Class<DdcTenantMessageDTO<DdcPublishMessage>> messageType =
+                (Class<DdcTenantMessageDTO<DdcPublishMessage>>) (Class<?>) DdcTenantMessageDTO.class;
         return new DdcRedisTopicSubscription<>(
                 List.of(topic),
-                DdcPublishMessage.class,
+                messageType,
                 listener
         );
     }
@@ -364,9 +385,11 @@ public class DdcAutoConfiguration {
      *
      * @return 租约会话持有器。 lease-session holder
      */
-    @Bean
-    public DdcLeaseSessionHolder ddcLeaseSessionHolder() {
-        return new DdcLeaseSessionHolder();
+    @Bean(name = "ddcLeaseSessionHolder")
+    public DdcLeaseSessionHolder ddcLeaseSessionHolder(
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+            DdcTenantProperties tenantProperties) {
+        return new DdcLeaseSessionHolder(tenantProperties.getTenantId());
     }
 
     /**
@@ -435,15 +458,17 @@ public class DdcAutoConfiguration {
      * @param sessionHolder   租约会话持有器。 lease-session holder
      * @return Tianshu 运行时协调器。 Tianshu runtime coordinator
      */
-    @Bean
+    @Bean(name = "ddcRuntimeCoordinator")
     @ConditionalOnBean(DdcRedisTopicSubscription.class)
     public DdcRuntimeCoordinator ddcRuntimeCoordinator(
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
             DdcProperties properties,
-            DdcInstanceService instanceService,
-            DdcConfigClient adminClient,
-            DdcRefreshService refreshService,
-            DdcRedisTopicSubscription<DdcPublishMessage> subscription,
-            DdcLeaseSessionHolder sessionHolder) {
+            @Qualifier("ddcInstanceService") DdcInstanceService instanceService,
+            @Qualifier("ddcConfigClient") DdcConfigClient adminClient,
+            @Qualifier("ddcRefreshService") DdcRefreshService refreshService,
+            @Qualifier("ddcRedisChangeSubscription")
+            DdcRedisTopicSubscription<DdcTenantMessageDTO<DdcPublishMessage>> subscription,
+            @Qualifier("ddcLeaseSessionHolder") DdcLeaseSessionHolder sessionHolder) {
         return new DdcRuntimeCoordinator(
                 properties,
                 instanceService,

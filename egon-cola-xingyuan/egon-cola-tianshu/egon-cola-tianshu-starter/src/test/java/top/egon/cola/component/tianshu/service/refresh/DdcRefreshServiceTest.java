@@ -384,7 +384,7 @@ class DdcRefreshServiceTest {
                 );
         environment.getPropertySources().addFirst(source);
         DdcLocalConfigState repository =
-                new DdcLocalConfigState();
+                new DdcLocalConfigState(101L);
         DdcFieldBindingService fieldBindingService =
                 mock(DdcFieldBindingService.class);
         DefaultDdcConfigApplierRegistry registry =
@@ -426,7 +426,7 @@ class DdcRefreshServiceTest {
     }
 
     private DdcLeaseSessionHolder sessionHolder() {
-        DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
+        DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder(101L);
         Instant registeredAt = Instant.parse("2026-07-24T12:00:00Z");
         holder.replace(new DdcLeaseSession(
                 "instance-1",

@@ -1,20 +1,24 @@
 package top.egon.cola.component.tianshu.listener.registry;
 
+import jakarta.validation.ConstraintViolationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.springframework.lang.Nullable;
 import org.redisson.client.codec.StringCodec;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.tianshu.api.registry.DdcRegistrySubscription;
+import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 import top.egon.cola.component.tianshu.observability.DdcTraceSupport;
 import top.egon.cola.component.tianshu.redis.DdcRedisTopicSubscription;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -26,13 +30,17 @@ import java.util.function.Consumer;
  * 统一管理注册主题监听、刷新合并、定时协调和幂等关闭。 /
  * Manages registry topic listeners, refresh coalescing, periodic reconciliation, and idempotent closure.
  */
+@Slf4j
 abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription {
 
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(DdcManagedRegistrySubscription.class);
+    private static final TypeReference<DdcTenantMessageDTO<DdcRegistryEvent>> EVENT_TYPE =
+            new TypeReference<>() { };
 
-    private static final ObjectMapper EVENT_MAPPER =
-            new ObjectMapper().registerModule(new JavaTimeModule());
+    protected final long tenantId;
+
+    private final ObjectMapper eventMapper;
+
+    private final ValidationUtils validationUtils;
 
     private final RedissonClient redissonClient;
 
@@ -59,10 +67,19 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
      * @param closedCallback          关闭后注销回调 / post-close removal callback
      */
     DdcManagedRegistrySubscription(RedissonClient redissonClient,
+                                   long tenantId,
+                                   ObjectMapper eventMapper,
+                                   ValidationUtils validationUtils,
                                    ScheduledExecutorService scheduler,
                                    long reconcileIntervalMillis,
                                    Consumer<DdcManagedRegistrySubscription> closedCallback) {
         this.redissonClient = Objects.requireNonNull(redissonClient, "redissonClient");
+        if (tenantId <= 0) {
+            throw new IllegalArgumentException("tenantId must be positive");
+        }
+        this.tenantId = tenantId;
+        this.eventMapper = Objects.requireNonNull(eventMapper, "eventMapper");
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.reconcileIntervalMillis = reconcileIntervalMillis;
         this.closedCallback = Objects.requireNonNull(closedCallback, "closedCallback");
@@ -86,7 +103,7 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
                 String.class,
                 this::onEvent
         );
-        refreshWithTrace();
+        runWithTenant(this::refreshWithTrace);
         reconciliation = scheduler.scheduleWithFixedDelay(
                 DdcTraceSupport.wrapNewOperation(
                         "registry-reconcile",
@@ -105,14 +122,38 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
     protected abstract void expireLocal();
 
     private void onEvent(CharSequence channel, String payload) {
+        if (payload == null) {
+            log.warn("Discarding empty Tianshu registry message; tenantId={}", tenantId);
+            return;
+        }
         try {
-            DdcRegistryEvent event =
-                    EVENT_MAPPER.readValue(payload, DdcRegistryEvent.class);
-            if (relevant(event)) {
-                queueRefresh();
+            DdcTenantMessageDTO<DdcRegistryEvent> envelope =
+                    eventMapper.readValue(payload, EVENT_TYPE);
+            if (envelope == null) {
+                log.warn("Discarding Tianshu registry message without a tenant envelope; tenantId={}",
+                        tenantId);
+                return;
             }
+            try {
+                validationUtils.validate(envelope);
+            } catch (ConstraintViolationException invalidEnvelope) {
+                log.warn("Discarding Tianshu registry message with invalid envelope constraints; tenantId={}",
+                        tenantId);
+                return;
+            }
+            if (!envelope.belongsToTenant(tenantId)) {
+                log.warn("Discarding Tianshu registry message with an invalid tenant envelope; tenantId={}",
+                        tenantId);
+                return;
+            }
+            runWithTenant(() -> {
+                if (relevant(envelope.getPayload())) {
+                    queueRefresh();
+                }
+            });
         } catch (JsonProcessingException exception) {
-            LOGGER.warn("Tianshu registry event is invalid", exception);
+            log.warn("Discarding invalid Tianshu registry event; tenantId={}, reason={}",
+                    tenantId, exception.getClass().getSimpleName());
         }
     }
 
@@ -135,12 +176,15 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
         if (closed.get()) {
             return;
         }
-        try {
-            refreshWithTrace();
-        } catch (RuntimeException exception) {
-            LOGGER.warn("Tianshu registry reconciliation failed", exception);
-            expireLocal();
-        }
+        runWithTenant(() -> {
+            try {
+                refreshWithTrace();
+            } catch (RuntimeException exception) {
+                log.warn("Tianshu registry reconciliation failed for tenantId={}, reason={}",
+                        tenantId, exception.getClass().getSimpleName());
+                expireLocal();
+            }
+        });
     }
 
     private void refreshWithTrace() {
@@ -154,7 +198,22 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
         try {
             listener.accept(value);
         } catch (RuntimeException exception) {
-            LOGGER.warn("Tianshu registry listener failed", exception);
+            log.warn("Tianshu registry listener failed for tenantId={}, reason={}",
+                    tenantId, exception.getClass().getSimpleName());
+        }
+    }
+
+    private void runWithTenant(Runnable action) {
+        Map<String, String> previous = MDC.getCopyOfContextMap();
+        try {
+            MDC.put("tenantId", Long.toString(tenantId));
+            action.run();
+        } finally {
+            if (previous == null) {
+                MDC.clear();
+            } else {
+                MDC.setContextMap(previous);
+            }
         }
     }
 

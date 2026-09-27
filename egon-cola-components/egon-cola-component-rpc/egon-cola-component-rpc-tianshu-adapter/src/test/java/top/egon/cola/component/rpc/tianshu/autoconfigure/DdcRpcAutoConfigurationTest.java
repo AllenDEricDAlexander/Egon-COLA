@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.tianshu.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRegistryAutoConfiguration;
+import top.egon.cola.component.tianshu.listener.registry.DdcRegistrySubscriptionCoordinator;
 import top.egon.cola.component.tianshu.service.registry.DdcRegistrySnapshotLoader;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
 import top.egon.cola.component.rpc.consumer.provider.RpcProviderDirectory;
@@ -36,7 +38,9 @@ class DdcRpcAutoConfigurationTest {
     }
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(DdcRpcAutoConfiguration.class))
+            .withConfiguration(AutoConfigurations.of(
+                    JacksonAutoConfiguration.class,
+                    DdcRpcAutoConfiguration.class))
             .withPropertyValues(
                     "egon.cola.component.tianshu.registration-resource-uri=https://api.example/tianshu"
             )
@@ -118,6 +122,7 @@ class DdcRpcAutoConfigurationTest {
     void adapterPortsSatisfyStarterFailFastRequirements() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
+                        JacksonAutoConfiguration.class,
                         DdcRedisAutoConfiguration.class,
                         DdcRpcAutoConfiguration.class,
                         DdcAutoConfiguration.class,
@@ -144,7 +149,10 @@ class DdcRpcAutoConfigurationTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context)
                             .hasSingleBean(DdcConfigClient.class)
-                            .hasSingleBean(DdcServiceRegistryClient.class);
+                            .hasSingleBean(DdcServiceRegistryClient.class)
+                            .hasSingleBean(DdcRegistrySubscriptionCoordinator.class);
+                    assertThat(context).hasBean("ddcConfigClient");
+                    assertThat(context).hasBean("ddcRpcConfigClient");
                 });
     }
 

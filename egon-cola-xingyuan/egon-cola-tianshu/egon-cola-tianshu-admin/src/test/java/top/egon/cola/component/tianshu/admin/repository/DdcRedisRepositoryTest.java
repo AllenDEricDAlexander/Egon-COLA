@@ -1,6 +1,9 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RTopic;
@@ -9,6 +12,7 @@ import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
+import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -19,12 +23,22 @@ import static org.mockito.Mockito.when;
 
 class DdcRedisRepositoryTest {
 
+    @BeforeEach
+    void bindTenant() {
+        MDC.put("tenantId", "101");
+    }
+
+    @AfterEach
+    void clearTenant() {
+        MDC.clear();
+    }
+
     @Test
     void rejectsReusedChangeIdWithDifferentEventFingerprint() {
         RedissonClient redisson = mock(RedissonClient.class);
         RLock lock = lock(redisson);
         RBucket<String> idempotency = bucket();
-        when(redisson.<String>getBucket(DdcRedisKeys.publishIdempotency(
+        when(redisson.<String>getBucket(DdcRedisKeys.publishIdempotency(101L,
                 "default", "dev", "demo", "change-1"
         ))).thenReturn(idempotency);
         when(idempotency.get()).thenReturn("change-1:old-checksum");
@@ -45,14 +59,14 @@ class DdcRedisRepositoryTest {
         RBucket<Long> version = bucket();
         RBucket<String> idempotency = bucket();
         RTopic topic = mock(RTopic.class);
-        String configKey = DdcRedisKeys.config("default", "dev", "demo", "switch");
-        String versionKey = DdcRedisKeys.version("default", "dev", "demo", "switch");
-        String idempotencyKey = DdcRedisKeys.publishIdempotency(
+        String configKey = DdcRedisKeys.config(101L, "default", "dev", "demo", "switch");
+        String versionKey = DdcRedisKeys.version(101L, "default", "dev", "demo", "switch");
+        String idempotencyKey = DdcRedisKeys.publishIdempotency(101L,
                 "default", "dev", "demo", "change-1");
         when(redisson.<String>getBucket(configKey)).thenReturn(value);
         when(redisson.<Long>getBucket(versionKey)).thenReturn(version);
         when(redisson.<String>getBucket(idempotencyKey)).thenReturn(idempotency);
-        when(redisson.getTopic(DdcRedisKeys.topic("default", "dev", "demo")))
+        when(redisson.getTopic(DdcRedisKeys.topic(101L, "default", "dev", "demo")))
                 .thenReturn(topic);
         when(version.get()).thenReturn(1L);
         when(idempotency.get()).thenReturn(null, "change-1:checksum");
@@ -65,20 +79,20 @@ class DdcRedisRepositoryTest {
         verify(value).set("on");
         verify(version).set(2L);
         verify(idempotency).set("change-1:checksum");
-        verify(topic).publish(command.message());
+        verify(topic).publish(new DdcTenantMessageDTO<>(101L, command.message()));
         verify(lock, org.mockito.Mockito.times(2)).unlock();
     }
 
     @Test
-    void writesOnlyV3ConfigProjection() {
+    void writesOnlyV4TenantConfigProjection() {
         RedissonClient redisson = mock(RedissonClient.class);
         RLock lock = lock(redisson);
         RBucket<String> value = bucket();
         RBucket<Long> version = bucket();
-        when(redisson.<String>getBucket(DdcRedisKeys.config(
+        when(redisson.<String>getBucket(DdcRedisKeys.config(101L,
                 "default", "dev", "demo", "switch"
         ))).thenReturn(value);
-        when(redisson.<Long>getBucket(DdcRedisKeys.version(
+        when(redisson.<Long>getBucket(DdcRedisKeys.version(101L,
                 "default", "dev", "demo", "switch"
         ))).thenReturn(version);
 
@@ -91,19 +105,19 @@ class DdcRedisRepositoryTest {
     }
 
     @Test
-    void publishesOnlyV3ChangeTopic() {
+    void publishesTenantEnvelopeOnV4ChangeTopic() {
         RedissonClient redisson = mock(RedissonClient.class);
         RTopic topic = mock(RTopic.class);
         DdcPublishMessage message = mock(DdcPublishMessage.class);
         when(message.getBizCode()).thenReturn("default");
         when(message.getAppCode()).thenReturn("demo");
         when(message.getEnv()).thenReturn("dev");
-        when(redisson.getTopic(DdcRedisKeys.topic("default", "dev", "demo")))
+        when(redisson.getTopic(DdcRedisKeys.topic(101L, "default", "dev", "demo")))
                 .thenReturn(topic);
 
         new DdcRedisRepository(redisson).publish(message);
 
-        verify(topic).publish(message);
+        verify(topic).publish(new DdcTenantMessageDTO<>(101L, message));
     }
 
     private DdcAtomicPublishCommand command(String checksum) {

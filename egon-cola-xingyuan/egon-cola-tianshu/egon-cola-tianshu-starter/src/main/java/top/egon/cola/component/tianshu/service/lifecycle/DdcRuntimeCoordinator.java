@@ -1,15 +1,15 @@
 package top.egon.cola.component.tianshu.service.lifecycle;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.Nullable;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.service.refresh.DdcRefreshService;
 import top.egon.cola.component.tianshu.model.instance.DdcRuntimeState;
 import top.egon.cola.component.tianshu.error.DdcException;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
@@ -29,41 +29,44 @@ import java.util.concurrent.atomic.AtomicReference;
  * 协调 Tianshu 客户端注册、初始拉取、心跳续约、周期对账和优雅下线的生命周期。
  * Coordinates the Tianshu client lifecycle of registration, initial pull, heartbeat renewal, periodic reconciliation, and graceful offline transition.
  */
+@Slf4j
+@RequiredArgsConstructor
 public class DdcRuntimeCoordinator implements SmartLifecycle {
-
-    /**
-     * 当前类的日志记录器。 Logger for this class.
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(DdcRuntimeCoordinator.class);
 
     /**
      * Tianshu 客户端配置。 Tianshu client configuration.
      */
+    @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
     private final DdcProperties properties;
 
     /**
      * 执行实例租约操作的服务。 Service performing instance lease operations.
      */
+    @Qualifier("ddcInstanceService")
     private final DdcInstanceService instanceService;
 
     /**
      * 拉取配置的管理端客户端。 Administration client used to pull configuration.
      */
+    @Qualifier("ddcConfigClient")
     private final DdcConfigClient adminClient;
 
     /**
      * 应用初始和对账快照的刷新服务。 Refresh service applying initial and reconciled snapshots.
      */
+    @Qualifier("ddcRefreshService")
     private final DdcRefreshService refreshService;
 
     /**
      * Redis 配置变化订阅。 Redis configuration-change subscription.
      */
-    private final DdcRedisTopicSubscription<DdcPublishMessage> subscription;
+    @Qualifier("ddcRedisChangeSubscription")
+    private final DdcRedisTopicSubscription<?> subscription;
 
     /**
      * 当前配置客户端租约会话持有器。 Holder of the current configuration-client lease session.
      */
+    @Qualifier("ddcLeaseSessionHolder")
     private final DdcLeaseSessionHolder sessionHolder;
 
     /**
@@ -85,31 +88,6 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
      * 周期配置对账调度器。 Periodic configuration reconciliation scheduler.
      */
     private volatile ScheduledExecutorService reconcileScheduler;
-
-    /**
-     * 创建 Tianshu 运行时协调器。
-     * Creates the Tianshu runtime coordinator.
-     *
-     * @param properties      Tianshu 客户端配置; Tianshu client configuration
-     * @param instanceService 实例租约服务; instance lease service
-     * @param adminClient     Tianshu 管理端客户端; Tianshu administration client
-     * @param refreshService  配置刷新服务; configuration refresh service
-     * @param subscription    Redis 配置变化订阅; Redis configuration-change subscription
-     * @param sessionHolder   租约会话持有器; lease session holder
-     */
-    public DdcRuntimeCoordinator(DdcProperties properties,
-                                 DdcInstanceService instanceService,
-                                 DdcConfigClient adminClient,
-                                 DdcRefreshService refreshService,
-                                 DdcRedisTopicSubscription<DdcPublishMessage> subscription,
-                                 DdcLeaseSessionHolder sessionHolder) {
-        this.properties = properties;
-        this.instanceService = instanceService;
-        this.adminClient = adminClient;
-        this.refreshService = refreshService;
-        this.subscription = subscription;
-        this.sessionHolder = sessionHolder;
-    }
 
     /**
      * 校验作用域与订阅状态，注册实例并拉取初始配置，然后启动周期任务。
@@ -315,7 +293,8 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         try {
             refreshService.applySnapshots(adminClient.pull());
         } catch (RuntimeException exception) {
-            LOGGER.warn("Tianshu config reconciliation failed", exception);
+            log.warn("Tianshu config reconciliation failed: {}",
+                    exception.getClass().getSimpleName());
         }
     }
 

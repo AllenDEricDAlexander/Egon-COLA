@@ -2,6 +2,7 @@ package top.egon.cola.component.tianshu.admin.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.MDC;
 import org.redisson.api.RLock;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
@@ -11,6 +12,7 @@ import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
+import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 
 public class DdcRedisRepository {
 
@@ -25,28 +27,30 @@ public class DdcRedisRepository {
     public void writeConfig(
             String bizCode, String env, String appCode,
             String key, String value, Long version) {
-        RLock lock = configLock(bizCode, env, appCode);
+        long tenantId = requiredTenantId();
+        RLock lock = configLock(tenantId, bizCode, env, appCode);
         lock.lock();
         try {
             redissonClient.<String>getBucket(
-                    DdcRedisKeys.config(bizCode, env, appCode, key)).set(value);
+                    DdcRedisKeys.config(tenantId, bizCode, env, appCode, key)).set(value);
             redissonClient.<Long>getBucket(
-                    DdcRedisKeys.version(bizCode, env, appCode, key)).set(version);
+                    DdcRedisKeys.version(tenantId, bizCode, env, appCode, key)).set(version);
         } finally {
             lock.unlock();
         }
     }
 
     public void dispatch(DdcAtomicPublishCommand command) {
-        RLock lock = configLock(command.bizCode(), command.env(), command.appCode());
+        long tenantId = requiredTenantId();
+        RLock lock = configLock(tenantId, command.bizCode(), command.env(), command.appCode());
         lock.lock();
         try {
             String configKey = DdcRedisKeys.config(
-                    command.bizCode(), command.env(), command.appCode(), command.resourceName());
+                    tenantId, command.bizCode(), command.env(), command.appCode(), command.resourceName());
             String versionKey = DdcRedisKeys.version(
-                    command.bizCode(), command.env(), command.appCode(), command.resourceName());
+                    tenantId, command.bizCode(), command.env(), command.appCode(), command.resourceName());
             String idempotencyKey = DdcRedisKeys.publishIdempotency(
-                    command.bizCode(), command.env(), command.appCode(), command.changeId());
+                    tenantId, command.bizCode(), command.env(), command.appCode(), command.changeId());
             String fingerprint = command.changeId() + ":" + command.eventChecksum();
             String existing = redissonClient.<String>getBucket(idempotencyKey).get();
             if (existing != null) {
@@ -76,8 +80,8 @@ public class DdcRedisRepository {
             redissonClient.<Long>getBucket(versionKey).set(command.targetVersion());
             redissonClient.<String>getBucket(idempotencyKey).set(fingerprint);
             redissonClient.getTopic(DdcRedisKeys.topic(
-                    command.bizCode(), command.env(), command.appCode()
-            )).publish(command.message());
+                    tenantId, command.bizCode(), command.env(), command.appCode()
+            )).publish(new DdcTenantMessageDTO<>(tenantId, command.message()));
         } finally {
             lock.unlock();
         }
@@ -85,35 +89,40 @@ public class DdcRedisRepository {
 
     public String readConfigValue(
             String bizCode, String env, String appCode, String key) {
+        long tenantId = requiredTenantId();
         return redissonClient.<String>getBucket(
-                DdcRedisKeys.config(bizCode, env, appCode, key)
+                DdcRedisKeys.config(tenantId, bizCode, env, appCode, key)
         ).get();
     }
 
     public Long readConfigVersion(
             String bizCode, String env, String appCode, String key) {
+        long tenantId = requiredTenantId();
         return redissonClient.<Long>getBucket(
-                DdcRedisKeys.version(bizCode, env, appCode, key)
+                DdcRedisKeys.version(tenantId, bizCode, env, appCode, key)
         ).get();
     }
 
     public void publish(DdcPublishMessage message) {
+        long tenantId = requiredTenantId();
         redissonClient.getTopic(DdcRedisKeys.topic(
+                tenantId,
                 message.getBizCode(),
                 message.getEnv(),
                 message.getAppCode()
-        )).publish(message);
+        )).publish(new DdcTenantMessageDTO<>(tenantId, message));
     }
 
     public void writeInstanceHeartbeat(DdcHeartbeatRequest request) {
-        RLock lock = configLock(request.getBizCode(), request.getEnv(), request.getAppCode());
+        long tenantId = requiredTenantId();
+        RLock lock = configLock(tenantId, request.getBizCode(), request.getEnv(), request.getAppCode());
         lock.lock();
         try {
             redissonClient.<String>getBucket(DdcRedisKeys.configLeaseInstance(
-                            request.getBizCode(), request.getEnv(),
+                            tenantId, request.getBizCode(), request.getEnv(),
                             request.getAppCode(), request.getInstanceId()))
                     .set(toJson(request));
-            instances(request.getBizCode(), request.getEnv(), request.getAppCode())
+            instances(tenantId, request.getBizCode(), request.getEnv(), request.getAppCode())
                     .add(request.getInstanceId());
         } finally {
             lock.unlock();
@@ -122,12 +131,13 @@ public class DdcRedisRepository {
 
     public void removeInstance(
             String bizCode, String env, String appCode, String instanceId) {
-        RLock lock = configLock(bizCode, env, appCode);
+        long tenantId = requiredTenantId();
+        RLock lock = configLock(tenantId, bizCode, env, appCode);
         lock.lock();
         try {
             redissonClient.getBucket(DdcRedisKeys.configLeaseInstance(
-                    bizCode, env, appCode, instanceId)).delete();
-            instances(bizCode, env, appCode).remove(instanceId);
+                    tenantId, bizCode, env, appCode, instanceId)).delete();
+            instances(tenantId, bizCode, env, appCode).remove(instanceId);
         } finally {
             lock.unlock();
         }
@@ -141,13 +151,26 @@ public class DdcRedisRepository {
         }
     }
 
-    private RSet<String> instances(String bizCode, String env, String appCode) {
+    private RSet<String> instances(long tenantId, String bizCode, String env, String appCode) {
         return redissonClient.getSet(
-                DdcRedisKeys.configLeaseInstances(bizCode, env, appCode));
+                DdcRedisKeys.configLeaseInstances(tenantId, bizCode, env, appCode));
     }
 
-    private RLock configLock(String bizCode, String env, String appCode) {
+    private RLock configLock(long tenantId, String bizCode, String env, String appCode) {
         return redissonClient.getLock(
-                DdcRedisKeys.topic(bizCode, env, appCode) + ":lock");
+                DdcRedisKeys.topic(tenantId, bizCode, env, appCode) + ":lock");
+    }
+
+    private long requiredTenantId() {
+        String value = MDC.get("tenantId");
+        try {
+            long tenantId = Long.parseLong(value);
+            if (tenantId > 0 && Long.toString(tenantId).equals(value)) {
+                return tenantId;
+            }
+        } catch (NumberFormatException ignored) {
+            // A request without trusted tenant MDC is rejected below.
+        }
+        throw new IllegalStateException("A positive trusted tenantId is required for Tianshu Redis access");
     }
 }

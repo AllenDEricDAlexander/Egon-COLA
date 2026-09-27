@@ -1,7 +1,10 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RSet;
@@ -31,6 +34,16 @@ import static top.egon.cola.component.tianshu.admin.security.registration.DdcReg
 
 class DdcConfigLeaseRedisRepositoryTest {
 
+    @BeforeEach
+    void bindTenant() {
+        MDC.put("tenantId", "101");
+    }
+
+    @AfterEach
+    void clearTenant() {
+        MDC.clear();
+    }
+
     private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 
     @Test
@@ -43,11 +56,11 @@ class DdcConfigLeaseRedisRepositoryTest {
         Set<String> members = new HashSet<>();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcRedisKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
+                DdcRedisKeys.configLeaseInstance(101L, "retail", "dev", "demo", "instance-1"),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(redisson.<String>getSet(
-                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo"),
+                DdcRedisKeys.configLeaseInstances(101L, "retail", "dev", "demo"),
                 StringCodec.INSTANCE
         )).thenReturn(instances);
         when(bucket.get()).thenAnswer(invocation -> stored.get());
@@ -107,13 +120,13 @@ class DdcConfigLeaseRedisRepositoryTest {
         AtomicReference<String> stored = new AtomicReference<>();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcRedisKeys.configLeaseInstance(
+                DdcRedisKeys.configLeaseInstance(101L,
                         "retail", "dev", "demo", "instance-1"
                 ),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(redisson.<String>getSet(
-                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo"),
+                DdcRedisKeys.configLeaseInstances(101L, "retail", "dev", "demo"),
                 StringCodec.INSTANCE
         )).thenReturn(instances);
         when(bucket.get()).thenAnswer(invocation -> stored.get());
@@ -154,7 +167,7 @@ class DdcConfigLeaseRedisRepositoryTest {
         RBucket<String> bucket = bucket();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcRedisKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
+                DdcRedisKeys.configLeaseInstance(101L, "retail", "dev", "demo", "instance-1"),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(new ObjectMapper().writeValueAsString(
@@ -185,20 +198,20 @@ class DdcConfigLeaseRedisRepositoryTest {
         RBucket<String> newer = bucket();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getSet(
-                DdcRedisKeys.configLeaseInstances(
+                DdcRedisKeys.configLeaseInstances(101L,
                         "permission", "prod", "tianquan-shoubing"
                 ),
                 StringCodec.INSTANCE
         )).thenReturn(instances);
         when(instances.readAll()).thenReturn(Set.of("covered", "newer"));
         when(redisson.<String>getBucket(
-                DdcRedisKeys.configLeaseInstance(
+                DdcRedisKeys.configLeaseInstance(101L,
                         "permission", "prod", "tianquan-shoubing", "covered"
                 ),
                 StringCodec.INSTANCE
         )).thenReturn(covered);
         when(redisson.<String>getBucket(
-                DdcRedisKeys.configLeaseInstance(
+                DdcRedisKeys.configLeaseInstance(101L,
                         "permission", "prod", "tianquan-shoubing", "newer"
                 ),
                 StringCodec.INSTANCE

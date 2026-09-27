@@ -1,12 +1,16 @@
 package top.egon.cola.component.tianshu.listener.registry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
 import top.egon.cola.component.tianshu.service.registry.DdcRegistrySnapshotLoader;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.redisson.api.listener.MessageListener;
+import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
 import top.egon.cola.component.tianshu.model.registry.DdcRegistryEvent;
@@ -27,20 +31,30 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcRegistrySubscriptionCoordinatorTest {
+
+    private static final long TENANT_ID = 101L;
+
+    private static final ValidationUtils VALIDATION_UTILS = new ValidationUtils(
+            Validation.buildDefaultValidatorFactory().getValidator());
 
     private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 
@@ -71,7 +85,7 @@ class DdcRegistrySubscriptionCoordinatorTest {
         }
         assertThat(orderSnapshot.subList(0, 2)).containsExactly("subscribe", "pull");
         verify(topic.redisson()).getTopic(
-                DdcRedisKeys.registryTopic(
+                DdcRedisKeys.registryTopic(101L,
                         "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE
@@ -104,6 +118,74 @@ class DdcRegistrySubscriptionCoordinatorTest {
 
         assertThat(calls.await(2, TimeUnit.SECONDS)).isTrue();
         manager.close();
+    }
+
+    @Test
+    void rejectsWrongTenantEnvelopeRestoresCallbackContextAndIgnoresOlderSnapshots() {
+        AtomicReference<DdcServiceSnapshot> snapshot =
+                new AtomicReference<>(snapshot(2L, "instance-2"));
+        AtomicInteger loads = new AtomicInteger();
+        DdcRegistrySnapshotLoader loader = new DelegatingSnapshotLoader() {
+            @Override
+            public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey) {
+                loads.incrementAndGet();
+                return snapshot.get();
+            }
+        };
+        TopicFixture topic = topic(new ArrayList<>());
+        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        ScheduledFuture<?> reconcile = mock(ScheduledFuture.class);
+        List<Runnable> queued = new java.util.concurrent.CopyOnWriteArrayList<>();
+        doReturn(reconcile).when(scheduler).scheduleWithFixedDelay(
+                any(Runnable.class), anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
+        doAnswer(invocation -> {
+            queued.add(invocation.getArgument(0));
+            return null;
+        }).when(scheduler).execute(any(Runnable.class));
+
+        List<Long> revisions = new java.util.concurrent.CopyOnWriteArrayList<>();
+        List<String> callbackTenants = new java.util.concurrent.CopyOnWriteArrayList<>();
+        DdcRegistrySubscriptionCoordinator manager = new DdcRegistrySubscriptionCoordinator(
+                loader, topic.redisson(), TENANT_ID, new ObjectMapper(),
+                VALIDATION_UTILS,
+                Clock.fixed(NOW, ZoneOffset.UTC), scheduler, 60_000L);
+        MDC.put("tenantId", "999");
+        MDC.put("userId", "system:outer");
+        manager.subscribe(SERVICE_KEY, value -> {
+            revisions.add(value.revision());
+            callbackTenants.add(MDC.get("tenantId"));
+        });
+
+        assertThat(revisions).containsExactly(2L);
+        assertThat(callbackTenants).containsExactly("101");
+        assertThat(MDC.get("tenantId")).isEqualTo("999");
+        assertThat(MDC.get("userId")).isEqualTo("system:outer");
+
+        snapshot.set(snapshot(3L, "instance-3"));
+        topic.listener().get().onMessage("topic", eventJson(TENANT_ID, 3L));
+        assertThat(queued).hasSize(1);
+        queued.removeFirst().run();
+        assertThat(revisions).containsExactly(2L, 3L);
+        assertThat(callbackTenants).containsExactly("101", "101");
+        assertThat(MDC.get("tenantId")).isEqualTo("999");
+
+        topic.listener().get().onMessage("topic", eventJson(0L, 4L));
+        assertThat(queued).isEmpty();
+
+        snapshot.set(snapshot(1L, "stale-instance"));
+        topic.listener().get().onMessage("topic", eventJson(TENANT_ID, 1L));
+        queued.removeFirst().run();
+        assertThat(revisions).containsExactly(2L, 3L);
+
+        snapshot.set(snapshot(4L, "other-tenant-instance"));
+        topic.listener().get().onMessage("topic", eventJson(202L, 4L));
+        assertThat(queued).isEmpty();
+        assertThat(loads).hasValue(3);
+        assertThat(revisions).containsExactly(2L, 3L);
+
+        manager.close();
+        assertThat(MDC.get("tenantId")).isEqualTo("999");
+        MDC.clear();
     }
 
     @Test
@@ -145,6 +227,9 @@ class DdcRegistrySubscriptionCoordinatorTest {
         DdcRegistrySubscriptionCoordinator manager = new DdcRegistrySubscriptionCoordinator(
                 loader,
                 topic.redisson(),
+                TENANT_ID,
+                new ObjectMapper(),
+                VALIDATION_UTILS,
                 clock,
                 Executors.newSingleThreadScheduledExecutor(),
                 20
@@ -167,6 +252,9 @@ class DdcRegistrySubscriptionCoordinatorTest {
         return new DdcRegistrySubscriptionCoordinator(
                 loader,
                 redisson,
+                TENANT_ID,
+                new ObjectMapper(),
+                VALIDATION_UTILS,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 Executors.newSingleThreadScheduledExecutor(),
                 20
@@ -187,22 +275,29 @@ class DdcRegistrySubscriptionCoordinatorTest {
     }
 
     private String eventJson(long serviceRevision) {
+        return eventJson(TENANT_ID, serviceRevision);
+    }
+
+    private String eventJson(long tenantId, long serviceRevision) {
         return """
                 {
-                  "serviceKey":{
-                    "bizCode":"pay-biz",
-                    "env":"dev",
-                    "appCode":"orders-app",
-                    "serviceKind":"RPC_PROVIDER",
-                    "serviceName":"order.v1.OrderQueryService",
-                    "group":"default",
-                    "version":"1.0.0",
-                    "protocol":"grpc"
-                  },
-                  "serviceRevision":%d,
-                  "catalogRevision":1
+                  "tenantId":%d,
+                  "payload":{
+                    "serviceKey":{
+                      "bizCode":"pay-biz",
+                      "env":"dev",
+                      "appCode":"orders-app",
+                      "serviceKind":"RPC_PROVIDER",
+                      "serviceName":"order.v1.OrderQueryService",
+                      "group":"default",
+                      "version":"1.0.0",
+                      "protocol":"grpc"
+                    },
+                    "serviceRevision":%d,
+                    "catalogRevision":1
+                  }
                 }
-                """.formatted(serviceRevision);
+                """.formatted(tenantId, serviceRevision);
     }
 
     private DdcRegistrySnapshotLoader loader(AtomicReference<DdcServiceSnapshot> snapshot,

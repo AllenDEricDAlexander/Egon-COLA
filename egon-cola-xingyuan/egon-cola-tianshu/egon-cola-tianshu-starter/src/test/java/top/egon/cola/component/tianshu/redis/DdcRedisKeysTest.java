@@ -8,6 +8,7 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcRedisKeysTest {
 
@@ -22,20 +23,20 @@ class DdcRedisKeysTest {
     @Test
     void buildsConfigKeysWithoutNamespace() {
         String value = DdcRedisKeys.config(
-                "retail", "local", "order", "feature.enabled"
+                101L, "retail", "local", "order", "feature.enabled"
         );
         String version = DdcRedisKeys.version(
-                "retail", "local", "order", "feature.enabled"
+                101L, "retail", "local", "order", "feature.enabled"
         );
-        String topic = DdcRedisKeys.topic("retail", "local", "order");
+        String topic = DdcRedisKeys.topic(101L, "retail", "local", "order");
         String lease = DdcRedisKeys.configLeaseInstance(
-                "retail", "local", "order", "instance-1"
+                101L, "retail", "local", "order", "instance-1"
         );
         String leases = DdcRedisKeys.configLeaseInstances(
-                "retail", "local", "order"
+                101L, "retail", "local", "order"
         );
         String idempotency = DdcRedisKeys.publishIdempotency(
-                "retail", "local", "order", "change-1"
+                101L, "retail", "local", "order", "change-1"
         );
 
         assertThat(hashTag(value))
@@ -47,7 +48,7 @@ class DdcRedisKeysTest {
         assertThat(hashTag(value))
                 .hasSize(64)
                 .doesNotContain("retail", "local", "order");
-        assertThat(value).startsWith("tianshu:v3:{").endsWith(":config:feature.enabled");
+        assertThat(value).startsWith("tianshu:v4:tenant:101:{").endsWith(":config:feature.enabled");
         assertThat(version).endsWith(":version:feature.enabled");
         assertThat(topic).endsWith(":topic");
         assertThat(lease).endsWith(":lease:instance:instance-1");
@@ -68,19 +69,19 @@ class DdcRedisKeysTest {
                 "http"
         );
 
-        String instance = DdcRedisKeys.registryInstance(key, "instance-1");
-        String service = DdcRedisKeys.registryService(key);
-        String revision = DdcRedisKeys.registryRevision(key);
+        String instance = DdcRedisKeys.registryInstance(101L, key, "instance-1");
+        String service = DdcRedisKeys.registryService(101L, key);
+        String revision = DdcRedisKeys.registryRevision(101L, key);
         String catalog = DdcRedisKeys.registryCatalog(
-                "retail", "local", "order",
+                101L, "retail", "local", "order",
                 DdcServiceKind.HTTP_PROVIDER, "http"
         );
         String catalogRevision = DdcRedisKeys.registryCatalogRevision(
-                "retail", "local", "order",
+                101L, "retail", "local", "order",
                 DdcServiceKind.HTTP_PROVIDER, "http"
         );
         String topic = DdcRedisKeys.registryTopic(
-                "retail", "local", "order",
+                101L, "retail", "local", "order",
                 DdcServiceKind.HTTP_PROVIDER, "http"
         );
 
@@ -95,10 +96,35 @@ class DdcRedisKeysTest {
         assertThat(catalog).endsWith(":registry:catalog:http");
         assertThat(catalogRevision).endsWith(":registry:catalog-revision:http");
         assertThat(topic).endsWith(":registry:topic:http");
-        assertThat(DdcRedisKeys.globalRegistryCatalog())
-                .isEqualTo("tianshu:v3:{registry-catalog}:services");
-        assertThat(DdcRedisKeys.globalRegistryCatalogRevision())
-                .isEqualTo("tianshu:v3:{registry-catalog}:revision");
+        assertThat(DdcRedisKeys.globalRegistryCatalog(101L))
+                .startsWith("tianshu:v4:tenant:101:{")
+                .endsWith(":services");
+        assertThat(DdcRedisKeys.globalRegistryCatalogRevision(101L))
+                .startsWith("tianshu:v4:tenant:101:{")
+                .endsWith(":revision");
+    }
+
+    @Test
+    void sameScopeInDifferentTenantsUsesDifferentSlotsAndCatalogs() {
+        String configA = DdcRedisKeys.config(101L, "retail", "dev", "order", "switch");
+        String configB = DdcRedisKeys.config(202L, "retail", "dev", "order", "switch");
+        String globalA = DdcRedisKeys.globalRegistryCatalog(101L);
+        String globalB = DdcRedisKeys.globalRegistryCatalog(202L);
+
+        assertThat(configA).isNotEqualTo(configB);
+        assertThat(hashTag(configA)).isNotEqualTo(hashTag(configB));
+        assertThat(globalA).isNotEqualTo(globalB);
+        assertThat(hashTag(globalA)).isNotEqualTo(hashTag(globalB));
+    }
+
+    @Test
+    void rejectsMissingAndNonPositiveTenantIds() {
+        assertThatThrownBy(() ->
+                DdcRedisKeys.config(null, "retail", "dev", "order", "switch"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() ->
+                DdcRedisKeys.topic(0L, "retail", "dev", "order"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private String hashTag(String key) {

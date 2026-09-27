@@ -29,7 +29,7 @@ class RpcDdcServiceRegistryClientTest {
         DdcCommonProtoMapper common = new DdcCommonProtoMapper(1024 * 1024);
         DdcRegistryProtoMapper mapper = new DdcRegistryProtoMapper(common);
         RpcDdcServiceRegistryClient client = new RpcDdcServiceRegistryClient(
-                rpc, mapper, common, new DdcRpcStatusExceptionMapper());
+                rpc, mapper, common, new DdcRpcStatusExceptionMapper(), 101L);
         Instant now = Instant.parse("2026-08-09T00:00:00Z");
         top.egon.cola.component.tianshu.model.registry.DdcServiceKey key = key();
         DdcLeaseSession session = new DdcLeaseSession(
@@ -90,7 +90,8 @@ class RpcDdcServiceRegistryClientTest {
                 rpc,
                 new DdcRegistryProtoMapper(common),
                 common,
-                new DdcRpcStatusExceptionMapper()
+                new DdcRpcStatusExceptionMapper(),
+                101L
         );
         Instant now = Instant.parse("2026-08-09T00:00:00Z");
         when(rpc.registerService(any())).thenReturn(RegisterServiceResponse

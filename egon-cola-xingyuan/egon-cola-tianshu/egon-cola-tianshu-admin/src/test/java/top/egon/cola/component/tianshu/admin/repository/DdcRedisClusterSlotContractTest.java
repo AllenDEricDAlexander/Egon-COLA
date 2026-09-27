@@ -16,16 +16,16 @@ class DdcRedisClusterSlotContractTest {
     @Test
     void configProjectionLeaseAndLockKeysShareTheScopeSlot() {
         List<String> keys = List.of(
-                DdcRedisKeys.config("retail", "dev", "demo", "switch"),
-                DdcRedisKeys.version("retail", "dev", "demo", "switch"),
-                DdcRedisKeys.publishIdempotency(
+                DdcRedisKeys.config(101L, "retail", "dev", "demo", "switch"),
+                DdcRedisKeys.version(101L, "retail", "dev", "demo", "switch"),
+                DdcRedisKeys.publishIdempotency(101L,
                         "retail", "dev", "demo", "change-1"),
-                DdcRedisKeys.topic("retail", "dev", "demo"),
-                DdcRedisKeys.topic("retail", "dev", "demo") + ":lock",
-                DdcRedisKeys.configLeaseInstance(
+                DdcRedisKeys.topic(101L, "retail", "dev", "demo"),
+                DdcRedisKeys.topic(101L, "retail", "dev", "demo") + ":lock",
+                DdcRedisKeys.configLeaseInstance(101L,
                         "retail", "dev", "demo", "instance-1"),
-                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo"),
-                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo") + ":lock"
+                DdcRedisKeys.configLeaseInstances(101L, "retail", "dev", "demo"),
+                DdcRedisKeys.configLeaseInstances(101L, "retail", "dev", "demo") + ":lock"
         );
 
         assertOneSlot(keys);
@@ -38,22 +38,22 @@ class DdcRedisClusterSlotContractTest {
                 "order.v1.OrderQueryService", "default", "1.0.0", "grpc"
         );
         List<String> keys = List.of(
-                DdcRedisKeys.registryInstance(serviceKey, "provider-1"),
-                DdcRedisKeys.registryService(serviceKey),
-                DdcRedisKeys.registryRevision(serviceKey),
-                DdcRedisKeys.registryCatalog(
+                DdcRedisKeys.registryInstance(101L, serviceKey, "provider-1"),
+                DdcRedisKeys.registryService(101L, serviceKey),
+                DdcRedisKeys.registryRevision(101L, serviceKey),
+                DdcRedisKeys.registryCatalog(101L,
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcRedisKeys.registryCatalogRevision(
+                DdcRedisKeys.registryCatalogRevision(101L,
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcRedisKeys.registryTopic(
+                DdcRedisKeys.registryTopic(101L,
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcRedisKeys.registryInstance(serviceKey, "scope") + ":lock"
+                DdcRedisKeys.registryInstance(101L, serviceKey, "scope") + ":lock"
         );
 
-        assertThat(keys).allMatch(key -> key.startsWith("tianshu:v3:{"));
+        assertThat(keys).allMatch(key -> key.startsWith("tianshu:v4:tenant:101:{"));
         assertOneSlot(keys);
     }
 

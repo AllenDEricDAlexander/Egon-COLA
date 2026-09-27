@@ -1,32 +1,55 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@Component
+@Slf4j
+@Component("publishCompletionWaiterRegistry")
 public class PublishCompletionWaiterRegistry {
 
-    private final ConcurrentMap<String, PublishWaiter> waiters = new ConcurrentHashMap<>();
+    private final ConcurrentMap<TenantChangeKey, PublishWaiter> waiters = new ConcurrentHashMap<>();
 
     public PublishWaiter register(String changeId) {
         if (changeId == null || changeId.isBlank()) {
             throw new IllegalArgumentException("changeId is required");
         }
-        return waiters.computeIfAbsent(changeId, ignored -> new PublishWaiter());
+        return waiters.computeIfAbsent(new TenantChangeKey(tenantId(), changeId),
+                ignored -> new PublishWaiter());
     }
 
     public void signal(String changeId) {
-        PublishWaiter waiter = waiters.get(changeId);
+        long tenantId = tenantId();
+        PublishWaiter waiter = waiters.get(new TenantChangeKey(tenantId, changeId));
         if (waiter != null) {
             waiter.signal();
+        } else {
+            log.debug("No Tianshu publish completion waiter for tenantId={}", tenantId);
         }
     }
 
     public void remove(String changeId, PublishWaiter waiter) {
-        waiters.remove(changeId, waiter);
+        waiters.remove(new TenantChangeKey(tenantId(), changeId), waiter);
+    }
+
+    private long tenantId() {
+        String value = MDC.get("tenantId");
+        try {
+            long tenantId = Long.parseLong(value);
+            if (tenantId > 0 && Long.toString(tenantId).equals(value)) {
+                return tenantId;
+            }
+        } catch (NumberFormatException ignored) {
+            // A request without trusted tenant MDC is rejected below.
+        }
+        throw new IllegalStateException("A positive trusted tenantId is required for publish completion");
+    }
+
+    private record TenantChangeKey(long tenantId, String changeId) {
     }
 
     public static final class PublishWaiter {

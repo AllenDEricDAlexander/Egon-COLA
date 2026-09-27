@@ -1,7 +1,9 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
@@ -36,11 +38,17 @@ class DdcScopeGateTest {
 
     @BeforeEach
     void setUp() {
+        MDC.put("tenantId", "101");
         bizRepository = mock(DdcBizRepository.class);
         appRepository = mock(DdcAppRepository.class);
         envRepository = mock(DdcEnvRepository.class);
         namespaceRepository = mock(DdcNamespaceRepository.class);
         gate = new DdcScopeGate(bizRepository, appRepository, envRepository, namespaceRepository);
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        MDC.clear();
     }
 
     private DdcBizEntity biz(boolean enabled) {
@@ -120,6 +128,26 @@ class DdcScopeGateTest {
         verify(bizRepository, times(1)).findByBizCode("pay-biz");
         verify(appRepository, times(1))
                 .findByBizCodeAndAppCode("pay-biz", "orders-app");
+    }
+
+    @Test
+    void sameScopeCacheEntryIsIndependentAcrossTenants() {
+        when(bizRepository.findByBizCode("pay-biz"))
+                .thenReturn(Optional.of(biz(true)), Optional.of(biz(false)));
+        when(appRepository.findByBizCodeAndAppCode("pay-biz", "orders-app"))
+                .thenReturn(Optional.of(app(true)));
+        when(envRepository.findByEnvCode("dev")).thenReturn(Optional.of(env(true)));
+        when(namespaceRepository.findByBizCodeAndNamespaceCode("pay-biz", "default"))
+                .thenReturn(Optional.of(ns(true)));
+
+        gate.assertEnabled("pay-biz", "orders-app", "dev", "default");
+        MDC.put("tenantId", "202");
+
+        assertThatThrownBy(() -> gate.assertEnabled(
+                "pay-biz", "orders-app", "dev", "default"))
+                .isInstanceOfSatisfying(CommonException.class,
+                        exception -> assertThatThrownByStatus(exception));
+        verify(bizRepository, times(2)).findByBizCode("pay-biz");
     }
 
     @Test

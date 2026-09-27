@@ -1,5 +1,9 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
@@ -12,6 +16,8 @@ import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -21,30 +27,26 @@ import java.util.function.Supplier;
  * hot registration path does not query the database on every call; write
  * paths (disable/delete) must invalidate via {@link #invalidate(String)}.
  */
-@Component
+@Slf4j
+@RequiredArgsConstructor
+@Component("ddcScopeGate")
 public class DdcScopeGate {
 
-    private static final long CACHE_TTL_MILLIS = 5000;
+    private static final Duration CACHE_TTL = Duration.ofSeconds(5);
 
+    @Qualifier("ddcBizRepository")
     private final DdcBizRepository bizRepository;
 
+    @Qualifier("ddcAppRepository")
     private final DdcAppRepository appRepository;
 
+    @Qualifier("ddcEnvRepository")
     private final DdcEnvRepository envRepository;
 
+    @Qualifier("ddcNamespaceRepository")
     private final DdcNamespaceRepository namespaceRepository;
 
     private final ConcurrentHashMap<String, Entry<?>> cache = new ConcurrentHashMap<>();
-
-    public DdcScopeGate(DdcBizRepository bizRepository,
-                        DdcAppRepository appRepository,
-                        DdcEnvRepository envRepository,
-                        DdcNamespaceRepository namespaceRepository) {
-        this.bizRepository = bizRepository;
-        this.appRepository = appRepository;
-        this.envRepository = envRepository;
-        this.namespaceRepository = namespaceRepository;
-    }
 
     public void assertEnabled(String bizCode, String appCode, String env, String namespace) {
         assertPhysicalEnabled(bizCode, appCode, env);
@@ -78,12 +80,14 @@ public class DdcScopeGate {
 
     /** Called by disable/delete write paths so the next check re-reads state. */
     public void invalidate(String entityKey) {
-        cache.remove(entityKey);
+        cache.remove(cacheKey(entityKey));
     }
 
     private void requireEnabled(String label, String code, Supplier<java.util.Optional<Boolean>> loader) {
         Boolean enabled = cached(label + ":" + code, loader);
         if (!Boolean.TRUE.equals(enabled)) {
+            log.debug("Denied disabled Tianshu scope for tenantId={}, dimension={}",
+                    tenantId(), label);
             throw new CommonException(DdcErrorStatus.SCOPE_DISABLED);
         }
     }
@@ -93,18 +97,36 @@ public class DdcScopeGate {
     }
 
     private <T> T cachedValue(String key, Supplier<T> loader) {
-        long now = System.currentTimeMillis();
-        Entry<?> entry = cache.get(key);
-        if (entry != null && now - entry.loadedAtMillis() < CACHE_TTL_MILLIS) {
+        Instant now = Instant.now();
+        String tenantKey = cacheKey(key);
+        Entry<?> entry = cache.get(tenantKey);
+        if (entry != null && Duration.between(entry.loadedAt(), now).compareTo(CACHE_TTL) < 0) {
             @SuppressWarnings("unchecked")
             T value = (T) entry.value();
             return value;
         }
         T value = loader.get();
-        cache.put(key, new Entry<>(value, now));
+        cache.put(tenantKey, new Entry<>(value, now));
         return value;
     }
 
-    private record Entry<T>(T value, long loadedAtMillis) {
+    private String cacheKey(String key) {
+        return tenantId() + ":" + key;
+    }
+
+    private long tenantId() {
+        String value = MDC.get("tenantId");
+        try {
+            long tenantId = Long.parseLong(value);
+            if (tenantId > 0 && Long.toString(tenantId).equals(value)) {
+                return tenantId;
+            }
+        } catch (NumberFormatException ignored) {
+            // A request without trusted tenant MDC is rejected below.
+        }
+        throw new IllegalStateException("A positive trusted tenantId is required for Tianshu scope checks");
+    }
+
+    private record Entry<T>(T value, Instant loadedAt) {
     }
 }

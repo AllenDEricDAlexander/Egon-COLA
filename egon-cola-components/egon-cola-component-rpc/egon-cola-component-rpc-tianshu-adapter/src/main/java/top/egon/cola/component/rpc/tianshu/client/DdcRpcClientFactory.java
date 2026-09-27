@@ -96,7 +96,8 @@ public final class DdcRpcClientFactory {
             return new DdcRpcClientHandle<>(
                     new RpcDdcServiceRegistryClient(
                             direct.client(), new DdcRegistryProtoMapper(common),
-                            common, new DdcRpcStatusExceptionMapper()
+                            common, new DdcRpcStatusExceptionMapper(),
+                            tenantProperties.requireTenantId()
                     ),
                     direct
             );

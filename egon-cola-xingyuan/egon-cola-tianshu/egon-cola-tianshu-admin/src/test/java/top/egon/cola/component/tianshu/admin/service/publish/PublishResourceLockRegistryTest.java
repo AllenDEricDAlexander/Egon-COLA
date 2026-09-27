@@ -1,6 +1,9 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigResourceKey;
 
 import java.util.ArrayList;
@@ -12,6 +15,16 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PublishResourceLockRegistryTest {
+
+    @BeforeEach
+    void bindTenant() {
+        MDC.put("tenantId", "101");
+    }
+
+    @AfterEach
+    void clearTenant() {
+        MDC.clear();
+    }
 
     @Test
     void onlyOneChangeCanOwnTheSameResource() throws Exception {
@@ -47,6 +60,21 @@ class PublishResourceLockRegistryTest {
         assertThat(registry.owner(first)).isEmpty();
     }
 
+    @Test
+    void sameResourceCanBeLockedIndependentlyByDifferentTenants() {
+        PublishResourceLockRegistry registry = new PublishResourceLockRegistry();
+        DdcConfigResourceKey key = key("switch");
+
+        assertThat(registry.tryAcquire(key, "change-101")).isTrue();
+        MDC.put("tenantId", "202");
+        assertThat(registry.tryAcquire(key, "change-202")).isTrue();
+        assertThat(registry.owner(key)).contains("change-202");
+
+        registry.release(key, "change-202");
+        MDC.put("tenantId", "101");
+        assertThat(registry.owner(key)).contains("change-101");
+    }
+
     private void acquire(PublishResourceLockRegistry registry,
                          DdcConfigResourceKey key,
                          String changeId,
@@ -55,10 +83,13 @@ class PublishResourceLockRegistryTest {
                          List<Boolean> results) {
         ready.countDown();
         try {
+            MDC.put("tenantId", "101");
             start.await();
             results.add(registry.tryAcquire(key, changeId));
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
+        } finally {
+            MDC.clear();
         }
     }
 

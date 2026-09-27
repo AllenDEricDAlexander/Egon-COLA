@@ -16,7 +16,7 @@ class DdcActiveRegistrationIndexTest {
 
     @Test
     void keepsMultipleLeasesForOneRuntimeInstance() {
-        DdcActiveRegistrationIndex index = new DdcActiveRegistrationIndex();
+        DdcActiveRegistrationIndex index = new DdcActiveRegistrationIndex(101L);
         DdcServiceKey first = service("orders-rpc");
         DdcServiceKey second = service("payments-rpc");
 

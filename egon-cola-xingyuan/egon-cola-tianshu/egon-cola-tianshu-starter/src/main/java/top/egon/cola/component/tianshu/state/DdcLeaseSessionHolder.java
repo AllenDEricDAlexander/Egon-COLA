@@ -4,6 +4,8 @@ import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -12,10 +14,17 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class DdcLeaseSessionHolder {
 
-    /**
-     * 当前租约会话的原子引用。 Atomic reference to the current lease session.
-     */
-    private final AtomicReference<DdcLeaseSession> current = new AtomicReference<>();
+    private final Long tenantId;
+
+    private final ConcurrentMap<TenantSessionKey, AtomicReference<DdcLeaseSession>> sessions =
+            new ConcurrentHashMap<>();
+
+    public DdcLeaseSessionHolder(Long tenantId) {
+        if (tenantId != null && tenantId <= 0) {
+            throw new IllegalArgumentException("tenantId must be positive");
+        }
+        this.tenantId = tenantId;
+    }
 
     /**
      * 获取当前租约会话。
@@ -24,7 +33,8 @@ public class DdcLeaseSessionHolder {
      * @return 包含当前会话的可选值; optional containing the current session
      */
     public Optional<DdcLeaseSession> current() {
-        return Optional.ofNullable(current.get());
+        AtomicReference<DdcLeaseSession> session = sessions.get(sessionKey());
+        return session == null ? Optional.empty() : Optional.ofNullable(session.get());
     }
 
     /**
@@ -34,7 +44,8 @@ public class DdcLeaseSessionHolder {
      * @param session 新租约会话; new lease session
      */
     public void replace(DdcLeaseSession session) {
-        current.set(Objects.requireNonNull(session, "session must not be null"));
+        sessions.computeIfAbsent(sessionKey(), ignored -> new AtomicReference<>())
+                .set(Objects.requireNonNull(session, "session must not be null"));
     }
 
     /**
@@ -45,6 +56,17 @@ public class DdcLeaseSessionHolder {
      * @return 成功清除时为 {@code true}; {@code true} when the session was cleared
      */
     public boolean compareAndClear(DdcLeaseSession expected) {
-        return current.compareAndSet(expected, null);
+        AtomicReference<DdcLeaseSession> session = sessions.get(sessionKey());
+        return session == null ? expected == null : session.compareAndSet(expected, null);
+    }
+
+    private TenantSessionKey sessionKey() {
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("A positive configured tenant is required for lease state");
+        }
+        return new TenantSessionKey(tenantId);
+    }
+
+    private record TenantSessionKey(long tenantId) {
     }
 }

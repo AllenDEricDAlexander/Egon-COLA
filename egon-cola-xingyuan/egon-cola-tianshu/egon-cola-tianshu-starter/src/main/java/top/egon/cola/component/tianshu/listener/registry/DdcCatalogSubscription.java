@@ -1,5 +1,7 @@
 package top.egon.cola.component.tianshu.listener.registry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.tianshu.service.registry.DdcRegistrySnapshotLoader;
 
 import org.redisson.api.RedissonClient;
@@ -30,11 +32,17 @@ final class DdcCatalogSubscription extends DdcManagedRegistrySubscription {
                            DdcServiceQuery query,
                            Consumer<DdcServiceCatalogSnapshot> listener,
                            RedissonClient redissonClient,
+                           long tenantId,
+                           ObjectMapper eventMapper,
+                           ValidationUtils validationUtils,
                            ScheduledExecutorService scheduler,
                            long reconcileIntervalMillis,
                            Consumer<DdcManagedRegistrySubscription> closedCallback) {
         super(
                 redissonClient,
+                tenantId,
+                eventMapper,
+                validationUtils,
                 scheduler,
                 reconcileIntervalMillis,
                 closedCallback
@@ -52,6 +60,7 @@ final class DdcCatalogSubscription extends DdcManagedRegistrySubscription {
         }
         start(List.of(
                 DdcRedisKeys.registryTopic(
+                        tenantId,
                         query.bizCode(),
                         query.env(),
                         query.appCode(),
@@ -72,6 +81,9 @@ final class DdcCatalogSubscription extends DdcManagedRegistrySubscription {
     protected synchronized void refresh() {
         DdcServiceCatalogSnapshot next = loader.getServiceKeys(query);
         DdcServiceCatalogSnapshot previous = current;
+        if (previous != null && next.revision() < previous.revision()) {
+            return;
+        }
         if (previous != null
                 && previous.revision() == next.revision()
                 && previous.serviceKeys().equals(next.serviceKeys())) {

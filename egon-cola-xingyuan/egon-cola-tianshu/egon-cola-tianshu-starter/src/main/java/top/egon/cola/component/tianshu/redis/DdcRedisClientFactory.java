@@ -39,6 +39,31 @@ public final class DdcRedisClientFactory {
             int port,
             String password,
             int database) {
+        return create(mode, nodes, masterName, host, port, password, null, database);
+    }
+
+    /**
+     * 创建使用租户ACL用户名的Redisson客户端。 / Creates a Redisson client with the tenant ACL username.
+     *
+     * @param mode       拓扑模式 / topology mode
+     * @param nodes      节点URL列表 / node URLs
+     * @param masterName 哨兵主节点名称 / sentinel master name
+     * @param host       单机回退主机 / standalone fallback host
+     * @param port       单机回退端口 / standalone fallback port
+     * @param password   现有secret中的密码 / password from the existing secret channel
+     * @param username   本tenant的Redis ACL用户名 / Redis ACL username for this tenant
+     * @param database   单机或哨兵逻辑数据库 / standalone or sentinel database
+     * @return 已创建的Redisson客户端 / created Redisson client
+     */
+    public static RedissonClient create(
+            String mode,
+            List<String> nodes,
+            String masterName,
+            String host,
+            int port,
+            String password,
+            String username,
+            int database) {
         return Redisson.create(configuration(
                 mode,
                 nodes,
@@ -46,6 +71,7 @@ public final class DdcRedisClientFactory {
                 host,
                 port,
                 password,
+                username,
                 database
         ));
     }
@@ -71,6 +97,31 @@ public final class DdcRedisClientFactory {
             int port,
             String password,
             int database) {
+        return configuration(mode, nodes, masterName, host, port, password, null, database);
+    }
+
+    /**
+     * 创建包含消费tenant ACL用户名的拓扑配置。 / Creates a topology configuration with the consumer tenant ACL username.
+     *
+     * @param mode       拓扑模式 / topology mode
+     * @param nodes      节点URL列表 / node URLs
+     * @param masterName 哨兵主节点名称 / sentinel master name
+     * @param host       单机回退主机 / standalone fallback host
+     * @param port       单机回退端口 / standalone fallback port
+     * @param password   现有secret中的密码 / password from the existing secret channel
+     * @param username   本tenant的Redis ACL用户名 / Redis ACL username for this tenant
+     * @param database   单机或哨兵逻辑数据库 / standalone or sentinel database
+     * @return 已配置的Redisson拓扑 / configured Redisson topology
+     */
+    public static Config configuration(
+            String mode,
+            List<String> nodes,
+            String masterName,
+            String host,
+            int port,
+            String password,
+            String username,
+            int database) {
         String topology = normalizeMode(mode);
         List<String> addresses = nodes == null
                 ? List.of()
@@ -84,15 +135,17 @@ public final class DdcRedisClientFactory {
                     addresses,
                     masterName,
                     password,
+                    username,
                     database
             );
-            case "CLUSTER" -> cluster(config, addresses, password);
+            case "CLUSTER" -> cluster(config, addresses, password, username);
             case "SINGLE" -> single(
                     config,
                     addresses,
                     host,
                     port,
                     password,
+                    username,
                     database
             );
             default -> throw new IllegalArgumentException(
@@ -118,6 +171,7 @@ public final class DdcRedisClientFactory {
             String host,
             int port,
             String password,
+            String username,
             int database) {
         if (addresses.size() > 1) {
             throw new IllegalArgumentException(
@@ -132,6 +186,9 @@ public final class DdcRedisClientFactory {
                 .setDatabase(database);
         if (hasText(password)) {
             single.setPassword(password);
+        }
+        if (hasText(username)) {
+            single.setUsername(username.trim());
         }
     }
 
@@ -149,6 +206,7 @@ public final class DdcRedisClientFactory {
             List<String> addresses,
             String masterName,
             String password,
+            String username,
             int database) {
         if (!hasText(masterName)) {
             throw new IllegalArgumentException(
@@ -167,6 +225,9 @@ public final class DdcRedisClientFactory {
         if (hasText(password)) {
             sentinel.setPassword(password);
         }
+        if (hasText(username)) {
+            sentinel.setUsername(username.trim());
+        }
     }
 
     /**
@@ -179,7 +240,8 @@ public final class DdcRedisClientFactory {
     private static void cluster(
             Config config,
             List<String> addresses,
-            String password) {
+            String password,
+            String username) {
         if (addresses.isEmpty()) {
             throw new IllegalArgumentException(
                     "Tianshu Redis Cluster node URLs are required"
@@ -189,6 +251,9 @@ public final class DdcRedisClientFactory {
                 .addNodeAddress(addresses.toArray(String[]::new));
         if (hasText(password)) {
             cluster.setPassword(password);
+        }
+        if (hasText(username)) {
+            cluster.setUsername(username.trim());
         }
     }
 

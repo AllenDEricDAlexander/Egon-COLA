@@ -1,5 +1,7 @@
 package top.egon.cola.component.tianshu.listener.registry;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.tianshu.service.registry.DdcRegistrySnapshotLoader;
 
 import org.redisson.api.RedissonClient;
@@ -33,12 +35,18 @@ final class DdcInstanceSubscription extends DdcManagedRegistrySubscription {
                             DdcServiceKey serviceKey,
                             Consumer<DdcServiceSnapshot> listener,
                             RedissonClient redissonClient,
+                            long tenantId,
+                            ObjectMapper eventMapper,
+                            ValidationUtils validationUtils,
                             Clock clock,
                             ScheduledExecutorService scheduler,
                             long reconcileIntervalMillis,
                             Consumer<DdcManagedRegistrySubscription> closedCallback) {
         super(
                 redissonClient,
+                tenantId,
+                eventMapper,
+                validationUtils,
                 scheduler,
                 reconcileIntervalMillis,
                 closedCallback
@@ -52,6 +60,7 @@ final class DdcInstanceSubscription extends DdcManagedRegistrySubscription {
     void start() {
         start(List.of(
                 DdcRedisKeys.registryTopic(
+                        tenantId,
                         serviceKey.bizCode(),
                         serviceKey.env(),
                         serviceKey.appCode(),
@@ -93,6 +102,9 @@ final class DdcInstanceSubscription extends DdcManagedRegistrySubscription {
 
     private void publishIfChanged(DdcServiceSnapshot next) {
         DdcServiceSnapshot previous = current;
+        if (previous != null && next.revision() < previous.revision()) {
+            return;
+        }
         if (previous != null
                 && previous.revision() == next.revision()
                 && previous.instances().equals(next.instances())) {

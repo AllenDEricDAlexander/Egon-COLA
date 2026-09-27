@@ -9,6 +9,7 @@ import org.redisson.api.RLock;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
+import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationAuthenticationException;
 import top.egon.cola.component.tianshu.admin.security.registration.VerifiedDdcRegistrationIdentity;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
@@ -248,21 +249,34 @@ public class DdcConfigLeaseRedisRepository {
 
     private RBucket<String> lease(String bizCode, String env, String appCode, String instanceId) {
         return redissonClient.getBucket(
-                DdcRedisKeys.configLeaseInstance(bizCode, env, appCode, instanceId),
+                DdcRedisKeys.configLeaseInstance(tenantId(), bizCode, env, appCode, instanceId),
                 StringCodec.INSTANCE
         );
     }
 
     private RSet<String> instances(String bizCode, String env, String appCode) {
         return redissonClient.getSet(
-                DdcRedisKeys.configLeaseInstances(bizCode, env, appCode),
+                DdcRedisKeys.configLeaseInstances(tenantId(), bizCode, env, appCode),
                 StringCodec.INSTANCE
         );
     }
 
     private RLock scopeLock(String bizCode, String env, String appCode) {
         return redissonClient.getLock(
-                DdcRedisKeys.configLeaseInstances(bizCode, env, appCode) + ":lock");
+                DdcRedisKeys.configLeaseInstances(tenantId(), bizCode, env, appCode) + ":lock");
+    }
+
+    private long tenantId() {
+        String value = MDC.get("tenantId");
+        try {
+            long tenantId = Long.parseLong(value);
+            if (tenantId > 0 && Long.toString(tenantId).equals(value)) {
+                return tenantId;
+            }
+        } catch (NumberFormatException ignored) {
+            // A request without trusted tenant MDC is rejected below.
+        }
+        throw new IllegalStateException("A positive trusted tenantId is required for Tianshu Redis access");
     }
 
     private String toJson(DdcInstanceIdentity identity,

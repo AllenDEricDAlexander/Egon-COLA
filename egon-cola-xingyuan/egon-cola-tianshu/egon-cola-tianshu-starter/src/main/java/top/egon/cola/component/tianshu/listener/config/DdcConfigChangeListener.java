@@ -1,57 +1,96 @@
 package top.egon.cola.component.tianshu.listener.config;
 
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
+import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
 import org.redisson.api.listener.MessageListener;
+import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
+import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 import top.egon.cola.component.tianshu.service.refresh.DdcRefreshService;
 import top.egon.cola.component.tianshu.observability.DdcTraceSupport;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+
+import java.util.Map;
 
 /**
  * 过滤并校验 Redis 配置发布消息，然后将有效消息交给刷新服务。 Filters and validates Redis configuration-publication messages before handing valid messages to the refresh service.
  */
-public class DdcConfigChangeListener implements MessageListener<DdcPublishMessage> {
+@Slf4j
+@RequiredArgsConstructor
+public class DdcConfigChangeListener
+        implements MessageListener<DdcTenantMessageDTO<DdcPublishMessage>> {
 
     /**
      * 用于限定本客户端业务、应用和环境的属性。 Properties defining this client's business, application, and environment scope.
      */
+    @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
     private final DdcProperties properties;
+
+    @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+    private final DdcTenantProperties tenantProperties;
 
     /**
      * 执行配置版本检查、应用和确认的刷新服务。 Refresh service that performs version checks, application, and acknowledgement.
      */
+    @Qualifier("ddcRefreshService")
     private final DdcRefreshService refreshService;
 
-    /**
-     * 创建作用域受限的 Redis 配置变更监听器。 Creates a scope-restricted Redis configuration-change listener.
-     *
-     * @param properties     Tianshu 作用域属性。 Tianshu scope properties
-     * @param refreshService 配置刷新服务。 configuration refresh service
-     */
-    public DdcConfigChangeListener(DdcProperties properties, DdcRefreshService refreshService) {
-        this.properties = properties;
-        this.refreshService = refreshService;
-    }
+    @Qualifier("egonColaValidationUtils")
+    private final ValidationUtils validationUtils;
 
     /**
      * 在追踪作用域内忽略空、跨作用域或摘要无效消息，并刷新有效消息。 Ignores null, cross-scope, or checksum-invalid messages within a trace scope and refreshes valid messages.
      *
      * @param channel 接收消息的 Redis 频道。 Redis channel that delivered the message
-     * @param message 发布消息。 publication message
+     * @param envelope tenant-validated outer message envelope
      */
     @Override
     public void onMessage(CharSequence channel,
-                          @Nullable DdcPublishMessage message) {
+                          @Nullable DdcTenantMessageDTO<DdcPublishMessage> envelope) {
         try (DdcTraceSupport.Scope ignored =
                      DdcTraceSupport.openOperation("redis-change")) {
-            if (message == null
-                    || !matchesScope(message)
+            long tenantId = tenantProperties.requireTenantId();
+            if (envelope == null) {
+                log.warn("Discarding Tianshu configuration message with a missing tenant envelope");
+                return;
+            }
+            try {
+                validationUtils.validate(envelope);
+            } catch (ConstraintViolationException invalidEnvelope) {
+                log.warn("Discarding Tianshu configuration message with invalid envelope constraints");
+                return;
+            }
+            if (!envelope.belongsToTenant(tenantId)) {
+                log.warn("Discarding Tianshu configuration message with an invalid tenant envelope");
+                return;
+            }
+            DdcPublishMessage message = envelope.getPayload();
+            if (!matchesScope(message)
                     || !matchesChecksum(message)
                     || !matchesResourceChecksum(message)) {
                 return;
             }
-            refreshService.refresh(message);
+            runWithTenant(tenantId, () -> refreshService.refresh(message));
+        }
+    }
+
+    private void runWithTenant(long tenantId, Runnable action) {
+        Map<String, String> previous = MDC.getCopyOfContextMap();
+        try {
+            MDC.put("tenantId", Long.toString(tenantId));
+            action.run();
+        } finally {
+            if (previous == null) {
+                MDC.clear();
+            } else {
+                MDC.setContextMap(previous);
+            }
         }
     }
 

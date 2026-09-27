@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcRpcClientFactoryTest {
 
@@ -70,6 +71,24 @@ class DdcRpcClientFactoryTest {
         } finally {
             server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
         }
+    }
+
+    @Test
+    void refusesToCreateRegistryClientWithoutPositiveTenant() {
+        DdcRpcProperties rpc = new DdcRpcProperties();
+        rpc.setTarget("localhost:19080");
+        rpc.getAuth().setEnabled(false);
+        DdcProperties ddc = new DdcProperties();
+        DdcTenantProperties tenant = new DdcTenantProperties();
+        DdcRpcClientFactory factory = new DdcRpcClientFactory(
+                rpc,
+                ddc,
+                tenant,
+                new RpcProcessIdentity("test", "test", "127.0.0.1", 1L, "instance-1"));
+
+        assertThatThrownBy(factory::registryClient)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("tenant-id");
     }
 
     private DdcRpcClientFactory factory(int port) {

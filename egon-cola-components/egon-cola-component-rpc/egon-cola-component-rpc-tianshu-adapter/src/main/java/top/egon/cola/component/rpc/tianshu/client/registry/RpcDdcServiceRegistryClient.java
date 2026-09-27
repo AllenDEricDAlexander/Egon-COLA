@@ -24,18 +24,20 @@ public final class RpcDdcServiceRegistryClient implements DdcServiceRegistryClie
     private final DdcRegistryProtoMapper mapper;
     private final DdcCommonProtoMapper common;
     private final DdcRpcStatusExceptionMapper errors;
-    private final DdcActiveRegistrationIndex registrations = new DdcActiveRegistrationIndex();
+    private final DdcActiveRegistrationIndex registrations;
     private RegistrySubscriptions subscriptions;
 
     public RpcDdcServiceRegistryClient(
             DdcServiceRegistryRpc rpc,
             DdcRegistryProtoMapper mapper,
             DdcCommonProtoMapper common,
-            DdcRpcStatusExceptionMapper errors) {
+            DdcRpcStatusExceptionMapper errors,
+            Long tenantId) {
         this.rpc = rpc;
         this.mapper = mapper;
         this.common = common;
         this.errors = errors;
+        this.registrations = new DdcActiveRegistrationIndex(tenantId);
     }
 
     public void subscriptions(RegistrySubscriptions subscriptions) {
