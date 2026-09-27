@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-28 01:19 Asia/Shanghai` |
+| Updated | `2026-09-28 02:04 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -14,7 +14,7 @@
 | Baseline Revision | `main@b31357a0a`；其他任务工作区改动不纳入 |
 | Implements Spec | [天枢 Java/CQE 规范修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) |
 | Spec Status | `Review` |
-| Spec Revision | `2026-09-28 01:19 Asia/Shanghai`；Outbox现有MP manifest、技术tenant列与只读启动行为的实现时修订 |
+| Spec Revision | `2026-09-28 02:04 Asia/Shanghai`；Outbox manifest/schema/read-only bootstrap及STRATEGY SINGLE schema路由修订 |
 | Effective Specs | [主修订稿](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)；[已确认原Spec](../spec/2026-09-21-17-18-tianshu-prompt-skill-management.md) |
 | Depends On Plans | None |
 | Supersedes | None |
@@ -74,7 +74,7 @@
 
 ### 4.1 Ordered strategy
 
-先稳定可复用组件与跨模块类型，再立单一Tianshu DDL和可信tenant上下文；Outbox表/schema/history沿用组件既有独立MP manifest，normal bootstrap只读验证，旧表Repository按相互依赖的五表、两表、四表分组改，Step 11统一删除旧JPA映射。Step 6将Admin Redis和发布锁/waiter改为必须使用可信tenant；三个既有后台任务在Step 10获得tenant-bearing BO后，按已登记tenant逐个通过DdcTenantContextExecutor运行并验证。Step 8–10可在隔离测试中分别RED/GREEN，但Admin后台启动/调度门禁只在Step 11、18、19及最终联调后开启。AI版本/推广必须在持久化和草稿之后；Web先API，再树编辑、版本/推广。Outbox改造保留原Redis ACK与reconcile，发布结果和消息交付结果分开。
+先稳定可复用组件与跨模块类型，再立单一Tianshu DDL和可信tenant上下文；保留Spec既定STRATEGY风格，扩展SINGLE逻辑表的schema配置（默认public），使Outbox表/schema/history沿用组件既有独立MP manifest并路由到egon_outbox；normal bootstrap只读验证，Tianshu public.ddl_history经同一物理PRIMARY做schema-scoped只读校验。旧表Repository按相互依赖的五表、两表、四表分组改，Step 11统一删除旧JPA映射。Step 6将Admin Redis和发布锁/waiter改为必须使用可信tenant；三个既有后台任务在Step 10获得tenant-bearing BO后，按已登记tenant逐个通过DdcTenantContextExecutor运行并验证。Step 8–10可在隔离测试中分别RED/GREEN，但Admin后台启动/调度门禁只在Step 11、18、19及最终联调后开启。AI版本/推广必须在持久化和草稿之后；Web先API，再树编辑、版本/推广。Outbox改造保留原Redis ACK与reconcile，发布结果和消息交付结果分开。
 原天枢是传统三层模块，不属于native Light/Web/Service生成器档案；用户也明确本次豁免在制后端code generator。DDL与每个PO/Mapper/XML手工按批准Spec建，现有protoc/MapStruct编译继续。
 
 ### 4.2 Test-first strategy
@@ -91,7 +91,7 @@
 | Step 4 | Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 22个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 5 | Step 4 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 47个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 6 | Step 5 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 43个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 7 | Step 1, Step 2, Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 11个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 7 | Step 1, Step 2, Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 18个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 8 | Step 7 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 70个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 9 | Step 8 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 37个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 10 | Step 9 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 72个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -138,7 +138,7 @@
 | 建立AI普通POJO与注解校验合同 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-015 REQ-016 REQ-019 | DdcAiJavaContractTest,DdcAiStableVersionSelectorTest | Step 3 | 共享契约class/枚举/少量value record确定，跨边界约束与稳定selector有RED/GREEN证据 | Step 5 | Step 4 |
 | 贯通可信多租户身份与早期ConfigData | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest | Step 4 | 同一可信tenant贯通HTTP、RPC v2、callback和bootstrap；不能由body或header选择别的tenant | Step 6 | Step 5 |
 | 为Redis键、Topic及本地状态加入tenant | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest | Step 5 | 同业务编码跨tenant不共享Redis/local map/waiter/锁；保留原业务fencing | Step 7 | Step 6 |
-| 定义Tianshu分布式DDL与组件Outbox只读就绪校验 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest,OutboxManagedDdlIntegrationTest | Step 1, Step 2, Step 3 | 一个Tianshu SQL/manifest建16业务表与public.ddl_history；Outbox既有组件manifest建egon_outbox表/history；normal startup只读校验，显式CLI初始化 | Step 8 | Step 7 |
+| 定义Tianshu分布式DDL与组件Outbox只读就绪校验 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest,EgonColaShardingPropertiesTest,EgonColaShardingStrategyFactoryTest,OutboxManagedDdlIntegrationTest | Step 1, Step 2, Step 3 | 一个Tianshu SQL/manifest建16业务表与public.ddl_history；STRATEGY SINGLE schema路由使Outbox既有manifest建egon_outbox表/history；normal startup只读校验，显式CLI初始化 | Step 8 | Step 7 |
 | 迁移租户元数据五表的Repository与调用者 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest | Step 7 | biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护 | Step 9 | Step 8 |
 | 迁移原配置草稿与历史并保持legacy删除语义 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest | Step 8 | YAML原业务version/publishedVersion/deleted标记与rollback保留，内部Long/外部public ID分离 | Step 10 | Step 9 |
 | 迁移发布任务、ACK、实例与审计的持久化 | REQ-011 REQ-013 REQ-015 | DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest,DdcLeaseExpiryScannerTest,DdcPublishTimeoutScannerTest,PublishStartupRecoveryTest | Step 9 | 保留claim/状态前置条件/租约fencing/计数和原失败事务；全部关系访问转MP；lease expiry、publish recovery、timeout扫描逐tenant执行并finally恢复MDC | Step 11 | Step 10 |
@@ -569,6 +569,20 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/integration/OutboxManagedDdlIntegrationTest.java` | SHA256 a6d21c9d3dd3 | OutboxManagedDdlIntegrationTest | 默认true runner兼容保持；false不调用DDL runner并准备只读metadata校验 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md` | SHA256 f7d7a5a702fa | README | 记录auto-initialize-ddl默认true及Tianshu false read-only运行策略；migration-mode含义不变 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md` | SHA256 db320348c344 | README.zh-CN | 同步英文配置合同和启动/显式迁移语义 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingProperties.java` | SHA256：执行锁定时复核 | EgonColaShardingProperties.TableProperties | 增加schema默认public，保留原五参数构造器并拷贝tableColumns | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaSingleTableShardingStrategy.java` | SHA256：执行锁定时复核 | SINGLE route | 将schema属性写入SINGLE实际节点/profile和原生YAML，缺省仍public | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaShardingStrategyFactory.java` | SHA256：执行锁定时复核 | StrategyFactory | 非SINGLE路由拒绝非public schema override，避免配置被静默忽略 | Step 7 | REQ-009 REQ-011 | EgonColaShardingStrategyFactoryTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingPropertiesTest.java` | SHA256：执行锁定时复核 | TableProperties binding/route | 验证缺省public及egon_outbox SINGLE物理路由 | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingStrategyFactoryTest.java` | SHA256：执行锁定时复核 | StrategyFactory schema override | 验证非SINGLE自定义schema拒绝及旧五参数SINGLE默认public | Step 7 | REQ-009 REQ-011 | EgonColaShardingStrategyFactoryTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.md` | SHA256：执行锁定时复核 | Common MP config docs | 说明single-table schema默认public与覆盖方式 | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.zh-CN.md` | SHA256：执行锁定时复核 | Common MP配置文档 | 同步schema默认值及仅SINGLE可覆盖的合同 | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingProperties.java` | SHA256：执行锁定时复核 | EgonColaShardingProperties.TableProperties | 增加schema默认public并保持旧5参数构造器；route value集合防御性拷贝 | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaSingleTableShardingStrategy.java` | SHA256：执行锁定时复核 | SINGLE table route | 以schema属性构造物理目标和native rule fragment；缺省行为仍public | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaShardingStrategyFactory.java` | SHA256：执行锁定时复核 | table route schema guard | 只有SINGLE允许非public schema，避免其他策略静默忽略此配置 | Step 7 | REQ-009 REQ-011 | EgonColaShardingStrategyFactoryTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingPropertiesTest.java` | SHA256：执行锁定时复核 | TableProperties binding/route | 覆盖schema默认public和egon_outbox SINGLE routing profile | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingStrategyFactoryTest.java` | SHA256：执行锁定时复核 | StrategyFactory schema guard | 非SINGLE策略显式schema覆盖被拒绝；旧SINGLE五参数构造仍为public | Step 7 | REQ-009 REQ-011 | EgonColaShardingStrategyFactoryTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.md` | SHA256：执行锁定时复核 | SINGLE table schema configuration | 记录默认public及SINGLE自定义schema约束 | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest,EgonColaShardingStrategyFactoryTest |
+| MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.zh-CN.md` | SHA256：执行锁定时复核 | SINGLE表schema配置 | 同步默认public及仅SINGLE允许覆盖的说明 | Step 7 | REQ-009 REQ-011 | EgonColaShardingPropertiesTest,EgonColaShardingStrategyFactoryTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPersistenceContractTest.java` | CREATE：基线不存在 | DdcAiPersistenceContractTest | 一live根/多历史；draft只读live；published节点不可变；current/source同root/tenant约束；回执key/hash冲突；标准Guard不物理删 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepositoryTest.java` | SHA256 678e53d16fe9 | DdcConfigLeaseRedisRepositoryTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java` | SHA256 c87e799aa9d7 | DdcConfigPagingRepositoryTest | 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 9, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
@@ -735,6 +749,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-28执行复核闭合Step 6改为tenant-scoped Redis/waiter后的现有后台消费者：DdcLeaseExpiryScanner的关系查询和lease Redis操作、PublishStartupRecovery的任务读取/dispatch、PublishTimeoutScanner的任务读取/终态通知均由调度线程启动，不能读取请求线程MDC。它们依赖的DdcInstanceBO/DdcPublishTaskBO tenant字段在Step 10建成，且Step 10已声明上述三个生产文件与对应测试；因此Step 10须从已校验的DdcTenantAdminProperties绑定列表逐tenant复核DdcTenantRegistry状态，并使用既有DdcTenantContextExecutor以system actor隔离执行和finally恢复，不从业务表枚举tenant、不设默认tenant。逐tenant异常记录安全日志后继续其他tenant；DdcLeaseExpiryScanner在完成per-tenant config-lease扫描后只调用一次会自行按已知tenant隔离的registry expireKnown。Step 10定向验证加入三个后台合同测试；Admin完整启动/调度仍按§4.1延至Step 11及后续门禁。未新增文件、依赖或公开业务API。
 
 2026-09-28执行复核对齐已批准Outbox依赖的当前MP schema owner：组件manifest `component-outbox/20260924_001`实际在`egon_outbox`创建消息表及独立history，schema metadata校验要求技术`tenant_id=0`、`deleted_at IS NULL`和MP审计/version列；原Step 7把组件消息表复制进Tianshu SQL会造成两个owner且字段不符。故Tianshu唯一新SQL只创建16业务表、public.ddl_history和egon_outbox schema；Outbox表/history仍由未修改的组件既有manifest管理。组件现有逻辑数据源factory会自动调用initializer，和本稿“普通启动只读验证”冲突；Step 7增加默认true、Tianshu false的`auto-initialize-ddl`兼容开关及单测，显式CLI按Tianshu SQL→组件manifest顺序初始化，normal bootstrap只准备readiness并由OutboxSchemaMetadataValidator只读核验。组件现有`migration-mode`仍保持enqueue/dispatch维护门禁语义。本修正只触及直接承载已批准Outbox契约的组件配置/initializer/测试/README及Tianshu DDL/CLI，无新依赖或Outbox消息API。
+
+2026-09-28继续核对发现Strategy路由合同与Outbox技术schema：已接受Spec要求保持`STRATEGY`，而当前MP SINGLE策略硬编码public、Outbox要求`egon_outbox`。Step 7扩展Common MP的TableProperties增加可选schema（默认public，schema override只准SINGLE）、SINGLE实际节点/YAML输出和工厂拒绝非SINGLE静默忽略；Outbox initializer接受STRATEGY和NATIVE，但仍用TopologyValidator核对同一PRIMARY上的message/history SINGLE节点与LOCAL事务。Tianshu逻辑表名`ddl_history`只映射egon_outbox组件history；public.ddl_history由managed DDL和ready validator从同物理primary的public schema直接访问。默认TableProperties五参数构造器及现有public routes保持兼容。
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -4106,8 +4122,8 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 - Requirements: `REQ-009`, `REQ-011`, `REQ-017`, `REQ-019`
 - Dependencies: Step 1, Step 2, Step 3
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
-- Observable outcome: Tianshu唯一SQL/manifest创建16业务表、public.ddl_history与Outbox schema；Outbox组件复用既有manifest创建egon_outbox表及其history；普通Admin启动只读验证，显式CLI才执行DDL。
-- End state: Tianshu与Outbox各由唯一owner管理其history前缀；不复制Outbox表SQL，不伪造接管，不自动DDL/导入；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Observable outcome: Tianshu唯一SQL/manifest创建16业务表、public.ddl_history与Outbox schema；保持STRATEGY；Outbox message/history以SINGLE schema=egon_outbox路由并复用既有manifest；普通Admin启动只读验证，显式CLI才执行DDL。
+- End state: Tianshu与Outbox各由唯一owner管理其history前缀；public.ddl_history从同一物理PRIMARY直接按schema只读校验；不复制Outbox表SQL，不伪造接管，不自动DDL/导入；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 7, Rule 9, Rule 10, Rule 11
@@ -4115,12 +4131,12 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`
 
-- Purpose: Tianshu manifest指纹/SHA/单版本；16业务表＋public.ddl_history与8组lifecycle/live索引；SQL只建egon_outbox schema，不复制组件Outbox表/history；复核组件现有manifest不变
+- Purpose: Tianshu manifest指纹/SHA/单版本；16业务表＋public.ddl_history与8组lifecycle/live索引；SQL只建egon_outbox schema，不复制组件Outbox表/history；验证STRATEGY的SINGLE schema route合同并复核组件manifest不变
 - Symbols: `DdcTianshuDdlContractTest`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcTianshuDdlContractTest`。
 - Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步0个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 先固定本步RED合同。
-- Contract/signature changes: DdcTianshuDdlContractTest新增可观察断言：Tianshu manifest真实SHA/单版本、16业务表与public.ddl_history、8组lifecycle/live索引、无draft parent_path FK、Outbox表不在Tianshu SQL重复出现、依赖中的component-outbox manifest保持一个既有版本；V1～V9字节hash不变。
+- Contract/signature changes: DdcTianshuDdlContractTest新增可观察断言：Tianshu manifest真实SHA/单版本、16业务表与public.ddl_history、8组lifecycle/live索引、无draft parent_path FK、Outbox表不在Tianshu SQL重复出现、依赖中的component-outbox manifest保持一个既有版本；旧V1～V9字节hash不变。Strategy路由细节由Common MP合同测试验证。
 - Input/output and state mapping: 输入为Tianshu SQL/manifest及classpath依赖的Outbox组件manifest；断言两个owner的schema、history、route精确分离；按修订稿§11保持表和索引合同。
 - Error and edge behavior: manifest丢失/多版本/hash漂移/重复表owner或旧V1～V9字节变化均失败；不伪造history或默认接管。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；Outbox复用已批准组件manifest，不新增依赖。
@@ -4141,12 +4157,12 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 
 #### File 2 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/integration/OutboxManagedDdlIntegrationTest.java`
 
-- Purpose: 固定Outbox组件既有auto-DDL兼容默认与Tianshu的read-only bootstrap模式；不启PG容器。
+- Purpose: 固定Outbox组件既有auto-DDL兼容默认、Tianshu的read-only bootstrap及STRATEGY解析后egon_outbox SINGLE route支持；不启PG容器。
 - Symbols: `OutboxManagedDdlIntegrationTest`
 - Repository evidence: 当前存在，SHA256前12位`a6d21c9d3dd3`；已有mock topology和不连PostgreSQL的DDL测试。
 - Dependencies and consumers: Outbox 5.4.1和既有`migrationMode`保持；新增属性/initializer行为的RED合同先于生产变更。
 - Why now: Outbox logical datasource factory在bootstrap调用initializer；Tianshu禁止普通Admin启动创建schema。
-- Contract/signature changes: 默认`autoInitializeDdl=true`仍调用既有managed runner；显式false只准备readiness，runner无调用。
+- Contract/signature changes: 默认`autoInitializeDdl=true`仍调用既有managed runner；显式false只准备readiness，runner无调用；STRATEGY模式仅在TopologyValidator确认两张Outbox表为同一PRIMARY/egon_outbox/LOCAL SINGLE route后放行。
 - Input/output and state mapping: 复用现有物理source/YAML/topology fixture；正常应用后续`OutboxSchemaMetadataValidator`执行实际只读列/索引/history核验。
 - Error and edge behavior: false分支缺schema由metadata validator fail closed；该设置不改变`migrationMode`的enqueue/dispatch维护语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-CONFIG-001。
@@ -4159,25 +4175,158 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
     var properties = context.getBean("outboxMpStorageProperties", OutboxMpStorageProperties.class);
     var ddlRunner = mock(EgonColaPostgreDdlRunner.class);
     stubRunnerWithManifestResults(ddlRunner);
-    var initializer = initializerWithValidNativeTopology(properties, ddlRunner);
-    initializer.initialize(physicalSources, nativeYaml);
-    verifyNoInteractions(ddlRunner); // Expected RED: the current implementation invokes the runner.
+    var initializer = initializerWithValidTopology(properties, strategyPropertiesWithOutboxSchema(), ddlRunner);
+    initializer.initialize(physicalSources, strategyYamlLoader.load(strategyPropertiesWithOutboxSchema()));
+    verifyNoInteractions(ddlRunner); // false bootstrap prepares metadata readiness without applying SQL.
     assertReadinessPreparedForOutboxSchemaMetadataValidator();
   });
 }
+@Test void strategyConfigUsesResolvedOutboxSingleSchemaRoute() {
+  var sharding = strategyPropertiesWithOutboxSchema();
+  var route = topologyValidator.validate(sharding, strategyYamlLoader.load(sharding));
+  initializer(sharding, autoInitializeDdlFalse()).initialize(physical, route.yaml());
+  assertThat(route.profiles()).containsOutboxMessageAndHistoryOnPrimary("egon_outbox");
+}
 ```
 
-- Verification contribution: 本文件先证明true/default保持旧调用，false不会执行DDL且仍可由组件metadata validator read-only fail closed。
+- Verification contribution: 本文件先证明true/default保持旧调用，false不会执行DDL；STRATEGY映射后的egon_outbox SINGLE routes仍经TopologyValidator与initializer检查后才可read-only fail closed。
 - After this file: false-mode RED evidence is recorded before changing the property or initializer; this test then guards compatibility and read-only preparation.
 
-#### File 3 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java`
+#### File 3 — `MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingPropertiesTest.java`
+
+- Purpose: prove `TableProperties.schema` binds to STRATEGY configuration, defaults to public, and becomes the physical schema in a SINGLE routing profile.
+- Symbols: `EgonColaShardingPropertiesTest.singleSchemaOverrideBindsAndRoutes`
+- Repository evidence: current `TableProperties(type,dataSource,shardingColumn,tableColumns,rootKeyName)` has no schema component; `EgonColaSingleTableShardingStrategy` currently constructs a `public` target.
+- Dependencies and consumers: existing Binder fixture, `EgonColaSingleTableShardingStrategy`, and Outbox's exact `egon_outbox` SINGLE profile.
+- Why now: fail before changing public configuration or routing behavior; keep the approved STRATEGY architecture and prove route fingerprints can include a separate technical schema.
+- Contract/signature changes: a supplied `tables.<outbox-table>.schema=egon_outbox` must bind; omission must resolve to `public` and preserve old routes.
+- Input/output and state mapping: bind one STRATEGY/SINGLE table and primary source, then ask the existing strategy for its typed profile.
+- Error and edge behavior: no database is opened; missing binding falls back to public and fails the explicit `egon_outbox` route assertion.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-CONFIG-001, MC-MODEL-001。
+- Literal rule enforcement: Rule 3 treats the immutable TableProperties record as a value carrier and copies its list; Rule 7 preserves property binding; Rule 11 retains the existing STRATEGY configuration.
+- Implementation pseudocode:
+
+```java
+var properties = bind(strategySource("outbox_message", "egon_outbox"));
+var profile = singleStrategy.toRoutingProfile("outbox_message", properties.getTables().get("outbox_message"), properties.getDataSources());
+assertThat(profile.actualNodes().get(new PartitionKeyBO(0, 0)).getFirst().schema()).isEqualTo("egon_outbox");
+assertThat(singleStrategy.toRoutingProfile("ordinary_table", defaultPublicTable, sources).actualNodes().get(key).getFirst().schema()).isEqualTo("public");
+```
+
+- Verification contribution: binder and typed route profile distinguish explicit `egon_outbox` from the backward-compatible public default.
+- After this file: the new schema binding has a behavior RED and a route-level GREEN assertion before production code changes.
+
+#### File 4 — `MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingStrategyFactoryTest.java`
+
+- Purpose: protect old five-argument TableProperties construction and reject a nonpublic schema on every strategy except SINGLE.
+- Symbols: `EgonColaShardingStrategyFactoryTest.rejectsSchemaOverrideForNonSingleTables`
+- Repository evidence: factory validates strategy-specific fields but currently has no schema-override guard; old callers construct TableProperties with five arguments.
+- Dependencies and consumers: Common MP strategy registry and the compatibility constructor retained by the next production file.
+- Why now: prevent future configuration from silently carrying a schema that its selected strategy ignores.
+- Contract/signature changes: custom schema is supported only by the `SINGLE` strategy; the old five-argument constructor remains source/binary compatible and defaults to public.
+- Input/output and state mapping: bind a STANDARD_TENANT_ID table with a custom schema and construct the existing five-argument SINGLE value.
+- Error and edge behavior: non-SINGLE override fails with `SCHEMA_OVERRIDE_REQUIRES_SINGLE`; legacy constructor yields public without changing its route.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-CONFIG-001, MC-MODEL-001。
+- Literal rule enforcement: Rule 1 retains the existing strategy type names; Rule 3 verifies record compatibility and immutable components; Rule 7 leaves old configurations unchanged.
+- Implementation pseudocode:
+
+```java
+var table = bindTable("STANDARD_TENANT_ID", "egon_outbox");
+assertThatThrownBy(() -> factory.create(table.type(), table)).hasMessageContaining("SCHEMA_OVERRIDE_REQUIRES_SINGLE");
+var legacySingle = new TableProperties("SINGLE", "primary", null, null, null);
+assertThat(singleStrategy.toRoutingProfile("legacy_table", legacySingle, primarySources).actualNodes().get(key).getFirst().schema()).isEqualTo("public");
+```
+
+- Verification contribution: proves unsupported overrides fail explicitly and existing callers preserve the public schema.
+- After this file: the failure case and five-argument compatibility behavior are fixed before production changes.
+
+#### File 5 — `MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingProperties.java`
+
+- Purpose: add optional physical schema to the existing strategy table route value while preserving its prior public default and constructor.
+- Symbols: `EgonColaShardingProperties.TableProperties`
+- Repository evidence: current nested record has five constructor components and TableProperties is the source of strategy-specific table mappings.
+- Dependencies and consumers: `EgonColaSingleTableShardingStrategy`; old Common MP configurations omit this new key.
+- Why now: Outbox's two technical SINGLE routes share the Tianshu PRIMARY but live in `egon_outbox`; business STANDARD_TENANT_ID routes remain public.
+- Contract/signature changes: add `schema` with lowercase PostgreSQL identifier validation and default `public`; keep a five-argument constructor delegating to the new canonical constructor; defensively copy nonnull `tableColumns`.
+- Input/output and state mapping: configuration binding carries a per-table schema; omitted values normalize to public.
+- Error and edge behavior: blank/invalid identifiers fail validation; schema override on non-SINGLE is rejected by the existing strategy factory.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-MODEL-001, MC-CONFIG-001。
+- Literal rule enforcement: Rule 1 preserves the named nested routing role; Rule 3 retains immutable record semantics and copies collections; Rule 5 uses JDK only; Rule 7 preserves every existing profile through the public default; Rule 11 remains the current MP extension.
+- Implementation pseudocode:
+
+```java
+public record TableProperties(@NotBlank String type, String dataSource, String shardingColumn,
+                              List<String> tableColumns, String rootKeyName,
+                              @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}") String schema) {
+    public TableProperties(String type, String dataSource, String shardingColumn,
+                           List<String> tableColumns, String rootKeyName) {
+        this(type, dataSource, shardingColumn, tableColumns, rootKeyName, "public");
+    }
+    public TableProperties {
+        schema = schema == null ? "public" : schema;
+        tableColumns = tableColumns == null ? null : List.copyOf(tableColumns);
+    }
+}
+```
+
+- Verification contribution: binder/default/legacy-constructor tests prove the value contract and type validation.
+- After this file: the unchanged five-argument call sites compile and omitted schema values still route to public.
+
+#### File 6 — `MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaSingleTableShardingStrategy.java`
+
+- Purpose: route a SINGLE table to its configured physical schema and preserve public as the default.
+- Symbols: `EgonColaSingleTableShardingStrategy.toRoutingProfile`
+- Repository evidence: current method creates `EgonColaPhysicalTargetBO(dataSource, "public", logicalTable)`; rule rendering already prints the resolved schema from that BO.
+- Dependencies and consumers: preceding TableProperties.schema; Tianshu uses this only for `egon_cola_outbox_message` and logical `ddl_history`.
+- Why now: use the existing component strategy instead of creating a Tianshu-specific routing implementation.
+- Contract/signature changes: resolve the SINGLE physical target using `table.schema()`; include that schema in the route profile/fingerprint and rendered `!SINGLE` node.
+- Input/output and state mapping: omitted schema produces the same public node; egon_outbox produces `primary.egon_outbox.<logicalTable>`.
+- Error and edge behavior: invalid schema fails via Jakarta validation before route construction; other strategy types cannot silently consume an override.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-LOG-001, MC-BEAN-001, MC-PATTERN-001。
+- Literal rule enforcement: Rule 3 keeps existing route value objects; Rule 4 preserves the named Bean and safe logging; Rule 5 adds no utility; Rule 11 remains inside the current Common MP sharding layer.
+- Implementation pseudocode:
+
+```java
+validateTable(table);
+EgonColaPhysicalTargetBO node = new EgonColaPhysicalTargetBO(table.dataSource(), table.schema(), logicalTable);
+return EgonColaShardingStrategyNodes.simple(logicalTable, TableKindEnum.SINGLE, List.of(node));
+```
+
+- Verification contribution: the Strategy properties test asserts both public compatibility and the egon_outbox physical node.
+- After this file: `toRulesFragment` emits the same route profile schema and topology fingerprint used by Outbox initialization.
+
+#### File 7 — `MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaShardingStrategyFactory.java`
+
+- Purpose: reject a nonpublic schema on strategies that do not support schema overrides.
+- Symbols: `EgonColaShardingStrategyFactory.create(String, TableProperties)`
+- Repository evidence: this is the shared strategy dispatch boundary and already validates each TableProperties before invocation.
+- Dependencies and consumers: preceding schema component plus all existing strategy Beans; only SINGLE currently supports a nonpublic schema.
+- Why now: avoid accepting a configuration key that a strategy would otherwise ignore while retaining existing default profiles.
+- Contract/signature changes: if schema is not public and type is not SINGLE, fail with `SCHEMA_OVERRIDE_REQUIRES_SINGLE`; keep current registry lookup and strategy validation order.
+- Input/output and state mapping: SINGLE delegates its schema to the resolved route; non-SINGLE custom schema is rejected.
+- Error and edge behavior: missing schema normalizes to public and follows all old strategies; NATIVE mode remains unchanged.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-PATTERN-001。
+- Literal rule enforcement: Rule 1 retains the strategy role; Rule 2 validates the table configuration before use; Rule 4 preserves the existing named component Bean and safe logs; Rule 11 keeps behavior in Common MP.
+- Implementation pseudocode:
+
+```java
+EgonColaShardingStrategy strategy = create(type);
+validationUtils.validate(table);
+if (!"SINGLE".equals(type) && !"public".equals(table.schema())) throw configurationFailure("SCHEMA_OVERRIDE_REQUIRES_SINGLE");
+strategy.validateTable(table);
+```
+
+- Verification contribution: the factory test covers a rejected STANDARD_TENANT_ID override and public default compatibility.
+- After this file: the route extension is explicit and existing strategy behavior remains unchanged for old configuration files.
+
+#### File 8 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java`
 
 - Purpose: 为Outbox逻辑数据源bootstrap提供兼容默认的managed-DDL开关。
 - Symbols: `OutboxMpStorageProperties`
 - Repository evidence: 当前存在，SHA256前12位`f988e4509fbb`；`migrationMode`当前专管维护期enqueue/dispatcher写入门禁。
 - Dependencies and consumers: 前置File 2；由initializer读取，普通其他consumer未设置时保持当前DDL行为，Tianshu profile显式false。
 - Why now: schema DDL是否在bootstrap执行与Outbox业务写维护模式是两个独立variation point。
-- Contract/signature changes: 新增`autoInitializeDdl`，默认true；保留`migrationMode`原默认和语义，不互相别名或联动。
+- Contract/signature changes: 新增`autoInitializeDdl`，默认true；保留`migrationMode`原默认和语义，不互相别名或联动；兼容原四参数all-args构造器并默认开启。
 - Input/output and state mapping: true走既有DDL runner；false只准备metadata验证上下文，outbox store随后由schema validator读取已存在schema。
 - Error and edge behavior: 配置false且schema缺失/漂移时fail closed；true的其他consumer保持旧行为。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-CONFIG-001, MC-MODEL-001。
@@ -4186,6 +4335,10 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 
 ```java
 @Builder.Default private boolean autoInitializeDdl = true;
+public OutboxMpStorageProperties(String sqlSessionFactoryBeanName, boolean migrationMode,
+                                 Duration migrationLockTimeout, String manifestResource) {
+    this(sqlSessionFactoryBeanName, migrationMode, migrationLockTimeout, manifestResource, true);
+}
 // The default preserves current consumers; migrationMode remains an independent maintenance guard.
 // Only an explicit false setting skips managed DDL while retaining read-only schema validation.
 ```
@@ -4193,7 +4346,7 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 - Verification contribution: OutboxManagedDdlIntegrationTest default/false属性绑定和行为测试。
 - After this file: the default remains stable for existing consumers; only the explicit false branch changes bootstrap behavior.
 
-#### File 4 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java`
+#### File 9 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java`
 
 - Purpose: 普通逻辑DataSource bootstrap仅准备只读metadata验证；显式CLI initializer保持调用同一Outbox manifest DDL runner。
 - Symbols: `OutboxManagedDdlInitializer.initialize`
@@ -4201,7 +4354,7 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 - Dependencies and consumers: OutboxMpStorageProperties.autoInitializeDdl、OutboxSchemaMetadataValidator、Tianshu DdcPersistenceMigrationCli。
 - Why now: Tianshu Admin要求DDL由显式CLI执行，normal startup只验证；默认true保证其余当前Outbox consumers不变。
 - Contract/signature changes: `initialize`以`autoInitializeDdl`决定run manifest或只设置physical DS/route readiness；false不触发`EgonColaPostgreDdlRunner.run`。
-- Input/output and state mapping: false路径仍校验single PRIMARY、native topology、schema、LOCAL事务与routeFingerprint，OutboxSchemaMetadataValidator随后read-only核对component manifest/history和所有列索引。
+- Input/output and state mapping: NATIVE/STRATEGY均先经TopologyValidator得到解析后的Topology；false路径核验single PRIMARY、两个egon_outbox SINGLE routes、LOCAL事务和routeFingerprint，OutboxSchemaMetadataValidator随后只读核对component manifest/history与列索引。
 - Error and edge behavior: 禁止以readiness flag代替metadata validator；schema missing/drift必须导致启动失败；显式CLI直接设置auto-initialize true并调用initializer。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-PATTERN-001。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；具名initializer复用existing runner/validator，不新增库。
@@ -4211,19 +4364,21 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 if (storageProperties.isAutoInitializeDdl()) {
     runExistingComponentManifest(physical, yaml);
 } else {
-    readiness = validateTopologyAndPrepareReadOnlyMetadata(physical, yaml);
+    TopologyBO topology = topologyValidator.validate(shardingProperties, yaml);
+    validateSinglePrimaryAndOutboxSchemaRoutes(topology, "egon_outbox", "egon_cola_outbox_message", "ddl_history");
+    readiness = prepareReadOnlyMetadataValidation(physical, topology.fingerprint());
 }
 ```
 
 - Verification contribution: OutboxManagedDdlIntegrationTest verifies false never runs managed SQL, while true/default and explicit initialize still apply the existing component manifest.
 - After this file: false sets readiness only after topology validation, leaving OutboxSchemaMetadataValidator to fail closed before Store use; default true retains the exact runner path.
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`
 
 - Purpose: 16 Tianshu业务表＋public.ddl_history＋`CREATE SCHEMA IF NOT EXISTS egon_outbox`；Outbox组件表/history不在此SQL；父表先于子/循环FK后加；八组K+deleted_at与live guard。
 - Symbols: `V20260922_001__tianshu_platform`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`V20260922_001__tianshu_platform`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步4个已排序合同/组件文件；Outbox existing manifest随后使用egon_outbox schema。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步9个已排序测试/路由/组件文件；Outbox existing manifest随后使用egon_outbox schema。
 - Why now: Tianshu唯一新SQL创建业务表/lifecycle及Outbox组件所需schema；组件现有SQL/manifest拥有egon_outbox内的消息表和history。
 - Contract/signature changes: V20260922_001精确创建16业务表、public.ddl_history和egon_outbox schema；不duplicate Outbox component table/history。
 - Input/output and state mapping: 同一runner事务中创建业务物理表和history；随后CLI使用既有组件manifest完成Outbox schema内部初始化；legacy V1～V9字节不变。
@@ -4233,22 +4388,23 @@ if (storageProperties.isAutoInitializeDdl()) {
 - Implementation pseudocode:
 
 ```sql
-BEGIN; CREATE SCHEMA IF NOT EXISTS egon_outbox;
+CREATE SCHEMA IF NOT EXISTS egon_outbox;
 CREATE 16 Tianshu business tables in parent-before-child order plus public.ddl_history;
 for each mutable K create UNIQUE(tenant_id,K,deleted_at) and UNIQUE(tenant_id,K) WHERE deleted_at IS NULL;
 add tenant-composite FKs, root/current-version constraints and history indexes; omit draft parent_path FK, prohibit physical deletes;
-COMMIT; no Outbox table/history duplicate; no legacy V1–V9 mutation; byte hash is recorded in one repository-manifest.json entry.
+the DDL runner wraps this complete script and its public.ddl_history insert in one target transaction;
+no Outbox table/history duplicate; no legacy V1–V9 mutation; byte hash is recorded in one repository-manifest.json entry.
 ```
 
 - Verification contribution: DdcTianshuDdlContractTest verifies 16 Tianshu business tables, public history, Outbox schema bootstrap and absence of duplicate component-owned tables.
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`
 
 - Purpose: family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash
 - Symbols: `repository-manifest`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`repository-manifest`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步10个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash。
 - Contract/signature changes: repository-manifest的具体签名/配置/字段变更：family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash；按修订稿§9/§11保持原wire字段。
@@ -4258,7 +4414,7 @@ COMMIT; no Outbox table/history duplicate; no legacy V1–V9 mutation; byte hash
 - Implementation pseudocode:
 
 ```json
-{"family":"tianshu","scripts":[{"version":"20260922_001","path":"V20260922_001__tianshu_platform.sql","sha256":"SHA256(FINAL_SQL_BYTES)"}]}
+{"family":"tianshu","scripts":[{"version":"20260922_001","path":"db/egon-mp/V20260922_001__tianshu_platform.sql","sha256":"SHA256(FINAL_SQL_BYTES)"}]}
 parse with existing MP DDL manifest parser; reject changed SHA, path escape and version drift;
 initialize only an explicit empty target and record successful per-target history before readiness passes.
 ```
@@ -4266,37 +4422,89 @@ initialize only an explicit empty target and record successful per-target histor
 - Verification contribution: DdcTianshuDdlContractTest聚焦本文件的family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`
+#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`
 
-- Purpose: 16业务STANDARD_TENANT_ID/public.ddl_history SINGLE；Outbox既有manifest路由至egon_outbox schema/同一primary；runtime auto-initialize-ddl=false。
+- Purpose: 16业务表STANDARD_TENANT_ID/public；Outbox message和逻辑`ddl_history`使用egon_outbox SINGLE route；Tianshu public.ddl_history从物理PRIMARY直接校验；runtime关闭自动DDL。
 - Symbols: `egon-tianshu-persistence`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`egon-tianshu-persistence`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步11个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；该resource记录16业务表/public history和Outbox组件schema的独立路由及只读运行策略。
-- Contract/signature changes: MP物理拓扑1×1/PG/LOCAL；`mybatis-plus.ddl.enabled=false`；Outbox `auto-initialize-ddl=false`、`validate-schema=true`。
-- Input/output and state mapping: CLI显式initialize先建Tianshu表/public history/egon_outbox schema，再调用组件既有manifest；Admin runtime仅核验两种owner。
+- Contract/signature changes: MP SHARDING/STRATEGY/LOCAL、一个PRIMARY；16业务表为STANDARD_TENANT_ID/public；Outbox message和逻辑`ddl_history`为SINGLE/schema=egon_outbox；`mybatis-plus.ddl.enabled=false`、Outbox `auto-initialize-ddl=false`、`validate-schema=true`。
+- Input/output and state mapping: public DDL target与Outbox DDL target使用同一physical PRIMARY但分别使用public/egon_outbox；Admin只读校验public history与组件schema history。
 - Error and edge behavior: 不含明文凭据/默认业务tenant；route不匹配、任一history或relation缺失均fail closed，不自动建表。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-CONFIG-001；Rule 7, Rule 11；所有profile后续导入相同键结构，runtime DDL initialization关闭。
 - Literal rule enforcement: 多profile键结构一致 (Rule 7)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```yaml
-# egon-tianshu-persistence: 16 business tables/public history in public; existing Outbox component schema egon_outbox shares same PG PRIMARY
-# runtime: mybatis-plus.ddl.enabled=false; transactional-outbox.storage.mp.auto-initialize-ddl=false; outbox.validate-schema=true
-# AI prompt/skill defaults false and MP lifecycle allowlists empty; only explicit CLI invokes either DDL owner.
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          mdc-key: tenantId
+          ignored-tables: [egon_cola_outbox_message, ddl_history]
+        ddl:
+          enabled: false
+        lifecycle:
+          history-read-statements: []
+          restore-statements: []
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: tianshu_0
+              logical-name: tianshu_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: ${TIANSHU_JDBC_URL}
+              username: ${TIANSHU_DB_USERNAME}
+              password: ${TIANSHU_DB_PASSWORD}
+          tables:
+            ddc_biz: { type: STANDARD_TENANT_ID }
+            ddc_env: { type: STANDARD_TENANT_ID }
+            ddc_app: { type: STANDARD_TENANT_ID }
+            ddc_namespace: { type: STANDARD_TENANT_ID }
+            ddc_namespace_env_app: { type: STANDARD_TENANT_ID }
+            ddc_config_item: { type: STANDARD_TENANT_ID }
+            ddc_config_version: { type: STANDARD_TENANT_ID }
+            ddc_publish_task: { type: STANDARD_TENANT_ID }
+            ddc_publish_ack: { type: STANDARD_TENANT_ID }
+            ddc_instance: { type: STANDARD_TENANT_ID }
+            ddc_operation_log: { type: STANDARD_TENANT_ID }
+            ddc_ai_resource: { type: STANDARD_TENANT_ID }
+            ddc_ai_version: { type: STANDARD_TENANT_ID }
+            ddc_ai_draft_node: { type: STANDARD_TENANT_ID }
+            ddc_ai_version_node: { type: STANDARD_TENANT_ID }
+            ddc_ai_publication: { type: STANDARD_TENANT_ID }
+            egon_cola_outbox_message: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+            ddl_history: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+      transactional-outbox:
+        storage:
+          data-source-bean-name: dataSource
+          transaction-manager-bean-name: transactionManager
+          validate-schema: true
+          mp:
+            sql-session-factory-bean-name: sqlSessionFactory
+            auto-initialize-ddl: false
+            manifest-resource: db/egon-outbox-mp/manifest.json
 ```
 
-- Verification contribution: DdcTianshuDdlContractTest verifies tenant/shard routes, shared data source/transaction manager and read-only runtime settings.
+- `public.ddl_history` is managed and read directly through the configured physical PRIMARY with schema `public`; the single logical `ddl_history` route above belongs to Outbox in `egon_outbox`.
+- Verification contribution: Common MP Strategy tests verify the two schemas resolve exactly; DdcTianshuDdlContractTest verifies tenant routes and read-only runtime settings.
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`
+#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`
 
 - Purpose: standalone validate/initialize CLI复用physical factory/YAML/topology/runner；initialize先运行Tianshu SQL，再调用Outbox既有manifest；不启Web/worker并关闭自有pool。
 - Symbols: `DdcPersistenceMigrationCli`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcPersistenceMigrationCli`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步12个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: CLI是唯一显式schema初始化入口；先运行Tianshu script创建业务表/public history/egon_outbox schema，随后由组件initializer在egon_outbox执行现有manifest。
-- Contract/signature changes: `validate`纯读；`initialize`显式依次调用Tianshu `EgonColaPostgreDdlRunner` 与Outbox组件initializer；两种模式都复用 `OutboxSchemaMetadataValidator` 校验组件表/history；不创建完整Admin ApplicationContext，不触发自动worker。
+- Contract/signature changes: `validate`经STRATEGY `EgonColaShardingYamlLoader`解析路由并只读校验public/egon_outbox两组history；`initialize`先调用Tianshu runner，再调用Outbox initializer；不创建完整Admin ApplicationContext，不触发自动worker。
 - Input/output and state mapping: 两个DDL owner使用相同配置的物理PG PRIMARY/YAML topology；关闭CLI拥有的pool；不执行旧库导入。
 - Error and edge behavior: manifest/history/route不匹配立即失败；Outbox表初始化不得先于schema创建；无副作用的validate不触发任何runner。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -4309,12 +4517,11 @@ target = createAndValidatePhysicalSourcesAndTopology();
 if (mode == initialize) {
   ddlRunner.run(tianshuManifestTarget(target)); // creates business tables/public history and egon_outbox schema
   outboxStorage.setAutoInitializeDdl(true);
-  outboxInitializer.initialize(target.physicalSources(), target.shardingYaml()); // existing component manifest
 } else {
-  validateTianshuHistoryAndRelationsReadOnly(target);
   outboxStorage.setAutoInitializeDdl(false);
-  outboxInitializer.initialize(target.physicalSources(), target.shardingYaml()); // read-only preparation; validator checks schema
 }
+outboxInitializer.initialize(target.physicalSources(), target.strategyYaml()); // apply or prepare existing component manifest
+validateTianshuHistoryAndRelationsReadOnly(outboxInitializer.physicalMetadataDataSource(fingerprint), "public", target);
 outboxSchemaMetadataValidator.validate(); // reuse component verification for both modes
 closeOwnedPhysicalPoolsInFinally();
 ```
@@ -4322,12 +4529,12 @@ closeOwnedPhysicalPoolsInFinally();
 - Verification contribution: DdcTianshuDdlContractTest聚焦本文件的validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`
+#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`
 
 - Purpose: SmartInitializingSingleton只读核对Tianshu manifest/public history/route/16业务表；Outbox组件validator独立核对egon_outbox；在恢复任务前fail closed。
 - Symbols: `DdcDatabaseReadyValidator`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcDatabaseReadyValidator`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步8个已排序文件；OutboxSchemaMetadataValidator验证组件表/history。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步13个已排序文件；Tianshu history查public物理schema；OutboxSchemaMetadataValidator验证egon_outbox组件表/history。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入。
 - Contract/signature changes: DdcDatabaseReadyValidator的具体签名/配置/字段变更：SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入；按修订稿§9/§11保持原wire字段。
@@ -4338,7 +4545,9 @@ closeOwnedPhysicalPoolsInFinally();
 
 ```java
 SmartInitializingSingleton.afterSingletonsInstantiated() {
-  load exact tianshu manifest; SELECT public.ddl_history, routing and required Tianshu tables/indexes only from configured logical DataSource;
+  physical = outboxManagedDdlInitializer.physicalMetadataDataSource(routeFingerprint);
+  connection = physicalConnection(physical); setSchema("public"); setReadOnly(true);
+  load exact tianshu manifest; SELECT public.ddl_history and inspect Tianshu tables/indexes from this same physical PRIMARY;
   require OutboxSchemaMetadataValidator component manifest/history/columns/index checks to have passed;
   if missing/drift/wrong datasource throw startup error before lease/worker scheduling;
   never initialize either DDL or import legacy rows as an application startup side effect;
@@ -4348,7 +4557,7 @@ SmartInitializingSingleton.afterSingletonsInstantiated() {
 - Verification contribution: DdcTianshuDdlContractTest聚焦本文件的SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 10 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md`
+#### File 15 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md`
 
 - Purpose: document the backwards-compatible Outbox managed-DDL bootstrap switch and read-only mode.
 - Symbols: Outbox MP storage configuration table.
@@ -4371,7 +4580,7 @@ egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl: true # 
 - Verification contribution: English documentation matches the property default and OutboxManagedDdlIntegrationTest.
 - After this file: the English property description distinguishes schema bootstrap from maintenance mode and remains synchronized with the typed property.
 
-#### File 11 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md`
+#### File 16 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md`
 
 - Purpose: document in Chinese the same Outbox bootstrap DDL toggle and read-only Tianshu mode.
 - Symbols: Outbox MP存储配置表。
@@ -4394,14 +4603,62 @@ egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl: true # 
 - Verification contribution: Chinese documentation matches typed property and integration test.
 - After this file: Chinese wording distinguishes schema bootstrap from maintenance mode and matches the English property contract.
 
+#### File 17 — `MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.md`
+
+- Purpose: document the optional physical schema on a SINGLE STRATEGY route and its public default.
+- Symbols: Common MP Sharding TableProperties configuration documentation.
+- Repository evidence: current Common MP docs describe strategy table mapping but TableProperties has no schema override.
+- Dependencies and consumers: EgonColaShardingProperties.TableProperties and EgonColaSingleTableShardingStrategy.
+- Why now: Tianshu must keep its approved STRATEGY profile while routing the existing Outbox table/history to egon_outbox.
+- Contract/signature changes: describe `tables.<name>.schema`, default `public`, accepted only for SINGLE, and include the resolved schema in the route profile/fingerprint.
+- Input/output and state mapping: omit schema for existing configurations; set schema to egon_outbox for the two Outbox technical SINGLE tables.
+- Error and edge behavior: non-SINGLE custom schema is rejected; no DDL, dependency, or database behavior is triggered by this property alone.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-CONFIG-001, MC-DEP-001。
+- Literal rule enforcement: Rule 7 keeps the existing profile shape and default; Rule 11 keeps the schema variation inside the current Common MP strategy layer.
+- Implementation pseudocode:
+
+```yaml
+tables:
+  egon_cola_outbox_message: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+  ddl_history: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+# Existing SINGLE mappings may omit schema and continue to resolve to public.
+```
+
+- Verification contribution: documentation agrees with the typed property and strategy route tests.
+- After this file: English configuration examples make the supported schema override and backward-compatible default explicit.
+
+#### File 18 — `MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.zh-CN.md`
+
+- Purpose: document the same optional SINGLE schema routing contract in Chinese.
+- Symbols: Common MP Sharding TableProperties configuration documentation.
+- Repository evidence: current Chinese Common MP docs have no per-SINGLE schema setting.
+- Dependencies and consumers: synchronize with README.md and the TableProperties/strategy behavior.
+- Why now: the new typed route value is consumer-facing and used by Tianshu's Outbox topology.
+- Contract/signature changes: document `tables.<name>.schema` default `public`; custom schema works only on SINGLE routes.
+- Input/output and state mapping: Tianshu Outbox tables resolve to `egon_outbox`; all omitted schemas retain public.
+- Error and edge behavior: non-SINGLE override is rejected by the shared strategy factory.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-CONFIG-001, MC-DEP-001。
+- Literal rule enforcement: Rule 7 keeps the property aligned across profiles; Rule 11 preserves the Common MP sharding strategy boundary.
+- Implementation pseudocode:
+
+```yaml
+tables:
+  egon_cola_outbox_message: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+  ddl_history: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
+# 旧配置省略schema时仍使用public；其他table kind不允许自定义schema。
+```
+
+- Verification contribution: Chinese documentation matches the English config example and route tests.
+- After this file: Chinese Common MP docs clearly explain the new SINGLE-only schema override.
+
 - Validation working directory: repository root
-- Verification command: `mvn -q -pl egon-cola-components/egon-cola-component-transactional-outbox-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Dtest=DdcTianshuDdlContractTest,OutboxManagedDdlIntegrationTest#autoInitializeDdlFalseSkipsRunnerAndPreparesReadiness -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: Admin DDL contract and the Outbox verify-only mode test pass; `auto-initialize-ddl=true` remains backward compatible; Tianshu SQL has one real checksum and does not duplicate Outbox component tables; no database/container is started; this Plan stage had not yet been run at authoring time.
+- Verification command: `mvn -q -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter,egon-cola-components/egon-cola-component-transactional-outbox-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcTianshuDdlContractTest,EgonColaShardingPropertiesTest,EgonColaShardingStrategyFactoryTest,OutboxManagedDdlIntegrationTest#autoInitializeDdlFalseSkipsRunnerAndPreparesReadiness+autoInitializeDdlDefaultsToTrueAcrossExistingConstructionPaths+bindsNamedMpStoragePropertiesAndRegistersTheManagedHookWithoutPostgres+validatesNativePrimaryTopologyAndUsesTheCommonRunnerWithoutOpeningPostgres+strategyConfigUsesResolvedOutboxSingleSchemaRoute' -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Expected result: Tianshu DDL/manifest/legacy hash contracts and Common MP default/custom-schema route tests pass; Outbox default consumers still execute managed DDL, Tianshu read-only bootstrap skips it, and the STRATEGY-resolved Outbox message/history routes are verified against egon_outbox; no database/container is started.
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
-- Completion criteria: all declared Tianshu and Outbox paths are implemented; strict manifest/schema contracts and focused tests pass; normal bootstrap performs read-only checks only, the explicit CLI runs both DDL owners in order, and no duplicate Outbox SQL or automatic legacy import exists.
+- Completion criteria: all 18 declared Common MP/Outbox/Tianshu paths are implemented; strict manifest/schema/route contracts and focused tests pass; normal bootstrap performs read-only checks only, the explicit CLI runs both DDL owners in order, both public and egon_outbox histories are verified on the same PRIMARY, and no duplicate Outbox SQL or automatic legacy import exists.
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/integration/OutboxManagedDdlIntegrationTest.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md`
-- Commit: `feat(tianshu): add managed ddl bootstrap contract`。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/integration/OutboxManagedDdlIntegrationTest.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingPropertiesTest.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingStrategyFactoryTest.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/EgonColaShardingProperties.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaSingleTableShardingStrategy.java`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/strategy/EgonColaShardingStrategyFactory.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.md`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.zh-CN.md`
+- Commit: `feat(tianshu): add managed ddl bootstrap and strategy schema routing`。
 
 ### Step 8 — 迁移租户元数据五表的Repository与调用者
 

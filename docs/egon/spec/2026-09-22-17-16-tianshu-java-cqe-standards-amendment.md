@@ -9,11 +9,11 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 已接受规格的建模/包结构/删除契约修订，MP受控能力扩展，Outbox事务/Redis投递，多模块实施依赖 |
 | Created | `2026-09-22 17:16 Asia/Shanghai` |
-| Updated | `2026-09-28 01:19 Asia/Shanghai` |
+| Updated | `2026-09-28 02:04 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢既定多租户Prompt/Skill功能；最新Java/CQE标准与已批准组件扩展 |
-| Change Surface | class/Builder/校验/转换、保留现有三层包、软删除唯一键和固定版本选择器、MP白名单、Outbox一张技术表及两类原通知 |
+| Change Surface | class/Builder/校验/转换、保留现有三层包、软删除唯一键和固定版本选择器、MP白名单、STRATEGY单表schema路由扩展、Outbox一张技术表及两类原通知 |
 | Affected Chapters | §7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18 |
 | Source Requirement | 用户2026-09-22确认原Spec并要求适配最新技能后写Plan；明确本次不用code generator；随后批准Outbox依赖及受控MP历史读取/恢复扩展 |
 | Baseline Revision | `main@b31357a0a`；原Spec SHA256 `ff8587c42b1d90a7bf841d8735f237d29949d66ffc09466e3fecea712220b753`；当前其他任务改动见§2 |
@@ -46,6 +46,7 @@ CQE复用已批准 `top.egon:egon-cola-component-transactional-outbox-starter:5.
 | EVD-107 | Static | egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/resources/db/egon-outbox-mp/manifest.json、V20260924_001__initialize_outbox_mp_schema.sql、OutboxManagedDdlInitializer | Outbox组件以既有`component-outbox` manifest在`egon_outbox` schema管理消息表与该schema自己的`ddl_history`；LogicalDataSourceFactory调用initializer | 复用组件manifest/SQL，不在Tianshu SQL复制Outbox表；普通Admin配置只读验证，显式迁移CLI执行组件initializer | manifest/SQL源不修改；新增自动DDL开关默认保持组件现有行为 |
 | EVD-108 | Static | DdcConfigService.delete/rollback/pull；DdcPublishService.prepare；DdcPendingPublishDispatcher.dispatch | legacy deleted是配置业务状态，默认prepare排除它；原rollback改变该标记和草稿，当前发布指针另管 | 不能把legacy.deleted强行等同deleted_at改变线上行为 | 原Java/SQL链核对 |
 | EVD-109 | Static | 当前工作区 | 其他任务修改玉衡Spec/Plan、archetype文件并制作code-generator目录；组件POM版本升级已单独提交 | 不写/暂存这些路径；依赖对齐当前5.4.1 | 编写前后按路径核查 |
+| EVD-110 | Static | egon-cola-components/.../EgonColaShardingProperties.java、strategy/EgonColaSingleTableShardingStrategy.java、OutboxManagedDdlInitializer.validateStorageTopology | 已确认配置要求STRATEGY；当前SINGLE策略固定public，Outbox starter校验SHARDING/NATIVE/LOCAL | 扩展可选单表schema（默认public），Outbox允许两种配置风格但仍核验解析后的egon_outbox SINGLE路由及LOCAL事务 | 必须有strategy/topology测试；不启动数据库 |
 
 路径缩写：T=`egon-cola-xingyuan/egon-cola-tianshu`；A=`egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`；S=`egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter`；R=`egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter`；W=T/egon-cola-tianshu-admin-web；AJ=A/src/main/java/top/egon/cola/component/tianshu/admin；SJ=S/src/main/java/top/egon/cola/component/tianshu；RJ=R/src/main/java/top/egon/cola/component/rpc/tianshu；MP=`egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`；MJ=MP/src/main/java/top/egon/cola/component/common/mybatis。这些是文档定位别名，不是拟新建目录。
 
@@ -136,6 +137,7 @@ CQE复用已批准 `top.egon:egon-cola-component-transactional-outbox-starter:5.
 | §11草稿节点物理DELETE和parent_path物理FK | 节点软删除；有效树由根锁/同owner查询/dirname规则/校验保证，移除不可能引用partial unique的父path FK | 当前MP禁止物理删除 |
 | §9 RPC版本仅versionNo | 固定版本必须同时传resourceId；新增optional proto字段7，当前动态读取可不传 | 防止同key重建后同号新版本误命中 |
 | §9/15原RTopic直接充当全部Event交付 | 已有通知由Outbox真实入队和DeliveryHandler投递；AI CRUD不发无消费者Event | 用户已批准Outbox |
+| §15.3 STRATEGY与Outbox技术schema | 保留STRATEGY；新增TableProperties.schema（默认public，仅SINGLE策略使用）；Outbox message与其ddl_history路由到egon_outbox；Tianshu public.ddl_history由同一物理PRIMARY直接做DDL及只读启动校验 | 已确认的MP STRATEGY合同＋EVD-107/110 |
 | §16 V10新Flyway风格路径/手工manifest名 | 唯一 `db/egon-mp/V20260922_001__tianshu_platform.sql`＋`repository-manifest.json`；新目标未实施，无旧应用checksum可改 | 最新MP-SDJ管理；V1～V9仅归档 |
 | §20旧严格校验与构造探针 | 只证明旧版本规则；当前以本修订及Plan最新校验为准 | 不拿旧PASS替代新规则 |
 
@@ -977,7 +979,7 @@ ValidationUtils仅在ConfigData、手工构造、非代理callback补触发同�
 
 ### 11.0 Effective DDL and identity rules
 
-原字段与初始1×1拓扑取原Spec明确规则：Tianshu唯一MP SQL创建**16业务表＋public.ddl_history**；Outbox组件复用其既有manifest创建`egon_outbox.egon_cola_outbox_message`和`egon_outbox.ddl_history`，技术history不与业务history合表。16业务表STANDARD_TENANT_ID、物理public.<logical>_t0，两个schema均路由到同一物理PG primary。全库在独立PG目标初始化，旧V1～V9不动。本稿只修改下列业务索引/父path约束；Outbox组件表结构与SQL由组件manifest权威管理，不复制到Tianshu SQL。
+原字段与初始1×1拓扑取原Spec明确规则：Tianshu唯一MP SQL创建**16业务表＋public.ddl_history**；Outbox组件复用其既有manifest创建`egon_outbox.egon_cola_outbox_message`和`egon_outbox.ddl_history`，技术history不与业务history合表。16业务表STANDARD_TENANT_ID、物理public.<logical>_t0，两个schema均路由到同一物理PG primary。Strategy `TableProperties.schema`默认`public`，只由SINGLE表配置覆盖；共享逻辑名`ddl_history`路由给Outbox的egon_outbox history，Tianshu的public history由managed-DDL和ready validator通过同一物理PRIMARY进行显式schema-scoped访问。全库在独立PG目标初始化，旧V1～V9不动。本稿只修改下列业务索引/父path约束；Outbox组件表结构与SQL由组件manifest权威管理，不复制到Tianshu SQL。
 
 每个mutable业务键K：`UNIQUE(tenant_id,K,deleted_at)`＋`UNIQUE(tenant_id,K) WHERE deleted_at IS NULL`。普通PG NULL允许多个active组合行，所以必须第二个guard；不把partial当替代。删除仍使用组件标准CURRENT_TIMESTAMP AT TIME ZONE UTC；若历史组合键同微秒冲突，整事务回滚，最多3个新事务重试（每次重新锁行/校验expectedVersion），仍冲突409/56316，不能在已失败事务里继续，也不替换Guard认可表达式或偷偷把id塞进业务键使其失去约束意义。
 
@@ -1596,6 +1598,10 @@ Outbox与业务无FK，不暗示Redis/PG全局事务；sourceVersion/当前指�
 ## 15. Non-functional and Cross-cutting Design
 
 原tenant/HMAC v2/Redis v4/ACL/日志脱敏不变。Outbox只在Admin启用，storage.data-source-bean-name=`dataSource`、transaction-manager-bean-name=`transactionManager`与业务同一对象；schema validator保持true，SINGLE表同物理组，禁止另开未绑定PG连接代替。`storage.mp.auto-initialize-ddl`组件开关默认true以保持既有消费者行为；Tianshu运行配置显式false，由`DdcDatabaseReadyValidator`/`OutboxSchemaMetadataValidator`只读失败关闭，迁移CLI显式调用Tianshu runner和组件initializer。该开关只决定逻辑DataSource bootstrap是否执行组件DDL；既有`migration-mode`仍只管maintenance期间outbox写入/投递，不混用两项职责。node-id来自Admin实例唯一标识；payload.max-bytes=8MB、max-header-count=64、max-header-bytes=16KB；HTTP/Rabbitmq=false；polling1s/batch100/concurrency4、delivery timeout10s/lease60s、retry10/1s/2.0/5m/0.2沿组件已存在字段。
+
+MP继续使用原Spec选择的`STRATEGY`风格。`TableProperties.schema`是可选的单表物理schema，缺省为`public`；SINGLE策略把它纳入实际节点和routeFingerprint。Tianshu的业务表仍按STANDARD_TENANT_ID落在public，Outbox message与其技术history均以SINGLE显式落在egon_outbox。Outbox initializer不再只凭配置风格拒绝Strategy；它必须继续检查COMMON MP解析出的实际节点，确认两张技术表都是同一PRIMARY上的egon_outbox SINGLE节点、且事务为LOCAL。Broadcast不接受schema override。
+
+逻辑表名`ddl_history`只登记为Outbox schema的SINGLE路由，避免ShardingSphere同一逻辑名映射两个物理schema。Tianshu的`public.ddl_history`由显式DDL target管理，普通Admin启动和独立validate CLI经Outbox initializer保留的物理PRIMARY只读连接切到public schema后核验；不能从逻辑`ddl_history`查询中误读Outbox历史。
 
 handler必须解析已知schema、验证header/payload/topic tenant一致、通过DdcTenantContextExecutor绑定system:outbox并finally恢复，拒绝任意目的地。已失效tenant/event永久拒绝，不能转成全局发消息。Outbox全局技术表无用户直接查询接口；消息ID/key含tenant域；普通业务不使用该表绕过MP。
 
