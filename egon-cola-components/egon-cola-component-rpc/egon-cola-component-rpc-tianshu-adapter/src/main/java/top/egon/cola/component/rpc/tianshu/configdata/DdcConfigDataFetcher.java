@@ -3,6 +3,7 @@ package top.egon.cola.component.rpc.tianshu.configdata;
 import org.springframework.lang.Nullable;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.tianshu.model.config.DdcConfigValue;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
@@ -51,9 +52,10 @@ public class DdcConfigDataFetcher {
      */
     public DdcConfigDataFetcher(
             DdcProperties properties,
-            DdcRpcProperties rpcProperties) {
+            DdcRpcProperties rpcProperties,
+            DdcTenantProperties tenantProperties) {
         this(
-                pullSupplier(properties, rpcProperties),
+                pullSupplier(properties, rpcProperties, tenantProperties),
                 properties.getMaxConfigBytes(),
                 DdcConfigFormatStrategyRegistry.defaults()
         );
@@ -174,12 +176,15 @@ public class DdcConfigDataFetcher {
     /** 创建每次拉取后可靠关闭 Channel 的引导调用。 / Creates a bootstrap pull that always closes its Channel. */
     private static Supplier<List<DdcConfigValue>> pullSupplier(
             DdcProperties properties,
-            DdcRpcProperties rpcProperties) {
+            DdcRpcProperties rpcProperties,
+            DdcTenantProperties tenantProperties) {
         Objects.requireNonNull(properties, "properties");
         Objects.requireNonNull(rpcProperties, "rpcProperties");
+        Objects.requireNonNull(tenantProperties, "tenantProperties");
         DdcRpcClientFactory factory = new DdcRpcClientFactory(
                 rpcProperties,
                 properties,
+                tenantProperties,
                 bootstrapIdentity(properties)
         );
         return () -> {

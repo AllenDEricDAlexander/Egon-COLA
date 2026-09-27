@@ -3,11 +3,15 @@ package top.egon.cola.component.tianshu.admin.config;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import top.egon.cola.component.tianshu.admin.security.management.DdcAdminCapability;
 import top.egon.cola.component.tianshu.admin.security.rpc.DdcHmacCredentialRegistry;
 import top.egon.cola.component.tianshu.admin.security.rpc.DdcRpcSecurityConfiguration;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -120,18 +124,25 @@ class DdcAdminSecurityPropertiesTest {
     }
 
     @Configuration(proxyBeanMethods = false)
-    @EnableConfigurationProperties(DdcAdminProperties.class)
+    @EnableConfigurationProperties({DdcAdminProperties.class, DdcTenantAdminProperties.class})
     @Import(DdcAdminSecurityPropertiesValidator.class)
     static class TestConfiguration {
     }
 
     @Configuration(proxyBeanMethods = false)
-    @EnableConfigurationProperties(DdcAdminProperties.class)
+    @EnableConfigurationProperties({DdcAdminProperties.class, DdcTenantAdminProperties.class})
     @Import({
             DdcAdminSecurityPropertiesValidator.class,
-            DdcHmacCredentialRegistry.class,
-            DdcRpcSecurityConfiguration.class
+            DdcRpcSecurityConfiguration.class,
+            DdcTenantRegistry.class,
+            DdcTenantContextExecutor.class
     })
     static class RpcTestConfiguration {
+
+        @Bean(name = "ddcHmacCredentialRegistry")
+        DdcHmacCredentialRegistry ddcHmacCredentialRegistry(
+                DdcAdminProperties properties) {
+            return new DdcHmacCredentialRegistry(properties);
+        }
     }
 }

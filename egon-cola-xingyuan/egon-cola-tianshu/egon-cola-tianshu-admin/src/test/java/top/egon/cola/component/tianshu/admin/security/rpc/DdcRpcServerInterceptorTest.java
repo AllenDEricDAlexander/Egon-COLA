@@ -10,9 +10,18 @@ import io.grpc.ServerCallHandler;
 import io.grpc.Status;
 import io.grpc.protobuf.ProtoUtils;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcCredentialTenantDTO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantBindingDTO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.service.config.DdcConfigFacade;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAiResourceServiceGrpc;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcConfigRuntimeServiceGrpc;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcScope;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.PullConfigRequest;
@@ -46,21 +55,23 @@ class DdcRpcServerInterceptorTest {
 
     private DdcRpcServerInterceptor interceptor;
 
+    @AfterEach
+    void clearMdc() {
+        MDC.clear();
+    }
+
     @BeforeEach
     void setUp() {
         DdcAdminProperties properties = properties(List.of(
                 credential(List.of("CONFIG_PULL"), List.of("app-a"))));
-        interceptor = new DdcRpcServerInterceptor(
-                properties,
-                new DdcHmacCredentialRegistry(properties),
-                new InMemoryDdcNonceStore(100),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+        interceptor = interceptor(properties, new InMemoryDdcNonceStore(100));
     }
 
     @Test
     void authenticatesDeterministicRequestAndExposesPrincipalContext() {
         PullConfigRequest request = request("biz-a", "dev", "app-a");
+        MDC.put("tenantId", "999");
+        MDC.put("userId", "system:outer");
 
         RecordingServerCall<PullConfigRequest, PullConfigResponse> call =
                 invoke(request, signed(request, NOW.toEpochMilli(), "nonce-1"));
@@ -68,8 +79,14 @@ class DdcRpcServerInterceptorTest {
         assertThat(call.status()).isNull();
         verify(facade).pull("biz-a", "dev", "app-a");
         assertThat(principal.get().credentialId()).isEqualTo("sdk-a");
+        assertThat(principal.get().tenantId()).isEqualTo(101L);
+        assertThat(principal.get().identityTenantId()).isEqualTo("tenant-a");
+        assertThat(principal.get().namespacePatterns()).contains("orders-*");
         assertThat(principal.get().auditOperator("claimed-user"))
                 .isEqualTo("service:sdk-a [requested=claimed-user]");
+        assertThat(MDC.get("tenantId")).isEqualTo("999");
+        assertThat(MDC.get("userId")).isEqualTo("system:outer");
+        MDC.clear();
     }
 
     @Test
@@ -95,8 +112,19 @@ class DdcRpcServerInterceptorTest {
         Metadata wrongContract = signed(
                 request, NOW.toEpochMilli(), "nonce-contract");
         wrongContract.removeAll(DdcRpcMetadataKeys.CONTRACT_VERSION);
-        wrongContract.put(DdcRpcMetadataKeys.CONTRACT_VERSION, "v2");
+        wrongContract.put(DdcRpcMetadataKeys.CONTRACT_VERSION, "v1");
         assertRejected(request, wrongContract, Status.Code.UNAUTHENTICATED,
+                "TIANSHU_SIGNATURE_INVALID");
+
+        Metadata missingTenant = signed(request, NOW.toEpochMilli(), "nonce-missing-tenant");
+        missingTenant.removeAll(DdcRpcMetadataKeys.TENANT_ID);
+        assertRejected(request, missingTenant, Status.Code.UNAUTHENTICATED,
+                "TIANSHU_SIGNATURE_REQUIRED");
+
+        Metadata wrongTenant = signed(102L,
+                DdcConfigRuntimeServiceGrpc.getPullConfigMethod().getFullMethodName(),
+                request, NOW.toEpochMilli(), "nonce-wrong-tenant");
+        assertRejected(request, wrongTenant, Status.Code.UNAUTHENTICATED,
                 "TIANSHU_SIGNATURE_INVALID");
 
         assertRejected(
@@ -140,12 +168,7 @@ class DdcRpcServerInterceptorTest {
     void rejectsWrongOperationScopeAndUnknownMethodBeforeFacade() {
         DdcAdminProperties wrongOperationProperties = properties(List.of(
                 credential(List.of("PUBLISH_ACK"), List.of("app-a"))));
-        interceptor = new DdcRpcServerInterceptor(
-                wrongOperationProperties,
-                new DdcHmacCredentialRegistry(wrongOperationProperties),
-                new InMemoryDdcNonceStore(100),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+        interceptor = interceptor(wrongOperationProperties, new InMemoryDdcNonceStore(100));
         PullConfigRequest allowedScope = request("biz-a", "dev", "app-a");
         assertRejected(
                 allowedScope,
@@ -156,12 +179,7 @@ class DdcRpcServerInterceptorTest {
 
         DdcAdminProperties scopedProperties = properties(List.of(
                 credential(List.of("CONFIG_PULL"), List.of("app-a"))));
-        interceptor = new DdcRpcServerInterceptor(
-                scopedProperties,
-                new DdcHmacCredentialRegistry(scopedProperties),
-                new InMemoryDdcNonceStore(100),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+        interceptor = interceptor(scopedProperties, new InMemoryDdcNonceStore(100));
         PullConfigRequest wrongScope = request("biz-a", "dev", "app-b");
         assertRejected(
                 wrongScope,
@@ -197,14 +215,9 @@ class DdcRpcServerInterceptorTest {
     void failsClosedForNonceStoreOutageOnWriteRequests() {
         DdcAdminProperties properties = properties(List.of(
                 credential(List.of("SDK_REGISTER"), List.of("app-a"))));
-        interceptor = new DdcRpcServerInterceptor(
-                properties,
-                new DdcHmacCredentialRegistry(properties),
-                (credentialId, nonce, ttl) -> {
-                    throw new IllegalStateException("redis-secret");
-                },
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+        interceptor = interceptor(properties, (credentialId, nonce, ttl) -> {
+            throw new IllegalStateException("redis-secret");
+        });
         var method = DdcConfigRuntimeServiceGrpc.getRegisterConfigClientMethod();
         var request = top.egon.cola.component.rpc.tianshu.contract.proto.v1
                 .RegisterConfigClientRequest.newBuilder()
@@ -235,14 +248,9 @@ class DdcRpcServerInterceptorTest {
     void preservesReadAvailabilityWhenNonceStoreIsTemporarilyUnavailable() {
         DdcAdminProperties properties = properties(List.of(
                 credential(List.of("CONFIG_PULL"), List.of("app-a"))));
-        interceptor = new DdcRpcServerInterceptor(
-                properties,
-                new DdcHmacCredentialRegistry(properties),
-                (credentialId, nonce, ttl) -> {
-                    throw new IllegalStateException("redis unavailable");
-                },
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+        interceptor = interceptor(properties, (credentialId, nonce, ttl) -> {
+            throw new IllegalStateException("redis unavailable");
+        });
         PullConfigRequest request = request("biz-a", "dev", "app-a");
 
         RecordingServerCall<PullConfigRequest, PullConfigResponse> call =
@@ -251,6 +259,44 @@ class DdcRpcServerInterceptorTest {
 
         assertThat(call.status()).isNull();
         verify(facade).pull("biz-a", "dev", "app-a");
+    }
+
+    @Test
+    void enforcesNamespaceGrantForAiReadsOnly() {
+        DdcAdminProperties properties = properties(List.of(
+                credential(List.of("AI_READ"), List.of("app-a"))));
+        interceptor = interceptor(properties, new InMemoryDdcNonceStore(100),
+                List.of("orders-*"));
+        var method = DdcAiResourceServiceGrpc.getGetPromptMethod();
+        AiResourceQuery deniedNamespace = aiQuery("billing-api");
+        RecordingServerCall<?, ?> deniedCall = invoke(
+                method,
+                deniedNamespace,
+                signed(method.getFullMethodName(), deniedNamespace,
+                        NOW.toEpochMilli(), "ai-namespace-denied"),
+                ignored -> facade.pull("must", "not", "run")
+        );
+
+        assertThat(deniedCall.status()).as("ungranted namespace must be rejected")
+                .isNotNull();
+        assertThat(deniedCall.status().getCode()).isEqualTo(Status.Code.PERMISSION_DENIED);
+        assertThat(errorCode(deniedCall)).isEqualTo("TIANSHU_HMAC_SCOPE_DENIED");
+
+        interceptor = interceptor(properties, new InMemoryDdcNonceStore(100), List.of());
+        AiResourceQuery emptyGrantNamespace = aiQuery("orders-api");
+        RecordingServerCall<?, ?> emptyGrantCall = invoke(
+                method,
+                emptyGrantNamespace,
+                signed(method.getFullMethodName(), emptyGrantNamespace,
+                        NOW.toEpochMilli(), "ai-namespace-empty-grant"),
+                ignored -> facade.pull("must", "not", "run")
+        );
+
+        assertThat(emptyGrantCall.status()).as("empty namespace grant must be rejected")
+                .isNotNull();
+        assertThat(emptyGrantCall.status().getCode()).isEqualTo(Status.Code.PERMISSION_DENIED);
+        assertThat(errorCode(emptyGrantCall)).isEqualTo("TIANSHU_HMAC_SCOPE_DENIED");
+        verifyNoInteractions(facade);
     }
 
     private RecordingServerCall<PullConfigRequest, PullConfigResponse> invoke(
@@ -334,10 +380,20 @@ class DdcRpcServerInterceptorTest {
             Message request,
             long timestamp,
             String nonce) {
+        return signed(101L, fullMethodName, request, timestamp, nonce);
+    }
+
+    private Metadata signed(
+            long tenantId,
+            String fullMethodName,
+            Message request,
+            long timestamp,
+            String nonce) {
         DdcRpcCanonicalRequest canonical = new DdcRpcCanonicalRequest(
-                fullMethodName, timestamp, nonce, request);
+                tenantId, fullMethodName, timestamp, nonce, request);
         Metadata headers = new Metadata();
         headers.put(DdcRpcMetadataKeys.ACCESS_KEY, ACCESS_KEY);
+        headers.put(DdcRpcMetadataKeys.TENANT_ID, Long.toString(tenantId));
         headers.put(DdcRpcMetadataKeys.TIMESTAMP, Long.toString(timestamp));
         headers.put(DdcRpcMetadataKeys.NONCE, nonce);
         headers.put(DdcRpcMetadataKeys.CONTENT_SHA256,
@@ -347,6 +403,40 @@ class DdcRpcServerInterceptorTest {
         headers.put(DdcRpcMetadataKeys.CONTRACT_VERSION,
                 DdcRpcCanonicalRequest.CONTRACT_VERSION);
         return headers;
+    }
+
+    private DdcRpcServerInterceptor interceptor(
+            DdcAdminProperties properties,
+            DdcNonceStore nonceStore) {
+        return interceptor(properties, nonceStore, List.of("orders-*"));
+    }
+
+    private DdcRpcServerInterceptor interceptor(
+            DdcAdminProperties properties,
+            DdcNonceStore nonceStore,
+            List<String> namespacePatterns) {
+        DdcTenantAdminProperties tenantProperties = new DdcTenantAdminProperties();
+        tenantProperties.setBindings(List.of(DdcTenantBindingDTO.builder()
+                .tenantId(101L)
+                .identityTenantId("tenant-a")
+                .enabled(true)
+                .build()));
+        tenantProperties.setCredentialBindings(properties.getRpc().getCredentials().stream()
+                .map(value -> DdcCredentialTenantDTO.builder()
+                        .credentialId(value.getCredentialId())
+                        .tenantId(101L)
+                        .namespacePatterns(namespacePatterns)
+                        .build())
+                .toList());
+        DdcTenantRegistry tenantRegistry = new DdcTenantRegistry(tenantProperties, properties);
+        tenantRegistry.initialize();
+        return new DdcRpcServerInterceptor(
+                properties,
+                new DdcHmacCredentialRegistry(properties),
+                tenantRegistry,
+                new DdcTenantContextExecutor(),
+                nonceStore,
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private DdcAdminProperties properties(
@@ -380,6 +470,16 @@ class DdcRpcServerInterceptorTest {
             String appCode) {
         return PullConfigRequest.newBuilder()
                 .setScope(scope(bizCode, env, appCode))
+                .build();
+    }
+
+    private AiResourceQuery aiQuery(String namespaceCode) {
+        return AiResourceQuery.newBuilder()
+                .setBizCode("biz-a")
+                .setNamespaceCode(namespaceCode)
+                .setEnv("dev")
+                .setAppCode("app-a")
+                .setResourceKey("review-order")
                 .build();
     }
 

@@ -15,6 +15,8 @@ public final class DdcRpcOperationResolver {
             "egon.tianshu.v1.DdcServiceRegistryService/";
     private static final String MANAGEMENT =
             "egon.tianshu.v1.DdcManagementService/";
+    private static final String AI_RESOURCE =
+            "egon.tianshu.v1.DdcAiResourceService/";
 
     private final Map<String, DdcRpcOperation> operations = operations();
 
@@ -69,6 +71,8 @@ public final class DdcRpcOperationResolver {
         values.put(MANAGEMENT + "ListBizs", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
         values.put(MANAGEMENT + "GetApp", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
         values.put(MANAGEMENT + "ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
+        values.put(AI_RESOURCE + "GetPrompt", DdcRpcOperation.AI_READ);
+        values.put(AI_RESOURCE + "GetSkill", DdcRpcOperation.AI_READ);
         return Map.copyOf(values);
     }
 }

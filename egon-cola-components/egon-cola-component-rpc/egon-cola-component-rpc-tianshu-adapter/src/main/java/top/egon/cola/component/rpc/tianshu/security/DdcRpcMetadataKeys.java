@@ -10,6 +10,8 @@ public final class DdcRpcMetadataKeys {
 
     public static final Metadata.Key<String> ACCESS_KEY = ascii(
             "x-egon-tianshu-access-key");
+    public static final Metadata.Key<String> TENANT_ID = ascii(
+            "x-egon-tianshu-tenant-id");
     public static final Metadata.Key<String> TIMESTAMP = ascii(
             "x-egon-tianshu-timestamp");
     public static final Metadata.Key<String> NONCE = ascii(

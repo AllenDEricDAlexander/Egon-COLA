@@ -18,6 +18,7 @@ import org.springframework.core.env.PropertySource;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRegistryAutoConfiguration;
+import top.egon.cola.component.tianshu.error.DdcClientTransportException;
 import top.egon.cola.component.tianshu.model.config.DdcConfigValue;
 import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcConfigRuntimeServiceGrpc;
@@ -36,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcConfigDataSpringApplicationTest {
 
@@ -98,15 +100,12 @@ class DdcConfigDataSpringApplicationTest {
     }
 
     @Test
-    void optionalUnavailableRpcKeepsLocalConfigData() throws Exception {
+    void optionalUnavailableRpcIsNotConvertedToMissingRemoteConfiguration()
+            throws Exception {
         Path bootstrap = bootstrapFile(1, true);
 
-        try (ConfigurableApplicationContext context = run(bootstrap)) {
-            assertThat(context.getBean(SampleProperties.class).getValue())
-                    .isEqualTo("bootstrap");
-            assertThat(context.getEnvironment().getProperty("sample.value"))
-                    .isEqualTo("bootstrap");
-        }
+        assertThatThrownBy(() -> run(bootstrap))
+                .isInstanceOf(DdcClientTransportException.class);
     }
 
     private ConfigurableApplicationContext run(
@@ -145,6 +144,7 @@ class DdcConfigDataSpringApplicationTest {
                     component:
                       tianshu:
                         enabled: true
+                        tenant-id: 101
                         biz-code: orders
                         env: test
                         namespace: default

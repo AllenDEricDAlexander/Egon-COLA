@@ -49,6 +49,7 @@ class DdcConfigDataLocationResolverTest {
                         "egon.cola.component.tianshu.env", "test",
                         "egon.cola.component.tianshu.namespace", "default",
                         "egon.cola.component.tianshu.app-code", "order-service",
+                        "egon.cola.component.tianshu.tenant-id", 101L,
                         "egon.cola.component.tianshu.rpc.target", "localhost:19080",
                         "egon.cola.component.tianshu.rpc.auth.enabled", false
                 )
@@ -61,6 +62,7 @@ class DdcConfigDataLocationResolverTest {
 
         assertThat(resources).containsExactly(new DdcConfigDataResource(
                 true,
+                101L,
                 "orders",
                 "test",
                 "default",
@@ -114,23 +116,24 @@ class DdcConfigDataLocationResolverTest {
     }
 
     @Test
-    void requiredLocationRejectsMissingRpcBootstrapWhileOptionalContinues() {
+    void optionalLocationDoesNotSwallowMissingRpcBootstrapConfiguration() {
         Map<String, Object> properties = Map.of(
                 "egon.cola.component.tianshu.enabled", true,
                 "egon.cola.component.tianshu.biz-code", "orders",
                 "egon.cola.component.tianshu.env", "test",
                 "egon.cola.component.tianshu.namespace", "default",
-                "egon.cola.component.tianshu.app-code", "order-service"
+                "egon.cola.component.tianshu.app-code", "order-service",
+                "egon.cola.component.tianshu.tenant-id", 101L
         );
 
         assertThatThrownBy(() -> resolver.resolve(
                 context(new DefaultBootstrapContext(), properties),
                 ConfigDataLocation.of("tianshu:application.yml")
         )).hasMessageContaining("egon.cola.component.tianshu.rpc.target");
-        assertThat(resolver.resolve(
+        assertThatThrownBy(() -> resolver.resolve(
                 context(new DefaultBootstrapContext(), properties),
                 ConfigDataLocation.of("optional:tianshu:application.yml")
-        )).isEmpty();
+        )).hasMessageContaining("egon.cola.component.tianshu.rpc.target");
     }
 
     private ConfigDataLocationResolverContext context(

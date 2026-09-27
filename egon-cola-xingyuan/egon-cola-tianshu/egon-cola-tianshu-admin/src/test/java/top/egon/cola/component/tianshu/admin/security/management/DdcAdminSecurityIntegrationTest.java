@@ -9,7 +9,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +21,8 @@ import top.egon.cola.component.tianshu.admin.controller.config.DdcConfigControll
 import top.egon.cola.component.tianshu.admin.controller.config.DdcPublishTaskController;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.service.cache.DdcCacheService;
 import top.egon.cola.component.tianshu.admin.service.config.DdcConfigService;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishService;
@@ -59,9 +60,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DdcAdminSecurityIntegrationTest.BindingInfoController.class,
         DdcAdminSecurityIntegrationTest.PagedInfoController.class
 })
-@Import(DdcAdminSecurityConfiguration.class)
+@Import({DdcAdminSecurityConfiguration.class, DdcTenantRegistry.class,
+        DdcTenantContextExecutor.class})
 @TestPropertySource(properties = {
-        "egon.cola.component.tianshu.admin.security.local-dev=true"
+        "egon.cola.component.tianshu.admin.security.local-dev=true",
+        "egon.cola.component.tianshu.admin.tenancy.bindings[0].tenant-id=101",
+        "egon.cola.component.tianshu.admin.tenancy.bindings[0].identity-tenant-id=tenant-a",
+        "egon.cola.component.tianshu.admin.tenancy.bindings[0].enabled=true"
 })
 class DdcAdminSecurityIntegrationTest {
 
@@ -273,11 +278,7 @@ class DdcAdminSecurityIntegrationTest {
     void usesJwtSubjectAsTrustedOperator() throws Exception {
         mockMvc.perform(post("/api/v1/tianshu/configs")
                         .param("operator", "claimed-user")
-                        .with(jwt()
-                                .jwt(token -> token.subject("admin-42"))
-                                .authorities(new SimpleGrantedAuthority(
-                                        "CAP_TIANSHU_WRITE"
-                                )))
+                        .with(authentication(rbac3("TIANSHU_WRITE", "admin-42")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(configBody()))
                 .andExpect(status().isOk());
@@ -295,18 +296,22 @@ class DdcAdminSecurityIntegrationTest {
 
     private org.springframework.test.web.servlet.request.RequestPostProcessor
     authority(String value) {
-        return jwt().jwt(token -> token.subject("test-user"))
-                .authorities(new SimpleGrantedAuthority(value));
+        String permission = value.startsWith("CAP_") ? value.substring(4) : value;
+        return authentication(rbac3(permission, "test-user"));
     }
 
     private Rbac3AuthenticationToken rbac3(String permission) {
+        return rbac3(permission, "admin-sub");
+    }
+
+    private Rbac3AuthenticationToken rbac3(String permission, String subject) {
         Instant now = Instant.parse("2026-08-02T04:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
-                "admin-sub", "tenant-a", "token-1",
+                subject, "tenant-a", "token-1",
                 java.util.Set.of("tianshu-admin-web"), now, now.plusSeconds(900),
                 AuthenticationContext.password());
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
-                "tenant-a", "admin-sub", "101", "tianshu-admin",
+                "tenant-a", subject, "101", "tianshu-admin",
                 3, 4, List.of("tianshu-reader"), java.util.Set.of(permission),
                 Map.of(), Map.of(), "sha256:ddc", now, now.plusSeconds(900));
         return new Rbac3AuthenticationToken(

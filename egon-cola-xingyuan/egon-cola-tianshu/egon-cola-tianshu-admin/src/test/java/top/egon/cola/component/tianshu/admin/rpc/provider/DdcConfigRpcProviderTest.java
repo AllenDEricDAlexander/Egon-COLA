@@ -106,7 +106,8 @@ class DdcConfigRpcProviderTest {
     private DdcServicePrincipal principal(String clientType) {
         return new DdcServicePrincipal(
                 "sdk-a", clientType, Set.of("*"), Set.of("*"),
-                Set.of("*"), Set.of("*"), "app", "test", "biz");
+                Set.of("*"), Set.of("*"), "app", "test", "biz",
+                101L, "tenant-a", Set.of("orders-*"));
     }
 
     private DdcInstanceRegisterRequest registration() {

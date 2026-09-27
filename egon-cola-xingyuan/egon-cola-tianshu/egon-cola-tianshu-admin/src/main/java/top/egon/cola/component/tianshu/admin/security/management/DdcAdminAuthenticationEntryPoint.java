@@ -3,6 +3,7 @@ package top.egon.cola.component.tianshu.admin.security.management;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+@Slf4j
 public final class DdcAdminAuthenticationEntryPoint
         implements AuthenticationEntryPoint, AccessDeniedHandler {
 
@@ -43,6 +45,18 @@ public final class DdcAdminAuthenticationEntryPoint
                 response,
                 HttpServletResponse.SC_FORBIDDEN,
                 "TIANSHU_ADMIN_CAPABILITY_REQUIRED"
+        );
+    }
+
+    /** Writes the stable security response when a browser's expected tenant no longer matches the authenticated USER tenant. */
+    public void handleTenantMismatch(
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        log.debug("Rejected Tianshu admin request because tenant context did not match");
+        write(
+                response,
+                HttpServletResponse.SC_FORBIDDEN,
+                "TIANSHU_ADMIN_TENANT_MISMATCH"
         );
     }
 

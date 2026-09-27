@@ -33,6 +33,7 @@ class DdcRpcClientInterceptorFactoryTest {
         DdcRpcClientInterceptorFactory factory =
                 new DdcRpcClientInterceptorFactory(
                         new DdcRpcCredential("runtime-key", "secret"),
+                        101L,
                         Clock.fixed(Instant.ofEpochMilli(1700000000000L), ZoneOffset.UTC),
                         () -> "nonce-1"
                 );
@@ -41,6 +42,7 @@ class DdcRpcClientInterceptorFactoryTest {
 
         assertThat(metadata.get(DdcRpcMetadataKeys.ACCESS_KEY))
                 .isEqualTo("runtime-key");
+        assertThat(metadata.get(DdcRpcMetadataKeys.TENANT_ID)).isEqualTo("101");
         assertThat(metadata.get(DdcRpcMetadataKeys.TIMESTAMP))
                 .isEqualTo("1700000000000");
         assertThat(metadata.get(DdcRpcMetadataKeys.NONCE)).isEqualTo("nonce-1");
@@ -51,7 +53,7 @@ class DdcRpcClientInterceptorFactoryTest {
                 .hasSize(64)
                 .matches("[0-9a-f]{64}");
         assertThat(metadata.get(DdcRpcMetadataKeys.CONTRACT_VERSION))
-                .isEqualTo("v1");
+                .isEqualTo("v2");
         assertThat(factory.create(invocation)).isNotNull();
         assertThat(factory.operationResolver().resolve(
                 invocation.method().fullMethodName()))
@@ -87,7 +89,9 @@ class DdcRpcClientInterceptorFactoryTest {
                 Map.entry("GetBiz", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
                 Map.entry("ListBizs", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
                 Map.entry("GetApp", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
-                Map.entry("ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ)
+                Map.entry("ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
+                Map.entry("GetPrompt", DdcRpcOperation.AI_READ),
+                Map.entry("GetSkill", DdcRpcOperation.AI_READ)
         );
 
         assertThat(resolver.operationsByBareMethod()).containsExactlyInAnyOrderEntriesOf(expected);

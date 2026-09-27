@@ -11,23 +11,29 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 /**
- * Tianshu RPC HMAC 协议的确定性五行请求表示。
- * / Deterministic five-line request representation for Tianshu RPC HMAC.
+ * Tianshu RPC HMAC v2 协议的确定性六行请求表示。
+ * / Deterministic six-line request representation for Tianshu RPC HMAC v2.
  */
 public final class DdcRpcCanonicalRequest {
 
-    public static final String CONTRACT_VERSION = "v1";
+    public static final String CONTRACT_VERSION = "v2";
 
+    private final long tenantId;
     private final String fullMethodName;
     private final long timestamp;
     private final String nonce;
     private final byte[] deterministicBody;
 
     public DdcRpcCanonicalRequest(
+            long tenantId,
             String fullMethodName,
             long timestamp,
             String nonce,
             Message request) {
+        if (tenantId <= 0) {
+            throw new IllegalArgumentException("tenantId must be positive");
+        }
+        this.tenantId = tenantId;
         this.fullMethodName = require(fullMethodName, "fullMethodName");
         this.timestamp = timestamp;
         this.nonce = require(nonce, "nonce");
@@ -79,11 +85,12 @@ public final class DdcRpcCanonicalRequest {
         }
     }
 
-    /** 返回无尾部换行的五行规范文本。 / Returns the five-line canonical text without a trailing LF. */
+    /** 返回无尾部换行的六行规范文本。 / Returns the six-line canonical text without a trailing LF. */
     public String canonicalValue() {
         return String.join(
                 "\n",
                 CONTRACT_VERSION,
+                Long.toString(tenantId),
                 fullMethodName,
                 Long.toString(timestamp),
                 nonce,
@@ -98,6 +105,10 @@ public final class DdcRpcCanonicalRequest {
 
     public long timestamp() {
         return timestamp;
+    }
+
+    public long tenantId() {
+        return tenantId;
     }
 
     public String nonce() {

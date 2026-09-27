@@ -1,9 +1,11 @@
 package top.egon.cola.component.rpc.tianshu.client;
 
+import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.rpc.consumer.direct.RpcDirectClientFactory;
 import top.egon.cola.component.rpc.consumer.direct.RpcDirectClientHandle;
 import top.egon.cola.component.rpc.consumer.direct.RpcDirectClientSettings;
@@ -30,28 +32,33 @@ import java.util.List;
  * 按 Tianshu 能力创建互不共享的 Direct RPC 客户端。
  * / Creates independently owned Direct RPC clients per Tianshu capability.
  */
+@Slf4j
 public final class DdcRpcClientFactory {
 
     private final DdcRpcProperties rpcProperties;
     private final DdcProperties ddcProperties;
+    private final DdcTenantProperties tenantProperties;
     private final RpcProcessIdentity processIdentity;
     private final RpcDirectClientFactory directFactory;
 
     public DdcRpcClientFactory(
             DdcRpcProperties rpcProperties,
             DdcProperties ddcProperties,
+            DdcTenantProperties tenantProperties,
             RpcProcessIdentity processIdentity) {
-        this(rpcProperties, ddcProperties, processIdentity,
+        this(rpcProperties, ddcProperties, tenantProperties, processIdentity,
                 new RpcDirectClientFactory());
     }
 
     DdcRpcClientFactory(
             DdcRpcProperties rpcProperties,
             DdcProperties ddcProperties,
+            DdcTenantProperties tenantProperties,
             RpcProcessIdentity processIdentity,
             RpcDirectClientFactory directFactory) {
         this.rpcProperties = require(rpcProperties, "rpcProperties");
         this.ddcProperties = require(ddcProperties, "ddcProperties");
+        this.tenantProperties = require(tenantProperties, "tenantProperties");
         this.processIdentity = require(processIdentity, "processIdentity");
         this.directFactory = require(directFactory, "directFactory");
     }
@@ -123,10 +130,13 @@ public final class DdcRpcClientFactory {
     private <T> RpcDirectClientHandle<T> create(
             Class<T> contractType,
             CredentialSupplier credentialSupplier) {
+        long tenantId = tenantProperties.requireTenantId();
+        log.debug("Creating Tianshu RPC client contract={} tenantId={}",
+                contractType.getSimpleName(), tenantId);
         List<RpcClientInterceptorFactory> interceptors =
                 rpcProperties.getAuth().isEnabled()
                 ? List.of(new DdcRpcClientInterceptorFactory(
-                        credentialSupplier.get()))
+                        credentialSupplier.get(), tenantId))
                 : List.of();
         return directFactory.create(
                 contractType,

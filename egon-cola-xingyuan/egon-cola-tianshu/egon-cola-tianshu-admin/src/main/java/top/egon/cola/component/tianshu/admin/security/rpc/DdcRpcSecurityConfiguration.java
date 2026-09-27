@@ -2,11 +2,14 @@ package top.egon.cola.component.tianshu.admin.security.rpc;
 
 import io.grpc.ServerInterceptor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
 /**
@@ -17,21 +20,27 @@ import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 public class DdcRpcSecurityConfiguration {
 
     /** 创建请求级 HMAC 认证拦截器。 / Creates the request-level HMAC authentication interceptor. */
-    @Bean
+    @Bean(name = "ddcRpcServerInterceptor")
     @Order(Ordered.HIGHEST_PRECEDENCE + 100)
     public ServerInterceptor ddcRpcServerInterceptor(
-            DdcAdminProperties properties,
+            @Qualifier("egon.cola.component.tianshu.admin-top.egon.cola.component.tianshu.admin.config.DdcAdminProperties") DdcAdminProperties properties,
+            @Qualifier("ddcHmacCredentialRegistry")
             DdcHmacCredentialRegistry credentialRegistry,
-            ObjectProvider<DdcNonceStore> nonceStore) {
+            @Qualifier("ddcTenantRegistry") DdcTenantRegistry tenantRegistry,
+            @Qualifier("ddcTenantContextExecutor")
+            DdcTenantContextExecutor tenantContextExecutor,
+            @Qualifier("ddcNonceStore") ObjectProvider<DdcNonceStore> nonceStore) {
         return new DdcRpcServerInterceptor(
                 properties,
                 credentialRegistry,
+                tenantRegistry,
+                tenantContextExecutor,
                 nonceStore.getIfAvailable()
         );
     }
 
     /** 创建 Admin 领域异常 Mapper。 / Creates the Admin domain exception mapper. */
-    @Bean
+    @Bean(name = "ddcRpcProviderExceptionMapper")
     @Order(Ordered.HIGHEST_PRECEDENCE + 100)
     public RpcProviderExceptionMapper ddcRpcProviderExceptionMapper() {
         return new DdcRpcProviderExceptionMapper();

@@ -8,7 +8,12 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.PatternMatchUtils;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 import top.egon.cola.component.rpc.tianshu.security.DdcRpcCanonicalRequest;
 import top.egon.cola.component.rpc.tianshu.security.DdcRpcMetadataKeys;
@@ -25,13 +30,17 @@ import java.util.regex.Pattern;
  * 在 Provider 执行前认证单条 Tianshu unary RPC 请求。
  * / Authenticates one Tianshu unary RPC request before provider execution.
  */
+@Slf4j
 public final class DdcRpcServerInterceptor implements ServerInterceptor {
 
     private static final Pattern HEX_64 = Pattern.compile("[0-9a-f]{64}");
     private static final Pattern NONCE = Pattern.compile("[\\x21-\\x7e]{1,128}");
+    private static final Pattern TENANT_ID = Pattern.compile("[1-9][0-9]{0,18}");
 
     private final DdcAdminProperties.Rpc properties;
     private final DdcHmacCredentialRegistry credentialRegistry;
+    private final DdcTenantRegistry tenantRegistry;
+    private final DdcTenantContextExecutor tenantContextExecutor;
     private final DdcNonceStore nonceStore;
     private final Clock clock;
     private final DdcRpcRequestSigner signer = new DdcRpcRequestSigner();
@@ -44,21 +53,29 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
     public DdcRpcServerInterceptor(
             DdcAdminProperties properties,
             DdcHmacCredentialRegistry credentialRegistry,
+            DdcTenantRegistry tenantRegistry,
+            DdcTenantContextExecutor tenantContextExecutor,
             DdcNonceStore nonceStore) {
-        this(properties, credentialRegistry, nonceStore, Clock.systemUTC());
+        this(properties, credentialRegistry, tenantRegistry, tenantContextExecutor,
+                nonceStore, Clock.systemUTC());
     }
 
     DdcRpcServerInterceptor(
             DdcAdminProperties properties,
             DdcHmacCredentialRegistry credentialRegistry,
+            DdcTenantRegistry tenantRegistry,
+            DdcTenantContextExecutor tenantContextExecutor,
             DdcNonceStore nonceStore,
             Clock clock) {
-        if (properties == null || credentialRegistry == null || clock == null) {
+        if (properties == null || credentialRegistry == null || tenantRegistry == null
+                || tenantContextExecutor == null || clock == null) {
             throw new IllegalArgumentException(
-                    "properties, credentialRegistry and clock are required");
+                    "properties, credentialRegistry, tenantRegistry, tenantContextExecutor and clock are required");
         }
         this.properties = properties.getRpc();
         this.credentialRegistry = credentialRegistry;
+        this.tenantRegistry = tenantRegistry;
+        this.tenantContextExecutor = tenantContextExecutor;
         this.nonceStore = nonceStore;
         this.clock = clock;
         validateConfiguration();
@@ -82,24 +99,36 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
         long timestamp = 0L;
         long now = clock.millis();
         long skew = properties.getAllowedClockSkewSeconds() * 1000L;
-        if (properties.isSignatureEnabled()) {
-            signed = headers(headers);
-            timestamp = timestamp(signed.timestamp());
-            if (timestamp < now - skew || timestamp > now + skew) {
-                throw authentication(DdcErrorStatus.SIGNATURE_EXPIRED);
-            }
-            credential = credentialRegistry.resolve(
-                    signed.accessKey()).orElseThrow(() ->
-                    authentication(DdcErrorStatus.SIGNATURE_INVALID));
-            DdcRpcCanonicalRequest canonical = new DdcRpcCanonicalRequest(
-                    fullMethodName, timestamp, signed.nonce(), request);
-            if (!signer.matches(
-                    canonical.contentSha256(), signed.contentSha256())
-                    || !signer.matches(
-                    signer.sign(canonical, credential.secret()),
-                    signed.signature())) {
-                throw authentication(DdcErrorStatus.SIGNATURE_INVALID);
-            }
+        if (!properties.isSignatureEnabled()) {
+            throw authentication(DdcErrorStatus.SIGNATURE_REQUIRED);
+        }
+        signed = headers(headers);
+        timestamp = timestamp(signed.timestamp());
+        if (timestamp < now - skew || timestamp > now + skew) {
+            throw authentication(DdcErrorStatus.SIGNATURE_EXPIRED);
+        }
+        credential = credentialRegistry.resolve(
+                signed.accessKey()).orElseThrow(() ->
+                authentication(DdcErrorStatus.SIGNATURE_INVALID));
+        long signedTenantId = tenantId(signed.tenantId());
+        DdcRpcCanonicalRequest canonical = new DdcRpcCanonicalRequest(
+                signedTenantId, fullMethodName, timestamp, signed.nonce(), request);
+        if (!signer.matches(
+                canonical.contentSha256(), signed.contentSha256())
+                || !signer.matches(
+                signer.sign(canonical, credential.secret()),
+                signed.signature())) {
+            throw authentication(DdcErrorStatus.SIGNATURE_INVALID);
+        }
+        DdcTenantContextDTO tenantContext;
+        Set<String> namespacePatterns;
+        try {
+            tenantContext = tenantRegistry.resolveCredentialContext(
+                    credential.credentialId(), signed.tenantId());
+            namespacePatterns = tenantRegistry.namespacePatternsForCredential(
+                    credential.credentialId());
+        } catch (IllegalArgumentException invalidTenantBinding) {
+            throw authentication(DdcErrorStatus.SIGNATURE_INVALID);
         }
         DdcRpcOperation operation;
         try {
@@ -118,9 +147,6 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                     false
             );
         }
-        if (!properties.isSignatureEnabled()) {
-            return new Authentication(localPrincipal(scope));
-        }
         if (!credential.permits(
                 scope.clientType(),
                 operation.name(),
@@ -129,10 +155,15 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                 scope.bizCode())) {
             throw denied();
         }
+        if (operation == DdcRpcOperation.AI_READ
+                && !permitsNamespace(namespacePatterns, scope.namespaceCode())) {
+            throw denied();
+        }
         consumeNonce(credential, signed.nonce(), timestamp, now, skew, operation);
         return new Authentication(
                 credential.principal(
-                        scope.appCode(), scope.env(), scope.bizCode())
+                        scope.appCode(), scope.env(), scope.bizCode(),
+                        tenantContext, namespacePatterns)
         );
     }
 
@@ -142,23 +173,38 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
         String nonce = metadata.get(DdcRpcMetadataKeys.NONCE);
         String contentSha256 = metadata.get(DdcRpcMetadataKeys.CONTENT_SHA256);
         String signature = metadata.get(DdcRpcMetadataKeys.SIGNATURE);
+        String tenantId = metadata.get(DdcRpcMetadataKeys.TENANT_ID);
         String contractVersion = metadata.get(
                 DdcRpcMetadataKeys.CONTRACT_VERSION);
         if (accessKey == null || timestamp == null || nonce == null
                 || contentSha256 == null || signature == null
-                || contractVersion == null) {
+                || tenantId == null || contractVersion == null) {
             throw authentication(DdcErrorStatus.SIGNATURE_REQUIRED);
         }
         if (accessKey.isBlank() || accessKey.length() > 256
                 || !NONCE.matcher(nonce).matches()
+                || !TENANT_ID.matcher(tenantId).matches()
                 || !HEX_64.matcher(contentSha256).matches()
                 || !HEX_64.matcher(signature).matches()
                 || !DdcRpcCanonicalRequest.CONTRACT_VERSION.equals(
                 contractVersion)) {
             throw authentication(DdcErrorStatus.SIGNATURE_INVALID);
         }
+        tenantId(tenantId);
         return new Headers(
-                accessKey, timestamp, nonce, contentSha256, signature);
+                accessKey, timestamp, nonce, contentSha256, signature, tenantId);
+    }
+
+    private long tenantId(String value) {
+        try {
+            long tenantId = Long.parseLong(value);
+            if (tenantId <= 0 || !Long.toString(tenantId).equals(value)) {
+                throw authentication(DdcErrorStatus.SIGNATURE_INVALID);
+            }
+            return tenantId;
+        } catch (NumberFormatException invalid) {
+            throw authentication(DdcErrorStatus.SIGNATURE_INVALID);
+        }
     }
 
     private long timestamp(String value) {
@@ -206,24 +252,16 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                  MANAGEMENT_INSTANCE_READ,
                  MANAGEMENT_SCOPE_READ,
                  MANAGEMENT_REGISTRY_READ,
-                 MANAGEMENT_CATALOG_READ -> false;
+                 MANAGEMENT_CATALOG_READ,
+                 AI_READ -> false;
             default -> true;
         };
     }
 
-    private DdcServicePrincipal localPrincipal(
-            DdcRpcScopeExtractor.Scope scope) {
-        return new DdcServicePrincipal(
-                "local-dev",
-                scope.clientType(),
-                Set.of("*"),
-                Set.of("*"),
-                Set.of("*"),
-                Set.of("*"),
-                scope.appCode(),
-                scope.env(),
-                scope.bizCode()
-        );
+    private boolean permitsNamespace(Set<String> patterns, String namespaceCode) {
+        return namespaceCode != null && !patterns.isEmpty()
+                && patterns.stream().anyMatch(pattern ->
+                PatternMatchUtils.simpleMatch(pattern, namespaceCode));
     }
 
     private StatusRuntimeException authentication(DdcErrorStatus error) {
@@ -266,6 +304,7 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
         private final Metadata headers;
         private final ServerCall.Listener<ReqT> delegate;
         private Context authenticatedContext;
+        private DdcServicePrincipal authenticatedPrincipal;
         private boolean closed;
         private boolean ready;
 
@@ -298,11 +337,12 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                         headers,
                         message
                 );
-                authenticatedContext = authentication.principal()
+                authenticatedPrincipal = authentication.principal();
+                authenticatedContext = authenticatedPrincipal
                         .bind(Context.current());
-                authenticatedContext.run(() -> delegate.onMessage(request));
+                callback(() -> delegate.onMessage(request));
                 if (ready) {
-                    authenticatedContext.run(delegate::onReady);
+                    callback(delegate::onReady);
                 }
             } catch (StatusRuntimeException failure) {
                 reject(failure);
@@ -323,7 +363,7 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                 ));
                 return;
             }
-            authenticatedContext.run(delegate::onHalfClose);
+            callback(delegate::onHalfClose);
         }
 
         @Override
@@ -340,20 +380,24 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
         public void onReady() {
             ready = true;
             if (authenticatedContext != null) {
-                authenticatedContext.run(delegate::onReady);
+                callback(delegate::onReady);
             }
         }
 
         private void callback(Runnable action) {
-            if (authenticatedContext == null) {
+            if (authenticatedContext == null || authenticatedPrincipal == null) {
                 action.run();
             } else {
-                authenticatedContext.run(action);
+                authenticatedContext.run(() -> tenantContextExecutor.run(
+                        authenticatedPrincipal.tenantContext(), action));
             }
         }
 
         private void reject(StatusRuntimeException failure) {
             closed = true;
+            log.debug("Rejected Tianshu RPC request method={} status={}",
+                    call.getMethodDescriptor().getFullMethodName(),
+                    failure.getStatus().getCode());
             call.close(
                     failure.getStatus(),
                     failure.getTrailers() == null
@@ -368,7 +412,8 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
             String timestamp,
             String nonce,
             String contentSha256,
-            String signature) {
+            String signature,
+            String tenantId) {
     }
 
     private record Authentication(DdcServicePrincipal principal) {

@@ -1,6 +1,7 @@
 package top.egon.cola.component.tianshu.admin.security.rpc;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcScope;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.GetAppRequest;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.GetBizRequest;
@@ -81,6 +82,29 @@ class DdcRpcHmacScopeTest {
     }
 
     @Test
+    void extractsAiNamespaceScopeAndRejectsAnUnstableVersionSelector() {
+        AiResourceQuery fixedVersion = AiResourceQuery.newBuilder()
+                .setBizCode("biz-a")
+                .setNamespaceCode("tenant-space")
+                .setEnv("dev")
+                .setAppCode("order-api")
+                .setResourceKey("review-order")
+                .setResourceId("41")
+                .setVersionNo(3L)
+                .build();
+
+        assertThat(extractor.extract(
+                "egon.tianshu.v1.DdcAiResourceService/GetSkill",
+                fixedVersion)).isEqualTo(new DdcRpcScopeExtractor.Scope(
+                        "SDK", "order-api", "dev", "biz-a", "tenant-space"));
+        assertThatThrownBy(() -> extractor.extract(
+                "egon.tianshu.v1.DdcAiResourceService/GetPrompt",
+                fixedVersion.toBuilder().clearResourceId().build()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("resourceId");
+    }
+
+    @Test
     void servicePrincipalNeverTrustsRequestedOperatorIdentity() {
         DdcServicePrincipal principal = new DdcServicePrincipal(
                 "management-a",
@@ -91,11 +115,16 @@ class DdcRpcHmacScopeTest {
                 Set.of("MANAGEMENT_CONFIG_WRITE"),
                 "app-a",
                 "dev",
-                "biz-a"
+                "biz-a",
+                101L,
+                "tenant-a",
+                Set.of("orders-*")
         );
 
         assertThat(principal.auditOperator("claimed-user"))
                 .isEqualTo("service:management-a [requested=claimed-user]");
+        assertThat(principal.tenantContext().tenantId()).isEqualTo(101L);
+        assertThat(principal.namespacePatterns()).contains("orders-*");
         assertThat(principal.auditOperator(null))
                 .isEqualTo("service:management-a");
         assertThat(principal.toString()).doesNotContain("secret");

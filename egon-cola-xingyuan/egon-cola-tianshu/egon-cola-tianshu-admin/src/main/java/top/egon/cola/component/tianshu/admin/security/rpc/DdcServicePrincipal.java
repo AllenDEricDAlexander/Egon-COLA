@@ -1,6 +1,10 @@
 package top.egon.cola.component.tianshu.admin.security.rpc;
 
 import io.grpc.Context;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
 
 import java.security.Principal;
 import java.util.Objects;
@@ -15,7 +19,10 @@ public record DdcServicePrincipal(
         Set<String> allowedOperations,
         String appCode,
         String env,
-        String bizCode
+        String bizCode,
+        @NotNull @Positive Long tenantId,
+        @NotBlank String identityTenantId,
+        Set<String> namespacePatterns
 ) implements Principal {
 
     static final Context.Key<DdcServicePrincipal> CONTEXT_KEY =
@@ -23,6 +30,24 @@ public record DdcServicePrincipal(
 
     public static final String REQUEST_ATTRIBUTE =
             DdcServicePrincipal.class.getName();
+
+    public DdcServicePrincipal {
+        if (credentialId == null || credentialId.isBlank()) {
+            throw new IllegalArgumentException("credentialId is required");
+        }
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalArgumentException("tenantId must be positive");
+        }
+        if (identityTenantId == null || identityTenantId.isBlank()) {
+            throw new IllegalArgumentException("identityTenantId is required");
+        }
+        appCodePatterns = Set.copyOf(appCodePatterns);
+        envPatterns = Set.copyOf(envPatterns);
+        bizCodePatterns = Set.copyOf(bizCodePatterns);
+        allowedOperations = Set.copyOf(allowedOperations);
+        namespacePatterns = namespacePatterns == null ? Set.of() : Set.copyOf(namespacePatterns);
+        identityTenantId = identityTenantId.trim();
+    }
 
     /** 返回当前已认证 RPC Principal。 / Returns the current authenticated RPC principal. */
     public static DdcServicePrincipal current() {
@@ -43,6 +68,10 @@ public record DdcServicePrincipal(
     @Override
     public String getName() {
         return credentialId;
+    }
+
+    public DdcTenantContextDTO tenantContext() {
+        return new DdcTenantContextDTO(tenantId, identityTenantId, "service:" + credentialId);
     }
 
     public String auditOperator(String requestedOperator) {

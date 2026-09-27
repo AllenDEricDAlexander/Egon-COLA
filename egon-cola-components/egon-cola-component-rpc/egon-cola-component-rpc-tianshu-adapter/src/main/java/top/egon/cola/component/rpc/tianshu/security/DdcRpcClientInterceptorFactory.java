@@ -19,24 +19,27 @@ public final class DdcRpcClientInterceptorFactory
         implements RpcClientInterceptorFactory {
 
     private final DdcRpcCredential credential;
+    private final long tenantId;
     private final Clock clock;
     private final Supplier<String> nonceSupplier;
     private final DdcRpcRequestSigner signer;
     private final DdcRpcOperationResolver operationResolver;
 
-    public DdcRpcClientInterceptorFactory(DdcRpcCredential credential) {
-        this(credential, Clock.systemUTC(), () -> UUID.randomUUID().toString());
+    public DdcRpcClientInterceptorFactory(DdcRpcCredential credential, long tenantId) {
+        this(credential, tenantId, Clock.systemUTC(), () -> UUID.randomUUID().toString());
     }
 
     public DdcRpcClientInterceptorFactory(
             DdcRpcCredential credential,
+            long tenantId,
             Clock clock,
             Supplier<String> nonceSupplier) {
-        if (credential == null || clock == null || nonceSupplier == null) {
+        if (credential == null || tenantId <= 0 || clock == null || nonceSupplier == null) {
             throw new IllegalArgumentException(
-                    "credential, clock and nonceSupplier are required");
+                    "credential, positive tenantId, clock and nonceSupplier are required");
         }
         this.credential = credential;
+        this.tenantId = tenantId;
         this.clock = clock;
         this.nonceSupplier = nonceSupplier;
         this.signer = new DdcRpcRequestSigner();
@@ -57,6 +60,7 @@ public final class DdcRpcClientInterceptorFactory
         long timestamp = clock.millis();
         String nonce = nonceSupplier.get();
         DdcRpcCanonicalRequest canonical = new DdcRpcCanonicalRequest(
+                tenantId,
                 fullMethodName,
                 timestamp,
                 nonce,
@@ -64,6 +68,7 @@ public final class DdcRpcClientInterceptorFactory
         );
         Metadata metadata = new Metadata();
         metadata.put(DdcRpcMetadataKeys.ACCESS_KEY, credential.accessKey());
+        metadata.put(DdcRpcMetadataKeys.TENANT_ID, Long.toString(tenantId));
         metadata.put(DdcRpcMetadataKeys.TIMESTAMP, Long.toString(timestamp));
         metadata.put(DdcRpcMetadataKeys.NONCE, nonce);
         metadata.put(

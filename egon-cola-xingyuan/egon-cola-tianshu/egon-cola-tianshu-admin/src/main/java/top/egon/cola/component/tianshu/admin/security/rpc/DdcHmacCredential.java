@@ -1,6 +1,7 @@
 package top.egon.cola.component.tianshu.admin.security.rpc;
 
 import org.springframework.util.PatternMatchUtils;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -50,7 +51,13 @@ public record DdcHmacCredential(
     public DdcServicePrincipal principal(
             String appCode,
             String env,
-            String bizCode) {
+            String bizCode,
+            DdcTenantContextDTO tenantContext,
+            Set<String> namespacePatterns) {
+        if (tenantContext == null
+                || !("service:" + credentialId).equals(tenantContext.actor())) {
+            throw new IllegalArgumentException("A matching trusted tenant context is required");
+        }
         return new DdcServicePrincipal(
                 credentialId,
                 clientType,
@@ -60,7 +67,10 @@ public record DdcHmacCredential(
                 allowedOperations,
                 appCode,
                 env,
-                bizCode
+                bizCode,
+                tenantContext.tenantId(),
+                tenantContext.identityTenantId(),
+                namespacePatterns == null ? Set.of() : Set.copyOf(namespacePatterns)
         );
     }
 

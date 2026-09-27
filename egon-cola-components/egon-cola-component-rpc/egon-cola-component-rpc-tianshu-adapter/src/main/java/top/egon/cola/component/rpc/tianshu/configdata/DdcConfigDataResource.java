@@ -1,18 +1,23 @@
 package top.egon.cola.component.rpc.tianshu.configdata;
 
 import org.springframework.boot.context.config.ConfigDataResource;
-
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 
 /**
  * 描述由业务、环境、命名空间和应用共同定位的 Tianshu ConfigData 资源。 Describes a Tianshu ConfigData resource identified by business, environment, namespace, and application.
  */
+@Value
+@EqualsAndHashCode(callSuper = false)
 public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 资源不存在时是否允许继续启动。 Whether startup may continue when the resource is absent.
      */
     private final boolean optional;
+
+    /** Registered storage tenant fixed during ConfigData bootstrap. */
+    private final long tenantId;
 
     /**
      * 资源所属业务编码。 Business code owning the resource.
@@ -43,6 +48,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
      * 创建 Tianshu ConfigData 资源描述。 Creates a Tianshu ConfigData resource descriptor.
      *
      * @param optional     资源缺失时是否允许继续。 whether absence is allowed
+     * @param tenantId     已登记存储租户。 registered storage tenant
      * @param bizCode      业务编码。 business code
      * @param env          环境编码。 environment code
      * @param namespace    命名空间编码。 namespace code
@@ -50,13 +56,18 @@ public final class DdcConfigDataResource extends ConfigDataResource {
      * @param resourceName 资源名。 resource name
      */
     public DdcConfigDataResource(boolean optional,
+                                 long tenantId,
                                  String bizCode,
                                  String env,
                                  String namespace,
                                  String appCode,
                                  String resourceName) {
         super(optional);
+        if (tenantId <= 0) {
+            throw new IllegalArgumentException("tenantId must be positive");
+        }
         this.optional = optional;
+        this.tenantId = tenantId;
         this.bizCode = bizCode;
         this.env = env;
         this.namespace = namespace;
@@ -71,6 +82,10 @@ public final class DdcConfigDataResource extends ConfigDataResource {
      */
     public boolean optional() {
         return optional;
+    }
+
+    public long tenantId() {
+        return tenantId;
     }
 
     /**
@@ -118,53 +133,4 @@ public final class DdcConfigDataResource extends ConfigDataResource {
         return resourceName;
     }
 
-    /**
-     * 按可选标志和完整作用域比较资源。 Compares resources by the optional flag and full scope.
-     *
-     * @param object 待比较对象。 object to compare
-     * @return 表示同一资源时为 {@code true}。 {@code true} when both describe the same resource
-     */
-    @Override
-    public boolean equals(Object object) {
-        if (this == object) {
-            return true;
-        }
-        if (!(object instanceof DdcConfigDataResource that)) {
-            return false;
-        }
-        return optional == that.optional
-                && Objects.equals(bizCode, that.bizCode)
-                && Objects.equals(env, that.env)
-                && Objects.equals(namespace, that.namespace)
-                && Objects.equals(appCode, that.appCode)
-                && Objects.equals(resourceName, that.resourceName);
-    }
-
-    /**
-     * 计算与完整资源作用域相等性一致的哈希值。 Computes a hash code consistent with full resource-scope equality.
-     *
-     * @return 与相等性字段一致的哈希值。 hash code consistent with the equality fields
-     */
-    @Override
-    public int hashCode() {
-        return Objects.hash(
-                optional,
-                bizCode,
-                env,
-                namespace,
-                appCode,
-                resourceName
-        );
-    }
-
-    /**
-     * 返回便于诊断的 Tianshu 位置和作用域文本。 Returns diagnostic Tianshu location and scope text.
-     *
-     * @return Tianshu 位置和作用域文本。 Tianshu location and scope text
-     */
-    @Override
-    public String toString() {
-        return "tianshu:" + resourceName
-                + " [" + bizCode + '/' + env + '/' + namespace + '/' + appCode + ']';
-    }
 }

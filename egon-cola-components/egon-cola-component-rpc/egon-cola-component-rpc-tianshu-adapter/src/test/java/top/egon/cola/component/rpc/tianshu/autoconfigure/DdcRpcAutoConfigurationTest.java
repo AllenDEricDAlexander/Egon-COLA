@@ -67,6 +67,7 @@ class DdcRpcAutoConfigurationTest {
     void enabledRuntimeFailsFastWhenDirectTargetIsMissing() {
         runner.withPropertyValues(
                 "egon.cola.component.tianshu.enabled=true",
+                "egon.cola.component.tianshu.tenant-id=101",
                 "egon.cola.component.tianshu.rpc.auth.runtime.access-key=runtime-ak",
                 "egon.cola.component.tianshu.rpc.auth.runtime.secret-key=runtime-sk"
         ).run(context -> {
@@ -80,7 +81,9 @@ class DdcRpcAutoConfigurationTest {
     @Test
     void applicationProvidedPortPreventsDirectHandleCreation() {
         runner.withUserConfiguration(PortOverride.class)
-                .withPropertyValues("egon.cola.component.tianshu.enabled=true")
+                .withPropertyValues(
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.tenant-id=101")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(DdcConfigClient.class);
@@ -93,6 +96,7 @@ class DdcRpcAutoConfigurationTest {
         runner.withUserConfiguration(RedisOverride.class)
                 .withPropertyValues(
                         "egon.cola.component.tianshu.registry.enabled=true",
+                        "egon.cola.component.tianshu.tenant-id=101",
                         "egon.cola.component.tianshu.rpc.target=localhost:65535",
                         "egon.cola.component.tianshu.rpc.auth.registry.access-key=registry-ak",
                         "egon.cola.component.tianshu.rpc.auth.registry.secret-key=registry-sk"
@@ -126,6 +130,7 @@ class DdcRpcAutoConfigurationTest {
                 )
                 .withPropertyValues(
                         "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.tenant-id=101",
                         "egon.cola.component.tianshu.redis.enabled=false",
                         "egon.cola.component.tianshu.registry.enabled=true",
                         "egon.cola.component.tianshu.registration-resource-uri=https://api.example/tianshu",

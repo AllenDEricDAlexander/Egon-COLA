@@ -101,7 +101,8 @@ class DdcRegistryRpcProviderTest {
     private DdcServicePrincipal principal() {
         return new DdcServicePrincipal(
                 "registry-a", "REGISTRY", Set.of("*"), Set.of("*"),
-                Set.of("*"), Set.of("*"), "app", "test", "biz");
+                Set.of("*"), Set.of("*"), "app", "test", "biz",
+                101L, "tenant-a", Set.of("orders-*"));
     }
 
     private DdcServiceKey key() {

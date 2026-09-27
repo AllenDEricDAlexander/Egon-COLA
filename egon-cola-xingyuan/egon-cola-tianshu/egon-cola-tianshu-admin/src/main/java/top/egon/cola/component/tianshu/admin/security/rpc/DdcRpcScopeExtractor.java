@@ -2,6 +2,7 @@ package top.egon.cola.component.tianshu.admin.security.rpc;
 
 import com.google.protobuf.Message;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AcknowledgePublishRequest;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DeleteConfigRequest;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DeregisterServiceRequest;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.FindConfigRequest;
@@ -32,6 +33,8 @@ public final class DdcRpcScopeExtractor {
             "egon.tianshu.v1.DdcServiceRegistryService/";
     private static final String MANAGEMENT =
             "egon.tianshu.v1.DdcManagementService/";
+    private static final String AI_RESOURCE =
+            "egon.tianshu.v1.DdcAiResourceService/";
 
     /** 严格提取方法对应的客户端类型和作用域。 / Strictly extracts client type and scope. */
     public Scope extract(String fullMethodName, Message request) {
@@ -87,6 +90,9 @@ public final class DdcRpcScopeExtractor {
                     type(request, GetServiceKeysRequest.class));
             case MANAGEMENT + "GetInstances" -> managementQuery(
                     type(request, GetInstancesRequest.class));
+            case AI_RESOURCE + "GetPrompt",
+                 AI_RESOURCE + "GetSkill" -> aiReadScope(
+                    type(request, AiResourceQuery.class));
             default -> throw new IllegalArgumentException(
                     "Unknown Tianshu RPC method");
         };
@@ -107,6 +113,31 @@ public final class DdcRpcScopeExtractor {
         return required("MANAGEMENT", scope);
     }
 
+    private Scope aiReadScope(AiResourceQuery query) {
+        if (!text(query.getBizCode()) || !text(query.getNamespaceCode())
+                || !text(query.getEnv()) || !text(query.getAppCode())
+                || !text(query.getResourceKey())) {
+            throw new IllegalArgumentException("AI read scope and resource key are required");
+        }
+        if (query.hasVersionNo()
+                && (!query.hasResourceId() || query.getVersionNo() <= 0)) {
+            throw new IllegalArgumentException("AI versionNo requires a positive resourceId");
+        }
+        if (query.hasResourceId()) {
+            String resourceId = query.getResourceId();
+            if (!resourceId.matches("[1-9][0-9]{0,18}")) {
+                throw new IllegalArgumentException("AI resourceId must be a positive decimal Long");
+            }
+            try {
+                Long.parseLong(resourceId);
+            } catch (NumberFormatException invalidResourceId) {
+                throw new IllegalArgumentException("AI resourceId exceeds Long range", invalidResourceId);
+            }
+        }
+        return new Scope("SDK", query.getAppCode(), query.getEnv(), query.getBizCode(),
+                query.getNamespaceCode());
+    }
+
     private Scope required(
             String clientType,
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcScope scope) {
@@ -121,7 +152,8 @@ public final class DdcRpcScopeExtractor {
                 clientType,
                 scope.getAppCode(),
                 scope.getEnv(),
-                scope.getBizCode()
+                scope.getBizCode(),
+                null
         );
     }
 
@@ -193,10 +225,15 @@ public final class DdcRpcScopeExtractor {
             String clientType,
             String appCode,
             String env,
-            String bizCode) {
+            String bizCode,
+            String namespaceCode) {
+
+        public Scope(String clientType, String appCode, String env, String bizCode) {
+            this(clientType, appCode, env, bizCode, null);
+        }
 
         private static Scope unscoped(String clientType) {
-            return new Scope(clientType, null, null, null);
+            return new Scope(clientType, null, null, null, null);
         }
     }
 }

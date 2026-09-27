@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.rpc.provider.DdcConfigRpcProvider;
 import top.egon.cola.component.tianshu.admin.rpc.provider.DdcManagementRpcProvider;
 import top.egon.cola.component.tianshu.admin.rpc.provider.DdcRegistryRpcProvider;
@@ -168,9 +171,11 @@ class DdcAdminContextSmokeTest {
     @EnableConfigurationProperties({
             DdcAdminProperties.class,
             DdcProperties.class,
-            DdcRpcProperties.class
+            DdcRpcProperties.class,
+            DdcTenantAdminProperties.class
     })
-    @Import(DdcRpcSecurityConfiguration.class)
+    @Import({DdcRpcSecurityConfiguration.class, DdcTenantRegistry.class,
+            DdcTenantContextExecutor.class})
     static class AdminRpcTestConfiguration {
 
         @Bean

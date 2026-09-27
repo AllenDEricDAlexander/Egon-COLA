@@ -2,6 +2,7 @@ package top.egon.cola.component.tianshu.admin.security.management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,23 +14,44 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextFilter;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3BearerAuthenticationFilter;
 
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
-@EnableConfigurationProperties(DdcAdminProperties.class)
+@EnableConfigurationProperties({DdcAdminProperties.class, DdcTenantAdminProperties.class})
 public class DdcAdminSecurityConfiguration {
+
+    @Bean(name = "ddcAdminAuthenticationEntryPoint")
+    public DdcAdminAuthenticationEntryPoint ddcAdminAuthenticationEntryPoint(
+            ObjectMapper objectMapper) {
+        return new DdcAdminAuthenticationEntryPoint(objectMapper);
+    }
+
+    @Bean(name = "ddcTenantContextFilter")
+    public DdcTenantContextFilter ddcTenantContextFilter(
+            @Qualifier("ddcTenantRegistry") DdcTenantRegistry tenantRegistry,
+            @Qualifier("ddcTenantContextExecutor") DdcTenantContextExecutor tenantContextExecutor,
+            @Qualifier("ddcAdminAuthenticationEntryPoint")
+            DdcAdminAuthenticationEntryPoint securityHandler) {
+        return new DdcTenantContextFilter(
+                tenantRegistry, tenantContextExecutor, securityHandler);
+    }
 
     @Bean
     public SecurityFilterChain ddcAdminSecurityFilterChain(
             HttpSecurity http,
-            ObjectMapper objectMapper,
+            @Qualifier("ddcAdminAuthenticationEntryPoint")
+            DdcAdminAuthenticationEntryPoint securityHandler,
+            @Qualifier("ddcTenantContextFilter")
+            DdcTenantContextFilter tenantContextFilter,
             ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
             ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters)
             throws Exception {
-        DdcAdminAuthenticationEntryPoint securityHandler =
-                new DdcAdminAuthenticationEntryPoint(objectMapper);
         IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
         Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
         http
@@ -148,6 +170,7 @@ public class DdcAdminSecurityConfiguration {
         if (idpFilter != null && rbac3Filter != null) {
             http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
             http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
+            http.addFilterAfter(tenantContextFilter, Rbac3BearerAuthenticationFilter.class);
         } else {
             throw new IllegalStateException(
                     "Tianquan-Shoubing and Tianquan-Jianshen authentication filters must be configured together");

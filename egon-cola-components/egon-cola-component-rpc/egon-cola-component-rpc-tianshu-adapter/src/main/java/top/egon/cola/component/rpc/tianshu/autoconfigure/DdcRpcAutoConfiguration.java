@@ -21,6 +21,7 @@ import top.egon.cola.component.tianshu.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.listener.registry.DdcRegistrySubscriptionCoordinator;
 import top.egon.cola.component.tianshu.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.tianshu.service.registry.DdcRegistrySnapshotLoader;
@@ -61,6 +62,7 @@ import java.net.InetAddress;
 @EnableConfigurationProperties({
         DdcRpcProperties.class,
         DdcProperties.class,
+        DdcTenantProperties.class,
         IdpStarterProperties.class
 })
 public class DdcRpcAutoConfiguration {
@@ -75,12 +77,17 @@ public class DdcRpcAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public DdcRpcClientFactory ddcRpcClientFactory(
+            @Qualifier("egon.cola.component.tianshu.rpc-top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties")
             DdcRpcProperties rpcProperties,
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")
             DdcProperties ddcProperties,
+            @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
+            DdcTenantProperties tenantProperties,
             Environment environment) {
         return new DdcRpcClientFactory(
                 rpcProperties,
                 ddcProperties,
+                tenantProperties,
                 directIdentity(ddcProperties, environment)
         );
     }

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceQuery;
@@ -79,9 +80,12 @@ class DdcRpcClientFactoryTest {
         ddc.setBizCode("biz");
         ddc.setEnv("test");
         ddc.setAppCode("app");
+        DdcTenantProperties tenant = new DdcTenantProperties();
+        tenant.setTenantId(101L);
         return new DdcRpcClientFactory(
                 rpc,
                 ddc,
+                tenant,
                 new RpcProcessIdentity(
                         "test", "test", "127.0.0.1", 1, "instance-1")
         );

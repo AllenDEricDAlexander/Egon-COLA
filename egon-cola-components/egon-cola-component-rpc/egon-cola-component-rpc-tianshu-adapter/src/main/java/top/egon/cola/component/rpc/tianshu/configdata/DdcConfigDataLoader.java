@@ -39,38 +39,23 @@ public final class DdcConfigDataLoader
             throws IOException, ConfigDataResourceNotFoundException {
         DdcConfigDataFetcher client = context.getBootstrapContext()
                 .get(DdcConfigDataFetcher.class);
-        DdcConfigValue value;
-        try {
-            value = client.load(resource.resourceName());
-        } catch (RuntimeException exception) {
-            if (!resource.optional()) {
-                throw exception;
-            }
-            return empty(resource);
-        }
+        DdcConfigValue value = client.load(resource.resourceName());
         if (value == null) {
             if (resource.optional()) {
                 return empty(resource);
             }
             throw new ConfigDataResourceNotFoundException(resource);
         }
-        try {
-            DdcConfigFormatStrategy strategy = formatStrategies.get(
-                    value.getFormat(),
-                    resource.resourceName()
-            );
-            DdcDynamicPropertySource propertySource = strategy.load(
-                    resource.resourceName(),
-                    value.getContent(),
-                    value.getVersion()
-            );
-            return configData(propertySource);
-        } catch (RuntimeException | IOException exception) {
-            if (resource.optional()) {
-                return empty(resource);
-            }
-            throw exception;
-        }
+        DdcConfigFormatStrategy strategy = formatStrategies.get(
+                value.getFormat(),
+                resource.resourceName()
+        );
+        DdcDynamicPropertySource propertySource = strategy.load(
+                resource.resourceName(),
+                value.getContent(),
+                value.getVersion()
+        );
+        return configData(propertySource);
     }
 
     /** 创建可选远端失败时使用的空动态属性源。 / Creates the empty dynamic source used for optional remote failures. */

@@ -7,6 +7,7 @@ import org.springframework.boot.context.config.ConfigDataLocationResolverContext
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.boot.context.properties.bind.Bindable;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.tianshu.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
@@ -85,29 +86,28 @@ public final class DdcConfigDataLocationResolver
         if (!properties.isEnabled()) {
             return List.of();
         }
+        DdcTenantProperties tenantProperties = context.getBinder()
+                .bind(PROPERTIES_PREFIX, Bindable.of(DdcTenantProperties.class))
+                .orElseGet(DdcTenantProperties::new);
+        long tenantId = tenantProperties.requireTenantId();
         DdcRpcProperties rpcProperties = context.getBinder()
                 .bind(
                         RPC_PROPERTIES_PREFIX,
                         Bindable.of(DdcRpcProperties.class)
                 )
                 .orElseGet(DdcRpcProperties::new);
-        try {
-            validate(properties, rpcProperties);
-        } catch (RuntimeException exception) {
-            if (location.isOptional()) {
-                return List.of();
-            }
-            throw exception;
-        }
+        validate(properties, rpcProperties);
         context.getBootstrapContext().registerIfAbsent(
                 DdcConfigDataFetcher.class,
                 bootstrapContext -> new DdcConfigDataFetcher(
                         properties,
-                        rpcProperties
+                        rpcProperties,
+                        tenantProperties
                 )
         );
         return List.of(new DdcConfigDataResource(
                 location.isOptional(),
+                tenantId,
                 properties.getBizCode(),
                 properties.getEnv(),
                 properties.getNamespace(),

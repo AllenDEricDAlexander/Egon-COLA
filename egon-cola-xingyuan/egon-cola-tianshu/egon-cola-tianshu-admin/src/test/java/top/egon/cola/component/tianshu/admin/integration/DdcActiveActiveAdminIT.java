@@ -45,6 +45,7 @@ import top.egon.cola.component.tianshu.admin.service.publish.PublishTimeoutScann
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.tianshu.error.management.DdcManagementClientException;
 import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
@@ -428,6 +429,12 @@ class DdcActiveActiveAdminIT {
                 "--egon.cola.component.tianshu.admin.rpc.credentials[0].env-patterns[0]=*",
                 "--egon.cola.component.tianshu.admin.rpc.credentials[0].biz-code-patterns[0]=*",
                 "--egon.cola.component.tianshu.admin.rpc.credentials[0].allowed-operations[0]=*",
+                "--egon.cola.component.tianshu.admin.tenancy.bindings[0].tenant-id=1",
+                "--egon.cola.component.tianshu.admin.tenancy.bindings[0].identity-tenant-id=active-active-it",
+                "--egon.cola.component.tianshu.admin.tenancy.bindings[0].enabled=true",
+                "--egon.cola.component.tianshu.admin.tenancy.credential-bindings[0].credential-id=active-active",
+                "--egon.cola.component.tianshu.admin.tenancy.credential-bindings[0].tenant-id=1",
+                "--egon.cola.component.tianshu.admin.tenancy.credential-bindings[0].namespace-patterns[0]=*",
                 "--egon.cola.component.tianshu.admin.publish.scan-interval-ms=3600000",
                 "--egon.cola.component.tianshu.admin.publish.recovery-stale-ms=3600000",
                 "--egon.cola.component.tianshu.admin.lease.scan-interval-millis=3600000",
@@ -470,9 +477,12 @@ class DdcActiveActiveAdminIT {
         ddc.setBizCode("default");
         ddc.setEnv("dev");
         ddc.setAppCode(APP_CODE);
+        DdcTenantProperties tenant = new DdcTenantProperties();
+        tenant.setTenantId(1L);
         return new DdcRpcClientFactory(
                 rpc,
                 ddc,
+                tenant,
                 new RpcProcessIdentity(
                         "active-active-it", "test", "127.0.0.1", 1L, "it-client")
         );
@@ -494,7 +504,7 @@ class DdcActiveActiveAdminIT {
                         10000
                 ),
                 List.of(new DdcRpcClientInterceptorFactory(
-                        new DdcRpcCredential(ACCESS_KEY, SECRET)))
+                        new DdcRpcCredential(ACCESS_KEY, SECRET), 1L))
         );
         clients.add(handle);
         return handle;
@@ -645,9 +655,10 @@ class DdcActiveActiveAdminIT {
     private Metadata signed(String method, Message request, String nonce) {
         long timestamp = System.currentTimeMillis();
         DdcRpcCanonicalRequest canonical = new DdcRpcCanonicalRequest(
-                method, timestamp, nonce, request);
+                1L, method, timestamp, nonce, request);
         Metadata metadata = new Metadata();
         metadata.put(DdcRpcMetadataKeys.ACCESS_KEY, ACCESS_KEY);
+        metadata.put(DdcRpcMetadataKeys.TENANT_ID, "1");
         metadata.put(DdcRpcMetadataKeys.TIMESTAMP, Long.toString(timestamp));
         metadata.put(DdcRpcMetadataKeys.NONCE, nonce);
         metadata.put(DdcRpcMetadataKeys.CONTENT_SHA256, canonical.contentSha256());

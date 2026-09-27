@@ -15,7 +15,7 @@ class DdcRpcRequestSignerTest {
     private final DdcRpcRequestSigner signer = new DdcRpcRequestSigner();
 
     @Test
-    void signsTheApprovedFiveLineCanonicalRequestWithoutTrailingLf() {
+    void signsTheApprovedTenantBoundSixLineV2CanonicalRequestWithoutTrailingLf() {
         PullConfigRequest request = PullConfigRequest.newBuilder()
                 .setScope(DdcScope.newBuilder()
                         .setBizCode("retail")
@@ -24,6 +24,7 @@ class DdcRpcRequestSignerTest {
                 .build();
 
         DdcRpcCanonicalRequest canonical = new DdcRpcCanonicalRequest(
+                101L,
                 "egon.tianshu.v1.DdcConfigRuntimeService/PullConfig",
                 1700000000000L,
                 "nonce-1",
@@ -34,7 +35,8 @@ class DdcRpcRequestSignerTest {
                 .isEqualTo("a8eb4964d18ec3d881f6b27fa4b71c6f1d1283524fa44b449e830dd4b60973b0");
         assertThat(canonical.canonicalValue()).isEqualTo(String.join(
                 "\n",
-                "v1",
+                "v2",
+                "101",
                 "egon.tianshu.v1.DdcConfigRuntimeService/PullConfig",
                 "1700000000000",
                 "nonce-1",
@@ -42,7 +44,7 @@ class DdcRpcRequestSignerTest {
         ));
         assertThat(canonical.canonicalValue()).doesNotEndWith("\n");
         assertThat(signer.sign(canonical, "secret"))
-                .isEqualTo("2ddd5f2149ddd48c1f70fce9d7ab88154541a6df116e1ea6a6b509b8c099544c");
+                .isEqualTo("49eb7bea6eca629029cf3cc24e42c7906591e63d17c2b0fdb0727928662dc478");
     }
 
     @Test
@@ -59,9 +61,9 @@ class DdcRpcRequestSignerTest {
 
         assertThat(DdcRpcCanonicalRequest.deterministicBytes(first))
                 .containsExactly(DdcRpcCanonicalRequest.deterministicBytes(second));
-        assertThat(new DdcRpcCanonicalRequest("service/Register", 1L, "n", first)
+        assertThat(new DdcRpcCanonicalRequest(101L, "service/Register", 1L, "n", first)
                 .contentSha256())
-                .isEqualTo(new DdcRpcCanonicalRequest("service/Register", 1L, "n", second)
+                .isEqualTo(new DdcRpcCanonicalRequest(101L, "service/Register", 1L, "n", second)
                         .contentSha256());
     }
 

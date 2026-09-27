@@ -81,9 +81,8 @@ class DdcConfigDataLoaderTest {
     }
 
     @Test
-    void optionalTransportFailureKeepsAnEmptyDynamicSource()
-            throws Exception {
-        ConfigData configData = loader.load(
+    void optionalTransportFailureIsNotConvertedToAResourceAbsence() {
+        assertThatThrownBy(() -> loader.load(
                 context(new DdcConfigDataFetcher(
                         () -> {
                             throw new IllegalStateException("unavailable");
@@ -91,13 +90,7 @@ class DdcConfigDataLoaderTest {
                         1024
                 )),
                 resource(true)
-        );
-
-        assertThat(configData.getPropertySources()).singleElement()
-                .isInstanceOfSatisfying(
-                        DdcDynamicPropertySource.class,
-                        source -> assertThat(source.getPropertyNames()).isEmpty()
-                );
+        )).isInstanceOf(IllegalStateException.class).hasMessage("unavailable");
     }
 
     @Test
@@ -138,6 +131,7 @@ class DdcConfigDataLoaderTest {
     private DdcConfigDataResource resource(boolean optional) {
         return new DdcConfigDataResource(
                 optional,
+                101L,
                 "orders",
                 "test",
                 "default",
