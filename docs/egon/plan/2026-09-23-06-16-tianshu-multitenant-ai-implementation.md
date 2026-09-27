@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-28 00:09 Asia/Shanghai` |
+| Updated | `2026-09-28 01:19 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -14,7 +14,7 @@
 | Baseline Revision | `main@b31357a0a`；其他任务工作区改动不纳入 |
 | Implements Spec | [天枢 Java/CQE 规范修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) |
 | Spec Status | `Review` |
-| Spec Revision | `2026-09-23 06:23 Asia/Shanghai`；修订稿当前工作区版本 |
+| Spec Revision | `2026-09-28 01:19 Asia/Shanghai`；Outbox现有MP manifest、技术tenant列与只读启动行为的实现时修订 |
 | Effective Specs | [主修订稿](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)；[已确认原Spec](../spec/2026-09-21-17-18-tianshu-prompt-skill-management.md) |
 | Depends On Plans | None |
 | Supersedes | None |
@@ -74,7 +74,7 @@
 
 ### 4.1 Ordered strategy
 
-先稳定可复用组件与跨模块类型，再立单一DDL和可信tenant上下文；旧表Repository按相互依赖的五表、两表、四表分组改，Step 11统一删除旧JPA映射。Step 6将Admin Redis和发布锁/waiter改为必须使用可信tenant；三个既有后台任务在Step 10获得tenant-bearing BO后，按已登记tenant逐个通过DdcTenantContextExecutor运行并验证。Step 8–10可在隔离测试中分别RED/GREEN，但Admin后台启动/调度门禁只在Step 11、18、19及最终联调后开启。AI版本/推广必须在持久化和草稿之后；Web先API，再树编辑、版本/推广。Outbox改造保留原Redis ACK与reconcile，发布结果和消息交付结果分开。
+先稳定可复用组件与跨模块类型，再立单一Tianshu DDL和可信tenant上下文；Outbox表/schema/history沿用组件既有独立MP manifest，normal bootstrap只读验证，旧表Repository按相互依赖的五表、两表、四表分组改，Step 11统一删除旧JPA映射。Step 6将Admin Redis和发布锁/waiter改为必须使用可信tenant；三个既有后台任务在Step 10获得tenant-bearing BO后，按已登记tenant逐个通过DdcTenantContextExecutor运行并验证。Step 8–10可在隔离测试中分别RED/GREEN，但Admin后台启动/调度门禁只在Step 11、18、19及最终联调后开启。AI版本/推广必须在持久化和草稿之后；Web先API，再树编辑、版本/推广。Outbox改造保留原Redis ACK与reconcile，发布结果和消息交付结果分开。
 原天枢是传统三层模块，不属于native Light/Web/Service生成器档案；用户也明确本次豁免在制后端code generator。DDL与每个PO/Mapper/XML手工按批准Spec建，现有protoc/MapStruct编译继续。
 
 ### 4.2 Test-first strategy
@@ -91,7 +91,7 @@
 | Step 4 | Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 22个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 5 | Step 4 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 47个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 6 | Step 5 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 43个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 7 | Step 1, Step 2, Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 6个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 7 | Step 1, Step 2, Step 3 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 11个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 8 | Step 7 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 70个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 9 | Step 8 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 37个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 10 | Step 9 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 72个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -138,7 +138,7 @@
 | 建立AI普通POJO与注解校验合同 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-015 REQ-016 REQ-019 | DdcAiJavaContractTest,DdcAiStableVersionSelectorTest | Step 3 | 共享契约class/枚举/少量value record确定，跨边界约束与稳定selector有RED/GREEN证据 | Step 5 | Step 4 |
 | 贯通可信多租户身份与早期ConfigData | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest | Step 4 | 同一可信tenant贯通HTTP、RPC v2、callback和bootstrap；不能由body或header选择别的tenant | Step 6 | Step 5 |
 | 为Redis键、Topic及本地状态加入tenant | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest | Step 5 | 同业务编码跨tenant不共享Redis/local map/waiter/锁；保留原业务fencing | Step 7 | Step 6 |
-| 定义唯一分布式DDL与启动只读就绪校验 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest | Step 1, Step 2, Step 3 | 一个SQL/manifest建18表并含lifecycle/live键；初始化复用runner，不伪造接管 | Step 8 | Step 7 |
+| 定义Tianshu分布式DDL与组件Outbox只读就绪校验 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest,OutboxManagedDdlIntegrationTest | Step 1, Step 2, Step 3 | 一个Tianshu SQL/manifest建16业务表与public.ddl_history；Outbox既有组件manifest建egon_outbox表/history；normal startup只读校验，显式CLI初始化 | Step 8 | Step 7 |
 | 迁移租户元数据五表的Repository与调用者 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest | Step 7 | biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护 | Step 9 | Step 8 |
 | 迁移原配置草稿与历史并保持legacy删除语义 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest | Step 8 | YAML原业务version/publishedVersion/deleted标记与rollback保留，内部Long/外部public ID分离 | Step 10 | Step 9 |
 | 迁移发布任务、ACK、实例与审计的持久化 | REQ-011 REQ-013 REQ-015 | DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest,DdcLeaseExpiryScannerTest,DdcPublishTimeoutScannerTest,PublishStartupRecoveryTest | Step 9 | 保留claim/状态前置条件/租约fencing/计数和原失败事务；全部关系访问转MP；lease expiry、publish recovery、timeout扫描逐tenant执行并finally恢复MDC | Step 11 | Step 10 |
@@ -291,7 +291,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiOpenApiConfiguration.java` | CREATE：基线不存在 | DdcAiOpenApiConfiguration | 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiTransactionConfiguration.java` | CREATE：基线不存在 | DdcAiTransactionConfiguration | 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope | Step 13 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019 | DdcAiDraftServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiWebConfiguration.java` | CREATE：基线不存在 | DdcAiWebConfiguration | 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java` | CREATE：基线不存在 | DdcDatabaseReadyValidator | SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入 | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java` | CREATE：基线不存在 | DdcDatabaseReadyValidator | SmartInitializingSingleton只读核对Tianshu manifest/public history/route/16业务表；OutboxSchemaMetadataValidator验证egon_outbox | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcOutboxConfiguration.java` | CREATE：基线不存在 | DdcOutboxConfiguration | 复用TransactionalOutbox＋同dataSource/transactionManager，两个channel Handler由组件Registry注册，无新broker | Step 18 | REQ-011 REQ-017 | DdcConfigOutboxContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAdminSecurityErrorResult.java` | CREATE：基线不存在 | DdcAdminSecurityErrorResult | 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiExceptionAdvice.java` | CREATE：基线不存在 | DdcAiExceptionAdvice | 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
@@ -323,7 +323,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyRowDTO.java` | CREATE：基线不存在 | DdcLegacyRowDTO | 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyTableStrategy.java` | CREATE：基线不存在 | DdcLegacyTableStrategy | 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcMigrationReportResult.java` | CREATE：基线不存在 | DdcMigrationReportResult | 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java` | CREATE：基线不存在 | DdcPersistenceMigrationCli | validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池 | Step 7, Step 23 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcLegacyImportContractTest, DdcTianshuDdlContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java` | CREATE：基线不存在 | DdcPersistenceMigrationCli | standalone validate/initialize；初始化先跑Tianshu manifest创建business schema与egon_outbox schema，再显式运行component-outbox manifest；无Web/后台import | Step 7, Step 23 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcLegacyImportContractTest, DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiDraftNodeBO.java` | CREATE：基线不存在 | DdcAiDraftNodeBO | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiPublicationBO.java` | CREATE：基线不存在 | DdcAiPublicationBO | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiResourceBO.java` | CREATE：基线不存在 | DdcAiResourceBO | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
@@ -516,9 +516,9 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml` | SHA256 5c42cdc2affb | application-local | 同结构导入共享MP配置、tenant bindings和Outbox键；启用需明确新PG目标和tenant，无默认0/1；test外部连接仅显式IT | Step 11, Step 18 | REQ-011 REQ-013 REQ-015 REQ-017 | DdcConfigOutboxContractTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-test.yml` | SHA256 a0a64cff7558 | application-test | 同结构导入共享MP配置、tenant bindings和Outbox键；启用需明确新PG目标和tenant，无默认0/1；test外部连接仅显式IT | Step 11, Step 18 | REQ-011 REQ-013 REQ-015 REQ-017 | DdcConfigOutboxContractTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml` | SHA256 f1ebe0325c54 | application | 同结构导入共享MP配置、tenant bindings和Outbox键；启用需明确新PG目标和tenant，无默认0/1；test外部连接仅显式IT | Step 11, Step 18 | REQ-011 REQ-013 REQ-015 REQ-017 | DdcConfigOutboxContractTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql` | CREATE：基线不存在 | V20260922_001__tianshu_platform | 原16业务表＋ddl_history＋Outbox；父表先于子/循环FK后加；八组K+deleted_at与live guard；不可物理删草稿 | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql` | CREATE：基线不存在 | V20260922_001__tianshu_platform | 16 Tianshu业务表＋public.ddl_history＋egon_outbox schema；不duplicate Outbox表/history；父表先于子/FK后加；八组lifecycle/live键 | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json` | CREATE：基线不存在 | repository-manifest | family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml` | CREATE：基线不存在 | egon-tianshu-persistence | 16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空 | Step 7, Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-011 REQ-017 REQ-019 | DdcAiPersistenceContractTest, DdcTianshuDdlContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml` | CREATE：基线不存在 | egon-tianshu-persistence | 16 business/public history及egon_outbox组件路由；runtime ddl.enabled=false、Outbox auto-initialize-ddl=false、validate-schema=true | Step 7, Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-011 REQ-017 REQ-019 | DdcAiPersistenceContractTest, DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiDraftNodeMapper.xml` | CREATE：基线不存在 | DdcAiDraftNodeMapper | ddc_ai_draft_node；DdcAiDraftNode；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiPublicationMapper.xml` | CREATE：基线不存在 | DdcAiPublicationMapper | ddc_ai_publication；DdcAiPublication；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiResourceMapper.xml` | CREATE：基线不存在 | DdcAiResourceMapper | ddc_ai_resource；DdcAiResource；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
@@ -563,7 +563,12 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTenantRedisIT.java` | CREATE：基线不存在 | DdcTenantRedisIT | 真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTianshuDdlIT.java` | CREATE：基线不存在 | DdcTianshuDdlIT | 空库/正确history重入/漂移拒绝/未知提交核验；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java` | CREATE：基线不存在 | DdcLegacyImportContractTest | non-numeric id、env复制、未知tenant/孤儿/冲突、分批中断、同源hash跳过不同hash停止、old datetime不改 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java` | CREATE：基线不存在 | DdcTianshuDdlContractTest | manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变 | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java` | CREATE：基线不存在 | DdcTianshuDdlContractTest | Tianshu 16 business/public history and component Outbox manifest contracts, exact SHA, indexes/FKs, no duplicate Outbox DDL, legacy SQL hashes preserved | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
+| MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java` | SHA256 f988e4509fbb | OutboxMpStorageProperties | 新增autoInitializeDdl=true默认，独立于maintenance migrationMode；Tianshu runtime设false | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
+| MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java` | SHA256 11df7a8dbdd0 | OutboxManagedDdlInitializer | autoInitializeDdl=false只准备readiness供OutboxSchemaMetadataValidator只读检查；显式initialize保持同manifest DDL执行 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
+| MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/integration/OutboxManagedDdlIntegrationTest.java` | SHA256 a6d21c9d3dd3 | OutboxManagedDdlIntegrationTest | 默认true runner兼容保持；false不调用DDL runner并准备只读metadata校验 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
+| MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md` | SHA256 f7d7a5a702fa | README | 记录auto-initialize-ddl默认true及Tianshu false read-only运行策略；migration-mode含义不变 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
+| MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md` | SHA256 db320348c344 | README.zh-CN | 同步英文配置合同和启动/显式迁移语义 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPersistenceContractTest.java` | CREATE：基线不存在 | DdcAiPersistenceContractTest | 一live根/多历史；draft只读live；published节点不可变；current/source同root/tenant约束；回执key/hash冲突；标准Guard不物理删 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepositoryTest.java` | SHA256 678e53d16fe9 | DdcConfigLeaseRedisRepositoryTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java` | SHA256 c87e799aa9d7 | DdcConfigPagingRepositoryTest | 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 9, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
@@ -728,6 +733,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-27执行复核补齐Step 5的现有运行组装路径：DdcRpcSecurityConfiguration把租户注册表和finally恢复的上下文执行器接入服务端拦截器；DdcRpcAutoConfiguration把DdcTenantProperties传入运行时客户端工厂。原Step 5只有组件工厂和ConfigData入口，实际RPC Bean仍不会携带tenant；Admin安全链也不会构造新filter，故无法达到本步已批准§9.5合同。同步纳入受HMAC v2、AI_READ映射、tenant资源身份与optional安全错误影响的既有测试，并把验证改为仓库根目录reactor命令，因为两个首要测试分别位于Admin与RPC adapter模块。补入的DdcConfigRpcProviderTest、DdcManagementRpcProviderTest、DdcRegistryRpcProviderTest只适配tenant-bearing Principal构造，不改原Provider业务断言。独立导入DdcRpcSecurityConfiguration的DdcAdminContextSmokeTest和DdcAdminSecurityPropertiesTest同步显式提供租户registry/executor fixture。未增加依赖、外部字段、授权规则或服务端功能；DdcRpcAutoConfiguration保留Step 17的后续AI端口语义。
 
 2026-09-28执行复核闭合Step 6改为tenant-scoped Redis/waiter后的现有后台消费者：DdcLeaseExpiryScanner的关系查询和lease Redis操作、PublishStartupRecovery的任务读取/dispatch、PublishTimeoutScanner的任务读取/终态通知均由调度线程启动，不能读取请求线程MDC。它们依赖的DdcInstanceBO/DdcPublishTaskBO tenant字段在Step 10建成，且Step 10已声明上述三个生产文件与对应测试；因此Step 10须从已校验的DdcTenantAdminProperties绑定列表逐tenant复核DdcTenantRegistry状态，并使用既有DdcTenantContextExecutor以system actor隔离执行和finally恢复，不从业务表枚举tenant、不设默认tenant。逐tenant异常记录安全日志后继续其他tenant；DdcLeaseExpiryScanner在完成per-tenant config-lease扫描后只调用一次会自行按已知tenant隔离的registry expireKnown。Step 10定向验证加入三个后台合同测试；Admin完整启动/调度仍按§4.1延至Step 11及后续门禁。未新增文件、依赖或公开业务API。
+
+2026-09-28执行复核对齐已批准Outbox依赖的当前MP schema owner：组件manifest `component-outbox/20260924_001`实际在`egon_outbox`创建消息表及独立history，schema metadata校验要求技术`tenant_id=0`、`deleted_at IS NULL`和MP审计/version列；原Step 7把组件消息表复制进Tianshu SQL会造成两个owner且字段不符。故Tianshu唯一新SQL只创建16业务表、public.ddl_history和egon_outbox schema；Outbox表/history仍由未修改的组件既有manifest管理。组件现有逻辑数据源factory会自动调用initializer，和本稿“普通启动只读验证”冲突；Step 7增加默认true、Tianshu false的`auto-initialize-ddl`兼容开关及单测，显式CLI按Tianshu SQL→组件manifest顺序初始化，normal bootstrap只准备readiness并由OutboxSchemaMetadataValidator只读核验。组件现有`migration-mode`仍保持enqueue/dispatch维护门禁语义。本修正只触及直接承载已批准Outbox契约的组件配置/initializer/测试/README及Tianshu DDL/CLI，无新依赖或Outbox消息API。
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -4099,69 +4106,149 @@ this.registrations = new DdcActiveRegistrationIndex(this.tenantId);
 - Requirements: `REQ-009`, `REQ-011`, `REQ-017`, `REQ-019`
 - Dependencies: Step 1, Step 2, Step 3
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
-- Observable outcome: 一个SQL/manifest建18表并含lifecycle/live键；初始化复用runner，不伪造接管。
-- End state: 一个SQL/manifest建18表并含lifecycle/live键；初始化复用runner，不伪造接管；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Observable outcome: Tianshu唯一SQL/manifest创建16业务表、public.ddl_history与Outbox schema；Outbox组件复用既有manifest创建egon_outbox表及其history；普通Admin启动只读验证，显式CLI才执行DDL。
+- End state: Tianshu与Outbox各由唯一owner管理其history前缀；不复制Outbox表SQL，不伪造接管，不自动DDL/导入；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001
+- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`
 
-- Purpose: manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变
+- Purpose: Tianshu manifest指纹/SHA/单版本；16业务表＋public.ddl_history与8组lifecycle/live索引；SQL只建egon_outbox schema，不复制组件Outbox表/history；复核组件现有manifest不变
 - Symbols: `DdcTianshuDdlContractTest`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcTianshuDdlContractTest`。
 - Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步0个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 先固定本步RED合同。
-- Contract/signature changes: DdcTianshuDdlContractTest新增可观察断言：manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Contract/signature changes: DdcTianshuDdlContractTest新增可观察断言：Tianshu manifest真实SHA/单版本、16业务表与public.ddl_history、8组lifecycle/live索引、无draft parent_path FK、Outbox表不在Tianshu SQL重复出现、依赖中的component-outbox manifest保持一个既有版本；V1～V9字节hash不变。
+- Input/output and state mapping: 输入为Tianshu SQL/manifest及classpath依赖的Outbox组件manifest；断言两个owner的schema、history、route精确分离；按修订稿§11保持表和索引合同。
+- Error and edge behavior: manifest丢失/多版本/hash漂移/重复表owner或旧V1～V9字节变化均失败；不伪造history或默认接管。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；Outbox复用已批准组件manifest，不新增依赖。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 @Test void DdcTianshuDdlContractTest_contract() {
-  // arrange: manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变
+  // arrange: Tianshu manifest/16 business tables/public history and the existing Outbox component manifest
   // invoke: call the named public boundary under trusted tenant and record returned state plus side effects.
-  // assert: success payload/state and negative conflict/denial/rollback cases; no cross-tenant row, Redis key or event is observable.
+  // assert: exact table/index ownership, no duplicate Outbox table, real checksum and immutable V1-V9 bytes.
   // RED before production: the target contract or its intended invariant is absent; GREEN only after matching implementation.
 }
 ```
 
-- Verification contribution: DdcTianshuDdlContractTest聚焦本文件的manifest指纹/sha/单版本；18表、8组lifecycle/live索引、草稿无父path FK、Outbox准确一表；旧文件checksum不变；最终由本步GREEN门禁验证。
+- Verification contribution: DdcTianshuDdlContractTest聚焦Tianshu表集、Outbox组件manifest owner和SQL/checksum边界；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`
+#### File 2 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/integration/OutboxManagedDdlIntegrationTest.java`
 
-- Purpose: 原16业务表＋ddl_history＋Outbox；父表先于子/循环FK后加；八组K+deleted_at与live guard；不可物理删草稿
+- Purpose: 固定Outbox组件既有auto-DDL兼容默认与Tianshu的read-only bootstrap模式；不启PG容器。
+- Symbols: `OutboxManagedDdlIntegrationTest`
+- Repository evidence: 当前存在，SHA256前12位`a6d21c9d3dd3`；已有mock topology和不连PostgreSQL的DDL测试。
+- Dependencies and consumers: Outbox 5.4.1和既有`migrationMode`保持；新增属性/initializer行为的RED合同先于生产变更。
+- Why now: Outbox logical datasource factory在bootstrap调用initializer；Tianshu禁止普通Admin启动创建schema。
+- Contract/signature changes: 默认`autoInitializeDdl=true`仍调用既有managed runner；显式false只准备readiness，runner无调用。
+- Input/output and state mapping: 复用现有物理source/YAML/topology fixture；正常应用后续`OutboxSchemaMetadataValidator`执行实际只读列/索引/history核验。
+- Error and edge behavior: false分支缺schema由metadata validator fail closed；该设置不改变`migrationMode`的enqueue/dispatch维护语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-CONFIG-001。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 10, Rule 11；测试不启动PostgreSQL或长运行设施。
+- Implementation pseudocode:
+
+```java
+@Test void autoInitializeDdlFalseSkipsRunnerAndPreparesReadiness() {
+  storageConfigurationRunner().withPropertyValues(PREFIX + ".auto-initialize-ddl=false").run(context -> {
+    var properties = context.getBean("outboxMpStorageProperties", OutboxMpStorageProperties.class);
+    var ddlRunner = mock(EgonColaPostgreDdlRunner.class);
+    stubRunnerWithManifestResults(ddlRunner);
+    var initializer = initializerWithValidNativeTopology(properties, ddlRunner);
+    initializer.initialize(physicalSources, nativeYaml);
+    verifyNoInteractions(ddlRunner); // Expected RED: the current implementation invokes the runner.
+    assertReadinessPreparedForOutboxSchemaMetadataValidator();
+  });
+}
+```
+
+- Verification contribution: 本文件先证明true/default保持旧调用，false不会执行DDL且仍可由组件metadata validator read-only fail closed。
+- After this file: false-mode RED evidence is recorded before changing the property or initializer; this test then guards compatibility and read-only preparation.
+
+#### File 3 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java`
+
+- Purpose: 为Outbox逻辑数据源bootstrap提供兼容默认的managed-DDL开关。
+- Symbols: `OutboxMpStorageProperties`
+- Repository evidence: 当前存在，SHA256前12位`f988e4509fbb`；`migrationMode`当前专管维护期enqueue/dispatcher写入门禁。
+- Dependencies and consumers: 前置File 2；由initializer读取，普通其他consumer未设置时保持当前DDL行为，Tianshu profile显式false。
+- Why now: schema DDL是否在bootstrap执行与Outbox业务写维护模式是两个独立variation point。
+- Contract/signature changes: 新增`autoInitializeDdl`，默认true；保留`migrationMode`原默认和语义，不互相别名或联动。
+- Input/output and state mapping: true走既有DDL runner；false只准备metadata验证上下文，outbox store随后由schema validator读取已存在schema。
+- Error and edge behavior: 配置false且schema缺失/漂移时fail closed；true的其他consumer保持旧行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-CONFIG-001, MC-MODEL-001。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 5, Rule 7, Rule 11；Property普通POJO沿用完整Lombok和Jakarta validation。
+- Implementation pseudocode:
+
+```java
+@Builder.Default private boolean autoInitializeDdl = true;
+// The default preserves current consumers; migrationMode remains an independent maintenance guard.
+// Only an explicit false setting skips managed DDL while retaining read-only schema validation.
+```
+
+- Verification contribution: OutboxManagedDdlIntegrationTest default/false属性绑定和行为测试。
+- After this file: the default remains stable for existing consumers; only the explicit false branch changes bootstrap behavior.
+
+#### File 4 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java`
+
+- Purpose: 普通逻辑DataSource bootstrap仅准备只读metadata验证；显式CLI initializer保持调用同一Outbox manifest DDL runner。
+- Symbols: `OutboxManagedDdlInitializer.initialize`
+- Repository evidence: 当前存在，SHA256前12位`11df7a8dbdd0`；initializer被OutboxLogicalDataSourceFactory调用，已核对schema-scoped runner owner。
+- Dependencies and consumers: OutboxMpStorageProperties.autoInitializeDdl、OutboxSchemaMetadataValidator、Tianshu DdcPersistenceMigrationCli。
+- Why now: Tianshu Admin要求DDL由显式CLI执行，normal startup只验证；默认true保证其余当前Outbox consumers不变。
+- Contract/signature changes: `initialize`以`autoInitializeDdl`决定run manifest或只设置physical DS/route readiness；false不触发`EgonColaPostgreDdlRunner.run`。
+- Input/output and state mapping: false路径仍校验single PRIMARY、native topology、schema、LOCAL事务与routeFingerprint，OutboxSchemaMetadataValidator随后read-only核对component manifest/history和所有列索引。
+- Error and edge behavior: 禁止以readiness flag代替metadata validator；schema missing/drift必须导致启动失败；显式CLI直接设置auto-initialize true并调用initializer。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-PATTERN-001。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；具名initializer复用existing runner/validator，不新增库。
+- Implementation pseudocode:
+
+```java
+if (storageProperties.isAutoInitializeDdl()) {
+    runExistingComponentManifest(physical, yaml);
+} else {
+    readiness = validateTopologyAndPrepareReadOnlyMetadata(physical, yaml);
+}
+```
+
+- Verification contribution: OutboxManagedDdlIntegrationTest verifies false never runs managed SQL, while true/default and explicit initialize still apply the existing component manifest.
+- After this file: false sets readiness only after topology validation, leaving OutboxSchemaMetadataValidator to fail closed before Store use; default true retains the exact runner path.
+
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`
+
+- Purpose: 16 Tianshu业务表＋public.ddl_history＋`CREATE SCHEMA IF NOT EXISTS egon_outbox`；Outbox组件表/history不在此SQL；父表先于子/循环FK后加；八组K+deleted_at与live guard。
 - Symbols: `V20260922_001__tianshu_platform`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`V20260922_001__tianshu_platform`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步1个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责原16业务表＋ddl_history＋Outbox；父表先于子/循环FK后加；八组K+deleted_at与live guard；不可物理删草稿。
-- Contract/signature changes: V20260922_001__tianshu_platform的具体签名/配置/字段变更：原16业务表＋ddl_history＋Outbox；父表先于子/循环FK后加；八组K+deleted_at与live guard；不可物理删草稿。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：原16业务表＋ddl_history＋Outbox；父表先于子/循环FK后加；八组K+deleted_at与live guard；不可物理删草稿；按修订稿§9/§11保持原wire字段。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步4个已排序合同/组件文件；Outbox existing manifest随后使用egon_outbox schema。
+- Why now: Tianshu唯一新SQL创建业务表/lifecycle及Outbox组件所需schema；组件现有SQL/manifest拥有egon_outbox内的消息表和history。
+- Contract/signature changes: V20260922_001精确创建16业务表、public.ddl_history和egon_outbox schema；不duplicate Outbox component table/history。
+- Input/output and state mapping: 同一runner事务中创建业务物理表和history；随后CLI使用既有组件manifest完成Outbox schema内部初始化；legacy V1～V9字节不变。
 - Error and edge behavior: 同租户live冲突由partial UK拒绝；同微秒历史键冲突整事务重试最多3次；循环FK在建表后声明，失败目标事务回滚。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001；Rule 10, Rule 11；原16业务表＋ddl_history＋Outbox；父表先于子/循环FK后加；八组K+deleted_at与live guard；不可物理删草稿。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001；Rule 10, Rule 11；唯一Tianshu manifest，Outbox仍使用组件manifest，不新增工具/依赖。
 - Literal rule enforcement: java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```sql
-BEGIN; CREATE 16 business tables in parent-before-child order plus egon_cola_ddl_history and component-exact egon_cola_outbox_message;
+BEGIN; CREATE SCHEMA IF NOT EXISTS egon_outbox;
+CREATE 16 Tianshu business tables in parent-before-child order plus public.ddl_history;
 for each mutable K create UNIQUE(tenant_id,K,deleted_at) and UNIQUE(tenant_id,K) WHERE deleted_at IS NULL;
 add tenant-composite FKs, root/current-version constraints and history indexes; omit draft parent_path FK, prohibit physical deletes;
-COMMIT; no legacy V1–V9 mutation; byte hash is recorded in one repository-manifest.json entry.
+COMMIT; no Outbox table/history duplicate; no legacy V1–V9 mutation; byte hash is recorded in one repository-manifest.json entry.
 ```
 
-- Verification contribution: DdcTianshuDdlContractTest聚焦本文件的原16业务表＋ddl_history＋Outbox；父表先于子/循环FK后加；八组K+deleted_at与live guard；不可物理删草稿；最终由本步GREEN门禁验证。
+- Verification contribution: DdcTianshuDdlContractTest verifies 16 Tianshu business tables, public history, Outbox schema bootstrap and absence of duplicate component-owned tables.
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`
 
 - Purpose: family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash
 - Symbols: `repository-manifest`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`repository-manifest`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash。
 - Contract/signature changes: repository-manifest的具体签名/配置/字段变更：family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash；按修订稿§9/§11保持原wire字段。
@@ -4179,61 +4266,68 @@ initialize only an explicit empty target and record successful per-target histor
 - Verification contribution: DdcTianshuDdlContractTest聚焦本文件的family tianshu/version20260922_001；对唯一SQL最终字节计算真实SHA256；不写伪hash；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`
+#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`
 
-- Purpose: 16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空
+- Purpose: 16业务STANDARD_TENANT_ID/public.ddl_history SINGLE；Outbox既有manifest路由至egon_outbox schema/同一primary；runtime auto-initialize-ddl=false。
 - Symbols: `egon-tianshu-persistence`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`egon-tianshu-persistence`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空。
-- Contract/signature changes: egon-tianshu-persistence的具体签名/配置/字段变更：16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-CONFIG-001；Rule 7, Rule 11；16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Why now: 其上游合同已在前置文件/Step定义；该resource记录16业务表/public history和Outbox组件schema的独立路由及只读运行策略。
+- Contract/signature changes: MP物理拓扑1×1/PG/LOCAL；`mybatis-plus.ddl.enabled=false`；Outbox `auto-initialize-ddl=false`、`validate-schema=true`。
+- Input/output and state mapping: CLI显式initialize先建Tianshu表/public history/egon_outbox schema，再调用组件既有manifest；Admin runtime仅核验两种owner。
+- Error and edge behavior: 不含明文凭据/默认业务tenant；route不匹配、任一history或relation缺失均fail closed，不自动建表。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-CONFIG-001；Rule 7, Rule 11；所有profile后续导入相同键结构，runtime DDL initialization关闭。
 - Literal rule enforcement: 多profile键结构一致 (Rule 7)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```yaml
-# egon-tianshu-persistence: 16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空
-# align identical key structure across application.yml, application-local.yml and application-test.yml;
-# default AI prompt/skill toggles false, MP lifecycle allowlists empty, Outbox polling disabled in test except explicit fixture;
-# require trusted tenant and exact datasource/Redis ACL values only when related adapter is enabled.
+# egon-tianshu-persistence: 16 business tables/public history in public; existing Outbox component schema egon_outbox shares same PG PRIMARY
+# runtime: mybatis-plus.ddl.enabled=false; transactional-outbox.storage.mp.auto-initialize-ddl=false; outbox.validate-schema=true
+# AI prompt/skill defaults false and MP lifecycle allowlists empty; only explicit CLI invokes either DDL owner.
 ```
 
-- Verification contribution: DdcTianshuDdlContractTest聚焦本文件的16业务STANDARD_TENANT_ID，ddl_history/Outbox SINGLE tianshu_0；1×1、PG、LOCAL、Guard全部开启；默认历史/恢复集合空；最终由本步GREEN门禁验证。
+- Verification contribution: DdcTianshuDdlContractTest verifies tenant/shard routes, shared data source/transaction manager and read-only runtime settings.
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`
 
-- Purpose: validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池
+- Purpose: standalone validate/initialize CLI复用physical factory/YAML/topology/runner；initialize先运行Tianshu SQL，再调用Outbox既有manifest；不启Web/worker并关闭自有pool。
 - Symbols: `DdcPersistenceMigrationCli`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcPersistenceMigrationCli`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池。
-- Contract/signature changes: DdcPersistenceMigrationCli的具体签名/配置/字段变更：validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池判定；失败不得越权、半提交或吞掉原错误语义。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Why now: CLI是唯一显式schema初始化入口；先运行Tianshu script创建业务表/public history/egon_outbox schema，随后由组件initializer在egon_outbox执行现有manifest。
+- Contract/signature changes: `validate`纯读；`initialize`显式依次调用Tianshu `EgonColaPostgreDdlRunner` 与Outbox组件initializer；两种模式都复用 `OutboxSchemaMetadataValidator` 校验组件表/history；不创建完整Admin ApplicationContext，不触发自动worker。
+- Input/output and state mapping: 两个DDL owner使用相同配置的物理PG PRIMARY/YAML topology；关闭CLI拥有的pool；不执行旧库导入。
+- Error and edge behavior: manifest/history/route不匹配立即失败；Outbox表初始化不得先于schema创建；无副作用的validate不触发任何runner。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcPersistenceMigrationCli: validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池
-validate signed tenant mapping and source V9 schema; source connection is read only;
-for each table in parent order page <= 1000 rows: compare source hash/public_id/tenant, insert missing row in target transaction;
-if matching hash skip; if mismatch/unknown tenant/orphan stop with report and do not overwrite;
-verify row counts, field hashes, FK and business version/status before cutover; close owned resources.
+// Standalone explicit command; no web server, ApplicationRunner or worker.
+target = createAndValidatePhysicalSourcesAndTopology();
+if (mode == initialize) {
+  ddlRunner.run(tianshuManifestTarget(target)); // creates business tables/public history and egon_outbox schema
+  outboxStorage.setAutoInitializeDdl(true);
+  outboxInitializer.initialize(target.physicalSources(), target.shardingYaml()); // existing component manifest
+} else {
+  validateTianshuHistoryAndRelationsReadOnly(target);
+  outboxStorage.setAutoInitializeDdl(false);
+  outboxInitializer.initialize(target.physicalSources(), target.shardingYaml()); // read-only preparation; validator checks schema
+}
+outboxSchemaMetadataValidator.validate(); // reuse component verification for both modes
+closeOwnedPhysicalPoolsInFinally();
 ```
 
 - Verification contribution: DdcTianshuDdlContractTest聚焦本文件的validate/initialize模式显式参数，复用physical factory/yamlLoader/topology/runner；无Web，无隐式执行，关闭自有池；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`
+#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`
 
-- Purpose: SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入
+- Purpose: SmartInitializingSingleton只读核对Tianshu manifest/public history/route/16业务表；Outbox组件validator独立核对egon_outbox；在恢复任务前fail closed。
 - Symbols: `DdcDatabaseReadyValidator`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcDatabaseReadyValidator`。
-- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 1, Step 2, Step 3；本步8个已排序文件；OutboxSchemaMetadataValidator验证组件表/history。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入。
 - Contract/signature changes: DdcDatabaseReadyValidator的具体签名/配置/字段变更：SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入；按修订稿§9/§11保持原wire字段。
@@ -4244,23 +4338,70 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 
 ```java
 SmartInitializingSingleton.afterSingletonsInstantiated() {
-  load exact tianshu manifest; SELECT history, routing and required tables/indexes only from configured new logical DataSource;
+  load exact tianshu manifest; SELECT public.ddl_history, routing and required Tianshu tables/indexes only from configured logical DataSource;
+  require OutboxSchemaMetadataValidator component manifest/history/columns/index checks to have passed;
   if missing/drift/wrong datasource throw startup error before lease/worker scheduling;
-  never initialize DDL or import legacy rows as an application startup side effect;
+  never initialize either DDL or import legacy rows as an application startup side effect;
 }
 ```
 
 - Verification contribution: DdcTianshuDdlContractTest聚焦本文件的SmartInitializingSingleton只读核对manifest/history/route/表合同；在恢复任务前失败，不自动DDL/导入；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
-- Verification command: `mvn -q -Dtest=DdcTianshuDdlContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
+#### File 10 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md`
+
+- Purpose: document the backwards-compatible Outbox managed-DDL bootstrap switch and read-only mode.
+- Symbols: Outbox MP storage configuration table.
+- Repository evidence: the current Outbox README documents `migration-mode` but not bootstrap DDL policy.
+- Dependencies and consumers: OutboxMpStorageProperties and OutboxManagedDdlInitializer; synchronize with README.zh-CN.
+- Why now: the new key is consumer-visible and lets Tianshu disable schema creation during normal Admin startup while preserving existing default behavior elsewhere.
+- Contract/signature changes: add `storage.mp.auto-initialize-ddl`; default true; it does not alter `migration-mode` semantics.
+- Input/output and state mapping: true invokes the existing manifest from bootstrap; false prepares readiness for read-only Outbox schema validation.
+- Error and edge behavior: false plus absent/drifted schema fails startup; no implicit table creation.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-CONFIG-001, MC-DEP-001。
+- Literal rule enforcement: Rule 7 keeps the shared property key explicit in runtime examples; Rule 11 keeps managed DDL with the existing MP/Outbox owners.
+- Implementation pseudocode:
+
+```yaml
+egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl: true # backwards-compatible Starter default
+# Set false only when the host has an explicit schema owner and still runs metadata validation.
+# Tianshu runtime sets false; its explicit CLI invokes the initializer with DDL enabled.
+```
+
+- Verification contribution: English documentation matches the property default and OutboxManagedDdlIntegrationTest.
+- After this file: the English property description distinguishes schema bootstrap from maintenance mode and remains synchronized with the typed property.
+
+#### File 11 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md`
+
+- Purpose: document in Chinese the same Outbox bootstrap DDL toggle and read-only Tianshu mode.
+- Symbols: Outbox MP存储配置表。
+- Repository evidence: current text describes `migration-mode` as the writer/worker maintenance guard.
+- Dependencies and consumers: OutboxMpStorageProperties and OutboxManagedDdlInitializer; synchronize with README.md.
+- Why now: prevent confusion between schema bootstrap and the existing enqueue/dispatch maintenance guard.
+- Contract/signature changes: add `storage.mp.auto-initialize-ddl` default true; Tianshu runtime sets false.
+- Input/output and state mapping: false delegates to read-only OutboxSchemaMetadataValidator; explicit CLI directly invokes initializer.
+- Error and edge behavior: missing component schema in false mode fails closed; component tables remain owned by the existing manifest.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-CONFIG-001, MC-DEP-001。
+- Literal rule enforcement: Rule 7 keeps the shared property key explicit in runtime examples; Rule 11 keeps managed DDL with the existing MP/Outbox owners.
+- Implementation pseudocode:
+
+```yaml
+egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl: true # Starter兼容默认值
+# 只有宿主已显式管理schema且仍执行只读metadata validation时才设为false。
+# 天枢runtime设为false；显式CLI以DDL enabled调用组件initializer。
+```
+
+- Verification contribution: Chinese documentation matches typed property and integration test.
+- After this file: Chinese wording distinguishes schema bootstrap from maintenance mode and matches the English property contract.
+
+- Validation working directory: repository root
+- Verification command: `mvn -q -pl egon-cola-components/egon-cola-component-transactional-outbox-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Dtest=DdcTianshuDdlContractTest,OutboxManagedDdlIntegrationTest#autoInitializeDdlFalseSkipsRunnerAndPreparesReadiness -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Expected result: Admin DDL contract and the Outbox verify-only mode test pass; `auto-initialize-ddl=true` remains backward compatible; Tianshu SQL has one real checksum and does not duplicate Outbox component tables; no database/container is started; this Plan stage had not yet been run at authoring time.
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
-- Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
+- Completion criteria: all declared Tianshu and Outbox paths are implemented; strict manifest/schema contracts and focused tests pass; normal bootstrap performs read-only checks only, the explicit CLI runs both DDL owners in order, and no duplicate Outbox SQL or automatic legacy import exists.
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`
-- Commit: `feat(tianshu): step-7--------ddl`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/integration/OutboxManagedDdlIntegrationTest.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcDatabaseReadyValidator.java`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.md`, `egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md`
+- Commit: `feat(tianshu): add managed ddl bootstrap contract`。
 
 ### Step 8 — 迁移租户元数据五表的Repository与调用者
 

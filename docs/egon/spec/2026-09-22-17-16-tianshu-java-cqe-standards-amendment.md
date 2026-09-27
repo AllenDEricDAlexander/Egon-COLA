@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 已接受规格的建模/包结构/删除契约修订，MP受控能力扩展，Outbox事务/Redis投递，多模块实施依赖 |
 | Created | `2026-09-22 17:16 Asia/Shanghai` |
-| Updated | `2026-09-23 06:23 Asia/Shanghai` |
+| Updated | `2026-09-28 01:19 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢既定多租户Prompt/Skill功能；最新Java/CQE标准与已批准组件扩展 |
@@ -43,7 +43,7 @@ CQE复用已批准 `top.egon:egon-cola-component-transactional-outbox-starter:5.
 | EVD-104 | Static | egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/interceptor/EgonColaTenantIdGuardInnerInterceptor.java | PHYSICAL_DELETE_FORBIDDEN、ACTIVE_PREDICATE_REQUIRED，deleted_at只接受标准删除时间表达式 | 原稿物理删除/隐式读历史不可实施；不能关闭Guard | 当前源码 |
 | EVD-105 | Static | 同模块model/EgonModel.java；extension/EgonColaRepository.java | SuperBuilder链、静态MDC租户、guarded写、仅mapper/properties getter | 改PO构造策略，沿用实际组件API | 新增enum治理未改变这些API |
 | EVD-106 | Static | egon-cola-components/egon-cola-component-transactional-outbox-starter/api/TransactionalOutbox.java、delivery/DeliveryHandler.java、transaction/OutboxTransactionGuard.java（均src/main/java/top/egon/cola/component/outbox下） | enqueue要求已绑定同DataSource事务；handler SPI；跨Redis/DB不自动原子 | 必须真实事务验证，不能把RTopic调用称为Outbox | 未做PG/SS集成 |
-| EVD-107 | Static | egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/resources/db/transactional-outbox/postgresql/V1__create_transactional_outbox_schema.sql | 单表egon_cola_outbox_message、技术dedup/claim索引 | 复制合同到本次唯一MP DDL，不执行组件旧Flyway建议 | 源文件不修改 |
+| EVD-107 | Static | egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/resources/db/egon-outbox-mp/manifest.json、V20260924_001__initialize_outbox_mp_schema.sql、OutboxManagedDdlInitializer | Outbox组件以既有`component-outbox` manifest在`egon_outbox` schema管理消息表与该schema自己的`ddl_history`；LogicalDataSourceFactory调用initializer | 复用组件manifest/SQL，不在Tianshu SQL复制Outbox表；普通Admin配置只读验证，显式迁移CLI执行组件initializer | manifest/SQL源不修改；新增自动DDL开关默认保持组件现有行为 |
 | EVD-108 | Static | DdcConfigService.delete/rollback/pull；DdcPublishService.prepare；DdcPendingPublishDispatcher.dispatch | legacy deleted是配置业务状态，默认prepare排除它；原rollback改变该标记和草稿，当前发布指针另管 | 不能把legacy.deleted强行等同deleted_at改变线上行为 | 原Java/SQL链核对 |
 | EVD-109 | Static | 当前工作区 | 其他任务修改玉衡Spec/Plan、archetype文件并制作code-generator目录；组件POM版本升级已单独提交 | 不写/暂存这些路径；依赖对齐当前5.4.1 | 编写前后按路径核查 |
 
@@ -977,7 +977,7 @@ ValidationUtils仅在ConfigData、手工构造、非代理callback补触发同�
 
 ### 11.0 Effective DDL and identity rules
 
-原字段与初始1×1拓扑取原Spec明确规则：**16业务表＋ddl_history＋新增1张Outbox，共18张**；业务表STANDARD_TENANT_ID、物理public.<logical>_t0，技术Outbox及ddl_history为SINGLE同tianshu_0。全库在独立PG空public初始化，旧V1～V9不动。本稿只修改下列业务索引/父path约束及新增Outbox表，不复制所有未变字段。
+原字段与初始1×1拓扑取原Spec明确规则：Tianshu唯一MP SQL创建**16业务表＋public.ddl_history**；Outbox组件复用其既有manifest创建`egon_outbox.egon_cola_outbox_message`和`egon_outbox.ddl_history`，技术history不与业务history合表。16业务表STANDARD_TENANT_ID、物理public.<logical>_t0，两个schema均路由到同一物理PG primary。全库在独立PG目标初始化，旧V1～V9不动。本稿只修改下列业务索引/父path约束；Outbox组件表结构与SQL由组件manifest权威管理，不复制到Tianshu SQL。
 
 每个mutable业务键K：`UNIQUE(tenant_id,K,deleted_at)`＋`UNIQUE(tenant_id,K) WHERE deleted_at IS NULL`。普通PG NULL允许多个active组合行，所以必须第二个guard；不把partial当替代。删除仍使用组件标准CURRENT_TIMESTAMP AT TIME ZONE UTC；若历史组合键同微秒冲突，整事务回滚，最多3个新事务重试（每次重新锁行/校验expectedVersion），仍冲突409/56316，不能在已失败事务里继续，也不替换Guard认可表达式或偷偷把id塞进业务键使其失去约束意义。
 
@@ -997,7 +997,8 @@ ValidationUtils仅在ConfigData、手工构造、非代理callback补触发同�
 | ddc_config_item | 已设计未实施 | 天枢业务生命周期 | 对应Repository/Mapper | 组合lifecycle/live索引 | DDL-101 | REQ-019 |
 | ddc_ai_resource | 已设计未实施 | 天枢业务生命周期 | 对应Repository/Mapper | 组合lifecycle/live索引 | DDL-101 | REQ-019 |
 | ddc_ai_draft_node | 已设计未实施 | 天枢业务生命周期 | 对应Repository/Mapper | 组合lifecycle/live索引；移除父path FK | DDL-101 | REQ-019 |
-| egon_cola_outbox_message | New | 组件拥有的投递意图 | Outbox JDBC store/worker | 按组件合同建表 | DDL-101 | REQ-017 |
+| egon_cola_outbox_message | Existing component DDL, new target instance | 组件拥有的投递意图 | Outbox JDBC store/worker | 复用组件现有`component-outbox` manifest，schema=`egon_outbox` | Outbox component manifest `20260924_001` | REQ-017 |
+| egon_outbox.ddl_history | Existing component DDL, new target instance | Outbox组件的技术schema history | Outbox DDL initializer/readiness | 复用组件SQL，不由Tianshu复制 | Outbox component manifest `20260924_001` | REQ-017 |
 
 ### 11.2 Per-table Detailed Design
 
@@ -1361,13 +1362,13 @@ K=(resource_id, path)。原PK/tenant-id/public_id技术UK保留。删除原拟�
 
 ##### Purpose, ownership, and lifecycle
 
-组件技术表，SINGLE同tianshu_0/public，默认1×1内与业务写相同DataSource事务；不是EgonModel业务PO，不加tenant_id/deleted_at伪装表结构。tenantId在冻结payload/headers和消息key中，由受控handler校验，表无公开租户CRUD。schema由组件OutboxSchemaValidator校验，worker全局调度只在服务端。
+组件技术表，位于`egon_outbox` schema、SINGLE同`tianshu_0`物理PG primary；业务写入与Outbox SQLSession使用同一个逻辑`dataSource`和transactionManager。它不是EgonModel业务PO；遵守组件MP物理合同：`tenant_id=0`为技术租户CHECK、`deleted_at IS NULL`为不可软删CHECK、`version`与四列审计字段由MP基类守卫，不承载业务租户；业务tenantId只在冻结payload/headers和message key中，由受控handler校验，表无公开租户CRUD。DDL及history均由组件既有`db/egon-outbox-mp/manifest.json`管理；Tianshu的`DDL-101`只负责创建独立PG目标和`egon_outbox` schema，不复制消息表/history SQL。普通Tianshu启动通过组件schema validator只读核验；只有显式迁移CLI调用组件initializer执行既有manifest。
 
 ##### Complete column design
 
 | Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| id | bigint | 组件原定义 | No | as identity primary key | 组件store/DB | 组件原PK/UK/CHECK | 存储行ID | 原组件DDL同列 | 合成值或允许NULL |
+| id | bigint | 组件MP合同 | No | 无 | OutboxIdGenerator | PK(id) | 存储行ID；Snowflake业务节点生成，不使用数据库identity | 原组件DDL同列 | 正Long |
 | message_id | varchar(64) | 组件原定义 | No | 无 | 组件store/DB | 组件原PK/UK/CHECK | 稳定跨进程消息ID | 原组件DDL同列 | 合成值或允许NULL |
 | idempotency_key | varchar(256) | 组件原定义 | Yes | 无 | 组件store/DB | 组件原PK/UK/CHECK | 生产去重键 | 原组件DDL同列 | 合成值或允许NULL |
 | message_fingerprint | char(64) | 组件原定义 | No | 无 | 组件store/DB | 组件原PK/UK/CHECK | channel/destination/payload等规范指纹 | 原组件DDL同列 | 合成值或允许NULL |
@@ -1389,10 +1390,17 @@ K=(resource_id, path)。原PK/tenant-id/public_id技术UK保留。删除原拟�
 | created_at | timestamp with time zone | 组件原定义 | No | 无 | 组件store/DB | 组件原PK/UK/CHECK | 创建UTC Instant | 原组件DDL同列 | 合成值或允许NULL |
 | updated_at | timestamp with time zone | 组件原定义 | No | 无 | 组件store/DB | 组件原PK/UK/CHECK | 更新UTC Instant | 原组件DDL同列 | 合成值或允许NULL |
 | completed_at | timestamp with time zone | 组件原定义 | Yes | 无 | 组件store/DB | 组件原PK/UK/CHECK | 终止UTC Instant | 原组件DDL同列 | 合成值或允许NULL |
+| tenant_id | bigint | 64bit | No | 无 | OutboxTechnicalContextExecutor | CHECK=0 | MP基础租户列；不表示业务tenant | 组件EgonModel技术上下文 | 0 |
+| create_user_id | varchar(128) | 128 | No | 无 | OutboxTechnicalContextExecutor | MP审计守卫 | 技术创建actor | MP AuditFillHandler | system:outbox |
+| create_time | timestamp with time zone | precision 6 | No | 无 | MP AuditFillHandler | MP审计守卫 | 创建时间Instant | Outbox audit fill | UTC |
+| update_user_id | varchar(128) | 128 | No | 无 | OutboxTechnicalContextExecutor | MP审计守卫 | 技术更新actor | MP AuditFillHandler | system:outbox |
+| update_time | timestamp with time zone | precision 6 | No | 无 | MP AuditFillHandler | MP审计守卫 | 更新时间Instant | Outbox audit fill | UTC |
+| deleted_at | timestamp without time zone | precision 6 | Yes | NULL | 永不删除 | CHECK IS NULL | Outbox消息永久技术保留；禁止逻辑/物理删除 | MP逻辑删除字段 | NULL |
+| version | bigint | 64bit | No | 0 | MP optimistic locker | CHECK >=0 | 技术乐观锁版本 | MP version fill | 0 |
 
 ##### Keys, relationships, and constraints
 
-复用原message_id全局UK、非NULL idempotency_key全局UK；使用含tenant的SHA256 eventId/key避免跨租户碰撞。它们是永久技术去重（在组件保留期内），不是软删除业务名称。无FK，消息payload是事实快照，不会级联删除业务行。id为组件identity主键；显式messageId覆盖其默认UUID生成，不改组件默认ID实现。
+复用组件`uk_outbox_message_id`全局UK、非NULL `uk_outbox_idempotency_key`；producer生成的`message_id`和幂等key含业务tenant域以避免跨租户碰撞。它们是永久技术去重（在组件保留期内），不是软删除业务名称。无FK，消息payload是事实快照，不会级联删除业务行。Outbox行`id`由`OutboxIdGenerator`生成，`tenant_id=0`仅表示技术表上下文；message/header中的业务tenant不得映射到该列。复用`ck_outbox_technical_tenant`、`ck_outbox_not_soft_deleted`和`ck_outbox_version`。
 
 ##### Index inventory and per-index justification
 
@@ -1415,15 +1423,59 @@ K=(resource_id, path)。原PK/tenant-id/public_id技术UK保留。删除原拟�
 
 ##### Migration and historical-data handling
 
-把原组件这张表的准确DDL定义纳入DDL-101（同版本，不再加第二个SQL）；不修改组件归档V1或运行Flyway。现有源天枢无此表，无业务回填。真实PG/SS验证Outbox CTE/UPDATE RETURNING、元数据检测及同DS原子性；不能更换成单独物理DataSource来绕过事务不匹配。
+不把Outbox组件表或`egon_outbox.ddl_history`复制进Tianshu的DDL-101；保留组件既有manifest和SQL字节。Tianshu DDL-101在创建业务表/history时建立`egon_outbox` schema，显式CLI随后调用组件initializer在该schema执行已有manifest；两者使用同一个物理PG primary及业务逻辑DataSource。普通应用启动把新增`auto-initialize-ddl`配置设为false：Outbox逻辑数据源factory准备只读metadata validation，随后组件`OutboxSchemaMetadataValidator`核对表/索引/history；缺失或漂移fail closed，不在启动时建表。Outbox组件该开关默认true以保留其他消费者现有初始化行为。现有源天枢无Outbox数据，无业务回填。真实PG/SS验收仍验证Outbox CTE/UPDATE RETURNING、元数据检测及同DS原子性；不能更换成单独物理DataSource来绕过事务不匹配。
 
 ##### Transaction, consistency, and recovery
 
 YAML准备与enqueue同事务；Delivery在事务外，所以远端成功/本地确认失败有重复窗口。Registry源Redis与SQL意图窗口见§7。DEFAULT worker重试10次、指数1s×2到5m、jitter0.2、lease60s；handler业务deadline优先阻止迟到激活。DEAD不是业务成功，告警含tenant/task/eventId而无正文，原retryTask产生新attempt的新消息；不造新的管理重放API。
 
+#### 11.2.10 egon_outbox.ddl_history
+
+##### Purpose, ownership, and lifecycle
+
+这是Outbox组件在`egon_outbox` schema内的技术DDL版本记录，由Starter自有的`component-outbox` manifest维护；不属于Tianshu业务租户数据，不经MP业务Repository开放读写。它与`public.ddl_history`分别记录Tianshu与Outbox组件脚本。Outbox startup validator以read-only metadata/历史前缀检查确认该表及当前manifest；Tianshu普通启动不得创建或修改该表。
+
+##### Complete column design
+
+| Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| tenant_id | bigint | 64bit | No | 0 | 组件DDL | CHECK=0 | 技术history租户固定为0 | Outbox component manifest | 0 |
+| script | varchar | 500 | No | 无 | DDL runner | PK(script,type) | 组件SQL资源路径 | manifest path | db/egon-outbox-mp/V20260924_001__initialize_outbox_mp_schema.sql |
+| type | varchar | 30 | No | SQL | 组件DDL | PK(script,type), UNIQUE(type,version), CHECK=SQL | 脚本类型 | managed runner | SQL |
+| version | varchar | 30 | No | 无 | manifest | UNIQUE(type,version) | 组件脚本版本 | manifest version | 20260924_001 |
+| checksum | char | 64 | No | 无 | manifest | CHECK lowercase SHA-256 | 安装脚本校验和 | manifest SHA-256 | 64 lowercase hex |
+| installed_on | timestamp with time zone | precision 6 | No | CURRENT_TIMESTAMP | DDL runner | — | 安装时间 | runner timestamp | UTC instant |
+| execution_ms | bigint | 64bit | No | 无 | DDL runner | CHECK >=0 | 脚本执行耗时毫秒 | runner duration | 12 |
+| route_fingerprint | char | 64 | No | 无 | topology validator | CHECK lowercase SHA-256 | 执行目标拓扑指纹 | resolved route topology | 64 lowercase hex |
+
+##### Keys, relationships, and constraints
+
+主键为`(script,type)`，并以`(type,version)`唯一阻止同类型重复版本。CHECK固定`tenant_id=0`、`type='SQL'`、checksum/fingerprint为64位小写十六进制且`execution_ms>=0`。无业务外键、无`deleted_at`，不会经EgonModel业务CRUD修改。
+
+##### Index inventory and per-index justification
+
+| Index | Type/unique | Ordered columns/expressions | Predicate/include | Query and operation | Cardinality/selectivity | Sort/coverage role | Write/storage cost | Decision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| pk_ddl_history | primary unique btree | script,type | 无 | 精确读取已安装脚本 | 每script/type一行 | checksum/version prefix check | 每个已安装脚本新增一行 | Keep component-owned |
+| uk_ddl_history_type_version | unique btree | type,version | 无 | 拒绝重复脚本版本 | 每type/version一行 | 按type/version检查 | 每个已安装脚本新增一行 | Keep component-owned |
+
+##### Access patterns and SQL shape
+
+| Operation | Caller | Predicate/join/order | Expected rows | Index/constraint | Lock/isolation | Failure/idempotency |
+| --- | --- | --- | --- | --- | --- | --- |
+| inspect installed prefix | OutboxSchemaMetadataValidator / EgonColaPostgreDdlRunner | schema=`egon_outbox`, script/type/version/checksum/route_fingerprint | 当前manifest脚本行数 | primary/unique keys | 只读metadata validation或runner目标事务 | 缺失/漂移fail closed；不得绕过checksum |
+
+##### Migration and historical-data handling
+
+该表及其建表SQL由组件既有manifest `20260924_001`拥有，不复制到Tianshu DDL-101。显式initialize先执行Tianshu manifest以确保schema存在，再执行Outbox manifest；组件runner按其自身PRIMARY/schema/version持久化history。Outbox初始化失败时Tianshu已提交的前缀保留，CLI可安全重试组件manifest；旧脚本/hash不可修改。
+
+##### Transaction, consistency, and recovery
+
+每个Outbox schema target的SQL和对应history由通用runner在一个本地事务内提交；正常Tianshu启动关闭组件auto-initialize，只读validator使用同一物理PRIMARY读取history/table/index/constraint。`auto-initialize-ddl`默认true维持其他消费者原行为；其值与`migration-mode`（enqueue/dispatch维护期门禁）无关。
+
 ### 11.3 Entity-relationship diagram
 
-Relational model change: Yes。图列出本修订9张affected表，以及说明snapshot身份所需的两个原表邻居；完整未变列和全部17表关系仍按原Spec ER。
+Relational model change: Yes。图列出本修订9张业务/消息affected表、组件自有`egon_outbox.ddl_history`技术历史，以及说明snapshot身份所需的两个原表邻居；完整未变列和全部17表关系仍按原Spec ER。
 
 | ER entity | Physical table | Scope/change | Authoritative owner | Notes |
 | --- | --- | --- | --- | --- |
@@ -1435,7 +1487,8 @@ Relational model change: Yes。图列出本修订9张affected表，以及说明s
 | DDC_CONFIG_ITEM | public.ddc_config_item_t0 | 索引/删除语义修订 | 天枢 | tenant＋K＋deleted_at |
 | DDC_AI_RESOURCE | public.ddc_ai_resource_t0 | 索引/删除语义修订 | 天枢 | tenant＋K＋deleted_at |
 | DDC_AI_DRAFT_NODE | public.ddc_ai_draft_node_t0 | 索引/删除语义修订 | 天枢 | tenant＋K＋deleted_at |
-| OUTBOX | public.egon_cola_outbox_message | 新建 | Outbox组件 | 技术表，无业务FK |
+| OUTBOX | egon_outbox.egon_cola_outbox_message | 组件现有DDL | Outbox组件 | 同物理primary、同业务transactionManager，无业务FK |
+| OUTBOX_DDL_HISTORY | egon_outbox.ddl_history | 组件现有DDL | Outbox组件 | Outbox schema自己的managed-DDL history |
 | AI_VERSION | public.ddc_ai_version_t0 | 未变邻居 | 天枢 | 不可变身份 |
 | AI_VERSION_NODE | public.ddc_ai_version_node_t0 | 未变邻居 | 天枢 | 不可变snapshot path |
 
@@ -1536,12 +1589,13 @@ Outbox与业务无FK，不暗示Redis/PG全局事务；sourceVersion/当前指�
 | TEST-104 | delivery/reconcile | Registry事件 | enqueue窗口、重复乱序、离线 | 明示窗口；consumer最终重载；tenant拒绝 | 既有reconcile夹具 | DdcRegistryOutboxTest | REQ-017 |
 | TEST-105 | Guard/SQL | 历史/Restore白名单 | 默认/通配符/错误SQL/tenant/version/create列/物理删 | 只有精确允许路径可过，旧行为仍拒绝 | 真Mapper拦截链＋PG恢复冲突 | EgonColaLifecycleContractTest | REQ-018 |
 | TEST-106 | compile/validation/JSON | 新class/约束/Forward | 父Builder、普通class、value-record、缺字段/NULL/unknown、代理/非代理 | 字段和行为与原wire一致，不以utils替代注解 | golden fixtures来自原Spec | DdcAiJavaContractTest | REQ-015/016 |
+| TEST-107 | DDL bootstrap | Outbox component `auto-initialize-ddl` | default true compatibility; Tianshu runtime false; explicit CLI initialize | default consumers retain old behavior; Tianshu bootstrap performs no DDL and fails closed on missing schema; explicit initializer still applies exact component manifest | mocked physical DataSource/topology, no external PG | OutboxManagedDdlIntegrationTest | REQ-009/017 |
 
 原TEST-001～013全保留并按新路径/模型调整。所有行为计划RED→最小GREEN→回归；纯POM/布局声明可作为编译前置，不把环境缺依赖称为业务RED。精确cwd/selector在Plan逐Step列出。PG/Redis/浏览器仍是显式受控验收，不在本文执行。
 
 ## 15. Non-functional and Cross-cutting Design
 
-原tenant/HMAC v2/Redis v4/ACL/日志脱敏不变。Outbox只在Admin启用，storage.data-source-bean-name=`dataSource`、transaction-manager-bean-name=`transactionManager`与业务同一对象；schema validator保持true，SINGLE表同物理组，禁止另开未绑定PG连接代替。node-id来自Admin实例唯一标识；payload.max-bytes=8MB、max-header-count=64、max-header-bytes=16KB；HTTP/Rabbitmq=false；polling1s/batch100/concurrency4、delivery timeout10s/lease60s、retry10/1s/2.0/5m/0.2沿组件已存在字段。
+原tenant/HMAC v2/Redis v4/ACL/日志脱敏不变。Outbox只在Admin启用，storage.data-source-bean-name=`dataSource`、transaction-manager-bean-name=`transactionManager`与业务同一对象；schema validator保持true，SINGLE表同物理组，禁止另开未绑定PG连接代替。`storage.mp.auto-initialize-ddl`组件开关默认true以保持既有消费者行为；Tianshu运行配置显式false，由`DdcDatabaseReadyValidator`/`OutboxSchemaMetadataValidator`只读失败关闭，迁移CLI显式调用Tianshu runner和组件initializer。该开关只决定逻辑DataSource bootstrap是否执行组件DDL；既有`migration-mode`仍只管maintenance期间outbox写入/投递，不混用两项职责。node-id来自Admin实例唯一标识；payload.max-bytes=8MB、max-header-count=64、max-header-bytes=16KB；HTTP/Rabbitmq=false；polling1s/batch100/concurrency4、delivery timeout10s/lease60s、retry10/1s/2.0/5m/0.2沿组件已存在字段。
 
 handler必须解析已知schema、验证header/payload/topic tenant一致、通过DdcTenantContextExecutor绑定system:outbox并finally恢复，拒绝任意目的地。已失效tenant/event永久拒绝，不能转成全局发消息。Outbox全局技术表无用户直接查询接口；消息ID/key含tenant域；普通业务不使用该表绕过MP。
 
@@ -1549,7 +1603,7 @@ MP `lifecycle.history-read-statements=[]`、`restore-statements=[]` 为默认；
 
 ## 16. Compatibility, Migration, Rollout, and Rollback
 
-DDL-101是本业务尚未实施的唯一新MP版本：`A/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`，manifest `A/src/main/resources/db/egon-mp/repository-manifest.json`（family=tianshu，version=20260922_001，path精确指向SQL，sha256实施时真实计算）。包含原16业务表＋ddl_history＋实际一张Outbox表、修订lifecycle/live索引。旧V1～V9和组件Outbox归档SQL不动；没有两个新版本，没有Flyway运行选项，也不宣称在制generator生成过文件。
+DDL-101是Tianshu尚未实施的唯一新MP版本：`A/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql`，manifest `A/src/main/resources/db/egon-mp/repository-manifest.json`（family=tianshu，version=20260922_001，path精确指向SQL，sha256实施时真实计算）。它创建原16业务表、`public.ddl_history`与Outbox所需schema，并包含修订lifecycle/live索引；不创建Outbox消息表或其history。Outbox组件既有`20260924_001` manifest是该组件已批准schema的独立owner，执行顺序为先Tianshu DDL建`egon_outbox` schema，再由显式CLI调用组件initializer。旧V1～V9和组件Outbox归档SQL不动；Tianshu路径没有第二个新MP版本，也不宣称在制generator生成过文件。
 
 当前表尚未在目标部署，所以是设计修订，不修改已应用SQL。若实施时发现目标已有该版本/history，立即校验前缀并停止覆盖，按另一个已批准逻辑变更加后续版本，不能重算旧hash。组件每PRIMARY/schema/version原子，后目标失败保留前目标已提交进度；原数据导入/租户映射/源库保留/停写切流/前向修复仍继承原Spec§16。
 
