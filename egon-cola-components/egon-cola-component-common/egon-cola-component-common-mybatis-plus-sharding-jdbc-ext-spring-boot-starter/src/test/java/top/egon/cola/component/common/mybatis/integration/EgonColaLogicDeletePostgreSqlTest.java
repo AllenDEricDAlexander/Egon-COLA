@@ -94,17 +94,18 @@ class EgonColaLogicDeletePostgreSqlTest {
             global.setMetaObjectHandler(new EgonColaMetaObjectHandler(user, Clock.systemUTC()));
             SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
             global.setIdentifierGenerator(new EgonColaIdentifierGenerator());
+            EgonColaMybatisPlusProperties properties = new EgonColaMybatisPlusProperties();
             MybatisConfiguration configuration = new MybatisConfiguration();
             configuration.setMapUnderscoreToCamelCase(true);
             MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();
             factory.setDataSource(scoped);
             factory.setConfiguration(configuration);
             factory.setGlobalConfig(global);
-            factory.setPlugins(plugins, new EgonColaModelValidationInterceptor(VALIDATORS.getValidator()));
+            factory.setPlugins(plugins, new EgonColaModelValidationInterceptor(VALIDATORS.getValidator(), properties));
             factory.setMapperLocations(new ClassPathResource("mybatis/TestBusinessMapper.xml"));
             SqlSessionTemplate template = new SqlSessionTemplate(factory.getObject());
             TestBusinessRepository repository = new TestBusinessRepository(
-                    template.getMapper(TestBusinessMapper.class), new EgonColaMybatisPlusProperties());
+                    template.getMapper(TestBusinessMapper.class), properties);
             return new PostgreFixtureBO(admin, schema, repository, tenant,
                     new JdbcTemplate(scoped), new TransactionTemplate(new DataSourceTransactionManager(scoped)));
         } catch (Exception failure) {

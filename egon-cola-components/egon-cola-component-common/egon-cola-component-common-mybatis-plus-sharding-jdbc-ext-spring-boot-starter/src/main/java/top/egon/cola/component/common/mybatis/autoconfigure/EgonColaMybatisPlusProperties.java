@@ -7,14 +7,17 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -24,50 +27,106 @@ import java.util.Set;
  * Technical policies for the Egon COLA MyBatis-Plus starter.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
 @Validated
 @ConfigurationProperties(prefix = EgonColaMybatisPlusProperties.PREFIX)
 public class EgonColaMybatisPlusProperties {
 
     public static final String PREFIX = "egon.cola.component.mybatis-plus";
 
+    @Builder.Default
     private boolean enabled = true;
 
     @Valid
     @NotNull
+    @Builder.Default
     private TenantId tenantId = new TenantId();
 
     @Valid
     @NotNull
+    @Builder.Default
     private Audit audit = new Audit();
 
     @Valid
     @NotNull
+    @Builder.Default
     private Pagination pagination = new Pagination();
 
     @Valid
     @NotNull
+    @Builder.Default
     private Batch batch = new Batch();
 
     @Valid
     @NotNull
+    @Builder.Default
     private Toggle blockAttack = new Toggle();
 
     @Valid
     @NotNull
+    @Builder.Default
     private Toggle optimisticLocker = new Toggle();
 
     @Valid
     @NotNull
+    @Builder.Default
     private Ddl ddl = new Ddl();
     @Valid
     @NotNull
+    @Builder.Default
     private DynamicTableName dynamicTableName = new DynamicTableName();
     @Valid
     @NotNull
+    @Builder.Default
     private Toggle illegalSql = new Toggle(false);
     @Valid
     @NotNull
+    @Builder.Default
     private LocalWriteGuard localWriteGuard = new LocalWriteGuard();
+    @Valid
+    @NotNull
+    @Builder.Default
+    private LifecycleProperties lifecycle = new LifecycleProperties();
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @Builder
+    public static class LifecycleProperties {
+
+        private static final String MAPPER_STATEMENT_ID_PATTERN =
+                "(?:[A-Za-z_$][A-Za-z0-9_$]*\\.)+[A-Za-z_$][A-Za-z0-9_$]*";
+
+        @NotNull
+        @Builder.Default
+        private Set<@NotBlank @Pattern(regexp = MAPPER_STATEMENT_ID_PATTERN) String> historyReadStatements = new LinkedHashSet<>();
+
+        @NotNull
+        @Builder.Default
+        private Set<@NotBlank @Pattern(regexp = MAPPER_STATEMENT_ID_PATTERN) String> restoreStatements = new LinkedHashSet<>();
+
+        public Set<String> getHistoryReadStatements() {
+            return Collections.unmodifiableSet(new LinkedHashSet<>(historyReadStatements));
+        }
+
+        public void setHistoryReadStatements(Set<String> statementIds) {
+            historyReadStatements = statementIds == null
+                    ? new LinkedHashSet<>() : new LinkedHashSet<>(statementIds);
+        }
+
+        public Set<String> getRestoreStatements() {
+            return Collections.unmodifiableSet(new LinkedHashSet<>(restoreStatements));
+        }
+
+        public void setRestoreStatements(Set<String> statementIds) {
+            restoreStatements = statementIds == null
+                    ? new LinkedHashSet<>() : new LinkedHashSet<>(statementIds);
+        }
+    }
 
     @Data
     public static class TenantId {

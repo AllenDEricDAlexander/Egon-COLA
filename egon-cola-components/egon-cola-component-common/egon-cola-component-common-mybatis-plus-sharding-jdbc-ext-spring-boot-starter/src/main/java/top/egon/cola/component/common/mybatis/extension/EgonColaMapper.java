@@ -27,4 +27,7 @@ public interface EgonColaMapper<T extends EgonModel<T>> extends BaseMapper<T> {
 
     @Validated(EgonColaModelValidationGroups.Delete.class)
     int deleteVersionedById(@Param("et") @Valid @NotNull(groups = EgonColaModelValidationGroups.Delete.class) T entity);
+
+    @Validated(EgonColaModelValidationGroups.Restore.class)
+    int restoreVersionedById(@Param("et") @Valid @NotNull(groups = EgonColaModelValidationGroups.Restore.class) T entity);
 }

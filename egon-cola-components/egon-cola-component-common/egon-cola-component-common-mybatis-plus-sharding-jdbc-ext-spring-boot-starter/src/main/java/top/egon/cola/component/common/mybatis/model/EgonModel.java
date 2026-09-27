@@ -61,6 +61,7 @@ public abstract class EgonModel<M extends EgonModel<M>> {
     @TableField(value = "deleted_at", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NEVER)
     @TableLogic(value = "null", delval = "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')")
     @Null(groups = {EgonColaModelValidationGroups.Update.class, EgonColaModelValidationGroups.Delete.class})
+    @NotNull(groups = EgonColaModelValidationGroups.Restore.class)
     private LocalDateTime deletedAt;
 
     @Version

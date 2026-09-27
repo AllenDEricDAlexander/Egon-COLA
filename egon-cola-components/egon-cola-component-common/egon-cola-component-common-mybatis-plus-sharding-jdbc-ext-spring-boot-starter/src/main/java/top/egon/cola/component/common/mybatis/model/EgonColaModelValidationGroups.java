@@ -27,12 +27,17 @@ public final class EgonColaModelValidationGroups {
     public interface Persisted {
     }
 
+    /** Requires a persisted tombstone and preserves its original identity and version. */
+    public interface Restore extends Persisted {
+    }
+
     public enum Operation implements EgonEnum {
         INSERT(0, "INSERT", Insert.class),
         UPDATE(1, "UPDATE", Update.class),
         DELETE(2, "DELETE", Delete.class),
         QUERY(3, "QUERY", Query.class),
-        LOADED(4, "LOADED", Persisted.class);
+        LOADED(4, "LOADED", Persisted.class),
+        RESTORE(5, "RESTORE", Restore.class);
 
         private final int code;
         private final String message;

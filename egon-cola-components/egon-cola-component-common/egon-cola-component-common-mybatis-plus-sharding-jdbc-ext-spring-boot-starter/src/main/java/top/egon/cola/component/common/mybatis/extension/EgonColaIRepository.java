@@ -10,7 +10,11 @@ import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.kotlin.KtQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.kotlin.KtUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.repository.IRepository;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -190,6 +194,16 @@ public interface EgonColaIRepository<T extends EgonModel<T>> extends IRepository
     boolean saveOrUpdateBatch(Collection<T> entityList);
 
     boolean removeBatchByIds(Collection<?> list);
+
+    /**
+     * Restores a previously persisted tombstone using its original tenant, ID, deletion time, and version.
+     * The concrete Mapper statement must be explicitly allowlisted and an active LOCAL transaction is required.
+     *
+     * @param persisted deleted model loaded through an explicitly allowlisted history query
+     * @return {@code true} when the versioned restore updated exactly one row; otherwise {@code false}
+     */
+    @Validated(EgonColaModelValidationGroups.Restore.class)
+    boolean restoreById(@Valid @NotNull(groups = EgonColaModelValidationGroups.Restore.class) T persisted);
 
     boolean updateBatchById(Collection<T> entityList);
 }

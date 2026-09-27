@@ -35,6 +35,8 @@ import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.io.Serializable;
 import java.sql.Statement;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -131,6 +133,49 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         requireEntityId(entity);
         boolean written = SqlHelper.retBool(getBaseMapper().deleteVersionedById(entity));
         return written;
+    }
+
+    @Override
+    public final boolean restoreById(T persisted) {
+        String statementId = getMapperClass().getName() + ".restoreVersionedById";
+        if (!requireProperties().getLifecycle().getRestoreStatements().contains(statementId)) {
+            throw new IllegalStateException("LIFECYCLE_RESTORE_NOT_ALLOWED");
+        }
+        requireTenantId();
+        validateBusiness(persisted, EgonColaModelValidationGroups.Operation.RESTORE);
+        requireEntityId(persisted);
+        ConnectionHolder transaction = requireTransaction(getSqlSessionFactory(), "RESTORE_TRANSACTION_REQUIRED");
+
+        LocalDateTime deletedAt = persisted.getDeletedAt();
+        Long version = persisted.getVersion();
+        String updateUserId = persisted.getUpdateUserId();
+        Instant updateTime = persisted.getUpdateTime();
+        try {
+            if (!SqlHelper.retBool(getBaseMapper().restoreVersionedById(persisted))) {
+                persisted.setDeletedAt(deletedAt)
+                        .setVersion(version)
+                        .setUpdateUserId(updateUserId)
+                        .setUpdateTime(updateTime);
+                return false;
+            }
+            T restored = getBaseMapper().selectActiveById(requireSerializableId(persisted.getId()));
+            if (restored == null) {
+                throw new IllegalStateException("RESTORE_RESULT_MISSING");
+            }
+            validateLoaded(restored);
+            persisted.setDeletedAt(null)
+                    .setVersion(restored.getVersion())
+                    .setUpdateUserId(restored.getUpdateUserId())
+                    .setUpdateTime(restored.getUpdateTime());
+            return true;
+        } catch (RuntimeException | Error failure) {
+            transaction.setRollbackOnly();
+            persisted.setDeletedAt(deletedAt)
+                    .setVersion(version)
+                    .setUpdateUserId(updateUserId)
+                    .setUpdateTime(updateTime);
+            throw failure;
+        }
     }
 
     @Override
@@ -544,10 +589,14 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     }
 
     private static ConnectionHolder requireTransaction(SqlSessionFactory factory) {
+        return requireTransaction(factory, "BATCH_TRANSACTION_REQUIRED");
+    }
+
+    private static ConnectionHolder requireTransaction(SqlSessionFactory factory, String requiredCode) {
         var environment = factory.getConfiguration().getEnvironment();
         Object resource = TransactionSynchronizationManager.getResource(environment.getDataSource());
         if (!(environment.getTransactionFactory() instanceof SpringManagedTransactionFactory) || !TransactionSynchronizationManager.isActualTransactionActive() || !TransactionSynchronizationManager.isSynchronizationActive() || !(resource instanceof ConnectionHolder holder)) {
-            throw new IllegalStateException("BATCH_TRANSACTION_REQUIRED");
+            throw new IllegalStateException(requiredCode);
         }
         return holder;
     }

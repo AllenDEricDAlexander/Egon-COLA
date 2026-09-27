@@ -1,6 +1,7 @@
 package top.egon.cola.component.common.mybatis.interceptor;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
@@ -18,6 +19,8 @@ import org.apache.ibatis.plugin.Plugin;
 import org.apache.ibatis.plugin.Signature;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
+import org.springframework.beans.factory.annotation.Qualifier;
+import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
@@ -49,6 +52,15 @@ import java.util.Set;
 public final class EgonColaModelValidationInterceptor implements Interceptor {
 
     private final Validator validator;
+
+    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
+    private final EgonColaMybatisPlusProperties properties;
+    private Set<String> restoreStatements = Set.of();
+
+    @PostConstruct
+    void snapshotRestoreStatements() {
+        restoreStatements = Set.copyOf(properties.getLifecycle().getRestoreStatements());
+    }
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -176,13 +188,19 @@ public final class EgonColaModelValidationInterceptor implements Interceptor {
         };
     }
 
-    private static EgonColaModelValidationGroups.Operation operation(MappedStatement mappedStatement) {
+    private EgonColaModelValidationGroups.Operation operation(MappedStatement mappedStatement) {
         if (mappedStatement == null) {
             return EgonColaModelValidationGroups.Operation.QUERY;
         }
         String id = mappedStatement.getId();
         if (id != null) {
             String normalized = id.toLowerCase(java.util.Locale.ROOT);
+            if (normalized.endsWith(".restoreversionedbyid")) {
+                if (!restoreStatements.contains(id)) {
+                    throw new IllegalStateException("LIFECYCLE_RESTORE_NOT_ALLOWED");
+                }
+                return EgonColaModelValidationGroups.Operation.RESTORE;
+            }
             if (normalized.contains("deletebyid") || normalized.endsWith(".deleteversionedbyid") || normalized.endsWith(".delete")) {
                 return EgonColaModelValidationGroups.Operation.DELETE;
             }

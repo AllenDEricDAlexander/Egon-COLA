@@ -112,8 +112,11 @@ public class EgonColaMybatisPlusAutoConfiguration implements AutoCloseable {
     }
 
     @Bean("egonColaModelValidationInterceptor")
-    public EgonColaModelValidationInterceptor egonColaModelValidationInterceptor(Validator validator) {
-        return new EgonColaModelValidationInterceptor(validator);
+    public EgonColaModelValidationInterceptor egonColaModelValidationInterceptor(
+            Validator validator,
+            @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
+            EgonColaMybatisPlusProperties properties) {
+        return new EgonColaModelValidationInterceptor(validator, properties);
     }
 
     @Bean("egonColaMetaObjectHandler")

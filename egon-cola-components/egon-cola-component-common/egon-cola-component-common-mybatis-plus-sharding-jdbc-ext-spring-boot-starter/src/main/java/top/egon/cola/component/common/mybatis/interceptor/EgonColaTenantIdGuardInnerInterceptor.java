@@ -2,6 +2,7 @@ package top.egon.cola.component.common.mybatis.interceptor;
 
 import com.baomidou.mybatisplus.core.toolkit.PluginUtils;
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.expression.BinaryExpression;
@@ -9,6 +10,7 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.expression.JdbcParameter;
 import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
 import net.sf.jsqlparser.expression.operators.relational.Between;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
@@ -71,6 +73,14 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
     private final EgonColaUserIdProvider userIdProvider;
     @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;
+    private Set<String> historyReadStatements = Set.of();
+    private Set<String> restoreStatements = Set.of();
+
+    @PostConstruct
+    void snapshotLifecycleStatements() {
+        historyReadStatements = Set.copyOf(properties.getLifecycle().getHistoryReadStatements());
+        restoreStatements = Set.copyOf(properties.getLifecycle().getRestoreStatements());
+    }
 
     @Override
     public void beforeQuery(Executor executor, MappedStatement statement, Object parameter, RowBounds bounds, ResultHandler handler, BoundSql sql) {
@@ -85,9 +95,14 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         }
         Long tenant = requireTenant();
         validateExplicitTenants(shape, sql, statement.getConfiguration(), tenant);
+        boolean historyRead = historyRead(statement);
         for (TableScopeBO scope : shape.scopes()) {
-            if (!ignored(scope) && !active(scope.isolation(), scope)) {
-                throw new IllegalStateException("ACTIVE_PREDICATE_REQUIRED");
+            if (!ignored(scope)) {
+                if (historyRead) {
+                    validateHistoricalRead(statement, shape, scope, sql);
+                } else if (!active(scope.isolation(), scope)) {
+                    throw new IllegalStateException("ACTIVE_PREDICATE_REQUIRED");
+                }
             }
         }
     }
@@ -102,6 +117,11 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         }
         Long tenant = requireTenant();
         validateExplicitTenants(shape, sql, wrapped.configuration(), tenant);
+        if (wrapped.mappedStatement().getId() != null
+                && wrapped.mappedStatement().getId().endsWith(".restoreVersionedById")
+                && !lifecycleRestore(wrapped.mappedStatement())) {
+            throw new IllegalStateException("LIFECYCLE_RESTORE_NOT_ALLOWED");
+        }
         if (shape.statement() instanceof Update update) {
             removeAuthoritativeTenantAssignment(update, wrapped.mappedStatement(), sql, wrapped.mPBoundSql());
             validateProtectedAssignments(update, wrapped.mappedStatement(), sql, wrapped.configuration());
@@ -117,6 +137,14 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         boolean query = statement.getSqlCommandType() == SqlCommandType.SELECT;
         if (shape.statement() instanceof net.sf.jsqlparser.statement.delete.Delete) {
             throw new IllegalStateException("PHYSICAL_DELETE_FORBIDDEN");
+        }
+        boolean historyRead = historyRead(statement);
+        boolean lifecycleRestore = lifecycleRestore(statement);
+        if (statement.getId() != null && statement.getId().endsWith(".restoreVersionedById") && !lifecycleRestore) {
+            throw new IllegalStateException("LIFECYCLE_RESTORE_NOT_ALLOWED");
+        }
+        if (historyRead && statement.getSqlCommandType() != SqlCommandType.SELECT) {
+            throw new IllegalStateException("LIFECYCLE_HISTORY_STATEMENT_INVALID");
         }
         boolean insert = shape.statement() instanceof Insert;
         if (insert != (statement.getSqlCommandType() == SqlCommandType.INSERT) || query != (shape.statement() instanceof net.sf.jsqlparser.statement.select.Select)) {
@@ -134,7 +162,11 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
             if (tenants == null || tenants.size() != 1 || !tenants.contains(tenant)) {
                 throw new IllegalStateException("TENANT_CONTEXT_MISMATCH");
             }
-            if (!active(scope.isolation(), scope)) {
+            if (historyRead) {
+                validateHistoricalRead(statement, shape, scope, sql);
+            } else if (lifecycleRestore) {
+                validateRestorePredicate(shape, scope, sql, statement.getConfiguration());
+            } else if (!active(scope.isolation(), scope)) {
                 throw new IllegalStateException("ACTIVE_PREDICATE_REQUIRED");
             }
             String table = logicalTable(scope.table().getName());
@@ -149,7 +181,8 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
                     range = mentions(scope.predicate(), scope, profile.secondaryColumn());
                 }
             }
-            boolean commandRead = query && profile != null && profile.secondaryColumn() != null && technicalRead(statement.getId());
+            boolean commandRead = query && profile != null && profile.secondaryColumn() != null
+                    && (technicalRead(statement.getId()) || historyRead);
             EgonColaRouteQuery.OperationEnum operation = query && !commandRead ? EgonColaRouteQuery.OperationEnum.QUERY : EgonColaRouteQuery.OperationEnum.COMMAND;
             if (query && profile != null && profile.secondaryColumn() != null && roots.isEmpty() && (statement.getResource() == null || !statement.getResource().contains(".xml"))) {
                 throw new IllegalStateException("REGISTERED_QUERY_SQL_REQUIRED");
@@ -168,6 +201,79 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
             }
         }
         return List.copyOf(routes);
+    }
+
+    private boolean historyRead(MappedStatement statement) {
+        return statement.getSqlCommandType() == SqlCommandType.SELECT
+                && historyReadStatements.contains(statement.getId());
+    }
+
+    private boolean lifecycleRestore(MappedStatement statement) {
+        return statement.getSqlCommandType() == SqlCommandType.UPDATE
+                && restoreStatements.contains(statement.getId());
+    }
+
+    private static void validateHistoricalRead(MappedStatement statement, SqlShapeBO shape,
+                                               TableScopeBO scope, BoundSql sql) {
+        if (statement.getSqlCommandType() != SqlCommandType.SELECT
+                || !deletedAtNotNull(scope.isolation(), scope)) {
+            throw new IllegalStateException("LIFECYCLE_HISTORY_PREDICATE_REQUIRED");
+        }
+        Set<Object> ids = values(scope.predicate(), scope, "id", shape, sql,
+                statement.getConfiguration(), false, new HashSet<>());
+        if (ids == null || ids.size() != 1 || !(ids.iterator().next() instanceof Long id) || id <= 0
+                || !hasEquality(scope.predicate(), scope, "id", sql, statement.getConfiguration())) {
+            throw new IllegalStateException("LIFECYCLE_HISTORY_ID_REQUIRED");
+        }
+    }
+
+    private static boolean deletedAtNotNull(Expression expression, TableScopeBO scope) {
+        Expression checked = unwrap(expression);
+        if (checked instanceof net.sf.jsqlparser.expression.operators.conditional.AndExpression and) {
+            return deletedAtNotNull(and.getLeftExpression(), scope)
+                    || deletedAtNotNull(and.getRightExpression(), scope);
+        }
+        if (checked instanceof net.sf.jsqlparser.expression.operators.conditional.OrExpression or) {
+            return deletedAtNotNull(or.getLeftExpression(), scope)
+                    && deletedAtNotNull(or.getRightExpression(), scope);
+        }
+        return checked instanceof net.sf.jsqlparser.expression.operators.relational.IsNullExpression isNull
+                && isNull.isNot() && matches(isNull.getLeftExpression(), scope, "deleted_at");
+    }
+
+    private static void validateRestorePredicate(SqlShapeBO shape, TableScopeBO scope,
+                                                 BoundSql sql, Configuration configuration) {
+        Set<Object> ids = values(scope.predicate(), scope, "id", shape, sql, configuration, false, new HashSet<>());
+        Set<Object> versions = values(scope.predicate(), scope, "version", shape, sql, configuration, true, new HashSet<>());
+        Set<Object> deletedAtValues = values(scope.predicate(), scope, "deleted_at", shape, sql, configuration, false, new HashSet<>());
+        if (ids == null || ids.size() != 1 || !(ids.iterator().next() instanceof Long id) || id <= 0
+                || versions == null || versions.size() != 1 || !(versions.iterator().next() instanceof Long version) || version < 0
+                || deletedAtValues == null || deletedAtValues.size() != 1 || deletedAtValues.iterator().next() == null
+                || !hasEquality(scope.predicate(), scope, "id", sql, configuration)
+                || !hasEquality(scope.predicate(), scope, "version", sql, configuration)
+                || !hasEquality(scope.predicate(), scope, "deleted_at", sql, configuration)) {
+            throw new IllegalStateException("LIFECYCLE_RESTORE_PREDICATE_REQUIRED");
+        }
+    }
+
+    private static boolean hasEquality(Expression expression, TableScopeBO scope, String column,
+                                       BoundSql sql, Configuration configuration) {
+        Expression checked = unwrap(expression);
+        if (checked instanceof net.sf.jsqlparser.expression.operators.conditional.AndExpression and) {
+            return hasEquality(and.getLeftExpression(), scope, column, sql, configuration)
+                    || hasEquality(and.getRightExpression(), scope, column, sql, configuration);
+        }
+        if (checked instanceof net.sf.jsqlparser.expression.operators.conditional.OrExpression or) {
+            return hasEquality(or.getLeftExpression(), scope, column, sql, configuration)
+                    && hasEquality(or.getRightExpression(), scope, column, sql, configuration);
+        }
+        if (!(checked instanceof net.sf.jsqlparser.expression.operators.relational.EqualsTo equals)) {
+            return false;
+        }
+        Expression valueExpression = matches(equals.getLeftExpression(), scope, column)
+                ? equals.getRightExpression()
+                : matches(equals.getRightExpression(), scope, column) ? equals.getLeftExpression() : null;
+        return valueExpression != null && value(valueExpression, sql, configuration) != null;
     }
 
     private List<ScopedRouteQuery> insertRoutes(Insert insert, SqlShapeBO shape, MappedStatement statement, BoundSql sql, Long tenant, Map<String, EgonColaRoutingProfileBO> profiles) {
@@ -272,6 +378,15 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
             }
         }
         Expression deletedAt = assigned(update, "deleted_at");
+        if (lifecycleRestore(statement)) {
+            Set<String> permitted = Set.of("deleted_at", "version", "update_user_id", "update_time");
+            if (deletedAt == null || !(unwrap(deletedAt) instanceof NullValue)
+                    || update.getUpdateSets().stream().flatMap(set -> set.getColumns().stream())
+                    .anyMatch(column -> !permitted.contains(identifier(column.getColumnName())))) {
+                throw new IllegalStateException("LIFECYCLE_RESTORE_SHAPE_REQUIRED");
+            }
+            return;
+        }
         if (deletedAt != null) {
             if (!statement.getId().endsWith(".deleteVersionedById") && !properties.getLocalWriteGuard().getAllowedRootStatements().containsKey(statement.getId())) {
                 throw new IllegalStateException("LOGIC_DELETE_COLUMN_MUTATION_FORBIDDEN");

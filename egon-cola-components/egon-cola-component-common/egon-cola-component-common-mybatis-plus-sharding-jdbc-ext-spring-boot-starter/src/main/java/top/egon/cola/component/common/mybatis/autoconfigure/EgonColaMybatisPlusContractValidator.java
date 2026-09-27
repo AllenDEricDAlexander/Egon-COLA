@@ -27,6 +27,8 @@ import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerIntercept
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -65,6 +67,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Validates actual factory wiring and ORM metadata before the application accepts requests.
@@ -73,6 +76,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 @SuppressWarnings("deprecation")
 public final class EgonColaMybatisPlusContractValidator implements SmartInitializingSingleton {
+
+    private static final Pattern MAPPER_STATEMENT_ID = Pattern.compile(
+            "(?:[A-Za-z_$][A-Za-z0-9_$]*\\.)+[A-Za-z_$][A-Za-z0-9_$]*");
 
     @Qualifier("mybatisPlusInterceptor")
     private final ObjectProvider<MybatisPlusInterceptor> outerProvider;
@@ -114,6 +120,8 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             throw failure("DEFAULT_DDL_RUNNER_CONFLICT");
         }
         Set<Class<?>> persistedEnums = new HashSet<>();
+        Set<String> historyStatementsFound = new HashSet<>();
+        Set<String> restoreStatementsFound = new HashSet<>();
         for (SqlSessionFactory factory : beanFactory.getBeanProvider(SqlSessionFactory.class).orderedStream().toList()) {
             var configuration = factory.getConfiguration();
             List<Interceptor> plugins = configuration.getInterceptors();
@@ -174,6 +182,16 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                     }
                 }
             }
+            validateLifecycleStatements(configuration, properties.getLifecycle().getHistoryReadStatements(),
+                    SqlCommandType.SELECT, historyStatementsFound, "LIFECYCLE_HISTORY_STATEMENT_INVALID");
+            validateLifecycleStatements(configuration, properties.getLifecycle().getRestoreStatements(),
+                    SqlCommandType.UPDATE, restoreStatementsFound, "LIFECYCLE_RESTORE_STATEMENT_INVALID");
+        }
+        if (!historyStatementsFound.containsAll(properties.getLifecycle().getHistoryReadStatements())) {
+            throw failure("LIFECYCLE_HISTORY_STATEMENT_MISSING");
+        }
+        if (!restoreStatementsFound.containsAll(properties.getLifecycle().getRestoreStatements())) {
+            throw failure("LIFECYCLE_RESTORE_STATEMENT_MISSING");
         }
         validateExternalEnums(persistedEnums);
     }
@@ -222,6 +240,37 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                 throw failure("ROOT_STATEMENT_POLICY_INVALID");
             }
         });
+        var lifecycle = properties.getLifecycle();
+        Set<String> historyStatements = lifecycle.getHistoryReadStatements();
+        Set<String> restoreStatements = lifecycle.getRestoreStatements();
+        if (historyStatements.stream().anyMatch(statement -> statement == null
+                    || !MAPPER_STATEMENT_ID.matcher(statement).matches())
+                || restoreStatements.stream().anyMatch(statement -> statement == null
+                    || !MAPPER_STATEMENT_ID.matcher(statement).matches())
+                || restoreStatements.stream().anyMatch(statement -> !statement.endsWith(".restoreVersionedById"))
+                || restoreStatements.stream().anyMatch(properties.getLocalWriteGuard().getAllowedRootStatements()::containsKey)
+                || historyStatements.stream().anyMatch(restoreStatements::contains)) {
+            throw failure("LIFECYCLE_STATEMENT_POLICY_INVALID");
+        }
+    }
+
+    private static void validateLifecycleStatements(org.apache.ibatis.session.Configuration configuration,
+                                                    Set<String> statementIds,
+                                                    SqlCommandType expectedCommand,
+                                                    Set<String> found,
+                                                    String failureCode) {
+        for (String statementId : statementIds) {
+            if (!configuration.hasStatement(statementId, false)) {
+                continue;
+            }
+            MappedStatement statement = configuration.getMappedStatement(statementId, false);
+            if (statement.getSqlCommandType() != expectedCommand
+                    || statement.getResource() == null
+                    || !statement.getResource().contains(".xml")) {
+                throw failure(failureCode);
+            }
+            found.add(statementId);
+        }
     }
 
     private void validateInnerChain(List<InnerInterceptor> chain) {
