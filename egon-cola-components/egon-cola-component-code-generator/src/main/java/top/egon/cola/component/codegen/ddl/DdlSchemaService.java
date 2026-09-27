@@ -3,7 +3,6 @@ package top.egon.cola.component.codegen.ddl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.codegen.ddl.PostgreDdlAdapter.DdlChangeBO;
 import top.egon.cola.component.codegen.ddl.PostgreDdlAdapter.DdlParseException;
@@ -28,7 +27,6 @@ import java.util.Set;
  * Replays offline schema or manifest input into one normalized schema.
  * It never opens a connection and never calls the DDL runner.
  */
-@Slf4j
 @RequiredArgsConstructor
 public class DdlSchemaService {
 
@@ -80,24 +78,6 @@ public class DdlSchemaService {
                 table.setRole(change.getRole());
                 tables.add(table);
             }
-            case "CREATE_INDEX" -> require(tables, change.getTableName()).getIndexes().add(change.getIndex());
-            case "DROP_INDEX" -> dropIndex(tables, change.getIndexName());
-            case "DROP_TABLE" -> tables.removeIf(table -> sameTable(table, change.getTableName()));
-            case "COMMENT_COLUMN" -> column(require(tables, change.getTableName()), change.getColumn())
-                    .setComment(change.getExpression());
-            case "COMMENT_TABLE" -> require(tables, change.getTableName());
-            case "ADD_COLUMN" -> addColumn(require(tables, change.getTableName()), change.getColumnDefinition());
-            case "DROP_COLUMN" -> require(tables, change.getTableName()).getColumns()
-                    .removeIf(column -> change.getColumn().equals(column.getName()));
-            case "RENAME_COLUMN" -> renameColumn(require(tables, change.getTableName()), change.getColumn(), change.getNewName());
-            case "RENAME_TABLE" -> renameTable(require(tables, change.getTableName()), change.getNewName());
-            case "SET_NULLABLE" -> column(require(tables, change.getTableName()), change.getColumn())
-                    .setNullable(change.getNullable());
-            case "SET_DEFAULT" -> column(require(tables, change.getTableName()), change.getColumn())
-                    .setDefaultExpression(change.getExpression());
-            case "SET_TYPE" -> copyType(column(require(tables, change.getTableName()), change.getColumnDefinition().getName()),
-                    change.getColumnDefinition());
-            case "DML" -> log.debug("ignoring non-structural statement");
             default -> throw new DdlParseException(PostgreDdlAdapter.UNSUPPORTED_DDL, source(change), line(change),
                     "cannot apply " + change.getKind());
         }
@@ -247,80 +227,6 @@ public class DdlSchemaService {
 
     private static String normalizeDefault(String expression) {
         return expression == null ? null : expression.replace("'", "").trim();
-    }
-
-    private static void addColumn(CodegenSchemaBO.TableBO table, CodegenSchemaBO.ColumnBO column) {
-        column.setOrdinal(table.getColumns().size() + 1);
-        table.getColumns().add(column);
-    }
-
-    private static void copyType(CodegenSchemaBO.ColumnBO target, CodegenSchemaBO.ColumnBO source) {
-        target.setSqlType(source.getSqlType());
-        target.setLength(source.getLength());
-        target.setPrecision(source.getPrecision());
-        target.setScale(source.getScale());
-    }
-
-    private static void renameColumn(CodegenSchemaBO.TableBO table, String from, String to) {
-        column(table, from).setName(to);
-        for (CodegenSchemaBO.IndexBO index : table.getIndexes()) {
-            replace(index.getColumns(), from, to);
-        }
-        for (CodegenSchemaBO.ConstraintBO constraint : table.getConstraints()) {
-            replace(constraint.getColumns(), from, to);
-        }
-    }
-
-    private static void replace(List<String> names, String from, String to) {
-        if (names == null) {
-            return;
-        }
-        for (int index = 0; index < names.size(); index++) {
-            if (from.equals(names.get(index))) {
-                names.set(index, to);
-            }
-        }
-    }
-
-    private static void renameTable(CodegenSchemaBO.TableBO table, String newName) {
-        String previous = table.getLogicalName();
-        table.setLogicalName(newName);
-        List<String> physicals = new ArrayList<>();
-        for (String physical : table.getPhysicalNames()) {
-            physicals.add(physical.equals(previous) ? newName : physical);
-        }
-        if (physicals.isEmpty()) {
-            physicals.add(newName);
-        }
-        table.setPhysicalNames(physicals);
-    }
-
-    private static void dropIndex(List<CodegenSchemaBO.TableBO> tables, String indexName) {
-        for (CodegenSchemaBO.TableBO table : tables) {
-            table.getIndexes().removeIf(index -> indexName.equals(index.getName()));
-        }
-    }
-
-    private static CodegenSchemaBO.TableBO require(List<CodegenSchemaBO.TableBO> tables, String name) {
-        for (CodegenSchemaBO.TableBO table : tables) {
-            if (sameTable(table, name)) {
-                return table;
-            }
-        }
-        throw new DdlParseException(MISSING_SCHEMA_BASELINE, name, 1, "ALTER target has no schema baseline");
-    }
-
-    private static boolean sameTable(CodegenSchemaBO.TableBO table, String name) {
-        return name.equals(table.getLogicalName()) || table.getPhysicalNames().contains(name);
-    }
-
-    private static CodegenSchemaBO.ColumnBO column(CodegenSchemaBO.TableBO table, String name) {
-        for (CodegenSchemaBO.ColumnBO column : table.getColumns()) {
-            if (name.equals(column.getName())) {
-                return column;
-            }
-        }
-        throw new DdlParseException(MISSING_SCHEMA_BASELINE, name, 1, "column is not in the baseline");
     }
 
     private static Path resolve(String root, String location) {

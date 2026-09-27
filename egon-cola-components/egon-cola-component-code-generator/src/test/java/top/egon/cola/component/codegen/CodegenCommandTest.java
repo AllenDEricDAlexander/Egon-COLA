@@ -59,6 +59,22 @@ class CodegenCommandTest {
     }
 
     @Test
+    void alterInputStopsPlanningForAgentOwnedChange(@TempDir Path root) throws Exception {
+        Path config = writeConfig(root);
+        Path schema = root.resolve("schema.sql");
+        Files.writeString(schema, Files.readString(Path.of("src/test/resources/ddl/schema.sql"))
+                + "\nALTER TABLE orders ADD COLUMN note VARCHAR(32);\n");
+        String original = Files.readString(config);
+        Files.writeString(config, original.replace(
+                Path.of("src/test/resources/ddl/schema.sql").toAbsolutePath().toString(), schema.toString()));
+
+        Invocation planned = invoke("plan", "--config", config.toString());
+        assertEquals(2, planned.code());
+        assertTrue(planned.err().contains("UNSUPPORTED_DDL"));
+        assertFalse(Files.exists(root.resolve("order-service-infrastructure")));
+    }
+
+    @Test
     void launcherBlocksMissingClasspath() throws Exception {
         Path script = Path.of("../../scripts/egon-codegen.sh").toAbsolutePath().normalize();
         if (!Files.exists(script)) {
@@ -140,7 +156,7 @@ class CodegenCommandTest {
         assertEquals(6, changedConfig.code(), changedConfig.err());
         Files.writeString(config, original);
 
-        Files.writeString(schema, Files.readString(schema) + "\nCOMMENT ON TABLE orders IS 'changed';\n");
+        Files.writeString(schema, Files.readString(schema) + "\nCREATE TABLE schema_marker (id BIGINT PRIMARY KEY);\n");
         Invocation changedDdl = invoke("apply", "--config", config.toString(), "--plan", planId);
         assertEquals(6, changedDdl.code(), changedDdl.err());
     }

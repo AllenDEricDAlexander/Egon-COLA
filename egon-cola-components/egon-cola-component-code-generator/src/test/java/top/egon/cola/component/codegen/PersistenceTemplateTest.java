@@ -1,5 +1,6 @@
 package top.egon.cola.component.codegen;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -12,10 +13,13 @@ import top.egon.cola.component.codegen.model.CodegenSchemaBO;
 import top.egon.cola.component.codegen.profile.ProjectLayoutStrategy;
 import top.egon.cola.component.codegen.template.FreeMarkerTemplateService;
 import top.egon.cola.component.codegen.validation.GenerationScopeValidator;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.ByteArrayOutputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,6 +74,7 @@ class PersistenceTemplateTest {
             assertTrue(repo.contains("@Repository(\"ordersRepository\")"));
             assertTrue(rendered.get("po").contains("@SuperBuilder"));
             assertTrue(rendered.get("po").contains("extends EgonModel<OrdersPO>"));
+            assertTrue(rendered.get("dao").contains("@Validated"));
             for (String inherited : List.of("id", "tenantId", "createUserId", "createTime",
                     "updateUserId", "updateTime", "deletedAt", "version")) {
                 assertFalse(rendered.get("po").matches("(?s).*private\\s+\\w+\\s+" + inherited + "\\s*;.*"), inherited);
@@ -87,6 +92,41 @@ class PersistenceTemplateTest {
         assertTrue(ProjectLayoutStrategy.resolve(CodegenProfileEnum.WEB).allows("controller"));
         compile(render(config(CodegenProfileEnum.LIGHT, List.of("po", "dao", "repo"))), output);
         assertFalse(Files.exists(Path.of("target", "codegen-persistence-no-write")));
+    }
+
+    @Test
+    void createCheckInProducesGroupedDatabaseShapeConstraints(@TempDir Path output) throws Exception {
+        String ddl = Files.readString(Path.of("src/test/resources/ddl/schema.sql"))
+                .replace("code VARCHAR(64)\n", "code VARCHAR(64),\n"
+                        + "    status VARCHAR(16) NOT NULL,\n"
+                        + "    CONSTRAINT ck_orders_status CHECK (status IN ('NEW', 'DONE'))\n");
+        Path schemaFile = output.resolve("orders.sql");
+        Files.writeString(schemaFile, ddl);
+        CodegenSchemaBO schema = new DdlSchemaService(new PostgreDdlAdapter()).read(CodegenConfigBO.builder()
+                .input(CodegenConfigBO.InputBO.builder().mode("schema")
+                        .schemaFiles(List.of(schemaFile.toString())).build()).build());
+        CodegenConfigBO config = config(CodegenProfileEnum.LIGHT, List.of("po"));
+        assertTrue(scope.validate(config, schema).isEmpty());
+        String po = new String(templates.render("po", scope.renderModel(config, schema.getTables().get(0), "po")),
+                StandardCharsets.UTF_8);
+        assertTrue(po.contains("@NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})"));
+        assertTrue(po.contains("@Size(max = 16"));
+        assertTrue(po.contains("@Pattern(regexp = \"^(?:NEW|DONE)$\""));
+        compile(Map.of("po", po), output);
+        try (URLClassLoader loader = new URLClassLoader(
+                new URL[]{output.resolve("classes").toUri().toURL()}, getClass().getClassLoader());
+             var validatorFactory = Validation.buildDefaultValidatorFactory()) {
+            Class<?> type = loader.loadClass("com.example.order.infrastructure.order.po.OrdersPO");
+            Object instance = type.getDeclaredConstructor().newInstance();
+            var validator = validatorFactory.getValidator();
+            assertTrue(validator.validate(instance, EgonColaModelValidationGroups.Insert.class).stream()
+                    .anyMatch(violation -> "status".equals(violation.getPropertyPath().toString())));
+            type.getMethod("setStatus", String.class).invoke(instance, "UNKNOWN");
+            assertTrue(validator.validate(instance, EgonColaModelValidationGroups.Insert.class).stream()
+                    .anyMatch(violation -> "status".equals(violation.getPropertyPath().toString())));
+            type.getMethod("setStatus", String.class).invoke(instance, "NEW");
+            assertTrue(validator.validate(instance, EgonColaModelValidationGroups.Insert.class).isEmpty());
+        }
     }
 
     @Test
@@ -119,14 +159,14 @@ class PersistenceTemplateTest {
         assertTrue(codes(scope.validate(config(CodegenProfileEnum.LIGHT, List.of("po")), compositeSchema))
                 .contains(GenerationScopeValidator.UNSUPPORTED_ID));
 
-        List<CodegenSchemaBO.IndexBO> indexes = new ArrayList<>(original.getIndexes());
-        indexes.add(CodegenSchemaBO.IndexBO.builder()
-                .name("orders_code_only").unique(true).columns(List.of("tenant_id", "code")).build());
+        List<CodegenSchemaBO.ConstraintBO> unsafeConstraints = new ArrayList<>(original.getConstraints());
+        unsafeConstraints.add(CodegenSchemaBO.ConstraintBO.builder()
+                .name("orders_code_only").kind("UNIQUE").columns(List.of("tenant_id", "code")).build());
         CodegenSchemaBO.TableBO legacy = CodegenSchemaBO.TableBO.builder()
                 .logicalName(original.getLogicalName())
                 .columns(original.getColumns())
-                .constraints(original.getConstraints())
-                .indexes(indexes)
+                .constraints(unsafeConstraints)
+                .indexes(original.getIndexes())
                 .build();
         CodegenSchemaBO legacySchema = CodegenSchemaBO.builder().tables(List.of(legacy)).build();
         assertTrue(codes(scope.validate(config(CodegenProfileEnum.SERVICE, List.of("dao")), legacySchema))

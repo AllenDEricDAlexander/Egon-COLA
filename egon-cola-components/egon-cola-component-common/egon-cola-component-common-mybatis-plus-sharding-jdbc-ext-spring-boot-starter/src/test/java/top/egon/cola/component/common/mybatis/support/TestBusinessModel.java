@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 
 /**
  * Test-only business Model fixture.
@@ -21,7 +22,7 @@ import top.egon.cola.component.common.mybatis.model.EgonModel;
 @Accessors(chain = true)
 public class TestBusinessModel extends EgonModel<TestBusinessModel> {
 
-    @NotBlank
+    @NotBlank(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     @TableField("title")
     private String title;
 

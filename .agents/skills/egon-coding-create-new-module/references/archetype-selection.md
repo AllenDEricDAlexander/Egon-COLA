@@ -90,7 +90,7 @@ Check all of these before reporting success:
 - Module directories match `expectedTopology` for that archetype. Light is one module (`root`). Agent has no `facade` module.
 - For Web or Service without peer coordinates, the root and infrastructure POMs contain no peer-facade properties or dependency, and the peer client/source/configuration files are absent. With all four coordinates, verify the existing peer dependency and client remain.
 - The chosen artifactId does not contain `-open`.
-- Do not delete the archetype's sample domain in this skill. Replacing it is later Spec work.
+- Do not delete the archetype's sample domain during creation. Treat it as reference material; the later real-business Spec/Plan must name its removal or replacement paths, and execution must complete that cleanup in the owning Step.
 - Do not start the application, write SQL, or run `scripts/egon-codegen.sh` while creating the skeleton.
 
-Then stop. The next skill is `egon-coding-writing-spec` against the generated project. For `light`, `web`, and `service`, later SQL changes refresh catalog Java and Mapper XML only through the generator rule in that skill. `agent` has no codegen profile; do not invent persistence templates for it.
+Then stop. The next skill is `egon-coding-writing-spec` against the generated project. For `light`, `web`, and `service`, only initial CREATE scaffolding uses the generator rule in that skill; later ALTER-driven code changes are agent-owned. `agent` has no codegen profile; do not invent persistence templates for it.

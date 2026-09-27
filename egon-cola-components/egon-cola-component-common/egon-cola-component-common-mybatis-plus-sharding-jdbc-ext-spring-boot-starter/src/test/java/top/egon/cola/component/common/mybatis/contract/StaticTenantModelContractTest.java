@@ -266,6 +266,19 @@ class StaticTenantModelContractTest {
         assertThat(validate(persisted(7L), EgonColaModelValidationGroups.Operation.UPDATE)).isNotNull();
     }
 
+    @Test
+    void partialUpdateDoesNotRequireUnchangedPersistedColumns() {
+        MDC.put(DEFAULT_MDC_KEY, "7");
+        TestBusinessModel partial = new TestBusinessModel();
+        partial.setId(1L);
+        partial.setVersion(0L);
+        partial.setTenantId(7L);
+
+        assertThat(validate(partial, EgonColaModelValidationGroups.Operation.UPDATE)).isSameAs(partial);
+        assertThatThrownBy(() -> validate(partial, EgonColaModelValidationGroups.Operation.LOADED))
+                .isInstanceOf(ConstraintViolationException.class);
+    }
+
     private static TestBusinessModel persisted(long tenantId) {
         Instant now = Instant.parse("2026-09-20T06:00:00Z");
         TestBusinessModel model = new TestBusinessModel().businessValues("title", null);

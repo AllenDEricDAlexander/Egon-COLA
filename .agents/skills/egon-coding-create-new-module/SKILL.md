@@ -46,7 +46,8 @@ Use the capability placement table in `references/multi-project-parent.md`. The 
 - Do not add the project to an outer reactor POM unless the user asks. Never change a generated root's Maven parent merely to add it to a reactor.
 - Do not start the process, database, or browser.
 
-Later SQL changes on native `light`, `web`, and `service` refresh catalog Java and Mapper XML only through `scripts/egon-codegen.sh`, as required by `egon-coding-writing-spec`. This skill does not restate that catalog. `agent` is a legal non-open archetype and is outside the generator; do not invent its persistence templates.
+Initial CREATE schemas on native `light`, `web`, and `service` can use `scripts/egon-codegen.sh` for catalog scaffolding, as governed by `egon-coding-writing-spec`. This skill does not restate that catalog. `agent` is a legal non-open archetype and is outside the generator; do not invent its persistence templates.
+The archetype's bundled business code is reference material. Leave it intact during initial project creation; when a later approved implementation adds the real business domain, its Spec/Plan must inventory and delete or replace the sample endpoints, services, persistence and configuration; remove sample SQL only before it is applied, otherwise use a new corrective DDL version in the relevant Step. The generator handles initial CREATE scaffolding only; later ALTER-driven code changes belong to the agent.
 
 ## Handoff
 

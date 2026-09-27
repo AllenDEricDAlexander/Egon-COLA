@@ -81,9 +81,12 @@ public final class EgonColaModelValidationUtils {
         if (checkedOperation == EgonColaModelValidationGroups.Operation.LOADED) {
             validationUtils.validate(checkedModel, Default.class,
                     EgonColaModelValidationGroups.Persisted.class);
-        } else {
-            validationUtils.validate(checkedModel, Default.class, checkedOperation.group(),
+        } else if (checkedOperation == EgonColaModelValidationGroups.Operation.INSERT) {
+            validationUtils.validate(checkedModel, Default.class, EgonColaModelValidationGroups.Insert.class,
                     EgonColaModelValidationGroups.Persisted.class);
+        } else {
+            // MP update/delete statements may carry only changed columns plus id and version.
+            validationUtils.validate(checkedModel, Default.class, checkedOperation.group());
         }
         if (!EgonColaTenantIdProvider.currentTenantId().equals(checkedModel.getTenantId())) {
             throw new IllegalStateException("TENANT_CONTEXT_MISMATCH");
@@ -97,6 +100,11 @@ public final class EgonColaModelValidationUtils {
             throw new EgonColaMybatisPlusConfigurationException("MODEL_VALIDATION_UTILS_NOT_BOUND");
         }
         return current.validationUtils();
+    }
+
+    /** Guards model ownership before an annotated PO reaches a Mapper statement. */
+    public static void assertMetadataOwnership(Class<?> type) {
+        validateMetadataOwnership(type);
     }
 
     private static void validateMetadataOwnership(Class<?> type) {

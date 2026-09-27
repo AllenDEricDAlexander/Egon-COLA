@@ -21,10 +21,6 @@ public class GenerationScopeValidator {
 
     public static final String BASE_FIELD_TYPE = "BASE_FIELD_TYPE";
 
-    public static final String MISSING_LIFECYCLE_KEY = "MISSING_LIFECYCLE_KEY";
-
-    public static final String MISSING_ACTIVE_GUARD = "MISSING_ACTIVE_GUARD";
-
     public static final String LEGACY_UNIQUE_KEY = "LEGACY_UNIQUE_KEY";
 
     public static final String UNSUPPORTED_ID = "UNSUPPORTED_ID";
@@ -223,14 +219,6 @@ public class GenerationScopeValidator {
         requireTimeZone(diagnostics, table, "create_time", true);
         requireTimeZone(diagnostics, table, "update_time", true);
         requireTimeZone(diagnostics, table, "deleted_at", false);
-        if (!hasLifecycleKey(table)) {
-            diagnostics.add(diagnostic(MISSING_LIFECYCLE_KEY, "/" + table.getLogicalName(),
-                    "business uniqueness must include deleted_at"));
-        }
-        if (!hasActiveGuard(table)) {
-            diagnostics.add(diagnostic(MISSING_ACTIVE_GUARD, "/" + table.getLogicalName(),
-                    "active rows need a NULL deleted_at unique guard"));
-        }
         if (hasLegacyBusinessKey(table)) {
             diagnostics.add(diagnostic(LEGACY_UNIQUE_KEY, "/" + table.getLogicalName(),
                     "a business-only unique key still blocks recreate after delete"));
@@ -286,35 +274,14 @@ public class GenerationScopeValidator {
         }
     }
 
-    private static boolean hasLifecycleKey(CodegenSchemaBO.TableBO table) {
-        for (CodegenSchemaBO.IndexBO index : table.getIndexes()) {
-            if (Boolean.TRUE.equals(index.getUnique()) && index.getColumns() != null
-                    && index.getColumns().contains("deleted_at") && containsBusiness(table, index.getColumns())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean hasActiveGuard(CodegenSchemaBO.TableBO table) {
-        for (CodegenSchemaBO.IndexBO index : table.getIndexes()) {
-            String predicate = index.getPredicate() == null ? "" : index.getPredicate().toLowerCase(Locale.ROOT);
-            if (Boolean.TRUE.equals(index.getUnique()) && predicate.contains("deleted_at is null")
-                    && containsBusiness(table, index.getColumns())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static boolean hasLegacyBusinessKey(CodegenSchemaBO.TableBO table) {
-        for (CodegenSchemaBO.IndexBO index : table.getIndexes()) {
-            if (!Boolean.TRUE.equals(index.getUnique()) || index.getColumns() == null) {
+        for (CodegenSchemaBO.ConstraintBO constraint : table.getConstraints()) {
+            if (!"UNIQUE".equals(constraint.getKind()) || constraint.getColumns() == null) {
                 continue;
             }
-            boolean predicate = index.getPredicate() != null && !index.getPredicate().isBlank();
-            boolean onlyBusiness = !index.getColumns().contains("deleted_at") && !index.getColumns().contains("id")
-                    && containsBusiness(table, index.getColumns()) && !predicate;
+            boolean onlyBusiness = !constraint.getColumns().contains("deleted_at")
+                    && !constraint.getColumns().contains("id")
+                    && containsBusiness(table, constraint.getColumns());
             if (onlyBusiness) {
                 return true;
             }
@@ -355,19 +322,54 @@ public class GenerationScopeValidator {
         return new ArrayList<>(columns);
     }
 
-    private static List<Map<String, String>> businessFields(CodegenSchemaBO.TableBO table) {
-        List<Map<String, String>> fields = new ArrayList<>();
+    private static List<Map<String, Object>> businessFields(CodegenSchemaBO.TableBO table) {
+        List<Map<String, Object>> fields = new ArrayList<>();
         for (CodegenSchemaBO.ColumnBO column : table.getColumns()) {
             if (column.getName() == null || BASE_COLUMNS.contains(column.getName())) {
                 continue;
             }
             String javaType = javaType(column);
-            fields.add(Map.of(
-                    "column", column.getName(),
-                    "javaName", javaName(column.getName()),
-                    "javaType", javaType == null ? "String" : javaType));
+            Map<String, Object> field = new LinkedHashMap<>();
+            field.put("column", column.getName());
+            field.put("javaName", javaName(column.getName()));
+            field.put("javaType", javaType == null ? "String" : javaType);
+            field.put("required", Boolean.FALSE.equals(column.getNullable()));
+            field.put("hasDefault", column.getDefaultExpression() != null);
+            field.put("length", column.getLength() == null ? "" : column.getLength().toString());
+            field.put("enumPattern", enumPattern(table, column.getName()));
+            fields.add(Map.copyOf(field));
         }
         return List.copyOf(fields);
+    }
+
+    private static String enumPattern(CodegenSchemaBO.TableBO table, String column) {
+        if (table.getConstraints() == null) {
+            return "";
+        }
+        java.util.regex.Pattern check = java.util.regex.Pattern.compile(
+                "(?i)(?:^|\\()\\s*\\\"?" + java.util.regex.Pattern.quote(column)
+                        + "\\\"?\\s+IN\\s*\\(([^)]*)\\)");
+        for (CodegenSchemaBO.ConstraintBO constraint : table.getConstraints()) {
+            if (!"CHECK".equals(constraint.getKind()) || constraint.getPredicate() == null) {
+                continue;
+            }
+            java.util.regex.Matcher match = check.matcher(constraint.getPredicate());
+            if (!match.find()) {
+                continue;
+            }
+            List<String> values = new ArrayList<>();
+            for (String value : match.group(1).split(",")) {
+                String trimmed = value.trim();
+                if (!trimmed.matches("'[A-Za-z0-9_]+'")) {
+                    return "";
+                }
+                values.add(trimmed.substring(1, trimmed.length() - 1));
+            }
+            if (!values.isEmpty()) {
+                return "^(?:" + String.join("|", values) + ")$";
+            }
+        }
+        return "";
     }
 
     private static List<String> xmlColumns(CodegenSchemaBO.TableBO table) {

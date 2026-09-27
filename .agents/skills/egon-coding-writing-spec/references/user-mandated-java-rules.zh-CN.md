@@ -60,6 +60,8 @@ Spec 必须记录准确路径、类型、职责、后缀、来源/目标层、�
 
 ## 规则 2——每个层间边界都校验
 
+Repository → DAO 只按数据库表结构约束校验：`NOT NULL`→`@NotNull`、长度、数值范围和 DDL 声明的枚举取值。PO/DAO 入参使用 Jakarta 注解、`@Valid`、`@Validated` 及已有 Insert（Create）/Update/Delete/Query/Persisted 分组。DAO 不重复领域/状态业务校验，不把 `ValidationUtils` 当规则来源；MP Mapper 拦截器负责继承 CRUD 的填充后校验。复杂 CHECK 与后续 ALTER 影响由 agent 决定。
+
 校验不能只放 Controller。分别清单并设计适用的：
 
 - HTTP/RPC/消息/Job 输入 -> Controller/Adapter；

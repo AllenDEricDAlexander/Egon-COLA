@@ -100,7 +100,7 @@ class EgonColaLogicDeletePostgreSqlTest {
             factory.setDataSource(scoped);
             factory.setConfiguration(configuration);
             factory.setGlobalConfig(global);
-            factory.setPlugins(plugins, new EgonColaModelValidationInterceptor());
+            factory.setPlugins(plugins, new EgonColaModelValidationInterceptor(VALIDATORS.getValidator()));
             factory.setMapperLocations(new ClassPathResource("mybatis/TestBusinessMapper.xml"));
             SqlSessionTemplate template = new SqlSessionTemplate(factory.getObject());
             TestBusinessRepository repository = new TestBusinessRepository(

@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.infrastructure.user.dao;
 
 import top.egon.cola.archetype.source.light.infrastructure.user.po.PermissionPO;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.validation.annotation.Validated;
 import org.apache.ibatis.annotations.Param;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 
@@ -10,6 +11,7 @@ import java.util.List;
 
 /** MyBatis mapper for permissions. */
 @Mapper
+@Validated
 /** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface PermissionDAO extends EgonColaMapper<PermissionPO> {
     List<PermissionPO> selectByCode(@Param("code") String code);

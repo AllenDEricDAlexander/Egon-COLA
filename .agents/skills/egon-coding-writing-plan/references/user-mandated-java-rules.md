@@ -35,6 +35,8 @@ Plan no `Data`, `Info`, `Param`, `Bean`, or suffixless ambiguous carrier. For ea
 
 ## Rule 2 — one validation design per affected handoff
 
+Repository → DAO is a database-shape boundary only. Validate PO/DAO inputs against CREATE table nullability (`NOT NULL` → `@NotNull`), length, numeric bounds and declared enum values with Jakarta annotations, `@Valid`, `@Validated` and existing Insert(Create)/Update/Delete/Query/Persisted groups. Do not repeat domain/stateful business checks in DAO or rely on `ValidationUtils` as the rule source; the MP mapper interceptor directly invokes Jakarta Validator after fill for inherited CRUD. Unsupported CHECK and later ALTER effects require an agent-owned decision.
+
 The Plan must enumerate and order every affected crossing:
 
 1. external input -> Controller/Adapter;

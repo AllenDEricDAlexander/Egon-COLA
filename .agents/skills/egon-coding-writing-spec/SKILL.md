@@ -7,9 +7,11 @@ description: Use when a coding task needs a repository-grounded RFC-style specif
 
 ## Dependency approval and backend template generation
 
-After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement. On native light, web, and service, a SQL change refreshes catalog-owned Java and Mapper XML only through that generator: the model writes the SQL, the manifest, and the generator config. A new business project is created by egon-coding-create-new-module from one non-open archetype, not by handwriting a module tree. After each such apply, or after a plan that is the last authorized generator action, append the classpath SQL journal required by references/backend-code-generation.md.
+After resource preflight, read `references/backend-code-generation.md` for Java dependency decisions or DDL/CRUD scaffolding. Never introduce dependencies autonomously; block missing capabilities and obtain explicit approval for a concrete introduction plan. Prior exact approval remains valid. Once available, use the verified generator at scripts/egon-codegen.sh for supported templates; never invent commands or silently handwrite a replacement. On native light, web, and service, the generator writes only initial CREATE-based scaffolding. ALTER and other later structural changes are analyzed and implemented by the agent under the approved Plan; do not rerun the generator against them. A new business project is created by egon-coding-create-new-module from one non-open archetype, not by handwriting a module tree. After each such apply, or after a plan that is the last authorized generator action, append the classpath SQL journal required by references/backend-code-generation.md.
 
 For native CRUD, `backend-crud` uses the full Repository → Domain Service → Manage → Controller chain where that profile supports HTTP. Check `EgonModel` fields in DDL and keep them inherited in PO. A v1 or stale plan and unmanaged files block apply; use the v2 generator plan and review the exact file list.
+
+Inventory the archetype’s sample controllers, services, repositories, PO/DAO and configuration, plus sample SQL only while unapplied in the target project. The Spec must identify which examples are replaced or deleted for the real domain; sample code is reference material, not production behavior.
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -296,7 +298,7 @@ Use exactly one:
 | Using `N/A` for an existing but unchanged layer | Use `Unchanged` with exact evidence, preserved invariant, stopping reason, and focused verification |
 | Omitting a non-applicable chapter | Keep it and write evidence-backed `N/A`; do not confuse `Not applicable` with `Unchanged` |
 | Writing implementation order or code | Stop at design; use `egon-coding-writing-plan` after review |
-| Handwriting catalog PO/DAO/XML/Repository types, or a new module tree, for a SQL change or a new project | On native light/web/service, name catalog files as generator-owned in `references/backend-code-generation.md`. Create a new project with `egon-coding-create-new-module` from one non-open archetype |
+| Handwriting initial CREATE catalog PO/DAO/XML/Repository types, or a new module tree | On native light/web/service, mark initial CREATE catalog files as generator-owned; later ALTER changes are agent-owned. Create a new project with `egon-coding-create-new-module` from one non-open archetype |
 
 ## Skill maintenance
 

@@ -96,6 +96,7 @@ Manual Check verdict rules:
 - [ ] Required compile, typecheck, lint/format, XML/schema, module, integration, or regression gates passed.
 - [ ] Expected GREEN behavior and relevant error paths are covered.
 - [ ] Current Step requirements and effective Spec sections were reread against the implementation.
+- [ ] If this Step introduces real business behavior, Step-owned archetype sample endpoints, services, repositories and configuration were deleted or replaced; unapplied sample SQL was removed or an applied schema was corrected by a new version. No conflicting sample behavior remains.
 - [ ] All Literal Rule rows are `PASS` or evidence-backed `N/A`, with Rule 11 `PASS`; evidence was refreshed after the final diff.
 - [ ] All Step Manual Check rows are `PASS` or evidence-backed `N/A`; evidence was refreshed after the final diff.
 - [ ] `git diff --check -- <Step paths>` passed.
@@ -110,6 +111,7 @@ Manual Check verdict rules:
 - [ ] Cached `--stat` and `--name-only` match the declared Step scope.
 - [ ] The commit message is semantic and matches the Plan proposal or repository convention.
 - [ ] The commit is non-empty.
+- [ ] Commit Step N now, before any Step N+1 edit; do not defer and split commits at the end.
 - [ ] The final Literal Rule verdict is PASS; no mandatory rule was reduced or waived because tests passed.
 - [ ] The final pre-commit Manual Check verdict is PASS; no blocker was waived in prose.
 
@@ -122,6 +124,7 @@ Manual Check verdict rules:
 - [ ] Deviations are recorded as `None`, approved clarification, or corrective-commit explanation.
 - [ ] Unrelated staged, unstaged, and untracked work remains preserved.
 - [ ] The Step is marked `Committed` before any later Step begins.
+- [ ] New `HEAD` hash and committed paths were recorded before the first edit of the next Step.
 
 If any required box cannot be checked, keep the Step `In Progress` or mark it `Blocked`; do not advance.
 

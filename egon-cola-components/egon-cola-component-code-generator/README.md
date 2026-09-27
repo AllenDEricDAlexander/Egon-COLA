@@ -81,10 +81,25 @@ in order, `manifest` reads the `manifest` path below `resourceRoot`. A manifest 
 the recorded `sha256`, or a changed prefix among the already recorded versions, return
 `CHECKSUM_DRIFT`.
 
+Generation reads only `CREATE TABLE` definitions, including those inside the existing role-scoped
+`DO` branches. Standalone `CREATE INDEX` and seed `INSERT`/`UPDATE`/`DELETE` statements are ignored
+for schema modeling. Indexes and soft-delete uniqueness must be reviewed separately by the agent;
+the generator cannot certify them. `ALTER`, `DROP`, `COMMENT` and other structural changes return `UNSUPPORTED_DDL`;
+an agent must inspect the changed DDL and update affected code explicitly. Do not use the generator
+to refresh previously generated files after an `ALTER`.
+
 The DDL must define the id, tenant, audit, `deleted_at` and version columns that `EgonModel`
 requires, and the generator validates their types and null semantics. A PO extends `EgonModel` and
 declares only business fields; the Mapper XML still maps the inherited fields. The generator never
 re-declares those common fields on the PO.
+For business columns, the PO template emits Jakarta constraints for DDL nullability (`NOT NULL`
+becomes `@NotNull`, without inventing a nonblank rule), string length
+and simple string `CHECK ... IN (...)` values, using the existing Insert/Update/Delete/Query/Persisted
+groups as applicable. Insert means CRUD Create. Update permits omitted fields for partial MP writes;
+Persisted checks loaded rows. Complex CHECK expressions need agent review and cannot be inferred as
+business rules by this generator.
+Generated DAO methods use `@Validated`/`@Valid` where applicable; inherited MP writes are checked
+after fill by the Starter's mapper interceptor using Jakarta `Validator` directly.
 
 The plan format is currently v2. A same-named file with no generation record, a hand-edited file,
 and files added or changed after the plan was cut all return conflicts; nothing is adopted or

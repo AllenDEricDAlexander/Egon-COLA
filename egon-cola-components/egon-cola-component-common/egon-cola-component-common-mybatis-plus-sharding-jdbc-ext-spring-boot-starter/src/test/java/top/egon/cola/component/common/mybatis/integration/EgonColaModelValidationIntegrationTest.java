@@ -10,6 +10,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
@@ -27,6 +28,7 @@ import top.egon.cola.component.common.mybatis.support.TestBusinessDTO;
 import top.egon.cola.component.common.mybatis.support.TestBusinessPO;
 import top.egon.cola.component.common.mybatis.support.TestBusinessConverters;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
+import top.egon.cola.component.common.mybatis.support.TestBusinessMapper;
 import top.egon.cola.component.common.mybatis.support.TestBusinessRepository;
 import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
 import top.egon.cola.component.common.mybatis.support.TestUserIdProvider;
@@ -135,6 +137,22 @@ class EgonColaModelValidationIntegrationTest {
                             new TestBusinessModel().businessValues("", null)))
                             .isInstanceOf(ConstraintViolationException.class);
                 });
+    }
+
+    @Test
+    void mapperQueryValidatesAnnotatedInputBeforeSql() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        ValidationAutoConfiguration.class,
+                        EgonColaMybatisPlusAutoConfiguration.class,
+                        MybatisPlusInnerInterceptorAutoConfiguration.class,
+                        MybatisPlusAutoConfiguration.class))
+                .withUserConfiguration(EgonColaTenantIdSqlIntegrationTest.H2Configuration.class)
+                .withBean(TestTenantIdProvider.class, TestTenantIdProvider::new)
+                .withBean(TestUserIdProvider.class, TestUserIdProvider::new)
+                .withBean(Validator.class, VALIDATOR_FACTORY::getValidator)
+                .run(context -> assertThatThrownBy(() -> context.getBean(TestBusinessMapper.class)
+                        .selectActiveById(null)).isInstanceOf(ConstraintViolationException.class));
     }
 
     @RestController

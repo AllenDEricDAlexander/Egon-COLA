@@ -20,7 +20,7 @@ description: 用唯一的非 open Egon-COLA Maven archetype 生成一个真实�
 1. 生成业务项目时完整读取 `references/archetype-selection.md`。涉及外层父 POM、多项目 reactor、Maven 继承或生成项目引入 Egon Component/Platform 依赖时，还要完整读取 `references/multi-project-parent.md`。
 2. 先判断是独立生成项目、纯聚合外层 reactor，还是明确需要共享父 POM 的继承。独立生成项目已自带根 POM；默认外层 reactor 不设 `<parent>`，生成项目继续直接继承 `egon-cola-archetypes-parent`。
 3. 要生成时从选型表选择且只选择一个 archetype；两个都合适才询问。只要求父 POM 时跳过 archetype 生成。
-4. 一次问齐实际创建所必需且无法从现有文件确定的信息：生成项目的 GAV、包名、输出父目录及对端 Facade 坐标；外层 reactor 的业务 GAV 与准确子项目目录。不得编造对端 Facade。
+4. 一次问齐实际创建所必需且无法从现有文件确定的信息：生成项目的 GAV、包名、输出父目录；外层 reactor 的业务 GAV 与准确子项目目录。Web/Service 的对端 Facade 四项坐标可以全不传；若要传入，必须四项齐全。不得编造对端 Facade。
 5. 从 `egon-cola-archetypes/pom.xml` 读取版本。生成业务项目时在 Egon-COLA 仓库根使用 `./mvnw`；只回答父 POM 时不运行生成命令。
 6. archetype 无法解析时给出 Maven 错误；本地安装前询问用户。不要发布或运行 `scripts/generate_archetypes.sh`。
 7. 完成适用的生成检查及外层 reactor 检查；失败时报告证据，不靠改写生成项目的父 POM 强行通过。
@@ -39,7 +39,9 @@ description: 用唯一的非 open Egon-COLA Maven archetype 生成一个真实�
 - 用户没要求时，不把项目加进外层 reactor POM。单纯聚合不修改生成项目的 `<parent>`。
 - 不启动进程、数据库或浏览器。
 
-native `light`、`web`、`service` 上，之后的 SQL 变动只通过 `scripts/egon-codegen.sh` 刷新目录内 Java 和 Mapper XML，规则在 `egon-coding-writing-spec`。本 skill 不重写那份目录。`agent` 是合法的非 open archetype，但不在生成器范围内；不要为它编造持久化模板。
+native `light`、`web`、`service` 仅在初始 CREATE 建表时用 `scripts/egon-codegen.sh` 生成模板；之后的 ALTER 等结构变更由 agent 按获批 Plan 修改代码。`agent` 是合法的非 open archetype，但不在生成器范围内；不要为它编造持久化模板。
+
+脚手架自带的业务代码是参考样例，创建项目时保留。后续真实业务实施的 Spec/Plan 必须列出要删除或替换的样例入口、服务、持久化代码和配置；样例 SQL 仅在未应用前移除，已应用则新增纠正版本，并在所属 Step 内完成，不能把样例留作生产行为。
 
 ## 交接
 

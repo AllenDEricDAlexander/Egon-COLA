@@ -4,9 +4,11 @@
 
 ## 依赖审批与后端模板生成
 
-资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。native light、web、service 上，SQL 变动只通过该生成器刷新目录内的 Java 与 Mapper XML：模型只写 SQL、Manifest 和生成器配置。新业务项目由 egon-coding-create-new-module 按一个非 open archetype 生成，不能手写模块骨架。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
+资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。native light、web、service 仅对初始 CREATE 建表使用生成器；ALTER 等后续结构变更由 agent 按获批 Plan 分析并修改代码，不得再用生成器刷新旧产物。新业务项目由 egon-coding-create-new-module 按一个非 open archetype 生成，不能手写模块骨架。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
 
 生成基础 CRUD 时按 Repo → Domain Service/实现 → Manage/实现 → Light/Web Controller 链路选择 `backend-crud`；Service 不生成 HTTP。DDL 中通用列需要校验，PO 通过 `EgonModel` 继承，不重复声明。v1/过期计划和无归属文件阻断 apply。
+
+当 Step 引入真实业务行为时，在该 Step 内删除或替换相应脚手架样例代码，验证不存在冲突的样例入口、服务、仓储、表或配置；已应用 SQL 历史保持不可变；保留无关的用户文件。
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -89,6 +91,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 - `Blocked`：在获批 Plan 范围内无法安全达到 `Verified` 或 `Committed`。
 
 **Step N 未达到 `Committed` 前，绝不能开始 Step N+1。** 只有测试通过、代码写完或已经暂存，都不算完成。
+Step N 的验证和 diff 复核一通过，就把提交作为该 Step 的最后一个动作立即执行。禁止先完成多个 Step，最后再拆分提交；最终审核也不能补救缺失的逐 Step 提交。开始 Step N+1 的第一处编辑前，必须记录 Step N 新的 `HEAD` 哈希和提交路径清单。
 
 ## 不可协商的执行规则
 
@@ -106,7 +109,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 12. 禁止用空提交伪造 Step 完成。如果 Step 在执行前就已实现，或执行后没有语义 diff，应判定为仓库/Plan 漂移并停止请求指导。
 13. 提交后核实提交哈希、文件列表、diff 摘要、验证证据以及剩余工作区状态，记录 Step 与提交的对应关系后才能继续。
 14. 不得自动 amend、squash、reset 或改写已经形成的提交历史。如果后续 Step 暴露了早期提交的缺陷，应暂停推进，以最小的独立纠正提交归属到原 Step，重新执行受影响验证并报告偏差。
-15. 使用 MP-SDJ Starter 分布式受管 DDL，只新增计划中的 SQL 版本和 Manifest 条目；禁止修改已应用脚本或历史校验和。native light/web/service 上，不要手写该 SQL 所改变的目录内 Java 或 Mapper XML。运行 `scripts/egon-codegen.sh plan`，再只 `apply` 计划中的动作，并按 `references/backend-code-generation.md` 追加 classpath SQL 日志。冲突或缺少 classpath 时阻断本 Step。
+15. 使用 MP-SDJ Starter 分布式受管 DDL，只新增计划中的 SQL 版本和 Manifest 条目；禁止修改已应用脚本或历史校验和。只有获批的初始 CREATE 模板调用 `scripts/egon-codegen.sh plan`/`apply` 并追加 classpath SQL 日志。ALTER 等后续结构变更由 agent 按 Plan 修改准确代码和测试，不得交给只支持 CREATE 的生成器。生成器冲突或缺少 classpath 阻断 CREATE 生成 Step。
 16. 不得静默跳过、重排、合并、拆分或扩大 Step。任何实质性的执行顺序变化都必须获得用户批准。
 17. 每个 Coding Step 都有阻断型 Manual Check。锁定 Step 时，从 `references/java-spring-egon-coding-standards.zh-CN.md` 枚举全部适用稳定 `MC-*`；提交前逐项用具体 Diff/路径/符号/命令证据人工校验。`MC-SCOPE-001` 与 `MC-TEST-001` 始终适用。
 18. 只要任一适用 Manual Check 为 `FAIL`、`BLOCKED`、`UNKNOWN`、缺失、无证据或例外未关闭，Step 就不能到 `Verified`，也不能按完成提交。只有关注点真实不在 Step 范围时才允许有证据的 `N/A`。
@@ -259,7 +262,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 只校验 Controller 输入 | 提交前增加并验证每个受影响层间交接的 Validation/Group |
 | Complex 业务仍为 `if/else` 或 `switch` | 提交前实现获批模式参与者和测试 |
 | 自动启动项目 | 除非用户明确要求，否则把运行测试留给用户 |
-| SQL 变更后手写目录内 Java 或 Mapper XML，或在生成器冲突后手写补完 | 对计划中的动作运行 `scripts/egon-codegen.sh`。遇到 `CONFLICT` 或 `BLOCKED_TOOLING` 即停止 |
+| 将 ALTER 交给只支持 CREATE 的生成器，或手写补完 CREATE 生成冲突 | ALTER 按 agent-owned Plan 实施；初始 CREATE 才调用 `scripts/egon-codegen.sh`，遇到 `CONFLICT` 或 `BLOCKED_TOOLING` 即停止 |
 
 ## Skill 维护
 

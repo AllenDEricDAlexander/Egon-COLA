@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.webopen.infrastructure.user.dao;
 
 import top.egon.cola.archetype.source.webopen.infrastructure.user.po.PermissionPO;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.validation.annotation.Validated;
 import org.apache.ibatis.annotations.Param;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 
@@ -9,6 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Mapper
+@Validated
 public interface PermissionDAO extends EgonColaMapper<PermissionPO> {
     PermissionPO selectByCode(@Param("code") String code);
 

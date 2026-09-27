@@ -32,8 +32,9 @@ class PostgreDdlAdapterTest {
                 "egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/db/egon-mp/V20260913_001__initialize_repository_schema.sql"));
         assertEquals("MASTER_DATA", table(light, "users").getRole());
         assertEquals("SHARD", table(light, "school_classes_0").getRole());
-        assertTrue(index(table(light, "users"), "uk_users_tenant_external_active").getPredicate()
-                .toLowerCase(java.util.Locale.ROOT).contains("deleted_at is null"));
+        assertFalse(table(light, "users").getIndexes().stream()
+                .anyMatch(index -> "uk_users_tenant_external_active".equals(index.getName())),
+                "standalone CREATE INDEX statements are outside the code generator");
         assertFalse(light.getTables().stream().anyMatch(table -> "ddl_history".equals(table.getLogicalName())));
 
         CodegenSchemaBO web = read(root.resolve(
@@ -54,26 +55,26 @@ class PostgreDdlAdapterTest {
     }
 
     @Test
-    void schemaChangesReplayAddRenameAndNullability() throws Exception {
+    void alterAndCommentRequireAgentOwnedGeneration() {
         Path schema = Path.of("src/test/resources/ddl/schema.sql");
         Path changes = Path.of("src/test/resources/ddl/changes.sql");
-        CodegenSchemaBO replayed = service.read(config(schema, changes), Map.of(), List.of());
-        CodegenSchemaBO.TableBO orders = table(replayed, "orders");
-        assertTrue(orders.getColumns().stream().noneMatch(column -> "code".equals(column.getName())));
-        assertEquals(Boolean.FALSE, column(orders, "note").getNullable());
-        assertEquals("order_code", column(orders, "order_code").getName());
-        assertEquals("业务代码与 Unicode 转义样本", column(orders, "order_code").getComment());
-        assertTrue(index(orders, "orders_active").getPredicate().toLowerCase(java.util.Locale.ROOT).contains("deleted_at is null"));
+        DdlParseException alter = assertThrows(DdlParseException.class,
+                () -> service.read(config(schema, changes), Map.of(), List.of()));
+        assertEquals(PostgreDdlAdapter.UNSUPPORTED_DDL, alter.getCode());
+        DdlParseException comment = assertThrows(DdlParseException.class,
+                () -> new PostgreDdlAdapter().parseStatements("COMMENT ON TABLE orders IS 'changed';", "comment.sql"));
+        assertEquals(PostgreDdlAdapter.UNSUPPORTED_DDL, comment.getCode());
     }
 
     @Test
-    void typeChangeIsAppliedIndependently(@TempDir Path temp) throws Exception {
+    void typeChangeIsRejected(@TempDir Path temp) throws Exception {
         Path baseline = temp.resolve("schema.sql");
         Path alter = temp.resolve("type.sql");
         Files.copy(Path.of("src/test/resources/ddl/schema.sql"), baseline);
         Files.writeString(alter, "ALTER TABLE orders ALTER COLUMN code TYPE VARCHAR(80);\n");
-        CodegenSchemaBO schema = service.read(config(baseline, alter), Map.of(), List.of());
-        assertEquals(80, column(table(schema, "orders"), "code").getLength());
+        DdlParseException failure = assertThrows(DdlParseException.class,
+                () -> service.read(config(baseline, alter), Map.of(), List.of()));
+        assertEquals(PostgreDdlAdapter.UNSUPPORTED_DDL, failure.getCode());
     }
 
     @Test
@@ -133,7 +134,7 @@ class PostgreDdlAdapterTest {
     void alterWithoutBaselineFailsAndNoRunnerIsInvoked() throws Exception {
         DdlParseException exception = assertThrows(DdlParseException.class,
                 () -> service.read(configSql("ALTER TABLE orders ADD COLUMN note VARCHAR(10);"), Map.of(), List.of()));
-        assertEquals(DdlSchemaService.MISSING_SCHEMA_BASELINE, exception.getCode());
+        assertEquals(PostgreDdlAdapter.UNSUPPORTED_DDL, exception.getCode());
         String adapter = Files.readString(Path.of(
                 "src/main/java/top/egon/cola/component/codegen/ddl/PostgreDdlAdapter.java"));
         String schemaService = Files.readString(Path.of(
@@ -172,10 +173,6 @@ class PostgreDdlAdapterTest {
 
     private static CodegenSchemaBO.ColumnBO column(CodegenSchemaBO.TableBO table, String name) {
         return table.getColumns().stream().filter(column -> name.equals(column.getName())).findFirst().orElseThrow();
-    }
-
-    private static CodegenSchemaBO.IndexBO index(CodegenSchemaBO.TableBO table, String name) {
-        return table.getIndexes().stream().filter(index -> name.equals(index.getName())).findFirst().orElseThrow();
     }
 
     private static Path repositoryRoot() {

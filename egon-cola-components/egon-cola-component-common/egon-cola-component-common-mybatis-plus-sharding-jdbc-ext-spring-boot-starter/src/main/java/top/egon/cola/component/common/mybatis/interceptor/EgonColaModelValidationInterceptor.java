@@ -1,6 +1,11 @@
 package top.egon.cola.component.common.mybatis.interceptor;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
+import jakarta.validation.groups.Default;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
@@ -16,6 +21,7 @@ import org.apache.ibatis.reflection.SystemMetaObject;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
@@ -27,9 +33,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * One MyBatis boundary for repository Model parameter and result validation.
+ * One MyBatis boundary for annotation-driven Model parameter and result validation.
  * MP fills IDs/audit fields before ParameterHandler.setParameters, so the
  * persisted group is evaluated only after authoritative fill has completed.
+ * The assembled Jakarta Validator is used directly; ValidationUtils is not this DAO boundary.
  */
 @Intercepts({
         @Signature(type = ParameterHandler.class, method = "setParameters",
@@ -38,7 +45,10 @@ import java.util.Set;
                 args = {Statement.class})
 })
 @Slf4j
+@RequiredArgsConstructor
 public final class EgonColaModelValidationInterceptor implements Interceptor {
+
+    private final Validator validator;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -127,10 +137,22 @@ public final class EgonColaModelValidationInterceptor implements Interceptor {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static void validateModel(EgonModel<?> model,
-                                      EgonColaModelValidationGroups.Operation operation) {
-        EgonColaModelValidationUtils.validate((EgonModel) model, operation);
+    private void validateModel(EgonModel<?> model,
+                               EgonColaModelValidationGroups.Operation operation) {
+        EgonColaModelValidationUtils.assertMetadataOwnership(model.getClass());
+        Class<?>[] groups = switch (operation) {
+            case INSERT -> new Class<?>[]{Default.class, EgonColaModelValidationGroups.Insert.class,
+                    EgonColaModelValidationGroups.Persisted.class};
+            case LOADED -> new Class<?>[]{Default.class, EgonColaModelValidationGroups.Persisted.class};
+            default -> new Class<?>[]{Default.class, operation.group()};
+        };
+        Set<? extends ConstraintViolation<?>> violations = validator.validate(model, groups);
+        if (!violations.isEmpty()) {
+            throw new ConstraintViolationException(violations);
+        }
+        if (!EgonColaTenantIdProvider.currentTenantId().equals(model.getTenantId())) {
+            throw new IllegalStateException("TENANT_CONTEXT_MISMATCH");
+        }
     }
 
     private static Method findGetEntity(Class<?> type) {

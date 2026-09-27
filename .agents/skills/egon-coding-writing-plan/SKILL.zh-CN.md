@@ -9,9 +9,11 @@ description: 当编码任务已有明确且经过审核或接受的 Spec，需�
 
 ## 依赖审批与后端模板生成
 
-资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。native light、web、service 上，SQL 变动只通过该生成器刷新目录内的 Java 与 Mapper XML：模型只写 SQL、Manifest 和生成器配置。新业务项目由 egon-coding-create-new-module 按一个非 open archetype 生成，不能手写模块骨架。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
+资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。native light、web、service 仅对初始 CREATE 建表使用生成器；ALTER 等后续结构变更由 agent 按获批 Plan 分析并修改代码，不得再用生成器刷新旧产物。新业务项目由 egon-coding-create-new-module 按一个非 open archetype 生成，不能手写模块骨架。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
 
 生成基础 CRUD 时按 Repo → Domain Service/实现 → Manage/实现 → Light/Web Controller 链路选择 `backend-crud`；Service 不生成 HTTP。DDL 中通用列需要校验，PO 通过 `EgonModel` 继承，不重复声明。v1/过期计划和无归属文件阻断 apply。
+
+在引入真实业务实现的 Step 中，计划明确删除或替换脚手架样例代码，列出准确路径及受影响测试/配置；不能留到最后笼统清理。
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -84,7 +86,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 10. 伪代码必须承载实现信息，但不能成为生产代码。应使用真实类/函数/组件/表名、签名、字段映射、分支、调用、状态变化、错误路径、事务和断言，并遵循仓库语言与框架风格。
 11. 文件顺序由真实依赖决定。迁移、生成代码、契约发布、跨模块编译或前后端兼容要求不同顺序时，不能机械套用分层列表。
 12. 所有适用的迁移、配置、权限、可观测性、文档、兼容、发布、回滚和发布验证文件都必须进入有序步骤。
-13. 使用 MP-SDJ Starter 分布式 DDL；一个逻辑变更新增一个下一版本 SQL 与 SHA-256 Manifest 条目，保留已应用历史并定义多目标失败/续跑。native light/web/service 上，被该 SQL 影响到的目录内 Java 或 Mapper XML 必须是后续 `GENERATED` 文件。伪代码写生成器配置和 `scripts/egon-codegen.sh plan`/`apply`，不写手写类体。遵循 `references/backend-code-generation.md`。
+13. 使用 MP-SDJ Starter 分布式 DDL；一个逻辑变更新增一个下一版本 SQL 与 SHA-256 Manifest 条目，保留已应用历史并定义多目标失败/续跑。native light/web/service 的初始 CREATE 模板由 `scripts/egon-codegen.sh plan`/`apply` 生成；ALTER 等后续结构变更必须规划 agent 修改的准确文件及消费者，生成器不刷新旧文件。遵循 `references/backend-code-generation.md`。
 14. 交付前对照 Spec 记录的原始用户需求和全部有效设计复核 Plan，自行修复遗漏与不一致。
 15. 主 Spec 未明确接受、Plan 未经用户/决策负责人批准时，不能把 Plan 标为 `Ready`。完整待审时为 `Review`；存在 Spec 或决策阻塞时为 `Draft` 或 `Blocked`。
 16. 必须完整读取 `references/file-by-file-planning.zh-CN.md`。每个 Step 都要写基线/结束状态、Test-first 适用性、准确文件顺序、验证工作目录、Commit Paths 和一个语义结果。每个文件都要写当前仓库证据、依赖/消费者、输入输出/状态映射、错误/边界行为、承载实现信息的伪代码、验证贡献和 After-file 状态。
@@ -240,7 +242,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 把 Complex 业务变化保留为直接分支 | 增加有效 Spec 已选模式的参与者、接线、编排和测试 |
 | Manual Check 缺失、失败或未知仍标记 PASS | 用证据关闭全部阻断，否则使用 `BLOCKED`/`REVISE` |
 | 写完 Plan 就编码或启动运行时 | 停止并交付用户审核 |
-| SQL 变更后为目录内文件规划手写 Java 类体 | 把这些路径标成 `GENERATED`，规划生成器配置以及 `plan`/`apply`。手写 Java 只留给目录不拥有的业务行为 |
+| 把 ALTER 等后续结构变更送进只支持 CREATE 的生成器 | 规划 agent 修改的准确代码与测试；`plan`/`apply` 只用于初始 CREATE 模板 |
 
 ## Skill 维护
 

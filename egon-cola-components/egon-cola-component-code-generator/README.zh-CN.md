@@ -56,9 +56,21 @@ Domain Service 实现不能直接调用 DAO。`logicalTables` 必须明确指定
 manifest 形如 `{"family":...,"scripts":[{"version":...,"path":...,"sha256":...}]}`；
 脚本字节与记录的 `sha256` 不符，或已记录的版本前缀发生变化，都返回 `CHECKSUM_DRIFT`。
 
+生成器只读取 `CREATE TABLE` 建表定义（包括现有按角色分支的 `DO` 块）。独立的
+`CREATE INDEX` 和种子 `INSERT`/`UPDATE`/`DELETE` 不参与 Schema 建模；索引及软删除
+唯一性由 agent 另行检查，不能从生成计划推断已校验。`ALTER`、`DROP`、`COMMENT` 等结构变更
+返回 `UNSUPPORTED_DDL`；由 agent 检查 DDL 并显式修改受影响代码，不能用生成器刷新旧产物。
+
 DDL 必须定义 `EgonModel` 所需的 id、tenant、审计、deleted_at 和 version 列，
 生成器校验其类型和空值语义。PO 继承 `EgonModel`，只声明业务字段；Mapper XML 仍映射
 继承字段。生成器不会把这些通用字段再声明到 PO 中。
+业务列的 PO 模板按 DDL 空值（`NOT NULL` 对应 `@NotNull`，不擅自增加非空白规则）、
+字符串长度和简单字符串 `CHECK ... IN (...)` 生成 Jakarta
+约束，使用已有 Insert/Update/Delete/Query/Persisted 分组；Insert 对应 CRUD Create。
+Update 允许 MP 部分更新省略字段，Persisted 校验已加载行。复杂 CHECK 表达式由 agent
+核对并实现，生成器不猜测业务规则。
+生成的 DAO 在适用方法上使用 `@Validated`/`@Valid`；继承的 MP 写入由 Starter 的 Mapper
+拦截器在填充后直接调用 Jakarta `Validator` 校验。
 
 计划格式当前为 v2。无生成记录的同名文件、人工编辑的文件，以及计划后新增或改变的文件
 均返回冲突，不自动接管或覆盖。`apply` 重新核对配置、DDL、模板、工具代码和生成状态的

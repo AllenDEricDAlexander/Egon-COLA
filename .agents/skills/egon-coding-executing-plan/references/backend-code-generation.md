@@ -18,11 +18,12 @@ When current dependencies cannot satisfy a requirement:
 
 ## Generator availability and scope
 
-The verified offline generator is `scripts/egon-codegen.sh`. It supports native profiles `light`, `web` and `service`, FreeMarker 2.3.35, and the commands `templates`, `plan`, `check`, `apply` and `recover`. Operating notes are in the generator module README next to that script. The launcher requires an explicit local `EGON_CODEGEN_CLASSPATH`. A missing Java executable or classpath entry returns `BLOCKED_TOOLING` and does not download dependencies or start an application. Agent, open and traditional profiles remain unsupported.
+The verified offline generator is `scripts/egon-codegen.sh`. It supports initial `CREATE TABLE` scaffolding for native profiles `light`, `web` and `service`, FreeMarker 2.3.35, and the commands `templates`, `plan`, `check`, `apply` and `recover`. Standalone `CREATE INDEX` and seed DML are ignored for schema modeling; `ALTER`, `DROP`, `COMMENT` and other structural changes return `UNSUPPORTED_DDL`. The agent reviews indexes separately and handles later structural changes explicitly. Operating notes are in the generator module README next to that script. The launcher requires an explicit local `EGON_CODEGEN_CLASSPATH`. A missing Java executable or classpath entry returns `BLOCKED_TOOLING` and does not download dependencies or start an application. Agent, open and traditional profiles remain unsupported by the CLI.
 
 The CLI now expands `backend-crud` through PO/DAO/Mapper XML/Repository, Domain model and Service/implementation, Command/Query/Result/converters, Manage/implementation, and a Controller for native Light/Web. Native Service has no HTTP Controller. `logicalTables` must be explicit; selecting a narrower artifact list never widens the write scope. Confirm the target project already provides every required referenced type and API/error boundary before applying. The generated Domain Service implementation calls named Repository methods for queries and writes; it must not call `getBaseMapper()` or a DAO directly. The Repository owns Mapper/XML access.
 
 The DDL must contain the inherited `EgonModel` id, tenant, audit, nullable `deleted_at` and version columns. Verify their types, but generate only business columns in the PO class. Mapper XML includes the inherited fields. Do not add those shared declarations to a subclass merely because they appear in SQL.
+Generate PO constraints from CREATE column nullability (`NOT NULL` → `@NotNull`, without inventing `@NotBlank`)/length and simple string `CHECK IN` values using `EgonColaModelValidationGroups` (Insert is CRUD Create). Update allows omitted columns for partial MP updates; loaded rows use Persisted. DAO inputs use `@Valid`/`@Validated` where a Spring method boundary applies, while the MP Starter's MyBatis boundary invokes the assembled Jakarta Validator directly after fill. Repository-to-DAO checks mirror database shape only; business/state rules belong above the DAO. Do not use `ValidationUtils` as a business rule registry. Complex CHECK expressions require agent implementation and review.
 
 Plans use formatVersion 2. Review the file inventory before apply: an existing path with no generator state is `CONFLICT`, as is a user-edited or intentionally removed generated file. The CLI re-reads config and DDL and independently checks template, generator and state fingerprints before writing; a v1 plan or stale input must be replanned. Do not use a handwritten patch to bypass these protections.
 
@@ -32,9 +33,9 @@ Generate supported repetitive backend scaffolding through that command. The mode
 
 The intended initial profiles are native Light (single-module monolith), Web and Service. Agent is excluded. Existing traditional three-layer packages are preserved; never reinterpret “monolith” as permission to move a traditional project into Light DDD. A selected profile must match current POMs, packages and architecture checks. Open variants need explicit support and dependency verification, not silent fallback to native templates.
 
-## SQL changes refresh catalog output only through the generator
+## CREATE-only scaffolding and later DDL changes
 
-On native `light`, `web`, and `service`, a classpath SQL change under `src/main/resources/db/` does not authorize the model to write or patch FreeMarker catalog output. The model writes the next SQL script, its MP-SDJ manifest entry, and the generator config. `scripts/egon-codegen.sh` writes the catalog files.
+For an initial CREATE-only schema on native `light`, `web`, and `service`, use the generator for selected catalog files. For later `ALTER`, `DROP`, `COMMENT`, type/nullability/rename or other structural changes, the agent owns impact analysis and exact code edits under the approved Spec/Plan; do not rerun this CREATE-only generator to update old files. The MP-SDJ script and manifest remain managed separately. Preserve generator ownership records and treat subsequent generator conflicts as expected, not as permission to overwrite agent-edited code.
 
 Catalog artifacts, excluding the test-only `probe` and `unsafe` entries in `egon-cola-components/egon-cola-component-code-generator/src/main/resources/templates/backend/catalog.json`:
 
@@ -44,26 +45,27 @@ Catalog artifacts, excluding the test-only `probe` and `unsafe` entries in `egon
 
 Order:
 
-1. Add the next SQL version and manifest. Do not edit an applied script.
-2. Point the generator config at that schema or manifest, the logical tables, and the selected artifacts.
+1. For initial CREATE scaffolding, add the SQL version and manifest. Do not edit an applied script.
+2. Confirm the consumed schema contains only supported CREATE structural statements, then point the generator config at it, the logical tables, and selected artifacts. If it includes later structural DDL, stop generator use and plan agent-owned changes.
 3. Run `plan`. Read the JSON summary, conflicts, and destructive changes.
 4. `apply` only the authorized file actions.
 5. Append the classpath SQL journal in this reference.
-6. The model may then edit only business behavior and custom queries the catalog does not own, and only in files the generator left untouched.
+6. Implement business behavior and custom queries outside the generated baseline. Later ALTER-driven changes are agent-owned and require explicit review even if they touch a formerly generated file.
 
-Do not hand-write those catalog types so the SQL will compile. Do not copy `.ftl` into the business project. Do not edit a `.ftl` to fit one schema. Do not treat Plan Java pseudocode as permission to retype generator output. `CONFLICT` or `BLOCKED_TOOLING` stops the work; it is not a cue to finish the file by hand.
+Do not hand-write initial CREATE catalog types so the SQL will compile. Do not copy `.ftl` into the business project or edit a `.ftl` to fit one schema. Do not treat Plan Java pseudocode as permission to retype initial generator output. `CONFLICT` or `BLOCKED_TOOLING` stops that generator action; later ALTER work follows the agent-owned Plan instead.
 
-`agent`, every `-open` archetype, and an existing traditional three-layer tree are outside this generator. Do not imitate the catalog by hand. Keep an existing traditional tree (Rule 11). Ask before moving that work onto native `light`, `web`, or `service`. A new business project is created by `egon-coding-create-new-module` from exactly one non-open archetype (`light`, `service`, `web`, or `agent`). Do not copy `source-projects` and do not write a module skeleton.
+`agent`, every `-open` archetype, and an existing traditional three-layer tree are outside this generator. Their approved implementation uses their existing architecture, without pretending the native CLI supports them. Keep an existing traditional tree (Rule 11). Ask before moving that work onto native `light`, `web`, or `service`. A new business project is created by `egon-coding-create-new-module` from exactly one non-open archetype (`light`, `service`, `web`, or `agent`). Do not copy `source-projects` and do not write a module skeleton.
 
 ## DDL input, selective output and change safety
 
 - DDL input is read-only. Distinguish a full schema snapshot from an ordered MP-SDJ SQL/manifest history. Preserve applied version/checksum prefixes and do not run DDL or connect to a database without separate authorization.
+- Standalone `CREATE INDEX` is ignored; a generator plan cannot prove unique indexes or active-row guards. Inspect index and soft-delete uniqueness independently before accepting implementation.
 - Resolve logical tables and physical shard mappings from actual MP-SDJ topology; never turn each physical suffix into a business class or guess a shard key from a column name.
 - Record exact output root, module/package mapping, table selection and requested artifacts. DAO means Java Mapper interface; mapper XML is a separate artifact. Normalize ambiguous CLI names using the actual tool's documented contract.
 - Generate only selected artifacts. Missing referenced PO/DAO/contract dependencies cause a scoped diagnostic; never silently widen a dao-only request to repo/service/controller or alter the POM.
 - Plan first: schema differences, exact output files, component/type dependencies, baseline hashes, custom-file conflicts and destructive changes. Apply only within the authorized scope, verifying the plan still matches input and disk state.
 - Repeat generation is deterministic and has no diff. Update only files owned by the generator whose contents match the last generated hash. Unknown files, user-edited files, changed custom XML and manual business methods must not be overwritten, deleted or auto-merged.
-- Renames, drops, type/nullability changes and contract changes require an explicit impact decision. Use explicit rename mappings, never infer rename from similar names. A file outside the selected output range remains untouched; report affected consumers as pending rather than claiming project-wide convergence.
+- Renames, drops, type/nullability changes and contract changes are agent-owned, not generator updates. Use explicit rename mappings, never infer rename from similar names. A file outside the approved scope remains untouched; report affected consumers as pending rather than claiming project-wide convergence.
 - Inherited MP Repository CRUD is reused, not copied or overridden. Generate the explicit Mapper XML required by the actual EgonColaMapper contract and typed, named query/page methods when needed. Keep optimistic version, tenant, soft deletion and routing semantics intact.
 
 ## Classpath SQL journal
@@ -90,8 +92,8 @@ Map these concerns to `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-MODEL-001
 - 禁止自行引入、升级或下载依赖、插件、注解处理器和生成器工具；BOM 已管理不等于授权。内部依赖新增也须有明确授权，已有明确批准不重复询问。
 - 现有依赖不足时阻断受影响工作，提交能力缺口、内部复用方案、引入坐标/版本/模块/传递影响和验证方案，由用户决定；不能先改 POM 再说明。
 - 已验证命令是 `scripts/egon-codegen.sh`，支持 `templates`、`plan`、`check`、`apply`、`recover`。只对获准的 native Light/Web/Service 范围调用；先看计划摘要和冲突，再 apply。缺 classpath 返回 `BLOCKED_TOOLING`，不得下载依赖或手写替代模板。Agent、Open 和传统三层仍不支持。
-- native light/web/service 上，`src/main/resources/db/` 的 SQL 变动不能由模型改目录产物。模型只写下一版 SQL、Manifest 和生成器配置；`po`、`dao`、`mapper-xml`、`repo`、`domain-model`、`domain-query`、`command`、`query`、`result`、`converter`、`domain-service`、`domain-impl`、`manage`、`manage-impl`，以及 light/web 的 `controller`，只由生成器刷新。`CONFLICT` 或 `BLOCKED_TOOLING` 时停止，不能手写补完。不要把 `.ftl` 抄进业务工程，也不要为单份 Schema 改 `.ftl`。
-- 新业务项目由 `egon-coding-create-new-module` 从唯一的非 open archetype（`light`、`service`、`web`、`agent`）生成。不要复制 `source-projects`，不要手写模块骨架。已有传统三层保持现状；agent、open、传统三层不能靠手写 native 目录产物绕过生成器。
+- native light/web/service 仅用生成器处理初始 `CREATE TABLE` 建表定义；独立 `CREATE INDEX` 与种子 DML 不参与建模，索引和软删除唯一性由 agent 另行审核。`ALTER`、`DROP`、`COMMENT` 等结构变化由 agent 按获批 Spec/Plan 分析并修改代码，不能继续用生成器刷新旧产物。初始 `po`、`dao`、`mapper-xml`、`repo`、`domain-model`、`domain-query`、`command`、`query`、`result`、`converter`、`domain-service`、`domain-impl`、`manage`、`manage-impl`，以及 light/web 的 `controller` 由生成器写。`CONFLICT` 或 `BLOCKED_TOOLING` 时停止该次生成。不要把 `.ftl` 抄进业务工程，也不要为单份 Schema 改 `.ftl`。
+- 新业务项目由 `egon-coding-create-new-module` 从唯一的非 open archetype（`light`、`service`、`web`、`agent`）生成。不要复制 `source-projects`，不要手写模块骨架。已有传统三层保持现状；agent、open、传统三层按自身架构执行获批变更，不能假装 native 生成器支持它们。
 - 明确 Light/Web/Service、DDL 来源、逻辑表映射、输出根目录、精确产物范围；只生成 DAO 不得自动扩展到其他层。Agent 暂不支持，传统三层结构不迁移。
 - 重生成按基线/hash 管理，只更新未被人工修改的自有文件；不覆写自定义代码，不执行数据库 DDL，不自行添加依赖。
 - skill 驱动的生成在 `apply` 成功后，或本次只授权到 `plan` 时，向 `docs/egon/codegen/ddl-consumption-log.md` 追加一条。记下 Asia/Shanghai 时间、profile、输出根、用到的 `src/main/resources/db/` 脚本版本（执行到的最高版本）、路径、SHA-256 和完整 SQL。这不是数据库执行记录，不连接数据库。只追加，不改旧条目；没有 db 脚本就记 `throughVersion: none`。

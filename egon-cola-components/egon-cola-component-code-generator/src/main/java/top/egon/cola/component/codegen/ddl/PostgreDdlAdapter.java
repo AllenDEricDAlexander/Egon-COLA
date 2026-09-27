@@ -4,10 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.Statements;
-import net.sf.jsqlparser.statement.alter.Alter;
-import net.sf.jsqlparser.statement.alter.AlterExpression;
-import net.sf.jsqlparser.statement.comment.Comment;
-import net.sf.jsqlparser.statement.create.index.CreateIndex;
 import net.sf.jsqlparser.statement.create.table.CheckConstraint;
 import net.sf.jsqlparser.statement.create.table.ColDataType;
 import net.sf.jsqlparser.statement.create.table.ColumnDefinition;
@@ -15,7 +11,6 @@ import net.sf.jsqlparser.statement.create.table.CreateTable;
 import net.sf.jsqlparser.statement.create.table.ForeignKeyIndex;
 import net.sf.jsqlparser.statement.create.table.Index;
 import net.sf.jsqlparser.statement.create.table.NamedConstraint;
-import net.sf.jsqlparser.statement.drop.Drop;
 import top.egon.cola.component.codegen.model.CodegenSchemaBO;
 
 import java.util.ArrayList;
@@ -25,10 +20,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Quote-aware scan of managed PostgreSQL scripts and the only JSQLParser boundary.
- *
- * <p>Partial index predicates are retained by the scanner because the current parser rejects
- * {@code WHERE}. The parser itself is not replaced.</p>
+ * Quote-aware scan of managed PostgreSQL scripts for CREATE TABLE definitions.
  */
 @Slf4j
 public class PostgreDdlAdapter {
@@ -49,6 +41,9 @@ public class PostgreDdlAdapter {
         for (Segment segment : split(sql)) {
             String body = stripLeadingComments(segment.text()).trim();
             if (body.isEmpty()) {
+                continue;
+            }
+            if (isSeedDml(body) || isCreateIndex(body)) {
                 continue;
             }
             if (startsWithKeyword(body, "DO")) {
@@ -93,7 +88,7 @@ public class PostgreDdlAdapter {
         String after = stripLeadingComments(rest.substring(boundary));
         for (Segment inner : split(statements)) {
             String text = stripLeadingComments(inner.text()).trim();
-            if (!text.isEmpty()) {
+            if (!text.isEmpty() && !isSeedDml(text) && !isCreateIndex(text)) {
                 Segment located = inner.shift(segment.offset(), segment.line());
                 changes.add(translate(located.withText(text), role, source));
             }
@@ -146,26 +141,12 @@ public class PostgreDdlAdapter {
 
     private DdlChangeBO translate(Segment segment, String role, String source) {
         String sql = segment.text().trim();
-        if (startsWithKeyword(sql, "EXECUTE") || startsWithKeyword(sql, "CALL")) {
-            throw diagnostic(UNSUPPORTED_DDL, source, segment.line(), "dynamic SQL is not supported");
+        if (!startsWithCreateTable(sql)) {
+            throw diagnostic(UNSUPPORTED_DDL, source, segment.line(),
+                    "only CREATE TABLE is supported; handle other DDL with an agent");
         }
-        String predicate = null;
-        String parseable = sql;
-        if (startsWithKeyword(sql, "CREATE") && containsKeyword(sql, "INDEX")) {
-            int where = lastKeyword(sql, "WHERE");
-            if (where >= 0) {
-                predicate = sql.substring(where + "WHERE".length()).trim();
-                parseable = sql.substring(0, where).trim();
-                if (predicate.isEmpty()) {
-                    throw diagnostic(UNSUPPORTED_DDL, source, segment.line(), "index predicate is empty");
-                }
-            }
-        }
-        Statement statement = parseOne(normalizeWhitespace(parseable), source, segment.line());
-        DdlChangeBO change = mapStatement(statement, predicate, source, segment.line());
-        if (change.getIndex() != null && sql.toUpperCase(Locale.ROOT).contains(" UNIQUE ")) {
-            change.getIndex().setUnique(true);
-        }
+        Statement statement = parseOne(normalizeWhitespace(sql), source, segment.line());
+        DdlChangeBO change = mapStatement(statement, source, segment.line());
         change.setRole(role);
         change.setSql(sql);
         change.setSourcePosition(CodegenSchemaBO.SourcePositionBO.builder()
@@ -196,29 +177,25 @@ public class PostgreDdlAdapter {
         }
     }
 
-    private DdlChangeBO mapStatement(Statement statement, String predicate, String source, int line) {
+    private DdlChangeBO mapStatement(Statement statement, String source, int line) {
         if (statement instanceof CreateTable createTable) {
             return DdlChangeBO.builder().kind("CREATE_TABLE").table(table(createTable, line)).build();
         }
-        if (statement instanceof CreateIndex createIndex) {
-            DdlChangeBO change = DdlChangeBO.builder().kind("CREATE_INDEX").index(index(createIndex, predicate)).build();
-            change.setTableName(unquote(createIndex.getTable().getName()));
-            return change;
-        }
-        if (statement instanceof Comment comment) {
-            return commentChange(comment);
-        }
-        if (statement instanceof Alter alter) {
-            return alterChange(alter, source, line);
-        }
-        if (statement instanceof Drop drop) {
-            return dropChange(drop, source, line);
-        }
         String name = statement.getClass().getSimpleName();
-        if ("Insert".equals(name) || "Update".equals(name) || "Delete".equals(name)) {
-            return DdlChangeBO.builder().kind("DML").build();
-        }
         throw diagnostic(UNSUPPORTED_DDL, source, line, "unsupported statement " + name);
+    }
+
+    private static boolean isSeedDml(String sql) {
+        return startsWithKeyword(sql, "INSERT") || startsWithKeyword(sql, "UPDATE")
+                || startsWithKeyword(sql, "DELETE");
+    }
+
+    private static boolean isCreateIndex(String sql) {
+        return Pattern.compile("(?is)^CREATE\\s+(?:UNIQUE\\s+)?INDEX\\b").matcher(sql).find();
+    }
+
+    private static boolean startsWithCreateTable(String sql) {
+        return Pattern.compile("(?is)^CREATE\\s+TABLE\\b").matcher(sql).find();
     }
 
     private static CodegenSchemaBO.TableBO table(CreateTable createTable, int line) {
@@ -342,105 +319,6 @@ public class PostgreDdlAdapter {
                     .build());
         }
         return constraints;
-    }
-
-    private static CodegenSchemaBO.IndexBO index(CreateIndex createIndex, String predicate) {
-        Index index = createIndex.getIndex();
-        boolean unique = index != null && "UNIQUE".equalsIgnoreCase(index.getType());
-        return CodegenSchemaBO.IndexBO.builder()
-                .name(index == null ? null : blankToNull(index.getName()))
-                .unique(unique)
-                .columns(index == null ? List.of() : names(index.getColumnsNames()))
-                .predicate(predicate)
-                .build();
-    }
-
-    private static DdlChangeBO commentChange(Comment comment) {
-        if (comment.getColumn() != null) {
-            String table = comment.getColumn().getTable() == null
-                    ? null : unquote(comment.getColumn().getTable().getName());
-            return DdlChangeBO.builder()
-                    .kind("COMMENT_COLUMN")
-                    .tableName(table)
-                    .column(unquote(comment.getColumn().getColumnName()))
-                    .expression(comment.getComment() == null ? null : comment.getComment().getValue())
-                    .build();
-        }
-        return DdlChangeBO.builder()
-                .kind("COMMENT_TABLE")
-                .tableName(comment.getTable() == null ? null : unquote(comment.getTable().getName()))
-                .expression(comment.getComment() == null ? null : comment.getComment().getValue())
-                .build();
-    }
-
-    private static DdlChangeBO alterChange(Alter alter, String source, int line) {
-        if (alter.getAlterExpressions() == null || alter.getAlterExpressions().size() != 1) {
-            throw diagnostic(UNSUPPORTED_DDL, source, line, "alter must contain one action");
-        }
-        AlterExpression expression = alter.getAlterExpressions().get(0);
-        String table = unquote(alter.getTable().getName());
-        return switch (expression.getOperation()) {
-            case ADD -> addColumn(table, expression, source, line);
-            case DROP -> DdlChangeBO.builder().kind("DROP_COLUMN").tableName(table)
-                    .column(unquote(expression.getColumnName())).build();
-            case RENAME -> DdlChangeBO.builder().kind("RENAME_COLUMN").tableName(table)
-                    .column(unquote(expression.getColumnOldName()))
-                    .newName(unquote(expression.getColumnName())).build();
-            case RENAME_TABLE -> DdlChangeBO.builder().kind("RENAME_TABLE").tableName(table)
-                    .newName(unquote(expression.getNewTableName())).build();
-            case ALTER -> alterColumn(table, expression, source, line);
-            default -> throw diagnostic(UNSUPPORTED_DDL, source, line,
-                    "unsupported alter " + expression.getOperation());
-        };
-    }
-
-    private static DdlChangeBO addColumn(String table, AlterExpression expression, String source, int line) {
-        if (expression.getColDataTypeList() == null || expression.getColDataTypeList().size() != 1) {
-            throw diagnostic(UNSUPPORTED_DDL, source, line, "ADD COLUMN lost its type");
-        }
-        ColumnDefinition definition = expression.getColDataTypeList().get(0);
-        return DdlChangeBO.builder().kind("ADD_COLUMN").tableName(table).columnDefinition(column(definition, 0)).build();
-    }
-
-    private static DdlChangeBO alterColumn(String table, AlterExpression expression, String source, int line) {
-        if (expression.getColumnSetDefaultList() != null && !expression.getColumnSetDefaultList().isEmpty()) {
-            AlterExpression.ColumnSetDefault setDefault = expression.getColumnSetDefaultList().get(0);
-            return DdlChangeBO.builder().kind("SET_DEFAULT").tableName(table)
-                    .column(unquote(setDefault.getColumnName()))
-                    .expression(setDefault.getDefaultValue())
-                    .build();
-        }
-        if (expression.getColDataTypeList() == null || expression.getColDataTypeList().isEmpty()) {
-            throw diagnostic(UNSUPPORTED_DDL, source, line, "alter column lost its target");
-        }
-        ColumnDefinition definition = expression.getColDataTypeList().get(0);
-        List<String> specs = definition.getColumnSpecs() == null ? List.of() : definition.getColumnSpecs();
-        if (hasSequence(specs, "DROP", "NOT", "NULL")) {
-            return DdlChangeBO.builder().kind("SET_NULLABLE").tableName(table)
-                    .column(unquote(definition.getColumnName())).nullable(true).build();
-        }
-        if (hasSequence(specs, "NOT", "NULL")) {
-            return DdlChangeBO.builder().kind("SET_NULLABLE").tableName(table)
-                    .column(unquote(definition.getColumnName())).nullable(false).build();
-        }
-        if (definition.getColDataType() != null && definition.getColDataType().getDataType() != null
-                && !"SET".equalsIgnoreCase(definition.getColDataType().getDataType())) {
-            return DdlChangeBO.builder().kind("SET_TYPE").tableName(table)
-                    .columnDefinition(column(definition, 0)).build();
-        }
-        throw diagnostic(UNSUPPORTED_DDL, source, line, "alter column action is not supported");
-    }
-
-    private static DdlChangeBO dropChange(Drop drop, String source, int line) {
-        String type = drop.getType() == null ? "" : drop.getType().toUpperCase(Locale.ROOT);
-        String name = drop.getName() == null ? null : unquote(drop.getName().getName());
-        if ("INDEX".equals(type)) {
-            return DdlChangeBO.builder().kind("DROP_INDEX").indexName(name).build();
-        }
-        if ("TABLE".equals(type)) {
-            return DdlChangeBO.builder().kind("DROP_TABLE").tableName(name).build();
-        }
-        throw diagnostic(UNSUPPORTED_DDL, source, line, "unsupported drop " + type);
     }
 
     private static String defaultExpression(List<String> specs) {
@@ -759,20 +637,6 @@ public class PostgreDdlAdapter {
             index++;
         }
         return -1;
-    }
-
-    private static int lastKeyword(String sql, String keyword) {
-        int found = -1;
-        int from = 0;
-        while (from < sql.length()) {
-            int next = indexOfKeyword(sql.substring(from), keyword);
-            if (next < 0) {
-                return found;
-            }
-            found = from + next;
-            from = found + keyword.length();
-        }
-        return found;
     }
 
     private static int nextBoundary(String sql) {

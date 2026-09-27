@@ -41,6 +41,8 @@ Reject new/touched ambiguous `Data`, `Info`, `Param`, `Bean`, or suffixless carr
 
 ## Rule 2 — validate each affected layer handoff
 
+Repository → DAO is a database-shape boundary only. Validate PO/DAO inputs against CREATE table nullability (`NOT NULL` → `@NotNull`), length, numeric bounds and declared enum values with Jakarta annotations, `@Valid`, `@Validated` and existing Insert(Create)/Update/Delete/Query/Persisted groups. Do not repeat domain/stateful business checks in DAO or rely on `ValidationUtils` as the rule source; the MP mapper interceptor directly invokes Jakarta Validator after fill for inherited CRUD. Unsupported CHECK and later ALTER effects require an agent-owned decision.
+
 Do not stop at Controller validation. Inspect and test each affected external -> Controller/Adapter, Controller/Adapter -> Service/Application, Service/Application -> Domain Service/Component, Service/Application -> DAO/Repository/Gateway, and Event/Job/internal re-entry handoff.
 
 Verify actual Jakarta annotations, `@Valid`, `@Validated`, selected Validation Group, `ValidationUtils` invocation when proxy validation is absent, normalization order, error mapping, and positive/negative tests. Reused objects must use scenario groups at every applicable call site.

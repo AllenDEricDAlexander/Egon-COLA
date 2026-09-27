@@ -54,7 +54,10 @@ Define validation through Jakarta constraints, composed/custom annotations with 
 
 `ValidationUtils` is a generic explicit-validation helper for paths without automatic interception. It may invoke the same constraint metadata; it is not the business-rule registry, a replacement for annotations, or a requirement to call it at every proxy-validated boundary. Cross-field rules belong in class-level constraints; stateful business invariants remain in the owning domain/service and transaction. Telephone constraints may delegate to libphonenumber; do not reimplement parsing in a utility.
 
+Repository → DAO validation checks database-shape constraints only: DDL `NOT NULL` as `@NotNull` (do not infer `@NotBlank`), length, numeric bounds and permitted values when the DDL declares them. Put Jakarta constraints on the PO or DAO input and select the existing `EgonColaModelValidationGroups` for CRUD (`Insert` means Create, then Update/Delete/Query; Persisted checks loaded rows). Use `@Valid` and `@Validated` on applicable entry methods; MP's mapper interceptor invokes the assembled Jakarta Validator directly after fill for inherited mapper calls. Do not repeat domain/stateful business validation in DAO or make `ValidationUtils` the DAO rule source. A simple CREATE CHECK may be generated; complex CHECK and later ALTER impacts are agent-owned.
+
 不能完全依赖 ValidationUtils。每个边界明确原生/自定义注解、@Valid、@Validated、分组和扩展；工具仅补充手工触发。检查非代理、自调用、消息入口、嵌套对象及错误映射。
+Repository → DAO 只按数据库表约束校验 `NOT NULL`→`@NotNull`（不擅自推断 `@NotBlank`）、长度、数值范围和 DDL 声明的枚举取值，不承担业务状态规则。复用现有 Insert（即 Create）、Update、Delete、Query、Persisted 分组；DAO 入参优先注解驱动，MP Mapper 拦截器对继承方法在填充后直接调用 Jakarta Validator，不经过 ValidationUtils。复杂 CHECK 和后续 ALTER 由 agent 实现。
 
 ## Soft-delete business uniqueness · 软删除业务唯一键
 

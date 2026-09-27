@@ -63,6 +63,8 @@ The Spec must record: exact path, type name, role, suffix, source/target layer, 
 
 ## Rule 2 — validation at every layer boundary
 
+Repository → DAO is a database-shape boundary only. Validate PO/DAO inputs against CREATE table nullability (`NOT NULL` → `@NotNull`), length, numeric bounds and declared enum values with Jakarta annotations, `@Valid`, `@Validated` and existing Insert(Create)/Update/Delete/Query/Persisted groups. Do not repeat domain/stateful business checks in DAO or rely on `ValidationUtils` as the rule source; the MP mapper interceptor directly invokes Jakarta Validator after fill for inherited CRUD. Unsupported CHECK and later ALTER effects require an agent-owned decision.
+
 Validation is not Controller-only. Inventory every affected handoff, including as applicable:
 
 - HTTP/RPC/message/job input -> Controller/Adapter;

@@ -9,9 +9,11 @@ description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风�
 
 ## 依赖审批与后端模板生成
 
-资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。native light、web、service 上，SQL 变动只通过该生成器刷新目录内的 Java 与 Mapper XML：模型只写 SQL、Manifest 和生成器配置。新业务项目由 egon-coding-create-new-module 按一个非 open archetype 生成，不能手写模块骨架。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
+资源预检后，Java 依赖决策或 DDL/CRUD 模板任务必须读取 `references/backend-code-generation.md`。禁止自行引入依赖；能力不足时阻断并提交具体引入方案，获得用户明确批准后再继续。已批准的精确依赖不重复询问。生成器可用后，已支持模板必须调用 scripts/egon-codegen.sh；禁止虚构命令或静默手写替代。native light、web、service 仅对初始 CREATE 建表使用生成器；ALTER 等后续结构变更由 agent 按获批 Plan 分析并修改代码，不得再用生成器刷新旧产物。新业务项目由 egon-coding-create-new-module 按一个非 open archetype 生成，不能手写模块骨架。每次 apply 成功后，或本次只授权到 plan 时，按 references/backend-code-generation.md 追加 classpath SQL 日志。
 
 生成基础 CRUD 时按 Repo → Domain Service/实现 → Manage/实现 → Light/Web Controller 链路选择 `backend-crud`；Service 不生成 HTTP。DDL 中通用列需要校验，PO 通过 `EgonModel` 继承，不重复声明。v1/过期计划和无归属文件阻断 apply。
+
+列出目标项目中脚手架示例的 Controller、Service、Repository、PO/DAO 和配置；样例 SQL 只有未应用时才可删除，已应用历史只能新增纠正版本。Spec 必须明确真实业务实施时替换或删除哪些样例；样例代码仅供参考，不能作为生产行为保留。
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -298,7 +300,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 对已有但不变的层写 `N/A` | 使用 `Unchanged`，写准确证据、保持不变量、停止原因和聚焦验证 |
 | 删除不适用章节 | 保留章节并写有证据的 `N/A`；不能混淆 `Not applicable` 与 `Unchanged` |
 | 编写实施顺序或代码 | 停在设计阶段；审核后使用 `egon-coding-writing-plan` |
-| SQL 变更或新项目时手写目录内的 PO/DAO/XML/Repository，或手写模块树 | native light/web/service 上，按 `references/backend-code-generation.md` 把目录文件标成生成器所有。新项目用 `egon-coding-create-new-module` 从一个非 open archetype 生成 |
+| 手写初始 CREATE 的 PO/DAO/XML/Repository 模板，或手写模块树 | native light/web/service 的初始 CREATE 目录文件标为生成器所有；后续 ALTER 由 agent 修改。新项目用 `egon-coding-create-new-module` 从一个非 open archetype 生成 |
 
 ## Skill 维护
 

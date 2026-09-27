@@ -35,6 +35,8 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 ## 规则 2——检查每个受影响层间交接
 
+Repository → DAO 只按数据库表结构约束校验：`NOT NULL`→`@NotNull`、长度、数值范围和 DDL 声明的枚举取值。PO/DAO 入参使用 Jakarta 注解、`@Valid`、`@Validated` 及已有 Insert（Create）/Update/Delete/Query/Persisted 分组。DAO 不重复领域/状态业务校验，不把 `ValidationUtils` 当规则来源；MP Mapper 拦截器负责继承 CRUD 的填充后校验。复杂 CHECK 与后续 ALTER 影响由 agent 决定。
+
 不能停在 Controller。分别检查/测试外部 -> Controller/Adapter、Controller/Adapter -> Service/Application、Service/Application -> Domain Service/Component、Service/Application -> DAO/Repository/Gateway，以及 Event/Job/内部重入。
 
 核对 Jakarta 注解、`@Valid`、`@Validated`、Validation Group、非 Proxy 场景 `ValidationUtils`、规范化顺序、错误和正反测试。复用对象必须在每个调用点使用场景 Group。电话输入必须走已批准 libphonenumber，包含 Region、E.164、Validity、错误和测试；使用计划内自定义约束注解及扩展，禁止重复实现电话解析。

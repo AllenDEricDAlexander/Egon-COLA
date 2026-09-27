@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.lightopen.infrastructure.teaching.dao;
 
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.po.ClassCourseSchedulePO;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.validation.annotation.Validated;
 import org.apache.ibatis.annotations.Param;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 
@@ -9,6 +10,7 @@ import java.util.List;
 
 /** MyBatis mapper for class-course schedules. */
 @Mapper
+@Validated
 /** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface ClassCourseScheduleDAO extends EgonColaMapper<ClassCourseSchedulePO> {
     List<ClassCourseSchedulePO> selectBySchoolClassIdOrderByStartsAt(

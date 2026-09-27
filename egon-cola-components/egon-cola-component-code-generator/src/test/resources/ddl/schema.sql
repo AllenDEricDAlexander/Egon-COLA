@@ -11,4 +11,3 @@ CREATE TABLE orders (
 );
 CREATE UNIQUE INDEX orders_lifecycle ON orders(tenant_id, code, deleted_at);
 CREATE UNIQUE INDEX orders_active ON orders(tenant_id, code) WHERE deleted_at IS NULL;
-COMMENT ON COLUMN orders.code IS '业务代码与 Unicode 转义样本';
