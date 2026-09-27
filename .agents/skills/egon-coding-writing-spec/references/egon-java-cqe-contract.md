@@ -2,7 +2,7 @@
 
 Dependency introduction and DDL/CRUD templates must also follow `references/backend-code-generation.md`: no autonomous dependencies; an unmet capability requires a user-approved introduction plan.
 
-Updated: 2026-09-22. Read this reference for every Java Spec, Plan and execution audit. It supersedes field-count-based records, unconditional builder choices, utility-only validation and CQRS naming. Apply only to the requested change surface; a documentation update does not authorize rewriting existing Java or SQL.
+Updated: 2026-09-27. Read this reference for every Java Spec, Plan and execution audit. It supersedes field-count-based records, unconditional builder choices, utility-only validation and CQRS naming. Apply only to the requested change surface; a documentation update does not authorize rewriting existing Java or SQL.
 
 ## POJO, value object and enums · 对象与枚举
 
@@ -91,6 +91,10 @@ Source drift must be reported honestly: the checked-in Agent POM/config still co
 - With the outbox, use `TransactionalOutbox.enqueue(OutboxMessage)` within the business transaction and verify the datasource/transaction-manager boundary and supported transport. The user shorthand `egon-cola-transcational-box` refers to this existing artifact, not a new dependency.
 - Direct MQ is allowed, but must document publish confirmation, rollback/publish ordering, retry/recovery and the DB/MQ dual-write failure window. When atomic DB-plus-event intent is required, use the outbox or a verified broker transaction design. Do not call after-commit RabbitMQ publication atomic or exactly once.
 - Every event contract records event ID, business identity, schema version, destination/channel, payload, consumer validation/idempotency, retry/backoff, dead-letter handling and observability. A test-local publisher is only a test double.
+
+For the current Outbox + Spring Statemachine integration, conditionally read `references/outbox-statemachine-integration.md` (Chinese mirror: `references/outbox-statemachine-integration.zh-CN.md`). Design follows its section 1; Plan and execution use section 2. The Starter already owns technical lifecycle transitions; business Event state transitions are an opt-in application SPI with durable state/receipt transactions. Do not substitute a local listener for delivery, use a shared Machine as persistence, or require the optional adapter for every CQE operation.
+
+涉及Outbox/状态机时，按该参考的“设计方案”和“实施细节”分别落实状态所有权、消息封装、可信租户、消费凭据、事务/CAS、MP/DDL与验证；技术生命周期必需、业务适配可选，查询保持只读。纯文档任务不授权修改组件实现或运行生产迁移。
 
 CQE replaces the project's CQRS naming while preserving command/query separation. It does not require a third Maven module, event sourcing, independent databases or an event for every query/CRUD operation. If an operation publishes no event, record that explicitly. Existing API/validator filenames and symbols are not proof of messaging guarantees.
 

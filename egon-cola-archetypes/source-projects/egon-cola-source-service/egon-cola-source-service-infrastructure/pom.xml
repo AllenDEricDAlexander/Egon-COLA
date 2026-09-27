@@ -33,10 +33,12 @@
             <artifactId>egon-cola-source-service-domain</artifactId>
             <version>${egon-cola.version}</version>
         </dependency>
+        <!-- optional-peer-facade:start -->
         <dependency>
             <groupId>${organization-facade.group-id}</groupId>
             <artifactId>${organization-facade.artifact-id}</artifactId>
         </dependency>
+        <!-- optional-peer-facade:end -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>

@@ -71,7 +71,7 @@ adapter/user/facade/impl
 common         -> no generated module
 domain         -> common
 application    -> domain
-infrastructure -> domain, canonical Evaluation Facade
+infrastructure -> domain, 可选的 Evaluation Facade
 adapter        -> application, canonical Organization Facade
 starter        -> adapter, infrastructure
 ```
@@ -89,11 +89,11 @@ Infrastructure 实现 Domain 所有的端口。Adapter 不能直接访问 Infras
 ## 集成职责
 
 - Adapter 负责 HTTP `/api/v1/**`、GraphQL `/graphql`、入站 RabbitMQ command、COLA RPC Facade export、请求校验、过滤器和协议转换。
-- Infrastructure 负责 Common MyBatis-Plus 持久化、受管 PostgreSQL DDL、Redis adapter、出站 RabbitMQ event、Evaluation Facade 防腐 adapter、本地 fallback adapter，以及 Application 方法日志 AOP。
+- Infrastructure 负责 Common MyBatis-Plus 持久化、受管 PostgreSQL DDL、Redis adapter、出站 RabbitMQ event、Application 方法日志 AOP，以及可选的 Evaluation Facade 客户端适配器。
 - Starter 负责 OpenAPI 组装、运行时 profile、Actuator、Prometheus、Jackson、异步执行和配置解密。
-- Organization 契约由本工程自己的 `top.egon.internal.archetype.source:egon-cola-source-web-facade` 模块发布；被消费的 Evaluation 契约仍是独立发布的工件，由生成的 POM 通过 `evaluation-facade.group-id`、`evaluation-facade.artifact-id`、`evaluation-facade.version` 与 `evaluation-facade.package` 属性解析，这些属性必须在生成时显式给出。两个契约都不会作为本地模块重复生成。
+- Organization 契约由本工程自己的 Facade 模块发布。若生成时同时提供 `evaluation-facade.group-id`、`evaluation-facade.artifact-id`、`evaluation-facade.version` 与 `evaluation-facade.package` 四项，Evaluation 契约作为外部工件接入；若四项全部省略，则不生成对端依赖、客户端、领域服务和值对象及相关配置。
 
-生成的 `EvaluationQueryPort` 是暂未使用的集成基础能力；当前没有 Application 用例调用它。
+若选择生成，Evaluation 查询客户端是暂未使用的集成基础能力；当前没有 Application 用例调用它。
 
 RabbitMQ command 使用总计三次尝试、有限退避和死信队列。领域事件在提交后发布。该示例会报告事件发布耗尽，但不声称具备事务 outbox 的投递保证。
 
@@ -103,7 +103,7 @@ RabbitMQ command 使用总计三次尝试、有限退避和死信队列。领域
 
 Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2、内存缓存/幂等 adapter、本地事件发布器、确定性的 Evaluation 查询 stub、已关闭的 RabbitMQ 与 外部 Tianshu 连接，以及已关闭的 COLA RPC provider/consumer 与 registry。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都使用 COLA RPC Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0`）。
+`prod` 仅用于 `main` 分支的运行时构建和部署。仅在提供可选对端坐标时，`dev` 与 `prod` 才使用 COLA RPC Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0`）。
 
 - Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
 
@@ -173,7 +173,7 @@ SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl egon-cola-source-web-starter spring-b
 
 ## 原生 RPC、Tianshu 与远程查询
 
-本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 10 个 organization unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms；`EVALUATION_FACADE_APP_CODE` 必须填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 10 个 organization unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Evaluation 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms，`EVALUATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
 
 `dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
 

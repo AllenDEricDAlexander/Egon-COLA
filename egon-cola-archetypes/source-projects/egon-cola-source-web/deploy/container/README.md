@@ -74,8 +74,7 @@ deployment descriptor.
 The example credentials are development-only.
 
 The documented `up --build` command needs two inputs the samples do not supply.
-First, `deploy/env/.env.example` leaves `RPC_ADVERTISED_HOST`, `HTTP_ADVERTISED_HOST`, `TIANSHU_RPC_TARGET`, `TIANSHU_REGISTRATION_RESOURCE_URI`, `TIANSHU_REDIS_HOST` and `EVALUATION_FACADE_APP_CODE`
-blank while the development Compose files mark them `:?`-required, so Compose
+First, `deploy/env/.env.example` leaves `RPC_ADVERTISED_HOST`, `HTTP_ADVERTISED_HOST`, `TIANSHU_RPC_TARGET`, `TIANSHU_REGISTRATION_RESOURCE_URI`, and `TIANSHU_REDIS_HOST` blank. When the optional Evaluation peer is included, `EVALUATION_FACADE_APP_CODE` also needs a real value. Development Compose files mark applicable values `:?`-required, so Compose
 aborts with `required variable ... is missing a value` before any image builds.
 Second, the application reads `EGON_ID_MACHINE_ID` without a default and these
 Compose files pass no such entry to the container, so the application exits on
@@ -118,7 +117,7 @@ be explicitly enabled with Jenkins credentials.
 
 ## Native RPC, Tianshu and remote queries
 
-This project exposes 10 organization unary operations from the shared Protobuf contract. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing Application use cases. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `organization.integrations.evaluation` with the exact target biz code, app code, group/version and timeout. `EVALUATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+This project exposes 10 organization unary operations from the shared Protobuf contract. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing Application use cases. When the optional Evaluation peer is included, remote queries use its Domain service, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `organization.integrations.evaluation` with the exact target biz code, app code, group/version and timeout; `EVALUATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
 
 Supply existing Tianshu RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an Tianquan-Shoubing SERVICE-token client allowed `tianshu:registration:write`. Complete the `TIANSHU_*`, `TIANQUAN_SHOUBING_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `tianshuregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.tianshuregistration` and `spring.security.oauth2.client.provider.tianshuregistration.token-uri` external properties. Production enables RPC/Tianshu mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No Tianshu or Tianquan-Shoubing container is bundled.
 

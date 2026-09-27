@@ -15,6 +15,12 @@ For native CRUD, `backend-crud` uses the full Repository → Domain Service → 
 
 Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.
 
+## Transactional Outbox and Spring Statemachine (2026-09-27)
+
+After resource preflight, read `references/outbox-statemachine-integration.md` when the task adopts Outbox, consumes business Events through Spring Statemachine, or changes technical delivery/migration. The existing single Starter owns the mandatory technical lifecycle; its business adapter is optional. Ordinary queries and unrelated CRUD do not require it, and direct MQ or existing handlers remain valid CQE choices.
+
+Use section 2 at Step validation and both sections during final Spec review. Verify actual transaction/receipt ordering, matching envelope headers, tenant restoration, fresh Machine execution, MP wiring and failure tests. Inspect current Mapper and timeout enforcement; a configured property, skipped PG test or old README is not runtime evidence.
+
 ## Purpose
 
 Execute one approved coding Plan sequentially. Complete, verify, and commit exactly one Plan Step before starting the next. After all Steps, audit the delivered repository against the effective Specs and report every unmet, partial, or runtime-unverified requirement.

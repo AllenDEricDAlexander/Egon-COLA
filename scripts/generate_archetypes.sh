@@ -756,6 +756,15 @@ copy_curated_assets() {
     cp -p "$definition/src/test/resources/projects/basic/$asset" \
       "$product_root/src/test/resources/projects/basic/$asset"
   done
+  if [[ -d "$definition/src/test/resources/projects/no-peer" ]]; then
+    mkdir -p "$product_root/src/test/resources/projects/no-peer"
+    for asset in archetype.properties goal.txt verify.groovy; do
+      [[ -f "$definition/src/test/resources/projects/no-peer/$asset" ]] \
+        || die "no-peer fixture is missing $asset: $definition"
+      cp -p "$definition/src/test/resources/projects/no-peer/$asset" \
+        "$product_root/src/test/resources/projects/no-peer/$asset"
+    done
+  fi
   local archetype_properties="$product_root/src/test/resources/projects/basic/archetype.properties"
   if grep -Fq '@rootVersion@' "$archetype_properties"; then
     sed "s|@rootVersion@|$(escape_sed_replacement "$ROOT_VERSION")|g" \

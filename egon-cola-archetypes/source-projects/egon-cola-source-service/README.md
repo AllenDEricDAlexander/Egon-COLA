@@ -61,17 +61,17 @@ adapter/exam/mq
 ```
 
 This remains service-only: business traffic enters through COLA native unary RPC or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary is a Domain capability contract in `domain/course/service` plus its technical client in `infrastructure/client/organization`.
-The Evaluation contract is published by this project itself from `top.egon.internal.archetype.source:egon-cola-source-service-facade`, while the external Organization contract stays a separately published artifact that the generated POM resolves through the explicit `organization-facade.group-id`, `organization-facade.artifact-id`, `organization-facade.version` and `organization-facade.package` properties supplied at generation time.
+The Evaluation contract is published by this project itself from its own Facade module. If all four `organization-facade.group-id`, `organization-facade.artifact-id`, `organization-facade.version` and `organization-facade.package` values are supplied at generation time, the external Organization contract is consumed as a published artifact. If all four are omitted, the peer dependency, client, domain service/value objects and configuration are not generated.
 
 The allowed internal dependency graph is:
 
 ```text
 Common <- Domain <- Application <- Adapter -> Own Evaluation Facade (protocol only)
-          Domain <- Infrastructure -> Published Organization Facade (external artifact)
+          Domain <- Infrastructure -> Published Organization Facade (optional external artifact)
           Adapter <- Starter -> Infrastructure
 ```
 
-More precisely: Domain depends only on Common; Facade depends on no internal module; Application and Infrastructure depend only on Domain; Adapter depends on Application plus this project's own Facade. Adapter implements the owned Evaluation Facade contract, Infrastructure consumes the published Organization Facade contract, and neither the peer Facade artifact nor the Organization provider depends on this generated project. Starter is the composition root, so there is no Web/Service Maven dependency cycle.
+More precisely: Domain depends only on Common; Facade depends on no internal module; Application and Infrastructure depend only on Domain; Adapter depends on Application plus this project's own Facade. Adapter implements the owned Evaluation Facade contract. When enabled at generation, Infrastructure consumes the published Organization Facade contract; neither that artifact nor its provider depends on this generated project. Starter is the composition root, so there is no Web/Service Maven dependency cycle.
 
 ## Example Flows
 
@@ -86,11 +86,11 @@ RabbitMQ support is intentionally basic transport. The sample does not promise r
 
 `dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, RabbitMQ, and COLA RPC integrations.
 
-`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, disables RabbitMQ publishers and listeners, and selects the deterministic local `OrganizationDirectoryClient` implementation, so it requires no RabbitMQ, PostgreSQL, or external COLA RPC provider.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode and disables RabbitMQ publishers and listeners. If the peer was included, it selects the deterministic local `OrganizationDirectoryClient` implementation. It requires no RabbitMQ, PostgreSQL, or external COLA RPC provider.
 
-The Organization Facade client is an unused infrastructure foundation; no current Application use case calls the Organization port.
+The Organization Facade client is an unused infrastructure foundation when included; no current Application use case calls the Organization service.
 
-`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization COLA RPC client, pin the published Organization contract through the `organization-facade.group-id`, `organization-facade.artifact-id` and `organization-facade.version` properties of the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
+`prod` is reserved for runtime builds and deployments from `main`. If the optional peer was supplied, `dev` and `prod` select the real Organization COLA RPC client, pin the published Organization contract through the `organization-facade.group-id`, `organization-facade.artifact-id` and `organization-facade.version` properties of the generated POM, and fail explicitly when the provider is unavailable. Configure integrations through environment variables rather than committed secrets:
 
 - Database: configure the `master_data`, `shard_0`, and `shard_1` physical data sources described below.
 - Tianshu: configure `TIANSHU_RPC_TARGET`, `TIANSHU_NAMESPACE`, separate runtime/registry HMAC credentials and Tianquan-Shoubing SERVICE tokens. `TIANSHU_ENABLED` and `TIANSHU_REGISTRY_ENABLED` control configuration and registration. See the native RPC/Tianshu section below for connection settings.
@@ -159,11 +159,11 @@ The root `Jenkinsfile` runs tests and can publish immutable images. Set
 
 ## Scope Boundary
 
-This generated service has no business Controller, Web Filter, GraphQL endpoint, native grpc-java module, or enabled H2 console. Its Organization Facade client is intentionally not wired into current Application behavior.
+This generated service has no business Controller, Web Filter, GraphQL endpoint, native grpc-java module, or enabled H2 console. If included, its optional Organization Facade client is intentionally not wired into current Application behavior.
 
 ## Native RPC, Tianshu and remote queries
 
-This project exposes 11 evaluation unary operations from the Protobuf contract published by its own Facade module. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing use cases. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout. `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+This project exposes 11 evaluation unary operations from the Protobuf contract published by its own Facade module. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing use cases. When the optional Organization peer is included, remote queries use its Domain service, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout; `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
 
 Supply existing Tianshu RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an Tianquan-Shoubing SERVICE-token client allowed `tianshu:registration:write`. Complete the `TIANSHU_*`, `TIANQUAN_SHOUBING_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `tianshuregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.tianshuregistration` and `spring.security.oauth2.client.provider.tianshuregistration.token-uri` external properties. Production enables RPC/Tianshu mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No Tianshu or Tianquan-Shoubing container is bundled.
 

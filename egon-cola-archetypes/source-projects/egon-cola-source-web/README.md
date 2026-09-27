@@ -69,7 +69,7 @@ adapter/teaching/pojo/dto
 adapter/user/facade/impl
 ```
 
-Shared runtime concerns stay at their layer root. The external Evaluation boundary is the deliberate exception at `infrastructure/client/evaluation`, while the Domain side only owns its `domain/teaching/service` port and value objects.
+Shared runtime concerns stay at their layer root. When the optional Evaluation integration is generated, its technical client lives at `infrastructure/client/evaluation` and its Domain service and value objects stay in `domain/teaching`.
 
 ## Dependency Direction
 
@@ -77,7 +77,7 @@ Shared runtime concerns stay at their layer root. The external Evaluation bounda
 common         -> no generated module
 domain         -> common
 application    -> domain
-infrastructure -> domain, canonical Evaluation Facade
+infrastructure -> domain, optional canonical Evaluation Facade
 adapter        -> application, canonical Organization Facade
 starter        -> adapter, infrastructure
 ```
@@ -95,11 +95,11 @@ The complete `teaching` vertical creates and queries grades and school classes, 
 ## Integration Ownership
 
 - Adapter owns HTTP `/api/v1/**`, GraphQL `/graphql`, inbound RabbitMQ commands, COLA RPC Facade export, request validation, filters, and protocol conversion.
-- Infrastructure owns Common MyBatis-Plus persistence, managed PostgreSQL DDL, Redis adapters, outbound RabbitMQ events, the Evaluation Facade anti-corruption adapter, local fallback adapters, and Application-method logging AOP.
+- Infrastructure owns Common MyBatis-Plus persistence, managed PostgreSQL DDL, Redis adapters, outbound RabbitMQ events, Application-method logging AOP, and the optional Evaluation Facade client adapters.
 - Starter owns OpenAPI assembly, runtime profiles, Actuator, Prometheus, Jackson, async execution, and configuration decryption.
-- The Organization contract is published by this project itself from `top.egon.internal.archetype.source:egon-cola-source-web-facade`; the consumed Evaluation contract stays an externally published artifact that the generated POM resolves through the explicit `evaluation-facade.group-id`, `evaluation-facade.artifact-id`, `evaluation-facade.version` and `evaluation-facade.package` properties supplied at generation time. Only this project’s own contract is generated as a local facade module; the peer contract is an external artifact.
+- The Organization contract is published by this project itself from its local Facade module. When all four `evaluation-facade.group-id`, `evaluation-facade.artifact-id`, `evaluation-facade.version` and `evaluation-facade.package` values are supplied at generation time, the Evaluation contract is consumed as an external artifact. When they are omitted together, the peer dependency, client, domain service/value objects and configuration are not generated.
 
-The generated `EvaluationQueryPort` is an unused integration foundation; no current Application use case calls it.
+When included, the Evaluation query client is an unused integration foundation; no current Application use case calls it.
 
 RabbitMQ command retries use three total attempts with bounded backoff and dead-letter queues. Domain events publish after commit. This example reports exhausted event publication but does not claim transactional-outbox delivery.
 
@@ -109,7 +109,7 @@ RabbitMQ command retries use three total attempts with bounded backoff and dead-
 
 `test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, in-memory cache/idempotency adapters, a local event publisher, a deterministic Evaluation query stub, disabled RabbitMQ and external Tianshu connections, and disabled COLA RPC provider/consumer and registry.
 
-`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` use the COLA RPC Evaluation Facade client with a 3000 ms timeout, zero retries, and startup reference checks. Each consumed Facade has its own group variable — `EVALUATION_COURSE_FACADE_GROUP` (default `course`), `EVALUATION_EXAM_FACADE_GROUP` (default `exam`), and `EVALUATION_SCORE_FACADE_GROUP` (default `score`) — alongside `EVALUATION_FACADE_SERVICE_VERSION` (default `1.0`).
+`prod` is reserved for runtime builds and deployments from `main`. If the optional peer was supplied, `dev` and `prod` use the COLA RPC Evaluation Facade client with a 3000 ms timeout, zero retries, and startup reference checks. Each consumed Facade has its own group variable — `EVALUATION_COURSE_FACADE_GROUP` (default `course`), `EVALUATION_EXAM_FACADE_GROUP` (default `exam`), and `EVALUATION_SCORE_FACADE_GROUP` (default `score`) — alongside `EVALUATION_FACADE_SERVICE_VERSION` (default `1.0`).
 
 - Tianshu: configure `TIANSHU_RPC_TARGET`, `TIANSHU_NAMESPACE`, separate runtime/registry HMAC credentials and Tianquan-Shoubing SERVICE tokens. `TIANSHU_ENABLED` and `TIANSHU_REGISTRY_ENABLED` control configuration and registration. See the native RPC/Tianshu section below for connection settings.
 
@@ -188,7 +188,7 @@ Sensitive values belong in environment variables, mounted files, `config/applica
 
 ## Native RPC, Tianshu and remote queries
 
-This project exposes 10 organization unary operations from the Protobuf contract published by its own Facade module. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing use cases. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `organization.integrations.evaluation` with the exact target biz code, app code, group/version and timeout. `EVALUATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+This project exposes 10 organization unary operations from the Protobuf contract published by its own Facade module. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing use cases. When the optional Evaluation peer is included, remote queries use its Domain service, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `organization.integrations.evaluation` with the exact target biz code, app code, group/version and timeout; `EVALUATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
 
 Supply existing Tianshu RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an Tianquan-Shoubing SERVICE-token client allowed `tianshu:registration:write`. Complete the `TIANSHU_*`, `TIANQUAN_SHOUBING_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `tianshuregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.tianshuregistration` and `spring.security.oauth2.client.provider.tianshuregistration.token-uri` external properties. Production enables RPC/Tianshu mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No Tianshu or Tianquan-Shoubing container is bundled.
 

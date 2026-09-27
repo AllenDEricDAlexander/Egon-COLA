@@ -27,10 +27,12 @@
         <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
         <mapstruct-plus.version>1.5.1</mapstruct-plus.version>
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
+        <!-- optional-peer-facade:start -->
         <organization-facade.group-id>top.egon.internal.archetype.source</organization-facade.group-id>
         <organization-facade.artifact-id>egon-cola-source-web-facade</organization-facade.artifact-id>
         <organization-facade.version>${egon-cola.version}</organization-facade.version>
         <organization-facade.package>top.egon.cola.archetype.source.web.facade</organization-facade.package>
+        <!-- optional-peer-facade:end -->
         <!-- Shared defaults for Maven run and the external Java argument file. -->
         <run.profile>dev</run.profile>
         <run.jvm-args>-Xms256m -Xmx512m</run.jvm-args>
@@ -74,11 +76,13 @@
                 <artifactId>egon-cola-source-service-facade</artifactId>
                 <version>${egon-cola.version}</version>
             </dependency>
+            <!-- optional-peer-facade:start -->
             <dependency>
                 <groupId>${organization-facade.group-id}</groupId>
                 <artifactId>${organization-facade.artifact-id}</artifactId>
                 <version>${organization-facade.version}</version>
             </dependency>
+            <!-- optional-peer-facade:end -->
             <dependency>
                 <groupId>io.github.linpeilie</groupId>
                 <artifactId>mapstruct-plus-spring-boot-starter</artifactId>

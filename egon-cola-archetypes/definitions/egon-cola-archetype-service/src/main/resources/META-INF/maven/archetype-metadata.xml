@@ -9,12 +9,11 @@
         <requiredProperty key="gitignore">
             <defaultValue>.gitignore</defaultValue>
         </requiredProperty>
-        <!-- The peer contract coordinate is explicit: generation must fail until the
-             sibling project's published facade artifact is named. -->
-        <requiredProperty key="organizationFacadeGroupId"/>
-        <requiredProperty key="organizationFacadeArtifactId"/>
-        <requiredProperty key="organizationFacadeVersion"/>
-        <requiredProperty key="organizationFacadePackage"/>
+        <!-- All four values may be omitted together to generate without the peer client. -->
+        <requiredProperty key="organizationFacadeGroupId"><defaultValue>__NO_PEER_FACADE__</defaultValue></requiredProperty>
+        <requiredProperty key="organizationFacadeArtifactId"><defaultValue>__NO_PEER_FACADE__</defaultValue></requiredProperty>
+        <requiredProperty key="organizationFacadeVersion"><defaultValue>__NO_PEER_FACADE__</defaultValue></requiredProperty>
+        <requiredProperty key="organizationFacadePackage"><defaultValue>__NO_PEER_FACADE__</defaultValue></requiredProperty>
     </requiredProperties>
 
     <fileSets>

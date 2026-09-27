@@ -56,17 +56,17 @@ adapter/exam/mq
 
 该项目保持 service-only：业务流量通过 COLA native unary RPC 或 RabbitMQ 进入，不包含业务 Controller、Web Filter、GraphQL 或 VO 包。外部 Organization 边界由 `domain/course/service` 中的 Domain 能力契约和 `infrastructure/client/organization` 中的技术 client 共同构成。
 
-Evaluation 契约由本工程自己的 `top.egon.internal.archetype.source:egon-cola-source-service-facade` 模块发布；外部 Organization 契约仍是独立发布的工件，由生成的 POM 通过 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 与 `organization-facade.package` 属性解析，这些属性必须在生成时显式给出。
+Evaluation 契约由本工程自己的 Facade 模块发布。若生成时同时提供 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 与 `organization-facade.package` 四项，外部 Organization 契约作为已发布工件接入；若四项全部省略，则不生成对端依赖、客户端、领域服务和值对象及相关配置。
 
 允许的内部依赖图为：
 
 ```text
 Common <- Domain <- Application <- Adapter -> 本工程自有 Evaluation Facade（仅协议）
-          Domain <- Infrastructure -> 已发布的 Organization Facade（外部工件）
+          Domain <- Infrastructure -> 已发布的 Organization Facade（可选外部工件）
           Adapter <- Starter -> Infrastructure
 ```
 
-更精确地说：Domain 只依赖 Common；Facade 不依赖任何内部模块；Application 与 Infrastructure 只依赖 Domain；Adapter 依赖 Application 与本工程自有 Facade。Adapter 实现自有 Evaluation Facade 契约，Infrastructure 消费已发布的 Organization Facade 契约，对端 Facade 工件与 Organization provider 都不依赖当前生成项目。Starter 是组合根，因此不存在 Web/Service Maven 循环依赖。
+更精确地说：Domain 只依赖 Common；Facade 不依赖任何内部模块；Application 与 Infrastructure 只依赖 Domain；Adapter 依赖 Application 与本工程自有 Facade。Adapter 实现自有 Evaluation Facade 契约。仅在生成时启用对端集成后，Infrastructure 才消费已发布的 Organization Facade 契约；对端工件与 provider 都不依赖当前生成项目。Starter 是组合根，因此不存在 Web/Service Maven 循环依赖。
 
 ## 示例流程
 
@@ -81,11 +81,11 @@ RabbitMQ 支持有意保持为基础传输能力。示例不承诺重试、死�
 
 `dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、RabbitMQ 和 COLA RPC 集成。
 
-Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2，关闭 RabbitMQ publisher 和 listener，并选择确定性的本地 `OrganizationDirectoryClient` 实现，因此不需要 RabbitMQ、PostgreSQL 或外部 COLA RPC provider。
+Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2，关闭 RabbitMQ publisher 和 listener；若启用了可选对端集成，还会选择确定性的本地 `OrganizationDirectoryClient` 实现。因此不需要 RabbitMQ、PostgreSQL 或外部 COLA RPC provider。
 
-Organization Facade client 仍是一个暂未使用的 infrastructure 基础能力；当前没有 Application 用例调用 Organization port。
+若选择生成，Organization Facade client 仍是一个暂未使用的 infrastructure 基础能力；当前没有 Application 用例调用对应领域服务。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都选择真实的 Organization COLA RPC client，通过生成的 POM 的 `organization-facade.group-id`、`organization-facade.artifact-id` 与 `organization-facade.version` 属性固定已发布的 Organization 契约，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
+`prod` 仅用于 `main` 分支的运行时构建和部署。仅在提供可选对端坐标时，`dev` 与 `prod` 才选择真实的 Organization COLA RPC client，通过生成的 POM 的 `organization-facade.group-id`、`organization-facade.artifact-id` 与 `organization-facade.version` 属性固定已发布的 Organization 契约，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
 
 - 数据库：按下文为 `master_data`、`shard_0`、`shard_1` 配置 ShardingSphere 物理数据源。
 - Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
@@ -146,11 +146,11 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 
 ## 范围边界
 
-该生成的 service 项目不包含业务 Controller、Web Filter、GraphQL endpoint、native grpc-java 模块或启用的 H2 console。Organization Facade client 有意未接入当前 Application 行为。
+该生成的 service 项目不包含业务 Controller、Web Filter、GraphQL endpoint、native grpc-java 模块或启用的 H2 console。若选择生成，可选的 Organization Facade client 目前未接入 Application 行为。
 
 ## 原生 RPC、Tianshu 与远程查询
 
-本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 11 个 evaluation unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms；`ORGANIZATION_FACADE_APP_CODE` 必须填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 11 个 evaluation unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Organization 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms，`ORGANIZATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
 
 `dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
 
@@ -174,7 +174,7 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 
 默认测试使用隔离 H2 和受控依赖。本工程不含 PostgreSQL 门控测试：`-Degon.pg.*` 与 `EGON_TEST_PG_*` 不被任何 POM、YAML 或测试读取，也没有测试启动或提供数据库。PG/SS 真实路由、迁移和性能 EXPLAIN 由使用者手动验收，没有失败不等于通过。
 
-契约依赖：Evaluation 契约来自本工程自有的 `-facade` 模块；Organization 契约由生成的 POM 通过 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 与 `organization-facade.package` 属性解析。
+契约依赖：Evaluation 契约来自本工程自有的 `-facade` 模块；仅在提供四项坐标时，Organization 契约才由生成的 POM 通过 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 与 `organization-facade.package` 属性解析。
 
 ## 二级缓存
 

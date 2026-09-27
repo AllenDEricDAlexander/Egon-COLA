@@ -33,10 +33,12 @@
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-web-domain</artifactId>
         </dependency>
+        <!-- optional-peer-facade:start -->
         <dependency>
             <groupId>${evaluation-facade.group-id}</groupId>
             <artifactId>${evaluation-facade.artifact-id}</artifactId>
         </dependency>
+        <!-- optional-peer-facade:end -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>

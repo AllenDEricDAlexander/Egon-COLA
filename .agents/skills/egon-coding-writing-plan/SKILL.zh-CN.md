@@ -17,6 +17,12 @@ description: 当编码任务已有明确且经过审核或接受的 Spec，需�
 
 Read `references/egon-java-cqe-contract.md` after resource preflight for every Java task. Apply its POJO, enum, component/MP reuse, validation, soft-delete uniqueness, CQE delivery and source-grounded DDD checks in design, planning and final review. This is the latest user-directed contract; ordinary three-layer structure stays unchanged.
 
+## Transactional Outbox 与 Spring Statemachine（2026-09-27）
+
+任务涉及Outbox接入、Spring Statemachine消费业务Event或技术投递/迁移变更时，资源预检后读取 `references/outbox-statemachine-integration.zh-CN.md`。现有单Starter管理必需的技术生命周期，业务适配可选启用；普通Query或无关CRUD不强制接入，直接MQ和已有handler仍是有效CQE方案。
+
+按第2部分把已接受设计映射到既有SPI、Bean、Event封装、MP/DDL、生产者及测试文件，并明确依赖顺序、状态与凭据原子性、兼容的校验约束、配置和行为RED/GREEN。业务接入不能重新实现组件已有runner、Store或dispatcher。
+
 ## 目的
 
 把一个明确的编码 Spec 和当前仓库状态转化为有顺序、逐文件的实施路径。在设计审核后、开始实现前，把 Plan 写到 `docs/egon/plan`。
