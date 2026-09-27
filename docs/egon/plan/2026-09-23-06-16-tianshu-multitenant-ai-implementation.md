@@ -2539,7 +2539,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Input/output and state mapping: 注入唯一已校验的binding registry和MDC context executor，输出具备完整依赖的DdcRpcServerInterceptor。
 - Error and edge behavior: 必需安全Bean缺失时Spring启动失败，不回退为无tenant interceptor。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-BEAN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；只修改Admin现有RPC Bean接线。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2566,7 +2566,7 @@ ServerInterceptor ddcRpcServerInterceptor(DdcAdminProperties properties,
 - Input/output and state mapping: 启用的运行client通过注入配置获得tenant；关闭能力时不创建网络client，也不从系统默认值补tenant。
 - Error and edge behavior: 启用网络能力而tenant缺失/非正时快速失败；disabled不建通道。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-VALID-001, MC-BEAN-001, MC-CONFIG-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; ConfigData与运行时使用同一tenant配置源。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2593,7 +2593,7 @@ ServerInterceptor ddcRpcServerInterceptor(DdcAdminProperties properties,
 - Input/output and state mapping: 对合法v2调用维持原provider响应；非法tenant在provider运行前以既有status/trailer形状拒绝。
 - Error and edge behavior: 继续断言nonce重放、过期、scope、异常映射和connection close；不以更新golden删除旧保护。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2617,7 +2617,7 @@ assertMissingTenantWrongTenantAndUnregisteredCredentialFailBeforeProvider();
 - Input/output and state mapping: 固定tenant和protobuf请求产生唯一UTF-8 canonical字节及签名；protobuf确定性序列化断言保留。
 - Error and edge behavior: 非正/缺失tenant拒绝；map插入顺序仍不影响body hash。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-JSON-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2641,7 +2641,7 @@ assertThat(signer.sign(request, secret)).isEqualTo(v2HmacGolden);
 - Input/output and state mapping: 已配置credential和tenant产生v2签名metadata，不把tenant从protobuf body读取。
 - Error and edge behavior: factory缺失/非正tenant拒绝创建签名拦截器；未知方法fail closed。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2665,7 +2665,7 @@ assertThat(resolver.resolve(aiMethod)).isEqualTo(DdcRpcOperation.AI_READ);
 - Input/output and state mapping: config/registry/management调用均能观察到同一tenant metadata，scope仍取各自现有业务来源。
 - Error and edge behavior: 多client独立拥有/关闭channel行为保持；tenant缺失或非法不建立通道。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2689,7 +2689,7 @@ assertMissingTenantCannotCreateAnyOwnedHandleOrOpenChannel();
 - Input/output and state mapping: Environment property绑定至tenant properties并进入运行factory。
 - Error and edge behavior: disabled不访问外部网络；tenant缺失的失败不能被optional ConfigData覆盖。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001, MC-CONFIG-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2712,7 +2712,7 @@ runner.withPropertyValues("egon.cola.component.tianshu.tenant-id=42").run(ctx ->
 - Input/output and state mapping: resolver从同一本地Binder读取正tenantId并传给Resource/Fetcher，业务scope字段仍不变。
 - Error and edge behavior: optional仅对资源缺失语义起效，不能吞缺tenant安全配置异常。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001, MC-CONFIG-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2736,7 +2736,7 @@ assertThat(resolveOptional(binder("enabled", true, "rpc.target", target)))
 - Input/output and state mapping: loader只消费Resource固定tenant对应的一次fetcher快照。
 - Error and edge behavior: optional不得把tenant/auth安全拒绝转成成功空配置；不改变缺失资源原规则。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2759,7 +2759,7 @@ assertOptionalAuthenticationOrTenantMismatchPropagates(resource);
 - Input/output and state mapping: 本地bootstrap在Spring Bean装配前绑定tenant并用于runtime pull。
 - Error and edge behavior: 测试显式no-auth仅用于loopback fixture，不作为部署默认或production fallback。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001, MC-CONFIG-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2782,7 +2782,7 @@ assertFixtureRequestSignedWithSameTenantAndChannelClosed();
 - Input/output and state mapping: mock security principal绑定tenant-a，filter将tenantId写入请求执行边界并finally还原MDC。
 - Error and edge behavior: 不给公共health或文档路由分配默认租户；请求头只比较身份，不选择租户。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001, MC-BEAN-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
@@ -2806,7 +2806,7 @@ mockMvc.perform(get("/api/v1/tianshu/ai/resources").header(TENANT_HEADER, "wrong
 - Input/output and state mapping: known credential映射至唯一tenant/namespace set，审计结果仍不泄露secret。
 - Error and edge behavior: 缺tenant的生产principal无效；纯scope extractor旧operation测试保持。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；遵守命名、逐层Jakarta校验、完整Lombok/限定注入、获准工具与Jackson、环境配置一致、java.time和现有三层/MP-SDJ/Direct RPC合同。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；仅接入精确tenant身份、已存在Validation/Jackson/Direct RPC及finally恢复语义，不增加依赖或改动三层边界。
 - Implementation pseudocode:
 
 ```java
