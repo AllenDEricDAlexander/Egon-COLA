@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 00:45 Asia/Shanghai` |
+| Updated | `2026-09-29 01:16 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -14,7 +14,7 @@
 | Baseline Revision | `main@b31357a0a`；其他任务工作区改动不纳入 |
 | Implements Spec | [天枢 Java/CQE 规范修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) |
 | Spec Status | `Accepted` |
-| Spec Revision | `2026-09-28 02:04 Asia/Shanghai`；Outbox manifest/schema/read-only bootstrap及STRATEGY SINGLE schema路由修订 |
+| Spec Revision | `2026-09-29 01:16 Asia/Shanghai`；Outbox manifest/schema/read-only bootstrap、STRATEGY SINGLE schema路由及AI五表decimal-string id映射校准 |
 | Effective Specs | [主修订稿](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)；[已确认原Spec](../spec/2026-09-21-17-18-tianshu-prompt-skill-management.md) |
 | Depends On Plans | None |
 | Supersedes | None |
@@ -32,14 +32,14 @@
 
 - Path: [2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)
 - Status: `Accepted`。用户于2026-09-28批准按本Plan执行；仍需逐Step验证和最终Spec审计。
-- Revision: 修订稿创建`2026-09-22 17:16 Asia/Shanghai`，基线`b31357a0a`。
+- Revision: 修订稿创建`2026-09-22 17:16 Asia/Shanghai`，基线`b31357a0a`；2026-09-29明确AI REST String id由EgonModel.id十进制编码且不设置public_id列。
 - Approval evidence: 原功能Spec已“确认”；Outbox 5.4.1及MP受控历史读取/恢复均得到本会话明确批准；不使用在制code generator。
 
 ### 2.2 Effective Spec set
 
 | Role | Spec/link | Status/revision | Effective sections | Why included |
 | --- | --- | --- | --- | --- |
-| Primary | [Java/CQE修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) | Accepted；2026-09-28用户批准按本Plan执行 | §1–20；REQ-015～019；§5覆盖矩阵 | 最新规则、组件和事件/生命周期delta |
+| Primary | [Java/CQE修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) | Accepted；2026-09-28用户批准按本Plan执行，2026-09-29做无行为变化的AI id文字校准 | §1–20；REQ-015～019；§5覆盖矩阵 | 最新规则、组件和事件/生命周期delta |
 | Normative base | [Prompt/Skill原Spec](../spec/2026-09-21-17-18-tianshu-prompt-skill-management.md) | Accepted（用户已确认） | REQ-001～014及未被修订稿§5替代条款 | 全部原功能、16表字段、11 REST/2 RPC、兼容与迁移 |
 
 ### 2.3 Superseded or excluded content
@@ -768,6 +768,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-29 Step 12复核将AI五表逐项对照Accepted原Spec §11.2与不可变V001：AI表没有`public_id`列；EgonModel.id是Long内部身份，对外AI resource/version/node/publication ID按原Spec编码为该Long的十进制String。Step 12的通用文件摘要误把旧11表public_id映射复制到了AI模型；本节文件级input/output、converter及repository伪代码统一修正为内部Long id/外部decimal-string id，并要求DdcAiPersistenceContractTest验证AI PO/XML/DDL不虚构public_id。V001及API字段不变，旧11表继续由各自legacy converter保留public_id兼容。
 
 Step 12还复核到`egon-tianshu-persistence.yml`已由Step 7创建并提交；本Step File 41不是再CREATE新配置，而是仅修改精确`history-read-statements`登记项、继续保持`restore-statements`为空。对应动作更正为MODIFY，不改Step 7文件和已提交配置键以外的路由。
+
+已接受修订稿§5.3新增一行明确替换原Spec §11.2.12–16的AI单行查询说明：REST `id`先按正Long十进制解析，查询使用tenant＋id唯一键，不查询public_id。此句来自同表字段设计及V001，并不引入新字段、接口或租户决策；原Spec正文保持不变。
 ## 7. Ordered File-by-file Implementation Steps
 
 本章是后续实施指令，不代表代码已修改或测试已执行。相同文件在不同Step按不同语义依次编辑；每步先RED再GREEN，只有Step 3的依赖装配用编译RED。完整系统构建只在Step 24。

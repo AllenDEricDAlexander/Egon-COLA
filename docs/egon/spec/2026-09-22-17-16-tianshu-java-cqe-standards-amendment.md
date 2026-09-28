@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 已接受规格的建模/包结构/删除契约修订，MP受控能力扩展，Outbox事务/Redis投递，多模块实施依赖 |
 | Created | `2026-09-22 17:16 Asia/Shanghai` |
-| Updated | `2026-09-28 23:50 Asia/Shanghai` |
+| Updated | `2026-09-29 01:16 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢既定多租户Prompt/Skill功能；最新Java/CQE标准与已批准组件扩展 |
@@ -135,6 +135,7 @@ CQE复用已批准 `top.egon:egon-cola-component-transactional-outbox-starter:5.
 | §10.3业务规则只放策略/ValidationUtils | Native＋可复用自定义约束和ConstraintValidator；状态权限/事务仍归Service；工具只手工触发 | 最新注解驱动校验 |
 | §11仅partial业务索引、AI根永久占业务key | mutable业务K＋deleted_at lifecycle unique＋live partial unique；root删除后可同键新ID | 最新软删除要求 |
 | §11草稿节点物理DELETE和parent_path物理FK | 节点软删除；有效树由根锁/同owner查询/dirname规则/校验保证，移除不可能引用partial unique的父path FK | 当前MP禁止物理删除 |
+| 原Spec §11.2.12–16 将AI新表单行访问写作先查`public_id` | 五张AI表仅有EgonModel Long `id`；外部AI String id是Long十进制表示，Repository边界按正Long解析且SQL按tenant＋id查，不建`public_id`列 | 原Spec同表字段与V001建表列均无`public_id`；只校正新AI表访问说明，不改原11表兼容 |
 | §9 RPC版本仅versionNo | 固定版本必须同时传resourceId；新增optional proto字段7，当前动态读取可不传 | 防止同key重建后同号新版本误命中 |
 | §9/15原RTopic直接充当全部Event交付 | 已有通知由Outbox真实入队和DeliveryHandler投递；AI CRUD不发无消费者Event | 用户已批准Outbox |
 | §15.3 STRATEGY与Outbox技术schema | 保留STRATEGY；新增TableProperties.schema（默认public，仅SINGLE策略使用）；Outbox message与其ddl_history路由到egon_outbox；Tianshu public.ddl_history由同一物理PRIMARY直接做DDL及只读启动校验 | 已确认的MP STRATEGY合同＋EVD-107/110 |
@@ -1669,7 +1670,7 @@ class/JSON约束、selector、软删除与父path、Outboxpayload/ACK和独立�
 
 ### 20.4 Relationship and effective-design review
 
-原稿和本稿均已获用户确认；用户于2026-09-28批准按关联Plan执行。本稿状态为Accepted，关联Plan进入In Progress。该设计批准不代表数据库、Outbox投递、Redis或浏览器运行时验证已完成。
+原稿和本稿均已获用户确认；用户于2026-09-28批准按关联Plan执行。本稿状态为Accepted，关联Plan进入In Progress。2026-09-29校准AI五表的ID访问文字：V001无public_id列，外部AI String id为EgonModel.id的十进制编码；该说明与既有字段/REST契约一致，不新增功能或DDL。该设计批准不代表数据库、Outbox投递、Redis或浏览器运行时验证已完成。
 
 ### 20.5 Blocking Manual Check
 
