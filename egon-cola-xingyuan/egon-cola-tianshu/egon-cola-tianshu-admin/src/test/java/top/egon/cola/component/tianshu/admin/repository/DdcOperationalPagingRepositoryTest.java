@@ -8,8 +8,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.TestPropertySource;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
 
@@ -36,14 +34,8 @@ class DdcOperationalPagingRepositoryTest {
     @Autowired
     private DdcInstanceRepository instanceRepository;
 
-    @Autowired
-    private DdcConfigItemRepository configItemRepository;
-
-    @Autowired
-    private DdcConfigVersionRepository versionRepository;
-
     @Test
-    void pagesPublishTasksInstancesAndPublishedCacheSeeds() {
+    void pagesPublishTasksAndInstancesWithStableFilters() {
         publishTaskRepository.save(task(
                 "task-failed", "019-failed", "infra", "FAILED"));
         publishTaskRepository.save(task(
@@ -54,9 +46,6 @@ class DdcOperationalPagingRepositoryTest {
         instanceRepository.save(instance("instance-1", "infra", "yuheng"));
         instanceRepository.save(instance("instance-2", "infra", "yuheng"));
         instanceRepository.save(instance("instance-other", "infra", "worker"));
-
-        savePublishedConfig("cache-config-1", "cache-version-1", "application.yml");
-        savePublishedConfig("cache-config-2", "cache-version-2", "application.yaml");
 
         Page<DdcPublishTaskEntity> tasks = publishTaskRepository.search(
                 "infra",
@@ -72,20 +61,10 @@ class DdcOperationalPagingRepositoryTest {
                         "yuheng",
                         PageRequest.of(0, 10,
                                 Sort.by(Sort.Direction.DESC, "updatedAt", "id")));
-        Page<DdcConfigVersionEntity> versions = versionRepository
-                .findPublishedRuntimeVersions(
-                        "infra",
-                        "prod",
-                        "yuheng",
-                        "DELETE",
-                        PageRequest.of(0, 1));
-
         assertThat(tasks.getContent())
                 .extracting(DdcPublishTaskEntity::getStatus)
                 .containsOnly("FAILED");
         assertThat(instances.getTotalElements()).isEqualTo(2);
-        assertThat(versions.getTotalElements()).isEqualTo(2);
-        assertThat(versions.getContent()).hasSize(1);
     }
 
     private DdcPublishTaskEntity task(
@@ -123,35 +102,4 @@ class DdcOperationalPagingRepositoryTest {
         return entity;
     }
 
-    private void savePublishedConfig(
-            String configId,
-            String versionId,
-            String resourceName) {
-        DdcConfigItemEntity item = new DdcConfigItemEntity();
-        item.setId(configId);
-        item.setBizCode("infra");
-        item.setEnv("prod");
-        item.setAppCode("yuheng");
-        item.setResourceName(resourceName);
-        item.setContent("feature:\n  enabled: true\n");
-        item.setFormat("YAML");
-        item.setCurrentVersion(1L);
-        item.setPublishedVersion(1L);
-        item.setEnabled(true);
-        item.setDeleted(false);
-        configItemRepository.save(item);
-
-        DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(versionId);
-        version.setConfigId(configId);
-        version.setBizCode("infra");
-        version.setEnv("prod");
-        version.setAppCode("yuheng");
-        version.setResourceName(resourceName);
-        version.setVersion(1L);
-        version.setNewContent(item.getContent());
-        version.setFormat("YAML");
-        version.setChangeType("UPDATE");
-        versionRepository.save(version);
-    }
 }

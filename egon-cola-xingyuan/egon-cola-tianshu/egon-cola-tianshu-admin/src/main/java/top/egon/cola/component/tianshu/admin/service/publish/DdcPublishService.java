@@ -1,6 +1,7 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,8 +10,8 @@ import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcOperationLogEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
@@ -41,7 +42,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
-@Service
+@Service("ddcPublishService")
 public class DdcPublishService {
 
     private static final List<String> RETRYABLE_STATUSES = List.of(
@@ -87,8 +88,8 @@ public class DdcPublishService {
     private final Clock clock;
 
     @Autowired
-    public DdcPublishService(DdcConfigItemRepository configItemRepository,
-            DdcConfigVersionRepository versionRepository,
+    public DdcPublishService(@Qualifier("ddcConfigItemRepository") DdcConfigItemRepository configItemRepository,
+            @Qualifier("ddcConfigVersionRepository") DdcConfigVersionRepository versionRepository,
             DdcPublishTaskRepository publishTaskRepository,
             DdcPublishAckRepository publishAckRepository,
             DdcOperationLogRepository operationLogRepository,
@@ -362,7 +363,7 @@ public class DdcPublishService {
             );
         }
 
-        DdcConfigItemEntity config =
+        DdcConfigItemBO config =
                 configItemRepository
                         .findForPublishByBizCodeAndEnvAndAppCodeAndResourceName(
                                 request.getBizCode(),
@@ -391,7 +392,7 @@ public class DdcPublishService {
         config.setContent(request.getContent());
         config.setCurrentVersion(config.getCurrentVersion() + 1);
         config.setUpdatedAt(now());
-        configItemRepository.save(config);
+        configItemRepository.update(config);
         saveVersion(config, oldContent, request.getContent(), operator);
 
         List<DdcPublishTarget> targets = leaseService.activeTargets(
@@ -473,7 +474,7 @@ public class DdcPublishService {
     }
 
     private DdcPublishTaskEntity newTask(DdcPublishRequest request,
-                                         DdcConfigItemEntity config,
+                                         DdcConfigItemBO config,
                                          String resourceChecksum,
                                          int targetCount,
                                          long timeoutMs,
@@ -482,7 +483,7 @@ public class DdcPublishService {
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(SnowflakeIdGenerator.nextId());
         task.setChangeId(request.getChangeId());
-        task.setConfigId(config.getId());
+        task.setConfigId(config.getPublicId());
         task.setBizCode(config.getBizCode());
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
@@ -522,30 +523,21 @@ public class DdcPublishService {
         return ack;
     }
 
-    private void saveVersion(DdcConfigItemEntity config,
+    private void saveVersion(DdcConfigItemBO config,
                              String oldContent,
                              String newContent,
                              String operator) {
-        DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(SnowflakeIdGenerator.nextId());
-        version.setConfigId(config.getId());
-        version.setBizCode(config.getBizCode());
-        version.setAppCode(config.getAppCode());
-        version.setEnv(config.getEnv());
-        version.setNamespace(null);
-        version.setResourceName(config.getResourceName());
-        version.setVersion(config.getCurrentVersion());
-        version.setOldContent(oldContent);
-        version.setNewContent(newContent);
-        version.setFormat(config.getFormat());
-        version.setChangeType(ChangeType.UPDATE.name());
-        version.setChangeReason("publish config");
-        version.setOperator(operator);
-        version.setCreatedAt(now());
-        versionRepository.save(version);
+        DdcConfigVersionBO version = DdcConfigVersionBO.builder()
+                .configItemId(config.getId()).configId(config.getPublicId()).bizCode(config.getBizCode())
+                .appCode(config.getAppCode()).env(config.getEnv()).namespace(null)
+                .resourceName(config.getResourceName()).configRevision(config.getCurrentVersion())
+                .oldContent(oldContent).newContent(newContent).format(config.getFormat())
+                .changeType(ChangeType.UPDATE.name()).changeReason("publish config")
+                .operator(operator).createdAt(now()).build();
+        versionRepository.insert(version);
     }
 
-    private void savePublishOperation(DdcConfigItemEntity config,
+    private void savePublishOperation(DdcConfigItemBO config,
                                       String changeId,
                                       String operator) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();

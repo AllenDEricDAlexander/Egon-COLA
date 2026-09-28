@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
@@ -19,11 +20,13 @@ import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
@@ -44,6 +47,9 @@ import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -97,8 +103,11 @@ class DdcSyncPublishFlowTest {
     @Autowired
     private DdcPublishService publishService;
 
-    @Autowired
+    @MockBean(name = "ddcConfigItemRepository")
     private DdcConfigItemRepository configItemRepository;
+
+    @MockBean(name = "ddcConfigVersionRepository")
+    private DdcConfigVersionRepository versionRepository;
 
     @Autowired
     private DdcPublishTaskRepository taskRepository;
@@ -112,6 +121,11 @@ class DdcSyncPublishFlowTest {
     @Autowired
     private DdcRedisRepository redisRepository;
 
+    private final Map<String, DdcConfigItemBO> configItemsByScope = new HashMap<>();
+    private final Map<String, DdcConfigItemBO> configItemsByPublicId = new HashMap<>();
+    private final Map<String, DdcConfigVersionBO> configVersions = new HashMap<>();
+    private long nextInternalConfigId;
+
     @Autowired
     private PublishStartupRecovery startupRecovery;
 
@@ -119,8 +133,37 @@ class DdcSyncPublishFlowTest {
     void setUp() {
         ackRepository.deleteAll();
         taskRepository.deleteAll();
-        configItemRepository.deleteAll();
-        reset(leaseService, redisRepository);
+        configItemsByScope.clear();
+        configItemsByPublicId.clear();
+        configVersions.clear();
+        nextInternalConfigId = 1000L;
+        reset(configItemRepository, versionRepository, leaseService, redisRepository);
+        when(configItemRepository.findForPublishByBizCodeAndEnvAndAppCodeAndResourceName(
+                any(), any(), any(), any())).thenAnswer(invocation -> Optional.ofNullable(configItemsByScope.get(
+                        scopeKey(invocation.getArgument(0), invocation.getArgument(1),
+                                invocation.getArgument(2), invocation.getArgument(3)))));
+        when(configItemRepository.findByPublicId(any())).thenAnswer(invocation ->
+                Optional.ofNullable(configItemsByPublicId.get(invocation.getArgument(0))));
+        when(configItemRepository.update(any(DdcConfigItemBO.class))).thenAnswer(invocation -> {
+            DdcConfigItemBO item = invocation.getArgument(0);
+            item.setVersion(item.getVersion() + 1);
+            configItemsByPublicId.put(item.getPublicId(), item);
+            configItemsByScope.put(scopeKey(item), item);
+            return item;
+        });
+        when(configItemRepository.advancePublishedVersion(any(), any(), any(), any())).thenAnswer(invocation -> {
+            DdcConfigItemBO item = configItemsByPublicId.get(invocation.getArgument(0));
+            if (item == null || !java.util.Objects.equals(item.getPublishedVersion(), invocation.getArgument(1))) return 0;
+            item.setPublishedVersion(invocation.getArgument(2)).setVersion(item.getVersion() + 1);
+            return 1;
+        });
+        when(versionRepository.insert(any(DdcConfigVersionBO.class))).thenAnswer(invocation -> {
+            DdcConfigVersionBO version = invocation.getArgument(0);
+            configVersions.put(versionKey(version.getConfigId(), version.getConfigRevision()), version);
+            return version;
+        });
+        when(versionRepository.findByConfigIdAndVersion(any(), any())).thenAnswer(invocation ->
+                Optional.ofNullable(configVersions.get(versionKey(invocation.getArgument(0), invocation.getArgument(1)))));
     }
 
     @Test
@@ -200,11 +243,7 @@ class DdcSyncPublishFlowTest {
                     assertThat(task.getStatus()).isEqualTo("UNKNOWN");
                     assertThat(task.getFailureStage()).isEqualTo("REDIS_DISPATCH");
                 });
-        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndResourceName(
-                "default", "dev", "demo", "application.yml"
-        )).get()
-                .extracting(DdcConfigItemEntity::getPublishedVersion)
-                .isNull();
+        assertThat(config("demo").getPublishedVersion()).isNull();
     }
 
     @Test
@@ -224,13 +263,7 @@ class DdcSyncPublishFlowTest {
             assertThat(first).isNotNull();
 
             await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-                assertThat(configItemRepository
-                        .findByBizCodeAndEnvAndAppCodeAndResourceName(
-                                "default", "dev", "demo", "application.yml"
-                        ))
-                        .get()
-                        .extracting(DdcConfigItemEntity::getPublishedVersion)
-                        .isEqualTo(2L);
+                assertThat(config("demo").getPublishedVersion()).isEqualTo(2L);
                 assertThat(taskRepository.findByChangeId(request.getChangeId()))
                         .get()
                         .satisfies(task -> assertThat(task.getStatus())
@@ -313,22 +346,26 @@ class DdcSyncPublishFlowTest {
 
     private void saveConfig(String ignoredLabel) {
         LocalDateTime now = LocalDateTime.now();
-        DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(SnowflakeIdGenerator.nextId());
-        config.setBizCode("default");
-        config.setAppCode("demo");
-        config.setEnv("dev");
-        config.setResourceName("application.yml");
-        config.setContent("feature:\n  value: false\n");
-        config.setDefaultValue(null);
-        config.setFormat("YAML");
-        config.setCurrentVersion(1L);
-        config.setEnabled(true);
-        config.setDeleted(false);
-        config.setCreatedAt(now);
-        config.setUpdatedAt(now);
-        configItemRepository.saveAndFlush(config);
+        long id = nextInternalConfigId++;
+        String publicId = SnowflakeIdGenerator.nextId();
+        DdcConfigItemBO config = DdcConfigItemBO.builder().id(id).tenantId(401L).publicId(publicId)
+                .bizCode("default").appCode("demo").env("dev").resourceName("application.yml")
+                .content("feature:\n  value: false\n").format("YAML").currentVersion(1L)
+                .enabled(true).deleted(false).createdAt(now).updatedAt(now).version(0L).build();
+        configItemsByScope.put(scopeKey(config), config);
+        configItemsByPublicId.put(publicId, config);
     }
+
+    private DdcConfigItemBO config(String appCode) {
+        return configItemsByScope.get(scopeKey("default", "dev", appCode, "application.yml"));
+    }
+    private String scopeKey(DdcConfigItemBO item) {
+        return scopeKey(item.getBizCode(), item.getEnv(), item.getAppCode(), item.getResourceName());
+    }
+    private String scopeKey(String bizCode, String env, String appCode, String resourceName) {
+        return bizCode + "|" + env + "|" + appCode + "|" + resourceName;
+    }
+    private String versionKey(String configPublicId, Long revision) { return configPublicId + ":" + revision; }
 
     private DdcPublishRequest request(String value,
                                       long timeoutMs) {

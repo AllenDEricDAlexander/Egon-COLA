@@ -20,6 +20,8 @@ import top.egon.cola.component.tianshu.admin.controller.config.DdcCacheControlle
 import top.egon.cola.component.tianshu.admin.controller.config.DdcConfigController;
 import top.egon.cola.component.tianshu.admin.controller.config.DdcPublishTaskController;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
@@ -153,7 +155,8 @@ class DdcAdminSecurityIntegrationTest {
     @Test
     void protectsPagedManagementReadsWithReadCapability()
             throws Exception {
-        when(configService.page(any(), any())).thenReturn(Page.empty());
+        when(configService.page(any(), any())).thenReturn(DdcPageResult.<DdcConfigVO>builder()
+                .records(List.of()).total(0).pageNo(1).pageSize(10).build());
         when(publishTaskQueryService.page(any(), any())).thenReturn(Page.empty());
 
         mockMvc.perform(get("/api/v1/tianshu/configs/page")

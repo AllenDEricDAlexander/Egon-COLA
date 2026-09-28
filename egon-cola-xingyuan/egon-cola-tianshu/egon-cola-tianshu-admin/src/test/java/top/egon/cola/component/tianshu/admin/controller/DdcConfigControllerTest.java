@@ -5,8 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,6 +15,7 @@ import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVersionVO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.tianshu.admin.service.config.DdcConfigService;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishService;
@@ -118,12 +117,12 @@ class DdcConfigControllerTest {
         version.setVersion(2L);
         when(configService.page(
                 any(DdcConfigQueryRequest.class), any(PageQuery.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(config), PageRequest.of(0, 10), 12));
+                .thenReturn(DdcPageResult.<DdcConfigVO>builder()
+                        .records(List.of(config)).total(12).pageNo(1).pageSize(10).build());
         when(configService.pageVersions(
                 eq("config-1"), any(PageQuery.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(version), PageRequest.of(1, 20), 21));
+                .thenReturn(DdcPageResult.<DdcConfigVersionVO>builder()
+                        .records(List.of(version)).total(21).pageNo(2).pageSize(20).build());
 
         mockMvc.perform(get("/api/v1/tianshu/configs/page")
                         .param("bizCode", "infra")

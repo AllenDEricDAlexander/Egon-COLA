@@ -1,12 +1,14 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigResourceKey;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
@@ -20,7 +22,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
-@Service
+@Service("ddcPublishStateTransitionService")
 public class DdcPublishStateTransitionService {
 
     private static final List<String> ACTIVE_STATUSES = List.of(
@@ -57,7 +59,7 @@ public class DdcPublishStateTransitionService {
     @Autowired
     public DdcPublishStateTransitionService(
             DdcPublishTaskRepository taskRepository,
-            DdcConfigItemRepository configItemRepository,
+            @Qualifier("ddcConfigItemRepository") DdcConfigItemRepository configItemRepository,
             DdcPublishAckRepository ackRepository,
             PublishResourceLockRegistry resourceRegistry,
             PublishCompletionWaiterRegistry waiterRegistry) {
@@ -240,7 +242,7 @@ public class DdcPublishStateTransitionService {
     }
 
     private boolean isPublished(DdcPublishTaskEntity task) {
-        return configItemRepository.findById(task.getConfigId())
+        return configItemRepository.findByPublicId(task.getConfigId())
                 .map(config -> config.getPublishedVersion() != null
                         && config.getPublishedVersion().equals(task.getTargetVersion()))
                 .orElse(false);

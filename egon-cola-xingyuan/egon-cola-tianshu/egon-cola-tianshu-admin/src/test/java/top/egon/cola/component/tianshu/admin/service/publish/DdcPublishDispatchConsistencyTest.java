@@ -7,8 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
@@ -17,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigItemConverterImpl;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigVersionConverterImpl;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
@@ -26,6 +28,7 @@ import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
@@ -35,6 +38,10 @@ import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 import top.egon.cola.component.tianshu.model.config.DdcConfigValue;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -45,12 +52,15 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @DataJpaTest
 @Import({
         DdcPendingPublishDispatcher.class,
         DdcPublishStateTransitionService.class,
         DdcConfigService.class,
+        DdcConfigItemConverterImpl.class,
+        DdcConfigVersionConverterImpl.class,
         PublishResourceLockRegistry.class,
         PublishCompletionWaiterRegistry.class,
         DdcPublishDispatchConsistencyTest.Dependencies.class
@@ -83,11 +93,14 @@ class DdcPublishDispatchConsistencyTest {
     @Autowired
     private DdcPublishStateTransitionService stateTransitions;
 
-    @SpyBean
+    @MockBean(name = "ddcConfigItemRepository")
     private DdcConfigItemRepository configItemRepository;
 
-    @Autowired
+    @MockBean(name = "ddcConfigVersionRepository")
     private DdcConfigVersionRepository versionRepository;
+
+    @MockBean(name = "ddcNamespaceEnvAppBindingRepository")
+    private DdcNamespaceEnvAppBindingRepository bindingRepository;
 
     @Autowired
     private DdcPublishTaskRepository taskRepository;
@@ -98,9 +111,50 @@ class DdcPublishDispatchConsistencyTest {
     @Autowired
     private DdcRedisRepository redisRepository;
 
+    private final Map<String, DdcConfigItemBO> configItems = new HashMap<>();
+    private final Map<String, DdcConfigVersionBO> configVersions = new HashMap<>();
+    private long nextConfigId;
+
     @BeforeEach
     void setUp() {
-        reset(redisRepository);
+        reset(configItemRepository, versionRepository, bindingRepository, redisRepository);
+        configItems.clear();
+        configVersions.clear();
+        nextConfigId = 700L;
+        when(configItemRepository.findByPublicId(any())).thenAnswer(invocation ->
+                Optional.ofNullable(configItems.get(invocation.getArgument(0))));
+        when(configItemRepository.findByBizCodeAndEnvAndAppCode(any(), any(), any())).thenAnswer(invocation ->
+                configItems.values().stream().filter(item -> java.util.Objects.equals(item.getBizCode(), invocation.getArgument(0))
+                        && java.util.Objects.equals(item.getEnv(), invocation.getArgument(1))
+                        && java.util.Objects.equals(item.getAppCode(), invocation.getArgument(2))).toList());
+        when(configItemRepository.update(any(DdcConfigItemBO.class))).thenAnswer(invocation -> {
+            DdcConfigItemBO item = invocation.getArgument(0);
+            item.setVersion(item.getVersion() + 1);
+            configItems.put(item.getPublicId(), item);
+            return item;
+        });
+        when(configItemRepository.advancePublishedVersion(any(), any(), any(), any())).thenAnswer(invocation -> {
+            DdcConfigItemBO item = configItems.get(invocation.getArgument(0));
+            if (item == null || !java.util.Objects.equals(item.getPublishedVersion(), invocation.getArgument(1))) return 0;
+            item.setPublishedVersion(invocation.getArgument(2)).setVersion(item.getVersion() + 1);
+            return 1;
+        });
+        when(versionRepository.insert(any(DdcConfigVersionBO.class))).thenAnswer(invocation -> {
+            DdcConfigVersionBO version = invocation.getArgument(0);
+            configVersions.put(versionKey(version.getConfigId(), version.getConfigRevision()), version);
+            return version;
+        });
+        when(versionRepository.findByConfigIdAndVersion(any(), any())).thenAnswer(invocation ->
+                Optional.ofNullable(configVersions.get(versionKey(invocation.getArgument(0), invocation.getArgument(1)))));
+        when(versionRepository.findByConfigItemIdAndRevision(any(), any())).thenAnswer(invocation ->
+                configVersions.values().stream().filter(version -> java.util.Objects.equals(
+                        version.getConfigItemId(), invocation.getArgument(0))
+                        && java.util.Objects.equals(version.getConfigRevision(), invocation.getArgument(1)))
+                        .findFirst());
+        when(versionRepository.findByConfigIdOrderByVersionDesc(any())).thenAnswer(invocation ->
+                configVersions.values().stream().filter(version -> java.util.Objects.equals(
+                        version.getConfigId(), invocation.getArgument(0)))
+                        .sorted(java.util.Comparator.comparing(DdcConfigVersionBO::getConfigRevision).reversed()).toList());
     }
 
     @Test
@@ -113,9 +167,9 @@ class DdcPublishDispatchConsistencyTest {
         DdcPublishTaskEntity result = dispatcher.dispatch(task.getChangeId());
 
         assertThat(result.getStatus()).isEqualTo(PublishStatus.UNKNOWN.name());
-        assertThat(configItemRepository.findById(task.getConfigId()))
+        assertThat(configItemRepository.findByPublicId(task.getConfigId()))
                 .get()
-                .extracting(DdcConfigItemEntity::getPublishedVersion)
+                .extracting(DdcConfigItemBO::getPublishedVersion)
                 .isEqualTo(1L);
         assertThat(configService.pull("default", "dev", task.getAppCode()))
                 .singleElement()
@@ -131,11 +185,11 @@ class DdcPublishDispatchConsistencyTest {
         DdcPublishTaskEntity task = savePreparedPublish("db-failure");
         doThrow(new IllegalStateException("database response lost"))
                 .doAnswer(invocation -> {
-                    DdcConfigItemEntity config = configItemRepository
-                            .findById(task.getConfigId())
+                    DdcConfigItemBO config = configItemRepository
+                            .findByPublicId(task.getConfigId())
                             .orElseThrow();
                     config.setPublishedVersion(task.getTargetVersion());
-                    configItemRepository.saveAndFlush(config);
+                    config.setVersion(config.getVersion() + 1);
                     return 1;
                 })
                 .when(configItemRepository)
@@ -168,11 +222,11 @@ class DdcPublishDispatchConsistencyTest {
         assertThat(replay.message().getChecksum())
                 .isEqualTo(first.message().getChecksum());
         assertThat(versionRepository.findByConfigIdOrderByVersionDesc(task.getConfigId()))
-                .extracting(DdcConfigVersionEntity::getVersion)
+                .extracting(DdcConfigVersionBO::getConfigRevision)
                 .containsExactly(2L, 1L);
-        assertThat(configItemRepository.findById(task.getConfigId()))
+        assertThat(configItemRepository.findByPublicId(task.getConfigId()))
                 .get()
-                .extracting(DdcConfigItemEntity::getPublishedVersion)
+                .extracting(DdcConfigItemBO::getPublishedVersion)
                 .isEqualTo(2L);
     }
 
@@ -193,9 +247,9 @@ class DdcPublishDispatchConsistencyTest {
                     assertThat(failed.getStatus()).isEqualTo(PublishStatus.FAILED.name());
                     assertThat(failed.getFailureStage()).isEqualTo("REDIS_DISPATCH");
                 });
-        assertThat(configItemRepository.findById(task.getConfigId()))
+        assertThat(configItemRepository.findByPublicId(task.getConfigId()))
                 .get()
-                .extracting(DdcConfigItemEntity::getPublishedVersion)
+                .extracting(DdcConfigItemBO::getPublishedVersion)
                 .isEqualTo(1L);
     }
 
@@ -218,9 +272,9 @@ class DdcPublishDispatchConsistencyTest {
         DdcPublishTaskEntity completed = dispatcher.dispatch(task.getChangeId());
 
         assertThat(completed.getStatus()).isEqualTo(PublishStatus.SUCCESS.name());
-        assertThat(configItemRepository.findById(task.getConfigId()))
+        assertThat(configItemRepository.findByPublicId(task.getConfigId()))
                 .get()
-                .extracting(DdcConfigItemEntity::getPublishedVersion)
+                .extracting(DdcConfigItemBO::getPublishedVersion)
                 .isEqualTo(2L);
     }
 
@@ -253,22 +307,11 @@ class DdcPublishDispatchConsistencyTest {
             String newYaml) {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 26, 8, 0);
         String configId = SnowflakeIdGenerator.nextId();
-        DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(configId);
-        config.setBizCode("default");
-        config.setAppCode(label);
-        config.setEnv("dev");
-        config.setResourceName(DdcConfigService.DEFAULT_RESOURCE_NAME);
-        config.setContent(newYaml);
-        config.setDefaultValue(null);
-        config.setFormat(DdcConfigService.YAML_FORMAT);
-        config.setCurrentVersion(2L);
-        config.setPublishedVersion(1L);
-        config.setEnabled(true);
-        config.setDeleted(false);
-        config.setCreatedAt(createdAt.minusDays(1));
-        config.setUpdatedAt(createdAt);
-        configItemRepository.saveAndFlush(config);
+        DdcConfigItemBO config = DdcConfigItemBO.builder().id(nextConfigId++).tenantId(401L).publicId(configId)
+                .bizCode("default").appCode(label).env("dev").resourceName(DdcConfigService.DEFAULT_RESOURCE_NAME)
+                .content(newYaml).format(DdcConfigService.YAML_FORMAT).currentVersion(2L).publishedVersion(1L)
+                .enabled(true).deleted(false).createdAt(createdAt.minusDays(1)).updatedAt(createdAt).version(0L).build();
+        configItems.put(configId, config);
 
         saveVersion(config, 1L, null, OLD_YAML, createdAt.minusDays(1));
         saveVersion(config, 2L, OLD_YAML, newYaml, createdAt);
@@ -276,7 +319,7 @@ class DdcPublishDispatchConsistencyTest {
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(SnowflakeIdGenerator.nextId());
         task.setChangeId(SnowflakeIdGenerator.nextId());
-        task.setConfigId(configId);
+        task.setConfigId(config.getPublicId());
         task.setBizCode(config.getBizCode());
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
@@ -318,27 +361,21 @@ class DdcPublishDispatchConsistencyTest {
         return task;
     }
 
-    private void saveVersion(DdcConfigItemEntity config,
+    private void saveVersion(DdcConfigItemBO config,
                              long versionNumber,
                              String oldContent,
                              String newContent,
                              LocalDateTime createdAt) {
-        DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(SnowflakeIdGenerator.nextId());
-        version.setConfigId(config.getId());
-        version.setBizCode(config.getBizCode());
-        version.setAppCode(config.getAppCode());
-        version.setEnv(config.getEnv());
-        version.setNamespace(null);
-        version.setResourceName(config.getResourceName());
-        version.setVersion(versionNumber);
-        version.setOldContent(oldContent);
-        version.setNewContent(newContent);
-        version.setFormat(config.getFormat());
-        version.setChangeType("UPDATE");
-        version.setCreatedAt(createdAt);
-        versionRepository.saveAndFlush(version);
+        String publicId = SnowflakeIdGenerator.nextId();
+        DdcConfigVersionBO version = DdcConfigVersionBO.builder().id(Long.parseLong(publicId))
+                .publicId(publicId).configItemId(config.getId()).configId(config.getPublicId())
+                .bizCode(config.getBizCode()).appCode(config.getAppCode()).env(config.getEnv()).namespace(null)
+                .resourceName(config.getResourceName()).configRevision(versionNumber).oldContent(oldContent)
+                .newContent(newContent).format(config.getFormat()).changeType("UPDATE").createdAt(createdAt).build();
+        configVersions.put(versionKey(config.getPublicId(), versionNumber), version);
     }
+
+    private String versionKey(String configId, Long revision) { return configId + ":" + revision; }
 
     @TestConfiguration
     static class Dependencies {

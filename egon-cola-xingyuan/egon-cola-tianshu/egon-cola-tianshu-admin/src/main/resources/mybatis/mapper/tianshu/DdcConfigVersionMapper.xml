@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcConfigVersionMapper">
+    <resultMap id="DdcConfigVersionPOResultMap" type="top.egon.cola.component.tianshu.admin.model.po.DdcConfigVersionPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="publicId" column="public_id"/>
+        <result property="configId" column="config_id"/>
+        <result property="appCode" column="app_code"/>
+        <result property="env" column="env"/>
+        <result property="namespace" column="namespace"/>
+        <result property="resourceName" column="config_key"/>
+        <result property="configRevision" column="config_revision"/>
+        <result property="oldContent" column="old_value"/>
+        <result property="newContent" column="new_value"/>
+        <result property="format" column="value_type"/>
+        <result property="changeType" column="change_type"/>
+        <result property="changeReason" column="change_reason"/>
+        <result property="operator" column="operator"/>
+        <result property="operatorIp" column="operator_ip"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="bizCode" column="biz_code"/>
+        <result property="configPublicId" column="config_public_id"/>
+    </resultMap>
+
+    <sql id="VersionColumns">
+        v.id, v.tenant_id, v.create_user_id, v.create_time, v.update_user_id, v.update_time, v.deleted_at, v.version,
+        v.public_id, v.config_id, v.app_code, v.env, v.namespace, v.config_key, v.config_revision, v.old_value,
+        v.new_value, v.value_type, v.change_type, v.change_reason, v.operator, v.operator_ip, v.created_at, v.biz_code,
+        c.public_id AS config_public_id
+    </sql>
+
+    <sql id="VersionJoin">
+        FROM ddc_config_version v
+        JOIN ddc_config_item c ON c.tenant_id = v.tenant_id AND c.id = v.config_id
+        WHERE v.tenant_id = #{tenantId} AND v.deleted_at IS NULL AND c.deleted_at IS NULL
+    </sql>
+
+    <select id="selectActiveById" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="VersionJoin"/> AND v.id = #{id}
+    </select>
+
+    <select id="selectActiveByIds" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="VersionJoin"/> AND v.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY v.config_id, v.config_revision DESC, v.id DESC
+    </select>
+
+    <select id="selectByConfigPublicIdAndRevision" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="VersionJoin"/>
+          AND c.public_id = #{configPublicId} AND v.config_revision = #{revision}
+    </select>
+
+    <select id="selectByConfigItemIdAndRevision" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="VersionJoin"/>
+          AND v.config_id = #{configItemId} AND v.config_revision = #{revision}
+    </select>
+
+    <select id="selectByConfigPublicId" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="VersionJoin"/>
+          AND c.public_id = #{configPublicId}
+        ORDER BY v.config_revision DESC, v.id DESC
+    </select>
+
+    <select id="selectByBizEnvAppResource" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="VersionJoin"/>
+          AND v.biz_code = #{bizCode} AND v.env = #{env} AND v.app_code = #{appCode}
+          AND v.config_key = #{resourceName}
+        ORDER BY v.config_revision DESC, v.id DESC
+    </select>
+
+    <select id="selectPageByConfigPublicId" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="VersionJoin"/>
+          AND c.public_id = #{configPublicId}
+        ORDER BY v.config_id, v.config_revision DESC, v.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPageByConfigPublicId" resultType="long">
+        SELECT count(*) <include refid="VersionJoin"/> AND c.public_id = #{configPublicId}
+    </select>
+
+    <sql id="PublishedRuntimeWhere">
+        c.tenant_id = #{tenantId} AND c.deleted_at IS NULL AND c.deleted = false
+        AND v.tenant_id = #{tenantId} AND v.tenant_id = c.tenant_id
+        AND v.config_id = c.id AND v.deleted_at IS NULL
+        AND v.config_revision = c.published_version
+        AND (v.change_type IS NULL OR v.change_type &lt;&gt; #{deleteType})
+        AND c.biz_code = #{bizCode} AND c.env = #{env} AND c.app_code = #{appCode}
+    </sql>
+
+    <select id="selectPublishedRuntimePage" resultMap="DdcConfigVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/>
+        FROM ddc_config_version v JOIN ddc_config_item c ON c.tenant_id = v.tenant_id AND c.id = v.config_id
+        WHERE <include refid="PublishedRuntimeWhere"/>
+        ORDER BY v.config_key ASC, v.id ASC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPublishedRuntimePage" resultType="long">
+        SELECT count(*) FROM ddc_config_version v
+        JOIN ddc_config_item c ON c.tenant_id = v.tenant_id AND c.id = v.config_id
+        WHERE <include refid="PublishedRuntimeWhere"/>
+    </select>
+</mapper>

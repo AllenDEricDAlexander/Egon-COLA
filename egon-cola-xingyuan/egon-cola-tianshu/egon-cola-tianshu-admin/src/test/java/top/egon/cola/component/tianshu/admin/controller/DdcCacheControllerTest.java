@@ -5,12 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.tianshu.admin.controller.config.DdcCacheController;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcCacheCheckRow;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.service.cache.DdcCacheService;
 
 import java.util.List;
@@ -40,9 +39,8 @@ class DdcCacheControllerTest {
         when(cacheService.page(
                 eq("infra"), eq("prod"), eq("yuheng"),
                 any(PageQuery.class)
-        )).thenReturn(new PageImpl<>(
-                List.of(row), PageRequest.of(0, 1), 3
-        ));
+        )).thenReturn(DdcPageResult.<DdcCacheCheckRow>builder()
+                .records(List.of(row)).total(3).pageNo(1).pageSize(10).build());
 
         mockMvc.perform(get("/api/v1/tianshu/cache/check/page")
                         .param("bizCode", "infra")

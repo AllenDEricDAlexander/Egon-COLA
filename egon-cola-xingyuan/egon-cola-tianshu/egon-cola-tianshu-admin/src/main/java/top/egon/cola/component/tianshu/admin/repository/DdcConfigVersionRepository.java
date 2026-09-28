@@ -1,44 +1,42 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface DdcConfigVersionRepository extends JpaRepository<DdcConfigVersionEntity, String> {
+@Validated
+public interface DdcConfigVersionRepository {
 
-    List<DdcConfigVersionEntity> findByConfigIdOrderByVersionDesc(String configId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcConfigVersionBO> findByConfigIdOrderByVersionDesc(String configPublicId);
 
-    Page<DdcConfigVersionEntity> findByConfigIdOrderByVersionDescIdDesc(
-            String configId,
-            Pageable pageable);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    DdcPageResult<DdcConfigVersionBO> findByConfigIdOrderByVersionDescIdDesc(String configPublicId,
+            PageQuery pageQuery);
 
-    Optional<DdcConfigVersionEntity> findByConfigIdAndVersion(String configId, Long version);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcConfigVersionBO> findByConfigIdAndVersion(String configPublicId, Long configRevision);
 
-    List<DdcConfigVersionEntity> findByBizCodeAndEnvAndAppCodeAndResourceName(
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcConfigVersionBO> findByConfigItemIdAndRevision(@NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            Long configItemId, @NotNull(groups = EgonColaModelValidationGroups.Query.class) Long configRevision);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcConfigVersionBO> findByBizCodeAndEnvAndAppCodeAndResourceName(
             String bizCode, String env, String appCode, String resourceName);
 
-    @Query("""
-            select version
-              from DdcConfigVersionEntity version,
-                   DdcConfigItemEntity item
-             where version.configId = item.id
-               and version.version = item.publishedVersion
-               and item.bizCode = :bizCode
-               and item.env = :env
-               and item.appCode = :appCode
-               and item.deleted = false
-               and (version.changeType is null or version.changeType <> :deleteType)
-            """)
-    Page<DdcConfigVersionEntity> findPublishedRuntimeVersions(
-            @Param("bizCode") String bizCode,
-            @Param("env") String env,
-            @Param("appCode") String appCode,
-            @Param("deleteType") String deleteType,
-            Pageable pageable);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    DdcPageResult<DdcConfigVersionBO> findPublishedRuntimeVersions(String bizCode, String env, String appCode,
+            String deleteType, PageQuery pageQuery);
+
+    @Validated(EgonColaModelValidationGroups.Insert.class)
+    DdcConfigVersionBO insert(
+            @Valid @NotNull(groups = EgonColaModelValidationGroups.Insert.class) DdcConfigVersionBO command);
 }

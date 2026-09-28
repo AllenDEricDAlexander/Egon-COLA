@@ -1,479 +1,228 @@
 package top.egon.cola.component.tianshu.admin.service.config;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
+import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigRollbackRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigUpdateRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
-import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
+import top.egon.cola.component.tianshu.admin.model.enums.ChangeType;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVersionVO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
-import top.egon.cola.component.tianshu.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigItemConverterImpl;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigVersionConverterImpl;
 import top.egon.cola.component.tianshu.model.config.DdcConfigValue;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
-
-import static org.mockito.Mockito.when;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
-@DataJpaTest
-@Import({DdcConfigService.class, DdcConfigServiceTest.IdConfig.class})
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = {
-        "egon.cola.component.id.machine-id=0",
-        "spring.datasource.url=jdbc:sqlite:file:ddc_config_service_test?mode=memory&cache=shared",
-        "spring.datasource.driver-class-name=org.sqlite.JDBC",
-        "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.datasource.hikari.maximum-pool-size=2",
-        "spring.flyway.enabled=false",
-        "egon.cola.component.tianshu.enabled=false"
-})
 class DdcConfigServiceTest {
 
-    @Autowired
-    private DdcConfigService configService;
+    @BeforeAll
+    static void initializeIdGenerator() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
-    @Autowired
+    private DdcConfigItemRepository itemRepository;
     private DdcConfigVersionRepository versionRepository;
-
-    @Autowired
     private DdcOperationLogRepository operationLogRepository;
-
-    @Autowired
-    private DdcConfigItemRepository configItemRepository;
-
-    @Autowired
-    private TestEntityManager entityManager;
-
-    @MockBean(name = "ddcNamespaceEnvAppBindingRepository")
     private DdcNamespaceEnvAppBindingRepository bindingRepository;
-
-    @Autowired
     private DdcPublishTaskRepository publishTaskRepository;
+    private DdcConfigService service;
 
-    @Test
-    void optionalFiltersReturnAllAndNamespaceRestrictsOnlyVisibility() {
-        configService.create(config("commerce", "dev", "orders", "orders.limit"),
-                "tester");
-        configService.create(config("commerce", "dev", "inventory", "stock.limit"),
-                "tester");
-        bind("commerce", "team-a", "dev", "orders");
-
-        assertThat(configService.list(new DdcConfigQueryRequest()))
-                .extracting(DdcConfigVO::getAppCode)
-                .containsExactly("inventory", "orders");
-
-        DdcConfigQueryRequest query = new DdcConfigQueryRequest();
-        query.setNamespaceCode("team-a");
-        assertThat(configService.list(query))
-                .singleElement()
-                .satisfies(value -> {
-                    assertThat(value.getAppCode()).isEqualTo("orders");
-                    assertThat(value.getVisibleNamespaces())
-                            .containsExactly("team-a");
-                });
+    @BeforeEach
+    void setUp() {
+        itemRepository = mock(DdcConfigItemRepository.class);
+        versionRepository = mock(DdcConfigVersionRepository.class);
+        operationLogRepository = mock(DdcOperationLogRepository.class);
+        bindingRepository = mock(DdcNamespaceEnvAppBindingRepository.class);
+        publishTaskRepository = mock(DdcPublishTaskRepository.class);
+        ObjectProvider<DdcAdminProperties> properties =
+                new DefaultListableBeanFactory().getBeanProvider(DdcAdminProperties.class);
+        service = new DdcConfigService(itemRepository, versionRepository, new DdcConfigItemConverterImpl(),
+                new DdcConfigVersionConverterImpl(), operationLogRepository, bindingRepository,
+                publishTaskRepository, properties);
+        when(itemRepository.insert(any(DdcConfigItemBO.class))).thenAnswer(invocation -> {
+            DdcConfigItemBO item = invocation.getArgument(0);
+            item.setId(101L).setTenantId(401L).setPublicId("config-public-1").setVersion(0L);
+            return item;
+        });
+        when(itemRepository.update(any(DdcConfigItemBO.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(versionRepository.insert(any(DdcConfigVersionBO.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
-    void pagesConfigsAndVersionsWithoutMaterializingTheFullResult() {
-        DdcConfigVO first = configService.create(
-                config("infra", "prod", "yuheng", "gateway config"),
+    void createsConfigAndVersionWithSeparatePublicAndInternalIds() {
+        DdcConfigVO result = service.create(configRequest("infra", "prod", "gateway"), "tester");
+
+        assertThat(result.getId()).isEqualTo("config-public-1");
+        assertThat(result.getCurrentVersion()).isEqualTo(1L);
+        assertThat(result.getDeleted()).isFalse();
+        var version = org.mockito.ArgumentCaptor.forClass(DdcConfigVersionBO.class);
+        verify(versionRepository).insert(version.capture());
+        assertThat(version.getValue().getConfigItemId()).isEqualTo(101L);
+        assertThat(version.getValue().getConfigId()).isEqualTo("config-public-1");
+        assertThat(version.getValue().getConfigRevision()).isEqualTo(1L);
+        assertThat(version.getValue().getChangeType()).isEqualTo(ChangeType.CREATE.name());
+    }
+
+    @Test
+    void upsertKeepsBusinessVersionAndClearsDefaultValueWithoutTouchingPublishedPointer() {
+        DdcConfigItemBO existing = item(101L, "config-public-1", 3L, 2L, false, "old");
+        existing.setDefaultValue("fallback");
+        when(itemRepository.findByBizCodeAndEnvAndAppCode("infra", "prod", "gateway"))
+                .thenReturn(List.of(existing));
+
+        DdcConfigVO result = service.upsert(configRequest("infra", "prod", "gateway"), 3L, "tester");
+
+        assertThat(result.getCurrentVersion()).isEqualTo(4L);
+        assertThat(result.getContent()).contains("enabled: true");
+        assertThat(existing.getDefaultValue()).isNull();
+        assertThat(existing.getPublishedVersion()).isEqualTo(2L);
+        var version = org.mockito.ArgumentCaptor.forClass(DdcConfigVersionBO.class);
+        verify(versionRepository).insert(version.capture());
+        assertThat(version.getValue().getConfigRevision()).isEqualTo(4L);
+        assertThat(version.getValue().getOldContent()).isEqualTo("old");
+    }
+
+    @Test
+    void createRefusesToReuseABusinessDeletedResourceUntilRollback() {
+        when(itemRepository.findByBizCodeAndEnvAndAppCode("infra", "prod", "gateway"))
+                .thenReturn(List.of(item(101L, "config-public-1", 4L, 2L, true, "old")));
+        assertThatThrownBy(() -> service.upsert(configRequest("infra", "prod", "gateway"), 4L, "tester"))
+                .isInstanceOf(DdcAdminException.class).hasMessage("deleted config resource cannot be reused");
+        verify(itemRepository, never()).insert(any(DdcConfigItemBO.class));
+        verify(itemRepository, never()).update(any(DdcConfigItemBO.class));
+    }
+
+    @Test
+    void businessDeleteAndRollbackLeaveTechnicalDeletedAtUntouched() {
+        DdcConfigItemBO deletedItem = item(101L, "config-public-1", 2L, 1L, false, "current");
+        when(itemRepository.findByPublicId("config-public-1")).thenReturn(Optional.of(deletedItem));
+        DdcConfigVO deleted = service.delete("config-public-1", "tester", "remove");
+        assertThat(deleted.getDeleted()).isTrue();
+        assertThat(deleted.getEnabled()).isFalse();
+        assertThat(deletedItem.getDeletedAt()).isNull();
+        assertThat(deletedItem.getCurrentVersion()).isEqualTo(3L);
+
+        DdcConfigVersionBO target = version(101L, "config-public-1", 1L, "feature:\n  enabled: false\n",
+                ChangeType.CREATE.name());
+        when(versionRepository.findByConfigIdAndVersion("config-public-1", 1L)).thenReturn(Optional.of(target));
+        DdcConfigVO restored = service.rollback(new DdcConfigRollbackRequest("config-public-1", 1L, "restore"),
                 "tester");
-        configService.create(
-                config("infra", "prod", "worker", "worker config"),
-                "tester");
+        assertThat(restored.getDeleted()).isFalse();
+        assertThat(restored.getEnabled()).isTrue();
+        assertThat(restored.getContent()).isEqualTo("feature:\n  enabled: false\n");
+        assertThat(deletedItem.getDeletedAt()).isNull();
+        assertThat(deletedItem.getCurrentVersion()).isEqualTo(4L);
+    }
+
+    @Test
+    void searchAndPagePreserveFiltersVisibilityAndPageEnvelope() {
+        DdcConfigItemBO item = item(101L, "config-public-1", 2L, 2L, false, "runtime");
+        when(itemRepository.search("infra", "team-a", "prod", "gateway", null, false)).thenReturn(List.of(item));
+        when(bindingRepository.findVisibleNamespaceCodes("infra", "prod", "gateway")).thenReturn(List.of("team-a"));
+        when(itemRepository.search(eq("infra"), eq("team-a"), eq("prod"), eq("gateway"), isNull(),
+                eq(false), any(PageQuery.class))).thenReturn(DdcPageResult.<DdcConfigItemBO>builder()
+                        .records(List.of(item)).total(12).pageNo(2).pageSize(10).build());
         DdcConfigQueryRequest query = new DdcConfigQueryRequest();
         query.setBizCode(" infra ");
+        query.setNamespaceCode(" team-a ");
+        query.setEnv(" prod ");
+        query.setAppCode(" gateway ");
+        query.setIncludeDeleted(false);
 
-        var configs = configService.page(query, new PageQuery(1, 1));
-        var versions = configService.pageVersions(
-                first.getId(), new PageQuery(1, 10));
+        DdcConfigVO listed = service.list(query).getFirst();
+        DdcPageResult<DdcConfigVO> page = service.page(query, new PageQuery(2, 10));
 
-        assertThat(configs.getContent()).hasSize(1);
-        assertThat(configs.getTotalElements()).isEqualTo(2);
-        assertThat(versions.getTotalElements()).isEqualTo(1);
-        assertThat(versions.getContent())
-                .extracting(DdcConfigVersionVO::getConfigId)
-                .containsExactly(first.getId());
+        assertThat(listed.getId()).isEqualTo("config-public-1");
+        assertThat(listed.getVisibleNamespaces()).containsExactly("team-a");
+        assertThat(page.getTotal()).isEqualTo(12);
+        assertThat(page.getPageNo()).isEqualTo(2);
+        assertThat(page.getRecords().getFirst().getId()).isEqualTo("config-public-1");
     }
 
     @Test
-    void updateCreatesNewVersion() {
-        DdcConfigCreateRequest create = new DdcConfigCreateRequest(
-                "default", "dev", "demo", null,
-                "application.yml", "feature:\n  enabled: false\n",
-                "YAML", "switch");
-        DdcConfigVO created = configService.create(create, "tester");
+    void pullUsesPublishedBusinessRevisionRatherThanTechnicalVersion() {
+        DdcConfigItemBO item = item(101L, "config-public-1", 8L, 5L, false, "draft");
+        when(itemRepository.findByBizCodeAndEnvAndAppCode("infra", "prod", "gateway")).thenReturn(List.of(item));
+        when(versionRepository.findByConfigItemIdAndRevision(101L, 5L)).thenReturn(Optional.of(
+                version(101L, "config-public-1", 5L, "published", ChangeType.UPDATE.name())));
 
-        DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(
-                created.getId(), "feature:\n  enabled: true\n",
-                "enable switch", created.getCurrentVersion());
-        DdcConfigVO updated = configService.update(update, "tester");
+        List<DdcConfigValue> result = service.pull("infra", "prod", "gateway");
 
-        assertThat(updated.getCurrentVersion()).isEqualTo(2L);
-        assertThat(versionRepository.findByConfigIdOrderByVersionDesc(created.getId())).hasSize(2);
-    }
-
-    @Test
-    void createAndUpsertRejectInvalidYaml() {
-        DdcConfigCreateRequest malformed = new DdcConfigCreateRequest(
-                "default", "dev", "create-invalid", null,
-                "application.yml", "feature: [", "YAML", "invalid"
-        );
-        DdcConfigCreateRequest reserved = new DdcConfigCreateRequest(
-                "default", "dev", "upsert-invalid", null,
-                "application.yml",
-                "spring:\n  profiles:\n    active: prod\n",
-                "YAML",
-                "invalid"
-        );
-
-        assertThatThrownBy(() -> configService.create(malformed, "tester"))
-                .hasMessageContaining("invalid application.yml");
-        assertThatThrownBy(() -> configService.upsert(
-                reserved,
-                null,
-                "tester"
-        )).hasMessageContaining("reserved");
-    }
-
-    @Test
-    void updateAndRollbackRejectInvalidYaml() {
-        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
-                "default", "dev", "mutation-invalid", null,
-                "application.yml", "feature:\n  enabled: false\n",
-                "YAML", "valid"
-        ), "tester");
-        DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(
-                created.getId(),
-                "egon:\n  cola:\n    component:\n      tianshu:\n        enabled: false\n",
-                "invalid",
-                created.getCurrentVersion()
-        );
-
-        assertThatThrownBy(() -> configService.update(update, "tester"))
-                .hasMessageContaining("reserved");
-
-        DdcConfigVersionEntity invalidVersion = new DdcConfigVersionEntity();
-        invalidVersion.setId("invalid-version");
-        invalidVersion.setConfigId(created.getId());
-        invalidVersion.setBizCode("default");
-        invalidVersion.setAppCode("mutation-invalid");
-        invalidVersion.setEnv("dev");
-        invalidVersion.setResourceName("application.yml");
-        invalidVersion.setVersion(99L);
-        invalidVersion.setNewContent("feature: [");
-        invalidVersion.setFormat("YAML");
-        invalidVersion.setChangeType("UPDATE");
-        invalidVersion.setCreatedAt(LocalDateTime.now());
-        versionRepository.saveAndFlush(invalidVersion);
-
-        assertThatThrownBy(() -> configService.rollback(
-                new DdcConfigRollbackRequest(
-                        created.getId(),
-                        99L,
-                        "invalid"
-                ),
-                "tester"
-        )).hasMessageContaining("invalid application.yml");
-    }
-
-    @Test
-    void scopedUpsertAndDeleteUseExpectedVersionAndDeleteIsIdempotent() {
-        DdcConfigCreateRequest request = new DdcConfigCreateRequest(
-                "infra",
-                "dev",
-                "yuheng",
-                null,
-                "application.yml",
-                "yuheng:\n  enabled: false\n",
-                "YAML",
-                "routes"
-        );
-        DdcConfigVO created = configService.upsert(request, null, "yuheng-admin");
-        DdcConfigVO updated = configService.upsert(
-                new DdcConfigCreateRequest(
-                        "infra",
-                        "dev",
-                        "yuheng",
-                        null,
-                        "application.yml",
-                        "yuheng:\n  enabled: true\n",
-                        "YAML",
-                        "routes"
-                ),
-                created.getCurrentVersion(),
-                "yuheng-admin"
-        );
-
-        assertThat(updated.getCurrentVersion()).isEqualTo(2L);
-        assertThatThrownBy(() -> configService.delete(
-                "infra",
-                "dev",
-                "yuheng",
-                1L,
-                "yuheng-admin",
-                "release removed"
-        )).hasMessageContaining("version");
-
-        DdcConfigVO deleted = configService.delete(
-                "infra",
-                "dev",
-                "yuheng",
-                updated.getCurrentVersion(),
-                "yuheng-admin",
-                "release removed"
-        );
-        DdcConfigVO repeated = configService.delete(
-                "infra",
-                "dev",
-                "yuheng",
-                deleted.getCurrentVersion(),
-                "yuheng-admin",
-                "repeat"
-        );
-
-        assertThat(deleted.getDeleted()).isTrue();
-        assertThat(repeated.getCurrentVersion()).isEqualTo(deleted.getCurrentVersion());
-        assertThat(versionRepository.findByConfigIdOrderByVersionDesc(created.getId()))
-                .hasSize(3);
-        assertThat(operationLogRepository.findAll())
-                .extracting(log -> log.getOperationType())
-                .containsExactlyInAnyOrder("CREATE", "UPDATE", "DELETE");
-    }
-
-    @Test
-    void pullReturnsPublishedVersionInsteadOfNewerDraft() {
-        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
-                "commerce",
-                "test",
-                "orders",
-                null,
-                "application.yml",
-                "feature:\n  version: 1\n",
-                "YAML",
-                "rules"
-        ), "tester");
-        configService.upsert(new DdcConfigCreateRequest(
-                "commerce",
-                "test",
-                "orders",
-                null,
-                "application.yml",
-                "feature:\n  version: 2\n",
-                "YAML",
-                "rules"
-        ), created.getCurrentVersion(), "tester");
-        DdcConfigItemEntity item = configItemRepository.findById(created.getId())
-                .orElseThrow();
-        item.setPublishedVersion(1L);
-        configItemRepository.saveAndFlush(item);
-
-        assertThat(configService.pull("commerce", "test", "orders"))
-                .singleElement()
-                .satisfies(value -> {
-                    assertThat(value.getContent())
-                            .isEqualTo("feature:\n  version: 1\n");
-                    assertThat(value.getResourceName()).isEqualTo("application.yml");
-                    assertThat(value.getFormat()).isEqualTo("YAML");
-                    assertThat(value.getVersion()).isEqualTo(1L);
-                });
-    }
-
-    @Test
-    void targetedPullReturnsPreparedVersionOnlyForActivePublish() {
-        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
-                "commerce",
-                "test",
-                "orders",
-                null,
-                "application.yml",
-                "feature:\n  version: 1\n",
-                "YAML",
-                "rules"
-        ), "tester");
-        configService.upsert(new DdcConfigCreateRequest(
-                "commerce",
-                "test",
-                "orders",
-                null,
-                "application.yml",
-                "feature:\n  version: 2\n",
-                "YAML",
-                "rules"
-        ), created.getCurrentVersion(), "tester");
-        DdcConfigItemEntity item = configItemRepository.findById(created.getId())
-                .orElseThrow();
-        item.setPublishedVersion(1L);
-        configItemRepository.saveAndFlush(item);
-
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId("prepared-task");
-        task.setChangeId("prepared-change");
-        task.setConfigId(created.getId());
-        task.setBizCode("commerce");
-        task.setAppCode("orders");
-        task.setEnv("test");
-        task.setResourceName("application.yml");
-        task.setTargetVersion(2L);
-        task.setStatus(PublishStatus.PUBLISHING.name());
-        task.setAttemptCount(0);
-        task.setCreatedAt(LocalDateTime.now());
-        task.setUpdatedAt(LocalDateTime.now());
-        publishTaskRepository.saveAndFlush(task);
-
-        assertThat(configService.pull(
-                "commerce",
-                "test",
-                "orders",
-                "application.yml",
-                2L
-        )).singleElement().satisfies(value -> {
-            assertThat(value.getVersion()).isEqualTo(2L);
-            assertThat(value.getContent()).isEqualTo(
-                    "feature:\n  version: 2\n"
-            );
+        assertThat(result).singleElement().satisfies(value -> {
+            assertThat(value.getVersion()).isEqualTo(5L);
+            assertThat(value.getContent()).isEqualTo("published");
         });
-        assertThat(configService.pull("commerce", "test", "orders"))
-                .singleElement()
-                .extracting(DdcConfigValue::getVersion)
-                .isEqualTo(1L);
-
-        task.setStatus(PublishStatus.FAILED.name());
-        publishTaskRepository.saveAndFlush(task);
-        assertThat(configService.pull(
-                "commerce",
-                "test",
-                "orders",
-                "application.yml",
-                2L
-        )).isEmpty();
+        verify(versionRepository).findByConfigItemIdAndRevision(101L, 5L);
+        verifyNoInteractions(publishTaskRepository);
     }
 
     @Test
-    void newDraftIsNotVisibleToRuntimeReadsBeforePublish() {
-        configService.create(new DdcConfigCreateRequest(
-                "commerce",
-                "test",
-                "orders",
-                null,
-                "application.yml",
-                "feature:\n  state: draft\n",
-                "YAML",
-                "new draft"
-        ), "tester");
+    void versionListAndPageProjectConfigRevisionToTheLegacyVersionField() {
+        DdcConfigVersionBO version = version(101L, "config-public-1", 5L, "published", ChangeType.UPDATE.name());
+        when(versionRepository.findByConfigIdOrderByVersionDesc("config-public-1")).thenReturn(List.of(version));
+        when(versionRepository.findByConfigIdOrderByVersionDescIdDesc(eq("config-public-1"), any(PageQuery.class)))
+                .thenReturn(DdcPageResult.<DdcConfigVersionBO>builder().records(List.of(version))
+                        .total(1).pageNo(1).pageSize(10).build());
 
-        assertThat(configService.pull("commerce", "test", "orders")).isEmpty();
+        DdcConfigVersionVO row = service.versions("config-public-1").getFirst();
+        DdcPageResult<DdcConfigVersionVO> page = service.pageVersions("config-public-1", new PageQuery(1, 10));
+
+        assertThat(row.getId()).isEqualTo(version.getPublicId());
+        assertThat(row.getConfigId()).isEqualTo("config-public-1");
+        assertThat(row.getVersion()).isEqualTo(5L);
+        assertThat(page.getRecords().getFirst().getVersion()).isEqualTo(5L);
     }
 
-    @Test
-    void draftDeleteDoesNotHidePreviouslyPublishedValue() {
-        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
-                "commerce",
-                "test",
-                "orders",
-                null,
-                "application.yml",
-                "feature:\n  state: published\n",
-                "YAML",
-                "stable value"
-        ), "tester");
-        DdcConfigItemEntity item = configItemRepository.findById(created.getId())
-                .orElseThrow();
-        item.setPublishedVersion(1L);
-        configItemRepository.saveAndFlush(item);
-
-        DdcConfigVO deleted = configService.delete(
-                created.getId(), "tester", "draft delete"
-        );
-
-        assertThat(deleted.getDeleted()).isTrue();
-        assertThat(configService.pull("commerce", "test", "orders"))
-                .singleElement()
-                .satisfies(value -> assertThat(value.getResourceName())
-                        .isEqualTo("application.yml"));
-
-        item = configItemRepository.findById(created.getId()).orElseThrow();
-        item.setPublishedVersion(2L);
-        configItemRepository.saveAndFlush(item);
-        assertThat(configService.pull("commerce", "test", "orders")).isEmpty();
+    private DdcConfigCreateRequest configRequest(String biz, String env, String app) {
+        return new DdcConfigCreateRequest(biz, env, app, null, "application.yml",
+                "feature:\n  enabled: true\n", "YAML", "config test");
     }
 
-    private DdcConfigCreateRequest config(
-            String bizCode, String env, String appCode, String description) {
-        return new DdcConfigCreateRequest(
-                bizCode,
-                env,
-                appCode,
-                null,
-                "application.yml",
-                "test:\n  value: 1\n",
-                "YAML",
-                description
-        );
+    private DdcConfigItemBO item(Long id, String publicId, Long currentVersion, Long publishedVersion,
+            boolean deleted, String content) {
+        return DdcConfigItemBO.builder().id(id).tenantId(401L).publicId(publicId).bizCode("infra")
+                .appCode("gateway").env("prod").namespace(null).resourceName("application.yml")
+                .content(content).format("YAML").currentVersion(currentVersion).publishedVersion(publishedVersion)
+                .enabled(!deleted).deleted(deleted).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .version(0L).build();
     }
 
-    private void bind(
-            String bizCode, String namespaceCode, String env, String appCode) {
-        LocalDateTime now = LocalDateTime.now();
-        DdcNamespaceEntity namespace = new DdcNamespaceEntity();
-        namespace.setId("ns-" + namespaceCode);
-        namespace.setBizCode(bizCode);
-        namespace.setNamespaceCode(namespaceCode);
-        namespace.setNamespace(namespaceCode);
-        namespace.setEnabled(true);
-        namespace.setCreatedAt(now);
-        namespace.setUpdatedAt(now);
-        entityManager.persistAndFlush(namespace);
-
-        DdcAppEntity app = new DdcAppEntity();
-        app.setId("app-" + appCode);
-        app.setBizCode(bizCode);
-        app.setAppCode(appCode);
-        app.setAppName(appCode);
-        app.setEnabled(true);
-        app.setCreatedAt(now);
-        app.setUpdatedAt(now);
-        entityManager.persistAndFlush(app);
-
-        DdcNamespaceEnvAppBindingEntity binding =
-                new DdcNamespaceEnvAppBindingEntity();
-        binding.setId("binding-" + namespaceCode + "-" + appCode);
-        binding.setNamespaceId(namespace.getId());
-        binding.setEnvCode(env);
-        binding.setAppId(app.getId());
-        binding.setEnabled(true);
-        binding.setCreatedAt(now);
-        binding.setUpdatedAt(now);
-        entityManager.persistAndFlush(binding);
-        when(bindingRepository.findVisibleNamespaceCodes(bizCode, env, appCode))
-                .thenReturn(List.of(namespaceCode));
-    }
-
-    @TestConfiguration
-    static class IdConfig {
+    private DdcConfigVersionBO version(Long configItemId, String configPublicId, Long revision,
+            String content, String changeType) {
+        return DdcConfigVersionBO.builder().id(revision + 100L).publicId("version-" + revision)
+                .configItemId(configItemId).configId(configPublicId).configRevision(revision)
+                .resourceName("application.yml").newContent(content).format("YAML").changeType(changeType)
+                .createdAt(LocalDateTime.now()).version(0L).build();
     }
 }

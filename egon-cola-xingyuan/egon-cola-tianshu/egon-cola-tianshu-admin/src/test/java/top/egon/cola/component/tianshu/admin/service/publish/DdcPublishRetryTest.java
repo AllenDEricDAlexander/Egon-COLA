@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -15,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
@@ -36,7 +37,10 @@ import top.egon.cola.component.tianshu.model.config.DdcPublishTarget;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -94,13 +98,13 @@ class DdcPublishRetryTest {
     @Autowired
     private DdcPublishTaskRepository taskRepository;
 
-    @Autowired
+    @MockBean(name = "ddcConfigItemRepository")
     private DdcConfigItemRepository configItemRepository;
 
     @Autowired
     private DdcPublishAckRepository ackRepository;
 
-    @Autowired
+    @MockBean(name = "ddcConfigVersionRepository")
     private DdcConfigVersionRepository versionRepository;
 
     @Autowired
@@ -109,9 +113,32 @@ class DdcPublishRetryTest {
     @Autowired
     private DdcRedisRepository redisRepository;
 
+    private final Map<String, DdcConfigItemBO> configs = new HashMap<>();
+    private final Map<String, DdcConfigVersionBO> versions = new HashMap<>();
+    private long nextInternalConfigId;
+
     @BeforeEach
     void setUp() {
-        reset(leaseService, redisRepository);
+        configs.clear();
+        versions.clear();
+        nextInternalConfigId = 1000L;
+        reset(configItemRepository, versionRepository, leaseService, redisRepository);
+        when(configItemRepository.findByPublicId(any())).thenAnswer(invocation ->
+                Optional.ofNullable(configs.get(invocation.getArgument(0))));
+        when(configItemRepository.update(any(DdcConfigItemBO.class))).thenAnswer(invocation -> {
+            DdcConfigItemBO item = invocation.getArgument(0);
+            item.setVersion(item.getVersion() + 1);
+            configs.put(item.getPublicId(), item);
+            return item;
+        });
+        when(configItemRepository.advancePublishedVersion(any(), any(), any(), any())).thenAnswer(invocation -> {
+            DdcConfigItemBO item = configs.get(invocation.getArgument(0));
+            if (item == null || !java.util.Objects.equals(item.getPublishedVersion(), invocation.getArgument(1))) return 0;
+            item.setPublishedVersion(invocation.getArgument(2)).setVersion(item.getVersion() + 1);
+            return 1;
+        });
+        when(versionRepository.findByConfigIdAndVersion(any(), any())).thenAnswer(invocation ->
+                Optional.ofNullable(versions.get(versionKey(invocation.getArgument(0), invocation.getArgument(1)))));
     }
 
     @Test
@@ -208,22 +235,12 @@ class DdcPublishRetryTest {
     private DdcPublishTaskEntity saveRetryable(PublishStatus status, String label) {
         LocalDateTime now = LocalDateTime.now();
         String configId = SnowflakeIdGenerator.nextId();
-        DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(configId);
-        config.setBizCode("default");
-        config.setAppCode(label);
-        config.setEnv("dev");
-        config.setResourceName("application.yml");
-        config.setContent(CONFIG_VALUE);
-        config.setDefaultValue(null);
-        config.setFormat("YAML");
-        config.setCurrentVersion(2L);
-        config.setPublishedVersion(1L);
-        config.setEnabled(true);
-        config.setDeleted(false);
-        config.setCreatedAt(now.minusSeconds(10));
-        config.setUpdatedAt(now);
-        configItemRepository.saveAndFlush(config);
+        long internalConfigId = nextInternalConfigId++;
+        DdcConfigItemBO config = DdcConfigItemBO.builder().id(internalConfigId).tenantId(401L).publicId(configId)
+                .bizCode("default").appCode(label).env("dev").resourceName("application.yml")
+                .content(CONFIG_VALUE).format("YAML").currentVersion(2L).publishedVersion(1L)
+                .enabled(true).deleted(false).createdAt(now.minusSeconds(10)).updatedAt(now).version(0L).build();
+        configs.put(configId, config);
 
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(SnowflakeIdGenerator.nextId());
@@ -273,20 +290,13 @@ class DdcPublishRetryTest {
         }
         ackRepository.saveAndFlush(target);
 
-        DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(SnowflakeIdGenerator.nextId());
-        version.setConfigId(configId);
-        version.setBizCode(task.getBizCode());
-        version.setAppCode(task.getAppCode());
-        version.setEnv(task.getEnv());
-        version.setNamespace(task.getNamespace());
-        version.setResourceName(task.getResourceName());
-        version.setVersion(task.getTargetVersion());
-        version.setOldContent("feature:\n  enabled: false\n");
-        version.setNewContent(CONFIG_VALUE);
-        version.setFormat("YAML");
-        version.setCreatedAt(now);
-        versionRepository.saveAndFlush(version);
+        DdcConfigVersionBO version = DdcConfigVersionBO.builder().id(nextInternalConfigId++)
+                .configItemId(internalConfigId).configId(configId).bizCode(task.getBizCode())
+                .appCode(task.getAppCode()).env(task.getEnv()).namespace(task.getNamespace())
+                .resourceName(task.getResourceName()).configRevision(task.getTargetVersion())
+                .oldContent("feature:\n  enabled: false\n").newContent(CONFIG_VALUE).format("YAML")
+                .changeType("UPDATE").createdAt(now).build();
+        versions.put(versionKey(configId, task.getTargetVersion()), version);
         return task;
     }
 
@@ -301,6 +311,8 @@ class DdcPublishRetryTest {
         request.setStatus(DdcAckStatus.SUCCESS);
         return request;
     }
+
+    private String versionKey(String configId, Long revision) { return configId + ":" + revision; }
 
     @TestConfiguration
     static class Dependencies {

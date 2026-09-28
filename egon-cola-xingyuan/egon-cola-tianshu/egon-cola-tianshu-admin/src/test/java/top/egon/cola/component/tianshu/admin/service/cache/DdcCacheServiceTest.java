@@ -1,13 +1,11 @@
 package top.egon.cola.component.tianshu.admin.service.cache;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcCacheCheckRow;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
@@ -30,11 +28,11 @@ class DdcCacheServiceTest {
         DdcConfigItemRepository configItemRepository = mock(DdcConfigItemRepository.class);
         DdcConfigVersionRepository versionRepository = mock(DdcConfigVersionRepository.class);
         DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
-        DdcConfigItemEntity item = item("switch", "draft", 2L, 1L);
+        DdcConfigItemBO item = item("switch", "draft", 2L, 1L);
         when(configItemRepository.findByBizCodeAndEnvAndAppCode("default", "dev", "demo"))
                 .thenReturn(List.of(item));
-        when(versionRepository.findByConfigIdAndVersion("config-switch", 1L))
-                .thenReturn(java.util.Optional.of(version("switch", "true", 1L)));
+        when(versionRepository.findByConfigItemIdAndRevision(11L, 1L))
+                .thenReturn(java.util.Optional.of(version(11L, "switch", "true", 1L)));
 
         DdcCacheService service = new DdcCacheService(
                 configItemRepository, versionRepository, redisRepository
@@ -52,8 +50,8 @@ class DdcCacheServiceTest {
         DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
         when(configItemRepository.findByBizCodeAndEnvAndAppCode("default", "dev", "demo"))
                 .thenReturn(List.of(item("switch", "draft", 2L, 1L)));
-        when(versionRepository.findByConfigIdAndVersion("config-switch", 1L))
-                .thenReturn(java.util.Optional.of(version("switch", "true", 1L)));
+        when(versionRepository.findByConfigItemIdAndRevision(11L, 1L))
+                .thenReturn(java.util.Optional.of(version(11L, "switch", "true", 1L)));
         when(redisRepository.readConfigValue("default", "dev", "demo", "switch")).thenReturn("false");
         when(redisRepository.readConfigVersion("default", "dev", "demo", "switch")).thenReturn(1L);
 
@@ -90,12 +88,12 @@ class DdcCacheServiceTest {
         DdcConfigItemRepository configItemRepository = mock(DdcConfigItemRepository.class);
         DdcConfigVersionRepository versionRepository = mock(DdcConfigVersionRepository.class);
         DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
-        DdcConfigVersionEntity current = version("application.yml", "true", 2L);
+        DdcConfigVersionBO current = version(12L, "application.yml", "true", 2L);
         when(versionRepository.findPublishedRuntimeVersions(
                 eq("infra"), eq("prod"), eq("yuheng"), eq("DELETE"),
-                any(Pageable.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(current), PageRequest.of(1, 1), 2));
+                any(PageQuery.class)))
+                .thenReturn(DdcPageResult.<DdcConfigVersionBO>builder().records(List.of(current))
+                        .total(2).pageNo(2).pageSize(1).build());
         when(redisRepository.readConfigValue(
                 "infra", "prod", "yuheng", "application.yml"))
                 .thenReturn("true");
@@ -108,8 +106,8 @@ class DdcCacheServiceTest {
         var page = service.page(
                 "infra", "prod", "yuheng", new PageQuery(2, 1));
 
-        assertThat(page.getTotalElements()).isEqualTo(2);
-        assertThat(page.getContent()).singleElement()
+        assertThat(page.getTotal()).isEqualTo(2);
+        assertThat(page.getRecords()).singleElement()
                 .satisfies(row -> assertThat(row.isMatched()).isTrue());
         verify(redisRepository).readConfigValue(
                 "infra", "prod", "yuheng", "application.yml");
@@ -118,28 +116,19 @@ class DdcCacheServiceTest {
         verifyNoMoreInteractions(redisRepository);
     }
 
-    private DdcConfigItemEntity item(
+    private DdcConfigItemBO item(
             String key,
             String value,
             Long currentVersion,
             Long publishedVersion
     ) {
-        DdcConfigItemEntity item = new DdcConfigItemEntity();
-        item.setId("config-" + key);
-        item.setResourceName(key);
-        item.setContent(value);
-        item.setCurrentVersion(currentVersion);
-        item.setPublishedVersion(publishedVersion);
-        item.setEnabled(true);
-        item.setDeleted(false);
-        return item;
+        return DdcConfigItemBO.builder().id(11L).publicId("config-" + key).resourceName(key)
+                .content(value).currentVersion(currentVersion).publishedVersion(publishedVersion)
+                .enabled(true).deleted(false).build();
     }
 
-    private DdcConfigVersionEntity version(String key, String value, Long version) {
-        DdcConfigVersionEntity item = new DdcConfigVersionEntity();
-        item.setResourceName(key);
-        item.setNewContent(value);
-        item.setVersion(version);
-        return item;
+    private DdcConfigVersionBO version(Long configItemId, String key, String value, Long version) {
+        return DdcConfigVersionBO.builder().configItemId(configItemId).resourceName(key)
+                .newContent(value).configRevision(version).build();
     }
 }

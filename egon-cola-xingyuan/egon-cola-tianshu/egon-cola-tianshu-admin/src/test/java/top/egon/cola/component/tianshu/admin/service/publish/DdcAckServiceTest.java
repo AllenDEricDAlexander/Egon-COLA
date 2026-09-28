@@ -1,11 +1,13 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -14,12 +16,13 @@ import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService;
@@ -28,6 +31,9 @@ import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -70,14 +76,29 @@ class DdcAckServiceTest {
     @Autowired
     private DdcPublishTaskRepository taskRepository;
 
-    @Autowired
+    @MockBean(name = "ddcConfigItemRepository")
     private DdcConfigItemRepository configItemRepository;
+
+    @MockBean(name = "ddcConfigVersionRepository")
+    private DdcConfigVersionRepository versionRepository;
 
     @Autowired
     private DdcPublishAckRepository ackRepository;
 
     @Autowired
     private DdcPublishStateTransitionService stateTransitions;
+
+    private final Map<String, DdcConfigItemBO> configItemsByPublicId = new HashMap<>();
+    private long nextInternalConfigId = 100L;
+
+    @BeforeEach
+    void setUp() {
+        configItemsByPublicId.clear();
+        nextInternalConfigId = 100L;
+        Mockito.reset(configItemRepository, versionRepository);
+        Mockito.when(configItemRepository.findByPublicId(Mockito.any()))
+                .thenAnswer(invocation -> Optional.ofNullable(configItemsByPublicId.get(invocation.getArgument(0))));
+    }
 
     @Test
     void exactDuplicateAckIsIdempotentAndCompletesTask() {
@@ -101,19 +122,17 @@ class DdcAckServiceTest {
     @Test
     void duplicateAckCompletesAfterPublishedPointerCatchesUp() {
         DdcPublishTaskEntity task = savePublishingTask("ack-pointer-catch-up");
-        DdcConfigItemEntity config = configItemRepository.findById(task.getConfigId())
+        DdcConfigItemBO config = configItemRepository.findByPublicId(task.getConfigId())
                 .orElseThrow();
         config.setPublishedVersion(1L);
-        configItemRepository.saveAndFlush(config);
         saveTarget(task, "instance-1", "lease-1");
         DdcAckRequest request =
                 ackRequest(task.getChangeId(), "instance-1", "lease-1", CHECKSUM);
 
         assertThat(publishService.ack(request).getStatus())
                 .isEqualTo(PublishStatus.PUBLISHING.name());
-        config = configItemRepository.findById(task.getConfigId()).orElseThrow();
+        config = configItemRepository.findByPublicId(task.getConfigId()).orElseThrow();
         config.setPublishedVersion(2L);
-        configItemRepository.saveAndFlush(config);
 
         assertThat(publishService.ack(request).getStatus())
                 .isEqualTo(PublishStatus.SUCCESS.name());
@@ -210,22 +229,13 @@ class DdcAckServiceTest {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         String configId = SnowflakeIdGenerator.nextId();
-        DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(configId);
-        config.setBizCode("default");
-        config.setAppCode(label);
-        config.setEnv("dev");
-        config.setResourceName("application.yml");
-        config.setContent(CONFIG_VALUE);
-        config.setDefaultValue(null);
-        config.setFormat("YAML");
-        config.setCurrentVersion(2L);
-        config.setPublishedVersion(2L);
-        config.setEnabled(true);
-        config.setDeleted(false);
-        config.setCreatedAt(now);
-        config.setUpdatedAt(now);
-        configItemRepository.saveAndFlush(config);
+        long internalConfigId = nextInternalConfigId++;
+        DdcConfigItemBO config = DdcConfigItemBO.builder().id(internalConfigId).tenantId(401L)
+                .publicId(configId).bizCode("default").appCode(label).env("dev")
+                .resourceName("application.yml").content(CONFIG_VALUE).format("YAML")
+                .currentVersion(2L).publishedVersion(2L).enabled(true).deleted(false)
+                .createdAt(now).updatedAt(now).version(0L).build();
+        configItemsByPublicId.put(configId, config);
 
         task.setId(SnowflakeIdGenerator.nextId());
         task.setChangeId(SnowflakeIdGenerator.nextId());

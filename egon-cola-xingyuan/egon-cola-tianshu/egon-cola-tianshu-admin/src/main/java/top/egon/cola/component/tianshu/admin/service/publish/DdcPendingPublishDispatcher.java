@@ -1,13 +1,14 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigVersionEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-@Service
+@Service("ddcPendingPublishDispatcher")
 public class DdcPendingPublishDispatcher {
 
     private static final Set<String> DISPATCHABLE_STATUSES = Set.of(
@@ -60,8 +61,8 @@ public class DdcPendingPublishDispatcher {
 
     @Autowired
     public DdcPendingPublishDispatcher(
-            DdcConfigItemRepository configItemRepository,
-            DdcConfigVersionRepository versionRepository,
+            @Qualifier("ddcConfigItemRepository") DdcConfigItemRepository configItemRepository,
+            @Qualifier("ddcConfigVersionRepository") DdcConfigVersionRepository versionRepository,
             DdcPublishTaskRepository taskRepository,
             DdcPublishAckRepository ackRepository,
             DdcRedisRepository redisRepository,
@@ -178,13 +179,13 @@ public class DdcPendingPublishDispatcher {
 
     private DdcAtomicPublishCommand command(String changeId) {
         DdcPublishTaskEntity task = requiredTask(changeId);
-        DdcConfigItemEntity config = configItemRepository.findById(task.getConfigId())
+        DdcConfigItemBO config = configItemRepository.findByPublicId(task.getConfigId())
                 .orElseThrow(() -> new DdcAdminException("config item not found"));
         if (config.getPublishedVersion() != null
                 && config.getPublishedVersion() > task.getTargetVersion()) {
             throw new DdcAdminException("published config version is newer than task");
         }
-        DdcConfigVersionEntity version = versionRepository.findByConfigIdAndVersion(
+        DdcConfigVersionBO version = versionRepository.findByConfigIdAndVersion(
                         task.getConfigId(),
                         task.getTargetVersion()
                 )
@@ -228,7 +229,7 @@ public class DdcPendingPublishDispatcher {
 
     private DdcPublishMessage message(
             DdcPublishTaskEntity task,
-            DdcConfigVersionEntity version,
+            DdcConfigVersionBO version,
             List<DdcPublishAckEntity> targets) {
         DdcPublishMessage message = new DdcPublishMessage();
         message.setChangeId(task.getChangeId());
@@ -274,8 +275,8 @@ public class DdcPendingPublishDispatcher {
         if (changed == 1) {
             return true;
         }
-        return configItemRepository.findById(command.configId())
-                .map(DdcConfigItemEntity::getPublishedVersion)
+        return configItemRepository.findByPublicId(command.configId())
+                .map(DdcConfigItemBO::getPublishedVersion)
                 .filter(version -> Objects.equals(version, command.targetVersion()))
                 .isPresent();
     }
