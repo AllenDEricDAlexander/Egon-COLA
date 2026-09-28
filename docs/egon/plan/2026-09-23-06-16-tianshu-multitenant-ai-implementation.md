@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-28 23:50 Asia/Shanghai` |
+| Updated | `2026-09-29 00:02 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -758,6 +758,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-28 Step 10 DDL 复核对照已确认原Spec §11.2.10：`ddc_instance` 必须有 `uk_instance_business(tenant_id, instance_id)`，而 Step 7 的 V001 SQL/manifest/readiness index-contract 少了该键；旧 JPA 映射也保证过 instanceId 唯一。保持 V001 和其SHA/history前缀不可变，Step 10 加 V002 前向 `CREATE UNIQUE INDEX`、将 manifest 扩展为 V001→V002，并让 DdcDatabaseReadyValidator 校验每个manifest脚本的资源checksum、完整history和该索引；DdcTianshuDdlContractTest先对缺失键断言RED再转GREEN。索引冲突必须令CLI初始化/业务readiness失败，不删除、合并或改写旧实例。Step 10 因此扩展4条文件路径及 DDL 合同测试，不加新依赖或运行环境。
 
 2026-09-28 Step 11 执行复核发现 `DdcStringMapConverter` 在 Step 10 将 `DdcInstancePO.runtimeMetadata` 切至字段级 MP `DdcRuntimeMetadataTypeHandler` 后已无生产或测试调用方；该旧类仅实现 JPA `AttributeConverter`。为完成 REQ-011 的无 JPA 源码目标且不保留无用重复转换器，将 §5 变更清单和 Step 11 File 20 的动作由 MODIFY 更正为 DELETE。现有 MP `BaseTypeHandler<Map<String, String>>` 继续负责字段 JSON 序列化、反序列化和空值语义；不改变列类型、JSON内容、wire字段或迁移路径。
+
+2026-09-29 Step 11 的 Admin 子目录 Maven 命令在 `testCompile` 阶段使用了本地仓库旧版本的天权/Tianshu starter、Outbox starter与RPC adapter，导致工作区前序Step新加的租户/Outbox/protobuf类型不可见；仓库根reactor `-pl ... -am` 已能从当前源码组装这些直接依赖。为使GREEN门禁真实验证当前工作区，Step 11 RED→GREEN验证工作目录改为仓库根，并显式添加`-pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am`；不改变生产范围或测试选择器。
 ## 7. Ordered File-by-file Implementation Steps
 
 本章是后续实施指令，不代表代码已修改或测试已执行。相同文件在不同Step按不同语义依次编辑；每步先RED再GREEN，只有Step 3的依赖装配用编译RED。完整系统构建只在Step 24。
@@ -17136,7 +17138,7 @@ assert the related focused test against success, malformed input, duplicate and 
 | Step 8 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcMetadataRepositoryContractTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcMetadataRepositoryContractTest | biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护；RED仅缺目标行为，GREEN退出0 | Step 8对应File/前置Step | REQ-011 REQ-013 REQ-015 REQ-019；静态/单测 |
 | Step 9 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcConfigRepositoryContractTest,DdcConfigServiceTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcConfigRepositoryContractTest,DdcConfigServiceTest | YAML原业务version/publishedVersion/deleted标记与rollback保留，内部Long/外部public ID分离；RED仅缺目标行为，GREEN退出0 | Step 9对应File/前置Step | REQ-011 REQ-013 REQ-015 REQ-019；静态/单测 |
 | Step 10 RED→GREEN | 仓库根目录 | `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest,DdcLeaseExpiryScannerTest,DdcPublishTimeoutScannerTest,PublishStartupRecoveryTest,DdcTianshuDdlContractTest' -Dsurefire.failIfNoSpecifiedTests=false test` | DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest,DdcLeaseExpiryScannerTest,DdcPublishTimeoutScannerTest,PublishStartupRecoveryTest,DdcTianshuDdlContractTest | 保留claim/状态前置条件/租约fencing/计数；逐tenant扫描和MDC还原；V001→V002 manifest/history/tenant-local index的静态合同；RED仅缺目标行为，GREEN退出0 | Step 10对应File/前置Step | REQ-009 REQ-011 REQ-013 REQ-015 REQ-019；静态/单测 |
-| Step 11 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcLegacyBehaviorContractTest,DdcArchitectureContractTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest | 源码/test不再依赖旧Entity/JPA；完整旧业务合同编译和定向回归，新datasource结构具备启动门禁；RED仅缺目标行为，GREEN退出0 | Step 11对应File/前置Step | REQ-011 REQ-013 REQ-015；静态/单测 |
+| Step 11 RED→GREEN | 仓库根目录 | `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcLegacyBehaviorContractTest,DdcArchitectureContractTest' -Dsurefire.failIfNoSpecifiedTests=false test` | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest | 源码/test不再依赖旧Entity/JPA；完整旧业务合同编译和定向回归，新datasource结构具备启动门禁；RED仅缺目标行为，GREEN退出0 | Step 11对应File/前置Step | REQ-011 REQ-013 REQ-015；静态/单测 |
 | Step 12 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcAiPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiPersistenceContractTest | 根、版本、草稿/版本节点和回执有命名SQL、CAS、正确FK和live/lifecycle唯一；RED仅缺目标行为，GREEN退出0 | Step 12对应File/前置Step | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019；静态/单测 |
 | Step 13 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcAiDraftServiceTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiDraftServiceTest | 创建/保存/树编辑/软删可用，正文原样，revision冲突保留已提交状态；RED仅缺目标行为，GREEN退出0 | Step 13对应File/前置Step | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019；静态/单测 |
 | Step 14 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcAiVersionServiceTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiVersionServiceTest | 同事务冻结整包/发布回执/指针，回滚不改历史或草稿，稳定幂等；RED仅缺目标行为，GREEN退出0 | Step 14对应File/前置Step | REQ-005 REQ-006；静态/单测 |
