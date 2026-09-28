@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -24,10 +25,15 @@ import top.egon.cola.component.common.mybatis.sharding.strategy.EgonColaStandard
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -164,6 +170,49 @@ class DdcMetadataRepositoryContractTest {
             assertThat(profile.logicalTable()).isEqualTo(table.logicalTable());
             assertThat(profile.actualNodes().values().stream().flatMap(List::stream)
                     .map(target -> target.table()).toList()).containsExactly(table.physicalTable());
+        }
+    }
+
+    @Test
+    void inheritedMapperIdReadsDelegateUsingOnlyTheTrustedMdcTenant() throws Exception {
+        MDC.put("tenantId", "401");
+        try {
+            for (MetadataTableBO table : TABLES) {
+                Class<?> mapperType = requiredType(MAPPER_PACKAGE + table.name() + "Mapper");
+                List<Object[]> idCalls = new ArrayList<>();
+                List<Object[]> idsCalls = new ArrayList<>();
+                Object mapper = Proxy.newProxyInstance(mapperType.getClassLoader(), new Class<?>[]{mapperType},
+                        (proxy, method, arguments) -> {
+                            if (method.isDefault()) return InvocationHandler.invokeDefault(proxy, method, arguments);
+                            if (method.getName().equals("selectActiveById") && arguments.length == 2) {
+                                idCalls.add(arguments);
+                                return null;
+                            }
+                            if (method.getName().equals("selectActiveByIds") && arguments.length == 2) {
+                                idsCalls.add(arguments);
+                                return List.of();
+                            }
+                            return null;
+                        });
+
+                Method idRead = mapperType.getMethod("selectActiveById", Serializable.class);
+                Method idsRead = mapperType.getMethod("selectActiveByIds", Collection.class);
+                assertThat(idRead.isDefault()).as(table.name() + " base selectActiveById is tenant-aware").isTrue();
+                assertThat(idsRead.isDefault()).as(table.name() + " base selectActiveByIds is tenant-aware").isTrue();
+                idRead.invoke(mapper, 810001L);
+                idsRead.invoke(mapper, List.of(810001L, 810002L));
+
+                assertThat(idCalls).singleElement().satisfies(call -> {
+                    assertThat(call[0]).isEqualTo(401L);
+                    assertThat(call[1]).isEqualTo(810001L);
+                });
+                assertThat(idsCalls).singleElement().satisfies(call -> {
+                    assertThat(call[0]).isEqualTo(401L);
+                    assertThat(call[1]).isEqualTo(List.of(810001L, 810002L));
+                });
+            }
+        } finally {
+            MDC.clear();
         }
     }
 

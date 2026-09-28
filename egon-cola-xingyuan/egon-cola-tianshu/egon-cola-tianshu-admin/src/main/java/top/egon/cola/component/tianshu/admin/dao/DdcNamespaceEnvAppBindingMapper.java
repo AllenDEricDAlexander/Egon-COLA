@@ -3,15 +3,35 @@ package top.egon.cola.component.tianshu.admin.dao;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.tianshu.admin.model.po.DdcNamespaceEnvAppBindingPO;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.io.Serializable;
 
 @Mapper
 @Validated
 public interface DdcNamespaceEnvAppBindingMapper extends EgonColaMapper<DdcNamespaceEnvAppBindingPO> {
+    @Override
+    default DdcNamespaceEnvAppBindingPO selectActiveById(Serializable id) {
+        return selectActiveById(EgonColaTenantIdProvider.currentTenantId(), requireInternalId(id));
+    }
+    @Override
+    default List<DdcNamespaceEnvAppBindingPO> selectActiveByIds(Collection<? extends Serializable> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        List<Long> internalIds = new ArrayList<>(ids.size());
+        ids.forEach(id -> internalIds.add(requireInternalId(id)));
+        return selectActiveByIds(EgonColaTenantIdProvider.currentTenantId(), internalIds);
+    }
+    private static Long requireInternalId(Serializable id) {
+        if (!(id instanceof Long value) || value <= 0) throw new IllegalArgumentException("ID_MUST_BE_POSITIVE_LONG");
+        return value;
+    }
+
     DdcNamespaceEnvAppBindingPO selectActiveById(@Param("tenantId") Long tenantId, @Param("id") Long id);
     List<DdcNamespaceEnvAppBindingPO> selectActiveByIds(@Param("tenantId") Long tenantId,
             @Param("ids") List<Long> ids);

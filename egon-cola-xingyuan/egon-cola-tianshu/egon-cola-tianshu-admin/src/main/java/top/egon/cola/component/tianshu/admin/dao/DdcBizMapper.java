@@ -9,15 +9,38 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.tianshu.admin.model.po.DdcBizPO;
 
 import java.util.List;
 import java.util.Collection;
+import java.io.Serializable;
+import java.util.ArrayList;
 
 @Mapper
 @Validated
 public interface DdcBizMapper extends EgonColaMapper<DdcBizPO> {
+
+    @Override
+    default DdcBizPO selectActiveById(Serializable id) {
+        return selectActiveById(EgonColaTenantIdProvider.currentTenantId(), requireInternalId(id));
+    }
+
+    @Override
+    default List<DdcBizPO> selectActiveByIds(Collection<? extends Serializable> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        List<Long> internalIds = new ArrayList<>(ids.size());
+        ids.forEach(id -> internalIds.add(requireInternalId(id)));
+        return selectActiveByIds(EgonColaTenantIdProvider.currentTenantId(), internalIds);
+    }
+
+    private static Long requireInternalId(Serializable id) {
+        if (!(id instanceof Long value) || value <= 0) {
+            throw new IllegalArgumentException("ID_MUST_BE_POSITIVE_LONG");
+        }
+        return value;
+    }
 
     @Validated(EgonColaModelValidationGroups.Query.class)
     DdcBizPO selectActiveById(

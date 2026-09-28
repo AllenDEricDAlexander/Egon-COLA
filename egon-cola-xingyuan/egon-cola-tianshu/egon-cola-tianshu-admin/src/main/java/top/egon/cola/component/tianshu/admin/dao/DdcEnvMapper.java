@@ -6,15 +6,36 @@ import jakarta.validation.constraints.Size;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.tianshu.admin.model.po.DdcEnvPO;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.io.Serializable;
 
 @Mapper
 @Validated
 public interface DdcEnvMapper extends EgonColaMapper<DdcEnvPO> {
+
+    @Override
+    default DdcEnvPO selectActiveById(Serializable id) {
+        return selectActiveById(EgonColaTenantIdProvider.currentTenantId(), requireInternalId(id));
+    }
+    @Override
+    default List<DdcEnvPO> selectActiveByIds(Collection<? extends Serializable> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        List<Long> internalIds = new ArrayList<>(ids.size());
+        ids.forEach(id -> internalIds.add(requireInternalId(id)));
+        return selectActiveByIds(EgonColaTenantIdProvider.currentTenantId(), internalIds);
+    }
+    private static Long requireInternalId(Serializable id) {
+        if (!(id instanceof Long value) || value <= 0) throw new IllegalArgumentException("ID_MUST_BE_POSITIVE_LONG");
+        return value;
+    }
+
     DdcEnvPO selectActiveById(@Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
             @Param("id") @NotNull(groups = EgonColaModelValidationGroups.Query.class)

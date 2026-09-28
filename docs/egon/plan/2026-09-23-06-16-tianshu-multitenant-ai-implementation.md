@@ -4836,11 +4836,12 @@ tables:
 - Requirements: `REQ-011`, `REQ-013`, `REQ-015`, `REQ-019`
 - Dependencies: Step 7
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
-- Observable outcome: biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护；MP实体与Mapper SQL使用逻辑表名，STRATEGY映射到`*_t0`物理目标，保持dynamic-table-name关闭。
-- End state: biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Observable outcome: biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护；MP实体与Mapper SQL使用逻辑表名，STRATEGY映射到`*_t0`物理目标，保持dynamic-table-name关闭；EgonColaMapper继承的ID读取默认方法从可信MDC取tenant后调用显式tenant Mapper SQL。
+- End state: biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护；继承Mapper ID读取不会产生缺失tenant参数；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11
+- Mapper inherited-read rule: 五个本地Mapper需以default方法适配EgonColaMapper的`selectActiveById(Serializable)`和`selectActiveByIds(Collection)`；只接受正数Long内部ID，只从`EgonColaTenantIdProvider.currentTenantId()`取得租户，再委托到本地XML声明的显式tenant/id查询；禁止让调用方传入tenant覆盖可信上下文。
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataRepositoryContractTest.java`
