@@ -769,6 +769,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 
 Step 12还复核到`egon-tianshu-persistence.yml`已由Step 7创建并提交；本Step File 41不是再CREATE新配置，而是仅修改精确`history-read-statements`登记项、继续保持`restore-statements`为空。对应动作更正为MODIFY，不改Step 7文件和已提交配置键以外的路由。
 
+Step 12的聚焦测试同样需要前序组件、Outbox和RPC模块当前工作区产物，沿用Step 11已验证的根目录reactor `-pl Admin -am` 门禁，避免子模块解析到本地旧版本。
+
 已接受修订稿§5.3新增一行明确替换原Spec §11.2.12–16的AI单行查询说明：REST `id`先按正Long十进制解析，查询使用tenant＋id唯一键，不查询public_id。此句来自同表字段设计及V001，并不引入新字段、接口或租户决策；原Spec正文保持不变。
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -13093,8 +13095,8 @@ enum DdcAiPublicationOperationEnum implements EgonEnum {
 - Verification contribution: DdcAiPersistenceContractTest聚焦本文件的history-read仅登记DdcAiResourceMapper.selectIncludingDeletedById；restore生产列表保持空；不忽略业务表；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
-- Verification command: `mvn -q -Dtest=DdcAiPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Validation working directory: `仓库根目录`
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiPersistenceContractTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
 - Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
