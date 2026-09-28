@@ -1,15 +1,9 @@
 spring:
   datasource:
-    url: jdbc:sqlite:file:ddc_admin_test?mode=memory&cache=shared
-    driver-class-name: org.sqlite.JDBC
-    hikari:
-      maximum-pool-size: 2
-  jpa:
-    database-platform: org.hibernate.community.dialect.SQLiteDialect
-    hibernate:
-      ddl-auto: create-drop
-  flyway:
-    enabled: false
+    url: ${TIANSHU_TEST_JDBC_URL:jdbc:postgresql://127.0.0.1:5432/egon_tianshu_test}
+    username: ${TIANSHU_DB_USERNAME:postgres}
+    password: ${TIANSHU_DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
 
 egon:
   cola:

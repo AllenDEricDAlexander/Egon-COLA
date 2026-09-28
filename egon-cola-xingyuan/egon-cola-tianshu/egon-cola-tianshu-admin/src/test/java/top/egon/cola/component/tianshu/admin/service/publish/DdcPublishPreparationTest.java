@@ -1,20 +1,11 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
+import org.springframework.beans.BeanUtils;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
@@ -29,9 +20,12 @@ import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigResourceKey;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService;
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
@@ -55,63 +49,31 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@DataJpaTest
-@Import({
-        DdcPublishService.class,
-        DdcPendingPublishDispatcher.class,
-        DdcPublishStateTransitionService.class,
-        PublishFailureRecorder.class,
-        PublishResourceLockRegistry.class,
-        PublishCompletionWaiterRegistry.class,
-        DdcPublishPreparationTest.Dependencies.class
-})
-@EnableConfigurationProperties(DdcAdminProperties.class)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = {
-        "egon.cola.component.id.machine-id=0",
-        "spring.datasource.url=jdbc:sqlite:file:ddc_publish_prepare_test?mode=memory&cache=shared",
-        "spring.datasource.driver-class-name=org.sqlite.JDBC",
-        "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.datasource.hikari.maximum-pool-size=1",
-        "spring.flyway.enabled=false",
-        "egon.cola.component.tianshu.admin.max-config-bytes=64",
-        "egon.cola.component.tianshu.admin.publish.default-timeout-ms=2000",
-        "egon.cola.component.tianshu.admin.publish.max-timeout-ms=5000"
-})
-@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishPreparationTest {
 
-    @Autowired
     private DdcPublishService publishService;
 
-    @MockBean(name = "ddcConfigItemRepository")
     private DdcConfigItemRepository configItemRepository;
 
-    @MockBean(name = "ddcConfigVersionRepository")
     private DdcConfigVersionRepository versionRepository;
 
-    @Autowired
     private DdcPublishTaskRepository taskRepository;
 
-    @Autowired
     private DdcPublishAckRepository ackRepository;
 
-    @Autowired
     private DdcConfigLeaseService leaseService;
 
-    @Autowired
     private DdcRedisRepository redisRepository;
 
-    @Autowired
     private PublishResourceLockRegistry resourceRegistry;
 
-    @Autowired
     private PlatformTransactionManager transactionManager;
+    private DdcAckServiceTest.InMemoryPersistence persistence;
+    private DdcTenantContextExecutor.Scope tenantScope;
 
     private final Map<String, DdcConfigItemBO> configItemsByScope = new HashMap<>();
     private final Map<String, DdcConfigItemBO> configItemsByPublicId = new HashMap<>();
@@ -120,19 +82,45 @@ class DdcPublishPreparationTest {
 
     @BeforeEach
     void setUp() {
+        tenantScope = new DdcTenantContextExecutor().bind(
+                new DdcTenantContextDTO(101L, "tenant-test", "test:publish-preparation"));
+        configItemRepository = mock(DdcConfigItemRepository.class);
+        versionRepository = mock(DdcConfigVersionRepository.class);
+        DdcOperationLogRepository operationLogRepository = mock(DdcOperationLogRepository.class);
+        leaseService = mock(DdcConfigLeaseService.class);
+        redisRepository = mock(DdcRedisRepository.class);
+        DdcAdminProperties properties = new DdcAdminProperties();
+        properties.setMaxConfigBytes(64);
+        properties.getPublish().setDefaultTimeoutMs(2000L);
+        properties.getPublish().setMaxTimeoutMs(5000L);
+        properties.getPublish().setInlineContentMaxBytes(64);
+        persistence = new DdcAckServiceTest.InMemoryPersistence();
+        taskRepository = persistence.tasks;
+        ackRepository = persistence.acks;
+        resourceRegistry = persistence.resourceRegistry;
+        transactionManager = persistence.transactionManager;
+        publishService = persistence.service(configItemRepository, versionRepository,
+                operationLogRepository, leaseService, redisRepository, properties);
         configItemsByScope.clear();
         configItemsByPublicId.clear();
         configVersions.clear();
         nextInternalConfigId = 1000L;
-        reset(configItemRepository, versionRepository, leaseService, redisRepository);
         when(configItemRepository.findForPublishByBizCodeAndEnvAndAppCodeAndResourceName(
-                any(), any(), any(), any())).thenAnswer(invocation -> Optional.ofNullable(configItemsByScope.get(
+                any(), any(), any(), any())).thenAnswer(invocation -> Optional.ofNullable(copyItem(configItemsByScope.get(
                         scopeKey(invocation.getArgument(0), invocation.getArgument(1),
-                                invocation.getArgument(2), invocation.getArgument(3)))));
+                                invocation.getArgument(2), invocation.getArgument(3))))));
         when(configItemRepository.findByPublicId(any())).thenAnswer(invocation ->
                 Optional.ofNullable(configItemsByPublicId.get(invocation.getArgument(0))));
         when(configItemRepository.update(any(DdcConfigItemBO.class))).thenAnswer(invocation -> {
             DdcConfigItemBO item = invocation.getArgument(0);
+            DdcConfigItemBO previous = configItemsByPublicId.get(item.getPublicId());
+            if (previous != null) {
+                DdcConfigItemBO snapshot = copyItem(previous);
+                persistence.transactionManager.onRollback(() -> {
+                    configItemsByPublicId.put(snapshot.getPublicId(), snapshot);
+                    configItemsByScope.put(scopeKey(snapshot), snapshot);
+                });
+            }
             item.setVersion(item.getVersion() + 1);
             configItemsByPublicId.put(item.getPublicId(), item);
             configItemsByScope.put(scopeKey(item), item);
@@ -154,6 +142,18 @@ class DdcPublishPreparationTest {
                 Optional.ofNullable(configVersions.get(versionKey(invocation.getArgument(0), invocation.getArgument(1)))));
     }
 
+    @AfterEach
+    void restoreTenantContext() {
+        tenantScope.close();
+    }
+
+    private DdcConfigItemBO copyItem(DdcConfigItemBO source) {
+        if (source == null) return null;
+        DdcConfigItemBO copy = new DdcConfigItemBO();
+        BeanUtils.copyProperties(source, copy);
+        return copy;
+    }
+
     @Test
     void fixesRedisLeaseTargetsAndCompletesOnlyAfterEverySuccessAck() throws Exception {
         saveConfig("switch-all");
@@ -172,7 +172,8 @@ class DdcPublishPreparationTest {
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
-                    executor.submit(() -> publishService.publish(request, "tester"));
+                    executor.submit(() -> DdcAckServiceTest.withTenantContext(
+                            () -> publishService.publish(request, "tester")));
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
 
             ArgumentCaptor<DdcAtomicPublishCommand> command =
@@ -235,7 +236,8 @@ class DdcPublishPreparationTest {
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
-                    executor.submit(() -> publishService.publish(first, "tester"));
+                    executor.submit(() -> DdcAckServiceTest.withTenantContext(
+                            () -> publishService.publish(first, "tester")));
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
 
             DdcPublishRequest second = request("switch-lock", "other");
@@ -295,7 +297,8 @@ class DdcPublishPreparationTest {
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result = executor.submit(
-                    () -> publishService.publish(request, "first-admin")
+                    () -> DdcAckServiceTest.withTenantContext(
+                            () -> publishService.publish(request, "first-admin"))
             );
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
             new TransactionTemplate(transactionManager).executeWithoutResult(
@@ -335,9 +338,11 @@ class DdcPublishPreparationTest {
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> firstResult =
-                    executor.submit(() -> publishService.publish(first, "tester"));
+                    executor.submit(() -> DdcAckServiceTest.withTenantContext(
+                            () -> publishService.publish(first, "tester")));
             Future<DdcPublishResultVO> secondResult =
-                    executor.submit(() -> publishService.publish(second, "tester"));
+                    executor.submit(() -> DdcAckServiceTest.withTenantContext(
+                            () -> publishService.publish(second, "tester")));
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
 
             publishService.ack(ack(first, "instance-1", "lease-1"));
@@ -466,19 +471,5 @@ class DdcPublishPreparationTest {
         ));
         ack.setStatus(DdcAckStatus.SUCCESS);
         return ack;
-    }
-
-    @TestConfiguration
-    static class Dependencies {
-
-        @Bean
-        DdcConfigLeaseService ddcConfigLeaseService() {
-            return org.mockito.Mockito.mock(DdcConfigLeaseService.class);
-        }
-
-        @Bean
-        DdcRedisRepository ddcRedisRepository() {
-            return org.mockito.Mockito.mock(DdcRedisRepository.class);
-        }
     }
 }

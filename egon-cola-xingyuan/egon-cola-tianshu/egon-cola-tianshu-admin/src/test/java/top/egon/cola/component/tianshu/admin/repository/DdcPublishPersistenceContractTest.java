@@ -8,7 +8,6 @@ import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcRuntimeMetadataTypeHandler;
-import org.springframework.data.jpa.repository.JpaRepository;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
@@ -38,14 +37,12 @@ class DdcPublishPersistenceContractTest {
             Class<?> po = requiredType(BASE + "model.po." + name + "PO");
             Class<?> bo = requiredType(BASE + "model.bo." + name + "BO");
             Class<?> mapper = requiredType(BASE + "dao." + name + "Mapper");
-            Class<?> repository = requiredType(BASE + "repository." + name + "Repository");
             Class<?> implementation = requiredType(BASE + "repository.impl." + name + "RepositoryImpl");
 
             assertThat(po.getSuperclass()).isEqualTo(EgonModel.class);
             assertThat(po.getAnnotation(TableName.class).value()).isEqualTo(table(name));
             assertThat(EgonModel.class.isAssignableFrom(bo)).isFalse();
             assertThat(EgonColaMapper.class.isAssignableFrom(mapper)).isTrue();
-            assertThat(JpaRepository.class.isAssignableFrom(repository)).isFalse();
             assertThat(EgonColaRepository.class.isAssignableFrom(implementation)).isTrue();
         }
         assertThat(fieldNames(requiredType(BASE + "model.po.DdcPublishTaskPO")))

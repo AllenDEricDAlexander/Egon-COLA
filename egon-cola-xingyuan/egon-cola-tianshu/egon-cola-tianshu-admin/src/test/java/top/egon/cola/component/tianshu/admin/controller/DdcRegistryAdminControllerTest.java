@@ -2,13 +2,12 @@ package top.egon.cola.component.tianshu.admin.controller;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.tianshu.admin.config.DdcGlobalExceptionHandler;
 import top.egon.cola.component.tianshu.admin.controller.register.DdcRegistryAdminController;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.service.management.DdcManagementFacade;
 import top.egon.cola.component.tianshu.admin.service.management.DdcRegistryAdminPageService;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceCatalog;
@@ -130,9 +129,8 @@ class DdcRegistryAdminControllerTest {
     void returnsPagedServicesWithoutChangingLegacyCatalog() throws Exception {
         when(pageService.pageServices(
                 any(DdcManagementServiceQuery.class), any(PageQuery.class)
-        )).thenReturn(new PageImpl<>(
-                List.of(key()), PageRequest.of(0, 10), 1
-        ));
+        )).thenReturn(DdcPageResult.<DdcManagementServiceKey>builder()
+                .record(key()).total(1).pageNo(1).pageSize(10).build());
         when(facade.getServiceKeys(any())).thenReturn(
                 new DdcManagementServiceCatalog(
                         7L, Instant.EPOCH, List.of(key())
@@ -163,9 +161,8 @@ class DdcRegistryAdminControllerTest {
                 );
         when(pageService.pageInstances(
                 any(DdcManagementServiceQuery.class), any(PageQuery.class)
-        )).thenReturn(new PageImpl<>(
-                List.of(instance), PageRequest.of(0, 10), 1
-        ));
+        )).thenReturn(DdcPageResult.<DdcManagementServiceInstance>builder()
+                .record(instance).total(1).pageNo(1).pageSize(10).build());
 
         mockMvc.perform(get("/api/v1/tianshu/registry/instances/page")
                         .param("bizCode", "pay-biz")

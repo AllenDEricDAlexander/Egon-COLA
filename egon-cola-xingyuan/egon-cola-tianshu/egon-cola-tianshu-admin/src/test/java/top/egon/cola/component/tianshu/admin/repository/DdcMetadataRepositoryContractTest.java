@@ -6,7 +6,6 @@ import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.env.YamlPropertySourceLoader;
@@ -81,8 +80,6 @@ class DdcMetadataRepositoryContractTest {
             assertThat(mapper.isInterface()).isTrue();
             assertThat(EgonColaMapper.class.isAssignableFrom(mapper)).isTrue();
             assertThat(repository.isInterface()).isTrue();
-            assertThat(JpaRepository.class.isAssignableFrom(repository)).as(table.name() + " JPA access removed")
-                    .isFalse();
             assertThat(EgonColaRepository.class.isAssignableFrom(persistenceRepository)).isTrue();
 
             Class<?> forwardConverter = requiredType(CONVERTER_PACKAGE + table.name() + "ResultConverter");

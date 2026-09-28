@@ -1,18 +1,9 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.mockito.Mockito;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
@@ -26,9 +17,12 @@ import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService;
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
@@ -37,10 +31,10 @@ import top.egon.cola.component.tianshu.model.config.DdcPublishTarget;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -53,34 +47,9 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@DataJpaTest
-@Import({
-        DdcPublishService.class,
-        DdcPendingPublishDispatcher.class,
-        DdcPublishStateTransitionService.class,
-        PublishFailureRecorder.class,
-        PublishResourceLockRegistry.class,
-        PublishCompletionWaiterRegistry.class,
-        DdcPublishRetryTest.Dependencies.class
-})
-@EnableConfigurationProperties(DdcAdminProperties.class)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = {
-        "egon.cola.component.id.machine-id=0",
-        "spring.datasource.url=jdbc:sqlite:file:ddc_publish_retry_test?mode=memory&cache=shared",
-        "spring.datasource.driver-class-name=org.sqlite.JDBC",
-        "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.datasource.hikari.maximum-pool-size=1",
-        "spring.flyway.enabled=false",
-        "egon.cola.component.tianshu.admin.publish.default-timeout-ms=2000",
-        "egon.cola.component.tianshu.admin.publish.max-timeout-ms=5000"
-})
-@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishRetryTest {
 
     private static final String CONFIG_VALUE =
@@ -92,37 +61,47 @@ class DdcPublishRetryTest {
             CONFIG_VALUE
     );
 
-    @Autowired
     private DdcPublishService publishService;
 
-    @Autowired
     private DdcPublishTaskRepository taskRepository;
 
-    @MockBean(name = "ddcConfigItemRepository")
     private DdcConfigItemRepository configItemRepository;
 
-    @Autowired
     private DdcPublishAckRepository ackRepository;
 
-    @MockBean(name = "ddcConfigVersionRepository")
     private DdcConfigVersionRepository versionRepository;
 
-    @Autowired
     private DdcConfigLeaseService leaseService;
 
-    @Autowired
     private DdcRedisRepository redisRepository;
 
-    private final Map<String, DdcConfigItemBO> configs = new HashMap<>();
-    private final Map<String, DdcConfigVersionBO> versions = new HashMap<>();
+    private final Map<String, DdcConfigItemBO> configs = new ConcurrentHashMap<>();
+    private final Map<String, DdcConfigVersionBO> versions = new ConcurrentHashMap<>();
     private long nextInternalConfigId;
+    private DdcAckServiceTest.InMemoryPersistence persistence;
+    private DdcTenantContextExecutor.Scope tenantScope;
 
     @BeforeEach
     void setUp() {
+        tenantScope = new DdcTenantContextExecutor().bind(
+                new DdcTenantContextDTO(101L, "tenant-test", "test:publish-retry"));
+        configItemRepository = Mockito.mock(DdcConfigItemRepository.class);
+        versionRepository = Mockito.mock(DdcConfigVersionRepository.class);
+        leaseService = Mockito.mock(DdcConfigLeaseService.class);
+        redisRepository = Mockito.mock(DdcRedisRepository.class);
+        DdcAdminProperties properties = new DdcAdminProperties();
+        properties.setMaxConfigBytes(64);
+        properties.getPublish().setDefaultTimeoutMs(2000L);
+        properties.getPublish().setMaxTimeoutMs(5000L);
+        properties.getPublish().setInlineContentMaxBytes(64);
+        persistence = new DdcAckServiceTest.InMemoryPersistence();
+        taskRepository = persistence.tasks;
+        ackRepository = persistence.acks;
+        publishService = persistence.service(configItemRepository, versionRepository,
+                Mockito.mock(DdcOperationLogRepository.class), leaseService, redisRepository, properties);
         configs.clear();
         versions.clear();
         nextInternalConfigId = 1000L;
-        reset(configItemRepository, versionRepository, leaseService, redisRepository);
         when(configItemRepository.findByPublicId(any())).thenAnswer(invocation ->
                 Optional.ofNullable(configs.get(invocation.getArgument(0))));
         when(configItemRepository.update(any(DdcConfigItemBO.class))).thenAnswer(invocation -> {
@@ -139,6 +118,11 @@ class DdcPublishRetryTest {
         });
         when(versionRepository.findByConfigIdAndVersion(any(), any())).thenAnswer(invocation ->
                 Optional.ofNullable(versions.get(versionKey(invocation.getArgument(0), invocation.getArgument(1)))));
+    }
+
+    @AfterEach
+    void restoreTenantContext() {
+        tenantScope.close();
     }
 
     @Test
@@ -166,8 +150,8 @@ class DdcPublishRetryTest {
             String auditOperator = "rpc:retry-" + status.name().toLowerCase();
             try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
                 Future<DdcPublishResultVO> result =
-                        executor.submit(() -> publishService.retry(
-                                task.getChangeId(), auditOperator));
+                        executor.submit(() -> DdcAckServiceTest.withTenantContext(
+                                () -> publishService.retry(task.getChangeId(), auditOperator)));
                 DdcPublishMessage message = published.poll(2, TimeUnit.SECONDS);
                 assertThat(message).isNotNull();
                 assertThat(message.getTargets()).containsExactly(
@@ -313,17 +297,4 @@ class DdcPublishRetryTest {
 
     private String versionKey(String configId, Long revision) { return configId + ":" + revision; }
 
-    @TestConfiguration
-    static class Dependencies {
-
-        @Bean
-        DdcRedisRepository ddcRedisRepository() {
-            return org.mockito.Mockito.mock(DdcRedisRepository.class);
-        }
-
-        @Bean
-        DdcConfigLeaseService ddcConfigLeaseService() {
-            return org.mockito.Mockito.mock(DdcConfigLeaseService.class);
-        }
-    }
 }

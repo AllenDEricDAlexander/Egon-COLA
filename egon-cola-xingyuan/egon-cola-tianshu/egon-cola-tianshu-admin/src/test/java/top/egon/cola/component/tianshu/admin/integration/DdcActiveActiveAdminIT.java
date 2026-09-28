@@ -27,6 +27,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import top.egon.cola.component.tianshu.admin.DynamicConfigCenterAdminApplication;
+import top.egon.cola.component.tianshu.admin.migration.DdcPersistenceMigrationCli;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcInstanceBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
@@ -83,6 +84,7 @@ import top.egon.cola.component.rpc.tianshu.security.DdcRpcMetadataKeys;
 import top.egon.cola.component.rpc.tianshu.security.DdcRpcRequestSigner;
 import top.egon.cola.component.rpc.provider.lifecycle.RpcProviderLifecycle;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -126,7 +128,8 @@ class DdcActiveActiveAdminIT {
     private ConfigurableApplicationContext nodeB;
 
     @BeforeAll
-    void startTwoAdminNodes() {
+    void startTwoAdminNodes() throws IOException {
+        initializeManagedPersistenceSchema();
         nodeA = node("a");
         nodeB = node("b");
         LocalDateTime now = LocalDateTime.now();
@@ -135,6 +138,30 @@ class DdcActiveActiveAdminIT {
         DdcTenantContextDTO tenant = new DdcTenantContextDTO(1L, "active-active-it", "test:active-active");
         nodeA.getBean(DdcTenantContextExecutor.class).run(tenant,
                 () -> nodeA.getBean(DdcAppRepository.class).insert(app));
+    }
+
+    private void initializeManagedPersistenceSchema() throws IOException {
+        String previousUrl = System.getProperty("TIANSHU_JDBC_URL");
+        String previousUsername = System.getProperty("TIANSHU_DB_USERNAME");
+        String previousPassword = System.getProperty("TIANSHU_DB_PASSWORD");
+        try {
+            System.setProperty("TIANSHU_JDBC_URL", POSTGRES.getJdbcUrl());
+            System.setProperty("TIANSHU_DB_USERNAME", POSTGRES.getUsername());
+            System.setProperty("TIANSHU_DB_PASSWORD", POSTGRES.getPassword());
+            DdcPersistenceMigrationCli.main(new String[]{"initialize"});
+        } finally {
+            restoreSystemProperty("TIANSHU_JDBC_URL", previousUrl);
+            restoreSystemProperty("TIANSHU_DB_USERNAME", previousUsername);
+            restoreSystemProperty("TIANSHU_DB_PASSWORD", previousPassword);
+        }
+    }
+
+    private void restoreSystemProperty(String key, String previousValue) {
+        if (previousValue == null) {
+            System.clearProperty(key);
+        } else {
+            System.setProperty(key, previousValue);
+        }
     }
 
     @AfterAll
@@ -410,8 +437,6 @@ class DdcActiveActiveAdminIT {
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
                 "--spring.datasource.username=" + POSTGRES.getUsername(),
                 "--spring.datasource.password=" + POSTGRES.getPassword(),
-                "--spring.jpa.hibernate.ddl-auto=validate",
-                "--spring.flyway.enabled=true",
                 "--egon.cola.platform.tianquan.shoubing.enabled=false",
                 "--egon.cola.platform.tianquan.jianshen.enabled=false",
                 "--egon.cola.component.tianshu.enabled=false",

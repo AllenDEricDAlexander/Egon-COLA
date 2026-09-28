@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.admin.service.management;
 
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceInstance;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceKey;
@@ -45,7 +45,7 @@ public class DdcRegistryAdminPageService {
         this.facade = facade;
     }
 
-    public Page<DdcManagementServiceKey> pageServices(
+    public DdcPageResult<DdcManagementServiceKey> pageServices(
             DdcManagementServiceQuery query,
             PageQuery pageQuery
     ) {
@@ -54,7 +54,7 @@ public class DdcRegistryAdminPageService {
         return DdcAdminPageSupport.slice(records, pageQuery);
     }
 
-    public Page<DdcManagementServiceInstance> pageInstances(
+    public DdcPageResult<DdcManagementServiceInstance> pageInstances(
             DdcManagementServiceQuery query,
             PageQuery pageQuery
     ) {

@@ -6,7 +6,6 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.jpa.repository.JpaRepository;
 import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
@@ -56,7 +55,6 @@ class DdcConfigRepositoryContractTest {
             Class<?> implementation = requiredType(BASE + "repository.impl." + name + "RepositoryImpl");
             assertThat(mapper.isInterface()).isTrue();
             assertThat(EgonColaMapper.class.isAssignableFrom(mapper)).isTrue();
-            assertThat(JpaRepository.class.isAssignableFrom(repository)).isFalse();
             assertThat(EgonColaRepository.class.isAssignableFrom(implementation)).isTrue();
         }
         Class<?> versionRepository = requiredType(BASE + "repository.DdcConfigVersionRepository");

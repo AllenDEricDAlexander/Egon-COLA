@@ -31,6 +31,11 @@ info:
 spring:
   application:
     name: egon-cola-tianshu-admin
+  datasource:
+    url: ${TIANSHU_JDBC_URL:${SPRING_DATASOURCE_URL:}}
+    username: ${TIANSHU_DB_USERNAME:${SPRING_DATASOURCE_USERNAME:}}
+    password: ${TIANSHU_DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:}}
+    driver-class-name: org.postgresql.Driver
   profiles:
     default: local
   autoconfigure:
@@ -42,9 +47,6 @@ spring:
       - classpath:egon-tianshu-persistence.yml
       - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/tianshu.properties
       - optional:tianshu:application.yml
-  flyway:
-    locations: classpath:db/postgresql
-
 mybatis-plus:
   mapper-locations: classpath*:mybatis/mapper/tianshu/**/*.xml
 

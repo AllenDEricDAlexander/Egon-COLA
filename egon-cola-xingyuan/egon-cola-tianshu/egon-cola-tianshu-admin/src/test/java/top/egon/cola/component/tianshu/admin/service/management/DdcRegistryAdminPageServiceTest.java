@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.admin.service.management;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Page;
 import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceInstance;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceKey;
@@ -41,12 +41,12 @@ class DdcRegistryAdminPageServiceTest {
                 )
         );
 
-        Page<DdcManagementServiceKey> page = service.pageServices(
+        DdcPageResult<DdcManagementServiceKey> page = service.pageServices(
                 query, new PageQuery(1, 1)
         );
 
-        assertThat(page.getContent()).containsExactly(a);
-        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getRecords()).containsExactly(a);
+        assertThat(page.getTotal()).isEqualTo(2);
         verify(facade).getServiceKeys(query);
     }
 
@@ -68,12 +68,12 @@ class DdcRegistryAdminPageServiceTest {
                 )
         );
 
-        Page<DdcManagementServiceInstance> page = service.pageInstances(
+        DdcPageResult<DdcManagementServiceInstance> page = service.pageInstances(
                 query, new PageQuery(1, 2)
         );
 
-        assertThat(page.getContent()).containsExactly(a, b);
-        assertThat(page.getTotalElements()).isEqualTo(3);
+        assertThat(page.getRecords()).containsExactly(a, b);
+        assertThat(page.getTotal()).isEqualTo(3);
         verify(facade).getInstances(query);
     }
 

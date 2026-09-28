@@ -1,6 +1,5 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
-import jakarta.persistence.Entity;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceInstance;
@@ -15,9 +14,8 @@ class DdcServiceRegistryPersistenceBoundaryTest {
 
     @Test
     void serviceRegistryIsRedisOnlyAndDoesNotIntroduceJpaTables() throws IOException {
-        assertThat(DdcServiceInstance.class.isAnnotationPresent(Entity.class)).isFalse();
-        assertThat(DdcServiceRegistryRedisRepository.class.isAnnotationPresent(Entity.class))
-                .isFalse();
+        assertThat(hasJpaEntityAnnotation(DdcServiceInstance.class)).isFalse();
+        assertThat(hasJpaEntityAnnotation(DdcServiceRegistryRedisRepository.class)).isFalse();
 
         for (String dialect : List.of("postgresql", "sqlite")) {
             String schema = resource("db/" + dialect + "/V1__create_ddc_schema.sql")
@@ -30,5 +28,10 @@ class DdcServiceRegistryPersistenceBoundaryTest {
 
     private String resource(String path) throws IOException {
         return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    private boolean hasJpaEntityAnnotation(Class<?> type) {
+        return java.util.Arrays.stream(type.getAnnotations())
+                .anyMatch(annotation -> "jakarta.persistence.Entity".equals(annotation.annotationType().getName()));
     }
 }
