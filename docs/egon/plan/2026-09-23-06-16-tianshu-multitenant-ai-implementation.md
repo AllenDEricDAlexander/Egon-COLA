@@ -6686,6 +6686,7 @@ password: ${TIANSHU_DB_PASSWORD:${spring.datasource.password}}
 
 - Requirements: `REQ-011`, `REQ-013`, `REQ-015`, `REQ-019`
 - Dependencies: Step 8
+- Scope note: `DdcEnvService` was already converted in Step 8; `DdcConfigItemRepository.existsByEnv(String)` retains its signature and now scopes by trusted tenant inside the repository, so no Step 9 source edit is needed for that caller.
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: YAML原业务version/publishedVersion/deleted标记与rollback保留，内部Long/外部public ID分离。
 - End state: YAML原业务version/publishedVersion/deleted标记与rollback保留，内部Long/外部public ID分离；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
@@ -7169,36 +7170,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcEnvService.java`
-
-- Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
-- Symbols: `DdcEnvService`
-- Repository evidence: 当前存在，SHA256前12位`6460ef90033f`；源符号`DdcEnvService`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步19个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
-- Contract/signature changes: DdcEnvService的具体签名/配置/字段变更：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001, MC-BEAN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
-- Implementation pseudocode:
-
-```java
-// DdcEnvService: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
-replace JPA Entity/Page import with matching BO/DdcPageResult and named BaseForwardConverter at service/controller boundary;
-keep original response id=publicId, nullable fields, ordering, status transitions and error contract;
-ensure trusted tenant and version are passed to Repository only from validated context; re-run old golden fixture.
-```
-
-- Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
-
-#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPendingPublishDispatcher.java`
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPendingPublishDispatcher.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcPendingPublishDispatcher`
 - Repository evidence: 当前存在，SHA256前12位`22ac758bbbeb`；源符号`DdcPendingPublishDispatcher`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步20个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步19个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcPendingPublishDispatcher的具体签名/配置/字段变更：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7217,12 +7194,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishService.java`
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishService.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcPublishService`
 - Repository evidence: 当前存在，SHA256前12位`489790bf3c95`；源符号`DdcPublishService`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步21个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步20个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcPublishService的具体签名/配置/字段变更：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7241,12 +7218,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishStateTransitionService.java`
+#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishStateTransitionService.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcPublishStateTransitionService`
 - Repository evidence: 当前存在，SHA256前12位`2376876054a2`；源符号`DdcPublishStateTransitionService`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步22个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步21个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcPublishStateTransitionService的具体签名/配置/字段变更：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7265,12 +7242,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 24 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcSyncPublishFlowTest.java`
+#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcSyncPublishFlowTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcSyncPublishFlowTest`
 - Repository evidence: 当前存在，SHA256前12位`c2ea539e6cbf`；源符号`DdcSyncPublishFlowTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步23个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步22个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcSyncPublishFlowTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7291,12 +7268,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java`
+#### File 24 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcConfigPagingRepositoryTest`
 - Repository evidence: 当前存在，SHA256前12位`c87e799aa9d7`；源符号`DdcConfigPagingRepositoryTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步24个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步23个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcConfigPagingRepositoryTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7317,12 +7294,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcOperationalPagingRepositoryTest.java`
+#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcOperationalPagingRepositoryTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcOperationalPagingRepositoryTest`
 - Repository evidence: 当前存在，SHA256前12位`605e87fb02ac`；源符号`DdcOperationalPagingRepositoryTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步25个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步24个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcOperationalPagingRepositoryTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7343,12 +7320,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 27 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRepositoryTest.java`
+#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRepositoryTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcRepositoryTest`
 - Repository evidence: 当前存在，SHA256前12位`de73375ce6a6`；源符号`DdcRepositoryTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步26个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步25个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcRepositoryTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7369,12 +7346,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 28 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheServiceTest.java`
+#### File 27 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheServiceTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcCacheServiceTest`
 - Repository evidence: 当前存在，SHA256前12位`5e3416cfe047`；源符号`DdcCacheServiceTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步27个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步26个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcCacheServiceTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7395,12 +7372,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 29 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigServiceTest.java`
+#### File 28 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigServiceTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcConfigServiceTest`
 - Repository evidence: 当前存在，SHA256前12位`12737c36b755`；源符号`DdcConfigServiceTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步28个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步27个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcConfigServiceTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7421,12 +7398,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcAckServiceTest.java`
+#### File 29 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcAckServiceTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcAckServiceTest`
 - Repository evidence: 当前存在，SHA256前12位`258ac18638b9`；源符号`DdcAckServiceTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步29个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步28个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcAckServiceTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7447,12 +7424,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishDispatchConsistencyTest.java`
+#### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishDispatchConsistencyTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcPublishDispatchConsistencyTest`
 - Repository evidence: 当前存在，SHA256前12位`079ca8ed45bc`；源符号`DdcPublishDispatchConsistencyTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步30个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步29个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcPublishDispatchConsistencyTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7473,12 +7450,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishPreparationTest.java`
+#### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishPreparationTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcPublishPreparationTest`
 - Repository evidence: 当前存在，SHA256前12位`158c663f341e`；源符号`DdcPublishPreparationTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步31个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步30个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcPublishPreparationTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7499,12 +7476,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 33 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishRetryTest.java`
+#### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishRetryTest.java`
 
 - Purpose: 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持
 - Symbols: `DdcPublishRetryTest`
 - Repository evidence: 当前存在，SHA256前12位`14666255fbed`；源符号`DdcPublishRetryTest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步32个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步31个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Contract/signature changes: DdcPublishRetryTest新增可观察断言：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；按修订稿§9/§11保持原wire字段。
@@ -7525,12 +7502,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 34 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigRollbackRequest.java`
+#### File 33 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigRollbackRequest.java`
 
 - Purpose: 现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口
 - Symbols: `DdcConfigRollbackRequest`
 - Repository evidence: 当前存在，SHA256前12位`20511ca85175`；源符号`DdcConfigRollbackRequest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步33个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步32个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Contract/signature changes: DdcConfigRollbackRequest的具体签名/配置/字段变更：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；按修订稿§9/§11保持原wire字段。
@@ -7550,12 +7527,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 35 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigQueryRequest.java`
+#### File 34 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigQueryRequest.java`
 
 - Purpose: 现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口
 - Symbols: `DdcConfigQueryRequest`
 - Repository evidence: 当前存在，SHA256前12位`6c70353694cf`；源符号`DdcConfigQueryRequest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步34个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步33个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Contract/signature changes: DdcConfigQueryRequest的具体签名/配置/字段变更：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；按修订稿§9/§11保持原wire字段。
@@ -7575,12 +7552,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 36 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigUpdateRequest.java`
+#### File 35 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigUpdateRequest.java`
 
 - Purpose: 现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口
 - Symbols: `DdcConfigUpdateRequest`
 - Repository evidence: 当前存在，SHA256前12位`ef77143ed98d`；源符号`DdcConfigUpdateRequest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步35个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步34个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Contract/signature changes: DdcConfigUpdateRequest的具体签名/配置/字段变更：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；按修订稿§9/§11保持原wire字段。
@@ -7600,12 +7577,12 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 37 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigCreateRequest.java`
+#### File 36 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigCreateRequest.java`
 
 - Purpose: 现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口
 - Symbols: `DdcConfigCreateRequest`
 - Repository evidence: 当前存在，SHA256前12位`00a0b3ba428a`；源符号`DdcConfigCreateRequest`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 8；本步36个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 8；本步35个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Contract/signature changes: DdcConfigCreateRequest的具体签名/配置/字段变更：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；按修订稿§9/§11保持原wire字段。
@@ -7625,7 +7602,7 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcConfigRepositoryContractTest,DdcConfigServiceTest聚焦本文件的现有名字/字段保留；普通class完整Lombok与分组；不扩大新AI严格JSON到旧接口；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 38 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcCacheControllerTest.java`
+#### File 37 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcCacheControllerTest.java`
 
 - Purpose: 配合CacheService分页返回DdcPageResult，验证现有Controller继续输出原PageResultRecord缓存核对分页信封。
 - Symbols: `DdcCacheControllerTest`
@@ -7649,7 +7626,7 @@ assertThat(response.page().total()).isEqualTo(3);
 - Verification contribution: 覆盖CacheService新分页DTO到既有Controller响应结构的兼容性。
 - After this file: Cache Controller直接消费者已同步DdcPageResult服务契约。
 
-#### File 39 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcConfigControllerTest.java`
+#### File 38 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcConfigControllerTest.java`
 
 - Purpose: 配合ConfigService两个分页服务改为DdcPageResult，验证配置/版本API仍保留原外部VO字段及PageResultRecord。
 - Symbols: `DdcConfigControllerTest`
@@ -7679,7 +7656,7 @@ assertThat(response.page().total()).isEqualTo(1);
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigItemPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcConfigItemBO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcConfigItemConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcConfigItemMapper.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigItemRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcConfigItemRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcConfigItemMapper.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigVersionPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcConfigVersionBO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcConfigVersionConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcConfigVersionMapper.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigVersionRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcConfigVersionRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcConfigVersionMapper.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcConfigVO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcConfigVersionVO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcEnvService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPendingPublishDispatcher.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishStateTransitionService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcSyncPublishFlowTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcOperationalPagingRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcAckServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishDispatchConsistencyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishPreparationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishRetryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigRollbackRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigQueryRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigUpdateRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigCreateRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcCacheControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcConfigControllerTest.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigItemPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcConfigItemBO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcConfigItemConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcConfigItemMapper.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigItemRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcConfigItemRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcConfigItemMapper.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcConfigVersionPO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcConfigVersionBO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcConfigVersionConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcConfigVersionMapper.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigVersionRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcConfigVersionRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcConfigVersionMapper.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcConfigVO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcConfigVersionVO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPendingPublishDispatcher.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishStateTransitionService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcSyncPublishFlowTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcOperationalPagingRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcAckServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishDispatchConsistencyTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishPreparationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishRetryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigRollbackRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigQueryRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigUpdateRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcConfigCreateRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcCacheControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcConfigControllerTest.java`
 - Commit: `feat(tianshu): step-9--------------legacy`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
 
 ### Step 10 — 迁移发布任务、ACK、实例与审计的持久化
