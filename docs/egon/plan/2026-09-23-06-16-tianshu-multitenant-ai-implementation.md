@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 00:13 Asia/Shanghai` |
+| Updated | `2026-09-29 00:40 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -764,6 +764,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-29 Step 11 移除Admin POM的JPA依赖后，三份先前Step创建的Repository合同测试仍直接导入JpaRepository，因此工作区reactor的testCompile失败且属于本功能移除JPA依赖的直接调用方。Step 11新增 File 94–96，仅删除这三处JPA类型导入/负断言，保留MP Mapper、EgonColaRepository、SQL与业务谓词合同；全局无JPA约束由DdcArchitectureContractTest负责。
 
 2026-09-29 Step 11的 `DdcActiveActiveAdminIT` 本身已是显式Testcontainers PostgreSQL/Redis测试；删去旧JPA/Flyway参数后，应用readiness要求的新MP/Outbox managed schema必须先初始化。测试在启动两个Admin节点前以同一隔离PostgreSQL调用现有 `DdcPersistenceMigrationCli initialize`，并用临时System properties传入连接参数、finally还原；只在该显式IT里初始化，不增加自动启动/自动迁移行为，也不在本轮启动容器。
+
+2026-09-29 Step 12复核将AI五表逐项对照Accepted原Spec §11.2与不可变V001：AI表没有`public_id`列；EgonModel.id是Long内部身份，对外AI resource/version/node/publication ID按原Spec编码为该Long的十进制String。Step 12的通用文件摘要误把旧11表public_id映射复制到了AI模型；本节文件级input/output、converter及repository伪代码统一修正为内部Long id/外部decimal-string id，并要求DdcAiPersistenceContractTest验证AI PO/XML/DDL不虚构public_id。V001及API字段不变，旧11表继续由各自legacy converter保留public_id兼容。
 ## 7. Ordered File-by-file Implementation Steps
 
 本章是后续实施指令，不代表代码已修改或测试已执行。相同文件在不同Step按不同语义依次编辑；每步先RED再GREEN，只有Step 3的依赖装配用编译RED。完整系统构建只在Step 24。
@@ -12085,15 +12087,15 @@ ensure trusted tenant and version are passed to Repository only from validated c
 
 #### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiResourcePO.java`
 
-- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiResourcePO`；表`ddc_ai_resource`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourcePO`。
 - Dependencies and consumers: 前置Step 11；本步1个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiResourcePO承载ddc_ai_resource的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id/public_id、业务字段、version/deleted_at ↔ DdcAiResourcePO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id、业务字段、version/deleted_at ↔ DdcAiResourcePO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12105,20 +12107,20 @@ ensure trusted tenant and version are passed to Repository only from validated c
 // public_id is old external String identity only on legacy tables; new internal id is component-generated Long.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiResourceBO.java`
 
-- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiResourceBO`；表`ddc_ai_resource`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceBO`。
 - Dependencies and consumers: 前置Step 11；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiResourceBO承载ddc_ai_resource的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id/public_id、业务字段、version/deleted_at ↔ DdcAiResourceBO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id、业务字段、version/deleted_at ↔ DdcAiResourceBO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12130,20 +12132,20 @@ ensure trusted tenant and version are passed to Repository only from validated c
 // preserve old business flags, including config.deleted, separate from EgonModel.deletedAt.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceConverter.java`
 
-- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiResourceConverter`；表`ddc_ai_resource`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceConverter`。
 - Dependencies and consumers: 前置Step 11；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiResourceConverter承载ddc_ai_resource的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id/public_id、业务字段、version/deleted_at ↔ DdcAiResourceConverter；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id、业务字段、version/deleted_at ↔ DdcAiResourceConverter；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12152,23 +12154,23 @@ ensure trusted tenant and version are passed to Repository only from validated c
   // toTarget/toSource map biz_code, namespace_id, env_code, app_code, kind, resource_key, display_name, description, tenant_id, id, version, deleted_at explicitly where names differ.
   // map business created_at/updated_at independently from EgonModel audit fields.
 }
-// compile generated implementation and assert round-trip of nullable and legacy public_id fields.
+// compile generated implementation and assert round-trip of nullable and decimal-string AI id fields.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiResourceMapper.java`
 
-- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiResourceMapper`；表`ddc_ai_resource`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceMapper`。
 - Dependencies and consumers: 前置Step 11；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiResourceMapper承载ddc_ai_resource的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id/public_id、业务字段、version/deleted_at ↔ DdcAiResourceMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id、业务字段、version/deleted_at ↔ DdcAiResourceMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12180,45 +12182,45 @@ interface DdcAiResourceMapper extends EgonColaMapper<DdcAiResourcePO> {
 // immutable version/publication rows expose insert/select only; no deleteVersionedById command.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiResourceRepository.java`
 
-- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiResourceRepository`；表`ddc_ai_resource`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceRepository`。
 - Dependencies and consumers: 前置Step 11；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiResourceRepository承载ddc_ai_resource的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id/public_id、业务字段、version/deleted_at ↔ DdcAiResourceRepository；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id、业务字段、version/deleted_at ↔ DdcAiResourceRepository；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 interface DdcAiResourceRepository {
-  // findActiveById(Long id) reads one tenant-scoped BO; legacy ddc_ai_resource also has findByPublicId(String publicId).
+  // findActiveById(Long id) reads one tenant-scoped BO; the HTTP adapter parses decimal-string id at the boundary.
   // preserve prior public Repository behavior and pagination/null sorting contract without returning PO/IPage.
 }
 // service callers receive BO/DTO and cannot provide a different tenant than the trusted context.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiResourceRepositoryImpl.java`
 
-- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiResourceRepositoryImpl`；表`ddc_ai_resource`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceRepositoryImpl`。
 - Dependencies and consumers: 前置Step 11；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiResourceRepositoryImpl承载ddc_ai_resource的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id/public_id、业务字段、version/deleted_at ↔ DdcAiResourceRepositoryImpl；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id、业务字段、version/deleted_at ↔ DdcAiResourceRepositoryImpl；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12230,7 +12232,7 @@ interface DdcAiResourceRepository {
 // no JPA EntityManager or ad hoc JDBC business write.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiResourceMapper.xml`
@@ -12241,8 +12243,8 @@ interface DdcAiResourceRepository {
 - Dependencies and consumers: 前置Step 11；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_resource；DdcAiResource；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词。
 - Contract/signature changes: DdcAiResourceMapper承载ddc_ai_resource的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id/public_id、业务字段、version/deleted_at ↔ DdcAiResourceMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
+- Input/output and state mapping: 可信tenant＋ddc_ai_resource的id、业务字段、version/deleted_at ↔ DdcAiResourceMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001；Rule 11；ddc_ai_resource；DdcAiResource；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
@@ -12261,15 +12263,15 @@ interface DdcAiResourceRepository {
 
 #### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiVersionPO.java`
 
-- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionPO`；表`ddc_ai_version`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionPO`。
 - Dependencies and consumers: 前置Step 11；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionPO承载ddc_ai_version的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionPO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version的id、业务字段、version/deleted_at ↔ DdcAiVersionPO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12281,20 +12283,20 @@ interface DdcAiResourceRepository {
 // public_id is old external String identity only on legacy tables; new internal id is component-generated Long.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiVersionBO.java`
 
-- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionBO`；表`ddc_ai_version`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionBO`。
 - Dependencies and consumers: 前置Step 11；本步9个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionBO承载ddc_ai_version的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionBO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version的id、业务字段、version/deleted_at ↔ DdcAiVersionBO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12306,20 +12308,20 @@ interface DdcAiResourceRepository {
 // preserve old business flags, including config.deleted, separate from EgonModel.deletedAt.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionConverter.java`
 
-- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionConverter`；表`ddc_ai_version`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionConverter`。
 - Dependencies and consumers: 前置Step 11；本步10个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionConverter承载ddc_ai_version的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionConverter；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version的id、业务字段、version/deleted_at ↔ DdcAiVersionConverter；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12328,23 +12330,23 @@ interface DdcAiResourceRepository {
   // toTarget/toSource map resource_id, version_no, kind, display_name, description, prompt_text, content_sha256, content_bytes, tenant_id, id, version, deleted_at explicitly where names differ.
   // map business created_at/updated_at independently from EgonModel audit fields.
 }
-// compile generated implementation and assert round-trip of nullable and legacy public_id fields.
+// compile generated implementation and assert round-trip of nullable and decimal-string AI id fields.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiVersionMapper.java`
 
-- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionMapper`；表`ddc_ai_version`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionMapper`。
 - Dependencies and consumers: 前置Step 11；本步11个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionMapper承载ddc_ai_version的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version的id、业务字段、version/deleted_at ↔ DdcAiVersionMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12356,45 +12358,45 @@ interface DdcAiVersionMapper extends EgonColaMapper<DdcAiVersionPO> {
 // immutable version/publication rows expose insert/select only; no deleteVersionedById command.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiVersionRepository.java`
 
-- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionRepository`；表`ddc_ai_version`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionRepository`。
 - Dependencies and consumers: 前置Step 11；本步12个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionRepository承载ddc_ai_version的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionRepository；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version的id、业务字段、version/deleted_at ↔ DdcAiVersionRepository；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 interface DdcAiVersionRepository {
-  // findActiveById(Long id) reads one tenant-scoped BO; legacy ddc_ai_version also has findByPublicId(String publicId).
+  // findActiveById(Long id) reads one tenant-scoped BO; the HTTP adapter parses decimal-string id at the boundary.
   // preserve prior public Repository behavior and pagination/null sorting contract without returning PO/IPage.
 }
 // service callers receive BO/DTO and cannot provide a different tenant than the trusted context.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiVersionRepositoryImpl.java`
 
-- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionRepositoryImpl`；表`ddc_ai_version`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionRepositoryImpl`。
 - Dependencies and consumers: 前置Step 11；本步13个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionRepositoryImpl承载ddc_ai_version的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionRepositoryImpl；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version的id、业务字段、version/deleted_at ↔ DdcAiVersionRepositoryImpl；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12406,7 +12408,7 @@ interface DdcAiVersionRepository {
 // no JPA EntityManager or ad hoc JDBC business write.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiVersionMapper.xml`
@@ -12417,8 +12419,8 @@ interface DdcAiVersionRepository {
 - Dependencies and consumers: 前置Step 11；本步14个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version；DdcAiVersion；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词。
 - Contract/signature changes: DdcAiVersionMapper承载ddc_ai_version的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version的id、业务字段、version/deleted_at ↔ DdcAiVersionMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001；Rule 11；ddc_ai_version；DdcAiVersion；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
@@ -12437,15 +12439,15 @@ interface DdcAiVersionRepository {
 
 #### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiDraftNodePO.java`
 
-- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiDraftNodePO`；表`ddc_ai_draft_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftNodePO`。
 - Dependencies and consumers: 前置Step 11；本步15个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiDraftNodePO承载ddc_ai_draft_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiDraftNodePO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id、业务字段、version/deleted_at ↔ DdcAiDraftNodePO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12457,20 +12459,20 @@ interface DdcAiVersionRepository {
 // public_id is old external String identity only on legacy tables; new internal id is component-generated Long.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiDraftNodeBO.java`
 
-- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiDraftNodeBO`；表`ddc_ai_draft_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftNodeBO`。
 - Dependencies and consumers: 前置Step 11；本步16个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiDraftNodeBO承载ddc_ai_draft_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiDraftNodeBO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id、业务字段、version/deleted_at ↔ DdcAiDraftNodeBO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12482,20 +12484,20 @@ interface DdcAiVersionRepository {
 // preserve old business flags, including config.deleted, separate from EgonModel.deletedAt.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 18 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiDraftNodeConverter.java`
 
-- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiDraftNodeConverter`；表`ddc_ai_draft_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftNodeConverter`。
 - Dependencies and consumers: 前置Step 11；本步17个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiDraftNodeConverter承载ddc_ai_draft_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiDraftNodeConverter；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id、业务字段、version/deleted_at ↔ DdcAiDraftNodeConverter；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12504,23 +12506,23 @@ interface DdcAiVersionRepository {
   // toTarget/toSource map resource_id, parent_path, path, node_type, content, content_sha256, content_bytes, tenant_id, id, version, deleted_at explicitly where names differ.
   // map business created_at/updated_at independently from EgonModel audit fields.
 }
-// compile generated implementation and assert round-trip of nullable and legacy public_id fields.
+// compile generated implementation and assert round-trip of nullable and decimal-string AI id fields.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 19 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiDraftNodeMapper.java`
 
-- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiDraftNodeMapper`；表`ddc_ai_draft_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftNodeMapper`。
 - Dependencies and consumers: 前置Step 11；本步18个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiDraftNodeMapper承载ddc_ai_draft_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiDraftNodeMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id、业务字段、version/deleted_at ↔ DdcAiDraftNodeMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12532,45 +12534,45 @@ interface DdcAiDraftNodeMapper extends EgonColaMapper<DdcAiDraftNodePO> {
 // immutable version/publication rows expose insert/select only; no deleteVersionedById command.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 20 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiDraftNodeRepository.java`
 
-- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiDraftNodeRepository`；表`ddc_ai_draft_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftNodeRepository`。
 - Dependencies and consumers: 前置Step 11；本步19个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiDraftNodeRepository承载ddc_ai_draft_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiDraftNodeRepository；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id、业务字段、version/deleted_at ↔ DdcAiDraftNodeRepository；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 interface DdcAiDraftNodeRepository {
-  // findActiveById(Long id) reads one tenant-scoped BO; legacy ddc_ai_draft_node also has findByPublicId(String publicId).
+  // findActiveById(Long id) reads one tenant-scoped BO; the HTTP adapter parses decimal-string id at the boundary.
   // preserve prior public Repository behavior and pagination/null sorting contract without returning PO/IPage.
 }
 // service callers receive BO/DTO and cannot provide a different tenant than the trusted context.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 21 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiDraftNodeRepositoryImpl.java`
 
-- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiDraftNodeRepositoryImpl`；表`ddc_ai_draft_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftNodeRepositoryImpl`。
 - Dependencies and consumers: 前置Step 11；本步20个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiDraftNodeRepositoryImpl承载ddc_ai_draft_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiDraftNodeRepositoryImpl；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id、业务字段、version/deleted_at ↔ DdcAiDraftNodeRepositoryImpl；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12582,7 +12584,7 @@ interface DdcAiDraftNodeRepository {
 // no JPA EntityManager or ad hoc JDBC business write.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 22 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiDraftNodeMapper.xml`
@@ -12593,8 +12595,8 @@ interface DdcAiDraftNodeRepository {
 - Dependencies and consumers: 前置Step 11；本步21个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_draft_node；DdcAiDraftNode；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词。
 - Contract/signature changes: DdcAiDraftNodeMapper承载ddc_ai_draft_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiDraftNodeMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
+- Input/output and state mapping: 可信tenant＋ddc_ai_draft_node的id、业务字段、version/deleted_at ↔ DdcAiDraftNodeMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001；Rule 11；ddc_ai_draft_node；DdcAiDraftNode；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
@@ -12613,15 +12615,15 @@ interface DdcAiDraftNodeRepository {
 
 #### File 23 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiVersionNodePO.java`
 
-- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionNodePO`；表`ddc_ai_version_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionNodePO`。
 - Dependencies and consumers: 前置Step 11；本步22个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionNodePO承载ddc_ai_version_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionNodePO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id、业务字段、version/deleted_at ↔ DdcAiVersionNodePO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12633,20 +12635,20 @@ interface DdcAiDraftNodeRepository {
 // public_id is old external String identity only on legacy tables; new internal id is component-generated Long.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 24 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiVersionNodeBO.java`
 
-- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionNodeBO`；表`ddc_ai_version_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionNodeBO`。
 - Dependencies and consumers: 前置Step 11；本步23个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionNodeBO承载ddc_ai_version_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionNodeBO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id、业务字段、version/deleted_at ↔ DdcAiVersionNodeBO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12658,20 +12660,20 @@ interface DdcAiDraftNodeRepository {
 // preserve old business flags, including config.deleted, separate from EgonModel.deletedAt.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 25 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionNodeConverter.java`
 
-- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionNodeConverter`；表`ddc_ai_version_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionNodeConverter`。
 - Dependencies and consumers: 前置Step 11；本步24个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionNodeConverter承载ddc_ai_version_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionNodeConverter；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id、业务字段、version/deleted_at ↔ DdcAiVersionNodeConverter；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12680,23 +12682,23 @@ interface DdcAiDraftNodeRepository {
   // toTarget/toSource map version_id, parent_path, path, node_type, content, content_sha256, content_bytes, tenant_id, id, version, deleted_at explicitly where names differ.
   // map business created_at/updated_at independently from EgonModel audit fields.
 }
-// compile generated implementation and assert round-trip of nullable and legacy public_id fields.
+// compile generated implementation and assert round-trip of nullable and decimal-string AI id fields.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 26 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiVersionNodeMapper.java`
 
-- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionNodeMapper`；表`ddc_ai_version_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionNodeMapper`。
 - Dependencies and consumers: 前置Step 11；本步25个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionNodeMapper承载ddc_ai_version_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionNodeMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id、业务字段、version/deleted_at ↔ DdcAiVersionNodeMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12708,45 +12710,45 @@ interface DdcAiVersionNodeMapper extends EgonColaMapper<DdcAiVersionNodePO> {
 // immutable version/publication rows expose insert/select only; no deleteVersionedById command.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 27 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiVersionNodeRepository.java`
 
-- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionNodeRepository`；表`ddc_ai_version_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionNodeRepository`。
 - Dependencies and consumers: 前置Step 11；本步26个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionNodeRepository承载ddc_ai_version_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionNodeRepository；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id、业务字段、version/deleted_at ↔ DdcAiVersionNodeRepository；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 interface DdcAiVersionNodeRepository {
-  // findActiveById(Long id) reads one tenant-scoped BO; legacy ddc_ai_version_node also has findByPublicId(String publicId).
+  // findActiveById(Long id) reads one tenant-scoped BO; the HTTP adapter parses decimal-string id at the boundary.
   // preserve prior public Repository behavior and pagination/null sorting contract without returning PO/IPage.
 }
 // service callers receive BO/DTO and cannot provide a different tenant than the trusted context.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 28 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiVersionNodeRepositoryImpl.java`
 
-- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiVersionNodeRepositoryImpl`；表`ddc_ai_version_node`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionNodeRepositoryImpl`。
 - Dependencies and consumers: 前置Step 11；本步27个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiVersionNodeRepositoryImpl承载ddc_ai_version_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionNodeRepositoryImpl；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id、业务字段、version/deleted_at ↔ DdcAiVersionNodeRepositoryImpl；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12758,7 +12760,7 @@ interface DdcAiVersionNodeRepository {
 // no JPA EntityManager or ad hoc JDBC business write.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 29 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiVersionNodeMapper.xml`
@@ -12769,8 +12771,8 @@ interface DdcAiVersionNodeRepository {
 - Dependencies and consumers: 前置Step 11；本步28个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_version_node；DdcAiVersionNode；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词。
 - Contract/signature changes: DdcAiVersionNodeMapper承载ddc_ai_version_node的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id/public_id、业务字段、version/deleted_at ↔ DdcAiVersionNodeMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
+- Input/output and state mapping: 可信tenant＋ddc_ai_version_node的id、业务字段、version/deleted_at ↔ DdcAiVersionNodeMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001；Rule 11；ddc_ai_version_node；DdcAiVersionNode；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
@@ -12789,15 +12791,15 @@ interface DdcAiVersionNodeRepository {
 
 #### File 30 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiPublicationPO.java`
 
-- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiPublicationPO`；表`ddc_ai_publication`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPublicationPO`。
 - Dependencies and consumers: 前置Step 11；本步29个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiPublicationPO承载ddc_ai_publication的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id/public_id、业务字段、version/deleted_at ↔ DdcAiPublicationPO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id、业务字段、version/deleted_at ↔ DdcAiPublicationPO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12809,20 +12811,20 @@ interface DdcAiVersionNodeRepository {
 // public_id is old external String identity only on legacy tables; new internal id is component-generated Long.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 31 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiPublicationBO.java`
 
-- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiPublicationBO`；表`ddc_ai_publication`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPublicationBO`。
 - Dependencies and consumers: 前置Step 11；本步30个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiPublicationBO承载ddc_ai_publication的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id/public_id、业务字段、version/deleted_at ↔ DdcAiPublicationBO；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id、业务字段、version/deleted_at ↔ DdcAiPublicationBO；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12834,20 +12836,20 @@ interface DdcAiVersionNodeRepository {
 // preserve old business flags, including config.deleted, separate from EgonModel.deletedAt.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 32 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiPublicationConverter.java`
 
-- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiPublicationConverter`；表`ddc_ai_publication`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPublicationConverter`。
 - Dependencies and consumers: 前置Step 11；本步31个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiPublicationConverter承载ddc_ai_publication的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id/public_id、业务字段、version/deleted_at ↔ DdcAiPublicationConverter；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id、业务字段、version/deleted_at ↔ DdcAiPublicationConverter；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12856,23 +12858,23 @@ interface DdcAiVersionNodeRepository {
   // toTarget/toSource map resource_id, operation, request_id, request_sha256, previous_version_id, target_version_id, source_version_id, result_revision, tenant_id, id, version, deleted_at explicitly where names differ.
   // map business created_at/updated_at independently from EgonModel audit fields.
 }
-// compile generated implementation and assert round-trip of nullable and legacy public_id fields.
+// compile generated implementation and assert round-trip of nullable and decimal-string AI id fields.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 33 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiPublicationMapper.java`
 
-- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiPublicationMapper`；表`ddc_ai_publication`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPublicationMapper`。
 - Dependencies and consumers: 前置Step 11；本步32个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiPublicationMapper承载ddc_ai_publication的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id/public_id、业务字段、version/deleted_at ↔ DdcAiPublicationMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id、业务字段、version/deleted_at ↔ DdcAiPublicationMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12884,45 +12886,45 @@ interface DdcAiPublicationMapper extends EgonColaMapper<DdcAiPublicationPO> {
 // immutable version/publication rows expose insert/select only; no deleteVersionedById command.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 34 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPublicationRepository.java`
 
-- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiPublicationRepository`；表`ddc_ai_publication`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPublicationRepository`。
 - Dependencies and consumers: 前置Step 11；本步33个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiPublicationRepository承载ddc_ai_publication的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id/public_id、业务字段、version/deleted_at ↔ DdcAiPublicationRepository；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id、业务字段、version/deleted_at ↔ DdcAiPublicationRepository；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 interface DdcAiPublicationRepository {
-  // findActiveById(Long id) reads one tenant-scoped BO; legacy ddc_ai_publication also has findByPublicId(String publicId).
+  // findActiveById(Long id) reads one tenant-scoped BO; the HTTP adapter parses decimal-string id at the boundary.
   // preserve prior public Repository behavior and pagination/null sorting contract without returning PO/IPage.
 }
 // service callers receive BO/DTO and cannot provide a different tenant than the trusted context.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 35 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiPublicationRepositoryImpl.java`
 
-- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容
+- Purpose: ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列
 - Symbols: `DdcAiPublicationRepositoryImpl`；表`ddc_ai_publication`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPublicationRepositoryImpl`。
 - Dependencies and consumers: 前置Step 11；本步34个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。
 - Contract/signature changes: DdcAiPublicationRepositoryImpl承载ddc_ai_publication的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id/public_id、业务字段、version/deleted_at ↔ DdcAiPublicationRepositoryImpl；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id、业务字段、version/deleted_at ↔ DdcAiPublicationRepositoryImpl；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-REUSE-001, MC-DEP-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -12934,7 +12936,7 @@ interface DdcAiPublicationRepository {
 // no JPA EntityManager or ad hoc JDBC business write.
 ```
 
-- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiPersistenceContractTest聚焦本文件的ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO使用EgonModel内部Long id；外部AI String id为id的十进制编码，无public_id列；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 36 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiPublicationMapper.xml`
@@ -12945,8 +12947,8 @@ interface DdcAiPublicationRepository {
 - Dependencies and consumers: 前置Step 11；本步35个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责ddc_ai_publication；DdcAiPublication；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词。
 - Contract/signature changes: DdcAiPublicationMapper承载ddc_ai_publication的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
-- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id/public_id、业务字段、version/deleted_at ↔ DdcAiPublicationMapper；旧REST id仍来自public_id，时间及空值按Spec逐列。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
+- Input/output and state mapping: 可信tenant＋ddc_ai_publication的id、业务字段、version/deleted_at ↔ DdcAiPublicationMapper；AI REST String id为内部id的十进制表示，时间及空值按Spec逐列。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001；Rule 11；ddc_ai_publication；DdcAiPublication；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
@@ -13047,7 +13049,7 @@ enum DdcAiPublicationOperationEnum implements EgonEnum {
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责持久kind↔SDK kind完整BaseConverter，node双向显式方法，未知code拒绝。
 - Contract/signature changes: DdcAiEnumConverter承载对应表的已审字段、租户/版本/删除守卫；方法与列契约以原Spec§11及修订稿§11为准。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：持久kind↔SDK kind完整BaseConverter，node双向显式方法，未知code拒绝；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和旧public ID保真。
+- Error and edge behavior: 跨租户或已删行不可见；0行更新=版本冲突；重复live键=409；不可变历史禁写；nullable和AI String id十进制编码保真。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；持久kind↔SDK kind完整BaseConverter，node双向显式方法，未知code拒绝。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
@@ -13057,7 +13059,7 @@ enum DdcAiPublicationOperationEnum implements EgonEnum {
   // toTarget/toSource map Spec §11同表字段, tenant_id, id, version, deleted_at explicitly where names differ.
   // map business created_at/updated_at independently from EgonModel audit fields.
 }
-// compile generated implementation and assert round-trip of nullable and legacy public_id fields.
+// compile generated implementation and assert round-trip of nullable and decimal-string AI id fields.
 ```
 
 - Verification contribution: DdcAiPersistenceContractTest聚焦本文件的持久kind↔SDK kind完整BaseConverter，node双向显式方法，未知code拒绝；最终由本步GREEN门禁验证。
