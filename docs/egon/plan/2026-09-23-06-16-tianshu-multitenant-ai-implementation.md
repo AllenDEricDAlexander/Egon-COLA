@@ -6692,6 +6692,7 @@ password: ${TIANSHU_DB_PASSWORD:${spring.datasource.password}}
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001, MC-CONVERT-001, MC-TIME-001, MC-BEAN-001, MC-JSON-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11
+- Logical table rule: Step 9 PO `@TableName` and all named Mapper SQL use `ddc_config_item` / `ddc_config_version`; STRATEGY routes them to `*_t0`; dynamic-table-name stays disabled.
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java`
@@ -6735,7 +6736,7 @@ password: ${TIANSHU_DB_PASSWORD:${spring.datasource.password}}
 - Implementation pseudocode:
 
 ```java
-@TableName("ddc_config_item_t0") @SuperBuilder class DdcConfigItemPO extends EgonModel {
+@TableName("ddc_config_item") @SuperBuilder class DdcConfigItemPO extends EgonModel {
   // map native columns public_id, app_code, env, namespace, config_key, config_value, default_value, value_type; preserve tenant_id/id/version/deleted_at and original business time fields.
   // use @Data, @NoArgsConstructor, @AllArgsConstructor, @Accessors(chain=true), @EqualsAndHashCode(callSuper=true).
 }
@@ -6888,7 +6889,7 @@ interface DdcConfigItemRepository {
 <mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcConfigItemMapper">
   <select id="selectActiveById">SELECT named ddc_config_item columns WHERE tenant_id = trustedTenant AND id = id AND deleted_at IS NULL</select>
   <select id="selectPage">filter public_id, app_code, env, namespace, config_key, config_value, default_value, value_type; ORDER BY business_sort, id; preserve prior NULL/page semantics</select>
-  <update id='deleteVersionedById'>UPDATE ddc_config_item_t0 SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
+  <update id='deleteVersionedById'>UPDATE ddc_config_item SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
 </mapper>
 // immutable histories expose select/insert only; mutable rows use the guarded soft-delete statement.
 ```
@@ -6911,7 +6912,7 @@ interface DdcConfigItemRepository {
 - Implementation pseudocode:
 
 ```java
-@TableName("ddc_config_version_t0") @SuperBuilder class DdcConfigVersionPO extends EgonModel {
+@TableName("ddc_config_version") @SuperBuilder class DdcConfigVersionPO extends EgonModel {
   // map native columns public_id, config_id, app_code, env, namespace, config_key, config_revision, old_value; preserve tenant_id/id/version/deleted_at and original business time fields.
   // use @Data, @NoArgsConstructor, @AllArgsConstructor, @Accessors(chain=true), @EqualsAndHashCode(callSuper=true).
 }
