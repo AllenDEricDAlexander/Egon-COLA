@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 00:40 Asia/Shanghai` |
+| Updated | `2026-09-29 00:45 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -766,6 +766,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-29 Step 11的 `DdcActiveActiveAdminIT` 本身已是显式Testcontainers PostgreSQL/Redis测试；删去旧JPA/Flyway参数后，应用readiness要求的新MP/Outbox managed schema必须先初始化。测试在启动两个Admin节点前以同一隔离PostgreSQL调用现有 `DdcPersistenceMigrationCli initialize`，并用临时System properties传入连接参数、finally还原；只在该显式IT里初始化，不增加自动启动/自动迁移行为，也不在本轮启动容器。
 
 2026-09-29 Step 12复核将AI五表逐项对照Accepted原Spec §11.2与不可变V001：AI表没有`public_id`列；EgonModel.id是Long内部身份，对外AI resource/version/node/publication ID按原Spec编码为该Long的十进制String。Step 12的通用文件摘要误把旧11表public_id映射复制到了AI模型；本节文件级input/output、converter及repository伪代码统一修正为内部Long id/外部decimal-string id，并要求DdcAiPersistenceContractTest验证AI PO/XML/DDL不虚构public_id。V001及API字段不变，旧11表继续由各自legacy converter保留public_id兼容。
+
+Step 12还复核到`egon-tianshu-persistence.yml`已由Step 7创建并提交；本Step File 41不是再CREATE新配置，而是仅修改精确`history-read-statements`登记项、继续保持`restore-statements`为空。对应动作更正为MODIFY，不改Step 7文件和已提交配置键以外的路由。
 ## 7. Ordered File-by-file Implementation Steps
 
 本章是后续实施指令，不代表代码已修改或测试已执行。相同文件在不同Step按不同语义依次编辑；每步先RED再GREEN，只有Step 3的依赖装配用编译RED。完整系统构建只在Step 24。
@@ -13065,11 +13067,11 @@ enum DdcAiPublicationOperationEnum implements EgonEnum {
 - Verification contribution: DdcAiPersistenceContractTest聚焦本文件的持久kind↔SDK kind完整BaseConverter，node双向显式方法，未知code拒绝；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 41 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`
+#### File 41 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml`
 
 - Purpose: history-read仅登记DdcAiResourceMapper.selectIncludingDeletedById；restore生产列表保持空；不忽略业务表
 - Symbols: `egon-tianshu-persistence`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`egon-tianshu-persistence`。
+- Repository evidence: 当前路径由Step 7创建并提交；本Step只修改历史读取白名单，保留现有17张业务逻辑表和两张Outbox SINGLE路由。
 - Dependencies and consumers: 前置Step 11；本步40个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责history-read仅登记DdcAiResourceMapper.selectIncludingDeletedById；restore生产列表保持空；不忽略业务表。
 - Contract/signature changes: egon-tianshu-persistence的具体签名/配置/字段变更：history-read仅登记DdcAiResourceMapper.selectIncludingDeletedById；restore生产列表保持空；不忽略业务表。
