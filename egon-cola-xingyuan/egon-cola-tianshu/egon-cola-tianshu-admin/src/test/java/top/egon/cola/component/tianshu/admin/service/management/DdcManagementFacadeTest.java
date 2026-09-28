@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
@@ -86,17 +86,10 @@ class DdcManagementFacadeTest {
 
     @Test
     void projectsBusinessAndApplicationCatalogWithParentStatus() {
-        DdcBizEntity biz = new DdcBizEntity();
-        biz.setId("business-1");
-        biz.setBizCode("retail");
-        biz.setBizName("Retail");
-        biz.setEnabled(false);
-        DdcAppEntity app = new DdcAppEntity();
-        app.setId("app-1");
-        app.setBizCode("retail");
-        app.setAppCode("order");
-        app.setAppName("Order");
-        app.setEnabled(true);
+        DdcBizBO biz = DdcBizBO.builder().id(101L).publicId("business-1").bizCode("retail")
+                .bizName("Retail").enabled(false).build();
+        DdcAppBO app = DdcAppBO.builder().id(201L).publicId("app-1").bizCode("retail")
+                .appCode("order").appName("Order").enabled(true).build();
 
         when(bizService.findById("business-1")).thenReturn(Optional.of(biz));
         when(bizService.findByBizCode("retail")).thenReturn(biz);
@@ -120,16 +113,10 @@ class DdcManagementFacadeTest {
 
     @Test
     void filtersBusinessCatalogByEnabledState() {
-        DdcBizEntity enabled = new DdcBizEntity();
-        enabled.setId("business-1");
-        enabled.setBizCode("retail");
-        enabled.setBizName("Retail");
-        enabled.setEnabled(true);
-        DdcBizEntity disabled = new DdcBizEntity();
-        disabled.setId("business-2");
-        disabled.setBizCode("legacy");
-        disabled.setBizName("Legacy");
-        disabled.setEnabled(false);
+        DdcBizBO enabled = DdcBizBO.builder().id(101L).publicId("business-1").bizCode("retail")
+                .bizName("Retail").enabled(true).build();
+        DdcBizBO disabled = DdcBizBO.builder().id(102L).publicId("business-2").bizCode("legacy")
+                .bizName("Legacy").enabled(false).build();
         when(bizService.list("retail", true)).thenReturn(List.of(enabled));
 
         assertThat(facade.listBizs(new DdcManagementBizQuery("retail", true)))

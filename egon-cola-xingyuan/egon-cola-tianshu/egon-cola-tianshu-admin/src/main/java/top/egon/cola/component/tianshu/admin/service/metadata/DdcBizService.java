@@ -1,126 +1,97 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-@Service
+@Slf4j
+@Service("ddcBizService")
+@RequiredArgsConstructor
 public class DdcBizService {
 
+    @Qualifier("ddcScopeGate")
     private final DdcScopeGate scopeGate;
-
+    @Qualifier("ddcBizRepository")
     private final DdcBizRepository bizRepository;
-
+    @Qualifier("ddcAppRepository")
     private final DdcAppRepository appRepository;
 
-    public DdcBizService(DdcBizRepository bizRepository,
-                         DdcAppRepository appRepository,
-                         DdcScopeGate scopeGate) {
-        this.bizRepository = bizRepository;
-        this.appRepository = appRepository;
-        this.scopeGate = scopeGate;
+    public List<DdcBizBO> list(String keyword) {
+        return bizRepository.list(optional(keyword), null);
     }
 
-    public List<DdcBizEntity> list(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return bizRepository.findAll(Sort.by(Sort.Direction.ASC, "bizCode"));
-        }
-        String trimmed = keyword.trim();
-        return bizRepository.findByBizCodeContainingIgnoreCaseOrBizNameContainingIgnoreCase(
-                trimmed, trimmed);
+    public List<DdcBizBO> list(String keyword, Boolean enabled) {
+        return bizRepository.list(optional(keyword), enabled);
     }
 
-    public List<DdcBizEntity> list(String keyword, Boolean enabled) {
-        return list(keyword).stream()
-                .filter(value -> enabled == null
-                        || enabled.equals(Boolean.TRUE.equals(value.getEnabled())))
-                .toList();
+    public DdcPageResult<DdcBizBO> page(String keyword, PageQuery pageQuery) {
+        return bizRepository.page(optional(keyword), null, pageQuery);
     }
 
-    public Page<DdcBizEntity> page(String keyword, PageQuery pageQuery) {
-        return bizRepository.search(
-                optional(keyword),
-                DdcAdminPageSupport.pageable(
-                        pageQuery,
-                        Sort.by("bizCode").ascending()
-                                .and(Sort.by("id").ascending())
-                )
-        );
-    }
-
-    public DdcBizEntity findByBizCode(String bizCode) {
+    public DdcBizBO findByBizCode(String bizCode) {
         return require(bizCode);
     }
 
-    public Optional<DdcBizEntity> findById(String id) {
-        if (id == null || id.isBlank()) {
-            return Optional.empty();
-        }
-        return bizRepository.findById(id);
+    public Optional<DdcBizBO> findById(String publicId) {
+        if (publicId == null || publicId.isBlank()) return Optional.empty();
+        return bizRepository.findByPublicId(publicId);
     }
 
     @Transactional
-    public DdcBizEntity save(DdcBizEntity biz) {
+    public DdcBizBO save(DdcBizBO biz) {
         LocalDateTime now = LocalDateTime.now();
-        biz.setId(SnowflakeIdGenerator.nextId());
         biz.setCreatedAt(now);
-        if (biz.getEnabled() == null) {
-            biz.setEnabled(true);
-        }
-        if (bizRepository.existsByBizCode(biz.getBizCode())) {
-            throw new CommonException(DdcErrorStatus.BIZ_CODE_EXISTS);
-        }
         biz.setUpdatedAt(now);
-        return bizRepository.save(biz);
+        if (biz.getEnabled() == null) biz.setEnabled(true);
+        if (bizRepository.existsByBizCode(biz.getBizCode()))
+            throw new CommonException(DdcErrorStatus.BIZ_CODE_EXISTS);
+        return bizRepository.insert(biz);
     }
 
     @Transactional
-    public DdcBizEntity update(String bizCode, DdcBizEntity request) {
-        DdcBizEntity existing = require(bizCode);
-        if (bizRepository.existsByBizCodeAndIdNot(request.getBizCode(), existing.getId())) {
+    public DdcBizBO update(String bizCode, DdcBizBO request) {
+        DdcBizBO existing = require(bizCode);
+        if (bizRepository.existsByBizCodeAndIdNot(request.getBizCode(), existing.getId()))
             throw new CommonException(DdcErrorStatus.BIZ_CODE_EXISTS);
-        }
         existing.setBizCode(request.getBizCode());
         existing.setBizName(request.getBizName());
         existing.setDescription(request.getDescription());
         existing.setUpdatedAt(LocalDateTime.now());
-        return bizRepository.save(existing);
+        return bizRepository.update(existing);
     }
 
     @Transactional
     public void delete(String bizCode) {
-        DdcBizEntity existing = require(bizCode);
-        if (appRepository.existsByBizCode(bizCode)) {
-            throw new CommonException(DdcErrorStatus.BIZ_IN_USE);
-        }
+        DdcBizBO existing = require(bizCode);
+        if (appRepository.existsByBizCode(bizCode)) throw new CommonException(DdcErrorStatus.BIZ_IN_USE);
         bizRepository.delete(existing);
         scopeGate.invalidate("biz:" + bizCode);
     }
 
     @Transactional
-    public DdcBizEntity setEnabled(String bizCode, boolean enabled) {
-        DdcBizEntity existing = require(bizCode);
+    public DdcBizBO setEnabled(String bizCode, boolean enabled) {
+        DdcBizBO existing = require(bizCode);
         existing.setEnabled(enabled);
         existing.setUpdatedAt(LocalDateTime.now());
-        DdcBizEntity saved = bizRepository.save(existing);
+        DdcBizBO saved = bizRepository.update(existing);
         scopeGate.invalidate("biz:" + bizCode);
         return saved;
     }
 
-    private DdcBizEntity require(String bizCode) {
+    private DdcBizBO require(String bizCode) {
         return bizRepository.findByBizCode(bizCode)
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.BIZ_NOT_FOUND));
     }

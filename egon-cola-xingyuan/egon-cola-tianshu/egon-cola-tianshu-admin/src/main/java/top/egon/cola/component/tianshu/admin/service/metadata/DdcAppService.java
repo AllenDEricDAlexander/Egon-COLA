@@ -1,197 +1,121 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.BusinessException;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-@Service
+@Slf4j
+@Service("ddcAppService")
+@RequiredArgsConstructor
 public class DdcAppService {
+    @Qualifier("ddcScopeGate") private final DdcScopeGate scopeGate;
+    @Qualifier("ddcAppRepository") private final DdcAppRepository appRepository;
+    @Qualifier("ddcBizRepository") private final DdcBizRepository bizRepository;
+    @Qualifier("ddcNamespaceEnvAppBindingRepository") private final DdcNamespaceEnvAppBindingRepository bindingRepository;
+    @Qualifier("ddcNamespaceEnvAppBindingService") private final DdcNamespaceEnvAppBindingService bindingService;
 
-    private final DdcScopeGate scopeGate;
-
-    private final DdcAppRepository appRepository;
-
-    private final DdcBizRepository bizRepository;
-
-    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
-
-    private final DdcNamespaceEnvAppBindingService bindingService;
-
-    public DdcAppService(DdcAppRepository appRepository,
-                         DdcBizRepository bizRepository,
-                         DdcNamespaceEnvAppBindingRepository bindingRepository,
-                         DdcNamespaceEnvAppBindingService bindingService,
-                         DdcScopeGate scopeGate) {
-        this.appRepository = appRepository;
-        this.bizRepository = bizRepository;
-        this.bindingRepository = bindingRepository;
-        this.bindingService = bindingService;
-        this.scopeGate = scopeGate;
-    }
-
-    public List<DdcAppEntity> list(
-            String bizCode,
-            String namespaceCode,
-            String env,
-            String keyword) {
+    public List<DdcAppBO> list(String bizCode, String namespaceCode, String env, String keyword) {
         if (hasText(namespaceCode) && hasText(env)) {
-            if (!hasText(bizCode)) {
-                return List.of();
-            }
-            return filterKeyword(bindingService.visibleApps(
-                    bizCode.trim(), namespaceCode.trim(), env.trim()), keyword);
+            if (!hasText(bizCode)) return List.of();
+            return filterKeyword(bindingService.visibleApps(bizCode.trim(), namespaceCode.trim(), env.trim()), keyword);
         }
-        boolean hasBiz = bizCode != null && !bizCode.isBlank();
-        boolean hasKeyword = keyword != null && !keyword.isBlank();
-        if (!hasBiz && !hasKeyword) {
-            return appRepository.findAll(Sort.by(Sort.Direction.ASC, "appCode"));
-        }
+        boolean hasBiz = hasText(bizCode);
+        boolean hasKeyword = hasText(keyword);
+        if (!hasBiz && !hasKeyword) return appRepository.findByAppCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase("", "");
         String trimmedKeyword = hasKeyword ? keyword.trim() : null;
-        if (hasBiz && hasKeyword) {
-            return appRepository.findByBizCodeAndAppCodeContainingIgnoreCaseOrBizCodeAndAppNameContainingIgnoreCase(
-                    bizCode.trim(), trimmedKeyword, bizCode.trim(), trimmedKeyword);
-        }
-        if (hasBiz) {
-            return appRepository.findByBizCode(bizCode.trim());
-        }
+        if (hasBiz && hasKeyword) return appRepository
+                .findByBizCodeAndAppCodeContainingIgnoreCaseOrBizCodeAndAppNameContainingIgnoreCase(
+                        bizCode.trim(), trimmedKeyword, bizCode.trim(), trimmedKeyword);
+        if (hasBiz) return appRepository.findByBizCode(bizCode.trim());
         return appRepository.findByAppCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase(
                 trimmedKeyword, trimmedKeyword);
     }
 
-    public List<DdcAppEntity> list(
-            String bizCode,
-            String keyword,
-            Boolean enabled) {
-        return list(bizCode, null, null, keyword).stream()
-                .filter(value -> enabled == null
-                        || enabled.equals(Boolean.TRUE.equals(value.getEnabled())))
-                .toList();
+    public List<DdcAppBO> list(String bizCode, String keyword, Boolean enabled) {
+        return appRepository.list(optional(bizCode), optional(keyword), enabled);
     }
 
-    public Page<DdcAppEntity> page(
-            String bizCode,
-            String namespaceCode,
-            String env,
-            String keyword,
+    public DdcPageResult<DdcAppBO> page(String bizCode, String namespaceCode, String env, String keyword,
             PageQuery pageQuery) {
-        Pageable pageable = DdcAdminPageSupport.pageable(
-                pageQuery,
-                Sort.by("bizCode").ascending()
-                        .and(Sort.by("appCode").ascending())
-                        .and(Sort.by("id").ascending())
-        );
         if (hasText(namespaceCode) && hasText(env) && !hasText(bizCode)) {
-            return Page.empty(pageable);
+            PageQuery page = pageQuery == null ? PageQuery.defaultPage() : pageQuery;
+            return DdcPageResult.<DdcAppBO>builder().records(List.of()).total(0)
+                    .pageNo(page.pageNo()).pageSize(page.pageSize()).build();
         }
-        return appRepository.search(
-                optional(bizCode),
-                optional(namespaceCode),
-                optional(env),
-                optional(keyword),
-                pageable
-        );
+        return appRepository.search(optional(bizCode), optional(namespaceCode), optional(env), optional(keyword),
+                null, pageQuery);
     }
 
-    public Optional<DdcAppEntity> findById(String id) {
-        return appRepository.findById(id);
+    public Optional<DdcAppBO> findById(String publicId) {
+        if (publicId == null || publicId.isBlank()) return Optional.empty();
+        return appRepository.findByPublicId(publicId);
     }
 
     @Transactional
-    public DdcAppEntity save(DdcAppEntity app) {
+    public DdcAppBO save(DdcAppBO app) {
         LocalDateTime now = LocalDateTime.now();
-        app.setId(SnowflakeIdGenerator.nextId());
-        app.setCreatedAt(now);
-        if (app.getEnabled() == null) {
-            app.setEnabled(true);
-        }
-        if (!bizRepository.existsByBizCode(app.getBizCode())) {
-            throw new CommonException(DdcErrorStatus.BIZ_NOT_FOUND);
-        }
+        app.setCreatedAt(now).setUpdatedAt(now);
+        if (app.getEnabled() == null) app.setEnabled(true);
+        if (!bizRepository.existsByBizCode(app.getBizCode())) throw new CommonException(DdcErrorStatus.BIZ_NOT_FOUND);
         if (appRepository.existsByAppCode(app.getAppCode())) {
-            throw new BusinessException(
-                    ResultCode.CONCURRENCY_ERROR.getCode(),
-                    ResultCode.CONCURRENCY_ERROR.getStatus(),
-                    "app code already exists"
-            );
+            throw new BusinessException(ResultCode.CONCURRENCY_ERROR.getCode(),
+                    ResultCode.CONCURRENCY_ERROR.getStatus(), "app code already exists");
         }
-        app.setUpdatedAt(now);
-        return appRepository.save(app);
+        return appRepository.insert(app);
     }
 
     @Transactional
-    public DdcAppEntity update(String id, DdcAppEntity request) {
-        DdcAppEntity existing = require(id);
-        existing.setAppName(request.getAppName());
-        existing.setOwner(request.getOwner());
-        existing.setDescription(request.getDescription());
-        existing.setUpdatedAt(LocalDateTime.now());
-        return appRepository.save(existing);
+    public DdcAppBO update(String publicId, DdcAppBO request) {
+        DdcAppBO existing = require(publicId);
+        existing.setAppName(request.getAppName()).setOwner(request.getOwner())
+                .setDescription(request.getDescription()).setUpdatedAt(LocalDateTime.now());
+        return appRepository.update(existing);
     }
 
     @Transactional
-    public void delete(String id) {
-        DdcAppEntity existing = require(id);
-        if (bindingRepository.existsByAppId(id)) {
-            throw new CommonException(DdcErrorStatus.APP_IN_USE);
-        }
+    public void delete(String publicId) {
+        DdcAppBO existing = require(publicId);
+        if (bindingRepository.existsByAppId(existing.getId())) throw new CommonException(DdcErrorStatus.APP_IN_USE);
         appRepository.delete(existing);
         scopeGate.invalidate(appCacheKey(existing));
     }
 
     @Transactional
-    public DdcAppEntity setEnabled(String id, boolean enabled) {
-        DdcAppEntity existing = require(id);
-        existing.setEnabled(enabled);
-        existing.setUpdatedAt(LocalDateTime.now());
-        DdcAppEntity saved = appRepository.save(existing);
+    public DdcAppBO setEnabled(String publicId, boolean enabled) {
+        DdcAppBO existing = require(publicId);
+        existing.setEnabled(enabled).setUpdatedAt(LocalDateTime.now());
+        DdcAppBO saved = appRepository.update(existing);
         scopeGate.invalidate(appCacheKey(existing));
         return saved;
     }
 
-    private DdcAppEntity require(String id) {
-        return appRepository.findById(id)
+    private DdcAppBO require(String publicId) {
+        return appRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.APP_NOT_FOUND));
     }
-
-    private List<DdcAppEntity> filterKeyword(
-            List<DdcAppEntity> apps,
-            String keyword) {
-        if (!hasText(keyword)) {
-            return apps;
-        }
+    private List<DdcAppBO> filterKeyword(List<DdcAppBO> apps, String keyword) {
+        if (!hasText(keyword)) return apps;
         String value = keyword.trim().toLowerCase();
-        return apps.stream()
-                .filter(app -> app.getAppCode().toLowerCase().contains(value)
-                        || app.getAppName().toLowerCase().contains(value))
-                .toList();
+        return apps.stream().filter(app -> app.getAppCode().toLowerCase().contains(value)
+                || app.getAppName().toLowerCase().contains(value)).toList();
     }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private String optional(String value) {
-        return hasText(value) ? value.trim() : null;
-    }
-
-    private String appCacheKey(DdcAppEntity app) {
-        return "app:" + app.getBizCode() + ":" + app.getAppCode();
-    }
+    private boolean hasText(String value) { return value != null && !value.isBlank(); }
+    private String optional(String value) { return hasText(value) ? value.trim() : null; }
+    private String appCacheKey(DdcAppBO app) { return "app:" + app.getBizCode() + ":" + app.getAppCode(); }
 }

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcAppMapper">
+    <resultMap id="DdcAppPOResultMap" type="top.egon.cola.component.tianshu.admin.model.po.DdcAppPO">
+        <id property="id" column="id"/><result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/><result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/><result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/><result property="version" column="version"/>
+        <result property="publicId" column="public_id"/><result property="appCode" column="app_code"/>
+        <result property="appName" column="app_name"/><result property="owner" column="owner"/>
+        <result property="description" column="description"/><result property="enabled" column="enabled"/>
+        <result property="createdAt" column="created_at"/><result property="updatedAt" column="updated_at"/>
+        <result property="bizCode" column="biz_code"/>
+    </resultMap>
+    <sql id="Columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
+        public_id, app_code, app_name, owner, description, enabled, created_at, updated_at, biz_code</sql>
+    <select id="selectActiveById" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL</select>
+    <select id="selectActiveByIds" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY app_code, id</select>
+    <select id="selectActiveByPublicId" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND public_id = #{publicId} AND deleted_at IS NULL</select>
+    <select id="selectActiveByBizAndAppCode" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND app_code = #{appCode} AND deleted_at IS NULL</select>
+    <select id="selectFirstByAppCode" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND app_code = #{appCode} AND deleted_at IS NULL ORDER BY biz_code, id LIMIT 1</select>
+    <select id="countByAppCode" resultType="long">SELECT count(*) FROM ddc_app WHERE tenant_id = #{tenantId}
+        AND app_code = #{appCode} AND deleted_at IS NULL <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if></select>
+    <select id="countByBizCode" resultType="long">SELECT count(*) FROM ddc_app WHERE tenant_id = #{tenantId}
+        AND biz_code = #{bizCode} AND deleted_at IS NULL</select>
+    <select id="selectByBizCode" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND deleted_at IS NULL ORDER BY app_code, id</select>
+    <select id="selectText" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+        <if test="bizCode != null and bizCode != ''">AND biz_code = #{bizCode}</if>
+        <if test="(appCodeKeyword != null and appCodeKeyword != '') or (appNameKeyword != null and appNameKeyword != '')">
+            AND (<if test="appCodeKeyword != null and appCodeKeyword != ''">lower(app_code) LIKE lower(concat('%', #{appCodeKeyword}, '%'))</if>
+            <if test="appCodeKeyword != null and appCodeKeyword != '' and appNameKeyword != null and appNameKeyword != ''">OR</if>
+            <if test="appNameKeyword != null and appNameKeyword != ''">lower(app_name) LIKE lower(concat('%', #{appNameKeyword}, '%'))</if>)
+        </if>
+        <if test="enabled != null">AND enabled = #{enabled}</if>
+        ORDER BY app_code, id</select>
+    <sql id="PageWhere">
+        a.tenant_id = #{tenantId} AND a.deleted_at IS NULL
+        <if test="bizCode != null and bizCode != ''">AND a.biz_code = #{bizCode}</if>
+        <if test="keyword != null and keyword != ''">AND (lower(a.app_code) LIKE lower(concat('%', #{keyword}, '%'))
+            OR lower(a.app_name) LIKE lower(concat('%', #{keyword}, '%')))</if>
+        <if test="enabled != null">AND a.enabled = #{enabled}</if>
+        <if test="namespaceCode != null and namespaceCode != '' and env != null and env != ''">
+            AND EXISTS (SELECT 1 FROM ddc_namespace_env_app b JOIN ddc_namespace n
+                         ON n.tenant_id = b.tenant_id AND n.id = b.namespace_id
+                        WHERE b.tenant_id = a.tenant_id AND b.app_id = a.id AND b.env_code = #{env}
+                          AND b.enabled = true AND b.deleted_at IS NULL AND n.enabled = true AND n.deleted_at IS NULL
+                          AND n.biz_code = a.biz_code AND n.namespace_code = #{namespaceCode})
+        </if>
+    </sql>
+    <select id="selectPage" resultMap="DdcAppPOResultMap">SELECT <include refid="Columns"/> FROM ddc_app a
+        WHERE <include refid="PageWhere"/> ORDER BY a.biz_code, a.app_code, a.id LIMIT #{limit} OFFSET #{offset}</select>
+    <select id="countPage" resultType="long">SELECT count(*) FROM ddc_app a WHERE <include refid="PageWhere"/></select>
+    <update id="deleteVersionedById">UPDATE ddc_app SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+        version = version + 1, update_user_id = #{et.updateUserId}, update_time = #{et.updateTime}
+        WHERE tenant_id = #{et.tenantId} AND id = #{et.id} AND version = #{et.version} AND deleted_at IS NULL</update>
+</mapper>

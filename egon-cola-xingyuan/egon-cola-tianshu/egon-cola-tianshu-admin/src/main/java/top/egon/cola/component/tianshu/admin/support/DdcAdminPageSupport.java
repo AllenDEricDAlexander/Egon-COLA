@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.core.pojo.PageResultRecord;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 
 import java.util.List;
 
@@ -38,6 +39,15 @@ public final class DdcAdminPageSupport {
                 page.getTotalElements(),
                 page.getNumber() + 1,
                 page.getSize()
+        );
+    }
+
+    public static <T> PageResultRecord<T> result(DdcPageResult<T> page) {
+        return PageResultRecord.success(
+                page.getRecords(),
+                page.getTotal(),
+                page.getPageNo(),
+                page.getPageSize()
         );
     }
 }

@@ -1,147 +1,92 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceBO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-@Service
+@Slf4j
+@Service("ddcNamespaceService")
+@RequiredArgsConstructor
 public class DdcNamespaceService {
+    @Qualifier("ddcNamespaceRepository") private final DdcNamespaceRepository namespaceRepository;
+    @Qualifier("ddcBizRepository") private final DdcBizRepository bizRepository;
+    @Qualifier("ddcNamespaceEnvAppBindingRepository") private final DdcNamespaceEnvAppBindingRepository bindingRepository;
 
-    private final DdcNamespaceRepository namespaceRepository;
-
-    private final DdcBizRepository bizRepository;
-
-    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
-
-    public DdcNamespaceService(DdcNamespaceRepository namespaceRepository,
-                               DdcBizRepository bizRepository,
-                               DdcNamespaceEnvAppBindingRepository bindingRepository) {
-        this.namespaceRepository = namespaceRepository;
-        this.bizRepository = bizRepository;
-        this.bindingRepository = bindingRepository;
+    public List<DdcNamespaceBO> list(String bizCode, String keyword) {
+        boolean hasBiz = hasText(bizCode);
+        boolean hasKeyword = hasText(keyword);
+        if (!hasBiz && !hasKeyword)
+            return namespaceRepository.findByBizCodeAndNamespaceContainingIgnoreCaseOrBizCodeAndNamespaceCodeContainingIgnoreCase(
+                    null, null, null, null);
+        if (hasBiz && !hasKeyword) return namespaceRepository.findByBizCode(bizCode.trim());
+        return namespaceRepository.findByBizCodeAndNamespaceContainingIgnoreCaseOrBizCodeAndNamespaceCodeContainingIgnoreCase(
+                hasBiz ? bizCode.trim() : null, keyword.trim(), hasBiz ? bizCode.trim() : null, keyword.trim());
     }
 
-    public List<DdcNamespaceEntity> list(String bizCode, String keyword) {
-        boolean hasBiz = bizCode != null && !bizCode.isBlank();
-        boolean hasKeyword = keyword != null && !keyword.isBlank();
-        if (!hasBiz && !hasKeyword) {
-            return namespaceRepository.findAll(Sort.by(
-                    Sort.Direction.ASC, "bizCode", "namespaceCode"));
-        }
-        if (hasBiz && hasKeyword) {
-            return namespaceRepository
-                    .findByBizCodeAndNamespaceContainingIgnoreCaseOrBizCodeAndNamespaceCodeContainingIgnoreCase(
-                            bizCode.trim(), keyword.trim(),
-                            bizCode.trim(), keyword.trim());
-        }
-        if (hasBiz) {
-            return namespaceRepository.findByBizCode(bizCode.trim());
-        }
-        String value = keyword.trim().toLowerCase();
-        return namespaceRepository.findAll(Sort.by(
-                        Sort.Direction.ASC, "bizCode", "namespaceCode"))
-                .stream()
-                .filter(item -> item.getNamespace().toLowerCase().contains(value)
-                        || item.getNamespaceCode().toLowerCase().contains(value))
-                .toList();
+    public DdcPageResult<DdcNamespaceBO> page(String bizCode, String keyword, PageQuery pageQuery) {
+        return namespaceRepository.search(optional(bizCode), optional(keyword), pageQuery);
     }
 
-    public Page<DdcNamespaceEntity> page(
-            String bizCode,
-            String keyword,
-            PageQuery pageQuery) {
-        return namespaceRepository.search(
-                optional(bizCode),
-                optional(keyword),
-                DdcAdminPageSupport.pageable(
-                        pageQuery,
-                        Sort.by("bizCode").ascending()
-                                .and(Sort.by("namespaceCode").ascending())
-                                .and(Sort.by("id").ascending())
-                )
-        );
-    }
-
-    public Optional<DdcNamespaceEntity> find(
-            String bizCode,
-            String namespaceCode) {
-        return namespaceRepository.findByBizCodeAndNamespaceCode(
-                bizCode, namespaceCode);
+    public Optional<DdcNamespaceBO> find(String bizCode, String namespaceCode) {
+        return namespaceRepository.findByBizCodeAndNamespaceCode(bizCode, namespaceCode);
     }
 
     @Transactional
-    public DdcNamespaceEntity save(DdcNamespaceEntity namespace) {
+    public DdcNamespaceBO save(DdcNamespaceBO namespace) {
         LocalDateTime now = LocalDateTime.now();
-        namespace.setId(SnowflakeIdGenerator.nextId());
-        namespace.setCreatedAt(now);
-        if (namespace.getEnabled() == null) {
-            namespace.setEnabled(true);
-        }
-        if (!bizRepository.existsByBizCode(namespace.getBizCode())) {
-            throw new CommonException(DdcErrorStatus.BIZ_NOT_FOUND);
-        }
-        if (namespaceRepository.existsByBizCodeAndNamespaceCode(
-                namespace.getBizCode(), namespace.getNamespaceCode())) {
+        namespace.setCreatedAt(now).setUpdatedAt(now);
+        if (namespace.getEnabled() == null) namespace.setEnabled(true);
+        if (!bizRepository.existsByBizCode(namespace.getBizCode())) throw new CommonException(DdcErrorStatus.BIZ_NOT_FOUND);
+        if (namespaceRepository.existsByBizCodeAndNamespaceCode(namespace.getBizCode(), namespace.getNamespaceCode())
+                || namespaceRepository.existsByBizCodeAndNamespace(namespace.getBizCode(), namespace.getNamespace()))
             throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);
-        }
-        if (namespaceRepository.existsByBizCodeAndNamespace(
-                namespace.getBizCode(), namespace.getNamespace())) {
-            throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);
-        }
-        namespace.setUpdatedAt(now);
-        return namespaceRepository.save(namespace);
+        return namespaceRepository.insert(namespace);
     }
 
     @Transactional
-    public DdcNamespaceEntity update(String id, DdcNamespaceEntity request) {
-        DdcNamespaceEntity existing = require(id);
+    public DdcNamespaceBO update(String publicId, DdcNamespaceBO request) {
+        DdcNamespaceBO existing = require(publicId);
         if (namespaceRepository.existsByBizCodeAndNamespaceAndIdNot(
-                existing.getBizCode(), request.getNamespace(), existing.getId())) {
+                existing.getBizCode(), request.getNamespace(), existing.getId()))
             throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);
-        }
-        existing.setNamespace(request.getNamespace());
-        existing.setDescription(request.getDescription());
-        existing.setUpdatedAt(LocalDateTime.now());
-        return namespaceRepository.save(existing);
+        existing.setNamespace(request.getNamespace()).setDescription(request.getDescription())
+                .setUpdatedAt(LocalDateTime.now());
+        return namespaceRepository.update(existing);
     }
 
     @Transactional
-    public void delete(String id) {
-        DdcNamespaceEntity existing = require(id);
-        if (bindingRepository.existsByNamespaceId(existing.getId())) {
+    public void delete(String publicId) {
+        DdcNamespaceBO existing = require(publicId);
+        if (bindingRepository.existsByNamespaceId(existing.getId()))
             throw new CommonException(DdcErrorStatus.NAMESPACE_IN_USE);
-        }
         namespaceRepository.delete(existing);
     }
 
     @Transactional
-    public DdcNamespaceEntity setEnabled(String id, boolean enabled) {
-        DdcNamespaceEntity existing = require(id);
-        existing.setEnabled(enabled);
-        existing.setUpdatedAt(LocalDateTime.now());
-        return namespaceRepository.save(existing);
+    public DdcNamespaceBO setEnabled(String publicId, boolean enabled) {
+        DdcNamespaceBO existing = require(publicId);
+        existing.setEnabled(enabled).setUpdatedAt(LocalDateTime.now());
+        return namespaceRepository.update(existing);
     }
 
-    private DdcNamespaceEntity require(String id) {
-        return namespaceRepository.findById(id)
+    private DdcNamespaceBO require(String publicId) {
+        return namespaceRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.NAMESPACE_NOT_FOUND));
     }
-
-    private String optional(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
+    private boolean hasText(String value) { return value != null && !value.isBlank(); }
+    private String optional(String value) { return hasText(value) ? value.trim() : null; }
 }

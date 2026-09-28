@@ -9,8 +9,8 @@ import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
@@ -151,7 +151,7 @@ public class DdcManagementFacade {
         if (bizService == null) {
             return Optional.empty();
         }
-        DdcBizEntity entity;
+        DdcBizBO entity;
         if (lookup.id() != null && !lookup.id().isBlank()) {
             entity = bizService.findById(lookup.id()).orElse(null);
         } else if (lookup.bizCode() != null && !lookup.bizCode().isBlank()) {
@@ -189,7 +189,7 @@ public class DdcManagementFacade {
             return List.of();
         }
         String bizCode = query.bizCode();
-        DdcBizEntity selectedBiz = null;
+        DdcBizBO selectedBiz = null;
         if (query.businessId() != null && !query.businessId().isBlank()) {
             selectedBiz = bizService.findById(query.businessId()).orElse(null);
             if (selectedBiz == null) {
@@ -206,7 +206,7 @@ public class DdcManagementFacade {
                 return List.of();
             }
         }
-        DdcBizEntity fixedBiz = selectedBiz;
+        DdcBizBO fixedBiz = selectedBiz;
         return appService.list(bizCode, query.keyword(), query.enabled()).stream()
                 .map(value -> fixedBiz != null
                         ? application(value, fixedBiz)
@@ -440,7 +440,7 @@ public class DdcManagementFacade {
         );
     }
 
-    private DdcBizEntity findBizByCode(String bizCode) {
+    private DdcBizBO findBizByCode(String bizCode) {
         if (bizCode == null || bizCode.isBlank()) {
             return null;
         }
@@ -451,9 +451,9 @@ public class DdcManagementFacade {
         }
     }
 
-    private DdcManagementBiz business(DdcBizEntity value) {
+    private DdcManagementBiz business(DdcBizBO value) {
         return new DdcManagementBiz(
-                value.getId(),
+                value.getPublicId(),
                 value.getBizCode(),
                 value.getBizName(),
                 Boolean.TRUE.equals(value.getEnabled())
@@ -461,14 +461,14 @@ public class DdcManagementFacade {
     }
 
     private DdcManagementApp application(
-            DdcAppEntity value,
-            DdcBizEntity business) {
+            DdcAppBO value,
+            DdcBizBO business) {
         if (value == null || business == null) {
             return null;
         }
         return new DdcManagementApp(
-                value.getId(),
-                business.getId(),
+                value.getPublicId(),
+                business.getPublicId(),
                 business.getBizCode(),
                 value.getAppCode(),
                 value.getAppName(),
@@ -653,12 +653,8 @@ public class DdcManagementFacade {
                         bizCode,
                         query.namespaceCode().trim()
                 ).stream()
-                .map(row -> String.join(
-                        "\n",
-                        String.valueOf(row[0]),
-                        String.valueOf(row[1]),
-                        String.valueOf(row[2])
-                ))
+                .map(row -> String.join("\n", String.valueOf(row.get("bizcode")),
+                        String.valueOf(row.get("envcode")), String.valueOf(row.get("appcode"))))
                 .collect(Collectors.toUnmodifiableSet());
     }
 

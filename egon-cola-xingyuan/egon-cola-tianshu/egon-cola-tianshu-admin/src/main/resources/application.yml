@@ -39,10 +39,14 @@ spring:
   config:
     import:
       - classpath:META-INF/egon-cola-tianshu.properties
+      - classpath:egon-tianshu-persistence.yml
       - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/tianshu.properties
       - optional:tianshu:application.yml
   flyway:
     locations: classpath:db/postgresql
+
+mybatis-plus:
+  mapper-locations: classpath*:mybatis/mapper/tianshu/**/*.xml
 
 egon:
   cola:

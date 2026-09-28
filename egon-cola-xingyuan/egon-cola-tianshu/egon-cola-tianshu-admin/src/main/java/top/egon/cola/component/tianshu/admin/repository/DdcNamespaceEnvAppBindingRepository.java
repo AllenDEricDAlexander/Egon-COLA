@@ -1,105 +1,54 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
-import top.egon.cola.component.tianshu.admin.model.vo.DdcNamespaceEnvAppBindingVO;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceEnvAppBindingBO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-public interface DdcNamespaceEnvAppBindingRepository
-        extends JpaRepository<DdcNamespaceEnvAppBindingEntity, String> {
-
-    boolean existsByNamespaceId(String namespaceId);
-
-    boolean existsByAppId(String appId);
-
-    boolean existsByEnvCode(String envCode);
-
-    boolean existsByNamespaceIdAndEnvCodeAndAppId(
-            String namespaceId, String envCode, String appId);
-
-    boolean existsByNamespaceIdAndEnvCodeAndAppIdAndIdNot(
-            String namespaceId, String envCode, String appId, String id);
-
-    List<DdcNamespaceEnvAppBindingEntity>
-            findByNamespaceIdAndEnvCodeAndEnabledTrue(
-                    String namespaceId, String envCode);
-
-    List<DdcNamespaceEnvAppBindingEntity>
-            findByNamespaceIdAndEnabledTrue(String namespaceId);
-
-    @Query(value = """
-            select distinct n.namespace_code
-              from ddc_namespace_env_app b
-              join ddc_namespace n on n.id = b.namespace_id
-              join ddc_app a on a.id = b.app_id
-             where b.enabled = true
-               and n.enabled = true
-               and n.biz_code = :bizCode
-               and b.env_code = :env
-               and a.biz_code = :bizCode
-               and a.app_code = :appCode
-             order by n.namespace_code
-            """, nativeQuery = true)
-    List<String> findVisibleNamespaceCodes(
-            @Param("bizCode") String bizCode,
-            @Param("env") String env,
-            @Param("appCode") String appCode);
-
-    @Query(value = """
-            select distinct a.biz_code, b.env_code, a.app_code
-              from ddc_namespace_env_app b
-              join ddc_namespace n on n.id = b.namespace_id
-              join ddc_app a on a.id = b.app_id
-             where b.enabled = true
-               and n.enabled = true
-               and n.namespace_code = :namespaceCode
-               and (:bizCode is null or n.biz_code = :bizCode)
-               and a.biz_code = n.biz_code
-            """, nativeQuery = true)
-    List<Object[]> findVisiblePhysicalScopes(
-            @Param("bizCode") String bizCode,
-            @Param("namespaceCode") String namespaceCode);
-
-    @Query(value = """
-            select new top.egon.cola.component.tianshu.admin.model.vo.DdcNamespaceEnvAppBindingVO(
-                   binding.id,
-                   namespace.bizCode,
-                   namespace.id,
-                   namespace.namespaceCode,
-                   binding.envCode,
-                   app.id,
-                   app.appCode,
-                   app.appName,
-                   binding.enabled)
-              from DdcNamespaceEnvAppBindingEntity binding
-              join DdcNamespaceEntity namespace on namespace.id = binding.namespaceId
-              join DdcAppEntity app on app.id = binding.appId
-             where (coalesce(:bizCode, '') = '' or namespace.bizCode = :bizCode)
-               and (coalesce(:namespaceCode, '') = '' or namespace.namespaceCode = :namespaceCode)
-               and (coalesce(:env, '') = '' or binding.envCode = :env)
-               and (coalesce(:appCode, '') = '' or app.appCode = :appCode)
-             order by namespace.bizCode, namespace.namespaceCode,
-                      binding.envCode, app.appCode, binding.id
-            """,
-            countQuery = """
-            select count(binding)
-              from DdcNamespaceEnvAppBindingEntity binding
-              join DdcNamespaceEntity namespace on namespace.id = binding.namespaceId
-              join DdcAppEntity app on app.id = binding.appId
-             where (coalesce(:bizCode, '') = '' or namespace.bizCode = :bizCode)
-               and (coalesce(:namespaceCode, '') = '' or namespace.namespaceCode = :namespaceCode)
-               and (coalesce(:env, '') = '' or binding.envCode = :env)
-               and (coalesce(:appCode, '') = '' or app.appCode = :appCode)
-            """)
-    Page<DdcNamespaceEnvAppBindingVO> search(
-            @Param("bizCode") String bizCode,
-            @Param("namespaceCode") String namespaceCode,
-            @Param("env") String env,
-            @Param("appCode") String appCode,
-            Pageable pageable);
+@Validated
+public interface DdcNamespaceEnvAppBindingRepository {
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    boolean existsByNamespaceId(@NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long namespaceId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    boolean existsByAppId(@NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long appId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    boolean existsByEnvCode(@NotNull(groups = EgonColaModelValidationGroups.Query.class) String envCode);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    boolean existsByNamespaceIdAndEnvCodeAndAppId(Long namespaceId, String envCode, Long appId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    boolean existsByNamespaceIdAndEnvCodeAndAppIdAndIdNot(Long namespaceId, String envCode, Long appId, Long id);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcNamespaceEnvAppBindingBO> findByNamespaceIdAndEnvCodeAndEnabledTrue(Long namespaceId, String envCode);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcNamespaceEnvAppBindingBO> findByNamespaceIdAndEnabledTrue(Long namespaceId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcNamespaceEnvAppBindingBO> findAll(String bizCode, String namespaceCode, String envCode, String appCode);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    DdcPageResult<DdcNamespaceEnvAppBindingBO> search(String bizCode, String namespaceCode, String envCode,
+            String appCode, PageQuery pageQuery);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<String> findVisibleNamespaceCodes(String bizCode, String envCode, String appCode);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<Map<String, Object>> findVisiblePhysicalScopes(String bizCode, String namespaceCode);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcNamespaceEnvAppBindingBO> findByPublicId(String publicId);
+    @Validated(EgonColaModelValidationGroups.Insert.class)
+    DdcNamespaceEnvAppBindingBO insert(
+            @Valid @NotNull(groups = EgonColaModelValidationGroups.Insert.class) DdcNamespaceEnvAppBindingBO command);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    DdcNamespaceEnvAppBindingBO update(
+            @Valid @NotNull(groups = EgonColaModelValidationGroups.Update.class) DdcNamespaceEnvAppBindingBO command);
+    @Validated(EgonColaModelValidationGroups.Delete.class)
+    boolean delete(
+            @Valid @NotNull(groups = EgonColaModelValidationGroups.Delete.class) DdcNamespaceEnvAppBindingBO command);
 }

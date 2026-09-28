@@ -21,9 +21,9 @@ egon:
               logical-name: tianshu_0
               role: PRIMARY
               driver-class-name: org.postgresql.Driver
-              jdbc-url: ${TIANSHU_JDBC_URL}
-              username: ${TIANSHU_DB_USERNAME}
-              password: ${TIANSHU_DB_PASSWORD}
+              jdbc-url: "${TIANSHU_JDBC_URL:${spring.datasource.url}}"
+              username: "${TIANSHU_DB_USERNAME:${spring.datasource.username}}"
+              password: "${TIANSHU_DB_PASSWORD:${spring.datasource.password}}"
           tables:
             ddc_biz: { type: STANDARD_TENANT_ID }
             ddc_env: { type: STANDARD_TENANT_ID }

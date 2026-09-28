@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcNamespaceEnvAppBindingMapper">
+    <resultMap id="BindingPOResultMap" type="top.egon.cola.component.tianshu.admin.model.po.DdcNamespaceEnvAppBindingPO">
+        <id property="id" column="id"/><result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/><result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/><result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/><result property="version" column="version"/>
+        <result property="publicId" column="public_id"/><result property="namespaceId" column="namespace_id"/>
+        <result property="envCode" column="env_code"/><result property="appId" column="app_id"/>
+        <result property="enabled" column="enabled"/><result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="bizCode" column="joined_biz_code"/><result property="namespaceCode" column="joined_namespace_code"/>
+        <result property="namespacePublicId" column="joined_namespace_public_id"/>
+        <result property="appCode" column="joined_app_code"/><result property="appName" column="joined_app_name"/>
+        <result property="appPublicId" column="joined_app_public_id"/>
+    </resultMap>
+    <sql id="Columns">b.id, b.tenant_id, b.create_user_id, b.create_time, b.update_user_id, b.update_time, b.deleted_at,
+        b.version, b.public_id, b.namespace_id, b.env_code, b.app_id, b.enabled, b.created_at, b.updated_at,
+        n.biz_code AS joined_biz_code, n.namespace_code AS joined_namespace_code, n.public_id AS joined_namespace_public_id,
+        a.app_code AS joined_app_code, a.app_name AS joined_app_name, a.public_id AS joined_app_public_id</sql>
+    <sql id="JoinActive">
+        FROM ddc_namespace_env_app b
+        JOIN ddc_namespace n ON n.tenant_id = b.tenant_id AND n.id = b.namespace_id
+        JOIN ddc_app a ON a.tenant_id = b.tenant_id AND a.id = b.app_id
+        WHERE b.tenant_id = #{tenantId} AND b.deleted_at IS NULL
+          AND n.deleted_at IS NULL AND a.deleted_at IS NULL
+    </sql>
+    <select id="selectActiveById" resultMap="BindingPOResultMap">SELECT <include refid="Columns"/>
+        <include refid="JoinActive"/> AND b.id = #{id}</select>
+    <select id="selectActiveByIds" resultMap="BindingPOResultMap">SELECT <include refid="Columns"/>
+        <include refid="JoinActive"/> AND b.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY n.biz_code, n.namespace_code, b.env_code, a.app_code, b.id</select>
+    <select id="selectActiveByPublicId" resultMap="BindingPOResultMap">SELECT <include refid="Columns"/>
+        <include refid="JoinActive"/> AND b.public_id = #{publicId}</select>
+    <select id="countByTuple" resultType="long">SELECT count(*) FROM ddc_namespace_env_app
+        WHERE tenant_id = #{tenantId} AND namespace_id = #{namespaceId} AND env_code = #{envCode}
+          AND app_id = #{appId} AND deleted_at IS NULL
+        <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if></select>
+    <select id="countByNamespaceId" resultType="long">SELECT count(*) FROM ddc_namespace_env_app
+        WHERE tenant_id = #{tenantId} AND namespace_id = #{namespaceId} AND deleted_at IS NULL</select>
+    <select id="countByAppId" resultType="long">SELECT count(*) FROM ddc_namespace_env_app
+        WHERE tenant_id = #{tenantId} AND app_id = #{appId} AND deleted_at IS NULL</select>
+    <select id="countByEnvCode" resultType="long">SELECT count(*) FROM ddc_namespace_env_app
+        WHERE tenant_id = #{tenantId} AND env_code = #{envCode} AND deleted_at IS NULL</select>
+    <select id="selectByNamespaceAndEnv" resultMap="BindingPOResultMap">
+        SELECT <include refid="Columns"/><include refid="JoinActive"/>
+        AND b.namespace_id = #{namespaceId}
+        <if test="envCode != null and envCode != ''">AND b.env_code = #{envCode}</if>
+        <if test="enabled != null">AND b.enabled = #{enabled}</if>
+        ORDER BY a.app_code, b.id
+    </select>
+    <sql id="JoinedFilters">
+        <if test="bizCode != null and bizCode != ''">AND n.biz_code = #{bizCode}</if>
+        <if test="namespaceCode != null and namespaceCode != ''">AND n.namespace_code = #{namespaceCode}</if>
+        <if test="envCode != null and envCode != ''">AND b.env_code = #{envCode}</if>
+        <if test="appCode != null and appCode != ''">AND a.app_code = #{appCode}</if>
+    </sql>
+    <select id="selectJoinedList" resultMap="BindingPOResultMap">SELECT <include refid="Columns"/>
+        <include refid="JoinActive"/><include refid="JoinedFilters"/>
+        ORDER BY n.biz_code, n.namespace_code, b.env_code, a.app_code, b.id</select>
+    <select id="selectJoinedPage" resultMap="BindingPOResultMap">SELECT <include refid="Columns"/>
+        <include refid="JoinActive"/><include refid="JoinedFilters"/>
+        ORDER BY n.biz_code, n.namespace_code, b.env_code, a.app_code, b.id LIMIT #{limit} OFFSET #{offset}</select>
+    <select id="countJoinedPage" resultType="long">SELECT count(*) <include refid="JoinActive"/>
+        <include refid="JoinedFilters"/></select>
+    <select id="selectVisibleNamespaceCodes" resultType="string">
+        SELECT DISTINCT n.namespace_code FROM ddc_namespace_env_app b
+        JOIN ddc_namespace n ON n.tenant_id = b.tenant_id AND n.id = b.namespace_id
+        JOIN ddc_app a ON a.tenant_id = b.tenant_id AND a.id = b.app_id
+        WHERE b.tenant_id = #{tenantId} AND b.deleted_at IS NULL AND n.deleted_at IS NULL AND a.deleted_at IS NULL
+          AND b.enabled = true AND n.enabled = true AND n.biz_code = #{bizCode}
+          AND b.env_code = #{envCode} AND a.biz_code = #{bizCode} AND a.app_code = #{appCode}
+        ORDER BY n.namespace_code
+    </select>
+    <select id="selectVisiblePhysicalScopes" resultType="map">
+        SELECT DISTINCT a.biz_code AS bizCode, b.env_code AS envCode, a.app_code AS appCode
+        FROM ddc_namespace_env_app b
+        JOIN ddc_namespace n ON n.tenant_id = b.tenant_id AND n.id = b.namespace_id
+        JOIN ddc_app a ON a.tenant_id = b.tenant_id AND a.id = b.app_id
+        WHERE b.tenant_id = #{tenantId} AND b.deleted_at IS NULL AND n.deleted_at IS NULL AND a.deleted_at IS NULL
+          AND b.enabled = true AND n.enabled = true AND n.namespace_code = #{namespaceCode}
+          <if test="bizCode != null and bizCode != ''">AND n.biz_code = #{bizCode}</if>
+          AND a.biz_code = n.biz_code
+    </select>
+    <update id="deleteVersionedById">UPDATE ddc_namespace_env_app SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+        version = version + 1, update_user_id = #{et.updateUserId}, update_time = #{et.updateTime}
+        WHERE tenant_id = #{et.tenantId} AND id = #{et.id} AND version = #{et.version} AND deleted_at IS NULL</update>
+</mapper>

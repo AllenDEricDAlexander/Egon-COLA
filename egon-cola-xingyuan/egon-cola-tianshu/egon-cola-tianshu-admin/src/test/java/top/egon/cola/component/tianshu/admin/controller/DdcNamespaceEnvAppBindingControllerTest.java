@@ -5,12 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.tianshu.admin.controller.metadata.DdcNamespaceEnvAppBindingController;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcNamespaceEnvAppBindingVO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 
 import java.util.List;
@@ -58,8 +57,8 @@ class DdcNamespaceEnvAppBindingControllerTest {
         when(bindingService.page(
                 eq("infra"), eq("ops"), eq("prod"), eq("ge"),
                 any(PageQuery.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(row), PageRequest.of(0, 10), 1));
+                .thenReturn(DdcPageResult.<DdcNamespaceEnvAppBindingVO>builder()
+                        .records(List.of(row)).total(1).pageNo(1).pageSize(10).build());
 
         mockMvc.perform(get("/api/v1/tianshu/namespace-env-app-bindings/page")
                         .param("bizCode", "infra")

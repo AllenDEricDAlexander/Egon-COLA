@@ -6,10 +6,10 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.core.exception.CommonException;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcEnvEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcEnvBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceBO;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
@@ -53,17 +53,17 @@ public class DdcScopeGate {
         requireEnabled("namespace", bizCode + ":" + namespace,
                 () -> namespaceRepository.findByBizCodeAndNamespaceCode(
                                 bizCode, namespace)
-                        .map(DdcNamespaceEntity::getEnabled));
+                        .map(DdcNamespaceBO::getEnabled));
     }
 
     public void assertPhysicalEnabled(String bizCode, String appCode, String env) {
         requireEnabled("biz", bizCode, () -> bizRepository.findByBizCode(bizCode)
-                .map(DdcBizEntity::getEnabled));
+                .map(DdcBizBO::getEnabled));
         requireEnabled("app", bizCode + ":" + appCode,
                 () -> appRepository.findByBizCodeAndAppCode(bizCode, appCode)
-                .map(DdcAppEntity::getEnabled));
+                .map(DdcAppBO::getEnabled));
         requireEnabled("env", env, () -> envRepository.findByEnvCode(env)
-                .map(DdcEnvEntity::getEnabled));
+                .map(DdcEnvBO::getEnabled));
     }
 
     /**
@@ -73,7 +73,7 @@ public class DdcScopeGate {
     public void assertEnabledByApp(String appCode, String env, String namespace) {
         String bizCode = cachedValue("app-biz:" + appCode,
                 () -> appRepository.findFirstByAppCodeOrderByBizCodeAsc(appCode)
-                .map(DdcAppEntity::getBizCode)
+                .map(DdcAppBO::getBizCode)
                 .orElse(null));
         assertEnabled(bizCode, appCode, env, namespace);
     }

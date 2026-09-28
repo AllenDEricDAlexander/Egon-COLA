@@ -5,10 +5,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import top.egon.cola.component.common.core.exception.CommonException;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcEnvEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcEnvBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceBO;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
@@ -51,28 +51,20 @@ class DdcScopeGateTest {
         MDC.clear();
     }
 
-    private DdcBizEntity biz(boolean enabled) {
-        DdcBizEntity entity = new DdcBizEntity();
-        entity.setEnabled(enabled);
-        return entity;
+    private DdcBizBO biz(boolean enabled) {
+        return DdcBizBO.builder().enabled(enabled).build();
     }
 
-    private DdcAppEntity app(boolean enabled) {
-        DdcAppEntity entity = new DdcAppEntity();
-        entity.setEnabled(enabled);
-        return entity;
+    private DdcAppBO app(boolean enabled) {
+        return DdcAppBO.builder().enabled(enabled).build();
     }
 
-    private DdcEnvEntity env(boolean enabled) {
-        DdcEnvEntity entity = new DdcEnvEntity();
-        entity.setEnabled(enabled);
-        return entity;
+    private DdcEnvBO env(boolean enabled) {
+        return DdcEnvBO.builder().enabled(enabled).build();
     }
 
-    private DdcNamespaceEntity ns(boolean enabled) {
-        DdcNamespaceEntity entity = new DdcNamespaceEntity();
-        entity.setEnabled(enabled);
-        return entity;
+    private DdcNamespaceBO ns(boolean enabled) {
+        return DdcNamespaceBO.builder().enabled(enabled).build();
     }
 
     @Test

@@ -27,7 +27,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import top.egon.cola.component.tianshu.admin.DynamicConfigCenterAdminApplication;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
@@ -40,6 +40,8 @@ import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository
 import top.egon.cola.component.tianshu.admin.service.lease.DdcLeaseExpiryScanner;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcBizService;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.service.publish.PublishStartupRecovery;
 import top.egon.cola.component.tianshu.admin.service.publish.PublishTimeoutScanner;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
@@ -127,15 +129,12 @@ class DdcActiveActiveAdminIT {
     void startTwoAdminNodes() {
         nodeA = node("a");
         nodeB = node("b");
-        DdcAppEntity app = new DdcAppEntity();
-        app.setId("app-active-active");
-        app.setBizCode("default");
-        app.setAppCode(APP_CODE);
-        app.setAppName("Active Active Test");
-        app.setEnabled(true);
-        app.setCreatedAt(LocalDateTime.now());
-        app.setUpdatedAt(LocalDateTime.now());
-        nodeA.getBean(DdcAppRepository.class).saveAndFlush(app);
+        LocalDateTime now = LocalDateTime.now();
+        DdcAppBO app = DdcAppBO.builder().bizCode("default").appCode(APP_CODE)
+                .appName("Active Active Test").enabled(true).createdAt(now).updatedAt(now).build();
+        DdcTenantContextDTO tenant = new DdcTenantContextDTO(1L, "active-active-it", "test:active-active");
+        nodeA.getBean(DdcTenantContextExecutor.class).run(tenant,
+                () -> nodeA.getBean(DdcAppRepository.class).insert(app));
     }
 
     @AfterAll

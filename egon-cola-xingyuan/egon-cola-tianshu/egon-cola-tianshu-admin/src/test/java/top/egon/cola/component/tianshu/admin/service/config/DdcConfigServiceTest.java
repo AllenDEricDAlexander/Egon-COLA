@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import top.egon.cola.component.common.core.pojo.PageQuery;
@@ -21,16 +23,17 @@ import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVersionVO;
-import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
-import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.model.config.DdcConfigValue;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.mockito.Mockito.when;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -63,12 +66,9 @@ class DdcConfigServiceTest {
     private DdcConfigItemRepository configItemRepository;
 
     @Autowired
-    private DdcAppRepository appRepository;
+    private TestEntityManager entityManager;
 
-    @Autowired
-    private DdcNamespaceRepository namespaceRepository;
-
-    @Autowired
+    @MockBean(name = "ddcNamespaceEnvAppBindingRepository")
     private DdcNamespaceEnvAppBindingRepository bindingRepository;
 
     @Autowired
@@ -447,7 +447,7 @@ class DdcConfigServiceTest {
         namespace.setEnabled(true);
         namespace.setCreatedAt(now);
         namespace.setUpdatedAt(now);
-        namespaceRepository.save(namespace);
+        entityManager.persistAndFlush(namespace);
 
         DdcAppEntity app = new DdcAppEntity();
         app.setId("app-" + appCode);
@@ -457,7 +457,7 @@ class DdcConfigServiceTest {
         app.setEnabled(true);
         app.setCreatedAt(now);
         app.setUpdatedAt(now);
-        appRepository.save(app);
+        entityManager.persistAndFlush(app);
 
         DdcNamespaceEnvAppBindingEntity binding =
                 new DdcNamespaceEnvAppBindingEntity();
@@ -468,7 +468,9 @@ class DdcConfigServiceTest {
         binding.setEnabled(true);
         binding.setCreatedAt(now);
         binding.setUpdatedAt(now);
-        bindingRepository.save(binding);
+        entityManager.persistAndFlush(binding);
+        when(bindingRepository.findVisibleNamespaceCodes(bizCode, env, appCode))
+                .thenReturn(List.of(namespaceCode));
     }
 
     @TestConfiguration

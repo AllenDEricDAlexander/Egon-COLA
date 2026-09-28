@@ -1,20 +1,20 @@
 package top.egon.cola.component.tianshu.admin.controller;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.BusinessException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.controller.metadata.DdcAppController;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAppResultConverter;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAppResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
@@ -23,11 +23,10 @@ import top.egon.cola.component.tianshu.admin.service.metadata.DdcNamespaceEnvApp
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
-import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -43,117 +42,76 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(DdcAppController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class DdcAppControllerTest {
+    @Autowired private MockMvc mockMvc;
+    @MockBean(name = "ddcAppService") private DdcAppService appService;
+    @MockBean(name = "ddcAppResultConverterImpl") private DdcAppResultConverter resultConverter;
 
-    @BeforeAll
-    static void bindTheProcessWideEngine() {
-        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    private DdcAppBO app(String code) {
+        return DdcAppBO.builder().publicId(code).appCode(code).bizCode("pay-biz").appName(code).enabled(true).build();
     }
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
-    private DdcAppService appService;
-
-    private DdcAppEntity app(String code) {
-        DdcAppEntity entity = new DdcAppEntity();
-        entity.setId(code);
-        entity.setAppCode(code);
-        entity.setBizCode("pay-biz");
-        entity.setAppName(code);
-        entity.setEnabled(true);
-        return entity;
+    private DdcAppResult result(String code) {
+        return new DdcAppResult(code, code, "pay-biz", code, null, null, true, null, null);
     }
 
     @Test
     void listWithVisibilityScopeDelegatesToService() throws Exception {
-        when(appService.list("pay-biz", "ops", "prod", "orders"))
-                .thenReturn(List.of(app("orders")));
-
-        mockMvc.perform(get("/api/v1/tianshu/apps")
-                        .param("bizCode", "pay-biz")
-                        .param("namespaceCode", "ops")
-                        .param("env", "prod")
-                        .param("keyword", "orders"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].appCode").value("orders"))
+        List<DdcAppBO> rows = List.of(app("orders"));
+        when(appService.list("pay-biz", "ops", "prod", "orders")).thenReturn(rows);
+        when(resultConverter.toTargetList(rows)).thenReturn(List.of(result("orders")));
+        mockMvc.perform(get("/api/v1/tianshu/apps").param("bizCode", "pay-biz").param("namespaceCode", "ops")
+                        .param("env", "prod").param("keyword", "orders"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].id").value("orders"))
                 .andExpect(jsonPath("$.data[0].bizCode").value("pay-biz"));
     }
 
     @Test
     void listWithoutParamsReturnsAllApps() throws Exception {
-        when(appService.list(null, null, null, null))
-                .thenReturn(List.of(app("orders"), app("billing")));
-
-        mockMvc.perform(get("/api/v1/tianshu/apps"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(2));
+        List<DdcAppBO> rows = List.of(app("orders"), app("billing"));
+        when(appService.list(null, null, null, null)).thenReturn(rows);
+        when(resultConverter.toTargetList(rows)).thenReturn(List.of(result("orders"), result("billing")));
+        mockMvc.perform(get("/api/v1/tianshu/apps")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.length()").value(2));
     }
 
     @Test
     void pagesAppsWithinMetadataScope() throws Exception {
-        when(appService.page(
-                eq("pay-biz"), eq("ops"), eq("prod"), eq("orders"),
-                any(PageQuery.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(app("orders")), PageRequest.of(1, 20), 21));
-
-        mockMvc.perform(get("/api/v1/tianshu/apps/page")
-                        .param("bizCode", "pay-biz")
-                        .param("namespaceCode", "ops")
-                        .param("env", "prod")
-                        .param("keyword", "orders")
-                        .param("pageNo", "2")
-                        .param("pageSize", "20"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].appCode").value("orders"))
-                .andExpect(jsonPath("$.page.total").value(21))
-                .andExpect(jsonPath("$.page.pageNo").value(2))
+        List<DdcAppBO> rows = List.of(app("orders"));
+        when(appService.page(eq("pay-biz"), eq("ops"), eq("prod"), eq("orders"), any(PageQuery.class)))
+                .thenReturn(DdcPageResult.<DdcAppBO>builder().records(rows).total(21).pageNo(2).pageSize(20).build());
+        when(resultConverter.toTargetList(rows)).thenReturn(List.of(result("orders")));
+        mockMvc.perform(get("/api/v1/tianshu/apps/page").param("bizCode", "pay-biz").param("namespaceCode", "ops")
+                        .param("env", "prod").param("keyword", "orders").param("pageNo", "2").param("pageSize", "20"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.records[0].id").value("orders"))
+                .andExpect(jsonPath("$.page.total").value(21)).andExpect(jsonPath("$.page.pageNo").value(2))
                 .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
     void deleteInUseReturnsFailureCode() throws Exception {
-        doThrow(new CommonException(DdcErrorStatus.APP_IN_USE))
-                .when(appService).delete("app-orders");
-
-        mockMvc.perform(delete("/api/v1/tianshu/apps/app-orders"))
-                .andExpect(status().isOk())
+        doThrow(new CommonException(DdcErrorStatus.APP_IN_USE)).when(appService).delete("app-orders");
+        mockMvc.perform(delete("/api/v1/tianshu/apps/app-orders")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.APP_IN_USE.getCode()));
     }
 
     @Test
-    void saveRejectsAnApplicationCodeUsedByAnotherBusiness() {
+    void saveRejectsAnApplicationCodeAlreadyUsedInThisTenant() {
         DdcAppRepository appRepository = mock(DdcAppRepository.class);
         DdcBizRepository bizRepository = mock(DdcBizRepository.class);
-        DdcNamespaceEnvAppBindingRepository bindingRepository =
-                mock(DdcNamespaceEnvAppBindingRepository.class);
-        DdcNamespaceEnvAppBindingService bindingService =
-                mock(DdcNamespaceEnvAppBindingService.class);
+        DdcNamespaceEnvAppBindingRepository bindingRepository = mock(DdcNamespaceEnvAppBindingRepository.class);
+        DdcNamespaceEnvAppBindingService bindingService = mock(DdcNamespaceEnvAppBindingService.class);
         DdcScopeGate scopeGate = mock(DdcScopeGate.class);
-        DdcAppService service = new DdcAppService(
-                appRepository,
-                bizRepository,
-                bindingRepository,
-                bindingService,
-                scopeGate
-        );
-        DdcAppEntity request = app("shared-app");
-
+        DdcAppService service = new DdcAppService(scopeGate, appRepository, bizRepository, bindingRepository, bindingService);
         when(bizRepository.existsByBizCode("pay-biz")).thenReturn(true);
         when(appRepository.existsByAppCode("shared-app")).thenReturn(true);
-
-        CommonException exception = assertThrows(
-                CommonException.class,
-                () -> service.save(request)
-        );
-
-        assertEquals(ResultCode.CONCURRENCY_ERROR.getCode(), exception.getCode());
-        assertEquals(ResultCode.CONCURRENCY_ERROR.getStatus(), exception.getStatus());
-        assertEquals("app code already exists", exception.getMessage());
-        verify(appRepository, never()).save(any(DdcAppEntity.class));
+        assertThatThrownBy(() -> service.save(app("shared-app")))
+                .isInstanceOfSatisfying(BusinessException.class, failure -> {
+                    assertThat(failure.getCode()).isEqualTo(ResultCode.CONCURRENCY_ERROR.getCode());
+                    assertThat(failure.getStatus()).isEqualTo(ResultCode.CONCURRENCY_ERROR.getStatus());
+                    assertThat(failure.getMessage()).isEqualTo("app code already exists");
+                });
+        verify(appRepository, never()).insert(any(DdcAppBO.class));
     }
 }

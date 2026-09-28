@@ -1,167 +1,98 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcEnvEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcEnvBO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Service
+@Slf4j
+@Service("ddcEnvService")
+@RequiredArgsConstructor
 public class DdcEnvService {
+    @Qualifier("ddcScopeGate") private final DdcScopeGate scopeGate;
+    @Qualifier("ddcEnvRepository") private final DdcEnvRepository envRepository;
+    @Qualifier("ddcConfigItemRepository") private final DdcConfigItemRepository configItemRepository;
+    @Qualifier("ddcNamespaceEnvAppBindingRepository") private final DdcNamespaceEnvAppBindingRepository bindingRepository;
+    @Qualifier("ddcNamespaceEnvAppBindingService") private final DdcNamespaceEnvAppBindingService bindingService;
 
-    private final DdcScopeGate scopeGate;
-
-    private final DdcEnvRepository envRepository;
-
-    private final DdcConfigItemRepository configItemRepository;
-
-    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
-
-    private final DdcNamespaceEnvAppBindingService bindingService;
-
-    public DdcEnvService(DdcEnvRepository envRepository,
-                         DdcConfigItemRepository configItemRepository,
-                         DdcNamespaceEnvAppBindingRepository bindingRepository,
-                         DdcNamespaceEnvAppBindingService bindingService,
-                         DdcScopeGate scopeGate) {
-        this.envRepository = envRepository;
-        this.configItemRepository = configItemRepository;
-        this.bindingRepository = bindingRepository;
-        this.bindingService = bindingService;
-        this.scopeGate = scopeGate;
-    }
-
-    public List<DdcEnvEntity> list(
-            String bizCode,
-            String namespaceCode,
-            String keyword) {
+    public List<DdcEnvBO> list(String bizCode, String namespaceCode, String keyword) {
         if (hasText(bizCode) && hasText(namespaceCode)) {
-            List<String> visible = bindingService.visibleEnvCodes(
-                    bizCode.trim(), namespaceCode.trim());
-            return filterKeyword(envRepository.findAllByOrderBySortOrderAsc()
-                    .stream()
-                    .filter(env -> visible.contains(env.getEnvCode()))
-                    .toList(), keyword);
+            List<String> visible = bindingService.visibleEnvCodes(bizCode.trim(), namespaceCode.trim());
+            return filterKeyword(envRepository.findAllByOrderBySortOrderAsc().stream()
+                    .filter(env -> visible.contains(env.getEnvCode())).toList(), keyword);
         }
-        if (keyword == null || keyword.isBlank()) {
-            return envRepository.findAllByOrderBySortOrderAsc();
-        }
+        if (!hasText(keyword)) return envRepository.findAllByOrderBySortOrderAsc();
         String trimmed = keyword.trim();
-        return envRepository.findByEnvCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
-                trimmed, trimmed);
+        return envRepository.findByEnvCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase(trimmed, trimmed);
     }
 
-    public Page<DdcEnvEntity> page(
-            String bizCode,
-            String namespaceCode,
-            String keyword,
-            PageQuery pageQuery) {
-        return envRepository.search(
-                optional(bizCode),
-                optional(namespaceCode),
-                optional(keyword),
-                DdcAdminPageSupport.pageable(
-                        pageQuery,
-                        Sort.by("sortOrder").ascending()
-                                .and(Sort.by("envCode").ascending())
-                                .and(Sort.by("id").ascending())
-                )
-        );
+    public DdcPageResult<DdcEnvBO> page(String bizCode, String namespaceCode, String keyword, PageQuery pageQuery) {
+        return envRepository.search(optional(bizCode), optional(namespaceCode), optional(keyword), pageQuery);
     }
 
-    public DdcEnvEntity findByEnvCode(String envCode) {
-        return require(envCode);
-    }
+    public DdcEnvBO findByEnvCode(String envCode) { return require(envCode); }
 
     @Transactional
-    public DdcEnvEntity save(DdcEnvEntity env) {
+    public DdcEnvBO save(DdcEnvBO env) {
         LocalDateTime now = LocalDateTime.now();
-        env.setId(SnowflakeIdGenerator.nextId());
-        env.setCreatedAt(now);
-        if (env.getEnabled() == null) {
-            env.setEnabled(true);
-        }
-        if (env.getSortOrder() == null) {
-            env.setSortOrder(0);
-        }
-        if (envRepository.existsByEnvCode(env.getEnvCode())) {
-            throw new CommonException(DdcErrorStatus.ENV_CODE_EXISTS);
-        }
-        env.setUpdatedAt(now);
-        return envRepository.save(env);
+        env.setCreatedAt(now).setUpdatedAt(now);
+        if (env.getEnabled() == null) env.setEnabled(true);
+        if (env.getSortOrder() == null) env.setSortOrder(0);
+        if (envRepository.existsByEnvCode(env.getEnvCode())) throw new CommonException(DdcErrorStatus.ENV_CODE_EXISTS);
+        return envRepository.insert(env);
     }
 
     @Transactional
-    public DdcEnvEntity update(String envCode, DdcEnvEntity request) {
-        DdcEnvEntity existing = require(envCode);
-        if (envRepository.existsByEnvCodeAndIdNot(request.getEnvCode(), existing.getId())) {
+    public DdcEnvBO update(String envCode, DdcEnvBO request) {
+        DdcEnvBO existing = require(envCode);
+        if (envRepository.existsByEnvCodeAndIdNot(request.getEnvCode(), existing.getId()))
             throw new CommonException(DdcErrorStatus.ENV_CODE_EXISTS);
-        }
-        existing.setEnvCode(request.getEnvCode());
-        existing.setDescription(request.getDescription());
-        existing.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
-        existing.setUpdatedAt(LocalDateTime.now());
-        return envRepository.save(existing);
+        existing.setEnvCode(request.getEnvCode()).setDescription(request.getDescription())
+                .setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder())
+                .setUpdatedAt(LocalDateTime.now());
+        return envRepository.update(existing);
     }
 
     @Transactional
     public void delete(String envCode) {
-        DdcEnvEntity existing = require(envCode);
-        if (configItemRepository.existsByEnv(envCode)) {
+        DdcEnvBO existing = require(envCode);
+        if (configItemRepository.existsByEnv(envCode) || bindingRepository.existsByEnvCode(envCode))
             throw new CommonException(DdcErrorStatus.ENV_IN_USE);
-        }
-        if (bindingRepository.existsByEnvCode(envCode)) {
-            throw new CommonException(DdcErrorStatus.ENV_IN_USE);
-        }
         envRepository.delete(existing);
         scopeGate.invalidate("env:" + envCode);
     }
 
     @Transactional
-    public DdcEnvEntity setEnabled(String envCode, boolean enabled) {
-        DdcEnvEntity existing = require(envCode);
-        existing.setEnabled(enabled);
-        existing.setUpdatedAt(LocalDateTime.now());
-        DdcEnvEntity saved = envRepository.save(existing);
+    public DdcEnvBO setEnabled(String envCode, boolean enabled) {
+        DdcEnvBO existing = require(envCode);
+        existing.setEnabled(enabled).setUpdatedAt(LocalDateTime.now());
+        DdcEnvBO saved = envRepository.update(existing);
         scopeGate.invalidate("env:" + envCode);
         return saved;
     }
 
-    private DdcEnvEntity require(String envCode) {
+    private DdcEnvBO require(String envCode) {
         return envRepository.findByEnvCode(envCode)
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.ENV_NOT_FOUND));
     }
-
-    private List<DdcEnvEntity> filterKeyword(
-            List<DdcEnvEntity> envs,
-            String keyword) {
-        if (!hasText(keyword)) {
-            return envs;
-        }
+    private List<DdcEnvBO> filterKeyword(List<DdcEnvBO> envs, String keyword) {
+        if (!hasText(keyword)) return envs;
         String value = keyword.trim().toLowerCase();
-        return envs.stream()
-                .filter(env -> env.getEnvCode().toLowerCase().contains(value)
-                        || env.getDescription() != null
-                        && env.getDescription().toLowerCase().contains(value))
-                .toList();
+        return envs.stream().filter(env -> env.getEnvCode().toLowerCase().contains(value)
+                || env.getDescription() != null && env.getDescription().toLowerCase().contains(value)).toList();
     }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private String optional(String value) {
-        return hasText(value) ? value.trim() : null;
-    }
+    private boolean hasText(String value) { return value != null && !value.isBlank(); }
+    private String optional(String value) { return hasText(value) ? value.trim() : null; }
 }

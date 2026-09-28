@@ -1,6 +1,7 @@
 package top.egon.cola.component.tianshu.admin.service.config;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -74,6 +75,7 @@ public class DdcConfigService {
             DdcConfigVersionRepository versionRepository,
             DdcOperationLogRepository operationLogRepository,
             ObjectProvider<DdcAdminProperties> propertiesProvider,
+            @Qualifier("ddcNamespaceEnvAppBindingRepository")
             DdcNamespaceEnvAppBindingRepository bindingRepository,
             DdcPublishTaskRepository publishTaskRepository) {
         this.configItemRepository = configItemRepository;

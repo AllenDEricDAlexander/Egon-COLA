@@ -5,13 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.tianshu.admin.controller.metadata.DdcBizController;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcBizResultConverter;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcBizResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcBizService;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
@@ -29,52 +30,40 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(DdcBizController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class DdcBizControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
-    private DdcBizService bizService;
+    @Autowired private MockMvc mockMvc;
+    @MockBean(name = "ddcBizService") private DdcBizService bizService;
+    @MockBean(name = "ddcBizResultConverterImpl") private DdcBizResultConverter resultConverter;
 
     @Test
     void listWithKeywordDelegatesToService() throws Exception {
-        when(bizService.list("pay")).thenReturn(java.util.List.of());
-
+        List<DdcBizBO> rows = List.of();
+        when(bizService.list("pay")).thenReturn(rows);
+        when(resultConverter.toTargetList(rows)).thenReturn(List.of());
         mockMvc.perform(get("/api/v1/tianshu/bizs").param("keyword", "pay"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
-    void pagesBizsWithoutChangingLegacyList() throws Exception {
-        DdcBizEntity biz = new DdcBizEntity();
-        biz.setId("biz-1");
-        biz.setBizCode("pay");
-        biz.setBizName("支付");
-        when(bizService.page(eq("pay"), any(PageQuery.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(biz), PageRequest.of(1, 20), 21
-                ));
-
-        mockMvc.perform(get("/api/v1/tianshu/bizs/page")
-                        .param("keyword", "pay")
-                        .param("pageNo", "2")
-                        .param("pageSize", "20"))
-                .andExpect(status().isOk())
+    void pagesBizsWithoutChangingLegacyWireFields() throws Exception {
+        DdcBizBO biz = DdcBizBO.builder().publicId("biz-1").bizCode("pay").bizName("支付").enabled(true).build();
+        DdcBizResult result = new DdcBizResult("biz-1", "pay", "支付", null, true, null, null);
+        List<DdcBizBO> rows = List.of(biz);
+        when(bizService.page(eq("pay"), any(PageQuery.class))).thenReturn(DdcPageResult.<DdcBizBO>builder()
+                .records(rows).total(21).pageNo(2).pageSize(20).build());
+        when(resultConverter.toTargetList(rows)).thenReturn(List.of(result));
+        mockMvc.perform(get("/api/v1/tianshu/bizs/page").param("keyword", "pay")
+                        .param("pageNo", "2").param("pageSize", "20"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.records[0].id").value("biz-1"))
                 .andExpect(jsonPath("$.records[0].bizCode").value("pay"))
-                .andExpect(jsonPath("$.page.total").value(21))
-                .andExpect(jsonPath("$.page.pageNo").value(2))
+                .andExpect(jsonPath("$.page.total").value(21)).andExpect(jsonPath("$.page.pageNo").value(2))
                 .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
     void deleteInUseReturnsFailureCode() throws Exception {
-        doThrow(new CommonException(DdcErrorStatus.BIZ_IN_USE))
-                .when(bizService).delete("pay");
-
-        mockMvc.perform(delete("/api/v1/tianshu/bizs/pay"))
-                .andExpect(status().isOk())
+        doThrow(new CommonException(DdcErrorStatus.BIZ_IN_USE)).when(bizService).delete("pay");
+        mockMvc.perform(delete("/api/v1/tianshu/bizs/pay")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.BIZ_IN_USE.getCode()));
     }

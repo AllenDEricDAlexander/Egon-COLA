@@ -1,244 +1,140 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
-import org.springframework.data.domain.Page;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceEnvAppBindingBO;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcNamespaceEnvAppBindingRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcNamespaceEnvAppBindingResultConverter;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcNamespaceEnvAppBindingResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcNamespaceEnvAppBindingVO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
-@Service
+@Slf4j
+@Service("ddcNamespaceEnvAppBindingService")
+@RequiredArgsConstructor
 public class DdcNamespaceEnvAppBindingService {
+    @Qualifier("ddcNamespaceEnvAppBindingRepository") private final DdcNamespaceEnvAppBindingRepository bindingRepository;
+    @Qualifier("ddcNamespaceRepository") private final DdcNamespaceRepository namespaceRepository;
+    @Qualifier("ddcAppRepository") private final DdcAppRepository appRepository;
+    @Qualifier("ddcEnvRepository") private final DdcEnvRepository envRepository;
+    @Qualifier("ddcNamespaceEnvAppBindingResultConverterImpl")
+    private final DdcNamespaceEnvAppBindingResultConverter resultConverter;
 
-    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
-
-    private final DdcNamespaceRepository namespaceRepository;
-
-    private final DdcAppRepository appRepository;
-
-    private final DdcEnvRepository envRepository;
-
-    public DdcNamespaceEnvAppBindingService(DdcNamespaceEnvAppBindingRepository bindingRepository,
-            DdcNamespaceRepository namespaceRepository,
-            DdcAppRepository appRepository,
-            DdcEnvRepository envRepository) {
-        this.bindingRepository = bindingRepository;
-        this.namespaceRepository = namespaceRepository;
-        this.appRepository = appRepository;
-        this.envRepository = envRepository;
+    public List<DdcNamespaceEnvAppBindingVO> list(String bizCode, String namespaceCode, String env, String appCode) {
+        return bindingRepository.findAll(optional(bizCode), optional(namespaceCode), optional(env), optional(appCode))
+                .stream().map(this::toVO).toList();
     }
 
-    public List<DdcNamespaceEnvAppBindingVO> list(
-            String bizCode,
-            String namespaceCode,
-            String env,
-            String appCode) {
-        return bindingRepository.findAll().stream()
-                .map(this::toVO)
-                .filter(value -> matches(bizCode, value.bizCode()))
-                .filter(value -> matches(namespaceCode, value.namespaceCode()))
-                .filter(value -> matches(env, value.env()))
-                .filter(value -> matches(appCode, value.appCode()))
-                .sorted(Comparator
-                        .comparing(DdcNamespaceEnvAppBindingVO::bizCode)
-                        .thenComparing(DdcNamespaceEnvAppBindingVO::namespaceCode)
-                        .thenComparing(DdcNamespaceEnvAppBindingVO::env)
-                        .thenComparing(DdcNamespaceEnvAppBindingVO::appCode))
-                .toList();
-    }
-
-    public Page<DdcNamespaceEnvAppBindingVO> page(
-            String bizCode,
-            String namespaceCode,
-            String env,
-            String appCode,
-            PageQuery pageQuery) {
-        return bindingRepository.search(
-                optional(bizCode),
-                optional(namespaceCode),
-                optional(env),
-                optional(appCode),
-                DdcAdminPageSupport.pageable(pageQuery)
-        );
+    public DdcPageResult<DdcNamespaceEnvAppBindingVO> page(String bizCode, String namespaceCode, String env,
+            String appCode, PageQuery pageQuery) {
+        DdcPageResult<DdcNamespaceEnvAppBindingBO> page = bindingRepository.search(optional(bizCode),
+                optional(namespaceCode), optional(env), optional(appCode), pageQuery);
+        return DdcPageResult.<DdcNamespaceEnvAppBindingVO>builder()
+                .records(page.getRecords().stream().map(this::toVO).toList()).total(page.getTotal())
+                .pageNo(page.getPageNo()).pageSize(page.getPageSize()).build();
     }
 
     @Transactional
-    public DdcNamespaceEnvAppBindingVO create(
-            DdcNamespaceEnvAppBindingRequest request) {
-        DdcNamespaceEntity namespace = requireNamespace(request);
-        DdcAppEntity app = requireApp(request);
-        String env = requireEnv(request.env());
-        if (bindingRepository.existsByNamespaceIdAndEnvCodeAndAppId(
-                namespace.getId(), env, app.getId())) {
+    public DdcNamespaceEnvAppBindingVO create(DdcNamespaceEnvAppBindingRequest request) {
+        DdcNamespaceBO namespace = requireNamespace(request);
+        DdcAppBO app = requireApp(request);
+        String envCode = requireEnv(request.env());
+        if (bindingRepository.existsByNamespaceIdAndEnvCodeAndAppId(namespace.getId(), envCode, app.getId()))
             throw new CommonException(DdcErrorStatus.NAMESPACE_BINDING_EXISTS);
-        }
         LocalDateTime now = LocalDateTime.now();
-        DdcNamespaceEnvAppBindingEntity binding =
-                new DdcNamespaceEnvAppBindingEntity();
-        binding.setId(SnowflakeIdGenerator.nextId());
-        binding.setNamespaceId(namespace.getId());
-        binding.setEnvCode(env);
-        binding.setAppId(app.getId());
-        binding.setEnabled(request.enabled() == null || request.enabled());
-        binding.setCreatedAt(now);
-        binding.setUpdatedAt(now);
-        return toVO(bindingRepository.save(binding), namespace, app);
+        DdcNamespaceEnvAppBindingBO binding = DdcNamespaceEnvAppBindingBO.builder()
+                .namespaceId(namespace.getId()).envCode(envCode).appId(app.getId())
+                .enabled(request.enabled() == null || request.enabled()).createdAt(now).updatedAt(now).build();
+        DdcNamespaceEnvAppBindingBO inserted = bindingRepository.insert(binding);
+        enrich(inserted, namespace, app);
+        return toVO(inserted);
     }
 
     @Transactional
-    public DdcNamespaceEnvAppBindingVO update(
-            String id,
-            DdcNamespaceEnvAppBindingRequest request) {
-        DdcNamespaceEnvAppBindingEntity binding = require(id);
-        DdcNamespaceEntity namespace = requireNamespace(request);
-        DdcAppEntity app = requireApp(request);
-        String env = requireEnv(request.env());
+    public DdcNamespaceEnvAppBindingVO update(String publicId, DdcNamespaceEnvAppBindingRequest request) {
+        DdcNamespaceEnvAppBindingBO binding = require(publicId);
+        DdcNamespaceBO namespace = requireNamespace(request);
+        DdcAppBO app = requireApp(request);
+        String envCode = requireEnv(request.env());
         if (bindingRepository.existsByNamespaceIdAndEnvCodeAndAppIdAndIdNot(
-                namespace.getId(), env, app.getId(), id)) {
+                namespace.getId(), envCode, app.getId(), binding.getId()))
             throw new CommonException(DdcErrorStatus.NAMESPACE_BINDING_EXISTS);
-        }
-        binding.setNamespaceId(namespace.getId());
-        binding.setEnvCode(env);
-        binding.setAppId(app.getId());
-        if (request.enabled() != null) {
-            binding.setEnabled(request.enabled());
-        }
-        binding.setUpdatedAt(LocalDateTime.now());
-        return toVO(bindingRepository.save(binding), namespace, app);
+        binding.setNamespaceId(namespace.getId()).setEnvCode(envCode).setAppId(app.getId())
+                .setUpdatedAt(LocalDateTime.now());
+        if (request.enabled() != null) binding.setEnabled(request.enabled());
+        DdcNamespaceEnvAppBindingBO updated = bindingRepository.update(binding);
+        enrich(updated, namespace, app);
+        return toVO(updated);
     }
 
     @Transactional
-    public void delete(String id) {
-        bindingRepository.delete(require(id));
-    }
+    public void delete(String publicId) { bindingRepository.delete(require(publicId)); }
 
-    public List<DdcAppEntity> visibleApps(
-            String bizCode,
-            String namespaceCode,
-            String env) {
-        DdcNamespaceEntity namespace = namespaceRepository
-                .findByBizCodeAndNamespaceCode(bizCode, namespaceCode)
+    public List<DdcAppBO> visibleApps(String bizCode, String namespaceCode, String env) {
+        DdcNamespaceBO namespace = namespaceRepository.findByBizCodeAndNamespaceCode(bizCode, namespaceCode)
                 .orElse(null);
-        if (namespace == null) {
-            return List.of();
-        }
-        List<String> appIds = bindingRepository
-                .findByNamespaceIdAndEnvCodeAndEnabledTrue(
-                        namespace.getId(), env)
-                .stream()
-                .map(DdcNamespaceEnvAppBindingEntity::getAppId)
-                .distinct()
-                .toList();
-        return appRepository.findAllByIdIn(appIds).stream()
-                .filter(app -> bizCode.equals(app.getBizCode()))
-                .sorted(Comparator.comparing(DdcAppEntity::getAppCode))
-                .toList();
+        if (namespace == null) return List.of();
+        List<Long> appIds = bindingRepository.findByNamespaceIdAndEnvCodeAndEnabledTrue(namespace.getId(), env)
+                .stream().map(DdcNamespaceEnvAppBindingBO::getAppId).distinct().toList();
+        return appRepository.findAllByIdIn(appIds).stream().filter(app -> bizCode.equals(app.getBizCode()))
+                .sorted(Comparator.comparing(DdcAppBO::getAppCode)).toList();
     }
 
-    public List<String> visibleEnvCodes(
-            String bizCode,
-            String namespaceCode) {
-        DdcNamespaceEntity namespace = namespaceRepository
-                .findByBizCodeAndNamespaceCode(bizCode, namespaceCode)
+    public List<String> visibleEnvCodes(String bizCode, String namespaceCode) {
+        DdcNamespaceBO namespace = namespaceRepository.findByBizCodeAndNamespaceCode(bizCode, namespaceCode)
                 .orElse(null);
-        if (namespace == null) {
-            return List.of();
-        }
-        return bindingRepository.findByNamespaceIdAndEnabledTrue(namespace.getId())
-                .stream()
-                .map(DdcNamespaceEnvAppBindingEntity::getEnvCode)
-                .distinct()
-                .sorted()
-                .toList();
+        if (namespace == null) return List.of();
+        return bindingRepository.findByNamespaceIdAndEnabledTrue(namespace.getId()).stream()
+                .map(DdcNamespaceEnvAppBindingBO::getEnvCode).distinct().sorted().toList();
     }
 
-    private DdcNamespaceEntity requireNamespace(
-            DdcNamespaceEnvAppBindingRequest request) {
-        String bizCode = required(request.bizCode());
-        String namespaceCode = required(request.namespaceCode());
-        return namespaceRepository.findByBizCodeAndNamespaceCode(
-                        bizCode, namespaceCode)
-                .orElseThrow(() -> new CommonException(
-                        DdcErrorStatus.NAMESPACE_NOT_FOUND));
+    private DdcNamespaceBO requireNamespace(DdcNamespaceEnvAppBindingRequest request) {
+        return namespaceRepository.findByBizCodeAndNamespaceCode(required(request.bizCode()), required(request.namespaceCode()))
+                .orElseThrow(() -> new CommonException(DdcErrorStatus.NAMESPACE_NOT_FOUND));
     }
-
-    private DdcAppEntity requireApp(DdcNamespaceEnvAppBindingRequest request) {
-        return appRepository.findByBizCodeAndAppCode(
-                        required(request.bizCode()), required(request.appCode()))
+    private DdcAppBO requireApp(DdcNamespaceEnvAppBindingRequest request) {
+        return appRepository.findByBizCodeAndAppCode(required(request.bizCode()), required(request.appCode()))
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.APP_NOT_FOUND));
     }
-
     private String requireEnv(String env) {
         String value = required(env);
-        if (!envRepository.existsByEnvCode(value)) {
-            throw new CommonException(DdcErrorStatus.ENV_NOT_FOUND);
-        }
+        if (!envRepository.existsByEnvCode(value)) throw new CommonException(DdcErrorStatus.ENV_NOT_FOUND);
         return value;
     }
-
-    private DdcNamespaceEnvAppBindingEntity require(String id) {
-        return bindingRepository.findById(id)
-                .orElseThrow(() -> new CommonException(
-                        DdcErrorStatus.NAMESPACE_BINDING_NOT_FOUND));
+    private DdcNamespaceEnvAppBindingBO require(String publicId) {
+        return bindingRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new CommonException(DdcErrorStatus.NAMESPACE_BINDING_NOT_FOUND));
     }
-
-    private DdcNamespaceEnvAppBindingVO toVO(
-            DdcNamespaceEnvAppBindingEntity binding) {
-        DdcNamespaceEntity namespace = namespaceRepository
-                .findById(binding.getNamespaceId())
-                .orElseThrow(() -> new CommonException(
-                        DdcErrorStatus.NAMESPACE_NOT_FOUND));
-        DdcAppEntity app = appRepository.findById(binding.getAppId())
-                .orElseThrow(() -> new CommonException(DdcErrorStatus.APP_NOT_FOUND));
-        return toVO(binding, namespace, app);
+    private DdcNamespaceEnvAppBindingVO toVO(DdcNamespaceEnvAppBindingBO binding) {
+        DdcNamespaceEnvAppBindingResult result = resultConverter.toTarget(binding);
+        return new DdcNamespaceEnvAppBindingVO(result.getId(), result.getBizCode(), result.getNamespaceId(),
+                result.getNamespaceCode(), result.getEnv(), result.getAppId(), result.getAppCode(), result.getAppName(),
+                result.isEnabled());
     }
-
-    private DdcNamespaceEnvAppBindingVO toVO(
-            DdcNamespaceEnvAppBindingEntity binding,
-            DdcNamespaceEntity namespace,
-            DdcAppEntity app) {
-        return new DdcNamespaceEnvAppBindingVO(
-                binding.getId(),
-                namespace.getBizCode(),
-                namespace.getId(),
-                namespace.getNamespaceCode(),
-                binding.getEnvCode(),
-                app.getId(),
-                app.getAppCode(),
-                app.getAppName(),
-                Boolean.TRUE.equals(binding.getEnabled())
-        );
+    private void enrich(DdcNamespaceEnvAppBindingBO binding, DdcNamespaceBO namespace, DdcAppBO app) {
+        binding.setBizCode(namespace.getBizCode()).setNamespaceCode(namespace.getNamespaceCode())
+                .setNamespacePublicId(namespace.getPublicId()).setAppCode(app.getAppCode())
+                .setAppName(app.getAppName()).setAppPublicId(app.getPublicId());
     }
-
-    private boolean matches(String expected, String actual) {
-        return expected == null
-                || expected.isBlank()
-                || expected.trim().equals(actual);
-    }
-
     private String required(String value) {
-        if (value == null || value.isBlank()) {
-            throw new CommonException(DdcErrorStatus.INVALID_REQUEST);
-        }
+        if (value == null || value.isBlank()) throw new CommonException(DdcErrorStatus.INVALID_REQUEST);
         return value.trim();
     }
-
-    private String optional(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
+    private String optional(String value) { return value == null || value.isBlank() ? null : value.trim(); }
 }
