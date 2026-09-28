@@ -5,12 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.tianshu.admin.controller.register.DdcInstanceController;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcInstanceResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcInstanceAdminService;
 
 import java.util.List;
@@ -34,15 +33,12 @@ class DdcInstanceControllerTest {
 
     @Test
     void pagesPersistentInstances() throws Exception {
-        DdcInstanceEntity instance = new DdcInstanceEntity();
-        instance.setId("row-1");
-        instance.setInstanceId("yuheng-1");
+        DdcInstanceResult instance = DdcInstanceResult.builder()
+                .publicId("row-1").instanceId("yuheng-1").build();
         when(instanceAdminService.page(
                 eq("infra"), eq("prod"), eq("yuheng"),
-                any(PageQuery.class)
-        )).thenReturn(new PageImpl<>(
-                List.of(instance), PageRequest.of(0, 1), 2
-        ));
+                any(PageQuery.class))).thenReturn(DdcPageResult.<DdcInstanceResult>builder()
+                .records(List.of(instance)).total(2).pageNo(1).pageSize(10).build());
 
         mockMvc.perform(get("/api/v1/tianshu/instances/page")
                         .param("bizCode", "infra")
@@ -51,6 +47,8 @@ class DdcInstanceControllerTest {
                         .param("pageNo", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].id").value("row-1"))
+                .andExpect(jsonPath("$.records[0].publicId").doesNotExist())
                 .andExpect(jsonPath("$.records[0].instanceId")
                         .value("yuheng-1"))
                 .andExpect(jsonPath("$.page.total").value(2))

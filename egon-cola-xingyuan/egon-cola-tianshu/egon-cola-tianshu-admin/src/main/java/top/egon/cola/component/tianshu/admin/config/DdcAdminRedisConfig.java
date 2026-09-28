@@ -10,12 +10,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.PlatformTransactionManager;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.tianshu.admin.security.rpc.DdcNonceStore;
 import top.egon.cola.component.tianshu.admin.security.rpc.RedisDdcNonceStore;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.tianshu.admin.security.registration.IdpJwtDdcRegistrationCredentialVerifier;
 
@@ -153,11 +157,20 @@ public class DdcAdminRedisConfig {
     @ConditionalOnMissingBean
     public DdcLeaseExpiryScanner ddcLeaseExpiryScanner(DdcInstanceRepository instanceRepository,
                                                        DdcConfigLeaseRedisRepository leaseRepository,
-                                                       DdcServiceRegistryRedisRepository registryRepository) {
+                                                       DdcServiceRegistryRedisRepository registryRepository,
+                                                       @Qualifier("egon.cola.component.tianshu.admin.tenancy-top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties")
+                                                       DdcTenantAdminProperties tenantProperties,
+                                                       @Qualifier("ddcTenantRegistry") DdcTenantRegistry tenantRegistry,
+                                                       @Qualifier("ddcTenantContextExecutor") DdcTenantContextExecutor tenantContextExecutor,
+                                                       PlatformTransactionManager transactionManager) {
         return new DdcLeaseExpiryScanner(
                 instanceRepository,
                 leaseRepository,
-                registryRepository
+                registryRepository,
+                tenantProperties,
+                tenantRegistry,
+                tenantContextExecutor,
+                transactionManager
         );
     }
 

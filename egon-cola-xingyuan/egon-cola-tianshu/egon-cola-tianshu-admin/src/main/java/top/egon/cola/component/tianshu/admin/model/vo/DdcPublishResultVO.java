@@ -2,7 +2,7 @@ package top.egon.cola.component.tianshu.admin.model.vo;
 
 import lombok.Getter;
 import lombok.Setter;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 
 @Getter
 @Setter
@@ -30,7 +30,7 @@ public class DdcPublishResultVO {
 
     private String errorMessage;
 
-    public static DdcPublishResultVO from(DdcPublishTaskEntity task) {
+    public static DdcPublishResultVO from(DdcPublishTaskBO task) {
         DdcPublishResultVO vo = new DdcPublishResultVO();
         vo.setChangeId(task.getChangeId());
         vo.setStatus(task.getStatus());

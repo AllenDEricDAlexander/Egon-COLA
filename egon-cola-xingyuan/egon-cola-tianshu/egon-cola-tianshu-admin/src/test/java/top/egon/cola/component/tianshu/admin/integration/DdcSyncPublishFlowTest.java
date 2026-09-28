@@ -131,8 +131,6 @@ class DdcSyncPublishFlowTest {
 
     @BeforeEach
     void setUp() {
-        ackRepository.deleteAll();
-        taskRepository.deleteAll();
         configItemsByScope.clear();
         configItemsByPublicId.clear();
         configVersions.clear();
@@ -275,7 +273,7 @@ class DdcSyncPublishFlowTest {
             persistedTask.setUpdatedAt(
                     LocalDateTime.now().minusMinutes(3)
             );
-            taskRepository.saveAndFlush(persistedTask);
+            taskRepository.update(persistedTask);
             startupRecovery.run(null);
             DdcPublishMessage replay = published.poll(2, TimeUnit.SECONDS);
 

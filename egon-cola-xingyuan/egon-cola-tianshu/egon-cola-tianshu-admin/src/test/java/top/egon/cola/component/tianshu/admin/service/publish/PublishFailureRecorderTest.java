@@ -1,50 +1,50 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Optional;
 
-@DataJpaTest
-@Import({PublishFailureRecorder.class, PublishFailureRecorderTest.IdConfig.class})
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = {
-        "egon.cola.component.id.machine-id=0",
-        "spring.datasource.url=jdbc:sqlite:file:ddc_failure_recorder_test?mode=memory&cache=shared",
-        "spring.datasource.driver-class-name=org.sqlite.JDBC",
-        "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.datasource.hikari.maximum-pool-size=2",
-        "spring.flyway.enabled=false"
-})
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 class PublishFailureRecorderTest {
 
-    @Autowired
-    private PublishFailureRecorder failureRecorder;
-
-    @Autowired
-    private DdcPublishTaskRepository publishTaskRepository;
-
     @Test
-    void createsFailedRecordWhenTaskDoesNotExist() {
-        failureRecorder.recordFailure("c1", "demo", "dev", "default", "switch", "database failed");
+    void insertsAFailedTaskThroughTheMpRepositoryWhenPrepareDidNotPersistOne() {
+        DdcPublishTaskRepository repository = mock(DdcPublishTaskRepository.class);
+        when(repository.findByChangeId("123")).thenReturn(Optional.empty());
+        when(repository.insert(any(DdcPublishTaskBO.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        PublishFailureRecorder recorder = new PublishFailureRecorder(repository);
 
-        assertThat(publishTaskRepository.findByChangeId("c1"))
-                .get()
-                .satisfies(task -> {
-                    assertThat(task.getStatus()).isEqualTo(PublishStatus.FAILED.name());
-                    assertThat(task.getErrorMessage()).isEqualTo("database failed");
-                });
+        recorder.recordFailure("123", "demo", "dev", "default", "switch", "database failed");
+
+        var task = org.mockito.ArgumentCaptor.forClass(DdcPublishTaskBO.class);
+        verify(repository).insert(task.capture());
+        assertThat(task.getValue().getStatus()).isEqualTo(PublishStatus.FAILED.name());
+        assertThat(task.getValue().getErrorMessage()).isEqualTo("database failed");
+        assertThat(task.getValue().getChangeId()).isEqualTo("123");
+        assertThat(task.getValue().getBizCode()).isEqualTo("demo");
     }
 
-    @TestConfiguration
-    static class IdConfig {
+    @Test
+    void updatesTheExistingFailedTaskWithoutReinsertingIt() {
+        DdcPublishTaskRepository repository = mock(DdcPublishTaskRepository.class);
+        DdcPublishTaskBO existing = DdcPublishTaskBO.builder().id(5L).version(2L)
+                .changeId("123").status(PublishStatus.PENDING.name()).build();
+        when(repository.findByChangeId("123")).thenReturn(Optional.of(existing));
+        when(repository.update(any(DdcPublishTaskBO.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        PublishFailureRecorder recorder = new PublishFailureRecorder(repository);
+
+        recorder.recordFailure("123", "demo", "dev", "default", "switch", "redis failed");
+
+        verify(repository).update(existing);
+        assertThat(existing.getStatus()).isEqualTo(PublishStatus.FAILED.name());
+        assertThat(existing.getErrorMessage()).isEqualTo("redis failed");
     }
 }

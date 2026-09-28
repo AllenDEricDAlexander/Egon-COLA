@@ -5,6 +5,11 @@
       "version": "20260922_001",
       "path": "db/egon-mp/V20260922_001__tianshu_platform.sql",
       "sha256": "c2fdefad7c3ed1244757f9b6e4d78df82ad51d9e4870e9e47eda5f57e9370678"
+    },
+    {
+      "version": "20260928_001",
+      "path": "db/egon-mp/V20260928_001__tianshu_instance_business_key.sql",
+      "sha256": "3700ddc8c7653c275cd0dd8d53ff6d7ae449d99f95da13e2ca34b52da80a1a9b"
     }
   ]
 }

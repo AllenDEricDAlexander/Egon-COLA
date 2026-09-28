@@ -1,54 +1,40 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
-import jakarta.persistence.LockModeType;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface DdcPublishAckRepository extends JpaRepository<DdcPublishAckEntity, String> {
+@Validated
+public interface DdcPublishAckRepository {
 
-    Optional<DdcPublishAckEntity> findByChangeIdAndInstanceIdAndLeaseId(
-            String changeId,
-            String instanceId,
-            String leaseId
-    );
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcPublishAckBO> findByChangeIdAndInstanceIdAndLeaseId(String changeId, String instanceId, String leaseId);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<DdcPublishAckEntity> findForUpdateByChangeIdAndInstanceIdAndLeaseId(
-            String changeId,
-            String instanceId,
-            String leaseId
-    );
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcPublishAckBO> findForUpdateByChangeIdAndInstanceIdAndLeaseId(
+            String changeId, String instanceId, String leaseId);
 
-    List<DdcPublishAckEntity> findByChangeId(String changeId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcPublishAckBO> findByChangeId(String changeId);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishAckEntity target
-               set target.ackStatus = :timeoutStatus,
-                   target.ackAt = :ackAt
-             where target.changeId = :changeId
-               and target.ackStatus is null
-            """)
-    int markIncompleteTimeout(@Param("changeId") String changeId,
-                              @Param("timeoutStatus") String timeoutStatus,
-                              @Param("ackAt") LocalDateTime ackAt);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int markIncompleteTimeout(String changeId, String timeoutStatus, LocalDateTime ackAt);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishAckEntity target
-               set target.currentVersion = null,
-                   target.ackStatus = null,
-                   target.errorMessage = null,
-                   target.ackAt = null
-             where target.changeId = :changeId
-            """)
-    int resetTargets(@Param("changeId") String changeId);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int resetTargets(String changeId);
+
+    @Validated(EgonColaModelValidationGroups.Insert.class)
+    DdcPublishAckBO insert(@Valid @NotNull(groups = EgonColaModelValidationGroups.Insert.class) DdcPublishAckBO command);
+
+    @Validated(EgonColaModelValidationGroups.Insert.class)
+    List<DdcPublishAckBO> insertAll(List<@Valid DdcPublishAckBO> commands);
+
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    DdcPublishAckBO update(@Valid @NotNull(groups = EgonColaModelValidationGroups.Update.class) DdcPublishAckBO command);
 }

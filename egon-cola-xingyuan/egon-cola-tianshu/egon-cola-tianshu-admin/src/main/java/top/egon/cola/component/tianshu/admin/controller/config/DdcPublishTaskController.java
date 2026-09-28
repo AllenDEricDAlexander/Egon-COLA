@@ -10,13 +10,15 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishTaskQueryRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcPublishTaskResultConverter;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPublishResultVO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPublishTaskResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishTaskQueryService;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 
@@ -39,39 +41,44 @@ public class DdcPublishTaskController {
     private final DdcPublishService publishService;
 
     private final DdcPublishTaskQueryService publishTaskQueryService;
+    private final DdcPublishTaskResultConverter resultConverter;
 
     public DdcPublishTaskController(
             DdcPublishTaskRepository publishTaskRepository,
             DdcPublishService publishService,
-            DdcPublishTaskQueryService publishTaskQueryService) {
+            DdcPublishTaskQueryService publishTaskQueryService,
+            DdcPublishTaskResultConverter resultConverter) {
         this.publishTaskRepository = publishTaskRepository;
         this.publishService = publishService;
         this.publishTaskQueryService = publishTaskQueryService;
+        this.resultConverter = resultConverter;
     }
 
     @Operation(operationId = "tianshu.ddcPublishTaskController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
-    public ResultRecord<List<DdcPublishTaskEntity>> list() {
-        return ResultRecord.success(publishTaskRepository.findAll());
+    public ResultRecord<List<DdcPublishTaskResult>> list() {
+        return ResultRecord.success(resultConverter.toTargetList(publishTaskRepository.findAll()));
     }
 
     @Operation(operationId = "tianshu.ddcPublishTaskController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
-    public PageResultRecord<DdcPublishTaskEntity> page(
+    public PageResultRecord<DdcPublishTaskResult> page(
             DdcPublishTaskQueryRequest request,
             PageQuery pageQuery
     ) {
-        return DdcAdminPageSupport.result(
-                publishTaskQueryService.page(request, pageQuery));
+        DdcPageResult<DdcPublishTaskBO> page = publishTaskQueryService.page(request, pageQuery);
+        return PageResultRecord.success(resultConverter.toTargetList(page.getRecords()), page.getTotal(),
+                page.getPageNo(), page.getPageSize());
     }
 
     @Operation(operationId = "tianshu.ddcPublishTaskController.detail")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{changeId}")
-    public ResultRecord<DdcPublishTaskEntity> detail(@PathVariable("changeId") String changeId) {
-        return ResultRecord.success(publishTaskRepository.findByChangeId(changeId).orElse(null));
+    public ResultRecord<DdcPublishTaskResult> detail(@PathVariable("changeId") String changeId) {
+        return ResultRecord.success(publishTaskRepository.findByChangeId(changeId)
+                .map(resultConverter::toTarget).orElse(null));
     }
 
     @Operation(operationId = "tianshu.ddcPublishTaskController.retry")

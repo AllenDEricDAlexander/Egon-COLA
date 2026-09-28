@@ -11,6 +11,7 @@ import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcOperationLogBO;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigRollbackRequest;
@@ -92,6 +93,11 @@ class DdcConfigServiceTest {
         assertThat(version.getValue().getConfigId()).isEqualTo("config-public-1");
         assertThat(version.getValue().getConfigRevision()).isEqualTo(1L);
         assertThat(version.getValue().getChangeType()).isEqualTo(ChangeType.CREATE.name());
+        var operation = org.mockito.ArgumentCaptor.forClass(DdcOperationLogBO.class);
+        verify(operationLogRepository).insert(operation.capture());
+        assertThat(operation.getValue().getBizCode()).isEqualTo("infra");
+        assertThat(operation.getValue().getAppCode()).isEqualTo("gateway");
+        assertThat(operation.getValue().getOperationType()).isEqualTo(ChangeType.CREATE.name());
     }
 
     @Test

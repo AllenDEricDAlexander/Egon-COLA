@@ -22,7 +22,7 @@ import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigResourceKey;
@@ -120,8 +120,6 @@ class DdcPublishPreparationTest {
 
     @BeforeEach
     void setUp() {
-        ackRepository.deleteAll();
-        taskRepository.deleteAll();
         configItemsByScope.clear();
         configItemsByPublicId.clear();
         configVersions.clear();
@@ -255,8 +253,7 @@ class DdcPublishPreparationTest {
     void rejectsPersistedActiveChangeOwnedByAnotherAdmin() {
         saveConfig("shared-admin-lock");
         LocalDateTime now = LocalDateTime.now();
-        var active = new DdcPublishTaskEntity();
-        active.setId(SnowflakeIdGenerator.nextId());
+        var active = new DdcPublishTaskBO();
         active.setChangeId(SnowflakeIdGenerator.nextId());
         active.setBizCode("default");
         active.setAppCode("shared-admin-lock");
@@ -272,7 +269,7 @@ class DdcPublishPreparationTest {
         active.setAttemptCount(0);
         active.setCreatedAt(now);
         active.setUpdatedAt(now);
-        taskRepository.saveAndFlush(active);
+        taskRepository.insert(active);
 
         assertThatThrownBy(() -> publishService.publish(
                 request("shared-admin-lock", "true"),

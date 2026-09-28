@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +19,7 @@ import top.egon.cola.component.tianshu.admin.controller.config.DdcCacheControlle
 import top.egon.cola.component.tianshu.admin.controller.config.DdcConfigController;
 import top.egon.cola.component.tianshu.admin.controller.config.DdcPublishTaskController;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcPublishTaskResultConverter;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
@@ -86,6 +86,9 @@ class DdcAdminSecurityIntegrationTest {
 
     @MockBean
     private DdcPublishTaskQueryService publishTaskQueryService;
+
+    @MockBean
+    private DdcPublishTaskResultConverter publishTaskResultConverter;
 
     @MockBean
     private DdcPublishTaskRepository publishTaskRepository;
@@ -157,7 +160,8 @@ class DdcAdminSecurityIntegrationTest {
             throws Exception {
         when(configService.page(any(), any())).thenReturn(DdcPageResult.<DdcConfigVO>builder()
                 .records(List.of()).total(0).pageNo(1).pageSize(10).build());
-        when(publishTaskQueryService.page(any(), any())).thenReturn(Page.empty());
+        when(publishTaskQueryService.page(any(), any())).thenReturn(DdcPageResult.<top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO>builder()
+                .records(List.of()).total(0).pageNo(1).pageSize(10).build());
 
         mockMvc.perform(get("/api/v1/tianshu/configs/page")
                         .with(authority("CAP_TIANSHU_READ")))

@@ -15,9 +15,9 @@ import org.springframework.test.context.TestPropertySource;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
@@ -102,7 +102,7 @@ class DdcAckServiceTest {
 
     @Test
     void exactDuplicateAckIsIdempotentAndCompletesTask() {
-        DdcPublishTaskEntity task = savePublishingTask("ack-success");
+        DdcPublishTaskBO task = savePublishingTask("ack-success");
         saveTarget(task, "instance-1", "lease-1");
         DdcAckRequest request =
                 ackRequest(task.getChangeId(), "instance-1", "lease-1", CHECKSUM);
@@ -121,7 +121,7 @@ class DdcAckServiceTest {
 
     @Test
     void duplicateAckCompletesAfterPublishedPointerCatchesUp() {
-        DdcPublishTaskEntity task = savePublishingTask("ack-pointer-catch-up");
+        DdcPublishTaskBO task = savePublishingTask("ack-pointer-catch-up");
         DdcConfigItemBO config = configItemRepository.findByPublicId(task.getConfigId())
                 .orElseThrow();
         config.setPublishedVersion(1L);
@@ -141,7 +141,7 @@ class DdcAckServiceTest {
 
     @Test
     void rejectsUnknownIdentityVersionAndChecksumWithoutCreatingTarget() {
-        DdcPublishTaskEntity task = savePublishingTask("ack-reject");
+        DdcPublishTaskBO task = savePublishingTask("ack-reject");
         saveTarget(task, "instance-1", "lease-1");
 
         assertThatThrownBy(() -> publishService.ack(
@@ -169,7 +169,7 @@ class DdcAckServiceTest {
 
     @Test
     void failedAckWinsAndTerminalTaskIsReadOnly() {
-        DdcPublishTaskEntity task = savePublishingTask("ack-failed");
+        DdcPublishTaskBO task = savePublishingTask("ack-failed");
         saveTarget(task, "instance-1", "lease-1");
         DdcAckRequest failed =
                 ackRequest(task.getChangeId(), "instance-1", "lease-1", CHECKSUM);
@@ -182,17 +182,17 @@ class DdcAckServiceTest {
 
         assertThat(taskRepository.findByChangeId(task.getChangeId()))
                 .get()
-                .extracting(DdcPublishTaskEntity::getStatus)
+                .extracting(DdcPublishTaskBO::getStatus)
                 .isEqualTo(PublishStatus.FAILED.name());
         assertThat(ackRepository.findByChangeId(task.getChangeId()))
                 .singleElement()
-                .extracting(DdcPublishAckEntity::getAckStatus)
+                .extracting(DdcPublishAckBO::getAckStatus)
                 .isEqualTo(DdcAckStatus.FAILED.name());
     }
 
     @Test
     void ackAndTimeoutEachPreserveTheFirstTerminalWinner() {
-        DdcPublishTaskEntity ackWinner = savePublishingTask("ack-wins");
+        DdcPublishTaskBO ackWinner = savePublishingTask("ack-wins");
         saveTarget(ackWinner, "instance-1", "lease-1");
         publishService.ack(ackRequest(
                 ackWinner.getChangeId(),
@@ -203,10 +203,10 @@ class DdcAckServiceTest {
         stateTransitions.timeout(ackWinner.getChangeId(), "late timeout");
         assertThat(taskRepository.findByChangeId(ackWinner.getChangeId()))
                 .get()
-                .extracting(DdcPublishTaskEntity::getStatus)
+                .extracting(DdcPublishTaskBO::getStatus)
                 .isEqualTo(PublishStatus.SUCCESS.name());
 
-        DdcPublishTaskEntity timeoutWinner = savePublishingTask("timeout-wins");
+        DdcPublishTaskBO timeoutWinner = savePublishingTask("timeout-wins");
         saveTarget(timeoutWinner, "instance-1", "lease-1");
         stateTransitions.timeout(timeoutWinner.getChangeId(), "timeout");
         publishService.ack(ackRequest(
@@ -217,17 +217,17 @@ class DdcAckServiceTest {
         ));
         assertThat(taskRepository.findByChangeId(timeoutWinner.getChangeId()))
                 .get()
-                .extracting(DdcPublishTaskEntity::getStatus)
+                .extracting(DdcPublishTaskBO::getStatus)
                 .isEqualTo(PublishStatus.TIMEOUT.name());
         assertThat(ackRepository.findByChangeId(timeoutWinner.getChangeId()))
                 .singleElement()
-                .extracting(DdcPublishAckEntity::getAckStatus)
+                .extracting(DdcPublishAckBO::getAckStatus)
                 .isEqualTo(DdcAckStatus.TIMEOUT.name());
     }
 
-    private DdcPublishTaskEntity savePublishingTask(String label) {
+    private DdcPublishTaskBO savePublishingTask(String label) {
         LocalDateTime now = LocalDateTime.now();
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
+        DdcPublishTaskBO task = new DdcPublishTaskBO();
         String configId = SnowflakeIdGenerator.nextId();
         long internalConfigId = nextInternalConfigId++;
         DdcConfigItemBO config = DdcConfigItemBO.builder().id(internalConfigId).tenantId(401L)
@@ -237,9 +237,9 @@ class DdcAckServiceTest {
                 .createdAt(now).updatedAt(now).version(0L).build();
         configItemsByPublicId.put(configId, config);
 
-        task.setId(SnowflakeIdGenerator.nextId());
         task.setChangeId(SnowflakeIdGenerator.nextId());
         task.setConfigId(configId);
+        task.setConfigItemId(internalConfigId);
         task.setBizCode("default");
         task.setAppCode(label);
         task.setEnv("dev");
@@ -258,14 +258,13 @@ class DdcAckServiceTest {
         task.setCreatedAt(now);
         task.setDispatchedAt(now);
         task.setUpdatedAt(now);
-        return taskRepository.saveAndFlush(task);
+        return taskRepository.insert(task);
     }
 
-    private void saveTarget(DdcPublishTaskEntity task,
+    private void saveTarget(DdcPublishTaskBO task,
                             String instanceId,
                             String leaseId) {
-        DdcPublishAckEntity target = new DdcPublishAckEntity();
-        target.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishAckBO target = new DdcPublishAckBO();
         target.setChangeId(task.getChangeId());
         target.setInstanceId(instanceId);
         target.setLeaseId(leaseId);
@@ -276,7 +275,7 @@ class DdcAckServiceTest {
         target.setResourceName(task.getResourceName());
         target.setTargetVersion(task.getTargetVersion());
         target.setResourceChecksum(task.getResourceChecksum());
-        ackRepository.saveAndFlush(target);
+        ackRepository.insert(target);
     }
 
     private DdcAckRequest ackRequest(String changeId,

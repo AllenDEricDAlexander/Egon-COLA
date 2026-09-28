@@ -1,171 +1,74 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
-import jakarta.persistence.LockModeType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEntity, String> {
+@Validated
+public interface DdcPublishTaskRepository {
 
-    Optional<DdcPublishTaskEntity> findByChangeId(String changeId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcPublishTaskBO> findByChangeId(@NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 64, groups = EgonColaModelValidationGroups.Query.class) String changeId);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<DdcPublishTaskEntity> findForUpdateByChangeId(String changeId);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcPublishTaskBO> findForUpdateByChangeId(@NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 64, groups = EgonColaModelValidationGroups.Query.class) String changeId);
 
-    List<DdcPublishTaskEntity> findByStatusIn(Collection<String> statuses);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcPublishTaskBO> findAll();
 
-    List<DdcPublishTaskEntity> findByStatusInAndUpdatedAtBefore(
-            Collection<String> statuses,
-            LocalDateTime updatedAt);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcPublishTaskBO> findByStatusIn(Collection<String> statuses);
 
-    @Query("""
-            select task from DdcPublishTaskEntity task
-             where (coalesce(:bizCode, '') = '' or task.bizCode = :bizCode)
-               and (coalesce(:env, '') = '' or task.env = :env)
-               and (coalesce(:appCode, '') = '' or task.appCode = :appCode)
-               and (coalesce(:status, '') = '' or task.status = :status)
-               and (coalesce(:changeId, '') = ''
-                    or lower(task.changeId) like lower(concat('%', :changeId, '%')))
-            """)
-    Page<DdcPublishTaskEntity> search(
-            @Param("bizCode") String bizCode,
-            @Param("env") String env,
-            @Param("appCode") String appCode,
-            @Param("status") String status,
-            @Param("changeId") String changeId,
-            Pageable pageable);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    List<DdcPublishTaskBO> findByStatusInAndUpdatedAtBefore(Collection<String> statuses, LocalDateTime updatedAt);
 
-    @Transactional
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishTaskEntity task
-               set task.updatedAt = :claimedAt
-             where task.changeId = :changeId
-               and task.status in :activeStatuses
-               and task.updatedAt < :staleBefore
-            """)
-    int claimStaleForRecovery(
-            @Param("changeId") String changeId,
-            @Param("activeStatuses") Collection<String> activeStatuses,
-            @Param("staleBefore") LocalDateTime staleBefore,
-            @Param("claimedAt") LocalDateTime claimedAt);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    DdcPageResult<DdcPublishTaskBO> search(String bizCode, String env, String appCode, String status,
+            String changeId, PageQuery pageQuery);
 
-    Optional<DdcPublishTaskEntity>
-    findFirstByBizCodeAndEnvAndAppCodeAndResourceNameAndStatusIn(
-            String bizCode,
-            String env,
-            String appCode,
-            String resourceName,
-            Collection<String> statuses);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int claimStaleForRecovery(String changeId, Collection<String> activeStatuses,
+            LocalDateTime staleBefore, LocalDateTime claimedAt);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishTaskEntity task
-               set task.status = :publishingStatus,
-                   task.attemptCount = case
-                       when task.status = :pendingStatus
-                       then task.attemptCount
-                       else coalesce(task.attemptCount, 0) + 1
-                   end,
-                   task.dispatchedAt = :dispatchedAt,
-                   task.completedAt = null,
-                   task.failureStage = null,
-                   task.errorMessage = null,
-                   task.updatedAt = :dispatchedAt
-             where task.changeId = :changeId
-               and task.status in :dispatchableStatuses
-            """)
-    int transitionToPublishing(@Param("changeId") String changeId,
-                               @Param("dispatchableStatuses") Collection<String> dispatchableStatuses,
-                               @Param("pendingStatus") String pendingStatus,
-                               @Param("publishingStatus") String publishingStatus,
-                               @Param("dispatchedAt") LocalDateTime dispatchedAt);
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Optional<DdcPublishTaskBO> findFirstByBizCodeAndEnvAndAppCodeAndResourceNameAndStatusIn(
+            String bizCode, String env, String appCode, String resourceName, Collection<String> statuses);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishTaskEntity task
-               set task.ackCount = :ackCount,
-                   task.failedCount = :failedCount,
-                   task.ignoredCount = :ignoredCount,
-                   task.timeoutCount = :timeoutCount,
-                   task.updatedAt = :updatedAt
-             where task.changeId = :changeId
-            """)
-    int updateCounters(@Param("changeId") String changeId,
-                       @Param("ackCount") int ackCount,
-                       @Param("failedCount") int failedCount,
-                       @Param("ignoredCount") int ignoredCount,
-                       @Param("timeoutCount") int timeoutCount,
-                       @Param("updatedAt") LocalDateTime updatedAt);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int transitionToPublishing(String changeId, Collection<String> dispatchableStatuses,
+            String pendingStatus, String publishingStatus, LocalDateTime dispatchedAt);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishTaskEntity task
-               set task.status = :terminalStatus,
-                   task.completedAt = :completedAt,
-                   task.failureStage = :failureStage,
-                   task.errorMessage = :errorMessage,
-                   task.updatedAt = :completedAt
-             where task.changeId = :changeId
-               and task.status in :activeStatuses
-            """)
-    int transitionToTerminal(@Param("changeId") String changeId,
-                             @Param("terminalStatus") String terminalStatus,
-                             @Param("completedAt") LocalDateTime completedAt,
-                             @Param("failureStage") String failureStage,
-                             @Param("errorMessage") String errorMessage,
-                             @Param("activeStatuses") Collection<String> activeStatuses);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int updateCounters(String changeId, int ackCount, int failedCount, int ignoredCount,
+            int timeoutCount, LocalDateTime updatedAt);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishTaskEntity task
-               set task.status = :pendingStatus,
-                   task.attemptCount = coalesce(task.attemptCount, 0) + 1,
-                   task.dispatchedAt = null,
-                   task.completedAt = null,
-                   task.failureStage = null,
-                   task.errorMessage = null,
-                   task.ackCount = 0,
-                   task.failedCount = 0,
-                   task.ignoredCount = 0,
-                   task.timeoutCount = 0,
-                   task.operator = coalesce(:operator, task.operator),
-                   task.updatedAt = :updatedAt
-             where task.changeId = :changeId
-               and task.status in :retryableStatuses
-            """)
-    int resetForRetry(@Param("changeId") String changeId,
-                      @Param("pendingStatus") String pendingStatus,
-                      @Param("operator") String operator,
-                      @Param("updatedAt") LocalDateTime updatedAt,
-                      @Param("retryableStatuses") Collection<String> retryableStatuses);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int transitionToTerminal(String changeId, String terminalStatus, LocalDateTime completedAt,
+            String failureStage, String errorMessage, Collection<String> activeStatuses);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update DdcPublishTaskEntity task
-               set task.status = :failedStatus,
-                   task.completedAt = :completedAt,
-                   task.failureStage = :failureStage,
-                   task.errorMessage = :errorMessage,
-                   task.updatedAt = :completedAt
-             where task.changeId = :changeId
-               and task.status in :retryableStatuses
-            """)
-    int markRetryLeaseExpired(@Param("changeId") String changeId,
-                              @Param("failedStatus") String failedStatus,
-                              @Param("completedAt") LocalDateTime completedAt,
-                              @Param("failureStage") String failureStage,
-                              @Param("errorMessage") String errorMessage,
-                              @Param("retryableStatuses") Collection<String> retryableStatuses);
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int resetForRetry(String changeId, String pendingStatus, String operator,
+            LocalDateTime updatedAt, Collection<String> retryableStatuses);
+
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    int markRetryLeaseExpired(String changeId, String failedStatus, LocalDateTime completedAt,
+            String failureStage, String errorMessage, Collection<String> retryableStatuses);
+
+    @Validated(EgonColaModelValidationGroups.Insert.class)
+    DdcPublishTaskBO insert(@Valid @NotNull(groups = EgonColaModelValidationGroups.Insert.class) DdcPublishTaskBO command);
+
+    @Validated(EgonColaModelValidationGroups.Update.class)
+    DdcPublishTaskBO update(@Valid @NotNull(groups = EgonColaModelValidationGroups.Update.class) DdcPublishTaskBO command);
 }

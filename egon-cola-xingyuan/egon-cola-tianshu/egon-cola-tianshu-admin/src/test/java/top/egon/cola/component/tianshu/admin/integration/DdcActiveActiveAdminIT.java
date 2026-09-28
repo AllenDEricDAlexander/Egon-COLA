@@ -28,9 +28,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import top.egon.cola.component.tianshu.admin.DynamicConfigCenterAdminApplication;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcInstanceBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
@@ -195,7 +195,7 @@ class DdcActiveActiveAdminIT {
                 "feature:\n  value: one\n", null));
         Future<DdcManagementPublishResult> first = publishAsync(
                 managementA, publish("change-cross-node", config.version(), config.content()));
-        DdcPublishTaskEntity firstTask = awaitTask("change-cross-node");
+        DdcPublishTaskBO firstTask = awaitTask("change-cross-node");
         assertThat(configA.pull()).singleElement()
                 .satisfies(value -> assertThat(value.getVersion())
                         .isEqualTo(firstTask.getTargetVersion()));
@@ -209,7 +209,7 @@ class DdcActiveActiveAdminIT {
                 "change-idempotent", config.version(), config.content());
         Future<DdcManagementPublishResult> sameA = publishAsync(managementA, same);
         Future<DdcManagementPublishResult> sameB = publishAsync(managementB, same);
-        DdcPublishTaskEntity sameTask = awaitTask(same.changeId());
+        DdcPublishTaskBO sameTask = awaitTask(same.changeId());
         acknowledge(configB, sameTask, DdcAckStatus.SUCCESS);
         assertThat(sameA.get(10, TimeUnit.SECONDS).status()).isEqualTo(
                 DdcManagementPublishStatus.SUCCESS);
@@ -223,7 +223,7 @@ class DdcActiveActiveAdminIT {
                 managementA, publish("change-different-a", config.version(), config.content()));
         Future<DdcManagementPublishResult> differentB = publishAsync(
                 managementB, publish("change-different-b", config.version(), config.content()));
-        DdcPublishTaskEntity active = awaitOneTask(
+        DdcPublishTaskBO active = awaitOneTask(
                 "change-different-a", "change-different-b");
         acknowledge(configB, active, DdcAckStatus.SUCCESS);
 
@@ -256,7 +256,7 @@ class DdcActiveActiveAdminIT {
         Future<DdcManagementPublishResult> conflict = publishAsync(
                 management,
                 publish("change-conflicting-ack", config.version(), config.content()));
-        DdcPublishTaskEntity conflictTask = awaitTask("change-conflicting-ack");
+        DdcPublishTaskBO conflictTask = awaitTask("change-conflicting-ack");
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<?> success = executor.submit(() ->
                     acknowledge(configA, conflictTask, DdcAckStatus.SUCCESS));
@@ -265,8 +265,8 @@ class DdcActiveActiveAdminIT {
             success.get(10, TimeUnit.SECONDS);
             failed.get(10, TimeUnit.SECONDS);
         }
-        DdcPublishTaskEntity stored = task("change-conflicting-ack");
-        DdcPublishAckEntity storedAck = acks("change-conflicting-ack").getFirst();
+        DdcPublishTaskBO stored = task("change-conflicting-ack");
+        DdcPublishAckBO storedAck = acks("change-conflicting-ack").getFirst();
         assertThat(storedAck.getAckStatus()).isIn("SUCCESS", "FAILED");
         assertThat(stored.getStatus()).isEqualTo(storedAck.getAckStatus());
         assertThat(conflict.get(10, TimeUnit.SECONDS).status().name())
@@ -277,11 +277,11 @@ class DdcActiveActiveAdminIT {
         Future<DdcManagementPublishResult> timeout = publishAsync(
                 management,
                 publish("change-timeout-scan", timeoutConfig.version(), timeoutConfig.content()));
-        DdcPublishTaskEntity timeoutTask = awaitTask("change-timeout-scan");
+        DdcPublishTaskBO timeoutTask = awaitTask("change-timeout-scan");
         timeoutTask.setDispatchedAt(LocalDateTime.now().minusMinutes(1));
         timeoutTask.setUpdatedAt(LocalDateTime.now().minusMinutes(1));
         timeoutTask.setTimeoutMs(1L);
-        tasks().saveAndFlush(timeoutTask);
+        tasks().update(timeoutTask);
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<Integer> scanA = executor.submit(() ->
                     nodeA.getBean(PublishTimeoutScanner.class).scanExpired());
@@ -294,20 +294,20 @@ class DdcActiveActiveAdminIT {
                 .isEqualTo(DdcManagementPublishStatus.TIMEOUT);
         assertThat(acks("change-timeout-scan"))
                 .singleElement()
-                .extracting(DdcPublishAckEntity::getAckStatus)
+                .extracting(DdcPublishAckBO::getAckStatus)
                 .isEqualTo(DdcAckStatus.TIMEOUT.name());
 
-        DdcPublishTaskEntity stale = task("change-timeout-scan");
+        DdcPublishTaskBO stale = task("change-timeout-scan");
         stale.setStatus(PublishStatus.UNKNOWN.name());
         stale.setCompletedAt(null);
         stale.setUpdatedAt(LocalDateTime.now().minusHours(2));
-        tasks().saveAndFlush(stale);
-        DdcPublishAckEntity staleTarget = acks(stale.getChangeId()).getFirst();
+        tasks().update(stale);
+        DdcPublishAckBO staleTarget = acks(stale.getChangeId()).getFirst();
         staleTarget.setCurrentVersion(null);
         staleTarget.setAckStatus(null);
         staleTarget.setErrorMessage(null);
         staleTarget.setAckAt(null);
-        ackRepository().saveAndFlush(staleTarget);
+        ackRepository().update(staleTarget);
         int recovered;
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<Integer> recoveryA = executor.submit(() ->
@@ -332,7 +332,7 @@ class DdcActiveActiveAdminIT {
                 leaseA.get(5, TimeUnit.SECONDS);
                 leaseB.get(5, TimeUnit.SECONDS);
             }
-            DdcInstanceEntity instance = nodeB.getBean(DdcInstanceRepository.class)
+            DdcInstanceBO instance = nodeB.getBean(DdcInstanceRepository.class)
                     .findByInstanceId("scheduler-instance").orElseThrow();
             assertThat(instance.getStatus()).isEqualTo(InstanceStatus.OFFLINE.name());
         });
@@ -580,14 +580,14 @@ class DdcActiveActiveAdminIT {
         return publishExecutor.submit(() -> client.publish(request));
     }
 
-    private DdcPublishTaskEntity awaitTask(String changeId) {
+    private DdcPublishTaskBO awaitTask(String changeId) {
         await().atMost(java.time.Duration.ofSeconds(10)).until(() ->
                 tasks().findByChangeId(changeId).isPresent()
                         && !acks(changeId).isEmpty());
         return task(changeId);
     }
 
-    private DdcPublishTaskEntity awaitOneTask(String first, String second) {
+    private DdcPublishTaskBO awaitOneTask(String first, String second) {
         await().atMost(java.time.Duration.ofSeconds(10)).until(() ->
                 tasks().findByChangeId(first).isPresent()
                         || tasks().findByChangeId(second).isPresent());
@@ -598,9 +598,9 @@ class DdcActiveActiveAdminIT {
 
     private void acknowledge(
             DdcConfigClient client,
-            DdcPublishTaskEntity task,
+            DdcPublishTaskBO task,
             DdcAckStatus status) {
-        DdcPublishAckEntity target = acks(task.getChangeId()).getFirst();
+        DdcPublishAckBO target = acks(task.getChangeId()).getFirst();
         DdcAckRequest request = new DdcAckRequest();
         request.setChangeId(task.getChangeId());
         request.setBizCode(task.getBizCode());
@@ -635,7 +635,7 @@ class DdcActiveActiveAdminIT {
         }
     }
 
-    private DdcPublishTaskEntity task(String changeId) {
+    private DdcPublishTaskBO task(String changeId) {
         return tasks().findByChangeId(changeId).orElseThrow();
     }
 
@@ -647,7 +647,7 @@ class DdcActiveActiveAdminIT {
         return nodeB.getBean(DdcPublishAckRepository.class);
     }
 
-    private List<DdcPublishAckEntity> acks(String changeId) {
+    private List<DdcPublishAckBO> acks(String changeId) {
         return ackRepository().findByChangeId(changeId);
     }
 

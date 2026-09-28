@@ -9,8 +9,8 @@ import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
@@ -110,12 +110,15 @@ public class DdcPendingPublishDispatcher {
         this.clock = clock;
     }
 
-    public DdcPublishTaskEntity dispatch(String changeId) {
-        DdcPublishTaskEntity task = requiredTask(changeId);
+    public DdcPublishTaskBO dispatch(String changeId) {
+        DdcPublishTaskBO task = requiredTask(changeId);
         if (!DISPATCHABLE_STATUSES.contains(task.getStatus())) {
             return task;
         }
-        stateTransitions.markPublishing(changeId);
+        task = stateTransitions.markPublishing(changeId);
+        if (!PublishStatus.PUBLISHING.name().equals(task.getStatus())) {
+            return task;
+        }
         DdcAtomicPublishCommand command;
         try {
             command = transactionTemplate.execute(status -> command(changeId));
@@ -178,7 +181,7 @@ public class DdcPendingPublishDispatcher {
     }
 
     private DdcAtomicPublishCommand command(String changeId) {
-        DdcPublishTaskEntity task = requiredTask(changeId);
+        DdcPublishTaskBO task = requiredTask(changeId);
         DdcConfigItemBO config = configItemRepository.findByPublicId(task.getConfigId())
                 .orElseThrow(() -> new DdcAdminException("config item not found"));
         if (config.getPublishedVersion() != null
@@ -192,11 +195,11 @@ public class DdcPendingPublishDispatcher {
                 .orElseThrow(() -> new DdcAdminException(
                         "published config version not found"
                 ));
-        List<DdcPublishAckEntity> targets = ackRepository.findByChangeId(changeId)
+        List<DdcPublishAckBO> targets = ackRepository.findByChangeId(changeId)
                 .stream()
                 .sorted(Comparator
-                        .comparing(DdcPublishAckEntity::getInstanceId)
-                        .thenComparing(DdcPublishAckEntity::getLeaseId))
+                        .comparing(DdcPublishAckBO::getInstanceId)
+                        .thenComparing(DdcPublishAckBO::getLeaseId))
                 .toList();
         if (targets.isEmpty()) {
             throw new DdcAdminException("publish targets not found");
@@ -228,9 +231,9 @@ public class DdcPendingPublishDispatcher {
     }
 
     private DdcPublishMessage message(
-            DdcPublishTaskEntity task,
+            DdcPublishTaskBO task,
             DdcConfigVersionBO version,
-            List<DdcPublishAckEntity> targets) {
+            List<DdcPublishAckBO> targets) {
         DdcPublishMessage message = new DdcPublishMessage();
         message.setChangeId(task.getChangeId());
         message.setBizCode(task.getBizCode());
@@ -281,7 +284,7 @@ public class DdcPendingPublishDispatcher {
                 .isPresent();
     }
 
-    private long timestamp(DdcPublishTaskEntity task) {
+    private long timestamp(DdcPublishTaskBO task) {
         LocalDateTime createdAt = task.getCreatedAt();
         if (createdAt == null) {
             throw new DdcAdminException("publish task creation time is required");
@@ -289,7 +292,7 @@ public class DdcPendingPublishDispatcher {
         return createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
-    private DdcPublishTaskEntity requiredTask(String changeId) {
+    private DdcPublishTaskBO requiredTask(String changeId) {
         return taskRepository.findByChangeId(changeId)
                 .orElseThrow(() -> new DdcAdminException("publish task not found"));
     }

@@ -3,8 +3,7 @@ package top.egon.cola.component.tianshu.admin.service.publish;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 
@@ -21,18 +20,21 @@ public class PublishFailureRecorder {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordFailure(String changeId, String bizCode, String env, String appCode, String resourceName, String errorMessage) {
-        DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(changeId)
+        DdcPublishTaskBO task = publishTaskRepository.findByChangeId(changeId)
                 .orElseGet(() -> newFailedTask(changeId, bizCode, env, appCode, resourceName));
         task.setStatus(PublishStatus.FAILED.name());
         task.setErrorMessage(errorMessage);
         task.setUpdatedAt(LocalDateTime.now());
-        publishTaskRepository.save(task);
+        if (task.getId() == null) {
+            publishTaskRepository.insert(task);
+        } else {
+            publishTaskRepository.update(task);
+        }
     }
 
-    private DdcPublishTaskEntity newFailedTask(String changeId, String bizCode, String env, String appCode, String resourceName) {
+    private DdcPublishTaskBO newFailedTask(String changeId, String bizCode, String env, String appCode, String resourceName) {
         LocalDateTime now = LocalDateTime.now();
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishTaskBO task = new DdcPublishTaskBO();
         task.setChangeId(changeId);
         task.setBizCode(bizCode);
         task.setAppCode(appCode);

@@ -18,8 +18,8 @@ import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
@@ -161,7 +161,7 @@ class DdcPublishRetryTest {
                 PublishStatus.TIMEOUT,
                 PublishStatus.UNKNOWN
         )) {
-            DdcPublishTaskEntity task =
+            DdcPublishTaskBO task =
                     saveRetryable(status, "retry-" + status.name().toLowerCase());
             String auditOperator = "rpc:retry-" + status.name().toLowerCase();
             try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -183,7 +183,7 @@ class DdcPublishRetryTest {
                         });
                 assertThat(taskRepository.findByChangeId(task.getChangeId()))
                         .get()
-                        .extracting(DdcPublishTaskEntity::getOperator)
+                        .extracting(DdcPublishTaskBO::getOperator)
                         .isEqualTo(auditOperator);
             }
         }
@@ -193,7 +193,7 @@ class DdcPublishRetryTest {
 
     @Test
     void expiredFixedTargetPersistsFailedReasonAndDoesNotDispatch() {
-        DdcPublishTaskEntity task =
+        DdcPublishTaskBO task =
                 saveRetryable(PublishStatus.TIMEOUT, "retry-expired");
         when(leaseService.areActiveTargets(
                 eq("default"),
@@ -224,7 +224,7 @@ class DdcPublishRetryTest {
                 PublishStatus.PENDING,
                 PublishStatus.PUBLISHING
         )) {
-            DdcPublishTaskEntity task =
+            DdcPublishTaskBO task =
                     saveRetryable(status, "retry-reject-" + status.name().toLowerCase());
 
             assertThatThrownBy(() -> publishService.retry(task.getChangeId()))
@@ -232,7 +232,7 @@ class DdcPublishRetryTest {
         }
     }
 
-    private DdcPublishTaskEntity saveRetryable(PublishStatus status, String label) {
+    private DdcPublishTaskBO saveRetryable(PublishStatus status, String label) {
         LocalDateTime now = LocalDateTime.now();
         String configId = SnowflakeIdGenerator.nextId();
         long internalConfigId = nextInternalConfigId++;
@@ -242,10 +242,10 @@ class DdcPublishRetryTest {
                 .enabled(true).deleted(false).createdAt(now.minusSeconds(10)).updatedAt(now).version(0L).build();
         configs.put(configId, config);
 
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishTaskBO task = new DdcPublishTaskBO();
         task.setChangeId(SnowflakeIdGenerator.nextId());
         task.setConfigId(configId);
+        task.setConfigItemId(internalConfigId);
         task.setBizCode(config.getBizCode());
         task.setAppCode(label);
         task.setEnv("dev");
@@ -267,10 +267,9 @@ class DdcPublishRetryTest {
         task.setCompletedAt(status == PublishStatus.PENDING
                 || status == PublishStatus.PUBLISHING ? null : now);
         task.setUpdatedAt(now);
-        taskRepository.saveAndFlush(task);
+        task = taskRepository.insert(task);
 
-        DdcPublishAckEntity target = new DdcPublishAckEntity();
-        target.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishAckBO target = new DdcPublishAckBO();
         target.setChangeId(task.getChangeId());
         target.setInstanceId("instance-1");
         target.setLeaseId("lease-1");
@@ -288,7 +287,7 @@ class DdcPublishRetryTest {
             target.setAckStatus(DdcAckStatus.TIMEOUT.name());
             target.setAckAt(now);
         }
-        ackRepository.saveAndFlush(target);
+        ackRepository.insert(target);
 
         DdcConfigVersionBO version = DdcConfigVersionBO.builder().id(nextInternalConfigId++)
                 .configItemId(internalConfigId).configId(configId).bizCode(task.getBizCode())
@@ -300,7 +299,7 @@ class DdcPublishRetryTest {
         return task;
     }
 
-    private DdcAckRequest successAck(DdcPublishTaskEntity task) {
+    private DdcAckRequest successAck(DdcPublishTaskBO task) {
         DdcAckRequest request = new DdcAckRequest();
         request.setChangeId(task.getChangeId());
         request.setInstanceId("instance-1");

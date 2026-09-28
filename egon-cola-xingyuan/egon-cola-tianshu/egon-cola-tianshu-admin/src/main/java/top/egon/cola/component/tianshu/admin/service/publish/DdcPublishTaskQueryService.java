@@ -1,13 +1,11 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishTaskQueryRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 
 @Service
 public class DdcPublishTaskQueryService {
@@ -19,7 +17,7 @@ public class DdcPublishTaskQueryService {
         this.publishTaskRepository = publishTaskRepository;
     }
 
-    public Page<DdcPublishTaskEntity> page(
+    public DdcPageResult<DdcPublishTaskBO> page(
             DdcPublishTaskQueryRequest request,
             PageQuery pageQuery) {
         DdcPublishTaskQueryRequest query = request == null
@@ -30,11 +28,7 @@ public class DdcPublishTaskQueryService {
                 optional(query.getEnv()),
                 optional(query.getAppCode()),
                 optional(query.getStatus()),
-                optional(query.getChangeId()),
-                DdcAdminPageSupport.pageable(
-                        pageQuery,
-                        Sort.by(Sort.Direction.DESC, "createdAt", "id")
-                )
+                optional(query.getChangeId()), pageQuery
         );
     }
 

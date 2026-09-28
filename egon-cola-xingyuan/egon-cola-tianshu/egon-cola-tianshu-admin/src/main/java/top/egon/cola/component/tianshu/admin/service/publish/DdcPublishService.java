@@ -6,15 +6,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcOperationLogEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcOperationLogBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.ChangeType;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
@@ -153,7 +152,7 @@ public class DdcPublishService {
     public DdcPublishResultVO publish(DdcPublishRequest request, String operator) {
         validatePublishRequest(request);
         long timeoutMs = timeout(request.getTimeoutMs());
-        DdcPublishTaskEntity existing =
+        DdcPublishTaskBO existing =
                 publishTaskRepository.findByChangeId(request.getChangeId()).orElse(null);
         if (existing != null) {
             validateIdempotentRequest(existing, request, timeoutMs);
@@ -181,7 +180,7 @@ public class DdcPublishService {
         PublishCompletionWaiterRegistry.PublishWaiter waiter =
                 waiterRegistry.register(request.getChangeId());
         if (prepared.dispatchRequired()) {
-            DdcPublishTaskEntity dispatched;
+            DdcPublishTaskBO dispatched;
             try {
                 dispatched = dispatcher.dispatch(request.getChangeId());
             } catch (RuntimeException exception) {
@@ -203,7 +202,7 @@ public class DdcPublishService {
 
     public DdcPublishResultVO retry(String changeId, String operator) {
         requireText(changeId, "changeId");
-        DdcPublishTaskEntity task = requiredTask(changeId);
+        DdcPublishTaskBO task = requiredTask(changeId);
         requireRetryable(task);
         DdcConfigResourceKey resourceKey = resourceKey(task);
         if (!resourceRegistry.tryAcquire(resourceKey, changeId)) {
@@ -228,7 +227,7 @@ public class DdcPublishService {
 
         PublishCompletionWaiterRegistry.PublishWaiter waiter =
                 waiterRegistry.register(changeId);
-        DdcPublishTaskEntity dispatched;
+        DdcPublishTaskBO dispatched;
         try {
             dispatched = dispatcher.dispatch(changeId);
         } catch (RuntimeException exception) {
@@ -246,12 +245,12 @@ public class DdcPublishService {
     @Transactional
     public DdcPublishResultVO ack(DdcAckRequest request) {
         validateAckRequest(request);
-        DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(request.getChangeId())
+        DdcPublishTaskBO task = publishTaskRepository.findByChangeId(request.getChangeId())
                 .orElseThrow(() -> new DdcAdminException("publish task not found"));
         if (stateTransitions.isTerminal(task)) {
             return DdcPublishResultVO.from(task);
         }
-        DdcPublishAckEntity target =
+        DdcPublishAckBO target =
                 publishAckRepository.findForUpdateByChangeIdAndInstanceIdAndLeaseId(
                                 request.getChangeId(),
                                 request.getInstanceId(),
@@ -274,13 +273,13 @@ public class DdcPublishService {
         target.setAckStatus(request.getStatus().name());
         target.setErrorMessage(request.getErrorMessage());
         target.setAckAt(toAckAt(request.getAckTime()));
-        publishAckRepository.saveAndFlush(target);
+        publishAckRepository.update(target);
         return DdcPublishResultVO.from(
                 stateTransitions.refreshAfterAck(request.getChangeId())
         );
     }
 
-    private DdcPublishResultVO awaitIfActive(DdcPublishTaskEntity task) {
+    private DdcPublishResultVO awaitIfActive(DdcPublishTaskBO task) {
         if (stateTransitions.isTerminal(task)) {
             stateTransitions.releaseIfTerminal(task);
             return DdcPublishResultVO.from(task);
@@ -305,7 +304,7 @@ public class DdcPublishService {
             PublishCompletionWaiterRegistry.PublishWaiter waiter) {
         try {
             while (true) {
-                DdcPublishTaskEntity task = requiredTask(changeId);
+                DdcPublishTaskBO task = requiredTask(changeId);
                 if (stateTransitions.isTerminal(task)) {
                     waiterRegistry.remove(changeId, waiter);
                     stateTransitions.releaseIfTerminal(task);
@@ -353,7 +352,7 @@ public class DdcPublishService {
     private PublishPrepareResult prepare(DdcPublishRequest request,
                                          long timeoutMs,
                                          String operator) {
-        DdcPublishTaskEntity concurrent =
+        DdcPublishTaskBO concurrent =
                 publishTaskRepository.findByChangeId(request.getChangeId()).orElse(null);
         if (concurrent != null) {
             validateIdempotentRequest(concurrent, request, timeoutMs);
@@ -413,7 +412,7 @@ public class DdcPublishService {
                 request.getFormat(),
                 request.getContent()
         );
-        DdcPublishTaskEntity task = newTask(
+        DdcPublishTaskBO task = newTask(
                 request,
                 config,
                 resourceChecksum,
@@ -421,25 +420,25 @@ public class DdcPublishService {
                 timeoutMs,
                 operator
         );
-        publishTaskRepository.save(task);
-        List<DdcPublishAckEntity> targetRows = targets.stream()
-                .map(target -> newTarget(task, target))
+        DdcPublishTaskBO persistedTask = publishTaskRepository.insert(task);
+        List<DdcPublishAckBO> targetRows = targets.stream()
+                .map(target -> newTarget(persistedTask, target))
                 .toList();
-        publishAckRepository.saveAll(targetRows);
+        publishAckRepository.insertAll(targetRows);
         savePublishOperation(config, request.getChangeId(), operator);
-        return new PublishPrepareResult(task, true);
+        return new PublishPrepareResult(persistedTask, true);
     }
 
     private RetryPrepareResult prepareRetry(
             String changeId,
             String operator) {
-        DdcPublishTaskEntity task = requiredTask(changeId);
+        DdcPublishTaskBO task = requiredTask(changeId);
         requireRetryable(task);
-        List<DdcPublishAckEntity> targetRows =
+        List<DdcPublishAckBO> targetRows =
                 publishAckRepository.findByChangeId(changeId).stream()
                         .sorted(Comparator
-                                .comparing(DdcPublishAckEntity::getInstanceId)
-                                .thenComparing(DdcPublishAckEntity::getLeaseId))
+                                .comparing(DdcPublishAckBO::getInstanceId)
+                                .thenComparing(DdcPublishAckBO::getLeaseId))
                         .toList();
         if (targetRows.isEmpty()) {
             throw new DdcAdminException("publish targets not found");
@@ -473,17 +472,17 @@ public class DdcPublishService {
         return RetryPrepareResult.ready();
     }
 
-    private DdcPublishTaskEntity newTask(DdcPublishRequest request,
+    private DdcPublishTaskBO newTask(DdcPublishRequest request,
                                          DdcConfigItemBO config,
                                          String resourceChecksum,
                                          int targetCount,
                                          long timeoutMs,
                                          String operator) {
         LocalDateTime now = now();
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishTaskBO task = new DdcPublishTaskBO();
         task.setChangeId(request.getChangeId());
         task.setConfigId(config.getPublicId());
+        task.setConfigItemId(config.getId());
         task.setBizCode(config.getBizCode());
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
@@ -506,10 +505,9 @@ public class DdcPublishService {
         return task;
     }
 
-    private DdcPublishAckEntity newTarget(DdcPublishTaskEntity task,
+    private DdcPublishAckBO newTarget(DdcPublishTaskBO task,
                                           DdcPublishTarget target) {
-        DdcPublishAckEntity ack = new DdcPublishAckEntity();
-        ack.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishAckBO ack = new DdcPublishAckBO();
         ack.setChangeId(task.getChangeId());
         ack.setInstanceId(target.instanceId());
         ack.setLeaseId(target.leaseId());
@@ -540,8 +538,7 @@ public class DdcPublishService {
     private void savePublishOperation(DdcConfigItemBO config,
                                       String changeId,
                                       String operator) {
-        DdcOperationLogEntity log = new DdcOperationLogEntity();
-        log.setId(SnowflakeIdGenerator.nextId());
+        DdcOperationLogBO log = new DdcOperationLogBO();
         log.setBizCode(config.getBizCode());
         log.setAppCode(config.getAppCode());
         log.setEnv(config.getEnv());
@@ -551,7 +548,7 @@ public class DdcPublishService {
         log.setOperator(operator);
         log.setOperationContent(changeId);
         log.setCreatedAt(now());
-        operationLogRepository.save(log);
+        operationLogRepository.insert(log);
     }
 
     private void validatePublishRequest(DdcPublishRequest request) {
@@ -589,7 +586,7 @@ public class DdcPublishService {
         }
     }
 
-    private void validateIdempotentRequest(DdcPublishTaskEntity task,
+    private void validateIdempotentRequest(DdcPublishTaskBO task,
                                            DdcPublishRequest request,
                                            long timeoutMs) {
         boolean matches = Objects.equals(task.getBizCode(), request.getBizCode())
@@ -613,7 +610,7 @@ public class DdcPublishService {
         }
     }
 
-    private void requireRetryable(DdcPublishTaskEntity task) {
+    private void requireRetryable(DdcPublishTaskBO task) {
         if (task == null || !RETRYABLE_STATUSES.contains(task.getStatus())) {
             throw new DdcAdminException("publish task is not retryable");
         }
@@ -632,7 +629,7 @@ public class DdcPublishService {
         return timeoutMs;
     }
 
-    private Instant deadline(DdcPublishTaskEntity task) {
+    private Instant deadline(DdcPublishTaskBO task) {
         if (PublishStatus.PENDING.name().equals(task.getStatus())) {
             LocalDateTime createdAt =
                     task.getCreatedAt() == null ? now() : task.getCreatedAt();
@@ -667,7 +664,7 @@ public class DdcPublishService {
         }
     }
 
-    private DdcPublishTaskEntity requiredTask(String changeId) {
+    private DdcPublishTaskBO requiredTask(String changeId) {
         return publishTaskRepository.findByChangeId(changeId)
                 .orElseThrow(() -> new DdcAdminException("publish task not found"));
     }
@@ -681,7 +678,7 @@ public class DdcPublishService {
         );
     }
 
-    private DdcConfigResourceKey resourceKey(DdcPublishTaskEntity task) {
+    private DdcConfigResourceKey resourceKey(DdcPublishTaskBO task) {
         return new DdcConfigResourceKey(
                 task.getBizCode(),
                 task.getEnv(),
@@ -730,7 +727,7 @@ public class DdcPublishService {
     }
 
     private record PublishPrepareResult(
-            DdcPublishTaskEntity task,
+            DdcPublishTaskBO task,
             boolean dispatchRequired
     ) {
     }

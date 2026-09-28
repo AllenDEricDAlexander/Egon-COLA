@@ -3,6 +3,8 @@ package top.egon.cola.component.tianshu.admin.service.lease;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.MDC;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcServiceRegistryRedisRepository;
@@ -80,6 +82,7 @@ public class DdcResourceAdmissionRevocationService {
     public DdcResourceAdmissionRevocationResult revoke(
             DdcResourceAdmissionRevocationRequest request) {
         Objects.requireNonNull(request, "request");
+        requireTrustedAuditContext();
         int configCount = configLeases.revokeResourceAdmission(
                 request.resourceServerId(),
                 request.bizCode(),
@@ -107,5 +110,16 @@ public class DdcResourceAdmissionRevocationService {
                 providerCount,
                 persistedCount
         );
+    }
+
+    private void requireTrustedAuditContext() {
+        Long tenantId = EgonColaTenantIdProvider.currentTenantId();
+        if (tenantId <= 0) {
+            throw new IllegalStateException("TENANT_ID_MUST_BE_POSITIVE");
+        }
+        String actor = MDC.get("userId");
+        if (actor == null || actor.isBlank()) {
+            throw new IllegalStateException("TIANSHU_AUDIT_ACTOR_REQUIRED");
+        }
     }
 }

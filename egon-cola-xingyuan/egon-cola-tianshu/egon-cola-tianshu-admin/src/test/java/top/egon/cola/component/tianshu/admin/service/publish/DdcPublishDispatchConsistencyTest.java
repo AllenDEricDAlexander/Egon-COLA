@@ -21,8 +21,8 @@ import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigItemConverterImpl;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigVersionConverterImpl;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishMode;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
@@ -159,12 +159,12 @@ class DdcPublishDispatchConsistencyTest {
 
     @Test
     void redisFailureLeavesPublishedPointerAndRuntimePullOnPriorVersion() {
-        DdcPublishTaskEntity task = savePreparedPublish("redis-failure");
+        DdcPublishTaskBO task = savePreparedPublish("redis-failure");
         doThrow(new IllegalStateException("redis response lost"))
                 .when(redisRepository)
                 .dispatch(any());
 
-        DdcPublishTaskEntity result = dispatcher.dispatch(task.getChangeId());
+        DdcPublishTaskBO result = dispatcher.dispatch(task.getChangeId());
 
         assertThat(result.getStatus()).isEqualTo(PublishStatus.UNKNOWN.name());
         assertThat(configItemRepository.findByPublicId(task.getConfigId()))
@@ -182,7 +182,7 @@ class DdcPublishDispatchConsistencyTest {
 
     @Test
     void databaseFailureReplaysTheSameEventWithoutCreatingAnotherVersion() {
-        DdcPublishTaskEntity task = savePreparedPublish("db-failure");
+        DdcPublishTaskBO task = savePreparedPublish("db-failure");
         doThrow(new IllegalStateException("database response lost"))
                 .doAnswer(invocation -> {
                     DdcConfigItemBO config = configItemRepository
@@ -206,7 +206,7 @@ class DdcPublishDispatchConsistencyTest {
                 .isEqualTo(PublishStatus.PUBLISHING.name());
         assertThat(taskRepository.findByChangeId(task.getChangeId()))
                 .get()
-                .extracting(DdcPublishTaskEntity::getAttemptCount)
+                .extracting(DdcPublishTaskBO::getAttemptCount)
                 .isEqualTo(1);
 
         ArgumentCaptor<DdcAtomicPublishCommand> commands =
@@ -232,7 +232,7 @@ class DdcPublishDispatchConsistencyTest {
 
     @Test
     void changeIdFingerprintConflictIsPersistedAndReturnedWithStableError() {
-        DdcPublishTaskEntity task = savePreparedPublish("change-id-conflict");
+        DdcPublishTaskBO task = savePreparedPublish("change-id-conflict");
         doThrow(new DdcAdminException(DdcErrorStatus.CHANGE_ID_CONFLICT))
                 .when(redisRepository)
                 .dispatch(any());
@@ -255,21 +255,21 @@ class DdcPublishDispatchConsistencyTest {
 
     @Test
     void earlyAckCannotCompleteUntilPublishedPointerAdvances() {
-        DdcPublishTaskEntity task = savePreparedPublish("early-ack");
+        DdcPublishTaskBO task = savePreparedPublish("early-ack");
         doAnswer(invocation -> {
-            DdcPublishAckEntity target = ackRepository
+            DdcPublishAckBO target = ackRepository
                     .findByChangeId(task.getChangeId())
                     .getFirst();
             target.setAckStatus("SUCCESS");
             target.setCurrentVersion(task.getTargetVersion());
             target.setAckAt(LocalDateTime.now());
-            ackRepository.saveAndFlush(target);
+            ackRepository.update(target);
             assertThat(stateTransitions.refreshAfterAck(task.getChangeId()).getStatus())
                     .isEqualTo(PublishStatus.PUBLISHING.name());
             return null;
         }).when(redisRepository).dispatch(any());
 
-        DdcPublishTaskEntity completed = dispatcher.dispatch(task.getChangeId());
+        DdcPublishTaskBO completed = dispatcher.dispatch(task.getChangeId());
 
         assertThat(completed.getStatus()).isEqualTo(PublishStatus.SUCCESS.name());
         assertThat(configItemRepository.findByPublicId(task.getConfigId()))
@@ -283,12 +283,12 @@ class DdcPublishDispatchConsistencyTest {
         String largeYaml = "feature:\n  value: "
                 + "x".repeat(128)
                 + "\n";
-        DdcPublishTaskEntity task = savePreparedPublish(
+        DdcPublishTaskBO task = savePreparedPublish(
                 "large-content",
                 largeYaml
         );
 
-        DdcPublishTaskEntity result = dispatcher.dispatch(task.getChangeId());
+        DdcPublishTaskBO result = dispatcher.dispatch(task.getChangeId());
 
         assertThat(result.getStatus()).isEqualTo(PublishStatus.PUBLISHING.name());
         ArgumentCaptor<DdcAtomicPublishCommand> command =
@@ -298,11 +298,11 @@ class DdcPublishDispatchConsistencyTest {
         assertThat(command.getValue().message().getContent()).isNull();
     }
 
-    private DdcPublishTaskEntity savePreparedPublish(String label) {
+    private DdcPublishTaskBO savePreparedPublish(String label) {
         return savePreparedPublish(label, NEW_YAML);
     }
 
-    private DdcPublishTaskEntity savePreparedPublish(
+    private DdcPublishTaskBO savePreparedPublish(
             String label,
             String newYaml) {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 26, 8, 0);
@@ -316,10 +316,10 @@ class DdcPublishDispatchConsistencyTest {
         saveVersion(config, 1L, null, OLD_YAML, createdAt.minusDays(1));
         saveVersion(config, 2L, OLD_YAML, newYaml, createdAt);
 
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishTaskBO task = new DdcPublishTaskBO();
         task.setChangeId(SnowflakeIdGenerator.nextId());
         task.setConfigId(config.getPublicId());
+        task.setConfigItemId(config.getId());
         task.setBizCode(config.getBizCode());
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
@@ -343,10 +343,9 @@ class DdcPublishDispatchConsistencyTest {
         task.setOperator("tester");
         task.setCreatedAt(createdAt);
         task.setUpdatedAt(createdAt);
-        taskRepository.saveAndFlush(task);
+        task = taskRepository.insert(task);
 
-        DdcPublishAckEntity target = new DdcPublishAckEntity();
-        target.setId(SnowflakeIdGenerator.nextId());
+        DdcPublishAckBO target = new DdcPublishAckBO();
         target.setChangeId(task.getChangeId());
         target.setInstanceId("instance-1");
         target.setLeaseId("lease-1");
@@ -357,7 +356,7 @@ class DdcPublishDispatchConsistencyTest {
         target.setNamespace(task.getNamespace());
         target.setResourceName(task.getResourceName());
         target.setTargetVersion(task.getTargetVersion());
-        ackRepository.saveAndFlush(target);
+        ackRepository.insert(target);
         return task;
     }
 

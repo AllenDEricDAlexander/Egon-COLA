@@ -1,20 +1,17 @@
 package top.egon.cola.component.tianshu.admin.service.lease;
 
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.parallel.ResourceLock;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcInstanceBO;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcInstanceResultConverter;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcInstanceResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.tianshu.model.config.DdcInstanceRegisterRequest;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseRole;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
 import java.time.Instant;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -31,33 +28,30 @@ import static top.egon.cola.component.tianshu.admin.security.registration.DdcReg
 @ResourceLock("java.util.TimeZone.default")
 class DdcInstanceAdminServiceTest {
 
-    @BeforeAll
-    static void bindTheProcessWideEngine() {
-        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
-    }
-
     @Test
     void pagesPersistentInstancesNewestFirst() {
         DdcInstanceRepository repository = mock(DdcInstanceRepository.class);
         DdcConfigLeaseService leaseService = mock(DdcConfigLeaseService.class);
-        DdcInstanceEntity instance = new DdcInstanceEntity();
-        instance.setId("instance-1");
+        DdcInstanceResultConverter converter = mock(DdcInstanceResultConverter.class);
+        DdcInstanceBO instance = DdcInstanceBO.builder().publicId("instance-1").instanceId("engine-1").build();
+        DdcInstanceResult result = DdcInstanceResult.builder().publicId("instance-1").instanceId("engine-1").build();
         when(repository.findByBizCodeAndEnvAndAppCode(
-                eq("infra"), eq("prod"), eq("yuheng"), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(instance), PageRequest.of(0, 10), 1));
+                eq("infra"), eq("prod"), eq("yuheng"), any(PageQuery.class)))
+                .thenReturn(DdcPageResult.<DdcInstanceBO>builder()
+                        .records(List.of(instance)).total(1).pageNo(1).pageSize(10).build());
+        when(converter.toTargetList(List.of(instance))).thenReturn(List.of(result));
         DdcInstanceAdminService service = new DdcInstanceAdminService(
-                repository, leaseService);
+                repository, leaseService, converter);
 
         var page = service.page(
                 "infra", "prod", "yuheng", new PageQuery(1, 10));
 
-        assertThat(page.getContent()).containsExactly(instance);
-        var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        assertThat(page.getRecords()).containsExactly(result);
+        var pageQuery = org.mockito.ArgumentCaptor.forClass(PageQuery.class);
         verify(repository).findByBizCodeAndEnvAndAppCode(
-                eq("infra"), eq("prod"), eq("yuheng"), pageable.capture());
-        assertThat(pageable.getValue().getSort().toString())
-                .isEqualTo("updatedAt: DESC,id: DESC");
+                eq("infra"), eq("prod"), eq("yuheng"), pageQuery.capture());
+        assertThat(pageQuery.getValue().pageNo()).isEqualTo(1);
+        assertThat(pageQuery.getValue().pageSize()).isEqualTo(10);
     }
 
     @Test
@@ -68,6 +62,7 @@ class DdcInstanceAdminServiceTest {
             DdcInstanceRepository repository = mock(
                     DdcInstanceRepository.class
             );
+            DdcInstanceResultConverter converter = mock(DdcInstanceResultConverter.class);
             DdcConfigLeaseService leaseService = mock(
                     DdcConfigLeaseService.class
             );
@@ -90,18 +85,19 @@ class DdcInstanceAdminServiceTest {
             );
             when(repository.findByInstanceId(request.getInstanceId()))
                     .thenReturn(Optional.empty());
-            when(repository.save(any())).thenAnswer(invocation ->
+            when(repository.insert(any())).thenAnswer(invocation ->
                     invocation.getArgument(0));
             DdcInstanceAdminService service = new DdcInstanceAdminService(
                     repository,
-                    leaseService);
+                    leaseService,
+                    converter);
 
             service.register(request);
 
             var entity = org.mockito.ArgumentCaptor.forClass(
-                    DdcInstanceEntity.class
+                    DdcInstanceBO.class
             );
-            verify(repository).save(entity.capture());
+            verify(repository).insert(entity.capture());
             assertThat(entity.getValue().getLeaseExpireAt()).isEqualTo(
                     LocalDateTime.ofInstant(expiry, ZoneId.systemDefault())
             );

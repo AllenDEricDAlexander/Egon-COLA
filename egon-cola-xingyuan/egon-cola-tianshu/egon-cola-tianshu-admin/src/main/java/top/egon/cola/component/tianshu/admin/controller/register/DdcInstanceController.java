@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcInstanceResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcInstanceAdminService;
-import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 
@@ -38,7 +38,7 @@ public class DdcInstanceController {
     @Operation(operationId = "tianshu.ddcInstanceController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
-    public ResultRecord<List<DdcInstanceEntity>> list(
+    public ResultRecord<List<DdcInstanceResult>> list(
             @RequestParam("bizCode") String bizCode,
             @RequestParam("env") String env,
             @RequestParam("appCode") String appCode) {
@@ -49,13 +49,13 @@ public class DdcInstanceController {
     @Operation(operationId = "tianshu.ddcInstanceController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
-    public PageResultRecord<DdcInstanceEntity> page(
+    public PageResultRecord<DdcInstanceResult> page(
             @RequestParam("bizCode") String bizCode,
             @RequestParam("env") String env,
             @RequestParam("appCode") String appCode,
             PageQuery pageQuery
     ) {
-        return DdcAdminPageSupport.result(instanceAdminService.page(
-                bizCode, env, appCode, pageQuery));
+        DdcPageResult<DdcInstanceResult> page = instanceAdminService.page(bizCode, env, appCode, pageQuery);
+        return PageResultRecord.success(page.getRecords(), page.getTotal(), page.getPageNo(), page.getPageSize());
     }
 }

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
@@ -18,8 +17,8 @@ import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigRollbackRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigUpdateRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcOperationLogEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcOperationLogBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.ChangeType;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigItemConverter;
@@ -236,7 +235,7 @@ public class DdcConfigService {
                 && publishTaskRepository.findFirstByBizCodeAndEnvAndAppCodeAndResourceNameAndStatusIn(
                         item.getBizCode(), item.getEnv(), item.getAppCode(), item.getResourceName(),
                         PREPARED_PUBLISH_STATUSES)
-                .map(DdcPublishTaskEntity::getTargetVersion).filter(targetVersion::equals).isPresent();
+                .map(DdcPublishTaskBO::getTargetVersion).filter(targetVersion::equals).isPresent();
         if (!published && !prepared) return Optional.empty();
         return versionRepository.findByConfigItemIdAndRevision(item.getId(), targetVersion);
     }
@@ -271,8 +270,7 @@ public class DdcConfigService {
     }
 
     private void saveOperation(DdcConfigItemBO item, ChangeType changeType, String operator, String content) {
-        DdcOperationLogEntity operation = new DdcOperationLogEntity();
-        operation.setId(SnowflakeIdGenerator.nextId());
+        DdcOperationLogBO operation = new DdcOperationLogBO();
         operation.setBizCode(item.getBizCode());
         operation.setAppCode(item.getAppCode());
         operation.setEnv(item.getEnv());
@@ -282,7 +280,7 @@ public class DdcConfigService {
         operation.setOperator(operator);
         operation.setOperationContent(content);
         operation.setCreatedAt(LocalDateTime.now());
-        operationLogRepository.save(operation);
+        operationLogRepository.insert(operation);
     }
 
     private Optional<DdcConfigVersionBO> publishedVersion(DdcConfigItemBO item) {

@@ -3,8 +3,8 @@ package top.egon.cola.component.tianshu.admin.service.management;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
@@ -234,7 +234,7 @@ class DdcManagementFacadeTest {
 
     @Test
     void publishTaskIncludesStableTargetAckProjection() {
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
+        DdcPublishTaskBO task = new DdcPublishTaskBO();
         task.setChangeId("change-1");
         task.setStatus("SUCCESS");
         task.setTargetVersion(8L);
@@ -248,7 +248,7 @@ class DdcManagementFacadeTest {
         task.setCreatedAt(LocalDateTime.parse("2026-07-25T10:00:00"));
         task.setDispatchedAt(LocalDateTime.parse("2026-07-25T10:00:01"));
         task.setCompletedAt(LocalDateTime.parse("2026-07-25T10:00:02"));
-        DdcPublishAckEntity target = new DdcPublishAckEntity();
+        DdcPublishAckBO target = new DdcPublishAckBO();
         target.setInstanceId("engine-1");
         target.setLeaseId("lease-1");
         target.setCurrentVersion(8L);

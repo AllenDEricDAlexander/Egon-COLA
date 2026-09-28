@@ -6,9 +6,8 @@ import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAppBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcBizBO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
@@ -303,16 +302,16 @@ public class DdcManagementFacade {
 
     public DdcManagementPublishTask getPublishTask(String changeId) {
         requireText(changeId, "changeId");
-        DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(changeId)
+        DdcPublishTaskBO task = publishTaskRepository.findByChangeId(changeId)
                 .orElseThrow(() -> new DdcAdminException(
                         DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND
                 ));
         List<DdcManagementPublishTarget> targets =
                 publishAckRepository.findByChangeId(changeId).stream()
                         .sorted(Comparator
-                                .comparing(DdcPublishAckEntity::getInstanceId)
+                                .comparing(DdcPublishAckBO::getInstanceId)
                                 .thenComparing(
-                                        DdcPublishAckEntity::getLeaseId,
+                                        DdcPublishAckBO::getLeaseId,
                                         Comparator.nullsFirst(String::compareTo)
                                 ))
                         .map(this::target)
@@ -364,7 +363,7 @@ public class DdcManagementFacade {
                         query.env(),
                         query.appCode()
                 ).stream()
-                .sorted(Comparator.comparing(DdcInstanceEntity::getInstanceId))
+                .sorted(Comparator.comparing(top.egon.cola.component.tianshu.admin.model.vo.DdcInstanceResult::getInstanceId))
                 .map(this::configClient)
                 .toList();
     }
@@ -507,7 +506,7 @@ public class DdcManagementFacade {
         );
     }
 
-    private DdcManagementPublishTarget target(DdcPublishAckEntity value) {
+    private DdcManagementPublishTarget target(DdcPublishAckBO value) {
         return new DdcManagementPublishTarget(
                 value.getInstanceId(),
                 value.getLeaseId(),
@@ -518,7 +517,8 @@ public class DdcManagementFacade {
         );
     }
 
-    private DdcManagementConfigClientInstance configClient(DdcInstanceEntity value) {
+    private DdcManagementConfigClientInstance configClient(
+            top.egon.cola.component.tianshu.admin.model.vo.DdcInstanceResult value) {
         return new DdcManagementConfigClientInstance(
                 value.getBizCode(),
                 value.getEnv(),

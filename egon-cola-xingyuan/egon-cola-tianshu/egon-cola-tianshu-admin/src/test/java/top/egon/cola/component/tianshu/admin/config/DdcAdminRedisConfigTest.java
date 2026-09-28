@@ -7,8 +7,12 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityResourceServerStateReader;
@@ -67,6 +71,26 @@ class DdcAdminRedisConfigTest {
         @Bean
         DdcScopeGate ddcScopeGate() {
             return mock(DdcScopeGate.class);
+        }
+
+        @Bean("egon.cola.component.tianshu.admin.tenancy-top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties")
+        DdcTenantAdminProperties ddcTenantAdminProperties() {
+            return new DdcTenantAdminProperties();
+        }
+
+        @Bean("ddcTenantRegistry")
+        DdcTenantRegistry ddcTenantRegistry() {
+            return mock(DdcTenantRegistry.class);
+        }
+
+        @Bean("ddcTenantContextExecutor")
+        DdcTenantContextExecutor ddcTenantContextExecutor() {
+            return new DdcTenantContextExecutor();
+        }
+
+        @Bean
+        PlatformTransactionManager transactionManager() {
+            return mock(PlatformTransactionManager.class);
         }
     }
 }

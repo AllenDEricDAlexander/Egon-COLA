@@ -11,7 +11,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishAckEntity;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -36,6 +38,9 @@ class DdcPublishAckLockTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    private final DdcTenantContextExecutor tenantContextExecutor = new DdcTenantContextExecutor();
+    private final DdcTenantContextDTO tenant = new DdcTenantContextDTO(101L, "tenant-test", "test:ack-lock");
+
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -48,30 +53,30 @@ class DdcPublishAckLockTest {
     @Test
     void conflictingAckTransactionsSerializeOnTheTargetRow() throws Exception {
         String changeId = "change-lock";
-        transaction().executeWithoutResult(status ->
-                repository.saveAndFlush(target(changeId)));
+        tenantContextExecutor.run(tenant, () -> transaction().executeWithoutResult(status ->
+                repository.insert(target(changeId))));
 
         CountDownLatch firstLocked = new CountDownLatch(1);
         CountDownLatch releaseFirst = new CountDownLatch(1);
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            var first = executor.submit(() -> transaction().execute(status -> {
-                DdcPublishAckEntity target = repository
+            var first = executor.submit(() -> tenantContextExecutor.call(tenant, () -> transaction().execute(status -> {
+                DdcPublishAckBO target = repository
                         .findForUpdateByChangeIdAndInstanceIdAndLeaseId(
                                 changeId, "instance-1", "lease-1")
                         .orElseThrow();
                 target.setAckStatus("FAILED");
-                repository.saveAndFlush(target);
+                repository.update(target);
                 firstLocked.countDown();
                 await(releaseFirst);
                 return target.getAckStatus();
-            }));
+            })));
 
             assertThat(firstLocked.await(5, TimeUnit.SECONDS)).isTrue();
-            var second = executor.submit(() -> transaction().execute(status ->
+            var second = executor.submit(() -> tenantContextExecutor.call(tenant, () -> transaction().execute(status ->
                     repository.findForUpdateByChangeIdAndInstanceIdAndLeaseId(
                                     changeId, "instance-1", "lease-1")
                             .orElseThrow()
-                            .getAckStatus()));
+                            .getAckStatus())));
 
             assertThatThrownBy(() -> second.get(200, TimeUnit.MILLISECONDS))
                     .isInstanceOf(TimeoutException.class);
@@ -88,9 +93,8 @@ class DdcPublishAckLockTest {
         return new TransactionTemplate(transactionManager);
     }
 
-    private DdcPublishAckEntity target(String changeId) {
-        DdcPublishAckEntity target = new DdcPublishAckEntity();
-        target.setId("ack-lock");
+    private DdcPublishAckBO target(String changeId) {
+        DdcPublishAckBO target = new DdcPublishAckBO();
         target.setChangeId(changeId);
         target.setInstanceId("instance-1");
         target.setLeaseId("lease-1");

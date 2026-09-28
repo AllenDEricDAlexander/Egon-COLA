@@ -130,7 +130,9 @@ public class DdcDatabaseReadyValidator implements SmartInitializingSingleton {
             Map.entry("uk_ai_draft_node_lifecycle", new IndexSpecBO("ddc_ai_draft_node_t0",
                     List.of("tenant_id", "resource_id", "path", "deleted_at"))),
             Map.entry("uk_ai_draft_node_live", new IndexSpecBO("ddc_ai_draft_node_t0",
-                    List.of("tenant_id", "resource_id", "path"))));
+                    List.of("tenant_id", "resource_id", "path"))),
+            Map.entry("uk_instance_business", new IndexSpecBO("ddc_instance_t0",
+                    List.of("tenant_id", "instance_id"))));
     private static final Map<String, Set<String>> TABLE_CONSTRAINTS = Map.ofEntries(
             Map.entry("ddc_biz_t0", Set.of("pk_biz", "uk_biz_tenant_id", "uk_biz_public")),
             Map.entry("ddc_env_t0", Set.of("pk_env", "uk_env_tenant_id", "uk_env_public")),
@@ -383,21 +385,22 @@ public class DdcDatabaseReadyValidator implements SmartInitializingSingleton {
     }
 
     private static void validateManifestResourceChecksum(EgonColaDdlManifestBO manifest) {
-        EgonColaDdlManifestBO.ScriptBO script = manifest.scripts().getFirst();
         try {
-            var matches = DdcDatabaseReadyValidator.class.getClassLoader().getResources(script.path());
-            if (!matches.hasMoreElements()) {
-                throw new IllegalStateException("TIANSHU_DDL_MANIFEST_RESOURCE_MISSING");
-            }
-            var resource = matches.nextElement();
-            if (matches.hasMoreElements()) {
-                throw new IllegalStateException("TIANSHU_DDL_MANIFEST_RESOURCE_AMBIGUOUS");
-            }
-            try (InputStream input = resource.openStream()) {
-                String actual = HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
-                        .digest(input.readAllBytes()));
-                if (!script.sha256().equals(actual)) {
-                    throw new IllegalStateException("TIANSHU_DDL_MANIFEST_RESOURCE_CHECKSUM_MISMATCH");
+            for (EgonColaDdlManifestBO.ScriptBO script : manifest.scripts()) {
+                var matches = DdcDatabaseReadyValidator.class.getClassLoader().getResources(script.path());
+                if (!matches.hasMoreElements()) {
+                    throw new IllegalStateException("TIANSHU_DDL_MANIFEST_RESOURCE_MISSING");
+                }
+                var resource = matches.nextElement();
+                if (matches.hasMoreElements()) {
+                    throw new IllegalStateException("TIANSHU_DDL_MANIFEST_RESOURCE_AMBIGUOUS");
+                }
+                try (InputStream input = resource.openStream()) {
+                    String actual = HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(input.readAllBytes()));
+                    if (!script.sha256().equals(actual)) {
+                        throw new IllegalStateException("TIANSHU_DDL_MANIFEST_RESOURCE_CHECKSUM_MISMATCH");
+                    }
                 }
             }
         } catch (IOException failure) {

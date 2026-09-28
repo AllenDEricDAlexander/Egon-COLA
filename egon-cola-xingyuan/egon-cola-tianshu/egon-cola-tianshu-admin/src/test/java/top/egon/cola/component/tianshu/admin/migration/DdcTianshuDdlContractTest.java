@@ -52,6 +52,8 @@ class DdcTianshuDdlContractTest {
     private static final String TIANSHU_MANIFEST = "db/egon-mp/repository-manifest.json";
     private static final String OUTBOX_MANIFEST = "db/egon-outbox-mp/manifest.json";
     private static final String TIANSHU_SQL = "db/egon-mp/V20260922_001__tianshu_platform.sql";
+    private static final String TIANSHU_INSTANCE_KEY_SQL =
+            "db/egon-mp/V20260928_001__tianshu_instance_business_key.sql";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Pattern CREATE_TABLE = Pattern.compile(
             "(?im)^\\s*CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:public\\.)?([a-z0-9_]+)");
@@ -94,17 +96,28 @@ class DdcTianshuDdlContractTest {
             Map.entry("db/sqlite/V9__enforce_global_biz_app_codes.sql", "4201410e91f7886c36a3f2de209bcbdff22222695ace0fc0203661fdf16a654c"));
 
     @Test
-    void tianshuManifestHasOneScriptWithItsExactChecksum() throws Exception {
+    void tianshuManifestKeepsV001AndAppendsV002WithExactChecksums() throws Exception {
         JsonNode manifest = OBJECT_MAPPER.readTree(requiredResource(TIANSHU_MANIFEST));
         EgonColaDdlManifestBO typedManifest = OBJECT_MAPPER.treeToValue(manifest, EgonColaDdlManifestBO.class);
 
         assertThat(manifest.path("family").asText()).isEqualTo("tianshu");
         assertThat(typedManifest.family()).isEqualTo("tianshu");
-        assertThat(manifest.path("scripts").size()).isEqualTo(1);
-        JsonNode script = manifest.path("scripts").get(0);
-        assertThat(script.path("version").asText()).isEqualTo("20260922_001");
-        assertThat(script.path("path").asText()).isEqualTo(TIANSHU_SQL);
-        assertThat(script.path("sha256").asText()).isEqualTo(sha256(requiredResource(TIANSHU_SQL)));
+        assertThat(manifest.path("scripts").size()).isEqualTo(2);
+        JsonNode v001 = manifest.path("scripts").get(0);
+        JsonNode v002 = manifest.path("scripts").get(1);
+        assertThat(v001.path("version").asText()).isEqualTo("20260922_001");
+        assertThat(v001.path("path").asText()).isEqualTo(TIANSHU_SQL);
+        assertThat(v001.path("sha256").asText()).isEqualTo(sha256(requiredResource(TIANSHU_SQL)));
+        assertThat(v002.path("version").asText()).isEqualTo("20260928_001");
+        assertThat(v002.path("path").asText()).isEqualTo(TIANSHU_INSTANCE_KEY_SQL);
+        assertThat(v002.path("sha256").asText()).isEqualTo(sha256(requiredResource(TIANSHU_INSTANCE_KEY_SQL)));
+    }
+
+    @Test
+    void forwardDdlPreservesTenantLocalInstanceBusinessUniqueness() throws Exception {
+        String sql = new String(requiredResource(TIANSHU_INSTANCE_KEY_SQL),
+                java.nio.charset.StandardCharsets.UTF_8).toLowerCase(java.util.Locale.ROOT);
+        assertThat(sql).contains("create unique index uk_instance_business on ddc_instance_t0 (tenant_id, instance_id)");
     }
 
     @Test
@@ -322,6 +335,12 @@ class DdcTianshuDdlContractTest {
         assertThatThrownBy(() -> DdcDatabaseReadyValidator.validateTianshuSchema(primary, routeFingerprint, manifest))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("TIANSHU_SCHEMA_INDEX_MISMATCH: uk_ai_resource_live");
+
+        assertThatThrownBy(() -> DdcDatabaseReadyValidator.validateTianshuSchema(
+                readinessDataSource(manifest.scripts().getFirst(), routeFingerprint, true,
+                        false, null, null, null, "uk_instance_business"), routeFingerprint, manifest))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("TIANSHU_SCHEMA_INDEX_MISMATCH: uk_instance_business");
     }
 
     @Test
@@ -359,6 +378,23 @@ class DdcTianshuDdlContractTest {
                 new EgonColaDdlManifestBO.ScriptBO(script.version(), script.path(), "0".repeat(64));
         EgonColaDdlManifestBO invalidManifest = new EgonColaDdlManifestBO("tianshu", List.of(invalidScript));
         DataSource primary = readinessDataSource(invalidScript, "a".repeat(64), true);
+
+        assertThatThrownBy(() -> DdcDatabaseReadyValidator.validateTianshuSchema(
+                primary, "a".repeat(64), invalidManifest))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("TIANSHU_DDL_MANIFEST_RESOURCE_CHECKSUM_MISMATCH");
+        verify(primary, org.mockito.Mockito.never()).getConnection();
+    }
+
+    @Test
+    void readinessValidatorChecksTheChecksumOfEveryForwardScript() throws Exception {
+        EgonColaDdlManifestBO manifest = OBJECT_MAPPER.readValue(requiredResource(TIANSHU_MANIFEST),
+                EgonColaDdlManifestBO.class);
+        EgonColaDdlManifestBO.ScriptBO v001 = manifest.scripts().getFirst();
+        EgonColaDdlManifestBO.ScriptBO v002 = manifest.scripts().get(1);
+        EgonColaDdlManifestBO invalidManifest = new EgonColaDdlManifestBO("tianshu", List.of(
+                v001, new EgonColaDdlManifestBO.ScriptBO(v002.version(), v002.path(), "0".repeat(64))));
+        DataSource primary = readinessDataSource(v001, "a".repeat(64), true);
 
         assertThatThrownBy(() -> DdcDatabaseReadyValidator.validateTianshuSchema(
                 primary, "a".repeat(64), invalidManifest))
@@ -486,14 +522,19 @@ class DdcTianshuDdlContractTest {
                 when(rows.getString(1)).thenAnswer(row -> constraints.get(index[0] - 1)[0]);
                 when(rows.getString(2)).thenAnswer(row -> constraints.get(index[0] - 1)[1]);
             } else if (includeHistory) {
-                when(rows.next()).thenReturn(true, false);
-                when(rows.getString(any(Integer.class))).thenAnswer(row -> switch ((int) row.getArgument(0)) {
-                    case 1 -> script.path();
-                    case 2 -> "SQL";
-                    case 3 -> script.version();
-                    case 4 -> script.sha256();
-                    case 5 -> routeFingerprint;
-                    default -> throw new IllegalArgumentException("Unexpected history column");
+                List<EgonColaDdlManifestBO.ScriptBO> history = expectedManifestScripts(script);
+                int[] historyIndex = {-1};
+                when(rows.next()).thenAnswer(row -> ++historyIndex[0] < history.size());
+                when(rows.getString(any(Integer.class))).thenAnswer(row -> {
+                    EgonColaDdlManifestBO.ScriptBO current = history.get(historyIndex[0]);
+                    return switch ((int) row.getArgument(0)) {
+                        case 1 -> current.path();
+                        case 2 -> "SQL";
+                        case 3 -> current.version();
+                        case 4 -> current.sha256();
+                        case 5 -> routeFingerprint;
+                        default -> throw new IllegalArgumentException("Unexpected history column");
+                    };
                 });
                 when(rows.getLong(6)).thenReturn(0L);
             } else {
@@ -526,23 +567,39 @@ class DdcTianshuDdlContractTest {
 
     private static List<IndexRow> sqlLifecycleIndexes(String table) throws SQLException {
         try {
-            String sql = new String(requiredResource(TIANSHU_SQL), java.nio.charset.StandardCharsets.UTF_8);
-            Matcher index = Pattern.compile("(?im)^CREATE\\s+(UNIQUE\\s+)?INDEX\\s+([a-z0-9_]+)\\s+ON\\s+"
-                    + Pattern.quote(table) + "\\s*\\(([^;]+?)\\)\\s*(?:WHERE\\s+[^;]+)?;").matcher(sql);
             List<IndexRow> indexes = new java.util.ArrayList<>();
-            while (index.find()) {
-                String name = index.group(2);
-                if (!name.endsWith("_lifecycle") && !name.endsWith("_live")) {
-                    continue;
-                }
-                String[] columns = index.group(3).split(",");
-                for (int position = 0; position < columns.length; position++) {
-                    indexes.add(new IndexRow(name, columns[position].trim(), position + 1, index.group(1) == null));
+            for (String resource : List.of(TIANSHU_SQL, TIANSHU_INSTANCE_KEY_SQL)) {
+                String sql = new String(requiredResource(resource), java.nio.charset.StandardCharsets.UTF_8);
+                Matcher index = Pattern.compile("(?im)^CREATE\\s+(UNIQUE\\s+)?INDEX\\s+([a-z0-9_]+)\\s+ON\\s+"
+                        + Pattern.quote(table) + "\\s*\\(([^;]+?)\\)\\s*(?:WHERE\\s+[^;]+)?;").matcher(sql);
+                while (index.find()) {
+                    String name = index.group(2);
+                    if (!name.endsWith("_lifecycle") && !name.endsWith("_live")
+                            && !"uk_instance_business".equals(name)) {
+                        continue;
+                    }
+                    String[] columns = index.group(3).split(",");
+                    for (int position = 0; position < columns.length; position++) {
+                        indexes.add(new IndexRow(name, columns[position].trim(), position + 1,
+                                index.group(1) == null));
+                    }
                 }
             }
             return indexes;
         } catch (IOException failure) {
             throw new SQLException("Tianshu SQL resource unreadable", failure);
+        }
+    }
+
+    private static List<EgonColaDdlManifestBO.ScriptBO> expectedManifestScripts(
+            EgonColaDdlManifestBO.ScriptBO firstScript) throws SQLException {
+        try {
+            EgonColaDdlManifestBO manifest = OBJECT_MAPPER.readValue(
+                    requiredResource(TIANSHU_MANIFEST), EgonColaDdlManifestBO.class);
+            if (manifest.scripts().getFirst().path().equals(firstScript.path())) return manifest.scripts();
+            return List.of(firstScript);
+        } catch (IOException failure) {
+            throw new SQLException("Tianshu manifest unreadable", failure);
         }
     }
 

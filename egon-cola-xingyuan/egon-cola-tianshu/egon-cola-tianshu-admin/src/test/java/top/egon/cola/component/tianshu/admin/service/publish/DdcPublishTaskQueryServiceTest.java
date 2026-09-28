@@ -1,12 +1,10 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishTaskQueryRequest;
-import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 
 import java.util.List;
@@ -21,15 +19,13 @@ import static org.mockito.Mockito.when;
 class DdcPublishTaskQueryServiceTest {
 
     @Test
-    void normalizesFiltersAndUsesStableNewestFirstPaging() {
+    void normalizesFiltersAndUsesRepositoryPageQuery() {
         DdcPublishTaskRepository repository = mock(DdcPublishTaskRepository.class);
-        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId("task-1");
+        DdcPublishTaskBO task = DdcPublishTaskBO.builder().changeId("change-1").build();
         when(repository.search(
                 eq("infra"), eq("prod"), eq("yuheng"), eq("FAILED"),
-                eq("019"), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(
-                        List.of(task), PageRequest.of(0, 10), 1));
+                eq("019"), any(PageQuery.class))).thenReturn(DdcPageResult.<DdcPublishTaskBO>builder()
+                .records(List.of(task)).total(1).pageNo(1).pageSize(10).build());
         DdcPublishTaskQueryService service =
                 new DdcPublishTaskQueryService(repository);
         DdcPublishTaskQueryRequest request = new DdcPublishTaskQueryRequest();
@@ -41,12 +37,12 @@ class DdcPublishTaskQueryServiceTest {
 
         var page = service.page(request, new PageQuery(1, 10));
 
-        assertThat(page.getContent()).containsExactly(task);
-        var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        assertThat(page.getRecords()).containsExactly(task);
+        var pageQuery = org.mockito.ArgumentCaptor.forClass(PageQuery.class);
         verify(repository).search(
                 eq("infra"), eq("prod"), eq("yuheng"), eq("FAILED"),
-                eq("019"), pageable.capture());
-        assertThat(pageable.getValue().getSort().toString())
-                .isEqualTo("createdAt: DESC,id: DESC");
+                eq("019"), pageQuery.capture());
+        assertThat(pageQuery.getValue().pageNo()).isEqualTo(1);
+        assertThat(pageQuery.getValue().pageSize()).isEqualTo(10);
     }
 }
