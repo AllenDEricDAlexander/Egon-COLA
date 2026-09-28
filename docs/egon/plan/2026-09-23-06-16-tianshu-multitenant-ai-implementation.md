@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 00:07 Asia/Shanghai` |
+| Updated | `2026-09-29 00:13 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -762,6 +762,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-29 Step 11 的 Admin 子目录 Maven 命令在 `testCompile` 阶段使用了本地仓库旧版本的天权/Tianshu starter、Outbox starter与RPC adapter，导致工作区前序Step新加的租户/Outbox/protobuf类型不可见；仓库根reactor `-pl ... -am` 已能从当前源码组装这些直接依赖。为使GREEN门禁真实验证当前工作区，Step 11 RED→GREEN验证工作目录改为仓库根，并显式添加`-pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am`；不改变生产范围或测试选择器。
 
 2026-09-29 Step 11 移除Admin POM的JPA依赖后，三份先前Step创建的Repository合同测试仍直接导入JpaRepository，因此工作区reactor的testCompile失败且属于本功能移除JPA依赖的直接调用方。Step 11新增 File 94–96，仅删除这三处JPA类型导入/负断言，保留MP Mapper、EgonColaRepository、SQL与业务谓词合同；全局无JPA约束由DdcArchitectureContractTest负责。
+
+2026-09-29 Step 11的 `DdcActiveActiveAdminIT` 本身已是显式Testcontainers PostgreSQL/Redis测试；删去旧JPA/Flyway参数后，应用readiness要求的新MP/Outbox managed schema必须先初始化。测试在启动两个Admin节点前以同一隔离PostgreSQL调用现有 `DdcPersistenceMigrationCli initialize`，并用临时System properties传入连接参数、finally还原；只在该显式IT里初始化，不增加自动启动/自动迁移行为，也不在本轮启动容器。
 ## 7. Ordered File-by-file Implementation Steps
 
 本章是后续实施指令，不代表代码已修改或测试已执行。相同文件在不同Step按不同语义依次编辑；每步先RED再GREEN，只有Step 3的依赖装配用编译RED。完整系统构建只在Step 24。
@@ -9973,7 +9975,7 @@ requireUniqueIndex("uk_instance_business", List.of("tenant_id", "instance_id"));
 
 #### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/config/DdcPublishTaskController.java`
 
-- Purpose: 完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用
+- Purpose: 移除旧JPA/Flyway测试参数，并在显式PostgreSQL/Redis IT启动Admin前运行受控MP/Outbox DDL初始化
 - Symbols: `DdcPublishTaskController`
 - Repository evidence: 当前存在，SHA256前12位`663fcdb3ac35`；源符号`DdcPublishTaskController`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 10；本步13个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
@@ -11196,8 +11198,8 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Symbols: `DdcActiveActiveAdminIT`
 - Repository evidence: 当前存在，SHA256前12位`40e44807ed9d`；源符号`DdcActiveActiveAdminIT`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 10；本步63个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用。
-- Contract/signature changes: DdcActiveActiveAdminIT新增可观察断言：完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用。
+- Why now: 删除Flyway后容器内Admin必须进入managed DDL ready state；显式IT需调用现有初始化CLI，生产普通启动仍只读验证。
+- Contract/signature changes: 移除`spring.jpa.hibernate.ddl-auto`和`spring.flyway.enabled`参数；节点启动前针对该IT的隔离PG调用`DdcPersistenceMigrationCli initialize`。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -11206,10 +11208,9 @@ ensure trusted tenant and version are passed to Repository only from validated c
 
 ```java
 @Test void DdcActiveActiveAdminIT_contract() {
-  // arrange: 完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用
-  // invoke: call the named public boundary under trusted tenant and record returned state plus side effects.
-  // assert: success payload/state and negative conflict/denial/rollback cases; no cross-tenant row, Redis key or event is observable.
-  // RED before production: the target contract or its intended invariant is absent; GREEN only after matching implementation.
+  // start the explicit isolated PostgreSQL/Redis Testcontainers and initialize MP + Outbox DDL through the existing CLI.
+  // restore temporary TIANSHU_JDBC_URL / TIANSHU_DB_USERNAME / TIANSHU_DB_PASSWORD system properties in finally.
+  // start node A/B only after managed readiness; keep JPA/Flyway switches absent and tenant-bound assertions intact.
 }
 ```
 
