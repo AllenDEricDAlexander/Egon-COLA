@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-28 06:36 Asia/Shanghai` |
+| Updated | `2026-09-28 13:16 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -750,6 +750,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 
 2026-09-28继续核对发现Strategy路由合同与Outbox技术schema：已接受Spec要求保持`STRATEGY`，而当前MP SINGLE策略硬编码public、Outbox要求`egon_outbox`。Step 7扩展Common MP的TableProperties增加可选schema（默认public，schema override只准SINGLE）、SINGLE实际节点/YAML输出和工厂拒绝非SINGLE静默忽略；Outbox initializer接受STRATEGY和NATIVE，但仍用TopologyValidator核对同一PRIMARY上的message/history SINGLE节点与LOCAL事务。Tianshu逻辑表名`ddl_history`只映射egon_outbox组件history；public.ddl_history由managed DDL和ready validator从同物理primary的public schema直接访问。默认TableProperties五参数构造器及现有public routes保持兼容。
 
+
+2026-09-28用户批准按仓库路由合同修订Step 8表名：Persistence YML的`tables`键是ShardingSphere逻辑名（如`ddc_biz`），DDL中的`ddc_biz_t0`仅为实际物理DataNode。Common MP Guard在dynamic-table-name关闭时不去除`_t0`后缀，直接用Mapper SQL的tableName查route profile；因此Step 8五个PO的`@TableName`及Mapper SQL使用逻辑名，再由STRATEGY映射到物理`*_t0`，不得按早期伪代码直写物理表名。dynamic-table-name保持关闭，不改DDL或外部API；DdcMetadataRepositoryContractTest验证PO/XML逻辑名、Persistence YML逻辑表配置与实际物理target对应。
 ## 7. Ordered File-by-file Implementation Steps
 
 本章是后续实施指令，不代表代码已修改或测试已执行。相同文件在不同Step按不同语义依次编辑；每步先RED再GREEN，只有Step 3的依赖装配用编译RED。完整系统构建只在Step 24。
@@ -4834,7 +4836,7 @@ tables:
 - Requirements: `REQ-011`, `REQ-013`, `REQ-015`, `REQ-019`
 - Dependencies: Step 7
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
-- Observable outcome: biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护。
+- Observable outcome: biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护；MP实体与Mapper SQL使用逻辑表名，STRATEGY映射到`*_t0`物理目标，保持dynamic-table-name关闭。
 - End state: biz/env/app/namespace/binding的查询写入具备MP边界及tenant/lifecycle唯一保护；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001
@@ -4843,12 +4845,12 @@ tables:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataRepositoryContractTest.java`
 
-- Purpose: 同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义
+- Purpose: 同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义；MP逻辑表名与STRATEGY物理`*_t0`目标一致
 - Symbols: `DdcMetadataRepositoryContractTest`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcMetadataRepositoryContractTest`。
 - Dependencies and consumers: 前置Step 7；本步0个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 先固定本步RED合同。
-- Contract/signature changes: DdcMetadataRepositoryContractTest新增可观察断言：同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义。
+- Contract/signature changes: DdcMetadataRepositoryContractTest新增可观察断言：同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义，并验证@TableName/Mapper使用逻辑名、STRATEGY目标仍是`*_t0`且dynamic-table-name关闭。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -4859,7 +4861,7 @@ tables:
 @Test void DdcMetadataRepositoryContractTest_contract() {
   // arrange: 同编码跨tenant、live重复、软删重建、binding同tenant同biz、范围禁用、原分页排序/NULL语义
   // invoke: call the named public boundary under trusted tenant and record returned state plus side effects.
-  // assert: success payload/state and negative conflict/denial/rollback cases; no cross-tenant row, Redis key or event is observable.
+  // assert: success payload/state and negative conflict/denial/rollback cases; no cross-tenant row, Redis key or event is observable; mapper logical names resolve to configured *_t0 targets.
   // RED before production: the target contract or its intended invariant is absent; GREEN only after matching implementation.
 }
 ```
@@ -4931,7 +4933,8 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Implementation pseudocode:
 
 ```java
-@TableName("ddc_biz_t0") @SuperBuilder class DdcBizPO extends EgonModel {
+@TableName("ddc_biz") @SuperBuilder class DdcBizPO extends EgonModel {
+  // Use the configured logical table; STRATEGY maps it to physical ddc_biz_t0.
   // map native columns public_id, biz_code, biz_name, description, enabled, created_at, updated_at; preserve tenant_id/id/version/deleted_at and original business time fields.
   // use @Data, @NoArgsConstructor, @AllArgsConstructor, @Accessors(chain=true), @EqualsAndHashCode(callSuper=true).
 }
@@ -5084,7 +5087,7 @@ interface DdcBizRepository {
 <mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcBizMapper">
   <select id="selectActiveById">SELECT named ddc_biz columns WHERE tenant_id = trustedTenant AND id = id AND deleted_at IS NULL</select>
   <select id="selectPage">filter public_id, biz_code, biz_name, description, enabled, created_at, updated_at; ORDER BY business_sort, id; preserve prior NULL/page semantics</select>
-  <update id='deleteVersionedById'>UPDATE ddc_biz_t0 SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
+  <update id='deleteVersionedById'>UPDATE ddc_biz SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
 </mapper>
 // immutable histories expose select/insert only; mutable rows use the guarded soft-delete statement.
 ```
@@ -5107,7 +5110,8 @@ interface DdcBizRepository {
 - Implementation pseudocode:
 
 ```java
-@TableName("ddc_env_t0") @SuperBuilder class DdcEnvPO extends EgonModel {
+@TableName("ddc_env") @SuperBuilder class DdcEnvPO extends EgonModel {
+  // Use the configured logical table; STRATEGY maps it to physical ddc_env_t0.
   // map native columns public_id, env_code, description, sort_order, enabled, created_at, updated_at; preserve tenant_id/id/version/deleted_at and original business time fields.
   // use @Data, @NoArgsConstructor, @AllArgsConstructor, @Accessors(chain=true), @EqualsAndHashCode(callSuper=true).
 }
@@ -5260,7 +5264,7 @@ interface DdcEnvRepository {
 <mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcEnvMapper">
   <select id="selectActiveById">SELECT named ddc_env columns WHERE tenant_id = trustedTenant AND id = id AND deleted_at IS NULL</select>
   <select id="selectPage">filter public_id, env_code, description, sort_order, enabled, created_at, updated_at; ORDER BY business_sort, id; preserve prior NULL/page semantics</select>
-  <update id='deleteVersionedById'>UPDATE ddc_env_t0 SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
+  <update id='deleteVersionedById'>UPDATE ddc_env SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
 </mapper>
 // immutable histories expose select/insert only; mutable rows use the guarded soft-delete statement.
 ```
@@ -5283,7 +5287,8 @@ interface DdcEnvRepository {
 - Implementation pseudocode:
 
 ```java
-@TableName("ddc_app_t0") @SuperBuilder class DdcAppPO extends EgonModel {
+@TableName("ddc_app") @SuperBuilder class DdcAppPO extends EgonModel {
+  // Use the configured logical table; STRATEGY maps it to physical ddc_app_t0.
   // map native columns public_id, app_code, app_name, owner, description, enabled, created_at, updated_at; preserve tenant_id/id/version/deleted_at and original business time fields.
   // use @Data, @NoArgsConstructor, @AllArgsConstructor, @Accessors(chain=true), @EqualsAndHashCode(callSuper=true).
 }
@@ -5436,7 +5441,7 @@ interface DdcAppRepository {
 <mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcAppMapper">
   <select id="selectActiveById">SELECT named ddc_app columns WHERE tenant_id = trustedTenant AND id = id AND deleted_at IS NULL</select>
   <select id="selectPage">filter public_id, app_code, app_name, owner, description, enabled, created_at, updated_at; ORDER BY business_sort, id; preserve prior NULL/page semantics</select>
-  <update id='deleteVersionedById'>UPDATE ddc_app_t0 SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
+  <update id='deleteVersionedById'>UPDATE ddc_app SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
 </mapper>
 // immutable histories expose select/insert only; mutable rows use the guarded soft-delete statement.
 ```
@@ -5459,7 +5464,8 @@ interface DdcAppRepository {
 - Implementation pseudocode:
 
 ```java
-@TableName("ddc_namespace_t0") @SuperBuilder class DdcNamespacePO extends EgonModel {
+@TableName("ddc_namespace") @SuperBuilder class DdcNamespacePO extends EgonModel {
+  // Use the configured logical table; STRATEGY maps it to physical ddc_namespace_t0.
   // map native columns public_id, namespace, description, enabled, created_at, updated_at, namespace_code, biz_code; preserve tenant_id/id/version/deleted_at and original business time fields.
   // use @Data, @NoArgsConstructor, @AllArgsConstructor, @Accessors(chain=true), @EqualsAndHashCode(callSuper=true).
 }
@@ -5612,7 +5618,7 @@ interface DdcNamespaceRepository {
 <mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcNamespaceMapper">
   <select id="selectActiveById">SELECT named ddc_namespace columns WHERE tenant_id = trustedTenant AND id = id AND deleted_at IS NULL</select>
   <select id="selectPage">filter public_id, namespace, description, enabled, created_at, updated_at, namespace_code, biz_code; ORDER BY business_sort, id; preserve prior NULL/page semantics</select>
-  <update id='deleteVersionedById'>UPDATE ddc_namespace_t0 SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
+  <update id='deleteVersionedById'>UPDATE ddc_namespace SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
 </mapper>
 // immutable histories expose select/insert only; mutable rows use the guarded soft-delete statement.
 ```
@@ -5635,7 +5641,8 @@ interface DdcNamespaceRepository {
 - Implementation pseudocode:
 
 ```java
-@TableName("ddc_namespace_env_app_t0") @SuperBuilder class DdcNamespaceEnvAppBindingPO extends EgonModel {
+@TableName("ddc_namespace_env_app") @SuperBuilder class DdcNamespaceEnvAppBindingPO extends EgonModel {
+  // Use the configured logical table; STRATEGY maps it to physical ddc_namespace_env_app_t0.
   // map native columns public_id, namespace_id, env_code, app_id, enabled, created_at, updated_at; preserve tenant_id/id/version/deleted_at and original business time fields.
   // use @Data, @NoArgsConstructor, @AllArgsConstructor, @Accessors(chain=true), @EqualsAndHashCode(callSuper=true).
 }
@@ -5788,7 +5795,7 @@ interface DdcNamespaceEnvAppBindingRepository {
 <mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcNamespaceEnvAppBindingMapper">
   <select id="selectActiveById">SELECT named ddc_namespace_env_app columns WHERE tenant_id = trustedTenant AND id = id AND deleted_at IS NULL</select>
   <select id="selectPage">filter public_id, namespace_id, env_code, app_id, enabled, created_at, updated_at; ORDER BY business_sort, id; preserve prior NULL/page semantics</select>
-  <update id='deleteVersionedById'>UPDATE ddc_namespace_env_app_t0 SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
+  <update id='deleteVersionedById'>UPDATE ddc_namespace_env_app SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' WHERE tenant_id = trustedTenant AND id = id AND version = original AND deleted_at IS NULL</update>
 </mapper>
 // immutable histories expose select/insert only; mutable rows use the guarded soft-delete statement.
 ```
