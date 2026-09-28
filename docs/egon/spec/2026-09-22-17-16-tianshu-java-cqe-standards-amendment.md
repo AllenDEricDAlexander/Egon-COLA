@@ -4,12 +4,12 @@
 | --- | --- |
 | Document | `2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md` |
 | Template Version | `7` |
-| Status | `Review` |
+| Status | `Accepted` |
 | Type | `Architecture / Refactor` |
 | Complexity | `Complex` |
 | Complexity Drivers | 已接受规格的建模/包结构/删除契约修订，MP受控能力扩展，Outbox事务/Redis投递，多模块实施依赖 |
 | Created | `2026-09-22 17:16 Asia/Shanghai` |
-| Updated | `2026-09-28 02:04 Asia/Shanghai` |
+| Updated | `2026-09-28 23:50 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢既定多租户Prompt/Skill功能；最新Java/CQE标准与已批准组件扩展 |
@@ -1669,7 +1669,7 @@ class/JSON约束、selector、软删除与父path、Outboxpayload/ACK和独立�
 
 ### 20.4 Relationship and effective-design review
 
-原稿用户已确认，保留为Accepted规范基底；本稿Review。用户明确要求适配后写Plan，故可形成Review计划，但无Ready或执行授权。
+原稿和本稿均已获用户确认；用户于2026-09-28批准按关联Plan执行。本稿状态为Accepted，关联Plan进入In Progress。该设计批准不代表数据库、Outbox投递、Redis或浏览器运行时验证已完成。
 
 ### 20.5 Blocking Manual Check
 

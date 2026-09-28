@@ -4,16 +4,16 @@
 | --- | --- |
 | Document | `2026-09-23-06-16-tianshu-multitenant-ai-implementation.md` |
 | Template Version | `4` |
-| Status | `Review` |
+| Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-28 13:16 Asia/Shanghai` |
+| Updated | `2026-09-28 23:50 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
 | Source Requirement | 用户确认原Spec，要求按最新skill规范修订并写Plan；本次豁免在制后端code generator |
 | Baseline Revision | `main@b31357a0a`；其他任务工作区改动不纳入 |
 | Implements Spec | [天枢 Java/CQE 规范修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) |
-| Spec Status | `Review` |
+| Spec Status | `Accepted` |
 | Spec Revision | `2026-09-28 02:04 Asia/Shanghai`；Outbox manifest/schema/read-only bootstrap及STRATEGY SINGLE schema路由修订 |
 | Effective Specs | [主修订稿](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)；[已确认原Spec](../spec/2026-09-21-17-18-tianshu-prompt-skill-management.md) |
 | Depends On Plans | None |
@@ -31,7 +31,7 @@
 ### 2.1 Primary target
 
 - Path: [2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)
-- Status: `Review`。用户明确要求适配后继续写Plan，允许形成非Ready计划；新修订尚待审核。
+- Status: `Accepted`。用户于2026-09-28批准按本Plan执行；仍需逐Step验证和最终Spec审计。
 - Revision: 修订稿创建`2026-09-22 17:16 Asia/Shanghai`，基线`b31357a0a`。
 - Approval evidence: 原功能Spec已“确认”；Outbox 5.4.1及MP受控历史读取/恢复均得到本会话明确批准；不使用在制code generator。
 
@@ -39,7 +39,7 @@
 
 | Role | Spec/link | Status/revision | Effective sections | Why included |
 | --- | --- | --- | --- | --- |
-| Primary | [Java/CQE修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) | Review；2026-09-22起草、2026-09-23校对 | §1–20；REQ-015～019；§5覆盖矩阵 | 最新规则、组件和事件/生命周期delta |
+| Primary | [Java/CQE修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) | Accepted；2026-09-28用户批准按本Plan执行 | §1–20；REQ-015～019；§5覆盖矩阵 | 最新规则、组件和事件/生命周期delta |
 | Normative base | [Prompt/Skill原Spec](../spec/2026-09-21-17-18-tianshu-prompt-skill-management.md) | Accepted（用户已确认） | REQ-001～014及未被修订稿§5替代条款 | 全部原功能、16表字段、11 REST/2 RPC、兼容与迁移 |
 
 ### 2.3 Superseded or excluded content
@@ -303,7 +303,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcEnvController.java` | SHA256 08fccbe06654 | DdcEnvController | 仅本Step的 DdcBiz,DdcEnv,DdcApp,DdcNamespace,DdcNamespaceEnvAppBinding 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 8, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcMetadataRepositoryContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcNamespaceController.java` | SHA256 5aa6b94d5e94 | DdcNamespaceController | 仅本Step的 DdcBiz,DdcEnv,DdcApp,DdcNamespace,DdcNamespaceEnvAppBinding 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 8, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcMetadataRepositoryContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/register/DdcInstanceController.java` | SHA256 2424bdca9b14 | DdcInstanceController | 仅本Step的 DdcPublishTask,DdcPublishAck,DdcInstance,DdcOperationLog 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 10, Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/converter/DdcStringMapConverter.java` | SHA256 bc517677b5df | DdcStringMapConverter | 完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用 | Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
+| DELETE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/converter/DdcStringMapConverter.java` | SHA256 bc517677b5df | DdcStringMapConverter | 删除已由MP字段级TypeHandler替代、无调用方的JPA AttributeConverter | Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiDraftNodeMapper.java` | CREATE：基线不存在 | DdcAiDraftNodeMapper | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiPublicationMapper.java` | CREATE：基线不存在 | DdcAiPublicationMapper | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiResourceMapper.java` | CREATE：基线不存在 | DdcAiResourceMapper | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
@@ -756,6 +756,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-28用户批准按仓库路由合同修订Step 8表名：Persistence YML的`tables`键是ShardingSphere逻辑名（如`ddc_biz`），DDL中的`ddc_biz_t0`仅为实际物理DataNode。Common MP Guard在dynamic-table-name关闭时不去除`_t0`后缀，直接用Mapper SQL的tableName查route profile；因此Step 8五个PO的`@TableName`及Mapper SQL使用逻辑名，再由STRATEGY映射到物理`*_t0`，不得按早期伪代码直写物理表名。dynamic-table-name保持关闭，不改DDL或外部API；DdcMetadataRepositoryContractTest验证PO/XML逻辑名、Persistence YML逻辑表配置与实际物理target对应。
 
 2026-09-28 Step 10 DDL 复核对照已确认原Spec §11.2.10：`ddc_instance` 必须有 `uk_instance_business(tenant_id, instance_id)`，而 Step 7 的 V001 SQL/manifest/readiness index-contract 少了该键；旧 JPA 映射也保证过 instanceId 唯一。保持 V001 和其SHA/history前缀不可变，Step 10 加 V002 前向 `CREATE UNIQUE INDEX`、将 manifest 扩展为 V001→V002，并让 DdcDatabaseReadyValidator 校验每个manifest脚本的资源checksum、完整history和该索引；DdcTianshuDdlContractTest先对缺失键断言RED再转GREEN。索引冲突必须令CLI初始化/业务readiness失败，不删除、合并或改写旧实例。Step 10 因此扩展4条文件路径及 DDL 合同测试，不加新依赖或运行环境。
+
+2026-09-28 Step 11 执行复核发现 `DdcStringMapConverter` 在 Step 10 将 `DdcInstancePO.runtimeMetadata` 切至字段级 MP `DdcRuntimeMetadataTypeHandler` 后已无生产或测试调用方；该旧类仅实现 JPA `AttributeConverter`。为完成 REQ-011 的无 JPA 源码目标且不保留无用重复转换器，将 §5 变更清单和 Step 11 File 20 的动作由 MODIFY 更正为 DELETE。现有 MP `BaseTypeHandler<Map<String, String>>` 继续负责字段 JSON 序列化、反序列化和空值语义；不改变列类型、JSON内容、wire字段或迁移路径。
 ## 7. Ordered File-by-file Implementation Steps
 
 本章是后续实施指令，不代表代码已修改或测试已执行。相同文件在不同Step按不同语义依次编辑；每步先RED再GREEN，只有Step 3的依赖装配用编译RED。完整系统构建只在Step 24。
@@ -10109,28 +10111,27 @@ ensure trusted tenant and version are passed to Repository only from validated c
 - Verification contribution: DdcLegacyBehaviorContractTest,DdcArchitectureContractTest聚焦本文件的完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/converter/DdcStringMapConverter.java`
+#### File 20 — `DELETE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/converter/DdcStringMapConverter.java`
 
-- Purpose: 完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用
+- Purpose: 删除已由MP字段级TypeHandler替代、无调用方的JPA AttributeConverter
 - Symbols: `DdcStringMapConverter`
 - Repository evidence: 当前存在，SHA256前12位`bc517677b5df`；源符号`DdcStringMapConverter`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 10；本步19个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用。
-- Contract/signature changes: DdcStringMapConverter的具体签名/配置/字段变更：完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Why now: Step 10已将DdcInstancePO的runtimeMetadata映射到MP TypeHandler；本文件删除不再使用的JPA adapter。
+- Contract/signature changes: 删除仅供JPA自动映射的DdcStringMapConverter；字段读写继续委托给Step 10的DdcRuntimeMetadataTypeHandler。
+- Input/output and state mapping: 输入/输出无变化；保留`runtime_metadata`的Map<String, String> JSON编码和空值读取语义，不改变外部字段。
+- Error and edge behavior: JSON JDBC转换仍由现有MP TypeHandler将解析/序列化错误包装为SQLException；不改变失败语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；Rule 1, Rule 3, Rule 5, Rule 11；移除JPA转换扩展并复用现有字段级MP TypeHandler，不引入并行转换层。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcStringMapConverter: 完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用
-replace JPA Entity/Page import with matching BO/DdcPageResult and named BaseForwardConverter at service/controller boundary;
-keep original response id=publicId, nullable fields, ordering, status transitions and error contract;
-ensure trusted tenant and version are passed to Repository only from validated context; re-run old golden fixture.
+// DdcInstancePO already maps runtimeMetadata with DdcRuntimeMetadataTypeHandler.
+// Confirm the JPA AttributeConverter has no main/test callers, then delete it.
+// Keep the MP handler's JSON and empty-value behavior; do not change public fields or DDL.
 ```
 
-- Verification contribution: DdcLegacyBehaviorContractTest,DdcArchitectureContractTest聚焦本文件的完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用；最终由本步GREEN门禁验证。
+- Verification contribution: DdcArchitectureContractTest验证本文件对应的JPA源码退出；DdcPublishPersistenceContractTest验证MP JSON TypeHandler契约。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcConfigVO.java`
