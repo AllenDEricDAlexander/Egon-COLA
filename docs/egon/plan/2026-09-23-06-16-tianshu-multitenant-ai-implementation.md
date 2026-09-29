@@ -14853,7 +14853,7 @@ draft edit/publish/rollback increment `tianshu.ai.commands` with only operation/
 
 #### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiDraftServiceTest.java`
 
-- Purpose: 为新增版本Repository、Converter和MeterRegistry构造依赖补齐直接调用者的mock与参数，保持Step13草稿测试语义不变。
+- Purpose: 为新增版本Repository、Converter和MeterRegistry构造依赖补齐直接调用者的mock与参数；验证Step13草稿行为、DRAFT_SAVE计数和Step14 PUBLISH权限边界。
 - Symbols: `DdcAiDraftServiceTest.setUp`
 - Repository evidence: committed Step13 baseline SHA256 e1c569b121a022708db0fc415c83f654081e11e8b2d9c0788a7e1e1f132e9a2e; this existing test directly invokes the Service constructor.
 - Dependencies and consumers: follows File 29's required constructor injection; exact Step14 reactor gate compiles and runs this Step13 regression suite.
@@ -14879,7 +14879,7 @@ service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, 
         strategyRegistry, readTransactionTemplate, commandTransactionTemplate);
 ```
 
-- Verification contribution: DdcAiDraftServiceTest remains in the required Step14 reactor command, verifies Step13 draft behavior and proves a successful draft save increments the bounded DRAFT_SAVE/success counter.
+- Verification contribution: DdcAiDraftServiceTest remains in the required Step14 reactor command, verifies Step13 draft behavior and lock order, proves a successful draft save increments the bounded DRAFT_SAVE/success counter, and grants/rejects exact namespace PUBLISH permission.
 - After this file: File 31 updates the version-service fixture to inject the existing MeterRegistry and assert low-cardinality counters.
 
 #### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiVersionServiceTest.java`
