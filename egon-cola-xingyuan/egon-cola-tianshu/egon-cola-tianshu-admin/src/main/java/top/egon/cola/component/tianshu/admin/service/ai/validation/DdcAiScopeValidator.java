@@ -5,9 +5,11 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.slf4j.MDC;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.PatternMatchUtils;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiResourceBO;
@@ -15,6 +17,7 @@ import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceBO;
 import top.egon.cola.component.tianshu.admin.repository.DdcAiResourceRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
+import top.egon.cola.component.tianshu.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 import top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO;
@@ -64,7 +67,7 @@ public class DdcAiScopeValidator {
         boolean bound = bindingRepository.findAll(scope.bizCode(), scope.namespaceCode(), scope.env(), scope.appCode())
                 .stream().anyMatch(binding -> Boolean.TRUE.equals(binding.getEnabled()));
         if (!bound) throw new CommonException(DdcErrorStatus.SCOPE_DISABLED);
-        requireNamespacePermission(namespace.getPublicId(), permission);
+        requireNamespacePermission(namespace.getPublicId(), permission, scope);
         return namespace.getId();
     }
 
@@ -102,16 +105,41 @@ public class DdcAiScopeValidator {
         }
     }
 
-    private void requireNamespacePermission(String namespacePublicId, Permission permission) {
+    private void requireNamespacePermission(
+            String namespacePublicId,
+            Permission permission,
+            DdcAiScopeDTO scope) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || !(authentication.getPrincipal() instanceof Rbac3UserDetails user)) {
+        if (authentication != null) {
+            if (!authentication.isAuthenticated()
+                    || !(authentication.getPrincipal() instanceof Rbac3UserDetails user)) {
+                throw scopeForbidden();
+            }
+            String basePermission = "TIANSHU_AI_" + permission.name();
+            if (!user.permissions().contains(basePermission)
+                    && !user.permissions().contains(basePermission + ":*")
+                    && !user.permissions().contains(basePermission + ":" + namespacePublicId)) {
+                throw scopeForbidden();
+            }
+            return;
+        }
+
+        DdcServicePrincipal principal;
+        try {
+            principal = DdcServicePrincipal.current();
+        } catch (IllegalStateException missingPrincipal) {
             throw scopeForbidden();
         }
-        String basePermission = "TIANSHU_AI_" + permission.name();
-        if (!user.permissions().contains(basePermission)
-                && !user.permissions().contains(basePermission + ":*")
-                && !user.permissions().contains(basePermission + ":" + namespacePublicId)) {
+        boolean namespaceAllowed = principal.namespacePatterns().stream()
+                .anyMatch(pattern -> PatternMatchUtils.simpleMatch(pattern, scope.namespaceCode()));
+        if (permission != Permission.READ
+                || !"SDK".equals(principal.clientType())
+                || !Objects.equals(MDC.get("tenantId"), Long.toString(principal.tenantId()))
+                || !Objects.equals(principal.bizCode(), scope.bizCode())
+                || !Objects.equals(principal.env(), scope.env())
+                || !Objects.equals(principal.appCode(), scope.appCode())
+                || !principal.allowedOperations().contains("AI_READ")
+                || !namespaceAllowed) {
             throw scopeForbidden();
         }
     }

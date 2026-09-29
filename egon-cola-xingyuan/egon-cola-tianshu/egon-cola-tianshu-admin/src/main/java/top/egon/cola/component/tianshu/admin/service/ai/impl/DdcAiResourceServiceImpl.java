@@ -55,6 +55,7 @@ import top.egon.cola.component.tianshu.model.ai.DdcAiContentDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiNodeDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiNodeTypeEnum;
+import top.egon.cola.component.tianshu.model.ai.DdcAiResourceQuery;
 import top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
 
@@ -78,6 +79,8 @@ import java.util.function.Supplier;
 public class DdcAiResourceServiceImpl implements DdcAiResourceService {
 
     private static final int AI_NOT_FOUND = 56302;
+    private static final int AI_NOT_PUBLISHED = 56306;
+    private static final int AI_KIND_MISMATCH = 56308;
     private static final int AI_REVISION_CONFLICT = 56303;
     private static final int AI_RESOURCE_KEY_CONFLICT = 56304;
     private static final int AI_CONTENT_INTEGRITY = 56309;
@@ -208,6 +211,46 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
             if (!Objects.equals(resource.getId(), version.getResourceId())
                     || !Objects.equals(resource.getKind(), version.getKind())
                     || !Objects.equals(query.versionNo(), version.getVersionNo())) {
+                throw contentIntegrityFailure();
+            }
+            PreparedContent prepared = preparePersistedVersion(version,
+                    versionNodeRepository.findTreeByVersionId(version.getId()));
+            DdcAiVersionSummaryDTO summary = versionConverter.toVersionSummary(version);
+            if (summary == null || summary.getCreatedAt() == null) throw contentIntegrityFailure();
+            return DdcAiVersionResult.builder().version(summary)
+                    .content(DdcAiContentDTO.builder().promptText(prepared.promptText()).nodes(prepared.nodes()).build())
+                    .build();
+        });
+    }
+
+    @Override
+    public DdcAiVersionResult getPublishedVersion(
+            DdcAiResourceQuery query,
+            DdcAiKindEnum expectedKind) {
+        return readTransactionTemplate.execute(status -> {
+            DdcAiResourceBO resource = readableResource(query.resourceId());
+            if (!Objects.equals(resource.getNamespaceCode(), query.namespaceCode())
+                    || !Objects.equals(resource.getResourceKey(), query.resourceKey())) {
+                throw notFound();
+            }
+            if (resource.getKind() != expectedKind) throw kindMismatch();
+
+            Long versionNo = query.versionNo();
+            boolean current = versionNo == null;
+            if (current) {
+                if (resource.getCurrentVersionId() == null || resource.getCurrentVersionNo() == null
+                        || resource.getCurrentVersionId() <= 0 || resource.getCurrentVersionNo() <= 0) {
+                    throw notPublished();
+                }
+                versionNo = resource.getCurrentVersionNo();
+            }
+            DdcAiVersionBO version = versionRepository.findByResourceIdAndVersionNo(
+                            resource.getId(), versionNo)
+                    .orElseThrow(DdcAiResourceServiceImpl::notFound);
+            if (!Objects.equals(resource.getId(), version.getResourceId())
+                    || !Objects.equals(expectedKind, version.getKind())
+                    || !Objects.equals(versionNo, version.getVersionNo())
+                    || (current && !Objects.equals(resource.getCurrentVersionId(), version.getId()))) {
                 throw contentIntegrityFailure();
             }
             PreparedContent prepared = preparePersistedVersion(version,
@@ -1011,6 +1054,16 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
 
     private static CommonException notFound() {
         return new CommonException(AI_NOT_FOUND, AI_NOT_FOUND_STATUS, "Resource not found");
+    }
+
+    private static CommonException notPublished() {
+        return new CommonException(AI_NOT_PUBLISHED, "TIANSHU_AI_NOT_PUBLISHED",
+                "Resource has no published version");
+    }
+
+    private static CommonException kindMismatch() {
+        return new CommonException(AI_KIND_MISMATCH, "TIANSHU_AI_KIND_MISMATCH",
+                "Resource kind does not match the requested AI endpoint");
     }
 
     private static CommonException revisionConflict() {

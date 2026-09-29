@@ -57,6 +57,7 @@ import top.egon.cola.component.tianshu.model.ai.DdcAiContentDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiNodeTypeEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO;
+import top.egon.cola.component.tianshu.model.ai.DdcAiResourceQuery;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
 
 import java.nio.charset.StandardCharsets;
@@ -343,6 +344,80 @@ class DdcAiVersionServiceTest {
     }
 
     @Test
+    void getPublishedVersionSelectsCurrentOrFixedVersionFromTheSameRootWithoutReadingDrafts() {
+        executeTransactionCallbacksInline(readTransactionTemplate);
+        DdcAiResourceBO resource = resource(RESOURCE_ID, 9L).setCurrentVersionId(820004L)
+                .setCurrentVersionNo(4L).setLastVersionNo(4L);
+        DdcAiVersionBO current = promptVersion(820004L, 4L);
+        DdcAiVersionBO fixed = promptVersion(820003L, 3L);
+        DdcAiVersionSummaryDTO currentSummary = promptSummary(current);
+        DdcAiVersionSummaryDTO fixedSummary = promptSummary(fixed);
+        when(resourceRepository.findActiveForShareById(RESOURCE_ID)).thenReturn(Optional.of(resource));
+        when(versionRepository.findByResourceIdAndVersionNo(RESOURCE_ID, 4L)).thenReturn(Optional.of(current));
+        when(versionRepository.findByResourceIdAndVersionNo(RESOURCE_ID, 3L)).thenReturn(Optional.of(fixed));
+        when(versionNodeRepository.findTreeByVersionId(820004L)).thenReturn(List.of());
+        when(versionNodeRepository.findTreeByVersionId(820003L)).thenReturn(List.of());
+        when(contentStrategyRegistry.get(DdcAiKindEnum.PROMPT)).thenReturn(promptStrategy);
+        when(promptStrategy.kind()).thenReturn(DdcAiKindEnum.PROMPT);
+        when(promptStrategy.prepare(any(DdcAiContentDTO.class))).thenReturn(preparedPrompt(PROMPT));
+        when(versionConverter.toVersionSummary(current)).thenReturn(currentSummary);
+        when(versionConverter.toVersionSummary(fixed)).thenReturn(fixedSummary);
+
+        DdcAiVersionResult currentResult = service.getPublishedVersion(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "review-order", null, RESOURCE_ID),
+                DdcAiKindEnum.PROMPT);
+        DdcAiVersionResult fixedResult = service.getPublishedVersion(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "review-order", 3L, RESOURCE_ID),
+                DdcAiKindEnum.PROMPT);
+
+        assertThat(currentResult.getVersion()).isSameAs(currentSummary);
+        assertThat(fixedResult.getVersion()).isSameAs(fixedSummary);
+        assertThat(currentResult.getContent().getPromptText()).isEqualTo(PROMPT);
+        assertThat(fixedResult.getContent().getPromptText()).isEqualTo(PROMPT);
+        verify(resourceRepository, times(2)).findActiveForShareById(RESOURCE_ID);
+        verify(scopeValidator, times(2)).assertCanRead(resource);
+        verify(versionRepository).findByResourceIdAndVersionNo(RESOURCE_ID, 4L);
+        verify(versionRepository).findByResourceIdAndVersionNo(RESOURCE_ID, 3L);
+        verify(readTransactionTemplate, times(2)).execute(any(TransactionCallback.class));
+        verifyNoInteractions(draftNodeRepository, draftNodeConverter);
+    }
+
+    @Test
+    void getPublishedVersionRejectsAKeyOrKindThatDoesNotMatchTheStableRoot() {
+        executeTransactionCallbacksInline(readTransactionTemplate);
+        DdcAiResourceBO resource = resource(RESOURCE_ID, 9L).setKind(DdcAiKindEnum.PROMPT);
+        when(resourceRepository.findActiveForShareById(RESOURCE_ID)).thenReturn(Optional.of(resource));
+
+        assertThatThrownBy(() -> service.getPublishedVersion(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "different-key", null, RESOURCE_ID),
+                DdcAiKindEnum.PROMPT))
+                .isInstanceOf(CommonException.class);
+        assertThatThrownBy(() -> service.getPublishedVersion(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "review-order", null, RESOURCE_ID),
+                DdcAiKindEnum.SKILL))
+                .isInstanceOf(CommonException.class);
+
+        verifyNoInteractions(versionRepository, versionNodeRepository, draftNodeRepository);
+    }
+
+    @Test
+    void getPublishedVersionReturnsStableNotPublishedStatusWithoutReadingDrafts() {
+        executeTransactionCallbacksInline(readTransactionTemplate);
+        DdcAiResourceBO resource = resource(RESOURCE_ID, 9L)
+                .setCurrentVersionId(null).setCurrentVersionNo(null);
+        when(resourceRepository.findActiveForShareById(RESOURCE_ID)).thenReturn(Optional.of(resource));
+
+        assertThatThrownBy(() -> service.getPublishedVersion(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "review-order", null, RESOURCE_ID),
+                DdcAiKindEnum.PROMPT))
+                .isInstanceOfSatisfying(CommonException.class,
+                        failure -> assertThat(failure.getCode()).isEqualTo(56306));
+
+        verify(scopeValidator).assertCanRead(resource);
+        verifyNoInteractions(versionRepository, versionNodeRepository, draftNodeRepository);
+    }
+
+    @Test
     void exhaustedVersionCounterConflictsWithoutWritingAnyVersionState() {
         prepareCommandContext();
         DdcAiResourceBO resource = resource(RESOURCE_ID, 3L).setLastVersionNo(Long.MAX_VALUE);
@@ -485,6 +560,23 @@ class DdcAiVersionServiceTest {
                 .kind(DdcAiKindEnum.PROMPT).resourceKey("review-order").displayName("Review Order")
                 .description("").draftPrompt(PROMPT).lastVersionNo(2L).currentVersionId(820002L)
                 .currentVersionNo(2L).createTime(CREATED_AT).updateTime(CREATED_AT).build();
+    }
+
+    private DdcAiVersionBO promptVersion(Long id, Long versionNo) {
+        return DdcAiVersionBO.builder().id(id).resourceId(RESOURCE_ID).versionNo(versionNo)
+                .kind(DdcAiKindEnum.PROMPT).displayName("Review Order").description("")
+                .promptText(PROMPT).contentSha256(HASH)
+                .contentBytes((long) PROMPT.getBytes(StandardCharsets.UTF_8).length)
+                .nodeCount(0).changeNote("published prompt").createTime(CREATED_AT).build();
+    }
+
+    private DdcAiVersionSummaryDTO promptSummary(DdcAiVersionBO version) {
+        return DdcAiVersionSummaryDTO.builder().id(version.getId()).resourceId(version.getResourceId())
+                .versionNo(version.getVersionNo()).kind(DdcAiKindEnum.PROMPT.name())
+                .displayName(version.getDisplayName()).description(version.getDescription())
+                .contentSha256(version.getContentSha256()).contentBytes(version.getContentBytes())
+                .nodeCount(version.getNodeCount()).changeNote(version.getChangeNote())
+                .createdAt(CREATED_AT).createdBy("operator").build();
     }
 
     private DdcAiContentStrategy.PreparedContent preparedPrompt(String text) {

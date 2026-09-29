@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.redisson.api.RedissonClient;
+import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -17,10 +18,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
+import top.egon.cola.component.tianshu.api.client.DdcPromptClient;
+import top.egon.cola.component.tianshu.api.client.DdcSkillClient;
 import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.tianshu.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRegistryAutoConfiguration;
+import top.egon.cola.component.tianshu.autoconfigure.DdcAiResourceAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
@@ -34,6 +38,7 @@ import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientHandle;
+import top.egon.cola.component.rpc.tianshu.client.ai.DdcAiProtoConverter;
 import top.egon.cola.component.rpc.tianshu.client.registry.RpcDdcServiceRegistryClient;
 import top.egon.cola.component.rpc.tianshu.registry.*;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
@@ -58,6 +63,7 @@ import java.net.InetAddress;
         before = {
                 DdcAutoConfiguration.class,
                 DdcRegistryAutoConfiguration.class,
+                DdcAiResourceAutoConfiguration.class,
                 EgonRpcAutoConfig.class
         }
 )
@@ -76,7 +82,13 @@ public class DdcRpcAutoConfiguration {
                 () -> Validation.buildDefaultValidatorFactory().getValidator()));
     }
 
-    @Bean
+    @Bean("ddcAiProtoConverterImpl")
+    @ConditionalOnMissingBean(DdcAiProtoConverter.class)
+    public DdcAiProtoConverter ddcAiProtoConverter() {
+        return Mappers.getMapper(DdcAiProtoConverter.class);
+    }
+
+    @Bean("ddcRpcClientFactory")
     @ConditionalOnMissingBean
     public DdcRpcClientFactory ddcRpcClientFactory(
             @Qualifier("egon.cola.component.tianshu.rpc-top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties")
@@ -85,12 +97,14 @@ public class DdcRpcAutoConfiguration {
             DdcProperties ddcProperties,
             @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties")
             DdcTenantProperties tenantProperties,
+            @Qualifier("ddcAiProtoConverterImpl") DdcAiProtoConverter aiProtoConverter,
             Environment environment) {
         return new DdcRpcClientFactory(
                 rpcProperties,
                 ddcProperties,
                 tenantProperties,
-                directIdentity(ddcProperties, environment)
+                directIdentity(ddcProperties, environment),
+                aiProtoConverter
         );
     }
 
@@ -133,6 +147,44 @@ public class DdcRpcAutoConfiguration {
     public DdcConfigClient ddcRpcConfigClient(
             @Qualifier("ddcConfigRpcClientHandle")
             DdcRpcClientHandle<DdcConfigClient> handle) {
+        return handle.client();
+    }
+
+    @Bean(name = "ddcAiPromptRpcClientHandle", destroyMethod = "close")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.tianshu.prompt",
+            name = "enabled",
+            havingValue = "true")
+    @ConditionalOnMissingBean(DdcPromptClient.class)
+    public DdcRpcClientHandle<DdcPromptClient> ddcAiPromptRpcClientHandle(
+            DdcRpcClientFactory factory) {
+        return factory.promptClient();
+    }
+
+    @Bean("ddcAiPromptRpcClient")
+    @ConditionalOnBean(name = "ddcAiPromptRpcClientHandle")
+    @ConditionalOnMissingBean(DdcPromptClient.class)
+    public DdcPromptClient ddcAiPromptRpcClient(
+            @Qualifier("ddcAiPromptRpcClientHandle") DdcRpcClientHandle<DdcPromptClient> handle) {
+        return handle.client();
+    }
+
+    @Bean(name = "ddcAiSkillRpcClientHandle", destroyMethod = "close")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.tianshu.skill",
+            name = "enabled",
+            havingValue = "true")
+    @ConditionalOnMissingBean(DdcSkillClient.class)
+    public DdcRpcClientHandle<DdcSkillClient> ddcAiSkillRpcClientHandle(
+            DdcRpcClientFactory factory) {
+        return factory.skillClient();
+    }
+
+    @Bean("ddcAiSkillRpcClient")
+    @ConditionalOnBean(name = "ddcAiSkillRpcClientHandle")
+    @ConditionalOnMissingBean(DdcSkillClient.class)
+    public DdcSkillClient ddcAiSkillRpcClient(
+            @Qualifier("ddcAiSkillRpcClientHandle") DdcRpcClientHandle<DdcSkillClient> handle) {
         return handle.client();
     }
 

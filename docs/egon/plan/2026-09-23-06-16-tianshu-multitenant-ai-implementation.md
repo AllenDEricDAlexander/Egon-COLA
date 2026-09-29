@@ -15516,9 +15516,9 @@ private void write(HttpServletRequest request, HttpServletResponse response, int
 - Dependencies: Step 16
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 两独立开关、custom port、无默认网络；固定root版本读取不串重建身份。
-- End state: 两独立开关、custom port、无默认网络；固定root版本读取不串重建身份；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- End state: 两独立开关默认关闭；custom Port可覆盖；禁用时不注册默认客户端/handle、不触网；机器Principal按tenant/scope只读；单事务固定root读取当前/历史发布版且不串key重建；21条唯一路径完成。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 10, Rule 11
 - Ordered files:
 
@@ -15574,87 +15574,116 @@ private void write(HttpServletRequest request, HttpServletResponse response, int
 - Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的false/false、true/false、false/true、true/true及旧global开关矩阵；custom Bean无多余handle；缺adapter/tenant明确失败；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 3 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcPromptClient.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcAiResourceRpcProviderTest.java`
 
-- Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
-- Symbols: `RpcDdcPromptClient`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`RpcDdcPromptClient`。
-- Dependencies and consumers: 前置Step 16；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
-- Contract/signature changes: RpcDdcPromptClient的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Purpose: 覆盖服务端Prompt/Skill RPC、固定root版本、DdcServicePrincipal租户与namespace只读授权、完整结果和status Trailer。
+- Symbols: DdcAiResourceRpcProviderTest
+- Repository evidence: 当前测试路径不存在；直接构造Provider并真实执行DdcAiScopeValidator，其他持久化/Proto依赖采用mock。
+- Dependencies and consumers: 前置Step 16；本步2个已排序测试文件；验证Provider与机器Principal scope守卫。
+- Why now: HTTP RBAC和RPC HMAC是两种可信主体，必须证明Machine Principal可READ且不获得WRITE/PUBLISH。
+- Contract/signature changes: 新增Prompt/Skill正例、root/key mismatch、未发布和namespace/tenant拒绝测试。
+- Input/output and state mapping: RPC返回固定已发布版本；当前版/历史版绑定resourceId；Skill结果含完整目录树。
+- Error and edge behavior: 缺principal、旧root重建、scope不匹配、无AI_READ/namespacePattern均失败；不返回草稿或半包。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；gRPC Context携带DdcServicePrincipal；断言只读scope权限、完整Proto结果和error detail。
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// RpcDdcPromptClient: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
-```
-
-- Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
-
-#### File 4 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcSkillClient.java`
-
-- Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
-- Symbols: `RpcDdcSkillClient`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`RpcDdcSkillClient`。
-- Dependencies and consumers: 前置Step 16；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
-- Contract/signature changes: RpcDdcSkillClient的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
-- Implementation pseudocode:
-
-```java
-// RpcDdcSkillClient: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
-```
-
-- Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
-
-#### File 5 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiProtoConverter.java`
-
-- Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
-- Symbols: `DdcAiProtoConverter`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiProtoConverter`。
-- Dependencies and consumers: 前置Step 16；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
-- Contract/signature changes: DdcAiProtoConverter的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
-- Implementation pseudocode:
-
-```java
-@Mapper(componentModel="spring") interface DdcAiProtoConverter extends BaseForwardConverter<DdcAiResourceQuery,GetAiResourceRequest> {
-  @Override GetAiResourceRequest toTarget(DdcAiResourceQuery source); // resourceId Long -> optional decimal string field 7.
-  // map Prompt/Skill result content and version metadata to stable proto fields; reject unknown enum/zero ids.
+@Test void skillReadUsesTheAuthenticatedRootAndFullTree() {
+  attach(principal(tenantId, Set.of("AI_READ"), Set.of("prod-space")));
+  when(resourceService.getPublishedVersion(query, DdcAiKindEnum.SKILL)).thenReturn(publishedSkill);
+  AiSkillResult result = provider.getSkill(requestWithRootId(rootId));
+  assertThat(result.getFilesList()).containsExactlyElementsOf(expectedProtoTree);
 }
-// Spring bean name ddcAiProtoConverterImpl; generated mapping is compiled in RPC adapter.
 ```
 
-- Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiRpcContractTest、DdcAiAutoConfigurationTest及Provider test覆盖客户端、配置矩阵和可信机器读取。。
+- After this file: RPC业务错误不会退化成空内容或绕过namespace授权。
 
-#### File 6 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiQueryDTO.java`
+
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiVersionServiceTest.java`
+
+- Purpose: 为同一事务内读取当前/显式已发布版本固定root、整包校验和不读取草稿建立Service合同。
+- Symbols: DdcAiVersionServiceTest.getPublishedVersion
+- Repository evidence: committed Step 14 test baseline；本类已覆盖VersionService的历史快照、发布和回滚。
+- Dependencies and consumers: 前置Step 14/15 Service；本步3个已排序测试文件；File 16 ServiceImpl实现。
+- Why now: 机器消费不能先取草稿再用第二次读版本，也不能因目标指针并发改变而混包。
+- Contract/signature changes: 增加current/fixed version、root mismatch、unpublished、kind mismatch和草稿Repository不交互断言。
+- Input/output and state mapping: 输入DdcAiResourceQuery及expectedKind，输出对应根下完整不可变DdcAiVersionResult。
+- Error and edge behavior: 缺根/版本沿用56302，未发布为56306，跨tenant/无namespace授权拒绝；不返回草稿。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；运行本地TransactionTemplate callback与mock Repository，断言同一只读回调内固定root/pointer/version。
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Test void clientReadSelectsCurrentOrExactVersionAndNeverLoadsDraft() {
+  DdcAiVersionResult current = service.getPublishedVersion(queryWithRootId(rootId), SKILL);
+  assertThat(current.getVersion().getVersionNo()).isEqualTo(4L);
+  verify(versionRepository).findByResourceIdAndVersionNo(rootId, 4L);
+  verifyNoInteractions(draftNodeRepository);
+}
+```
+
+- Verification contribution: DdcAiVersionServiceTest验证Service选择器和完整快照；Provider test验证RPC语义输出。。
+- After this file: Service新增只读查询能在无draft repository读取时返回稳定发布内容。
+
+
+#### File 5 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/contract/DdcAiResourceRpc.java`
+
+- Purpose: 声明AiResourceService的Direct RPC typed facade供client factory与Admin Provider共用Proto描述。
+- Symbols: DdcAiResourceRpc
+- Repository evidence: 当前契约路径不存在；同包DdcConfigRuntimeRpc、DdcServiceRegistryRpc提供EgonRpcService/Method写法。
+- Dependencies and consumers: 前置Step 16；本步4个已排序测试文件；被Proto converter、DdcRpcClientFactory、Provider消费。
+- Why now: Direct factory与provider scanner要求带EgonRpcService的接口，Proto descriptor不能替代Facade。
+- Contract/signature changes: 新增GetPrompt/GetSkill两个AI_READ只读方法；service名称和方法名与Proto一致。
+- Input/output and state mapping: AiResourceQuery入参，AiPromptResult/AiSkillResult出参；tenant只存在于v2签名metadata。
+- Error and edge behavior: 不新增管理写operation或修改已提交Proto字段号。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；typed facade uses the exact generated grpcClass and read method names.
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@EgonRpcService(grpcClass = DdcAiResourceServiceGrpc.class, group = "tianshu", version = "1.0.0")
+public interface DdcAiResourceRpc {
+  @EgonRpcMethod(name = "GetPrompt") AiPromptResult getPrompt(AiResourceQuery query);
+  @EgonRpcMethod(name = "GetSkill") AiSkillResult getSkill(AiResourceQuery query);
+}
+```
+
+- Verification contribution: RPC contract tests断言descriptor、method names和typed message。。
+- After this file: Client与Provider使用同一Typed facade。
+
+
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiResourceQuery.java`
+
+- Purpose: 使Starter公共Prompt/Skill查询始终携带唯一资源root ID，避免删除重建后的同key误命中。
+- Symbols: DdcAiResourceQuery.resourceId
+- Repository evidence: committed Starter Query已有可空resourceId和version selector consistency validator。
+- Dependencies and consumers: 前置Step 4；本步5个已排序文件；供RPC client、provider和消费者调用。
+- Why now: resourceKey/version不足以区分同namespace删除后重建的资源历史。
+- Contract/signature changes: 将resourceId约束为@NotNull @Positive；其他record字段和调用形状不变。
+- Input/output and state mapping: namespaceCode+resourceKey+optional versionNo+required resourceId精准定位。
+- Error and edge behavior: resourceId缺失、0、负数和selector不一致均在输入边界拒绝。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；Preserve record, compact normalization and existing selector validator.
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Positive Long versionNo,
+@NotNull @Positive Long resourceId
+// client callers supply the exact root and optional immutable version.
+```
+
+- Verification contribution: RPC and starter tests cover missing/zero/negative IDs and same-key recreation.。
+- After this file: current and fixed reads stay bound to one stable resource identity。
+
+
+#### File 7 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiQueryDTO.java`
 
 - Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
 - Symbols: `DdcAiQueryDTO`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiQueryDTO`。
-- Dependencies and consumers: 前置Step 16；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 16；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
 - Contract/signature changes: DdcAiQueryDTO的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
@@ -15674,14 +15703,95 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 7 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfiguration.java`
+#### File 8 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiProtoConverter.java`
 
 - Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
-- Symbols: `DdcRpcAutoConfiguration`
-- Repository evidence: 当前存在，SHA256前12位`775a1bf52cd7`；源符号`DdcRpcAutoConfiguration`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 16；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Symbols: `DdcAiProtoConverter`
+- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiProtoConverter`。
+- Dependencies and consumers: 前置Step 16；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
-- Contract/signature changes: DdcRpcAutoConfiguration的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
+- Contract/signature changes: MapStruct `DdcAiProtoConverter extends BaseForwardConverter<DdcAiQueryDTO, AiResourceQuery>`；提供 Prompt/Skill proto⇄Port DTO 映射并显式保持 optional version/content presence。
+- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
+- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步判定；失败不得越权、半提交或吞掉原错误语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+interface DdcAiProtoConverter extends BaseForwardConverter<DdcAiQueryDTO, AiResourceQuery> {
+  @Override AiResourceQuery toTarget(DdcAiQueryDTO source); // MapStruct owns ordinary fields.
+  DdcPromptResult mapPromptResult(AiPromptResult source);
+  DdcSkillResult mapSkillResult(AiSkillResult source); // Node mapping checks optional content presence.
+  AiPromptResult toProto(DdcPromptResult source);
+  AiSkillResult mapSkillResultToProto(DdcSkillResult source); // MapStruct maps fields; addFiles uses the builder.
+  // wrappers validate canonical identifiers and preserve directory-absent / empty-file-present content.
+}
+// Generated bean ddcAiProtoConverterImpl; MapStruct and its processor already exist in the adapter.
+```
+
+- Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
+- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcScopeExtractor.java`
+
+- Purpose: 在RPC Authorization前要求AI_READ的Proto resource_id#7始终存在且为正canonical Long。
+- Symbols: DdcRpcScopeExtractor.aiReadScope
+- Repository evidence: committed extractor仅在version_no出现时要求resource_id；当前版读取可缺失。
+- Dependencies and consumers: 前置RPC auth v2；本步8个已排序文件；interceptor在Provider前调用。
+- Why now: 所有消费请求均按root identity读取；key删除重建后不能重新指向新资源。
+- Contract/signature changes: AI Read scope提取增加必填field7及canonical decimal/Long范围检查，其他operation不变。
+- Input/output and state mapping: 签名canonical body覆盖biz/namespace/env/app/key/version_no/resource_id七字段。
+- Error and edge behavior: 缺失、零、负数、前导零和溢出在读取内容前INVALID_ARGUMENT。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；use generated optional presence and strict parsing; preserve existing auth behavior.
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+if (!query.hasResourceId()) throw new IllegalArgumentException("resourceId is required");
+long rootId = parsePositiveCanonicalLong(query.getResourceId());
+requirePositiveOptionalVersion(query.hasVersionNo(), query.getVersionNo());
+return aiReadScopeFromDeclaredFields(query, rootId);
+```
+
+- Verification contribution: RPC tests verify field7 presence/canonical form; existing HMAC tests remain.。
+- After this file: Provider cannot be reached with a selector that omits its root identity。
+
+
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/validation/DdcAiScopeValidator.java`
+
+- Purpose: 保留Rbac3用户READ/WRITE/PUBLISH权限后，支持可信DdcServicePrincipal的namespace受限AI_READ。
+- Symbols: DdcAiScopeValidator.requireNamespacePermission
+- Repository evidence: committed validator只支持SecurityContextHolder Rbac3UserDetails；RPC v2绑定tenant/app/env/biz/AI_READ与namespacePatterns。
+- Dependencies and consumers: 前置Step 15用户scope gate；本步9个已排序文件；同一Service由HTTP和RPC读取调用。
+- Why now: Provider复用Service时SecurityContext无Rbac3；当前守卫会误拒机器Principal。
+- Contract/signature changes: 用户grant逻辑保持；机器principal仅READ并校验MDC tenant、biz/env/app、AI_READ和namespacePatterns。
+- Input/output and state mapping: principal缺失或tenant/scope/operation/pattern不符均56307；机器principal不可WRITE/PUBLISH。
+- Error and edge behavior: 缺principal、tenant/app/env/biz不符、无AI_READ或namespace pattern不符均56307；机器principal无WRITE/PUBLISH。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-CONVERT-001；复用具名scope validator、已有RPC Context和MDC，不增加身份框架。
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+if (rbac3Authenticated()) { requireExistingNamespaceGrant(namespacePublicId, permission); return; }
+DdcServicePrincipal principal = currentRpcPrincipalOrNull();
+require(permission == READ && principal != null && currentTenantMdcMatches(principal));
+require(principal.allowedOperations().contains("AI_READ") && exactBusinessScopeMatches(principal, scope));
+require(PatternMatchUtils.simpleMatch(principal.namespacePatterns(), scope.namespaceCode()));
+```
+
+- Verification contribution: Provider tests bind RPC Context; allowed namespace passes, tenant/pattern mismatch fails.
+- After this file: HTTP user grants remain unchanged while the same Service safely serves RPC reads。
+
+
+#### File 11 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcPromptClient.java`
+
+- Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
+- Symbols: `RpcDdcPromptClient`
+- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`RpcDdcPromptClient`。
+- Dependencies and consumers: 前置Step 16；本步10个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
+- Contract/signature changes: RpcDdcPromptClient的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -15689,7 +15799,7 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Implementation pseudocode:
 
 ```java
-// DdcRpcAutoConfiguration: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
+// RpcDdcPromptClient: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
 @Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
 load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
 map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
@@ -15699,12 +15809,37 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 8 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactory.java`
+#### File 12 — `CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcSkillClient.java`
+
+- Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
+- Symbols: `RpcDdcSkillClient`
+- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`RpcDdcSkillClient`。
+- Dependencies and consumers: 前置Step 16；本步11个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
+- Contract/signature changes: RpcDdcSkillClient的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
+- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
+- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步判定；失败不得越权、半提交或吞掉原错误语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Implementation pseudocode:
+
+```java
+// RpcDdcSkillClient: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
+@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
+load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
+map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
+// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+```
+
+- Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
+- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+
+#### File 13 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactory.java`
 
 - Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
 - Symbols: `DdcRpcClientFactory`
 - Repository evidence: 当前存在，SHA256前12位`f7d365c2d4f4`；源符号`DdcRpcClientFactory`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 16；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 16；本步12个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
 - Contract/signature changes: DdcRpcClientFactory的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
@@ -15724,12 +15859,89 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcAiResourceRpcProvider.java`
+#### File 14 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfiguration.java`
+
+- Purpose: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
+- Symbols: `DdcRpcAutoConfiguration`
+- Repository evidence: 当前存在，SHA256前12位`775a1bf52cd7`；源符号`DdcRpcAutoConfiguration`或相邻同层调用可定位。
+- Dependencies and consumers: 前置Step 16；本步13个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
+- Contract/signature changes: DdcRpcAutoConfiguration的具体签名/配置/字段变更：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。
+- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；按修订稿§9/§11保持原wire字段。
+- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步判定；失败不得越权、半提交或吞掉原错误语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Implementation pseudocode:
+
+```java
+// DdcRpcAutoConfiguration: DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步
+@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
+load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
+map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
+// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+```
+
+- Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的DAO不外泄；端口读取→typed Query/proto→Provider；owned handles close，10s/3s/4MiB沿原；无后台同步；最终由本步GREEN门禁验证。
+- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiResourceService.java`
+
+- Purpose: 暴露仅供Admin机器Provider调用的无草稿、具名AI-kind、当前或显式版本只读Service Query。
+- Symbols: DdcAiResourceService.getPublishedVersion
+- Repository evidence: committed Step 16 baseline；接口已有get/getVersion，但单独组合会读取草稿并使用两个事务。
+- Dependencies and consumers: 前置Step 16 Controller/Scope contracts；本步14个已排序文件；被DdcAiResourceRpcProvider消费。
+- Why now: 机器消费者只需要已发布快照；新增服务边界避免读取草稿和指针/版本跨事务。
+- Contract/signature changes: 新增getPublishedVersion(DdcAiResourceQuery,DdcAiKindEnum):DdcAiVersionResult，保持现有Service和REST方法不变。
+- Input/output and state mapping: trusted tenant+resourceId+namespace/key+expected kind+optional version映射到当前或固定不可变版本与完整内容。
+- Error and edge behavior: 缺根/版本、不匹配kind、未发布、跨租户/namespace按既有稳定CommonException失败。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；在现有@Validated Service层使用@Valid Query和@NotNull kind；无新的事务抽象或端口。
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Validated(EgonColaModelValidationGroups.Query.class)
+DdcAiVersionResult getPublishedVersion(@NotNull(groups=Query.class) @Valid DdcAiResourceQuery query,
+        @NotNull(groups=Query.class) DdcAiKindEnum expectedKind);
+```
+
+- Verification contribution: DdcAiVersionServiceTest与Provider test断言current/fixed selector都进入该公共Service界面。。
+- After this file: 机器读取只调用一个显式已发布版本查询，不复用草稿Detail。
+
+
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiResourceServiceImpl.java`
+
+- Purpose: 在一个readTransactionTemplate内绑定root、核验stored scope/kind、选当前或历史版本并校验整包。
+- Symbols: DdcAiResourceServiceImpl.getPublishedVersion
+- Repository evidence: committed Step 16 baseline；已有精确根版本读取、preparePersistedVersion和内容完整性校验可直接复用。
+- Dependencies and consumers: 前置Service API与RPC Principal READ扩展；本步15个已排序文件。
+- Why now: 旧的get()返回草稿，Provider不得先读草稿再第二次查询历史。
+- Contract/signature changes: 查询tenant scoped active root；scopeValidator.assertCanRead；resourceId/namespace/key/kind匹配后选versionNo/currentPointer。
+- Input/output and state mapping: 一次只读事务输出对应DdcAiVersionSummaryDTO与经过ContentStrategy校验的完整Prompt/Skill内容。
+- Error and edge behavior: 未发布返回56306；跨root或key重建旧ID返回56302；tree hash异常用56309；不写数据。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONVERT-001；Reuses existing named Repositories, ContentStrategy, converters, read TransactionTemplate and error mapping.
+- Literal rule enforcement: 类型/行为与职责一致 (Rule 1)；边界使用@Valid/@Validated (Rule 2)；普通class、值record与MapStruct遵循当前模型 (Rule 3)；具名Bean/Qualifier不漂移 (Rule 4)；只用已有依赖 (Rule 5)；Proto/status与JSON字段显式映射 (Rule 6)；Direct RPC仍经可信tenant与namespace守卫 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+return readTransactionTemplate.execute(status -> {
+  DdcAiResourceBO root = resourceRepository.findActiveById(query.resourceId()).orElseThrow(notFound());
+  scopeValidator.assertCanRead(root);
+  requireSelectorMatchesRoot(root, query, expectedKind);
+  long versionNo = selectExplicitOrCurrentVersionNo(root, query.versionNo());
+  return immutableVersionResult(root, versionNo); // loads and verifies one complete snapshot
+});
+```
+
+- Verification contribution: Service test proves current/fixed versions are rooted and draftNodeRepository is untouched.。
+- After this file: RPC result is a single transactionally consistent immutable version snapshot。
+
+
+#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcAiResourceRpcProvider.java`
 
 - Purpose: GetPrompt/GetSkill委托同一Service，@Valid读取，错误转原status/trailer；不暴露管理写
 - Symbols: `DdcAiResourceRpcProvider`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceRpcProvider`。
-- Dependencies and consumers: 前置Step 16；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 16；本步16个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责GetPrompt/GetSkill委托同一Service，@Valid读取，错误转原status/trailer；不暴露管理写。
 - Contract/signature changes: DdcAiResourceRpcProvider的具体签名/配置/字段变更：GetPrompt/GetSkill委托同一Service，@Valid读取，错误转原status/trailer；不暴露管理写。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：GetPrompt/GetSkill委托同一Service，@Valid读取，错误转原status/trailer；不暴露管理写；按修订稿§9/§11保持原wire字段。
@@ -15739,22 +15951,36 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Implementation pseudocode:
 
 ```java
-// DdcAiResourceRpcProvider: GetPrompt/GetSkill委托同一Service，@Valid读取，错误转原status/trailer；不暴露管理写
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+@Override AiPromptResult getPrompt(@NotNull @Valid AiResourceQuery query) {
+  requireDdcServicePrincipalAiRead();
+  var published = service.getPublishedVersion(selector(query), DdcAiKindEnum.PROMPT);
+  var prompt = DdcPromptResult.builder().resourceId(published.getVersion().getResourceId())
+      .resourceKey(query.getResourceKey()).versionId(published.getVersion().getId())
+      .versionNo(published.getVersion().getVersionNo()).contentSha256(published.getVersion().getContentSha256())
+      .template(published.getContent().getPromptText()).build();
+  return protoConverter.toProto(prompt);
+}
+@Override AiSkillResult getSkill(@NotNull @Valid AiResourceQuery query) {
+  requireDdcServicePrincipalAiRead();
+  var published = service.getPublishedVersion(selector(query), DdcAiKindEnum.SKILL);
+  var skill = DdcSkillResult.builder().resourceId(published.getVersion().getResourceId())
+      .resourceKey(query.getResourceKey()).versionId(published.getVersion().getId())
+      .versionNo(published.getVersion().getVersionNo()).contentSha256(published.getVersion().getContentSha256())
+      .files(published.getContent().getNodes()).build();
+  return protoConverter.toProto(skill); // includes the complete text tree.
+}
+// Known AI CommonException codes become sanitized gRPC status/trailers; no management writes are exposed.
 ```
 
-- Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的GetPrompt/GetSkill委托同一Service，@Valid读取，错误转原status/trailer；不暴露管理写；最终由本步GREEN门禁验证。
+- Verification contribution: DdcAiResourceRpcProviderTest covers Prompt/Skill field mapping, full Skill tree, Service Principal scope, not-published status and typed trailers; no management writes are exposed.
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAiResourceAutoConfiguration.java`
+#### File 18 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAiResourceAutoConfiguration.java`
 
 - Purpose: 只绑定新props/端口合同，默认false；默认传输在R；每个Bean显式name
 - Symbols: `DdcAiResourceAutoConfiguration`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceAutoConfiguration`。
-- Dependencies and consumers: 前置Step 16；本步9个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 16；本步17个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责只绑定新props/端口合同，默认false；默认传输在R；每个Bean显式name。
 - Contract/signature changes: DdcAiResourceAutoConfiguration的具体签名/配置/字段变更：只绑定新props/端口合同，默认false；默认传输在R；每个Bean显式name。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：只绑定新props/端口合同，默认false；默认传输在R；每个Bean显式name；按修订稿§9/§11保持原wire字段。
@@ -15773,12 +15999,12 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的只绑定新props/端口合同，默认false；默认传输在R；每个Bean显式name；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
 
 - Purpose: 注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry
 - Symbols: `org.springframework.boot.autoconfigure.AutoConfiguration`
 - Repository evidence: 当前存在，SHA256前12位`a0f50ca06627`；源符号`org.springframework.boot.autoconfigure.AutoConfiguration`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 16；本步10个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 16；本步18个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry。
 - Contract/signature changes: org.springframework.boot.autoconfigure.AutoConfiguration的具体签名/配置/字段变更：注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry；按修订稿§9/§11保持原wire字段。
@@ -15797,12 +16023,12 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/egon-cola-tianshu.properties`
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/egon-cola-tianshu.properties`
 
 - Purpose: 注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry
 - Symbols: `egon-cola-tianshu`
 - Repository evidence: 当前存在，SHA256前12位`0110d6c5730c`；源符号`egon-cola-tianshu`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 16；本步11个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 16；本步19个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry。
 - Contract/signature changes: egon-cola-tianshu的具体签名/配置/字段变更：注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry；按修订稿§9/§11保持原wire字段。
@@ -15821,14 +16047,80 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiRpcContractTest,DdcAiAutoConfigurationTest聚焦本文件的注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-- Validation working directory: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter`
-- Verification command: `mvn -q -Dtest=DdcAiRpcContractTest,DdcAiAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcServerInterceptorTest.java`
+
+- Purpose: 同步既有AI RPC interceptor测试的有效Query fixture，并断言当前版请求也必须携带稳定root resource_id。
+- Symbols: DdcRpcServerInterceptorTest.aiQuery
+- Repository evidence: committed interceptor suite已有当前Prompt/Skill scope fixture；Step 17将resource_id#7提升为所有AI读取的必填身份字段。
+- Dependencies and consumers: 前置RPC签名与scope提取合同；本步20个已排序路径之后，仅调整直接受新wire前置条件影响的既有测试。
+- Why now: 若旧测试仍发送缺失resource_id的AI query，会被新的授权前置条件正确拒绝，造成合法AI_READ路径被fixture掩盖。
+- Contract/signature changes: 有效fixture补充canonical正数resource_id；新增缺失resource_id的请求在读取前被拒绝断言。
+- Input/output and state mapping: interceptor有效Prompt/Skill请求均绑定同一root identity；非法fixture在ScopeExtractor处失败。
+- Error and edge behavior: 不放宽生产校验；缺失resource_id是INVALID_ARGUMENT，且不进入Provider。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-CONVERT-001；仅修订AI_RPC测试fixture与拒绝断言。
+- Literal rule enforcement: Proto optional presence与canonical resource id遵守 Rule 6；RPC scope拒绝路径遵守 Rule 11；测试必须基于有效业务前置条件。
+- Implementation pseudocode:
+
+```java
+private AiResourceQuery aiQuery(String namespaceCode) {
+  return AiResourceQuery.newBuilder().setBizCode("biz-a")
+      .setNamespaceCode(namespaceCode).setEnv("dev").setAppCode("app-a")
+      .setResourceKey("review-order").setResourceId("810001").build();
+}
+```
+
+- Verification contribution: DdcRpcServerInterceptorTest validates both accepted scoped requests and missing-root rejection before provider dispatch.
+- After this file: all pre-existing AI authorization tests use the Step 17 root-bound wire contract.
+
+#### Step 17 pre-commit gate record
+
+- State at pre-commit: Verified.
+- Baseline HEAD: `566c23a73068c873c3e0fc70a58b4c1c24e3c458`.
+- RED evidence: The first root-reactor run failed test compilation only because the planned `DdcAiResourceRpc` and `DdcAiResourceAutoConfiguration` types did not exist; neither fixtures nor external services caused the failure.
+- GREEN evidence: The command below exited 0 after the final diff: 66 tests, 0 failures, 0 errors, 0 skipped. `git diff --check` and strict Plan validation pass.
+- Design pattern: Adapter pattern is used at the existing Prompt/Skill Port to Direct RPC boundary. It covers the approved custom-Port variation and keeps each capability independently optional; the server read path remains direct because it performs one bounded query and snapshot conversion.
+
+| Manual Check | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| MC-ARCH-001 | Applicable | PASS | Starter auto-configuration, RPC adapter, Admin Service/Provider paths | Existing three-layer and dependency direction remain intact | None |
+| MC-REUSE-001 | Applicable | PASS | `DdcRpcClientFactory`, existing Port interfaces, AI Service and read transaction | Reuses existing Direct RPC factory, HMAC credential, tenant context, and Service boundary | None |
+| MC-DEP-001 | Applicable | PASS | No POM changes; `mapstruct` already exists in adapter POM | No dependency added | None |
+| MC-NAME-001 | Applicable | PASS | New types use `Rpc`, `DTO`, `Converter`, `Client`, `Provider`, and `AutoConfiguration` roles | Names reflect protocol and behavior boundaries | None |
+| MC-VALID-001 | Applicable | PASS | `DdcAiResourceQuery`, Port clients, Service, Provider and `DdcRpcScopeExtractor` | Root ID is required and positive at public, service, and RPC boundaries | None |
+| MC-MODEL-001 | Applicable | PASS | `DdcAiQueryDTO` is immutable; Provider uses complete required-args injection | No new mutable POJO or partial Lombok baseline | None |
+| MC-CONVERT-001 | Applicable | PASS | `DdcAiProtoConverter extends BaseForwardConverter`; generated MapStruct implementation; RPC mapper tests | MapStruct owns field and node mappings; Skill repeated messages are appended through the protobuf builder while preserving directory absence / empty-file presence | None |
+| MC-LOG-001 | Applicable | PASS | `DdcAiResourceRpcProvider` and existing RPC factory use `@Slf4j` | Only unexpected/transient server failures are logged; request content and exception messages are not logged | None |
+| MC-BEAN-001 | Applicable | PASS | Provider has explicit component name, qualified required-args constructor; converter bean has stable name | Qualifier copy rule is present in Tianshu `lombok.config`; generated constructor wiring is tested | None |
+| MC-UTIL-001 | Applicable | PASS | Changed imports and adapter POM | Uses JDK, Spring/Jakarta, protobuf and already-managed MapStruct only | None |
+| MC-JSON-001 | Applicable | PASS | Port DTOs retain Spring Boot Jackson defaults; RPC wire is generated protobuf; contract tests | No alternate JSON mapper or serialization shortcut introduced | None |
+| MC-TIME-001 | Not applicable | N/A | No temporal fields or time calculations are added or changed in Step 17 | Time semantics are outside this Step | None |
+| MC-CONFIG-001 | Applicable | PASS | `rg` inspection of Admin `application.yml`, `application-local.yml`, `application-test.yml`, and test-module `application.yml`; only Starter metadata adds the two switch keys | All environment profiles omit the new optional keys consistently; code/property defaults remain false | None |
+| MC-PATTERN-001 | Applicable | PASS | Each read performs one Service query; Port-to-RPC wiring uses the Adapter pattern | Read flow is Simple; no branch-heavy business orchestration was introduced | None |
+| MC-SCOPE-001 | Applicable | PASS | The 21 declared Step paths plus this Plan; `git status --short` reviewed | All changes are Step 17-owned; no unrelated path changed | None |
+| MC-TEST-001 | Applicable | PASS | RED then GREEN evidence; focused root-reactor command below; strict Plan validator and diff check | Service snapshot, auth boundaries, mapper presence, and opt-in wiring are covered | None |
+| MC-BLOCKER-001 | Applicable | PASS | All prior Manual Check rows and Rule rows are closed | No unresolved Step blocker remains | None |
+
+| Literal Rule | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| Rule 1 | Applicable | PASS | Step 17 type inventory and compile | New types use protocol and behavior suffixes | None |
+| Rule 2 | Applicable | PASS | Query annotations, Provider `@Valid`, Service validation and negative scope tests | Each affected handoff rejects absent root or mismatched scope | None |
+| Rule 3 | Applicable | PASS | `DdcAiQueryDTO` record; generated `DdcAiProtoConverterImpl`; `BaseForwardConverter` | Immutable value object and MapStruct field/node mappings compile; protobuf repeated-list builder edge is tested for optional content presence | None |
+| Rule 4 | Applicable | PASS | Provider annotations, `DdcRpcClientFactory`, named auto-config beans, Tianshu `lombok.config` | Logging and qualified constructor wiring follow the project rules | None |
+| Rule 5 | Applicable | PASS | Step 17 imports and unchanged Maven manifests | No unapproved utility or dependency introduced | None |
+| Rule 6 | Applicable | PASS | Generated protobuf contract and optional-presence tests | Resource/version identifiers are canonical and Skill directory/file presence is preserved | None |
+| Rule 7 | Applicable | PASS | Starter metadata defaults and ApplicationContextRunner matrix | Prompt and Skill switches default false and have independent key paths | None |
+| Rule 9 | Applicable | PASS | Service read path plus client Adapter participants/tests | Existing Adapter pattern handles transport variation; one-query read is Simple | None |
+| Rule 10 | Not applicable | N/A | No time field or time calculation changed | Time modeling is outside this Step | None |
+| Rule 11 | Applicable | PASS | Starter/RPC Adapter/Admin paths and unchanged module POM dependencies | Existing three-layer profile and tenant-scoped MP Service remain in place | None |
+
+- Validation working directory: repository root
+- Verification command: `mvn -q -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiRpcContractTest,DdcAiAutoConfigurationTest,DdcAiResourceRpcProviderTest,DdcAiVersionServiceTest,DdcAiDraftServiceTest,DdcAiPromotionServiceTest,DdcRpcServerInterceptorTest,DdcRpcHmacScopeTest,DdcRpcClientFactoryTest,DdcRpcAutoConfigurationTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Expected result: RPC client/adapter/config matrix, Admin Provider/scope, current/fixed publication Service and related history tests GREEN；no live Direct RPC endpoint or network call from starter-disabled cases.
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiRpcContractTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcAiAutoConfigurationTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcPromptClient.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcSkillClient.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiProtoConverter.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiQueryDTO.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfiguration.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactory.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcAiResourceRpcProvider.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAiResourceAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/egon-cola-tianshu.properties`
-- Commit: `feat(tianshu): step-17--------ai--rpc-starter`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Commit paths: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiRpcContractTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcAiAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcAiResourceRpcProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiVersionServiceTest.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/contract/DdcAiResourceRpc.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiResourceQuery.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiQueryDTO.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/DdcAiProtoConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcScopeExtractor.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/validation/DdcAiScopeValidator.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcPromptClient.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/ai/RpcDdcSkillClient.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/client/DdcRpcClientFactory.java`, `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/tianshu/autoconfigure/DdcRpcAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiResourceService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiResourceServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcAiResourceRpcProvider.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAiResourceAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/egon-cola-tianshu.properties`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/rpc/DdcRpcServerInterceptorTest.java`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
+- Commit: `feat(tianshu): step-17-ai-rpc-starter`。
 
 ### Step 18 — 将YAML分发意图接入Outbox并保留ACK语义
 
@@ -18522,7 +18814,7 @@ assert the related focused test against success, malformed input, duplicate and 
 | Step 14 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcAiVersionServiceTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiVersionServiceTest | 同事务冻结整包/发布回执/指针，回滚不改历史或草稿，稳定幂等；RED仅缺目标行为，GREEN退出0 | Step 14对应File/前置Step | REQ-005 REQ-006；静态/单测 |
 | Step 15 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcAiPromotionServiceTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiPromotionServiceTest | 固定源版本复制成目标独立版本；既有目标草稿不变，源和目标分别授权；RED仅缺目标行为，GREEN退出0 | Step 15对应File/前置Step | REQ-012 REQ-014；静态/单测 |
 | Step 16 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcAiResourceControllerTest,DdcAiOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiResourceControllerTest,DdcAiOpenApiContractTest | 11个REST、权限、错误、分页、严格JSON和实际OAS一致；RED仅缺目标行为，GREEN退出0 | Step 16对应File/前置Step | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015；静态/单测 |
-| Step 17 RED→GREEN | `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter` | `mvn -q -Dtest=DdcAiRpcContractTest,DdcAiAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiRpcContractTest,DdcAiAutoConfigurationTest | 两独立开关、custom port、无默认网络；固定root版本读取不串重建身份；RED仅缺目标行为，GREEN退出0 | Step 17对应File/前置Step | REQ-007 REQ-008 REQ-019；静态/单测 |
+| Step 17 RED→GREEN | 仓库根目录 | `mvn -q -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiRpcContractTest,DdcAiAutoConfigurationTest,DdcAiResourceRpcProviderTest,DdcAiVersionServiceTest,DdcAiDraftServiceTest,DdcAiPromotionServiceTest,DdcRpcServerInterceptorTest,DdcRpcHmacScopeTest,DdcRpcClientFactoryTest,DdcRpcAutoConfigurationTest' -Dsurefire.failIfNoSpecifiedTests=false test` | DdcAiRpcContractTest,DdcAiAutoConfigurationTest,DdcAiResourceRpcProviderTest,DdcAiVersionServiceTest,DdcAiDraftServiceTest,DdcAiPromotionServiceTest,DdcRpcServerInterceptorTest,DdcRpcHmacScopeTest,DdcRpcClientFactoryTest,DdcRpcAutoConfigurationTest | 两独立开关、custom Port 覆盖、无默认网络；MapStruct query/result、Skill presence、Service Principal scope、当前/固定版本、原RBAC3用户授权、原RPC签名合同全部GREEN；RED仅缺目标类型/行为，GREEN退出0 | Step 17对应File/前置Step | REQ-007 REQ-008 REQ-019；静态/单测 |
 | Step 18 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcConfigOutboxContractTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcConfigOutboxContractTest | 冻结当前attempt与enqueue同事务；handler复用原原子dispatch，不把投递成功当业务ACK；RED仅缺目标行为，GREEN退出0 | Step 18对应File/前置Step | REQ-011 REQ-017；静态/单测 |
 | Step 19 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin` | `mvn -q -Dtest=DdcRegistryOutboxTest -Dsurefire.failIfNoSpecifiedTests=false test` | DdcRegistryOutboxTest | 目录通知真实enqueue/handler；Redis权威状态和SQL非原子窗口被明确测试，原reconcile保持；RED仅缺目标行为，GREEN退出0 | Step 19对应File/前置Step | REQ-013 REQ-017；静态/单测 |
 | Step 20 RED→GREEN | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web` | `npm test -- --run` | DdcAiClientContract | API字段与新selector/错误一致，切租户清缓存/取消旧响应，旧tab写入被预期tenant头拒绝；RED仅缺目标行为，GREEN退出0 | Step 20对应File/前置Step | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019；静态/单测 |

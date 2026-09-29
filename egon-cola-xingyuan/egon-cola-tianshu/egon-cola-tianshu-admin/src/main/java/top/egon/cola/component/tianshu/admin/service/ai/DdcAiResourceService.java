@@ -24,6 +24,8 @@ import top.egon.cola.component.tianshu.admin.model.vo.DdcAiPublicationResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiResourceResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
+import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
+import top.egon.cola.component.tianshu.model.ai.DdcAiResourceQuery;
 
 @Validated
 public interface DdcAiResourceService {
@@ -63,6 +65,10 @@ public interface DdcAiResourceService {
     @Validated(EgonColaModelValidationGroups.Query.class)
     DdcAiVersionResult getVersion(
             @NotNull(groups = EgonColaModelValidationGroups.Query.class) @Valid DdcAiVersionQuery query);
+
+    DdcAiVersionResult getPublishedVersion(
+            @NotNull @Valid DdcAiResourceQuery query,
+            @NotNull DdcAiKindEnum expectedKind);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
     DdcPageResult<DdcAiVersionSummaryDTO> pageVersions(

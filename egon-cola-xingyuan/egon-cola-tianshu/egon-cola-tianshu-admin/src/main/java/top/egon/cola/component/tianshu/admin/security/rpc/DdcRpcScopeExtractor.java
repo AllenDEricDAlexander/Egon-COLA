@@ -119,20 +119,18 @@ public final class DdcRpcScopeExtractor {
                 || !text(query.getResourceKey())) {
             throw new IllegalArgumentException("AI read scope and resource key are required");
         }
-        if (query.hasVersionNo()
-                && (!query.hasResourceId() || query.getVersionNo() <= 0)) {
-            throw new IllegalArgumentException("AI versionNo requires a positive resourceId");
+        if (!query.hasResourceId()) throw new IllegalArgumentException("AI resourceId is required");
+        if (query.hasVersionNo() && query.getVersionNo() <= 0) {
+            throw new IllegalArgumentException("AI versionNo must be positive");
         }
-        if (query.hasResourceId()) {
-            String resourceId = query.getResourceId();
-            if (!resourceId.matches("[1-9][0-9]{0,18}")) {
-                throw new IllegalArgumentException("AI resourceId must be a positive decimal Long");
-            }
-            try {
-                Long.parseLong(resourceId);
-            } catch (NumberFormatException invalidResourceId) {
-                throw new IllegalArgumentException("AI resourceId exceeds Long range", invalidResourceId);
-            }
+        String resourceId = query.getResourceId();
+        if (!resourceId.matches("[1-9][0-9]{0,18}")) {
+            throw new IllegalArgumentException("AI resourceId must be a positive decimal Long");
+        }
+        try {
+            Long.parseLong(resourceId);
+        } catch (NumberFormatException invalidResourceId) {
+            throw new IllegalArgumentException("AI resourceId exceeds Long range", invalidResourceId);
         }
         return new Scope("SDK", query.getAppCode(), query.getEnv(), query.getBizCode(),
                 query.getNamespaceCode());

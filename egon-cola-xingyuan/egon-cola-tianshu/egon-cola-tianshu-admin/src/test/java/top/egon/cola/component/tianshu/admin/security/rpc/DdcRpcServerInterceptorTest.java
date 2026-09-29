@@ -296,6 +296,17 @@ class DdcRpcServerInterceptorTest {
                 .isNotNull();
         assertThat(emptyGrantCall.status().getCode()).isEqualTo(Status.Code.PERMISSION_DENIED);
         assertThat(errorCode(emptyGrantCall)).isEqualTo("TIANSHU_HMAC_SCOPE_DENIED");
+
+        AiResourceQuery missingRoot = aiQuery("orders-api").toBuilder().clearResourceId().build();
+        RecordingServerCall<?, ?> missingRootCall = invoke(
+                method,
+                missingRoot,
+                signed(method.getFullMethodName(), missingRoot,
+                        NOW.toEpochMilli(), "ai-root-id-missing"),
+                ignored -> facade.pull("must", "not", "run")
+        );
+        assertThat(missingRootCall.status().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+        assertThat(errorCode(missingRootCall)).isEqualTo("TIANSHU_INVALID_REQUEST");
         verifyNoInteractions(facade);
     }
 
@@ -480,6 +491,7 @@ class DdcRpcServerInterceptorTest {
                 .setEnv("dev")
                 .setAppCode("app-a")
                 .setResourceKey("review-order")
+                .setResourceId("810001")
                 .build();
     }
 
