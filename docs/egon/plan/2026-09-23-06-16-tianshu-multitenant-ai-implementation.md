@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 13:25 Asia/Shanghai` |
+| Updated | `2026-09-29 13:56 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -786,6 +786,8 @@ Step 12的聚焦测试同样需要前序组件、Outbox和RPC模块当前工作�
 2026-09-29 Step14 projection audit: API-011 returns targetVersionNo, while Publication stores only targetVersionId. Add transient TableField(exist=false)/JsonIgnore projections to the existing PublicationPO/BO and project Version.versionNo through tenant+resource+versionId joins for global receipt replay and publication pages. The global request selector remains WHERE tenant_id+request_id only. The accepted amendment §10.2 requires public projections on existing PO↔BO converters, so DdcAiVersionConverter and DdcAiPublicationConverter gain MapStruct projection methods; no parallel ResultConverter type, database column, N+1 page lookup, dependency, or wire change is added.
 
 2026-09-29 Step14 baseline evidence refresh: committed code baseline is 8bc9ccfc531784c1cb373c96ea04218c7dc66e9b; the preceding PTest/Mapper/XML/PublicationPO/PublicationBO worktree changes are declared Step14 actions. Every MODIFY block and file-tree row stores SHA256 from git show HEAD:path, not the pending worktree, so the next lock can compare those edits against an exact baseline.
+
+2026-09-29 Step14 concurrency audit: a same-root retry can miss the tenant-global receipt before waiting on FOR UPDATE, then observe a newer revision after the first request commits. Recheck the receipt after obtaining the root lock and before expectedRevision CAS; same hash replays the original result, different hash remains 56305. The Step14 behavior test covers this recheck; no advisory lock, endpoint, or durable state is added.
 
 ## 7. Ordered File-by-file Implementation Steps
 
