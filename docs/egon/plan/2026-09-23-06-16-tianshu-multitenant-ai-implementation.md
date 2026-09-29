@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 13:56 Asia/Shanghai` |
+| Updated | `2026-09-29 14:02 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -788,6 +788,8 @@ Step 12的聚焦测试同样需要前序组件、Outbox和RPC模块当前工作�
 2026-09-29 Step14 baseline evidence refresh: committed code baseline is 8bc9ccfc531784c1cb373c96ea04218c7dc66e9b; the preceding PTest/Mapper/XML/PublicationPO/PublicationBO worktree changes are declared Step14 actions. Every MODIFY block and file-tree row stores SHA256 from git show HEAD:path, not the pending worktree, so the next lock can compare those edits against an exact baseline.
 
 2026-09-29 Step14 concurrency audit: a same-root retry can miss the tenant-global receipt before waiting on FOR UPDATE, then observe a newer revision after the first request commits. Recheck the receipt after obtaining the root lock and before expectedRevision CAS; same hash replays the original result, different hash remains 56305. The Step14 behavior test covers this recheck; no advisory lock, endpoint, or durable state is added.
+
+2026-09-29 Step14 converter compile correction: root-reactor test compilation reported MapStruct ambiguity when generating String→Long because both Long(String) and Long(long) constructors match. The accepted amendment §10.2 specifies JDK Long.valueOf/Long.toString conversions on the existing ResourceConverter; implement them as named default methods in that BaseConverter interface and call after Bean Validation. This removes the processor ambiguity without a new converter class, API, or dependency.
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -14476,9 +14478,13 @@ Do not invent persisted changeNote; expose schema-backed values only.
 - Implementation pseudocode:
 
 ```java
-@Named("decimalStringToLong") Long toInternalLong(String validatedDecimal);
-@Named("longToDecimalString") String toExternalLong(Long internalId);
-MapStruct generates the mapping; call only after @Valid/regex/range checks; keep tenant/audit unmapped.
+@Named("decimalStringToLong") default Long toInternalLong(String validatedDecimal) {
+ return validatedDecimal == null ? null : Long.valueOf(validatedDecimal);
+}
+@Named("longToDecimalString") default String toExternalLong(Long internalId) {
+ return internalId == null ? null : Long.toString(internalId);
+}
+call only after @Valid/regex/Long-range checks; preserve NULL and keep tenant/audit unmapped.
 ```
 
 - Verification contribution: MapStruct编译、Long上下界与草稿回归。
