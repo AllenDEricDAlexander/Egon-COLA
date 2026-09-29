@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 09:20 Asia/Shanghai` |
+| Updated | `2026-09-29 10:21 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -770,6 +770,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 Step 12还复核到`egon-tianshu-persistence.yml`已由Step 7创建并提交；本Step File 41不是再CREATE新配置，而是仅修改精确`history-read-statements`登记项、继续保持`restore-statements`为空。对应动作更正为MODIFY，不改Step 7文件和已提交配置键以外的路由。
 
 2026-09-29 Step 13 pre-edit contract audit: §9.1/§9.5 says Service outputs wire business DTOs and §13 assigns permissions/transactions to Service while named business reads/writes belong to Repositories. Step 12 currently creates resource/draft-node Repository interfaces with only findActiveById; direct Service-to-Mapper or concrete generic CRUD would violate that boundary. API-003 additionally requires a root FOR SHARE read before assembling detail plus live nodes, and Summary needs namespaceCode/currentVersionNo without N+1 queries. Step 13 therefore extends the two business Repository ports/implementations, adds Resource FOR SHARE SQL, and adds same-tenant namespace/current-version read projections on existing PO/BO using TableField(exist=false). Existing MapStruct Resource/DraftNode converters gain command/query/node DTO mappings; the BaseForwardConverter from ResourceBO to SummaryDTO moves from Step 16 to Step 13 so the Service response compiles and conforms. Step 13 grows 15 to 27 files; Step 16 reuses the committed result converter and shrinks 11 to 10. No DDL, dependency, external API, or new module is introduced.
+
+2026-09-29 Step 13 transaction correction: API-003 requires SELECT FOR SHARE inside the READ COMMITTED detail-read transaction. The PostgreSQL JDBC driver maps Connection read-only mode to BEGIN READ ONLY for transactional connections; the read-only transaction mode is incompatible with row-locking reads. Therefore ddcAiReadTransactionTemplate must leave JDBC readOnly false while Service GET/page remain DML-free; both templates share the existing transactionManager and READ_COMMITTED isolation. This avoids a new transaction manager or runtime dependency and is covered by a template configuration test.
 
 Step 12的聚焦测试同样需要前序组件、Outbox和RPC模块当前工作区产物，沿用Step 11已验证的根目录reactor `-pl Admin -am` 门禁，避免子模块解析到本地旧版本。
 
@@ -13702,8 +13704,8 @@ deny commands when scope is absent, disabled, mismatched, or outside the actor p
 - Repository evidence: 当前路径不存在；Admin已有Egon MP本地事务管理器与现有@Configuration/Qualifier命名方式；Spec要求LOCAL atomic transaction。
 - Dependencies and consumers: 前置Step 12；本步24个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
 - Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
-- Contract/signature changes: 创建有名Bean ddcAiTransactionTemplate并绑定既有transactionManager；command事务具READ_COMMITTED/statement+lock timeout policy，read detail使用READ_COMMITTED只读语义。
-- Input/output and state mapping: Service get在一个事务内先FOR SHARE锁根再查完整active nodes；replace/delete在root FOR UPDATE下CAS根与节点diff一次提交。
+- Contract/signature changes: 创建有名的READ/COMMAND TransactionTemplate，均绑定既有transactionManager并使用READ_COMMITTED/8秒timeout；两者都不设置JDBC readOnly flag，因GET必须在同一事务执行FOR SHARE；Service GET/page不执行DML。
+- Input/output and state mapping: GET的应用语义只读，但READ_COMMITTED事务允许FOR SHARE；同一事务先锁根再查active nodes且不写DB；page不写DB；replace/delete在root FOR UPDATE下CAS根与节点diff一次提交。
 - Error and edge behavior: 不引入第二datasource、不分离Outbox、不用跨数据库事务；任何DAO异常回滚全部根与节点效果。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-BEAN-001, MC-CONFIG-001, MC-TIME-001
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
