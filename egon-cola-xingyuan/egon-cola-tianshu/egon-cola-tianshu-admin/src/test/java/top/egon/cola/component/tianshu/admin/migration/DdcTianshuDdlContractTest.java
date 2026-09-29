@@ -263,7 +263,8 @@ class DdcTianshuDdlContractTest {
         assertThat(transactionalOutbox.getStorage().isValidateSchema()).isTrue();
 
         String yaml = new String(requiredResource("egon-tianshu-persistence.yml"), java.nio.charset.StandardCharsets.UTF_8);
-        assertThat(yaml).contains("enabled: false", "validate-schema: true", "history-read-statements: []",
+        assertThat(yaml).contains("enabled: false", "validate-schema: true",
+                "history-read-statements: [top.egon.cola.component.tianshu.admin.dao.DdcAiResourceMapper.selectIncludingDeletedById]",
                 "restore-statements: []").doesNotContain("tenant-id: 1", "password: postgres");
     }
 

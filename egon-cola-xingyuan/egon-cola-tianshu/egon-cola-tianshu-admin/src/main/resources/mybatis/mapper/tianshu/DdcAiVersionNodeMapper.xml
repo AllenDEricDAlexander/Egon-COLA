@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcAiVersionNodeMapper">
+    <resultMap id="DdcAiVersionNodePOResultMap"
+               type="top.egon.cola.component.tianshu.admin.model.po.DdcAiVersionNodePO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="versionId" column="version_id"/>
+        <result property="parentPath" column="parent_path"/>
+        <result property="path" column="path"/>
+        <result property="nodeType" column="node_type"/>
+        <result property="content" column="content"/>
+        <result property="contentSha256" column="content_sha256"/>
+        <result property="contentBytes" column="content_bytes"/>
+    </resultMap>
+
+    <sql id="VersionNodeColumns">
+        n.id, n.tenant_id, n.create_user_id, n.create_time, n.update_user_id, n.update_time, n.deleted_at, n.version,
+        n.version_id, n.parent_path, n.path, n.node_type, n.content, n.content_sha256, n.content_bytes
+    </sql>
+
+    <sql id="ActiveVersionNodeOwner">
+        FROM ddc_ai_version_node n
+        JOIN ddc_ai_version v ON v.tenant_id = n.tenant_id AND v.id = n.version_id
+        JOIN ddc_ai_resource r ON r.tenant_id = v.tenant_id AND r.id = v.resource_id
+        WHERE n.tenant_id = #{tenantId} AND n.deleted_at IS NULL
+          AND v.deleted_at IS NULL AND r.deleted_at IS NULL
+    </sql>
+
+    <select id="selectActiveById" resultMap="DdcAiVersionNodePOResultMap">
+        SELECT <include refid="VersionNodeColumns"/><include refid="ActiveVersionNodeOwner"/> AND n.id = #{id}
+    </select>
+
+    <select id="selectActiveByIds" resultMap="DdcAiVersionNodePOResultMap">
+        SELECT <include refid="VersionNodeColumns"/><include refid="ActiveVersionNodeOwner"/>
+          AND n.id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY n.version_id, n.path COLLATE "C", n.id
+    </select>
+
+    <select id="selectTree" resultMap="DdcAiVersionNodePOResultMap">
+        SELECT <include refid="VersionNodeColumns"/><include refid="ActiveVersionNodeOwner"/>
+          AND n.version_id = #{versionId}
+        ORDER BY n.path COLLATE "C", n.id
+    </select>
+
+    <select id="selectByVersionIdAndPath" resultMap="DdcAiVersionNodePOResultMap">
+        SELECT <include refid="VersionNodeColumns"/><include refid="ActiveVersionNodeOwner"/>
+          AND n.version_id = #{versionId} AND n.path = #{path}
+    </select>
+</mapper>

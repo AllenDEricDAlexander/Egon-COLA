@@ -9,7 +9,7 @@ egon:
         ddl:
           enabled: false
         lifecycle:
-          history-read-statements: []
+          history-read-statements: [top.egon.cola.component.tianshu.admin.dao.DdcAiResourceMapper.selectIncludingDeletedById]
           restore-statements: []
         sharding:
           enabled: true

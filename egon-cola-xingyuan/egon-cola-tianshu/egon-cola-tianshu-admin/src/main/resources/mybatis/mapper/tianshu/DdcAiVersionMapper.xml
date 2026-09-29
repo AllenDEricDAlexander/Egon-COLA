@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcAiVersionMapper">
+    <resultMap id="DdcAiVersionPOResultMap" type="top.egon.cola.component.tianshu.admin.model.po.DdcAiVersionPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="resourceId" column="resource_id"/>
+        <result property="versionNo" column="version_no"/>
+        <result property="kind" column="kind"/>
+        <result property="displayName" column="display_name"/>
+        <result property="description" column="description"/>
+        <result property="promptText" column="prompt_text"/>
+        <result property="contentSha256" column="content_sha256"/>
+        <result property="contentBytes" column="content_bytes"/>
+        <result property="nodeCount" column="node_count"/>
+        <result property="sourceVersionId" column="source_version_id"/>
+        <result property="changeNote" column="change_note"/>
+    </resultMap>
+
+    <sql id="VersionColumns">
+        v.id, v.tenant_id, v.create_user_id, v.create_time, v.update_user_id, v.update_time, v.deleted_at, v.version,
+        v.resource_id, v.version_no, v.kind, v.display_name, v.description, v.prompt_text, v.content_sha256,
+        v.content_bytes, v.node_count, v.source_version_id, v.change_note
+    </sql>
+
+    <sql id="ActiveVersionOwner">
+        FROM ddc_ai_version v
+        JOIN ddc_ai_resource r ON r.tenant_id = v.tenant_id AND r.id = v.resource_id
+        WHERE v.tenant_id = #{tenantId} AND v.deleted_at IS NULL AND r.deleted_at IS NULL
+    </sql>
+
+    <select id="selectActiveById" resultMap="DdcAiVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="ActiveVersionOwner"/> AND v.id = #{id}
+    </select>
+
+    <select id="selectActiveByIds" resultMap="DdcAiVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="ActiveVersionOwner"/>
+          AND v.id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY v.resource_id, v.version_no DESC, v.id DESC
+    </select>
+
+    <select id="selectByResourceIdAndVersionNo" resultMap="DdcAiVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="ActiveVersionOwner"/>
+          AND v.resource_id = #{resourceId} AND v.version_no = #{versionNo}
+    </select>
+
+    <select id="selectPage" resultMap="DdcAiVersionPOResultMap">
+        SELECT <include refid="VersionColumns"/><include refid="ActiveVersionOwner"/>
+          AND v.resource_id = #{resourceId}
+        ORDER BY v.version_no DESC, v.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT count(*) <include refid="ActiveVersionOwner"/> AND v.resource_id = #{resourceId}
+    </select>
+</mapper>

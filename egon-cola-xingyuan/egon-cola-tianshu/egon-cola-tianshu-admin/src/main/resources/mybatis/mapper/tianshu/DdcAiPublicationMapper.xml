@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcAiPublicationMapper">
+    <resultMap id="DdcAiPublicationPOResultMap"
+               type="top.egon.cola.component.tianshu.admin.model.po.DdcAiPublicationPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="resourceId" column="resource_id"/>
+        <result property="operation" column="operation"/>
+        <result property="requestId" column="request_id"/>
+        <result property="requestSha256" column="request_sha256"/>
+        <result property="previousVersionId" column="previous_version_id"/>
+        <result property="targetVersionId" column="target_version_id"/>
+        <result property="sourceVersionId" column="source_version_id"/>
+        <result property="resultRevision" column="result_revision"/>
+        <result property="targetCreated" column="target_created"/>
+    </resultMap>
+
+    <sql id="PublicationColumns">
+        p.id, p.tenant_id, p.create_user_id, p.create_time, p.update_user_id, p.update_time, p.deleted_at, p.version,
+        p.resource_id, p.operation, p.request_id, p.request_sha256, p.previous_version_id, p.target_version_id,
+        p.source_version_id, p.result_revision, p.target_created
+    </sql>
+
+    <sql id="ActivePublicationOwner">
+        FROM ddc_ai_publication p
+        JOIN ddc_ai_resource r ON r.tenant_id = p.tenant_id AND r.id = p.resource_id
+        WHERE p.tenant_id = #{tenantId} AND p.deleted_at IS NULL AND r.deleted_at IS NULL
+    </sql>
+
+    <select id="selectActiveById" resultMap="DdcAiPublicationPOResultMap">
+        SELECT <include refid="PublicationColumns"/><include refid="ActivePublicationOwner"/> AND p.id = #{id}
+    </select>
+
+    <select id="selectActiveByIds" resultMap="DdcAiPublicationPOResultMap">
+        SELECT <include refid="PublicationColumns"/><include refid="ActivePublicationOwner"/>
+          AND p.id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY p.resource_id, p.id DESC
+    </select>
+
+    <select id="selectByRequestId" resultMap="DdcAiPublicationPOResultMap">
+        SELECT <include refid="PublicationColumns"/><include refid="ActivePublicationOwner"/>
+          AND p.resource_id = #{resourceId} AND p.request_id = #{requestId}
+    </select>
+
+    <select id="selectPage" resultMap="DdcAiPublicationPOResultMap">
+        SELECT <include refid="PublicationColumns"/><include refid="ActivePublicationOwner"/>
+          AND p.resource_id = #{resourceId}
+        <if test="requestId != null and requestId != ''">AND p.request_id = #{requestId}</if>
+        ORDER BY p.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT count(*) <include refid="ActivePublicationOwner"/>
+          AND p.resource_id = #{resourceId}
+        <if test="requestId != null and requestId != ''">AND p.request_id = #{requestId}</if>
+    </select>
+</mapper>
