@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 10:21 Asia/Shanghai` |
+| Updated | `2026-09-29 10:32 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -13290,16 +13290,17 @@ propagate a missing row or row-count conflict so the enclosing transaction rolls
 - Repository evidence: Step12已创建；当前SHA256 b1b2500cafda95d5e279；当前仅有findActiveById，Repository是Service允许的业务持久化入口。
 - Dependencies and consumers: 前置Step 12；本步6个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
 - Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
-- Contract/signature changes: 在既有interface增加business-key lookup、share/for-update root reads、scope page/count及create、revision-guarded metadata update、versioned root soft-delete签名；以BO、PageQuery/DdcPageResult承载边界。
-- Input/output and state mapping: Service传入经校验scope/command；Repository通过当前tenant提供器和Mapper/通用EgonColaRepository返回BO/Page；全部writes精确检查影响行数。
-- Error and edge behavior: 所有写入要求expected revision与当前tenant；唯一键冲突转由Service映射；不提供物理DELETE或任意tenant参数入口。
+- Contract/signature changes: 在既有interface增加business-key、active、share/for-update及仅供DELETE幂等确认的including-deleted lookup；增加scope page、create、revision-guarded metadata update与versioned soft-delete；以BO、PageQuery/DdcPageResult承载边界。
+- Input/output and state mapping: Service传入经校验scope/command；Repository通过当前tenant提供器和Mapper/通用EgonColaRepository返回BO/Page；including-deleted仅用于API-005确认同租户已删除root并返回204，不进入GET/page结果。
+- Error and edge behavior: including-deleted只能调用Step12登记的精确history statement并保留tenant/id/deleted_at IS NOT NULL守卫；所有写入要求expected revision与当前tenant；唯一键冲突转由Service映射；不提供物理DELETE或任意tenant参数入口。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-仅扩展现有Repository port；将summary projection、business-key定位、root locks、create/CAS update/soft-delete声明为命名方法；避免Service直接访问Mapper。
+仅扩展现有Repository port；将summary projection、business-key定位、root locks、delete幂等history read、create/CAS update/soft-delete声明为命名方法；避免Service直接访问Mapper。
 bind the trusted tenant, root identity, active-row condition, and expected revision on each applicable operation;
+allow the exact deleted-root lookup only after an active DELETE lookup misses, and keep it out of GET/page data;
 propagate a missing row or row-count conflict so the enclosing transaction rolls back every tree mutation;
 ```
 
