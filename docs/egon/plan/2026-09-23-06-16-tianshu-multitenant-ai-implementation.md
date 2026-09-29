@@ -13788,14 +13788,17 @@ execute revision compare and whole-tree diff in one transaction, propagating con
 - Implementation pseudocode:
 
 ```java
+DdcAiResourceBO resource = resource(RESOURCE_ID, 3L, DdcAiKindEnum.PROMPT, "old", 902L);
+when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(resource));
+when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.of(resource));
 InOrder order = inOrder(resourceRepository, scopeValidator);
-service.replaceDraft(query, command);
-order.verify(resourceRepository).findActiveById(query.id());
-order.verify(scopeValidator).assertCanWrite(candidate);
-order.verify(resourceRepository).findActiveForUpdateById(query.id());
+service.replaceDraft(new DdcAiIdQuery(RESOURCE_ID), command); // reuse the test's existing validated command, Strategy and result fixture
+order.verify(resourceRepository).findActiveById(RESOURCE_ID);
+order.verify(scopeValidator).assertCanWrite(resource);
+order.verify(resourceRepository).findActiveForUpdateById(RESOURCE_ID);
 ```
 
-- Verification contribution: DdcAiDraftServiceTest RED由当前root-first调用顺序触发，不是测试装配。
+- Verification contribution: Run root reactor DdcAiDraftServiceTest RED; existing replaceDraftPreservesCurrentVersionAndLastVersionNumber fails because actual order calls root FOR UPDATE before scopeValidator.
 - After this file: corrective RED is explicit; following files provide the guarded lock path.
 
 #### File 29 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPersistenceContractTest.java`
@@ -13813,15 +13816,20 @@ order.verify(resourceRepository).findActiveForUpdateById(query.id());
 - Implementation pseudocode:
 
 ```java
-for (String id : scopeLockStatementIds) {
+Configuration configuration = aiMappers();
+Map<String,Object> params = Map.of("tenantId",41L,"bizCode","biz","namespaceCode","ns","envCode","dev","appCode","agent");
+List<String> ids = List.of("selectBizIdForShare","selectNamespaceIdForShare","selectEnvIdForShare","selectAppIdForShare","selectBindingIdForShare");
+for (String name : ids) {
+ String id = BASE + "dao.DdcAiResourceMapper." + name;
  assertThat(configuration.hasStatement(id)).isTrue();
- String sql = mappedSql(configuration, id, tenantAndScopeParameters);
- assertThat(sql).contains("tenant_id").contains("deleted_at IS NULL").contains("FOR SHARE");
+ String sql = mappedSql(configuration, id, params).toLowerCase(Locale.ROOT);
+ assertThat(sql).contains("tenant_id = ?", "deleted_at is null", "for share");
+ assertThat(configuration.getMappedStatement(id).getTimeout()).isEqualTo(2);
 }
-assertStatementOrderInResourceRepository("biz","namespace","env","app","binding");
+// DdcAiResourceRepositoryImpl ordering is reviewed directly as biz, namespace, env, app, then binding.
 ```
 
-- Verification contribution: PTest RED指向缺失FOR SHARE statements或固定锁序。
+- Verification contribution: Run root reactor DdcAiPersistenceContractTest RED; each newly named FOR SHARE statement is currently missing from MyBatis Configuration.
 - After this file: corrective RED is explicit; following files provide the guarded lock path.
 
 #### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiResourceMapper.java`
