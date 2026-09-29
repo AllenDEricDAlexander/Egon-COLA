@@ -98,7 +98,7 @@
 | Step 11 | Step 10 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 96个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 12 | Step 11 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 42个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 13 | Step 12 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 35个有序动作/27条唯一路径；原提交后有8动作scope-lock corrective commit | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 14 | Step 13 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 30个有序动作/27条唯一路径；receipt/page projection与typed Service分别RED/GREEN，并更新直接构造Service的草稿回归夹具 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 14 | Step 13 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 31个有序动作/27条唯一路径；receipt/page projection与typed Service分别RED/GREEN，并更新直接构造Service的回归夹具 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 15 | Step 14 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 4个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 16 | Step 15 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 8个本步文件；result projections已在Step14提交 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 17 | Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 12个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -599,7 +599,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java` | CREATE：基线不存在 | DdcTenantIsolationTest | USER映射/HMAC exact tenant、未知/停用拒绝、MDC异常后恢复；预期tenant头只比较主体 | Step 5 | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiDraftServiceTest.java` | CREATE before Step13; MODIFY baseline SHA256 e1c569b121a022708db0fc415c83f654081e11e8b2d9c0788a7e1e1f132e9a2e | DdcAiDraftServiceTest | Step13草稿/删除行为回归；Step14补齐版本Repository/Converter/MeterRegistry构造依赖，不改草稿行为 | Step 13, Step 14 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019 | DdcAiDraftServiceTest,DdcAiVersionServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiPromotionServiceTest.java` | CREATE：基线不存在 | DdcAiPromotionServiceTest | 源READ/目标PUBLISH/新建再WRITE；target absent vs expected revision；跨tenant拒绝；复制整树；重复requestId/并发目标/源随后编辑 | Step 15 | REQ-012 REQ-014 | DdcAiPromotionServiceTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiVersionServiceTest.java` | CREATE：基线不存在 | DdcAiVersionServiceTest | 资源修订CAS；任一节点失败回滚；响应丢失相同requestId返回原回执；不同hash409；回滚不改lastVersionNo/草稿 | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiVersionServiceTest.java` | CREATE：基线不存在；File31更新最终Service构造及MeterRegistry断言 | DdcAiVersionServiceTest | 资源修订CAS；任一节点失败回滚；响应丢失相同requestId返回原回执；不同hash409；回滚不改lastVersionNo/草稿；安全计数operation/result | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheServiceTest.java` | SHA256 5e3416cfe047 | DdcCacheServiceTest | 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 9, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigServiceTest.java` | SHA256 12737c36b755 | DdcConfigServiceTest | 仅本Step的 DdcBiz,DdcEnv,DdcApp,DdcNamespace,DdcNamespaceEnvAppBinding 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 8, Step 9, Step 10, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcMetadataRepositoryContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/lease/DdcInstanceAdminServiceTest.java` | SHA256 d5a0971a7131 | DdcInstanceAdminServiceTest | 仅本Step的 DdcPublishTask,DdcPublishAck,DdcInstance,DdcOperationLog 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 10, Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
@@ -14000,7 +14000,7 @@ requireSameResourceScope(candidate, locked); compare expectedRevision; only then
 - Dependencies: Step 13
 - Baseline state: Step 13 implementation commit ffd7ed4166bca0263de6817963ae86bc22ac468d plus corrective commit e9fd4308dbbb8e57105404f065ed81281bff1dc4; shared-path evidence hashes below are refreshed to that HEAD. At Step14 lock capture current Plan HEAD and verify clean status.
 - Observable outcome: API-008/009发布回滚、API-006/007/011历史查询经named Repository运行；版本/整树/回执/pointer同事务一致，tenant级requestId覆盖跨root重用；发布/回滚记录Spec§15.4安全日志并发出低基数Micrometer计数。
-- End state: 27条唯一路径、30个有序编辑动作的Repository/权限/结果转换/Service合同与行为完成；无DDL、依赖、REST shape或AI Event变化。
+- End state: 27条唯一路径、31个有序编辑动作的Repository/权限/结果转换/Service合同与行为完成；无DDL、依赖、REST shape或AI Event变化。
 - Test-first gate: Required — File 1 tenant-global receipt先RED/GREEN，File 6 targetVersionNo join投影再RED/GREEN，File 28在显式UnsupportedOperationException编译seam上产生typed行为RED；compile prerequisite失败不得算RED。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
@@ -14849,7 +14849,7 @@ publish/rollback increment `tianshu.ai.version.commands` with only operation/res
 ```
 
 - Verification contribution: RED/GREEN DdcAiVersionServiceTest、PTest、DDL contract及Draft回归。
-- After this file: the versioned Service behavior is present; File 30 updates its direct constructor caller before final validation and commit.
+- After this file: the versioned Service behavior is present; Files 30 and 31 update its direct test constructor callers before final validation and commit.
 
 #### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiDraftServiceTest.java`
 
@@ -14880,7 +14880,31 @@ service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, 
 ```
 
 - Verification contribution: DdcAiDraftServiceTest remains in the required Step14 reactor command and verifies Step13 draft behavior after constructor wiring changes.
-- After this file: all 30 ordered actions on 27 unique Step14 paths are ready for the exact focused validation and path-limited commit.
+- After this file: File 31 updates the version-service fixture to inject the existing MeterRegistry and assert low-cardinality counters.
+
+#### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiVersionServiceTest.java`
+
+- Purpose: 为Service新增MeterRegistry构造依赖提供SimpleMeterRegistry，并断言发布/回滚成功、冲突和事务失败的operation/result计数。
+- Symbols: `DdcAiVersionServiceTest.setUp`, publish/rollback observability assertions
+- Repository evidence: File28在本Step创建该测试；File31是在File29增加MeterRegistry构造依赖后的有序fixture更新。
+- Dependencies and consumers: 复用Admin已存在的Actuator/Micrometer类型，不新增POM依赖；只有测试使用内存SimpleMeterRegistry。
+- Why now: File29按Spec§15.4发出Micrometer计数，显式构造的Service测试必须传入MeterRegistry并验证有限标签。
+- Contract/signature changes: 构造器传入SimpleMeterRegistry；读取`tianshu.ai.version.commands`的operation与result标签，禁止tenant/root标签。
+- Input/output and state mapping: 测试覆盖PUBLISH/ROLLBACK success/failure，requestId不进入标签；生产日志敏感字段由Service安全日志合同检查。
+- Error and edge behavior: 计数验证不改变命令结果、事务或异常语义；MeterRegistry关闭局限测试生命周期。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11 apply as in the preceding Service action.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11 — in-memory metrics fixture and bounded operation/result labels only; the test adds no runtime dependency/configuration.
+- Implementation pseudocode:
+
+```java
+private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+service = new DdcAiResourceServiceImpl(..., resultConverter, meterRegistry, ...);
+assertThat(meterRegistry.get("tianshu.ai.version.commands")
+        .tag("operation", "PUBLISH").tag("result", "success").counter().count()).isEqualTo(2);
+```
+
+- Verification contribution: DdcAiVersionServiceTest proves success/replay, conflict, rollback, and injected failure counters without starting an application or exporter.
+- After this file: all 31 ordered actions on 27 unique Step14 paths are ready for exact focused validation and path-limited commit.
 - Validation working directory: repository root
 - Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiVersionServiceTest,DdcAiPersistenceContractTest,DdcTianshuDdlContractTest,DdcAiDraftServiceTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
 - Expected result: 所列聚焦测试全部GREEN、reactor依赖从当前源码编译退出0；幂等冲突、事务回滚、版本完整性、namespace发布权限和Step13草稿回归通过。
