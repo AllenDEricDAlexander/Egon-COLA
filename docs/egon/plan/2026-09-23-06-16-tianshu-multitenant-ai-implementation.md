@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 07:43 Asia/Shanghai` |
+| Updated | `2026-09-29 09:20 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -97,10 +97,10 @@
 | Step 10 | Step 9 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 76个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 11 | Step 10 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 96个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 12 | Step 11 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 42个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 13 | Step 12 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 15个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 13 | Step 12 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 27个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 14 | Step 13 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 11个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 15 | Step 14 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 4个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 16 | Step 15 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 11个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 16 | Step 15 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 10个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 17 | Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 12个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 18 | Step 10, Step 11, Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 13个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 19 | Step 18 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 9个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -306,7 +306,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | DELETE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/converter/DdcStringMapConverter.java` | SHA256 bc517677b5df | DdcStringMapConverter | 删除已由MP字段级TypeHandler替代、无调用方的JPA AttributeConverter | Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiDraftNodeMapper.java` | CREATE：基线不存在 | DdcAiDraftNodeMapper | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiPublicationMapper.java` | CREATE：基线不存在 | DdcAiPublicationMapper | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiResourceMapper.java` | CREATE：基线不存在 | DdcAiResourceMapper | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiResourceMapper.java` | CREATE: 基线不存在；MODIFY: SHA256 4fc1d7e316861a69af09 | DdcAiResourceMapper | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiVersionMapper.java` | CREATE：基线不存在 | DdcAiVersionMapper | ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiVersionNodeMapper.java` | CREATE：基线不存在 | DdcAiVersionNodeMapper | ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAppMapper.java` | CREATE：基线不存在 | DdcAppMapper | ddc_app；DdcApp；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 8 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest |
@@ -327,7 +327,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java` | CREATE：基线不存在 | DdcPersistenceMigrationCli | standalone validate/initialize；初始化先跑Tianshu manifest创建business schema与egon_outbox schema，再显式运行component-outbox manifest；无Web/后台import | Step 7, Step 23 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcLegacyImportContractTest, DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiDraftNodeBO.java` | CREATE：基线不存在 | DdcAiDraftNodeBO | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiPublicationBO.java` | CREATE：基线不存在 | DdcAiPublicationBO | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiResourceBO.java` | CREATE：基线不存在 | DdcAiResourceBO | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiResourceBO.java` | CREATE: 基线不存在；MODIFY: SHA256 66e1f4cac5d572f4e76d | DdcAiResourceBO | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiVersionBO.java` | CREATE：基线不存在 | DdcAiVersionBO | ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiVersionNodeBO.java` | CREATE：基线不存在 | DdcAiVersionNodeBO | ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAppBO.java` | CREATE：基线不存在 | DdcAppBO | ddc_app；DdcApp；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 8 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest |
@@ -347,12 +347,12 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiPromotionCommand.java` | CREATE：基线不存在 | DdcAiPromotionCommand | class sourceVersionNo/targetScope/key/nullable expectedTargetRevision/changeNote；缺失与NULL用显式creator区分 | Step 15 | REQ-012 REQ-014 | DdcAiPromotionServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiPublishCommand.java` | CREATE：基线不存在 | DdcAiPublishCommand | class expectedRevision/versionNo/changeNote，校验组与Idempotency-Key独立参数 | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiRollbackCommand.java` | CREATE：基线不存在 | DdcAiRollbackCommand | class expectedRevision/versionNo/changeNote，校验组与Idempotency-Key独立参数 | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiDraftNodeConverter.java` | CREATE：基线不存在 | DdcAiDraftNodeConverter | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiDraftNodeConverter.java` | CREATE: 基线不存在；MODIFY: SHA256 ead449eaa88fbbdcaafe | DdcAiDraftNodeConverter | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiEnumConverter.java` | CREATE：基线不存在 | DdcAiEnumConverter | 持久kind↔SDK kind完整BaseConverter，node双向显式方法，未知code拒绝 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiPublicationConverter.java` | CREATE：基线不存在 | DdcAiPublicationConverter | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiPublicationResultConverter.java` | CREATE：基线不存在 | DdcAiPublicationResultConverter | DdcAiPublicationBO -> DdcAiPublicationResult；BaseForwardConverter，无公开结果反向写PO | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceConverter.java` | CREATE：基线不存在 | DdcAiResourceConverter | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceResultConverter.java` | CREATE：基线不存在 | DdcAiResourceResultConverter | DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceConverter.java` | CREATE: 基线不存在；MODIFY: SHA256 5a536e994dd6ec23b753 | DdcAiResourceConverter | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceResultConverter.java` | CREATE：基线不存在 | DdcAiResourceResultConverter | DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO | Step 13 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiDraftServiceTest,DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionConverter.java` | CREATE：基线不存在 | DdcAiVersionConverter | ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionNodeConverter.java` | CREATE：基线不存在 | DdcAiVersionNodeConverter | ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionResultConverter.java` | CREATE：基线不存在 | DdcAiVersionResultConverter | DdcAiVersionBO -> DdcAiVersionSummaryDTO；BaseForwardConverter，无公开结果反向写PO | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
@@ -398,7 +398,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/enums/DdcAiPublicationOperationEnum.java` | CREATE：基线不存在 | DdcAiPublicationOperationEnum | @EnumValue固定code；前两个与SDK JsonValue enum分离，operation在Admin双注解；EgonEnum稳定code不ordinal | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiDraftNodePO.java` | CREATE：基线不存在 | DdcAiDraftNodePO | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiPublicationPO.java` | CREATE：基线不存在 | DdcAiPublicationPO | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiResourcePO.java` | CREATE：基线不存在 | DdcAiResourcePO | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiResourcePO.java` | CREATE: 基线不存在；MODIFY: SHA256 5caf275395dadd938de6 | DdcAiResourcePO | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiVersionNodePO.java` | CREATE：基线不存在 | DdcAiVersionNodePO | ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiVersionPO.java` | CREATE：基线不存在 | DdcAiVersionPO | ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAppPO.java` | CREATE：基线不存在 | DdcAppPO | ddc_app；DdcApp；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 8 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest |
@@ -432,9 +432,9 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPageResult.java` | CREATE：基线不存在 | DdcPageResult | 普通class records/total/pageNo/pageSize；无Spring Data Page/IPage泄漏 | Step 8 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPublishResultVO.java` | SHA256 aacc36c70274 | DdcPublishResultVO | 仅本Step的 DdcPublishTask,DdcPublishAck,DdcInstance,DdcOperationLog 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 10, Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPublishTaskResult.java` | CREATE：基线不存在 | DdcPublishTaskResult | 原Entity对外字段原样，id/foreign id投影为旧public ID，不暴露内部PO字段 | Step 10 | REQ-011 REQ-013 REQ-015 | DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiDraftNodeRepository.java` | CREATE：基线不存在 | DdcAiDraftNodeRepository | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiDraftNodeRepository.java` | CREATE: 基线不存在；MODIFY: SHA256 d0fb01737428ad8e1c2b | DdcAiDraftNodeRepository | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPublicationRepository.java` | CREATE：基线不存在 | DdcAiPublicationRepository | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiResourceRepository.java` | CREATE：基线不存在 | DdcAiResourceRepository | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiResourceRepository.java` | CREATE: 基线不存在；MODIFY: SHA256 b1b2500cafda95d5e279 | DdcAiResourceRepository | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiVersionNodeRepository.java` | CREATE：基线不存在 | DdcAiVersionNodeRepository | ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiVersionRepository.java` | CREATE：基线不存在 | DdcAiVersionRepository | ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAppRepository.java` | SHA256 3039f5dac14e | DdcAppRepository | ddc_app；DdcApp；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 8, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcMetadataRepositoryContractTest |
@@ -451,9 +451,9 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishTaskRepository.java` | SHA256 8e4b23819c60 | DdcPublishTaskRepository | ddc_publish_task；DdcPublishTask；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 10, Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java` | SHA256 171de35ddc59 | DdcRedisRepository | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6, Step 18 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcConfigOutboxContractTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java` | SHA256 36bcad8af260 | DdcServiceRegistryRedisRepository | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiDraftNodeRepositoryImpl.java` | CREATE：基线不存在 | DdcAiDraftNodeRepositoryImpl | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiDraftNodeRepositoryImpl.java` | CREATE: 基线不存在；MODIFY: SHA256 9e4f52921dfbf3279f70 | DdcAiDraftNodeRepositoryImpl | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiPublicationRepositoryImpl.java` | CREATE：基线不存在 | DdcAiPublicationRepositoryImpl | ddc_ai_publication；DdcAiPublication；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiResourceRepositoryImpl.java` | CREATE：基线不存在 | DdcAiResourceRepositoryImpl | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiResourceRepositoryImpl.java` | CREATE: 基线不存在；MODIFY: SHA256 4d15ecaed95219f1ecb3 | DdcAiResourceRepositoryImpl | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiVersionNodeRepositoryImpl.java` | CREATE：基线不存在 | DdcAiVersionNodeRepositoryImpl | ddc_ai_version_node；DdcAiVersionNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiVersionRepositoryImpl.java` | CREATE：基线不存在 | DdcAiVersionRepositoryImpl | ddc_ai_version；DdcAiVersion；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAppRepositoryImpl.java` | CREATE：基线不存在 | DdcAppRepositoryImpl | ddc_app；DdcApp；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 8 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest |
@@ -523,7 +523,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/egon-tianshu-persistence.yml` | CREATE：基线不存在 | egon-tianshu-persistence | 16 business/public history及egon_outbox组件路由；runtime ddl.enabled=false、Outbox auto-initialize-ddl=false、validate-schema=true | Step 7, Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-011 REQ-017 REQ-019 | DdcAiPersistenceContractTest, DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiDraftNodeMapper.xml` | CREATE：基线不存在 | DdcAiDraftNodeMapper | ddc_ai_draft_node；DdcAiDraftNode；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiPublicationMapper.xml` | CREATE：基线不存在 | DdcAiPublicationMapper | ddc_ai_publication；DdcAiPublication；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiResourceMapper.xml` | CREATE：基线不存在 | DdcAiResourceMapper | ddc_ai_resource；DdcAiResource；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiResourceMapper.xml` | CREATE: 基线不存在；MODIFY: SHA256 040800ef5101758b5896 | DdcAiResourceMapper | ddc_ai_resource；DdcAiResource；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiVersionMapper.xml` | CREATE：基线不存在 | DdcAiVersionMapper | ddc_ai_version；DdcAiVersion；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiVersionNodeMapper.xml` | CREATE：基线不存在 | DdcAiVersionNodeMapper | ddc_ai_version_node；DdcAiVersionNode；标准selectActiveById/selectActiveByIds＋原接口全部命名查询；不可变历史不声明deleteVersionedById；tenant/active/原version/原业务状态谓词 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAppMapper.xml` | CREATE：基线不存在 | DdcAppMapper | ddc_app；DdcApp；标准selectActiveById/selectActiveByIds/deleteVersionedById＋原接口全部命名查询；tenant/active/原version/原业务状态谓词 | Step 8 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcMetadataRepositoryContractTest |
@@ -583,7 +583,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/sharding/bootstrap/EgonColaShardingYamlLoader.java` | SHA256 65151321424a | EgonColaShardingYamlLoader | 聚合STANDARD_TENANT_ID片段为单一!SHARDING规则，其他策略片段保持；坏片段/重复Standard键拒绝 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.md` | SHA256 764053d54012 | Common MP README | 记录SINGLE schema默认public及覆盖方式 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.zh-CN.md` | SHA256 131ac91ad395 | Common MP README.zh-CN | 同步英文配置合同 | Step 7 | REQ-009 REQ-011 | EgonColaShardingAutoConfigurationTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPersistenceContractTest.java` | CREATE：基线不存在 | DdcAiPersistenceContractTest | 一live根/多历史；draft只读live；published节点不可变；current/source同root/tenant约束；回执key/hash冲突；标准Guard不物理删 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPersistenceContractTest.java` | CREATE: 基线不存在；MODIFY: SHA256 4d1cbbc50c938239881d | DdcAiPersistenceContractTest | 一live根/多历史；draft只读live；published节点不可变；current/source同root/tenant约束；回执key/hash冲突；标准Guard不物理删 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepositoryTest.java` | SHA256 678e53d16fe9 | DdcConfigLeaseRedisRepositoryTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java` | SHA256 c87e799aa9d7 | DdcConfigPagingRepositoryTest | 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 9, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigRepositoryContractTest.java` | CREATE：基线不存在 | DdcConfigRepositoryContractTest | current_version/published_version/config_revision区分；legacy.deleted true仍技术active；rollback不清空deleted_at；历史排序/原值保持 | Step 9, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest |
@@ -768,6 +768,8 @@ Outbox组件引入和MP受控扩展已在本会话获批；批准时同一Outbox
 2026-09-29 Step 12复核将AI五表逐项对照Accepted原Spec §11.2与不可变V001：AI表没有`public_id`列；EgonModel.id是Long内部身份，对外AI resource/version/node/publication ID按原Spec编码为该Long的十进制String。Step 12的通用文件摘要误把旧11表public_id映射复制到了AI模型；本节文件级input/output、converter及repository伪代码统一修正为内部Long id/外部decimal-string id，并要求DdcAiPersistenceContractTest验证AI PO/XML/DDL不虚构public_id。V001及API字段不变，旧11表继续由各自legacy converter保留public_id兼容。
 
 Step 12还复核到`egon-tianshu-persistence.yml`已由Step 7创建并提交；本Step File 41不是再CREATE新配置，而是仅修改精确`history-read-statements`登记项、继续保持`restore-statements`为空。对应动作更正为MODIFY，不改Step 7文件和已提交配置键以外的路由。
+
+2026-09-29 Step 13 pre-edit contract audit: §9.1/§9.5 says Service outputs wire business DTOs and §13 assigns permissions/transactions to Service while named business reads/writes belong to Repositories. Step 12 currently creates resource/draft-node Repository interfaces with only findActiveById; direct Service-to-Mapper or concrete generic CRUD would violate that boundary. API-003 additionally requires a root FOR SHARE read before assembling detail plus live nodes, and Summary needs namespaceCode/currentVersionNo without N+1 queries. Step 13 therefore extends the two business Repository ports/implementations, adds Resource FOR SHARE SQL, and adds same-tenant namespace/current-version read projections on existing PO/BO using TableField(exist=false). Existing MapStruct Resource/DraftNode converters gain command/query/node DTO mappings; the BaseForwardConverter from ResourceBO to SummaryDTO moves from Step 16 to Step 13 so the Service response compiles and conforms. Step 13 grows 15 to 27 files; Step 16 reuses the committed result converter and shrinks 11 to 10. No DDL, dependency, external API, or new module is introduced.
 
 Step 12的聚焦测试同样需要前序组件、Outbox和RPC模块当前工作区产物，沿用Step 11已验证的根目录reactor `-pl Admin -am` 门禁，避免子模块解析到本地旧版本。
 
@@ -13135,395 +13137,640 @@ assertThat(yaml).contains("restore-statements: []");
 - Dependencies: Step 12
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 创建/保存/树编辑/软删可用，正文原样，revision冲突保留已提交状态。
-- End state: 创建/保存/树编辑/软删可用，正文原样，revision冲突保留已提交状态；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- End state: create/get/page/replaceDraft/delete完整可用；READ COMMITTED详情先FOR SHARE锁根、joined summary无N+1，Skill文本树原样替换并只软删除；revision冲突原子回滚；本步路径与持久列集合一致。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-PATTERN-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
-- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11
+- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001
+- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiDraftServiceTest.java`
 
-- Purpose: UTF8/树约束触发；保存不切发布指针；同tenant根锁事务；节点soft-delete；root删后可重建；相同历史时间最多3新事务失败409
+- Purpose: RED contract for create/get/page/replaceDraft/delete: trusted scope, idempotency, root locking, full text tree validation, optimistic revision, soft-delete and rollback.
 - Symbols: `DdcAiDraftServiceTest`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftServiceTest`。
-- Dependencies and consumers: 前置Step 12；本步0个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 先固定本步RED合同。
-- Contract/signature changes: DdcAiDraftServiceTest新增可观察断言：UTF8/树约束触发；保存不切发布指针；同tenant根锁事务；节点soft-delete；root删后可重建；相同历史时间最多3新事务失败409。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：UTF8/树约束触发；保存不切发布指针；同tenant根锁事务；节点soft-delete；root删后可重建；相同历史时间最多3新事务失败409；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按UTF8/树约束触发；保存不切发布指针；同tenant根锁事务；节点soft-delete；root删后可重建；相同历史时间最多3新事务失败409判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；UTF8/树约束触发；保存不切发布指针；同tenant根锁事务；节点soft-delete；root删后可重建；相同历史时间最多3新事务失败409。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: 当前路径不存在；参照同模块既有JUnit/Mockito/Spring测试风格，先写用户可观察行为测试。
+- Dependencies and consumers: 前置Step 12；本步0个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 这是RED测试合同。
+- Contract/signature changes: 新增测试覆盖创建、ID详情和分页、完整草稿替换、删除；验证保存不推进发布指针，READ COMMITTED读取先锁根，Skill树不物理删除，已删除业务键可重建，revision冲突整体回滚。
+- Input/output and state mapping: 以可信tenant和scope fixture调用Service public API；成功结果通过Result DTO返回，DB effects只含同tenant根与live节点变更，published/currentVersion保持原值。
+- Error and edge behavior: 验证无效树/UTF-8越限/越权/404/revision冲突/唯一键竞争均无半提交；失败不泄露其他tenant资源或正文。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-VALID-001, MC-MODEL-001, MC-PATTERN-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Test void DdcAiDraftServiceTest_contract() {
-  // arrange: UTF8/树约束触发；保存不切发布指针；同tenant根锁事务；节点soft-delete；root删后可重建；相同历史时间最多3新事务失败409
-  // invoke: call the named public boundary under trusted tenant and record returned state plus side effects.
-  // assert: success payload/state and negative conflict/denial/rollback cases; no cross-tenant row, Redis key or event is observable.
-  // RED before production: the target contract or its intended invariant is absent; GREEN only after matching implementation.
-}
+以当前Step13真实Service、Repository与Strategy作为被测边界；assert root/节点与结果，强制revision冲突后检查事务回滚和published指针不变；RED只接受目标API/行为缺失。
+assert every relevant read and write remains tenant-scoped and active-row guarded;
+assert stale revision, invalid tree, and repository failure leave no partial rows and no publication-pointer change;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的UTF8/树约束触发；保存不切发布指针；同tenant根锁事务；节点soft-delete；root删后可重建；相同历史时间最多3新事务失败409；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiResourceService.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPersistenceContractTest.java`
 
-- Purpose: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-- Symbols: `DdcAiResourceService`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceService`。
-- Dependencies and consumers: 前置Step 12；本步1个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Contract/signature changes: DdcAiResourceService的具体签名/配置/字段变更：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-PATTERN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Purpose: Extend Step12 persistence contracts for transient summary projections, root share-lock SQL and joined page/detail reads.
+- Symbols: `DdcAiPersistenceContractTest`
+- Repository evidence: Step12已创建该文件，当前SHA256 4d1cbbc50c938239881d；仅增补Step13投影与查询合同。
+- Dependencies and consumers: 前置Step 12；本步1个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 断言namespaceCode/currentVersionNo是@TableField(exist=false)投影、未增加DDL列；精确验证selectActiveForShareById的tenant/active谓词与FOR SHARE OF r；列表/详情投影通过tenant-scoped namespace/current-version JOIN取字段且不做逐行查询。
+- Input/output and state mapping: PO持久化字段仍严格等于V001列；transient aliases只供读投影；BoundSql参数来自可信tenant和validated resource id/scope。
+- Error and edge behavior: 跨tenant/删除根不能被查询；锁查询不得去掉tenant/deleted_at条件或锁joined表；V001字段/FK/UK/index合同仍相同。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-MODEL-001, MC-CONVERT-001, MC-UTIL-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcAiResourceService: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+扩展现有PO-versus-DDL断言以排除exist=false字段；通过Mapper statement/BoundSql检查join、tenant及active谓词、FOR SHARE OF r；保留全部Step12正反合同。
+assert every relevant read and write remains tenant-scoped and active-row guarded;
+assert stale revision, invalid tree, and repository failure leave no partial rows and no publication-pointer change;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiResourceServiceImpl.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiResourcePO.java`
 
-- Purpose: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-- Symbols: `DdcAiResourceServiceImpl`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceServiceImpl`。
-- Dependencies and consumers: 前置Step 12；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Contract/signature changes: DdcAiResourceServiceImpl的具体签名/配置/字段变更：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-PATTERN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Purpose: Add non-persisted namespaceCode and currentVersionNo fields for joined list/detail projections only.
+- Symbols: `DdcAiResourcePO`
+- Repository evidence: Step12已创建；当前SHA256 5caf275395dadd938de6；继承EgonModel并按V001显式映射表列。
+- Dependencies and consumers: 前置Step 12；本步2个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 新增namespaceCode/currentVersionNo只读投影字段并标记@TableField(exist=false)；不改变EgonModel继承、表名、persisted columns、校验组或V001。
+- Input/output and state mapping: tenant/id及真实列继续由PO读取写入；Mapper JOIN aliases只填两个transient String/Long属性，不能参与INSERT/UPDATE。
+- Error and edge behavior: DDL字段集合测试必须拒绝投影字段被视为新列；其他原有租户、版本、审计和软删除字段保持。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcAiResourceServiceImpl: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+在DdcAiResourcePO添加exist=false投影；保持@TableName和EgonModel字段；Step13 contract测试证明MyBatis不把投影字段当成V001持久化列。
+map summary aliases as transient fields and keep the PO persisted field set equal to the approved DDL;
+keep tenant/internal IDs hidden and preserve all existing validated business fields;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/validation/DdcAiScopeValidator.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiResourceBO.java`
 
-- Purpose: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-- Symbols: `DdcAiScopeValidator`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiScopeValidator`。
-- Dependencies and consumers: 前置Step 12；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Contract/signature changes: DdcAiScopeValidator的具体签名/配置/字段变更：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-BEAN-001, MC-PATTERN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Purpose: Carry namespaceCode/currentVersionNo internally for Summary projection without exposing persistence identity.
+- Symbols: `DdcAiResourceBO`
+- Repository evidence: Step12已创建；当前SHA256 66e1f4cac5d572f4e76d；同层BO采用class与完整Lombok。
+- Dependencies and consumers: 前置Step 12；本步3个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 新增namespaceCode/currentVersionNo read-projection properties并用@JsonIgnore隐藏内部载体；保持tenant/id/version审计字段隐藏及当前业务字段约束。
+- Input/output and state mapping: MapStruct将PO aliases映射到BO；BO→Summary DTO仅输出Spec字段，Long身份经converter转为十进制String。
+- Error and edge behavior: 不能把tenantId/internal id/namespaceId作为额外wire字段；没有JOIN数据时不得捏造namespace或当前版本号。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcAiScopeValidator: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+在BO加入@JsonIgnore投影字段；不直接序列化BO；保留继承外字段校验与当前@Builder分类；结果使用BaseForwardConverter投影。
+map summary aliases as transient fields and keep the PO persisted field set equal to the approved DDL;
+keep tenant/internal IDs hidden and preserve all existing validated business fields;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiTransactionConfiguration.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiResourceMapper.java`
 
-- Purpose: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-- Symbols: `DdcAiTransactionConfiguration`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiTransactionConfiguration`。
-- Dependencies and consumers: 前置Step 12；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Contract/signature changes: DdcAiTransactionConfiguration的具体签名/配置/字段变更：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Purpose: Declare the exact guarded root share-lock query needed by API-003.
+- Symbols: `DdcAiResourceMapper`
+- Repository evidence: Step12已创建；当前SHA256 4fc1d7e316861a69af09；继承EgonColaMapper并在参数上显式绑定tenant/id和Query组校验。
+- Dependencies and consumers: 前置Step 12；本步4个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 新增selectActiveForShareById(tenantId,id) Mapper签名及@NotNull/@Positive Query约束；不增加restore whitelist或普通历史查询。
+- Input/output and state mapping: trusted tenant + positive internal id进入唯一SELECT；Mapper XML返回resource summary projection并只锁resource行。
+- Error and edge behavior: 无效参数由Validation拒绝；不存在、跨租户或deleted_at不为空均返回未找到；不得弱化Mapper Guard。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcAiTransactionConfiguration: 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+在现有Mapper声明带Query组校验的精确方法；XML where含tenant_id、id与deleted_at IS NULL；语句终止FOR SHARE OF r并绑定唯一resultMap。
+bind the trusted tenant, root identity, active-row condition, and expected revision on each applicable operation;
+propagate a missing row or row-count conflict so the enclosing transaction rolls back every tree mutation;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiCreateCommand.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiResourceMapper.xml`
 
-- Purpose: 普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂
+- Purpose: Implement root FOR SHARE and tenant-safe joins for namespace/current-version summary projections.
+- Symbols: `DdcAiResourceMapper.xml`
+- Repository evidence: Step12已创建；当前SHA256 040800ef5101758b5896；XML现有namespace、标准查询及page/count语句为修改基线。
+- Dependencies and consumers: 前置Step 12；本步5个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 添加selectActiveForShareById；修改selectPage及需要summary projection的root读SELECT加入namespace/current-version LEFT JOIN；aliases对应transient PO字段。
+- Input/output and state mapping: 每个JOIN均以tenant_id匹配，并以namespace_id/current_version_id匹配；resource tenant/active过滤在root where；仅root alias r上FOR SHARE。
+- Error and edge behavior: 禁止按记录再查namespace/version；不得漏tenant join、读历史deleted根、锁join表或改变已有page/count排序/分页语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-UTIL-001
+- Literal rule enforcement: MyBatis XML remains the named MP Mapper implementation with tenant/deleted/version guard predicates (Rule 11); only JDK/approved build-time capabilities are introduced (Rule 5).
+- Implementation pseudocode:
+
+```java
+新增带FOR SHARE OF r的active-root select；page projection使用tenant匹配namespace和current version的LEFT JOIN；保留固定排序、offset/limit及既有count过滤。
+bind the trusted tenant, root identity, active-row condition, and expected revision on each applicable operation;
+propagate a missing row or row-count conflict so the enclosing transaction rolls back every tree mutation;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiResourceRepository.java`
+
+- Purpose: Own business resource reads and guarded root writes behind the existing repository boundary.
+- Symbols: `DdcAiResourceRepository`
+- Repository evidence: Step12已创建；当前SHA256 b1b2500cafda95d5e279；当前仅有findActiveById，Repository是Service允许的业务持久化入口。
+- Dependencies and consumers: 前置Step 12；本步6个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 在既有interface增加business-key lookup、share/for-update root reads、scope page/count及create、revision-guarded metadata update、versioned root soft-delete签名；以BO、PageQuery/DdcPageResult承载边界。
+- Input/output and state mapping: Service传入经校验scope/command；Repository通过当前tenant提供器和Mapper/通用EgonColaRepository返回BO/Page；全部writes精确检查影响行数。
+- Error and edge behavior: 所有写入要求expected revision与当前tenant；唯一键冲突转由Service映射；不提供物理DELETE或任意tenant参数入口。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+仅扩展现有Repository port；将summary projection、business-key定位、root locks、create/CAS update/soft-delete声明为命名方法；避免Service直接访问Mapper。
+bind the trusted tenant, root identity, active-row condition, and expected revision on each applicable operation;
+propagate a missing row or row-count conflict so the enclosing transaction rolls back every tree mutation;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiResourceRepositoryImpl.java`
+
+- Purpose: Implement the resource port using Step12 MP Mapper, BaseConverter and EgonColaRepository lifecycle guards.
+- Symbols: `DdcAiResourceRepositoryImpl`
+- Repository evidence: Step12已创建；当前SHA256 4d15ecaed95219f1ecb3；既有@RequiredArgsConstructor、命名@Repository、Qualifier、Mapper/Converter注入。
+- Dependencies and consumers: 前置Step 12；本步7个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 将port方法映射到现有DdcAiResourceMapper命名查询及EgonColaRepository/MP guarded insert/update/delete；返回PO→BO/分页结果。
+- Input/output and state mapping: tenant由EgonColaTenantIdProvider取得；更新使用当前revision与根锁；summary字段来自SQL JOIN；node操作委托给DraftNodeRepository。
+- Error and edge behavior: 不得自己构造无tenant SQL或调用物理删除；零/多行CAS、锁超时、唯一冲突保留typed错误上下文。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+复用当前Mapper、EgonColaRepository、DdcAiResourceConverter和Qualifier注入；调用selectActiveForShareById/for update与版本化软删；每个写入返回精确行数给Service。
+bind the trusted tenant, root identity, active-row condition, and expected revision on each applicable operation;
+propagate a missing row or row-count conflict so the enclosing transaction rolls back every tree mutation;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiDraftNodeRepository.java`
+
+- Purpose: Own complete active-node tree reads and path-level soft-delete/insert operations.
+- Symbols: `DdcAiDraftNodeRepository`
+- Repository evidence: Step12已创建；当前SHA256 d0fb01737428ad8e1c2b；Repository interface当前仅提供findActiveById。
+- Dependencies and consumers: 前置Step 12；本步8个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 新增按tenant+resource查询完整active nodes、批量创建节点和以当前row version软删除/替换路径的业务方法；无物理删除接口。
+- Input/output and state mapping: 返回List<DdcAiDraftNodeBO>并保持path排序；替换输入是经Skill策略校验的整树，执行live-path diff。
+- Error and edge behavior: 只触达当前tenant/resource；目录父路径由策略验证；并发异常必须回滚根metadata和所有节点变更。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+在现有Repository port增加resource tree query和path-diff写入方法；每种写以tenant、resource、id/version及active条件执行。
+bind the trusted tenant, root identity, active-row condition, and expected revision on each applicable operation;
+propagate a missing row or row-count conflict so the enclosing transaction rolls back every tree mutation;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiDraftNodeRepositoryImpl.java`
+
+- Purpose: Implement tree operations over the named MP Mapper and converter; preserve soft-delete lifecycle.
+- Symbols: `DdcAiDraftNodeRepositoryImpl`
+- Repository evidence: Step12已创建；当前SHA256 9e4f52921dfbf3279f70；实现继承EgonColaRepository并注入Mapper、Converter及MP properties。
+- Dependencies and consumers: 前置Step 12；本步9个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 先固定持久化/转换/事务边界，再由后续文件接入该契约。
+- Contract/signature changes: 为新增Repository方法使用Mapper XML tenant/resource/path查询、批量insert和versioned soft-delete；PO/BO转换仍由MapStruct converter完成。
+- Input/output and state mapping: tenant来自EgonColaTenantIdProvider；仅active节点读入树，deleted nodes排除hash/count/path占用；替换后返回规范path排序BO列表。
+- Error and edge behavior: 任何写失败由外层同一Spring事务回滚；不得用BaseMapper.delete或SQL DELETE移除草稿文件。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+复用DdcAiDraftNodeMapper命名查询及DdcAiDraftNodeConverter；仅使用Mapper版本化删除与insert/update，Service事务原子覆盖树。
+bind the trusted tenant, root identity, active-row condition, and expected revision on each applicable operation;
+propagate a missing row or row-count conflict so the enclosing transaction rolls back every tree mutation;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiCreateCommand.java`
+
+- Purpose: Keep the approved external create JSON contract as a validated ordinary class.
 - Symbols: `DdcAiCreateCommand`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiCreateCommand`。
-- Dependencies and consumers: 前置Step 12；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。
-- Contract/signature changes: DdcAiCreateCommand的具体签名/配置/字段变更：普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12提交后路径仍不存在；字段及required/null/decimal-string语义取自原Spec§9与修订Spec§9/10。
+- Dependencies and consumers: 前置Step 12；本步10个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: class承载四维scope、kind、resourceKey、displayName、description和draft；required-vs-null通过显式Jackson creator保留；@Valid验证嵌套草稿。
+- Input/output and state mapping: Request scope中的namespaceCode由DdcScopeGate解析成内部namespaceId；tenant和actor只取已验证上下文；原文不trim、不格式化。
+- Error and edge behavior: 无效ID格式、scope、kind、key、name、树或越限内容按Spec映射validation error；不接受tenant/actor覆盖字段。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder class DdcAiCreateCommand {
-  // fields/validation from Spec: 普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂; apply @Valid cascades and group constraints at every boundary.
-  // Jackson exposes explicit names and string codes; java.time maps timestamps without implicit Date.
-}
-// Event payload is immutable after enqueue; no Admin-only class crosses Starter dependency direction.
+使用class与项目Lombok/JsonCreator约定；命令到BO映射由MapStruct ResourceConverter持有；嵌套draft以@Valid和Validation group校验。
+validate required fields and exact groups while preserving missing-versus-null Jackson semantics;
+derive tenant and actor from the trusted security context rather than accepting them as request data;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDraftCommand.java`
+#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDraftCommand.java`
 
-- Purpose: 普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂
+- Purpose: Represent complete optimistic-concurrency draft replacement without partial-patch ambiguity.
 - Symbols: `DdcAiDraftCommand`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDraftCommand`。
-- Dependencies and consumers: 前置Step 12；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。
-- Contract/signature changes: DdcAiDraftCommand的具体签名/配置/字段变更：普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12提交后路径不存在；对照原Spec API-004 complete replacement JSON和当前项目Command命名。
+- Dependencies and consumers: 前置Step 12；本步11个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 含expectedRevision、displayName、description、完整DdcAiContentDTO； required/null区分沿用显式Jackson creator与验证组。
+- Input/output and state mapping: expectedRevision十进制字符串转内部非负Long；正文原样交Content Strategy准备；完整nodes列表映射为DraftNodeBO。
+- Error and edge behavior: revision缺失或并发过期、无效Skill树、Prompt/Skill结构错配均拒绝并保留数据库旧草稿。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder class DdcAiDraftCommand {
-  // fields/validation from Spec: 普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂; apply @Valid cascades and group constraints at every boundary.
-  // Jackson exposes explicit names and string codes; java.time maps timestamps without implicit Date.
-}
-// Event payload is immutable after enqueue; no Admin-only class crosses Starter dependency direction.
+以显式JsonCreator保存wire required/null差异；给draft添加@Valid；ResourceConverter映射根字段，DraftNodeConverter映射节点而不手写Bean copy。
+validate required fields and exact groups while preserving missing-versus-null Jackson semantics;
+derive tenant and actor from the trusted security context rather than accepting them as request data;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDeleteCommand.java`
+#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDeleteCommand.java`
 
-- Purpose: 普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂
+- Purpose: Carry the expected root revision required by resource soft-delete.
 - Symbols: `DdcAiDeleteCommand`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiDeleteCommand`。
-- Dependencies and consumers: 前置Step 12；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。
-- Contract/signature changes: DdcAiDeleteCommand的具体签名/配置/字段变更：普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12提交后路径不存在；字段取原Spec API-005 delete body及修订版本规则。
+- Dependencies and consumers: 前置Step 12；本步12个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 提供expectedRevision非负Long十进制字符串；保留显式Jackson字段出现语义并标注Delete校验组。
+- Input/output and state mapping: Controller path id与Command revision交给Service；tenant/actor仍来自认证上下文；成功为无正文204。
+- Error and edge behavior: revision不符返回409且不删除；重复删除按Spec幂等语义处理；不允许物理DELETE。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder class DdcAiDeleteCommand {
-  // fields/validation from Spec: 普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂; apply @Valid cascades and group constraints at every boundary.
-  // Jackson exposes explicit names and string codes; java.time maps timestamps without implicit Date.
-}
-// Event payload is immutable after enqueue; no Admin-only class crosses Starter dependency direction.
+使用普通class、Jackson JsonCreator与Jakarta约束；Service在根锁与permission检查后执行soft-delete，不让transport对象带内部tenant。
+validate required fields and exact groups while preserving missing-versus-null Jackson semantics;
+derive tenant and actor from the trusted security context rather than accepting them as request data;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的普通class；原§9字段和NULL/缺失/字符串Long语义；显式JsonCreator静态工厂；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPageQuery.java`
+#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPageQuery.java`
 
-- Purpose: 完整scope/固定排序page1/20<=100；id定位器可value record
+- Purpose: Validate the complete four-dimensional resource list scope, filters and bounded pagination.
 - Symbols: `DdcAiPageQuery`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPageQuery`。
-- Dependencies and consumers: 前置Step 12；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责完整scope/固定排序page1/20<=100；id定位器可value record。
-- Contract/signature changes: DdcAiPageQuery的具体签名/配置/字段变更：完整scope/固定排序page1/20<=100；id定位器可value record。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完整scope/固定排序page1/20<=100；id定位器可value record；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完整scope/固定排序page1/20<=100；id定位器可value record判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；完整scope/固定排序page1/20<=100；id定位器可value record。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12提交后路径不存在；对照同Admin模块PageQuery和PageResult约定及原Spec API-001。
+- Dependencies and consumers: 前置Step 12；本步13个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: class包含scope、可选kind/key前缀/name与page/pageSize；固定默认页及pageSize<=100；不允许客户端排序SQL片段。
+- Input/output and state mapping: 外部namespaceCode/env/app/biz在Service按可信tenant和DdcScopeGate校验后，Repository执行limit/offset固定order。
+- Error and edge behavior: 非法scope、page越界及pageSize过大拒绝；缺省只由Query定义的安全默认生效，不扩大tenant范围。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder class DdcAiPageQuery {
-  // fields/validation from Spec: 完整scope/固定排序page1/20<=100；id定位器可value record; apply @Valid cascades and group constraints at every boundary.
-  // Jackson exposes explicit names and string codes; java.time maps timestamps without implicit Date.
-}
-// Event payload is immutable after enqueue; no Admin-only class crosses Starter dependency direction.
+将page query作为普通validated class；查询筛选映射到具名Mapper参数，排序始终为Spec固定排序，不拼接用户字段。
+validate required fields and exact groups while preserving missing-versus-null Jackson semantics;
+derive tenant and actor from the trusted security context rather than accepting them as request data;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的完整scope/固定排序page1/20<=100；id定位器可value record；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiIdQuery.java`
+#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiIdQuery.java`
 
-- Purpose: 完整scope/固定排序page1/20<=100；id定位器可value record
+- Purpose: Define validated positive decimal-string resource ID query for detail and stable lookup.
 - Symbols: `DdcAiIdQuery`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiIdQuery`。
-- Dependencies and consumers: 前置Step 12；本步9个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责完整scope/固定排序page1/20<=100；id定位器可value record。
-- Contract/signature changes: DdcAiIdQuery的具体签名/配置/字段变更：完整scope/固定排序page1/20<=100；id定位器可value record。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完整scope/固定排序page1/20<=100；id定位器可value record；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完整scope/固定排序page1/20<=100；id定位器可value record判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；完整scope/固定排序page1/20<=100；id定位器可value record。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12提交后路径不存在；遵循Spec REST path id及项目查询类型后缀，不将外部Long直接序列化为JSON number。
+- Dependencies and consumers: 前置Step 12；本步14个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: id文本在边界解析为正Long；可信tenant不属于可变请求字段；详细读取范围不从body选择。
+- Input/output and state mapping: 已验证字符串转换成内部Long，Service再以tenant/id唯一读取并过scope gate。
+- Error and edge behavior: 拒绝空白、符号、溢出、零/负值及前后缀；不存在与其他tenant统一404。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder class DdcAiIdQuery {
-  // fields/validation from Spec: 完整scope/固定排序page1/20<=100；id定位器可value record; apply @Valid cascades and group constraints at every boundary.
-  // Jackson exposes explicit names and string codes; java.time maps timestamps without implicit Date.
-}
-// Event payload is immutable after enqueue; no Admin-only class crosses Starter dependency direction.
+通过显式Jackson/ConstraintValidator保留十进制String wire；在Service前不调用数据库，错误采用AI参数校验业务码。
+validate required fields and exact groups while preserving missing-versus-null Jackson semantics;
+derive tenant and actor from the trusted security context rather than accepting them as request data;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的完整scope/固定排序page1/20<=100；id定位器可value record；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiResourceSummaryDTO.java`
+#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiResourceSummaryDTO.java`
 
-- Purpose: 普通class，原summary字段和Long string/UTC保持，无正文
+- Purpose: Declare the exact externally visible summary fields without draft body or internal persistence metadata.
 - Symbols: `DdcAiResourceSummaryDTO`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceSummaryDTO`。
-- Dependencies and consumers: 前置Step 12；本步10个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责普通class，原summary字段和Long string/UTC保持，无正文。
-- Contract/signature changes: DdcAiResourceSummaryDTO的具体签名/配置/字段变更：普通class，原summary字段和Long string/UTC保持，无正文。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：普通class，原summary字段和Long string/UTC保持，无正文；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按普通class，原summary字段和Long string/UTC保持，无正文判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；普通class，原summary字段和Long string/UTC保持，无正文。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12提交后路径不存在；字段来源为原Spec§9 API-001/002/003；同层DTO均使用class。
+- Dependencies and consumers: 前置Step 12；本步15个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 保持id/revision/version ids的十进制String、scope、kind、resourceKey、displayName、description、UTC updatedAt；namespaceCode/currentVersionNo由result converter读取BO投影。
+- Input/output and state mapping: 仅在列表与详情资源summary出现；完整prompt/tree放DdcAiResourceResult.draft，不重复或额外泄露。
+- Error and edge behavior: 无published current version时currentVersionId/currentVersionNo为null；内部tenant/id绝不输出为number或额外字段。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001, MC-CONVERT-001, MC-TIME-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder class DdcAiResourceSummaryDTO {
-  // fields/validation from Spec: 普通class，原summary字段和Long string/UTC保持，无正文; apply @Valid cascades and group constraints at every boundary.
-  // Jackson exposes explicit names and string codes; java.time maps timestamps without implicit Date.
-}
-// Event payload is immutable after enqueue; no Admin-only class crosses Starter dependency direction.
+保持普通class完整Lombok；用Jackson协议注解和Instant UTC；BaseForwardConverter按精确字段映射而非序列化BO。
+construct only the Spec-defined summary and complete draft fields through named MapStruct converters;
+serialize Long identities as decimal strings and preserve null, UTC, and original text semantics;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的普通class，原summary字段和Long string/UTC保持，无正文；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiResourceResult.java`
+#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiResourceResult.java`
 
-- Purpose: class resource summary＋draft，原wire相同
+- Purpose: Return the legacy Spec detail envelope resource summary plus complete editable draft.
 - Symbols: `DdcAiResourceResult`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceResult`。
-- Dependencies and consumers: 前置Step 12；本步11个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责class resource summary＋draft，原wire相同。
-- Contract/signature changes: DdcAiResourceResult的具体签名/配置/字段变更：class resource summary＋draft，原wire相同。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：class resource summary＋draft，原wire相同；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按class resource summary＋draft，原wire相同判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；class resource summary＋draft，原wire相同。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12提交后路径不存在；API-003结果结构已在原Spec§9固定，VO按当前Admin命名约定。
+- Dependencies and consumers: 前置Step 12；本步16个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 包含resource:DdcAiResourceSummaryDTO与draft:DdcAiContentDTO，字段名、nullable及node列表wire保持原合同。
+- Input/output and state mapping: Service从root BO和整组active DraftNodeBO构造；Prompt只输出promptText、Skill只输出complete nodes。
+- Error and edge behavior: 根已删除/无权不返回部分详情；tree组装不混版本，不向外暴露BO/PO字段。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001, MC-CONVERT-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder class DdcAiResourceResult {
-  // fields/validation from Spec: class resource summary＋draft，原wire相同; apply @Valid cascades and group constraints at every boundary.
-  // Jackson exposes explicit names and string codes; java.time maps timestamps without implicit Date.
-}
-// Event payload is immutable after enqueue; no Admin-only class crosses Starter dependency direction.
+以class及Jackson属性保持原wire；ResourceResultConverter转换summary，Content/Node converter转换draft，Service负责组合而非手写字段复制。
+construct only the Spec-defined summary and complete draft fields through named MapStruct converters;
+serialize Long identities as decimal strings and preserve null, UTC, and original text semantics;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的class resource summary＋draft，原wire相同；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiContentStrategy.java`
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceConverter.java`
 
-- Purpose: 内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一
+- Purpose: Extend Step12 PO↔BO MapStruct converter for approved create/draft command mappings.
+- Symbols: `DdcAiResourceConverter`
+- Repository evidence: Step12已创建；当前SHA256 5a536e994dd6ec23b753；现有实现extends BaseConverter<DdcAiResourcePO,DdcAiResourceBO>且unmappedTargetPolicy=ERROR。
+- Dependencies and consumers: 前置Step 12；本步17个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 保留完整BaseConverter双向映射；增加CreateCommand/DraftCommand到resource BO的明确MapStruct映射，忽略internal id/tenant/audit/SQL projection。
+- Input/output and state mapping: command scope/business fields映射BO；draft node和内容策略保持单独责任；PO JOIN投影namespace/currentVersion映射到@JsonIgnore BO。
+- Error and edge behavior: 编译生成的MapStruct实现需无unmapped字段；禁止手工set/get、BeanUtils、JSON映射或透传tenant。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+在原@Mapper上增具名方法/Mapping和忽略规则；继续实现BaseConverter，MapStruct生成代码覆盖CreateCommand与DraftCommand字段转换。
+delegate cross-layer mapping to generated MapStruct methods implementing the existing Egon BaseConverter contract;
+verify nullable content, enums, decimal-string identifiers, UTC timestamps, and hidden identity fields;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiDraftNodeConverter.java`
+
+- Purpose: Extend Step12 PO↔BO converter with Starter node DTO↔draft BO conversion.
+- Symbols: `DdcAiDraftNodeConverter`
+- Repository evidence: Step12已创建；当前SHA256 ead449eaa88fbbdcaafe；现有BaseConverter负责PO/BO，Egon enum converter已可复用。
+- Dependencies and consumers: 前置Step 12；本步18个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 保留BaseConverter<DdcAiDraftNodePO,DdcAiDraftNodeBO>；新增Starter DdcAiNodeDTO→DraftNodeBO和需要的BO→DTO方法，显式处理node type enum、nullable content。
+- Input/output and state mapping: 同路径、类型、原文内容逐字段转换；不trim文件内容或基于扩展名转换；根目录节点路径为空字符串。
+- Error and edge behavior: 未知node enum/不兼容Prompt/Skill字段由约束拒绝；不丢失空串、NULL差异、换行或UTF-8正文。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+使用现有MapStruct@Mapper及BaseConverter；用DdcAiEnumConverter完成持久/Starter enum映射并加双向round-trip负例断言。
+delegate cross-layer mapping to generated MapStruct methods implementing the existing Egon BaseConverter contract;
+verify nullable content, enums, decimal-string identifiers, UTC timestamps, and hidden identity fields;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 20 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceResultConverter.java`
+
+- Purpose: Map internal resource BO to the external summary DTO as an irreversible projection.
+- Symbols: `DdcAiResourceResultConverter`
+- Repository evidence: 当前路径不存在；Step16原文件项移至本步，Summary DTO与BO字段依据原Spec§9。
+- Dependencies and consumers: 前置Step 12；本步19个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 实现BaseForwardConverter<DdcAiResourceBO,DdcAiResourceSummaryDTO>；显式将id/revision/currentVersionId/currentVersionNo/lastVersionNo输出为十进制String及scope/status字段。
+- Input/output and state mapping: source来自同一条tenant-scoped namespace/current-version JOIN；输出不含body、tenantId、PO或内部ID数值。
+- Error and edge behavior: 无current version时保持null；MapStruct严格报告未映射字段；输出不因BO Jackson设置而省略合同字段。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-JSON-001, MC-TIME-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+用Spring MapStruct mapper继承Common BaseForwardConverter；明确映射Long到decimal String及UTC Instant，禁止反向映射到PO。
+delegate cross-layer mapping to generated MapStruct methods implementing the existing Egon BaseConverter contract;
+verify nullable content, enums, decimal-string identifiers, UTC timestamps, and hidden identity fields;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 21 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiContentStrategy.java`
+
+- Purpose: Define the variation point for Prompt and Skill content canonical validation, hashing and prepared draft.
 - Symbols: `DdcAiContentStrategy`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiContentStrategy`。
-- Dependencies and consumers: 前置Step 12；本步12个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。
-- Contract/signature changes: DdcAiContentStrategy的具体签名/配置/字段变更：内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: Step12已有kind/node/value枚举；本路径不存在；实现采用现有Spring Strategy Bean风格，不新增依赖。
+- Dependencies and consumers: 前置Step 12；本步20个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: Strategy返回不可变PreparedContent value object：prompt text or sorted whole tree, canonical bytes/hash/byte count/node count；注册由kind唯一映射，不访问数据库。
+- Input/output and state mapping: Service选定strategy先完整校验命令内容，再在root transaction内将PreparedContent传给Repository diff；原文正文不格式化。
+- Error and edge behavior: 超限、重复路径、非法层级、Content/NodeType组合不符返回typed validation error；策略不吞异常或做I/O。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-PATTERN-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcAiContentStrategy: 内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+Strategy接口只定义prepare(kind, content)与不可变结果；通过EnumMap按DdcAiKindEnum选择专属策略；UTF-8 byte/hash使用JDK，且不从树节点调用外部格式工具。
+select exactly one registered Strategy by DdcAiKindEnum and return a complete immutable prepared value;
+calculate UTF-8 bytes and canonical hash with JDK APIs while preserving every submitted content character;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcPromptContentStrategy.java`
+#### File 22 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcPromptContentStrategy.java`
 
-- Purpose: 内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一
+- Purpose: Prepare one Prompt text body without trimming or transforming the submitted characters.
 - Symbols: `DdcPromptContentStrategy`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcPromptContentStrategy`。
-- Dependencies and consumers: 前置Step 12；本步13个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。
-- Contract/signature changes: DdcPromptContentStrategy的具体签名/配置/字段变更：内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: 当前路径不存在；复用Step4 Starter DdcAiContentDTO和Step12 Prompt persistence validator。
+- Dependencies and consumers: 前置Step 12；本步21个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 实现Prompt分支Strategy；promptText required but empty allowed per Spec; nodes必须empty；按UTF-8 bytes及SHA-256准备内容值。
+- Input/output and state mapping: 原始String精确保留到draftPrompt；canonical/hash按批准Spec算法；PreparedContent.nodeCount与Prompt语义一致。
+- Error and edge behavior: 非空nodes或null promptText拒绝；UTF-8长度超过限制返回约定业务错误，无半成品BO。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-PATTERN-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcPromptContentStrategy: 内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+按kind专用Bean实现Strategy；用JDK StandardCharsets.UTF_8及SHA-256生成字节/hash，保留所有换行和空格。
+select exactly one registered Strategy by DdcAiKindEnum and return a complete immutable prepared value;
+calculate UTF-8 bytes and canonical hash with JDK APIs while preserving every submitted content character;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcSkillContentStrategy.java`
+#### File 23 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcSkillContentStrategy.java`
 
-- Purpose: 内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一
+- Purpose: Validate and canonicalize a complete editable Skill file tree as one pure text snapshot.
 - Symbols: `DdcSkillContentStrategy`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcSkillContentStrategy`。
-- Dependencies and consumers: 前置Step 12；本步14个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。
-- Contract/signature changes: DdcSkillContentStrategy的具体签名/配置/字段变更：内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: 当前路径不存在；复用Step4 ValidAiNode规则与Step12 DraftNodeBO Validator；文本不按文件扩展名优化展示。
+- Dependencies and consumers: 前置Step 12；本步22个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 节点路径唯一/规范、父目录存在且为DIRECTORY、根目录规则满足、content只允许FILE；路径排序固定后计算整树byte/hash/nodeCount。
+- Input/output and state mapping: 同一command完整nodes输入映射成活跃树PreparedContent；content逐字符保持；draft write diff仅比较path及type/content。
+- Error and edge behavior: path traversal、重复大小写/规范路径、循环/过深/过多节点、非法UTF-8 size或目录带content均拒绝。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-PATTERN-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcSkillContentStrategy: 内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+用Skill专属Strategy和JDK路径/编码处理构造完整验证树；按Spec排序/哈希协议计算值；不执行文件、不读写文件系统。
+select exactly one registered Strategy by DdcAiKindEnum and return a complete immutable prepared value;
+calculate UTF-8 bytes and canonical hash with JDK APIs while preserving every submitted content character;
 ```
 
-- Verification contribution: DdcAiDraftServiceTest聚焦本文件的内容算法/规范hash，注解负责纯值；不查权限DB或开独立事务；两kind注册唯一；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
 
-- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
-- Verification command: `mvn -q -Dtest=DdcAiDraftServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
-- Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
-- Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
+#### File 24 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/validation/DdcAiScopeValidator.java`
+
+- Purpose: Centralize existing DdcScopeGate and namespace/environment/application binding checks for AI Service.
+- Symbols: `DdcAiScopeValidator`
+- Repository evidence: 当前路径不存在；DdcScopeGate、DdcNamespaceRepository和DdcNamespaceEnvAppBindingRepository为相邻现有能力。
+- Dependencies and consumers: 前置Step 12；本步23个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 具名validator接收trusted tenant、actor permission及validated四维scope；返回resolved same-tenant namespace/business context，仅服务端调用。
+- Input/output and state mapping: create/page以请求scope校验；get/replace/delete先按tenant/id载入根再以根scope验证；tenant绝不取body。
+- Error and edge behavior: namespace不存在/disabled或actor无binding权限映射403/404按Spec；不将验证查询结果复用作后续写授权证明。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+注入既有DdcScopeGate及namespace/binding Repository；使用RequiredArgsConstructor、Qualifier、稳定Service Bean名并在每次command重新校验。
+derive tenant from the authenticated context and resolve only same-tenant namespace and binding records;
+deny commands when scope is absent, disabled, mismatched, or outside the actor permission;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 25 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiTransactionConfiguration.java`
+
+- Purpose: Expose the explicitly named same-DataSource transaction template and timeout/isolation policy for AI root/tree operations.
+- Symbols: `DdcAiTransactionConfiguration`
+- Repository evidence: 当前路径不存在；Admin已有Egon MP本地事务管理器与现有@Configuration/Qualifier命名方式；Spec要求LOCAL atomic transaction。
+- Dependencies and consumers: 前置Step 12；本步24个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 创建有名Bean ddcAiTransactionTemplate并绑定既有transactionManager；command事务具READ_COMMITTED/statement+lock timeout policy，read detail使用READ_COMMITTED只读语义。
+- Input/output and state mapping: Service get在一个事务内先FOR SHARE锁根再查完整active nodes；replace/delete在root FOR UPDATE下CAS根与节点diff一次提交。
+- Error and edge behavior: 不引入第二datasource、不分离Outbox、不用跨数据库事务；任何DAO异常回滚全部根与节点效果。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-BEAN-001, MC-CONFIG-001, MC-TIME-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+配置bean只注入现有PlatformTransactionManager；指定stable @Bean name与Qualifier；TransactionTemplate执行整段Repository工作，不新增profile key。
+reuse the existing primary transaction manager and keep root plus node work in one LOCAL transaction;
+propagate any failed validation or guarded row-count result so Spring rolls back all writes;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 26 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiResourceService.java`
+
+- Purpose: Define current Step13 create/get/page/replaceDraft/delete Service API returning Spec business result types.
+- Symbols: `DdcAiResourceService`
+- Repository evidence: 当前路径不存在；原Spec API-001–005由Service own权限、scope与transaction orchestration。
+- Dependencies and consumers: 前置Step 12；本步25个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 签名接受validated DdcAiCreateCommand/DdcAiIdQuery/DdcAiPageQuery/DdcAiDraftCommand/DdcAiDeleteCommand；返回DdcAiResourceResult/PageResult，具名业务Bean约定见impl。
+- Input/output and state mapping: Controller未来只负责HTTP carrier与Service调用；本步Service直接被focused unit tests验证，不扩增REST接口。
+- Error and edge behavior: typed bad request/forbidden/not found/revision/name conflict/timeout errors对齐Spec；输出不含持久层类型。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-JSON-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+定义精确方法签名；跨Repository handoff使用@Valid/@Validated及Validation group；查询返回DTO/PageResult，命令返回完整结果或void语义。
+expose only Spec-defined Command, Query, DTO, VO, and PageResult types across the business boundary;
+apply Jakarta validation groups to every internal handoff and preserve typed error contracts;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+#### File 27 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiResourceServiceImpl.java`
+
+- Purpose: Orchestrate trusted-scope resource creation, detail/page reads, atomic whole-draft replacement and root soft delete.
+- Symbols: `DdcAiResourceServiceImpl`
+- Repository evidence: 当前路径不存在；遵循DdcNamespaceService及其他三层Service→Repository接口→DAO结构；依赖本Step新增port与策略。
+- Dependencies and consumers: 前置Step 12；本步26个有序文件已完成；后续Step 14版本管理、Step 15推广、Step 16 REST及Direct RPC/Web消费。
+- Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
+- Contract/signature changes: 具名@Service、@Slf4j、@RequiredArgsConstructor/Qualifier；实现create/get/page/replaceDraft/delete并将PO/BO投影为Spec DTO；get用READ_COMMITTED+FOR SHARE。
+- Input/output and state mapping: create先ScopeGate再构造root与PreparedContent；get先锁root后同事务读nodes；page用joined projection；replace/delete FOR UPDATE核revision后以Repository path diff/CAS写入；保存不分配版本。
+- Error and edge behavior: tenant严格来自认证/MDC；revision不符409；唯一冲突原子映射409；树校验/DB/锁异常按规范转换；不写Outbox/Redis或currentVersion指针。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-PATTERN-001
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+通过EnumMap选择Prompt/Skill Strategy；既有Repository ports执行tenant-scoped root/nodes；同事务校验/授权/版本CAS并使用MapStruct转换；仅记录resource id、tenant、action、result及trace。
+authorize the trusted tenant and complete scope before each root or node state change;
+execute revision compare and whole-tree diff in one transaction, propagating conflicts without partial state;
+```
+
+- Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
+- After this file: Its Step13 contract is ready for the next ordered file; the Step is not GREEN until all files and focused tests pass.
+
+- Validation working directory: `.`（仓库根reactor）
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiDraftServiceTest,DdcAiPersistenceContractTest,DdcTianshuDdlContractTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Expected result: 根reactor以当前工作区Step12及组件依赖编译；DdcAiDraftServiceTest、DdcAiPersistenceContractTest、DdcTianshuDdlContractTest及其被选中的Admin安全/租户合同GREEN；无跳过的指定测试、失败或错误。
+- Failure returns to: 首个失败的Step13 File和对应原Spec API-001–005/§7/§9/§11；依赖编译失败返回前置Step，数据库真实锁/隔离证据只由Step24门禁判定。
+- Completion criteria: 27条路径按序完成；Repository负责具名业务读写，Service不直调Mapper；Summary joins按tenant匹配且不增加DDL列；完整Skill树、root与nodes同事务，历史节点软删除，发布指针不变；指定测试和全部Step Manual Checks有证据PASS/N/A。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiDraftServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiResourceService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiResourceServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/validation/DdcAiScopeValidator.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiTransactionConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiCreateCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDraftCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDeleteCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPageQuery.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiIdQuery.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiResourceSummaryDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiResourceResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiContentStrategy.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcPromptContentStrategy.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcSkillContentStrategy.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiDraftServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcAiPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcAiResourcePO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiResourceBO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/dao/DdcAiResourceMapper.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/mybatis/mapper/tianshu/DdcAiResourceMapper.xml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiResourceRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiResourceRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAiDraftNodeRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiDraftNodeRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiCreateCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDraftCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiDeleteCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPageQuery.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiIdQuery.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiResourceSummaryDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiResourceResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiDraftNodeConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceResultConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiContentStrategy.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcPromptContentStrategy.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcSkillContentStrategy.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/validation/DdcAiScopeValidator.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiTransactionConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiResourceService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiResourceServiceImpl.java`
 - Commit: `feat(tianshu): step-13---ai`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
 
 ### Step 14 — 实现不可变发布版、版本查询与回滚
@@ -13951,7 +14198,7 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Dependencies: Step 15
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 11个REST、权限、错误、分页、严格JSON和实际OAS一致。
-- End state: 11个REST、权限、错误、分页、严格JSON和实际OAS一致；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- End state: 11个REST、权限、错误、分页、严格JSON和实际OAS一致；资源summary投影已由Step13 converter提供；本步10个列明文件完成。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11
@@ -14134,37 +14381,12 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiResourceControllerTest,DdcAiOpenApiContractTest聚焦本文件的原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceResultConverter.java`
-
-- Purpose: DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO
-- Symbols: `DdcAiResourceResultConverter`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiResourceResultConverter`。
-- Dependencies and consumers: 前置Step 15；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO。
-- Contract/signature changes: DdcAiResourceResultConverter的具体签名/配置/字段变更：DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
-- Implementation pseudocode:
-
-```java
-@Mapper(componentModel="spring") interface DdcAiResourceResultConverter extends BaseForwardConverter<DdcAiResourceBO,DdcAiResourceSummaryDTO> {
-  @Override DdcAiResourceSummaryDTO toTarget(DdcAiResourceBO source); // map DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO.
-  // @Mapping id=publicId on legacy REST; batch-load public foreign IDs when needed; no N+1 or PO exposure.
-}
-// generated bean name is ddcAiResourceResultConverterImpl; no reverse projection of tenant/audit fields.
-```
-
-- Verification contribution: DdcAiResourceControllerTest,DdcAiOpenApiContractTest聚焦本文件的DdcAiResourceBO -> DdcAiResourceSummaryDTO；BaseForwardConverter，无公开结果反向写PO；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
-
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionResultConverter.java`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionResultConverter.java`
 
 - Purpose: DdcAiVersionBO -> DdcAiVersionSummaryDTO；BaseForwardConverter，无公开结果反向写PO
 - Symbols: `DdcAiVersionResultConverter`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiVersionResultConverter`。
-- Dependencies and consumers: 前置Step 15；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 15；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责DdcAiVersionBO -> DdcAiVersionSummaryDTO；BaseForwardConverter，无公开结果反向写PO。
 - Contract/signature changes: DdcAiVersionResultConverter的具体签名/配置/字段变更：DdcAiVersionBO -> DdcAiVersionSummaryDTO；BaseForwardConverter，无公开结果反向写PO。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DdcAiVersionBO -> DdcAiVersionSummaryDTO；BaseForwardConverter，无公开结果反向写PO；按修订稿§9/§11保持原wire字段。
@@ -14184,12 +14406,12 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiResourceControllerTest,DdcAiOpenApiContractTest聚焦本文件的DdcAiVersionBO -> DdcAiVersionSummaryDTO；BaseForwardConverter，无公开结果反向写PO；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiPublicationResultConverter.java`
+#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiPublicationResultConverter.java`
 
 - Purpose: DdcAiPublicationBO -> DdcAiPublicationResult；BaseForwardConverter，无公开结果反向写PO
 - Symbols: `DdcAiPublicationResultConverter`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiPublicationResultConverter`。
-- Dependencies and consumers: 前置Step 15；本步9个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 15；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责DdcAiPublicationBO -> DdcAiPublicationResult；BaseForwardConverter，无公开结果反向写PO。
 - Contract/signature changes: DdcAiPublicationResultConverter的具体签名/配置/字段变更：DdcAiPublicationBO -> DdcAiPublicationResult；BaseForwardConverter，无公开结果反向写PO。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：DdcAiPublicationBO -> DdcAiPublicationResult；BaseForwardConverter，无公开结果反向写PO；按修订稿§9/§11保持原wire字段。
@@ -14209,12 +14431,12 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiResourceControllerTest,DdcAiOpenApiContractTest聚焦本文件的DdcAiPublicationBO -> DdcAiPublicationResult；BaseForwardConverter，无公开结果反向写PO；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`
 
 - Purpose: AI路径只先authenticated，namespace细权限由Service判断，不能只匹配全局cap而拒ns权限
 - Symbols: `DdcAdminSecurityConfiguration`
 - Repository evidence: 当前存在，SHA256前12位`62e8d5867b6a`；源符号`DdcAdminSecurityConfiguration`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 15；本步10个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 15；本步9个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责AI路径只先authenticated，namespace细权限由Service判断，不能只匹配全局cap而拒ns权限。
 - Contract/signature changes: DdcAdminSecurityConfiguration的具体签名/配置/字段变更：AI路径只先authenticated，namespace细权限由Service判断，不能只匹配全局cap而拒ns权限。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：AI路径只先authenticated，namespace细权限由Service判断，不能只匹配全局cap而拒ns权限；按修订稿§9/§11保持原wire字段。
@@ -14240,7 +14462,7 @@ finally { restorePriorMdcAndCallbackState(); }
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiResourceControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiResourceController.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiExceptionAdvice.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAdminSecurityErrorResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiWebConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiOpenApiConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiResourceResultConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionResultConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiPublicationResultConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiResourceControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiResourceController.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiExceptionAdvice.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAdminSecurityErrorResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiWebConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiOpenApiConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionResultConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiPublicationResultConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`
 - Commit: `feat(tianshu): step-16-----rest---openapi`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
 
 ### Step 17 — 接通默认关闭的AI读取RPC与starter
