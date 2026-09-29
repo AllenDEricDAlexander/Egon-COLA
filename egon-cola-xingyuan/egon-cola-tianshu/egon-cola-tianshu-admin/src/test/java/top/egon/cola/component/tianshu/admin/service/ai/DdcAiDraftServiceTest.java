@@ -1,5 +1,6 @@
 package top.egon.cola.component.tianshu.admin.service.ai;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -30,8 +31,10 @@ import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDeleteCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiDraftNodeConverter;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiPublicationConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiResourceConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiResourceResultConverter;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiVersionConverter;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcAiResourceSummaryDTO;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiIdQuery;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiPageQuery;
@@ -39,7 +42,10 @@ import top.egon.cola.component.tianshu.admin.model.vo.DdcAiResourceResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.config.DdcAiTransactionConfiguration;
 import top.egon.cola.component.tianshu.admin.repository.DdcAiDraftNodeRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiPublicationRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcAiResourceRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiVersionNodeRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiVersionRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
@@ -70,6 +76,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -87,7 +94,13 @@ class DdcAiDraftServiceTest {
     @Mock private DdcAiScopeValidator scopeValidator;
     @Mock private DdcAiResourceConverter resourceConverter;
     @Mock private DdcAiDraftNodeConverter draftNodeConverter;
+    @Mock private DdcAiVersionRepository versionRepository;
+    @Mock private DdcAiVersionNodeRepository versionNodeRepository;
+    @Mock private DdcAiPublicationRepository publicationRepository;
+    @Mock private DdcAiVersionConverter versionConverter;
+    @Mock private DdcAiPublicationConverter publicationConverter;
     @Mock private DdcAiResourceResultConverter resultConverter;
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     @Mock private Map<DdcAiKindEnum, DdcAiContentStrategy> strategyRegistry;
     @Mock private DdcAiContentStrategy promptStrategy;
     @Mock private DdcAiContentStrategy skillStrategy;
@@ -100,14 +113,16 @@ class DdcAiDraftServiceTest {
     void setUp() {
         MDC.put("tenantId", Long.toString(TENANT_ID));
         service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, scopeValidator,
-                resourceConverter, draftNodeConverter, resultConverter, strategyRegistry,
-                readTransactionTemplate, commandTransactionTemplate);
+                resourceConverter, draftNodeConverter, versionRepository, versionNodeRepository,
+                publicationRepository, versionConverter, publicationConverter, resultConverter, meterRegistry,
+                strategyRegistry, readTransactionTemplate, commandTransactionTemplate);
     }
 
     @AfterEach
     void clearTenantContext() {
         MDC.clear();
         SecurityContextHolder.clearContext();
+        meterRegistry.close();
     }
 
     @Test
@@ -295,6 +310,14 @@ class DdcAiDraftServiceTest {
         order.verify(resourceRepository).lockScopeParentsForShare(SCOPE);
         order.verify(scopeGate).invalidate("biz:" + SCOPE.bizCode());
         order.verify(scopeGate).assertEnabled(SCOPE.bizCode(), SCOPE.appCode(), SCOPE.env(), SCOPE.namespaceCode());
+
+        org.mockito.Mockito.doReturn(Set.of("TIANSHU_AI_PUBLISH:namespace-public-71"))
+                .when(principal).permissions();
+        DdcAiResourceBO publishResource = DdcAiResourceBO.builder().bizCode(SCOPE.bizCode())
+                .namespaceId(NAMESPACE_ID).namespaceCode(SCOPE.namespaceCode()).envCode(SCOPE.env())
+                .appCode(SCOPE.appCode()).build();
+        validator.assertCanPublish(publishResource);
+        verify(resourceRepository, times(2)).lockScopeParentsForShare(SCOPE);
     }
 
     @Test
@@ -347,6 +370,8 @@ class DdcAiDraftServiceTest {
         assertThat(resource.getCurrentVersionId()).isEqualTo(902L);
         assertThat(resource.getLastVersionNo()).isEqualTo(2L);
         assertThat(resource.getDraftPrompt()).isEqualTo("new prompt\n");
+        assertThat(meterRegistry.get("tianshu.ai.commands").tag("operation", "DRAFT_SAVE")
+                .tag("result", "success").counter().count()).isEqualTo(1.0);
         InOrder lockOrder = inOrder(resourceRepository, scopeValidator);
         lockOrder.verify(resourceRepository).findActiveById(RESOURCE_ID);
         lockOrder.verify(scopeValidator).assertCanWrite(resource);

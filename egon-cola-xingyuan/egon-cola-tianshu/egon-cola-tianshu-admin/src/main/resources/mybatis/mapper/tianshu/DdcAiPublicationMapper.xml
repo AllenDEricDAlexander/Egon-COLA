@@ -21,6 +21,7 @@
         <result property="sourceVersionId" column="source_version_id"/>
         <result property="resultRevision" column="result_revision"/>
         <result property="targetCreated" column="target_created"/>
+        <result property="targetVersionNo" column="target_version_no"/>
     </resultMap>
 
     <sql id="PublicationColumns">
@@ -50,8 +51,21 @@
           AND p.resource_id = #{resourceId} AND p.request_id = #{requestId}
     </select>
 
+    <select id="selectByTenantRequestId" resultMap="DdcAiPublicationPOResultMap">
+        SELECT <include refid="PublicationColumns"/>, tv.version_no AS target_version_no
+        FROM ddc_ai_publication p
+        JOIN ddc_ai_version tv ON tv.tenant_id = p.tenant_id AND tv.resource_id = p.resource_id
+            AND tv.id = p.target_version_id AND tv.deleted_at IS NULL
+        WHERE p.tenant_id = #{tenantId} AND p.request_id = #{requestId} AND p.deleted_at IS NULL
+    </select>
+
     <select id="selectPage" resultMap="DdcAiPublicationPOResultMap">
-        SELECT <include refid="PublicationColumns"/><include refid="ActivePublicationOwner"/>
+        SELECT <include refid="PublicationColumns"/>, tv.version_no AS target_version_no
+        FROM ddc_ai_publication p
+        JOIN ddc_ai_resource r ON r.tenant_id = p.tenant_id AND r.id = p.resource_id
+        JOIN ddc_ai_version tv ON tv.tenant_id = p.tenant_id AND tv.resource_id = p.resource_id
+            AND tv.id = p.target_version_id AND tv.deleted_at IS NULL
+        WHERE p.tenant_id = #{tenantId} AND p.deleted_at IS NULL AND r.deleted_at IS NULL
           AND p.resource_id = #{resourceId}
         <if test="requestId != null and requestId != ''">AND p.request_id = #{requestId}</if>
         ORDER BY p.id DESC

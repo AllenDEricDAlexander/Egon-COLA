@@ -68,6 +68,13 @@ public interface DdcAiPublicationMapper extends EgonColaMapper<DdcAiPublicationP
             @Size(min = 16, max = 64, groups = EgonColaModelValidationGroups.Query.class) String requestId);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
+    DdcAiPublicationPO selectByTenantRequestId(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("requestId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(min = 16, max = 64, groups = EgonColaModelValidationGroups.Query.class) String requestId);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
     List<DdcAiPublicationPO> selectPage(
             @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,

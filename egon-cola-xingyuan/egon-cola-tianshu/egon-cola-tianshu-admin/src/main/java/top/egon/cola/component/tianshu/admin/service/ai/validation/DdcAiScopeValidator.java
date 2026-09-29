@@ -79,6 +79,10 @@ public class DdcAiScopeValidator {
         assertResourceScope(resource, Permission.WRITE);
     }
 
+    public void assertCanPublish(@NotNull @Valid DdcAiResourceBO resource) {
+        assertResourceScope(resource, Permission.PUBLISH);
+    }
+
     private void assertResourceScope(DdcAiResourceBO resource, Permission permission) {
         String namespaceCode = resource.getNamespaceCode();
         if (namespaceCode == null) {
@@ -115,6 +119,7 @@ public class DdcAiScopeValidator {
 
     private enum Permission {
         READ,
-        WRITE
+        WRITE,
+        PUBLISH
     }
 }

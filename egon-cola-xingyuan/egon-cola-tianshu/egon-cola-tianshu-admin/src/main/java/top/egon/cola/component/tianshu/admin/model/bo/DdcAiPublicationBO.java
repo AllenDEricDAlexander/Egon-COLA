@@ -67,4 +67,9 @@ public class DdcAiPublicationBO {
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Boolean targetCreated;
+
+    @JsonIgnore
+    @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
+    @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
+    private Long targetVersionNo;
 }

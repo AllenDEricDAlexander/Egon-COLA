@@ -1,30 +1,52 @@
 package top.egon.cola.component.tianshu.admin.service.ai.impl;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiDraftNodeBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAiPublicationBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiResourceBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAiVersionBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcAiVersionNodeBO;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDeleteCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiPublishCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiRollbackCommand;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiDraftNodeConverter;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiPublicationConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiResourceConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiResourceResultConverter;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiVersionConverter;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcAiResourceSummaryDTO;
+import top.egon.cola.component.tianshu.admin.model.dto.DdcAiVersionSummaryDTO;
+import top.egon.cola.component.tianshu.admin.model.enums.DdcAiPublicationOperationEnum;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiIdQuery;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiPageQuery;
+import top.egon.cola.component.tianshu.admin.model.query.DdcAiPublicationPageQuery;
+import top.egon.cola.component.tianshu.admin.model.query.DdcAiVersionPageQuery;
+import top.egon.cola.component.tianshu.admin.model.query.DdcAiVersionQuery;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiPublicationResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiResourceResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcAiDraftNodeRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiPublicationRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcAiResourceRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiVersionNodeRepository;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiVersionRepository;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiScopeValidator;
 import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiContentStrategy.PreparedContent;
@@ -33,13 +55,19 @@ import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiNodeDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiNodeTypeEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Slf4j
@@ -52,11 +80,16 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
     private static final int AI_REVISION_CONFLICT = 56303;
     private static final int AI_RESOURCE_KEY_CONFLICT = 56304;
     private static final int AI_CONTENT_INTEGRITY = 56309;
+    private static final int AI_IDEMPOTENCY_CONFLICT = 56305;
+    private static final int AI_VERSION_COUNTER_EXHAUSTED = 56314;
     private static final int AI_LIFECYCLE_TIMESTAMP_CONFLICT = 56316;
     private static final String AI_NOT_FOUND_STATUS = "TIANSHU_AI_NOT_FOUND";
     private static final String AI_REVISION_CONFLICT_STATUS = "TIANSHU_AI_REVISION_CONFLICT";
     private static final String AI_RESOURCE_KEY_CONFLICT_STATUS = "TIANSHU_AI_DUPLICATE_RESOURCE_KEY";
     private static final String AI_CONTENT_INTEGRITY_STATUS = "TIANSHU_AI_CONTENT_INTEGRITY";
+    private static final String AI_IDEMPOTENCY_CONFLICT_STATUS = "TIANSHU_AI_IDEMPOTENCY_CONFLICT";
+    private static final String AI_VERSION_COUNTER_EXHAUSTED_STATUS = "TIANSHU_AI_VERSION_COUNTER_EXHAUSTED";
+    private static final String AI_COMMAND_COUNTER = "tianshu.ai.commands";
     private static final String AI_LIFECYCLE_TIMESTAMP_CONFLICT_STATUS = "TIANSHU_AI_LIFECYCLE_CONFLICT";
 
     @Qualifier("ddcAiResourceRepository")
@@ -74,8 +107,26 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
     @Qualifier("ddcAiDraftNodeConverterImpl")
     private final DdcAiDraftNodeConverter draftNodeConverter;
 
+    @Qualifier("ddcAiVersionRepository")
+    private final DdcAiVersionRepository versionRepository;
+
+    @Qualifier("ddcAiVersionNodeRepository")
+    private final DdcAiVersionNodeRepository versionNodeRepository;
+
+    @Qualifier("ddcAiPublicationRepository")
+    private final DdcAiPublicationRepository publicationRepository;
+
+    @Qualifier("ddcAiVersionConverterImpl")
+    private final DdcAiVersionConverter versionConverter;
+
+    @Qualifier("ddcAiPublicationConverterImpl")
+    private final DdcAiPublicationConverter publicationConverter;
+
     @Qualifier("ddcAiResourceResultConverterImpl")
     private final DdcAiResourceResultConverter resultConverter;
+
+    @Qualifier("simpleMeterRegistry")
+    private final MeterRegistry meterRegistry;
 
     @Qualifier("ddcAiContentStrategyRegistry")
     private final Map<DdcAiKindEnum, DdcAiContentStrategy> contentStrategyRegistry;
@@ -103,7 +154,9 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
 
     @Override
     public DdcAiResourceResult replaceDraft(DdcAiIdQuery query, DdcAiDraftCommand command) {
-        return executeWithLifecycleRetries(() -> replaceDraftInTransaction(query, command));
+        return observeAiCommand(Long.toString(query.id()), "DRAFT_SAVE", null,
+                () -> executeWithLifecycleRetries(() -> replaceDraftInTransaction(query, command)),
+                result -> result.getResource().getCurrentVersionId());
     }
 
     @Override
@@ -112,6 +165,377 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
             deleteInTransaction(query, command);
             return null;
         });
+    }
+
+    @Override
+    public DdcAiPublicationResult publish(DdcAiIdQuery query, String requestId, DdcAiPublishCommand command) {
+        return observeAiCommand(Long.toString(query.id()), DdcAiPublicationOperationEnum.PUBLISH.getValue(), requestId,
+                () -> {
+                    try {
+                        return commandTransactionTemplate.execute(
+                                status -> publishInTransaction(query, requestId, command));
+                    } catch (DataIntegrityViolationException failure) {
+                        if (!isPublicationRequestConflict(failure)) throw failure;
+                        return replayAfterPublicationConflict(query, requestId, DdcAiPublicationOperationEnum.PUBLISH,
+                                command.getExpectedRevision(), null, command.getChangeNote(), failure);
+                    }
+                }, result -> Long.toString(result.getTargetVersionId()));
+    }
+
+    @Override
+    public DdcAiPublicationResult rollback(DdcAiIdQuery query, String requestId, DdcAiRollbackCommand command) {
+        return observeAiCommand(Long.toString(query.id()), DdcAiPublicationOperationEnum.ROLLBACK.getValue(), requestId,
+                () -> {
+                    try {
+                        return commandTransactionTemplate.execute(
+                                status -> rollbackInTransaction(query, requestId, command));
+                    } catch (DataIntegrityViolationException failure) {
+                        if (!isPublicationRequestConflict(failure)) throw failure;
+                        return replayAfterPublicationConflict(query, requestId, DdcAiPublicationOperationEnum.ROLLBACK,
+                                command.getExpectedRevision(), command.getVersionNo(), command.getChangeNote(), failure);
+                    }
+                }, result -> Long.toString(result.getTargetVersionId()));
+    }
+
+    @Override
+    public DdcAiVersionResult getVersion(DdcAiVersionQuery query) {
+        return readTransactionTemplate.execute(status -> {
+            DdcAiResourceBO resource = readableResource(query.resourceId());
+            DdcAiVersionBO version = versionRepository.findByResourceIdAndVersionNo(
+                            resource.getId(), query.versionNo())
+                    .orElseThrow(DdcAiResourceServiceImpl::notFound);
+            if (!Objects.equals(resource.getId(), version.getResourceId())
+                    || !Objects.equals(resource.getKind(), version.getKind())
+                    || !Objects.equals(query.versionNo(), version.getVersionNo())) {
+                throw contentIntegrityFailure();
+            }
+            PreparedContent prepared = preparePersistedVersion(version,
+                    versionNodeRepository.findTreeByVersionId(version.getId()));
+            DdcAiVersionSummaryDTO summary = versionConverter.toVersionSummary(version);
+            if (summary == null || summary.getCreatedAt() == null) throw contentIntegrityFailure();
+            return DdcAiVersionResult.builder().version(summary)
+                    .content(DdcAiContentDTO.builder().promptText(prepared.promptText()).nodes(prepared.nodes()).build())
+                    .build();
+        });
+    }
+
+    @Override
+    public DdcPageResult<DdcAiVersionSummaryDTO> pageVersions(DdcAiVersionPageQuery query) {
+        return readTransactionTemplate.execute(status -> {
+            DdcAiResourceBO resource = readableResource(query.getResourceId());
+            PageQuery page = new PageQuery(query.getPageNo(), query.getPageSize());
+            DdcPageResult<DdcAiVersionBO> rows = versionRepository.pageByResourceId(resource.getId(), page);
+            List<DdcAiVersionSummaryDTO> records = rows.getRecords().stream()
+                    .map(versionConverter::toVersionSummary).toList();
+            if (records.stream().anyMatch(summary -> summary == null || summary.getCreatedAt() == null)) {
+                throw contentIntegrityFailure();
+            }
+            return DdcPageResult.<DdcAiVersionSummaryDTO>builder().records(records).total(rows.getTotal())
+                    .pageNo(rows.getPageNo()).pageSize(rows.getPageSize()).build();
+        });
+    }
+
+    @Override
+    public DdcPageResult<DdcAiPublicationResult> pagePublications(DdcAiPublicationPageQuery query) {
+        return readTransactionTemplate.execute(status -> {
+            DdcAiResourceBO resource = readableResource(query.getResourceId());
+            PageQuery page = new PageQuery(query.getPageNo(), query.getPageSize());
+            DdcPageResult<DdcAiPublicationBO> rows = publicationRepository.pageByResourceId(
+                    resource.getId(), query.getRequestId(), page);
+            List<DdcAiPublicationResult> records = rows.getRecords().stream()
+                    .map(this::publicationResult).toList();
+            return DdcPageResult.<DdcAiPublicationResult>builder().records(records).total(rows.getTotal())
+                    .pageNo(rows.getPageNo()).pageSize(rows.getPageSize()).build();
+        });
+    }
+
+    private DdcAiPublicationResult publishInTransaction(DdcAiIdQuery query, String requestId,
+            DdcAiPublishCommand command) {
+        DdcAiResourceBO candidate = resourceRepository.findActiveById(query.id())
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        scopeValidator.assertCanPublish(candidate);
+        String requestSha256 = commandSha256(DdcAiPublicationOperationEnum.PUBLISH, authenticatedActor(), candidate,
+                command.getExpectedRevision(), null, command.getChangeNote());
+        Optional<DdcAiPublicationBO> committed = publicationRepository.findByTenantRequestId(requestId);
+        if (committed.isPresent()) return replayOrConflict(committed.get(), requestSha256);
+
+        DdcAiResourceBO resource = lockResourceAfterScope(candidate);
+        committed = publicationRepository.findByTenantRequestId(requestId);
+        if (committed.isPresent()) return replayOrConflict(committed.get(), requestSha256);
+        requireVersionCommandRevision(command.getExpectedRevision(), resource.getVersion());
+
+        long versionNo = nextVersionNo(resource.getLastVersionNo());
+        List<DdcAiDraftNodeBO> draftNodes = draftNodeRepository.findActiveByResourceId(resource.getId());
+        PreparedContent prepared = preparePersistedDraft(resource, draftNodes);
+        DdcAiVersionBO version = DdcAiVersionBO.builder().resourceId(resource.getId()).versionNo(versionNo)
+                .kind(resource.getKind()).displayName(resource.getDisplayName()).description(resource.getDescription())
+                .promptText(prepared.promptText()).contentSha256(prepared.contentHash())
+                .contentBytes(prepared.contentBytes()).nodeCount(prepared.nodeCount())
+                .sourceVersionId(null).changeNote(command.getChangeNote()).build();
+        DdcAiVersionBO insertedVersion = versionRepository.insertVersion(version);
+        if (insertedVersion == null || insertedVersion.getId() == null) {
+            throw new IllegalStateException("AI_VERSION_INSERT_RETURNED_NO_ID");
+        }
+        versionNodeRepository.insertAll(versionNodes(insertedVersion.getId(), prepared));
+
+        Long previousVersionId = resource.getCurrentVersionId();
+        resource.setLastVersionNo(versionNo).setCurrentVersionId(insertedVersion.getId())
+                .setCurrentVersionNo(versionNo);
+        DdcAiResourceBO updated = resourceRepository.update(resource)
+                .orElseThrow(DdcAiResourceServiceImpl::revisionConflict);
+        DdcAiPublicationBO publication = DdcAiPublicationBO.builder().resourceId(resource.getId())
+                .operation(DdcAiPublicationOperationEnum.PUBLISH).requestId(requestId)
+                .requestSha256(requestSha256).previousVersionId(previousVersionId)
+                .targetVersionId(insertedVersion.getId()).targetVersionNo(versionNo).sourceVersionId(null)
+                .resultRevision(updated.getVersion()).targetCreated(false).build();
+        return publicationResult(publicationRepository.insertPublication(publication));
+    }
+
+    private DdcAiPublicationResult rollbackInTransaction(DdcAiIdQuery query, String requestId,
+            DdcAiRollbackCommand command) {
+        DdcAiResourceBO candidate = resourceRepository.findActiveById(query.id())
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        scopeValidator.assertCanPublish(candidate);
+        String requestSha256 = commandSha256(DdcAiPublicationOperationEnum.ROLLBACK, authenticatedActor(), candidate,
+                command.getExpectedRevision(), command.getVersionNo(), command.getChangeNote());
+        Optional<DdcAiPublicationBO> committed = publicationRepository.findByTenantRequestId(requestId);
+        if (committed.isPresent()) return replayOrConflict(committed.get(), requestSha256);
+
+        DdcAiResourceBO resource = lockResourceAfterScope(candidate);
+        committed = publicationRepository.findByTenantRequestId(requestId);
+        if (committed.isPresent()) return replayOrConflict(committed.get(), requestSha256);
+        requireVersionCommandRevision(command.getExpectedRevision(), resource.getVersion());
+        long versionNo = parsePositiveVersionNo(command.getVersionNo());
+        DdcAiVersionBO target = versionRepository.findByResourceIdAndVersionNo(resource.getId(), versionNo)
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        if (!Objects.equals(resource.getId(), target.getResourceId())
+                || !Objects.equals(resource.getKind(), target.getKind())
+                || !Objects.equals(versionNo, target.getVersionNo())) {
+            throw contentIntegrityFailure();
+        }
+        preparePersistedVersion(target, versionNodeRepository.findTreeByVersionId(target.getId()));
+
+        Long previousVersionId = resource.getCurrentVersionId();
+        resource.setCurrentVersionId(target.getId()).setCurrentVersionNo(target.getVersionNo());
+        DdcAiResourceBO updated = resourceRepository.update(resource)
+                .orElseThrow(DdcAiResourceServiceImpl::revisionConflict);
+        DdcAiPublicationBO publication = DdcAiPublicationBO.builder().resourceId(resource.getId())
+                .operation(DdcAiPublicationOperationEnum.ROLLBACK).requestId(requestId)
+                .requestSha256(requestSha256).previousVersionId(previousVersionId)
+                .targetVersionId(target.getId()).targetVersionNo(target.getVersionNo()).sourceVersionId(null)
+                .resultRevision(updated.getVersion()).targetCreated(false).build();
+        return publicationResult(publicationRepository.insertPublication(publication));
+    }
+
+    private DdcAiResourceBO readableResource(Long resourceId) {
+        DdcAiResourceBO resource = resourceRepository.findActiveForShareById(resourceId)
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        scopeValidator.assertCanRead(resource);
+        return resource;
+    }
+
+    private DdcAiResourceBO lockResourceAfterScope(DdcAiResourceBO candidate) {
+        DdcAiResourceBO resource = resourceRepository.findActiveForUpdateById(candidate.getId())
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        if (!Objects.equals(candidate.getTenantId(), resource.getTenantId())
+                || !Objects.equals(candidate.getBizCode(), resource.getBizCode())
+                || !Objects.equals(candidate.getNamespaceId(), resource.getNamespaceId())
+                || !Objects.equals(candidate.getEnvCode(), resource.getEnvCode())
+                || !Objects.equals(candidate.getAppCode(), resource.getAppCode())
+                || !Objects.equals(candidate.getKind(), resource.getKind())
+                || !Objects.equals(candidate.getResourceKey(), resource.getResourceKey())) {
+            throw revisionConflict();
+        }
+        return resource;
+    }
+
+    private DdcAiPublicationResult replayAfterPublicationConflict(DdcAiIdQuery query, String requestId,
+            DdcAiPublicationOperationEnum operation, String expectedRevision, String versionNo, String changeNote,
+            DataIntegrityViolationException failure) {
+        return commandTransactionTemplate.execute(status -> {
+            DdcAiResourceBO candidate = resourceRepository.findActiveById(query.id())
+                    .orElseThrow(DdcAiResourceServiceImpl::notFound);
+            scopeValidator.assertCanPublish(candidate);
+            String requestSha256 = commandSha256(operation, authenticatedActor(), candidate,
+                    expectedRevision, versionNo, changeNote);
+            return publicationRepository.findByTenantRequestId(requestId)
+                    .map(receipt -> replayOrConflict(receipt, requestSha256))
+                    .orElseThrow(() -> failure);
+        });
+    }
+
+    private DdcAiPublicationResult replayOrConflict(DdcAiPublicationBO receipt, String requestSha256) {
+        if (!Objects.equals(receipt.getRequestSha256(), requestSha256)) throw idempotencyConflict();
+        return publicationResult(receipt);
+    }
+
+    private DdcAiPublicationResult publicationResult(DdcAiPublicationBO publication) {
+        if (publication == null || publication.getTargetVersionNo() == null
+                || publication.getTargetVersionNo() <= 0 || publication.getCreateTime() == null) {
+            throw contentIntegrityFailure();
+        }
+        DdcAiPublicationResult result = publicationConverter.toResult(publication);
+        if (result == null) throw contentIntegrityFailure();
+        return result;
+    }
+
+    private List<DdcAiVersionNodeBO> versionNodes(Long versionId, PreparedContent prepared) {
+        return prepared.nodes().stream().map(node -> {
+            boolean file = node.getNodeType() == DdcAiNodeTypeEnum.FILE;
+            return DdcAiVersionNodeBO.builder().versionId(versionId).parentPath(parentPath(node.getPath()))
+                    .path(node.getPath()).nodeType(node.getNodeType()).content(node.getContent())
+                    .contentSha256(file ? prepared.fileSha256ByPath().get(node.getPath()) : null)
+                    .contentBytes(file ? (long) node.getContent().getBytes(StandardCharsets.UTF_8).length : 0L)
+                    .build();
+        }).toList();
+    }
+
+    private PreparedContent preparePersistedVersion(DdcAiVersionBO version, List<DdcAiVersionNodeBO> persistedNodes) {
+        if (version.getId() == null || version.getResourceId() == null || version.getKind() == null
+                || version.getContentSha256() == null || version.getContentBytes() == null
+                || version.getNodeCount() == null) {
+            throw contentIntegrityFailure();
+        }
+        List<DdcAiNodeDTO> nodes = persistedNodes.stream().map(node -> DdcAiNodeDTO.builder()
+                .path(node.getPath()).nodeType(node.getNodeType()).content(node.getContent()).build()).toList();
+        PreparedContent prepared;
+        try {
+            prepared = strategy(version.getKind()).prepare(DdcAiContentDTO.builder()
+                    .promptText(version.getPromptText()).nodes(nodes).build());
+        } catch (ConstraintViolationException | IllegalArgumentException failure) {
+            throw contentIntegrityFailure(failure);
+        }
+        if (!Objects.equals(version.getContentSha256(), prepared.contentHash())
+                || !Objects.equals(version.getContentBytes(), prepared.contentBytes())
+                || !Objects.equals(version.getNodeCount(), prepared.nodeCount())
+                || persistedNodes.size() != prepared.nodes().size()) {
+            throw contentIntegrityFailure();
+        }
+        Map<String, DdcAiVersionNodeBO> rowsByPath = new HashMap<>();
+        persistedNodes.forEach(node -> rowsByPath.put(node.getPath(), node));
+        for (DdcAiNodeDTO node : prepared.nodes()) {
+            DdcAiVersionNodeBO persisted = rowsByPath.remove(node.getPath());
+            if (persisted == null || persisted.getNodeType() != node.getNodeType()
+                    || !Objects.equals(persisted.getContent(), node.getContent())
+                    || !Objects.equals(persisted.getParentPath(), parentPath(node.getPath()))) {
+                throw contentIntegrityFailure();
+            }
+            boolean file = node.getNodeType() == DdcAiNodeTypeEnum.FILE;
+            long bytes = file ? node.getContent().getBytes(StandardCharsets.UTF_8).length : 0L;
+            String hash = file ? prepared.fileSha256ByPath().get(node.getPath()) : null;
+            if (!Objects.equals(persisted.getContentBytes(), bytes)
+                    || !Objects.equals(persisted.getContentSha256(), hash)) {
+                throw contentIntegrityFailure();
+            }
+        }
+        if (!rowsByPath.isEmpty()) throw contentIntegrityFailure();
+        return prepared;
+    }
+
+    private long nextVersionNo(Long lastVersionNo) {
+        if (lastVersionNo == null || lastVersionNo < 0) throw contentIntegrityFailure();
+        try {
+            return Math.addExact(lastVersionNo, 1L);
+        } catch (ArithmeticException failure) {
+            throw versionCounterExhausted(failure);
+        }
+    }
+
+    private long parsePositiveVersionNo(String versionNo) {
+        try {
+            long parsed = Long.parseLong(versionNo);
+            if (parsed > 0) return parsed;
+        } catch (NumberFormatException failure) {
+            throw badRequest("Invalid version number");
+        }
+        throw badRequest("Invalid version number");
+    }
+
+    private String authenticatedActor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof Rbac3UserDetails user)
+                || user.identitySub() == null || user.identitySub().isBlank()) {
+            throw scopeForbidden();
+        }
+        return user.identitySub();
+    }
+
+    private String commandSha256(DdcAiPublicationOperationEnum operation, String actor, DdcAiResourceBO resource,
+            String expectedRevision, String versionNo, String changeNote) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            updateLengthPrefixed(digest, "tianshu-ai-command-v1");
+            updateLengthPrefixed(digest, operation.getValue());
+            updateLengthPrefixed(digest, actor);
+            updateLengthPrefixed(digest, Long.toString(resource.getTenantId()));
+            updateLengthPrefixed(digest, Long.toString(resource.getId()));
+            updateLengthPrefixed(digest, resource.getBizCode());
+            updateLengthPrefixed(digest, Long.toString(resource.getNamespaceId()));
+            updateLengthPrefixed(digest, resource.getEnvCode());
+            updateLengthPrefixed(digest, resource.getAppCode());
+            updateLengthPrefixed(digest, resource.getKind().name());
+            updateLengthPrefixed(digest, resource.getResourceKey());
+            updateNullableLengthPrefixed(digest, expectedRevision);
+            updateNullableLengthPrefixed(digest, versionNo);
+            updateNullableLengthPrefixed(digest, changeNote);
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 is unavailable", failure);
+        }
+    }
+
+    private void updateNullableLengthPrefixed(MessageDigest digest, String value) {
+        digest.update((byte) (value == null ? 0 : 1));
+        if (value != null) updateLengthPrefixed(digest, value);
+    }
+
+    private void updateLengthPrefixed(MessageDigest digest, String value) {
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        digest.update(ByteBuffer.allocate(Integer.BYTES).putInt(bytes.length).array());
+        digest.update(bytes);
+    }
+
+    private boolean isPublicationRequestConflict(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (message != null && message.contains("uk_ai_publication_request")) return true;
+        }
+        return false;
+    }
+
+    private <T> T observeAiCommand(String resourceId, String operation, String requestId, Supplier<T> command,
+            Function<T, String> versionIdResolver) {
+        long startedAt = System.nanoTime();
+        String tenantId = MDC.get("tenantId");
+        String requestIdHash = requestId == null ? null
+                : DdcAiContentStrategy.sha256Hex(requestId.getBytes(StandardCharsets.UTF_8));
+        try {
+            T result = command.get();
+            String versionId = result == null || versionIdResolver == null ? null : versionIdResolver.apply(result);
+            recordAiCommand(operation, "success");
+            log.info("AI command completed tenantId={} rootId={} versionId={} operation={} requestIdHash={} "
+                            + "result=success durationMs={} traceId={}",
+                    tenantId, resourceId, versionId, operation, requestIdHash,
+                    (System.nanoTime() - startedAt) / 1_000_000L,
+                    TraceContext.current().map(TraceContext::traceId).orElse(null));
+            return result;
+        } catch (RuntimeException failure) {
+            recordAiCommand(operation, "failure");
+            log.warn("AI command failed tenantId={} rootId={} versionId={} operation={} requestIdHash={} "
+                            + "result=failure durationMs={} traceId={}",
+                    tenantId, resourceId, null, operation, requestIdHash,
+                    (System.nanoTime() - startedAt) / 1_000_000L,
+                    TraceContext.current().map(TraceContext::traceId).orElse(null));
+            throw failure;
+        }
+    }
+
+    private void recordAiCommand(String operation, String result) {
+        try {
+            meterRegistry.counter(AI_COMMAND_COUNTER, "operation", operation, "result", result).increment();
+        } catch (RuntimeException failure) {
+            log.warn("AI command metric recording failed operation={} result={}", operation, result);
+        }
     }
 
     private DdcAiResourceResult createInTransaction(DdcAiCreateCommand command) {
@@ -342,6 +766,16 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
         if (expected < 0 || !Objects.equals(expected, actualRevision)) throw revisionConflict();
     }
 
+    private void requireVersionCommandRevision(String expectedRevision, Long actualRevision) {
+        Long expected;
+        try {
+            expected = resourceConverter.toInternalLong(expectedRevision);
+        } catch (NumberFormatException failure) {
+            throw badRequest("Invalid resource revision");
+        }
+        if (expected == null || expected < 0 || !Objects.equals(expected, actualRevision)) throw revisionConflict();
+    }
+
     private boolean isResourceKeyConflict(Throwable failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
             String message = cause.getMessage();
@@ -386,6 +820,21 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
     private static CommonException contentIntegrityFailure(Throwable cause) {
         return new CommonException(AI_CONTENT_INTEGRITY, AI_CONTENT_INTEGRITY_STATUS,
                 "AI content integrity check failed", cause);
+    }
+
+    private static CommonException idempotencyConflict() {
+        return new CommonException(AI_IDEMPOTENCY_CONFLICT, AI_IDEMPOTENCY_CONFLICT_STATUS,
+                "Idempotency key was already used with a different request");
+    }
+
+    private static CommonException scopeForbidden() {
+        return new CommonException(56307, "TIANSHU_AI_SCOPE_FORBIDDEN",
+                "AI permission is required for the requested namespace");
+    }
+
+    private static CommonException versionCounterExhausted(Throwable cause) {
+        return new CommonException(AI_VERSION_COUNTER_EXHAUSTED, AI_VERSION_COUNTER_EXHAUSTED_STATUS,
+                "Resource version counter is exhausted", cause);
     }
 
     private static CommonException lifecycleTimestampConflict(Throwable cause) {

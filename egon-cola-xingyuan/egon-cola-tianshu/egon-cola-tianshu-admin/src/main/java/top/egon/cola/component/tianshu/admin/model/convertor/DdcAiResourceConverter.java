@@ -36,4 +36,14 @@ public interface DdcAiResourceConverter extends BaseConverter<DdcAiResourcePO, D
 
     @Named("resourceKindToPersistence")
     DdcAiKindPersistenceEnum toPersistenceKind(DdcAiKindEnum kind);
+
+    @Named("decimalStringToLong")
+    default Long toInternalLong(String validatedDecimal) {
+        return validatedDecimal == null ? null : Long.valueOf(validatedDecimal);
+    }
+
+    @Named("longToDecimalString")
+    default String toExternalLong(Long internalId) {
+        return internalId == null ? null : Long.toString(internalId);
+    }
 }

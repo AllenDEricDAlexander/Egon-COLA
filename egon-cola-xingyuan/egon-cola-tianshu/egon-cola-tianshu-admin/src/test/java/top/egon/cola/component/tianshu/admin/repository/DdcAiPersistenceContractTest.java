@@ -495,6 +495,36 @@ class DdcAiPersistenceContractTest {
     }
 
     @Test
+    void publicationIdempotencyLookupIsTenantGlobalAcrossResourceRoots() throws Exception {
+        Configuration configuration = aiMappers();
+        String statement = BASE + "dao.DdcAiPublicationMapper.selectByTenantRequestId";
+        assertThat(configuration.hasStatement(statement)).isTrue();
+
+        Map<String, Object> parameters = Map.of("tenantId", 41L, "requestId", "request-000000001");
+        String sql = mappedSql(configuration, statement, parameters);
+        assertThat(sql).contains("tenant_id = ?", "request_id = ?", "deleted_at is null")
+                .doesNotContain("resource_id = ?");
+        assertThat(sql).contains("tv.version_no as target_version_no");
+
+        String pageSql = mappedSql(configuration, BASE + "dao.DdcAiPublicationMapper.selectPage",
+                Map.of("tenantId", 41L, "resourceId", 83L, "requestId", "request-000000001",
+                        "offset", 0L, "limit", 10));
+        assertThat(pageSql).contains("tv.version_no as target_version_no", "tv.tenant_id = p.tenant_id",
+                "tv.resource_id = p.resource_id", "tv.id = p.target_version_id");
+
+        assertThat(Arrays.stream(DdcAiPublicationPO.class.getDeclaredFields()).map(Field::getName).toList())
+                .contains("targetVersionNo");
+        Field poProjection = DdcAiPublicationPO.class.getDeclaredField("targetVersionNo");
+        assertThat(poProjection.getAnnotation(TableField.class).exist()).isFalse();
+        assertThat(poProjection.isAnnotationPresent(JsonIgnore.class)).isTrue();
+        Field boProjection = DdcAiPublicationBO.class.getDeclaredField("targetVersionNo");
+        assertThat(boProjection.isAnnotationPresent(JsonIgnore.class)).isTrue();
+        assertThat(tableColumns(resource(AI_DDL).toLowerCase(Locale.ROOT), "ddc_ai_publication"))
+                .doesNotContain("target_version_no");
+        assertThatCode(() -> CCJSqlParserUtil.parse(sql)).doesNotThrowAnyException();
+    }
+
+    @Test
     void scopeParentLocksAreTenantScopedActiveRowsAndUseShareLocks() throws Exception {
         Configuration configuration = aiMappers();
         Map<String, Object> parameters = Map.of("tenantId", 41L, "bizCode", "biz",

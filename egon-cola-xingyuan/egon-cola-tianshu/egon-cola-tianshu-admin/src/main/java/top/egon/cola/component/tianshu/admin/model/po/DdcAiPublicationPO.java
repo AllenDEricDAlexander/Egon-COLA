@@ -3,6 +3,7 @@ package top.egon.cola.component.tianshu.admin.model.po;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -71,6 +72,10 @@ public class DdcAiPublicationPO extends EgonModel<DdcAiPublicationPO> {
     @TableField(value = "target_created", updateStrategy = FieldStrategy.NEVER)
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Boolean targetCreated;
+
+    @JsonIgnore
+    @TableField(exist = false)
+    private Long targetVersionNo;
 
     @AssertTrue(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     public boolean isSourceVersionCompatibleWithOperation() {
