@@ -48,6 +48,10 @@ public class DdcAiScopeValidator {
         return resolveNamespaceId(scope, Permission.WRITE);
     }
 
+    public Long resolveNamespaceIdForPublish(@NotNull @Valid DdcAiScopeDTO scope) {
+        return resolveNamespaceId(scope, Permission.PUBLISH);
+    }
+
     private Long resolveNamespaceId(DdcAiScopeDTO scope, Permission permission) {
         if (permission != Permission.READ) {
             resourceRepository.lockScopeParentsForShare(scope);

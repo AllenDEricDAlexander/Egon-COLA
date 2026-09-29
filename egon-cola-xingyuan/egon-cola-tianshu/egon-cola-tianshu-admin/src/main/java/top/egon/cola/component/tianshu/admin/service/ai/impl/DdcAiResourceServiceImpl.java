@@ -23,6 +23,7 @@ import top.egon.cola.component.tianshu.admin.model.bo.DdcAiVersionNodeBO;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDeleteCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiPromotionCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiRollbackCommand;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiDraftNodeConverter;
@@ -220,6 +221,20 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
     }
 
     @Override
+    public DdcAiPublicationResult promote(DdcAiIdQuery sourceQuery, DdcAiPromotionCommand command, String requestId) {
+        return observeAiCommand(Long.toString(sourceQuery.id()), DdcAiPublicationOperationEnum.PROMOTE.getValue(),
+                requestId, () -> {
+                    try {
+                        return commandTransactionTemplate.execute(
+                                status -> promoteInTransaction(sourceQuery, command, requestId));
+                    } catch (DataIntegrityViolationException failure) {
+                        if (!isPublicationRequestConflict(failure) && !isResourceKeyConflict(failure)) throw failure;
+                        return replayAfterPromotionConflict(sourceQuery, command, requestId, failure);
+                    }
+                }, result -> Long.toString(result.getTargetVersionId()));
+    }
+
+    @Override
     public DdcPageResult<DdcAiVersionSummaryDTO> pageVersions(DdcAiVersionPageQuery query) {
         return readTransactionTemplate.execute(status -> {
             DdcAiResourceBO resource = readableResource(query.getResourceId());
@@ -327,6 +342,113 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
         return publicationResult(publicationRepository.insertPublication(publication));
     }
 
+    private DdcAiPublicationResult promoteInTransaction(DdcAiIdQuery sourceQuery,
+            DdcAiPromotionCommand command, String requestId) {
+        DdcAiResourceBO sourceCandidate = resourceRepository.findActiveById(sourceQuery.id())
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        scopeValidator.assertCanRead(sourceCandidate);
+        DdcAiScopeDTO targetScope = command.getTargetScope();
+        Long targetNamespaceId = scopeValidator.resolveNamespaceIdForPublish(targetScope);
+        long sourceVersionNo = parsePromotionSourceVersionNo(command.getSourceVersionNo());
+        Long expectedTargetRevision = parseNullableTargetRevision(command.getExpectedTargetRevision());
+        if (sameResourceIdentity(sourceCandidate, targetScope, targetNamespaceId,
+                command.getTargetResourceKey())) {
+            throw resourceKeyConflict();
+        }
+
+        String requestSha256 = promotionCommandSha256(authenticatedActor(), sourceCandidate, command);
+        Optional<DdcAiPublicationBO> committed = publicationRepository.findByTenantRequestId(requestId);
+        if (committed.isPresent()) return replayOrConflict(committed.get(), requestSha256);
+
+        Optional<DdcAiResourceBO> targetCandidate = resourceRepository.findByBusinessKey(
+                targetScope.bizCode(), targetNamespaceId, targetScope.env(), targetScope.appCode(),
+                sourceCandidate.getKind(), command.getTargetResourceKey());
+        if (targetCandidate.isPresent() && expectedTargetRevision == null) throw revisionConflict();
+        if (targetCandidate.isEmpty() && expectedTargetRevision != null) throw revisionConflict();
+        if (targetCandidate.isEmpty()) {
+            Long writableNamespaceId = scopeValidator.resolveNamespaceIdForWrite(targetScope);
+            if (!Objects.equals(targetNamespaceId, writableNamespaceId)) throw scopeForbidden();
+        }
+
+        DdcAiResourceBO source;
+        DdcAiResourceBO target = null;
+        if (targetCandidate.isEmpty()) {
+            source = lockPromotionResource(sourceCandidate);
+        } else if (sourceCandidate.getId() < targetCandidate.get().getId()) {
+            source = lockPromotionResource(sourceCandidate);
+            target = lockPromotionResource(targetCandidate.get());
+        } else {
+            target = lockPromotionResource(targetCandidate.get());
+            source = lockPromotionResource(sourceCandidate);
+        }
+
+        committed = publicationRepository.findByTenantRequestId(requestId);
+        if (committed.isPresent()) return replayOrConflict(committed.get(), requestSha256);
+        scopeValidator.assertCanRead(source);
+        if (target == null) {
+            if (resourceRepository.findByBusinessKey(targetScope.bizCode(), targetNamespaceId, targetScope.env(),
+                    targetScope.appCode(), source.getKind(), command.getTargetResourceKey()).isPresent()) {
+                throw revisionConflict();
+            }
+        } else if (!Objects.equals(expectedTargetRevision, target.getVersion())) {
+            throw revisionConflict();
+        }
+
+        DdcAiVersionBO sourceVersion = versionRepository.findByResourceIdAndVersionNo(source.getId(), sourceVersionNo)
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        if (!Objects.equals(source.getId(), sourceVersion.getResourceId())
+                || !Objects.equals(source.getKind(), sourceVersion.getKind())
+                || !Objects.equals(sourceVersionNo, sourceVersion.getVersionNo())) {
+            throw contentIntegrityFailure();
+        }
+        PreparedContent snapshot = preparePersistedVersion(sourceVersion,
+                versionNodeRepository.findTreeByVersionId(sourceVersion.getId()));
+        boolean targetCreated = target == null;
+        if (targetCreated) {
+            target = resourceRepository.insert(DdcAiResourceBO.builder()
+                    .bizCode(targetScope.bizCode()).namespaceId(targetNamespaceId)
+                    .namespaceCode(targetScope.namespaceCode()).envCode(targetScope.env())
+                    .appCode(targetScope.appCode()).kind(sourceVersion.getKind())
+                    .resourceKey(command.getTargetResourceKey()).displayName(sourceVersion.getDisplayName())
+                    .description(sourceVersion.getDescription()).draftPrompt(snapshot.promptText())
+                    .version(0L).lastVersionNo(0L).currentVersionId(null).currentVersionNo(null).build());
+            if (target == null || target.getId() == null) {
+                throw new IllegalStateException("AI_PROMOTION_TARGET_INSERT_RETURNED_NO_ID");
+            }
+            if (!Objects.equals(source.getTenantId(), target.getTenantId())) throw contentIntegrityFailure();
+            target.setNamespaceCode(targetScope.namespaceCode());
+            insertDraftNodes(target.getId(), snapshot);
+        } else if (!Objects.equals(source.getTenantId(), target.getTenantId())) {
+            throw notFound();
+        }
+
+        long targetVersionNo = nextVersionNo(target.getLastVersionNo());
+        DdcAiVersionBO promotedVersion = DdcAiVersionBO.builder().resourceId(target.getId())
+                .versionNo(targetVersionNo).kind(sourceVersion.getKind())
+                .displayName(sourceVersion.getDisplayName()).description(sourceVersion.getDescription())
+                .promptText(snapshot.promptText()).contentSha256(snapshot.contentHash())
+                .contentBytes(snapshot.contentBytes()).nodeCount(snapshot.nodeCount())
+                .sourceVersionId(sourceVersion.getId()).changeNote(command.getChangeNote()).build();
+        DdcAiVersionBO insertedVersion = versionRepository.insertVersion(promotedVersion);
+        if (insertedVersion == null || insertedVersion.getId() == null) {
+            throw new IllegalStateException("AI_PROMOTION_VERSION_INSERT_RETURNED_NO_ID");
+        }
+        versionNodeRepository.insertAll(versionNodes(insertedVersion.getId(), snapshot));
+
+        Long previousVersionId = target.getCurrentVersionId();
+        target.setLastVersionNo(targetVersionNo).setCurrentVersionId(insertedVersion.getId())
+                .setCurrentVersionNo(targetVersionNo);
+        DdcAiResourceBO updatedTarget = resourceRepository.update(target)
+                .orElseThrow(DdcAiResourceServiceImpl::revisionConflict);
+        DdcAiPublicationBO publication = DdcAiPublicationBO.builder().resourceId(updatedTarget.getId())
+                .operation(DdcAiPublicationOperationEnum.PROMOTE).requestId(requestId)
+                .requestSha256(requestSha256).previousVersionId(previousVersionId)
+                .targetVersionId(insertedVersion.getId()).targetVersionNo(targetVersionNo)
+                .sourceVersionId(sourceVersion.getId()).resultRevision(updatedTarget.getVersion())
+                .targetCreated(targetCreated).build();
+        return publicationResult(publicationRepository.insertPublication(publication));
+    }
+
     private DdcAiResourceBO readableResource(Long resourceId) {
         DdcAiResourceBO resource = resourceRepository.findActiveForShareById(resourceId)
                 .orElseThrow(DdcAiResourceServiceImpl::notFound);
@@ -349,6 +471,32 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
         return resource;
     }
 
+    private DdcAiResourceBO lockPromotionResource(DdcAiResourceBO candidate) {
+        DdcAiResourceBO resource = resourceRepository.findActiveForUpdateById(candidate.getId())
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        if (!sameResourceIdentity(candidate, resource)) throw revisionConflict();
+        return resource;
+    }
+
+    private boolean sameResourceIdentity(DdcAiResourceBO left, DdcAiResourceBO right) {
+        return Objects.equals(left.getTenantId(), right.getTenantId())
+                && Objects.equals(left.getBizCode(), right.getBizCode())
+                && Objects.equals(left.getNamespaceId(), right.getNamespaceId())
+                && Objects.equals(left.getEnvCode(), right.getEnvCode())
+                && Objects.equals(left.getAppCode(), right.getAppCode())
+                && Objects.equals(left.getKind(), right.getKind())
+                && Objects.equals(left.getResourceKey(), right.getResourceKey());
+    }
+
+    private boolean sameResourceIdentity(DdcAiResourceBO source, DdcAiScopeDTO targetScope,
+            Long targetNamespaceId, String targetResourceKey) {
+        return Objects.equals(source.getBizCode(), targetScope.bizCode())
+                && Objects.equals(source.getNamespaceId(), targetNamespaceId)
+                && Objects.equals(source.getEnvCode(), targetScope.env())
+                && Objects.equals(source.getAppCode(), targetScope.appCode())
+                && Objects.equals(source.getResourceKey(), targetResourceKey);
+    }
+
     private DdcAiPublicationResult replayAfterPublicationConflict(DdcAiIdQuery query, String requestId,
             DdcAiPublicationOperationEnum operation, String expectedRevision, String versionNo, String changeNote,
             DataIntegrityViolationException failure) {
@@ -361,6 +509,26 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
             return publicationRepository.findByTenantRequestId(requestId)
                     .map(receipt -> replayOrConflict(receipt, requestSha256))
                     .orElseThrow(() -> failure);
+        });
+    }
+
+    private DdcAiPublicationResult replayAfterPromotionConflict(DdcAiIdQuery sourceQuery,
+            DdcAiPromotionCommand command, String requestId, DataIntegrityViolationException failure) {
+        return commandTransactionTemplate.execute(status -> {
+            DdcAiResourceBO source = resourceRepository.findActiveById(sourceQuery.id())
+                    .orElseThrow(DdcAiResourceServiceImpl::notFound);
+            scopeValidator.assertCanRead(source);
+            Long targetNamespaceId = scopeValidator.resolveNamespaceIdForPublish(command.getTargetScope());
+            parsePromotionSourceVersionNo(command.getSourceVersionNo());
+            if (sameResourceIdentity(source, command.getTargetScope(), targetNamespaceId,
+                    command.getTargetResourceKey())) {
+                throw resourceKeyConflict();
+            }
+            String requestSha256 = promotionCommandSha256(authenticatedActor(), source, command);
+            Optional<DdcAiPublicationBO> committed = publicationRepository.findByTenantRequestId(requestId);
+            if (committed.isPresent()) return replayOrConflict(committed.get(), requestSha256);
+            if (isResourceKeyConflict(failure)) throw resourceKeyConflict(failure);
+            throw failure;
         });
     }
 
@@ -451,6 +619,28 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
         throw badRequest("Invalid version number");
     }
 
+    private long parsePromotionSourceVersionNo(String versionNo) {
+        Long parsed;
+        try {
+            parsed = resourceConverter.toInternalLong(versionNo);
+        } catch (NumberFormatException failure) {
+            throw badRequest("Invalid source version number");
+        }
+        if (parsed == null || parsed <= 0) throw badRequest("Invalid source version number");
+        return parsed;
+    }
+
+    private Long parseNullableTargetRevision(String expectedTargetRevision) {
+        if (expectedTargetRevision == null) return null;
+        try {
+            Long parsed = resourceConverter.toInternalLong(expectedTargetRevision);
+            if (parsed != null && parsed >= 0) return parsed;
+        } catch (NumberFormatException failure) {
+            throw badRequest("Invalid target resource revision");
+        }
+        throw badRequest("Invalid target resource revision");
+    }
+
     private String authenticatedActor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof Rbac3UserDetails user)
@@ -478,6 +668,31 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
             updateNullableLengthPrefixed(digest, expectedRevision);
             updateNullableLengthPrefixed(digest, versionNo);
             updateNullableLengthPrefixed(digest, changeNote);
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 is unavailable", failure);
+        }
+    }
+
+    private String promotionCommandSha256(String actor, DdcAiResourceBO source,
+            DdcAiPromotionCommand command) {
+        DdcAiScopeDTO targetScope = command.getTargetScope();
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            updateLengthPrefixed(digest, "tianshu-ai-command-v1");
+            updateLengthPrefixed(digest, DdcAiPublicationOperationEnum.PROMOTE.getValue());
+            updateLengthPrefixed(digest, actor);
+            updateLengthPrefixed(digest, Long.toString(source.getTenantId()));
+            updateLengthPrefixed(digest, Long.toString(source.getId()));
+            updateLengthPrefixed(digest, command.getSourceVersionNo());
+            updateLengthPrefixed(digest, targetScope.bizCode());
+            updateLengthPrefixed(digest, targetScope.namespaceCode());
+            updateLengthPrefixed(digest, targetScope.env());
+            updateLengthPrefixed(digest, targetScope.appCode());
+            updateLengthPrefixed(digest, source.getKind().name());
+            updateLengthPrefixed(digest, command.getTargetResourceKey());
+            updateNullableLengthPrefixed(digest, command.getExpectedTargetRevision());
+            updateNullableLengthPrefixed(digest, command.getChangeNote());
             return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException failure) {
             throw new IllegalStateException("SHA-256 is unavailable", failure);

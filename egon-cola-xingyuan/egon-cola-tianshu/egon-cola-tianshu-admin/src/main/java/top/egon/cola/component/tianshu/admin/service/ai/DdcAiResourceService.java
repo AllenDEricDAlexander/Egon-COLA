@@ -10,6 +10,7 @@ import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroup
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDeleteCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiPromotionCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiRollbackCommand;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcAiResourceSummaryDTO;
@@ -53,6 +54,11 @@ public interface DdcAiResourceService {
             @NotNull @Valid DdcAiIdQuery query,
             @NotBlank @Size(min = 16, max = 64) @Pattern(regexp = "^[A-Za-z0-9_-]{16,64}$") String requestId,
             @NotNull @Valid DdcAiRollbackCommand command);
+
+    DdcAiPublicationResult promote(
+            @NotNull @Valid DdcAiIdQuery sourceQuery,
+            @NotNull @Valid DdcAiPromotionCommand command,
+            @NotBlank @Size(min = 16, max = 64) @Pattern(regexp = "^[A-Za-z0-9_-]{16,64}$") String requestId);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
     DdcAiVersionResult getVersion(
