@@ -13444,22 +13444,22 @@ derive tenant and actor from the trusted security context rather than accepting 
 
 #### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPageQuery.java`
 
-- Purpose: Validate the complete four-dimensional resource list scope, filters and bounded pagination.
+- Purpose: Validate the complete four-dimensional resource list scope, required kind, optional key prefix and bounded pagination.
 - Symbols: `DdcAiPageQuery`
 - Repository evidence: Step12提交后路径不存在；对照同Admin模块PageQuery和PageResult约定及原Spec API-001。
 - Dependencies and consumers: 前置Step 12；本步13个有序文件已完成；后续AI controller、版本、RPC及Web调用链消费。
 - Why now: 依赖前序持久化与查询边界；按命令/查询/转换/策略/服务方向接线。
-- Contract/signature changes: class包含scope、可选kind/key前缀/name与page/pageSize；固定默认页及pageSize<=100；不允许客户端排序SQL片段。
-- Input/output and state mapping: 外部namespaceCode/env/app/biz在Service按可信tenant和DdcScopeGate校验后，Repository执行limit/offset固定order。
-- Error and edge behavior: 非法scope、page越界及pageSize过大拒绝；缺省只由Query定义的安全默认生效，不扩大tenant范围。
+- Contract/signature changes: class包含必填scope/kind、可选resourceKeyPrefix与pageNo/pageSize；默认pageNo=1/pageSize=20且pageSize<=100；不允许客户端排序或name筛选参数。
+- Input/output and state mapping: 外部bizCode/namespaceCode/env/appCode/kind及可选key prefix在Service按可信tenant和DdcScopeGate校验后，Repository执行limit/offset与Spec固定排序。
+- Error and edge behavior: 缺失/非法scope或kind、pageNo/pageSize越界拒绝；key prefix按原样escape SQL通配符；缺省只由Query定义的安全分页默认生效，不扩大tenant范围。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；跨层输入使用Jakarta Validation及准确分组 (Rule 2)；POJO class/Lombok分类正确且转换使用Egon BaseConverter (Rule 3)；业务Bean稳定命名、Slf4j、RequiredArgsConstructor和Qualifier (Rule 4)；只用JDK及已允许工具 (Rule 5)；Jackson遵循外部协议 (Rule 6)；java.time及UTC保持既有wire语义 (Rule 10)；三层、Egon MP、租户守卫和deleted_at生命周期保持 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-将page query作为普通validated class；查询筛选映射到具名Mapper参数，排序始终为Spec固定排序，不拼接用户字段。
-validate required fields and exact groups while preserving missing-versus-null Jackson semantics;
-derive tenant and actor from the trusted security context rather than accepting them as request data;
+将page query建模为普通validated class，scope与kind必填、key prefix可选、page defaults按Spec收口；
+validate the four scope fields, required kind, and bounded pagination without accepting displayName or sort inputs;
+escape percent and underscore in the optional prefix, then bind trusted tenant and scope to the fixed-order Mapper query;
 ```
 
 - Verification contribution: DdcAiDraftServiceTest and/or DdcAiPersistenceContractTest asserts this file's named behavior through the planned reactor gate.
