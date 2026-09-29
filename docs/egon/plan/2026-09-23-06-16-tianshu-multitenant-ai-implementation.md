@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-09-29 12:47 Asia/Shanghai` |
+| Updated | `2026-09-29 12:52 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -414,8 +414,8 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/po/DdcPublishTaskPO.java` | CREATE：基线不存在 | DdcPublishTaskPO | ddc_publish_task；DdcPublishTask；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 10 | REQ-011 REQ-013 REQ-015 | DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiIdQuery.java` | CREATE：基线不存在 | DdcAiIdQuery | 完整scope/固定排序page1/20<=100；id定位器可value record | Step 13 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019 | DdcAiDraftServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPageQuery.java` | CREATE：基线不存在 | DdcAiPageQuery | 完整scope/固定排序page1/20<=100；id定位器可value record | Step 13 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019 | DdcAiDraftServiceTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPublicationPageQuery.java` | CREATE：基线不存在 | DdcAiPublicationPageQuery | id/版号定位器或普通分页class；范围不能覆盖tenant | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiVersionPageQuery.java` | CREATE：基线不存在 | DdcAiVersionPageQuery | id/版号定位器或普通分页class；范围不能覆盖tenant | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPublicationPageQuery.java` | CREATE：基线不存在 | DdcAiPublicationPageQuery | 普通class + 完整Lombok；resourceId/nullable requestId/page字段分组校验；固定审计序 | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiVersionPageQuery.java` | CREATE：基线不存在 | DdcAiVersionPageQuery | 普通class + 完整Lombok；resourceId/pageNo/pageSize分组校验；固定版本排序 | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiVersionQuery.java` | CREATE：基线不存在 | DdcAiVersionQuery | id/版号定位器或普通分页class；范围不能覆盖tenant | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiPublicationResult.java` | CREATE：基线不存在 | DdcAiPublicationResult | 普通class，原§9字段/空值/UTC/Long字符串，来源信息不回读当前草稿 | Step 14 | REQ-005 REQ-006 | DdcAiVersionServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiResourceResult.java` | CREATE：基线不存在 | DdcAiResourceResult | class resource summary＋draft，原wire相同 | Step 13 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019 | DdcAiDraftServiceTest |
@@ -782,6 +782,8 @@ Step 12的聚焦测试同样需要前序组件、Outbox和RPC模块当前工作�
 2026-09-29 Step13 post-commit conformance audit: accepted original Spec §7.3.4 requires commands to share-lock scope parents in fixed biz→namespace→env→app order before resource-root FOR UPDATE; committed Step13 currently locks root before its cached DdcScopeGate check. Correct with five tenant/active/FOR SHARE statements on existing DdcAiResourceMapper, one named lockScopeParentsForShare Repository operation that executes them sequentially, cache invalidation after locks, and Service ordering read-scope→parent-lock→root-lock→CAS. Existing DraftService/Persistence tests give the two RED points. This is an eight-path corrective commit attributed to Step13, no DDL/dependency/public API/new module; refresh Step14 baseline hashes after the correction. Corrective commit e9fd4308dbbb8e57105404f065ed81281bff1dc4 passed the repository-root reactor: DdcAiDraftServiceTest 14/14, DdcAiPersistenceContractTest 11/11, DdcTianshuDdlContractTest 18/18, zero failures/errors/skips.
 
 2026-09-29 Step14 pre-edit audit: Step12 Version/VersionNode/Publication Repository ports expose only findActiveById, while API-006–009 require exact immutable snapshot reads/inserts/pages and Service-only named Repository access. Existing Publication lookup includes resource_id although V001 uniqueness is tenant_id+request_id; tenant-global selector plus PTest RED detects same-tenant key reuse across roots. Step13 already created Service interface/implementation, ScopeValidator, ResourceConverter and persistence test; Step14 modifies them using current baseline hashes. API-008 body contains expectedRevision/changeNote only; Idempotency-Key remains a separate required header. Step14 has 25 ordered edit actions across 24 unique paths: mapper RED/GREEN, typed contracts, Repository ports, compile-only exception seam, typed Service RED, then final behavior. Result converters move from Step16 because Service consumes their DTOs; Step16 drops two paths. Its REST/OAS focused test now uses the repository-root reactor so it resolves this checkout's committed component and RPC sources. Existing ResourceConverter owns validated decimal String/Long mapping per accepted amendment §10.3. No new dependency, DDL, REST shape, or AI Event.
+
+2026-09-29 Step14 model conformance review: accepted CQE amendment §5.3/§10 permits records for immutable scope/resource locators such as DdcAiVersionQuery, but does not classify page/filter carriers as immutable value objects. DdcAiVersionPageQuery and DdcAiPublicationPageQuery therefore use ordinary classes with the full Lombok baseline and Jakarta Query-group field constraints; no API fields/defaults or behavior changes.
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -14141,7 +14143,7 @@ the locator contains no tenant and cannot address current draft content.
 
 #### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiVersionPageQuery.java`
 
-- Purpose: 版本列表分页query：pageNo/pageSize默认1/20、上限100、稳定排序。
+- Purpose: 使用完整Lombok普通class承载版本列表分页，不作为不可变locator record。
 - Symbols: `DdcAiVersionPageQuery`
 - Repository evidence: 当前路径不存在，按已提交三层结构和Spec合同创建。
 - Dependencies and consumers: 由Service和Step16 REST/OAS调用；HTTP Long标识保留String wire边界。
@@ -14154,9 +14156,13 @@ the locator contains no tenant and cannot address current draft content.
 - Implementation pseudocode:
 
 ```java
-record DdcAiVersionPageQuery(Long resourceId, Integer pageNo, Integer pageSize) validates Query group.
-Controller defaults only absent pageNo/pageSize to 1/20 and rejects pageSize above 100.
-Repository orders version_no DESC, id DESC and derives tenant from trusted context.
+@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder
+class DdcAiVersionPageQuery {
+ @NotNull(groups=Query.class) @Positive(groups=Query.class) Long resourceId;
+ @NotNull(groups=Query.class) @Min(1,groups=Query.class) Integer pageNo;
+ @NotNull(groups=Query.class) @Min(1,groups=Query.class) @Max(100,groups=Query.class) Integer pageSize;
+}
+Controller maps omitted HTTP page fields to 1/20; Repository orders version_no DESC, id DESC.
 ```
 
 - Verification contribution: 分页默认/上限/顺序/offset溢出。
@@ -14164,7 +14170,7 @@ Repository orders version_no DESC, id DESC and derives tenant from trusted conte
 
 #### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/query/DdcAiPublicationPageQuery.java`
 
-- Purpose: 单资源发布审计分页及nullable requestId筛选。
+- Purpose: 使用完整Lombok普通class承载资源回执分页与可选requestId筛选。
 - Symbols: `DdcAiPublicationPageQuery`
 - Repository evidence: 当前路径不存在，按已提交三层结构和Spec合同创建。
 - Dependencies and consumers: 由Service和Step16 REST/OAS调用；HTTP Long标识保留String wire边界。
@@ -14177,9 +14183,14 @@ Repository orders version_no DESC, id DESC and derives tenant from trusted conte
 - Implementation pseudocode:
 
 ```java
-record DdcAiPublicationPageQuery(Long resourceId, String requestId, Integer pageNo, Integer pageSize).
-Only an absent requestId removes the filter; preserve supplied key unchanged and validate its length.
-Repository scopes trusted tenant+resource and orders create_time DESC,id DESC.
+@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Builder
+class DdcAiPublicationPageQuery {
+ @NotNull(groups=Query.class) @Positive(groups=Query.class) Long resourceId;
+ @Size(min=16,max=64,groups=Query.class) String requestId;
+ @NotNull(groups=Query.class) @Min(1,groups=Query.class) Integer pageNo;
+ @NotNull(groups=Query.class) @Min(1,groups=Query.class) @Max(100,groups=Query.class) Integer pageSize;
+}
+Only absent requestId removes the filter; Repository scopes trusted tenant+resource and orders create_time DESC,id DESC.
 ```
 
 - Verification contribution: requestId筛选、跨tenant拒绝和稳定审计序。
