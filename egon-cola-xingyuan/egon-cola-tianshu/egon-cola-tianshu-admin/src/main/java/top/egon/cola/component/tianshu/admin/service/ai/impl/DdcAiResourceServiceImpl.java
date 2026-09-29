@@ -170,9 +170,9 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
     }
 
     private DdcAiResourceResult replaceDraftInTransaction(DdcAiIdQuery query, DdcAiDraftCommand command) {
-        DdcAiResourceBO resource = resourceRepository.findActiveForUpdateById(query.id())
+        DdcAiResourceBO candidate = resourceRepository.findActiveById(query.id())
                 .orElseThrow(DdcAiResourceServiceImpl::notFound);
-        scopeValidator.assertCanWrite(resource);
+        DdcAiResourceBO resource = lockWritableResource(candidate);
         requireExpectedRevision(command.getExpectedRevision(), resource.getVersion());
         PreparedContent prepared = strategy(resource.getKind()).prepare(command.getDraft());
         DdcAiResourceBO update = resourceConverter.toBusiness(command);
@@ -188,7 +188,7 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
     }
 
     private void deleteInTransaction(DdcAiIdQuery query, DdcAiDeleteCommand command) {
-        Optional<DdcAiResourceBO> active = resourceRepository.findActiveForUpdateById(query.id());
+        Optional<DdcAiResourceBO> active = resourceRepository.findActiveById(query.id());
         if (active.isEmpty()) {
             Optional<DdcAiResourceBO> historical = resourceRepository.findIncludingDeletedById(query.id());
             if (historical.isPresent() && historical.get().getDeletedAt() != null) {
@@ -197,14 +197,29 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
             }
             throw notFound();
         }
-        DdcAiResourceBO resource = active.get();
-        scopeValidator.assertCanWrite(resource);
+        DdcAiResourceBO resource = lockWritableResource(active.get());
         requireExpectedRevision(command.getExpectedRevision(), resource.getVersion());
         List<DdcAiDraftNodeBO> nodes = draftNodeRepository.findActiveByResourceId(resource.getId());
         for (DdcAiDraftNodeBO node : nodes) {
             if (!draftNodeRepository.delete(node)) throw revisionConflict();
         }
         if (!resourceRepository.delete(resource)) throw revisionConflict();
+    }
+
+    private DdcAiResourceBO lockWritableResource(DdcAiResourceBO candidate) {
+        scopeValidator.assertCanWrite(candidate);
+        DdcAiResourceBO locked = resourceRepository.findActiveForUpdateById(candidate.getId())
+                .orElseThrow(DdcAiResourceServiceImpl::notFound);
+        if (!Objects.equals(candidate.getTenantId(), locked.getTenantId())
+                || !Objects.equals(candidate.getBizCode(), locked.getBizCode())
+                || !Objects.equals(candidate.getNamespaceId(), locked.getNamespaceId())
+                || !Objects.equals(candidate.getEnvCode(), locked.getEnvCode())
+                || !Objects.equals(candidate.getAppCode(), locked.getAppCode())
+                || !Objects.equals(candidate.getKind(), locked.getKind())
+                || !Objects.equals(candidate.getResourceKey(), locked.getResourceKey())) {
+            throw revisionConflict();
+        }
+        return locked;
     }
 
     private PreparedContent preparePersistedDraft(DdcAiResourceBO resource, List<DdcAiDraftNodeBO> persistedNodes) {

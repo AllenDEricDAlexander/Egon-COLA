@@ -4,12 +4,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.Valid;
+import jakarta.validation.groups.Default;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiResourceBO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
+import top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO;
 
 import java.util.Optional;
 
@@ -35,6 +37,10 @@ public interface DdcAiResourceRepository {
     Optional<DdcAiResourceBO> findActiveForUpdateById(
             @NotNull(groups = EgonColaModelValidationGroups.Query.class)
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long id);
+
+    @Validated({Default.class, EgonColaModelValidationGroups.Query.class})
+    void lockScopeParentsForShare(
+            @NotNull(groups = EgonColaModelValidationGroups.Query.class) @Valid DdcAiScopeDTO scope);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
     Optional<DdcAiResourceBO> findByBusinessKey(

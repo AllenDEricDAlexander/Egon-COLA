@@ -495,6 +495,22 @@ class DdcAiPersistenceContractTest {
     }
 
     @Test
+    void scopeParentLocksAreTenantScopedActiveRowsAndUseShareLocks() throws Exception {
+        Configuration configuration = aiMappers();
+        Map<String, Object> parameters = Map.of("tenantId", 41L, "bizCode", "biz",
+                "namespaceCode", "dev-space", "envCode", "dev", "appCode", "agent");
+        for (String method : List.of("selectBizIdForShare", "selectNamespaceIdForShare", "selectEnvIdForShare",
+                "selectAppIdForShare", "selectBindingIdForShare")) {
+            String statement = BASE + "dao.DdcAiResourceMapper." + method;
+            assertThat(configuration.hasStatement(statement)).as(statement).isTrue();
+            String sql = mappedSql(configuration, statement, parameters);
+            assertThat(sql).as(statement).contains("tenant_id = ?", "deleted_at is null", "for share");
+            assertThat(configuration.getMappedStatement(statement).getTimeout()).isEqualTo(2);
+            assertThatCode(() -> CCJSqlParserUtil.parse(sql)).doesNotThrowAnyException();
+        }
+    }
+
+    @Test
     void v001KeepsTenantOwnershipLifecycleUniquenessAndImmutableVersionRelations() throws Exception {
         String ddl = resource(AI_DDL).toLowerCase(Locale.ROOT);
         String normalized = ddl.replaceAll("\\s+", " ");

@@ -95,6 +95,46 @@
         FOR SHARE OF r
     </select>
 
+    <select id="selectBizIdForShare" resultType="java.lang.Long" timeout="2">
+        SELECT id
+        FROM ddc_biz
+        WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND deleted_at IS NULL
+        FOR SHARE
+    </select>
+
+    <select id="selectNamespaceIdForShare" resultType="java.lang.Long" timeout="2">
+        SELECT id
+        FROM ddc_namespace
+        WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND namespace_code = #{namespaceCode}
+          AND deleted_at IS NULL
+        FOR SHARE
+    </select>
+
+    <select id="selectEnvIdForShare" resultType="java.lang.Long" timeout="2">
+        SELECT id
+        FROM ddc_env
+        WHERE tenant_id = #{tenantId} AND env_code = #{envCode} AND deleted_at IS NULL
+        FOR SHARE
+    </select>
+
+    <select id="selectAppIdForShare" resultType="java.lang.Long" timeout="2">
+        SELECT id
+        FROM ddc_app
+        WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND app_code = #{appCode} AND deleted_at IS NULL
+        FOR SHARE
+    </select>
+
+    <select id="selectBindingIdForShare" resultType="java.lang.Long" timeout="2">
+        SELECT b.id
+        FROM ddc_namespace_env_app b
+        JOIN ddc_namespace n ON n.tenant_id = b.tenant_id AND n.id = b.namespace_id
+        JOIN ddc_app a ON a.tenant_id = b.tenant_id AND a.id = b.app_id
+        WHERE b.tenant_id = #{tenantId} AND n.biz_code = #{bizCode} AND n.namespace_code = #{namespaceCode}
+          AND b.env_code = #{envCode} AND a.biz_code = #{bizCode} AND a.app_code = #{appCode}
+          AND b.deleted_at IS NULL AND n.deleted_at IS NULL AND a.deleted_at IS NULL
+        FOR SHARE OF b
+    </select>
+
     <select id="selectByBusinessKey" resultMap="DdcAiResourcePOResultMap">
         SELECT <include refid="ResourceColumns"/>
         FROM ddc_ai_resource

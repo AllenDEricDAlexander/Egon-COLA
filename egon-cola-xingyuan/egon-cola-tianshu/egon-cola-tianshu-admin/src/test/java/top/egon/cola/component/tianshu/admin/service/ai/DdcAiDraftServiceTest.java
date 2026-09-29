@@ -267,6 +267,7 @@ class DdcAiDraftServiceTest {
     @Test
     void scopeValidatorRequiresTheActionPermissionForTheExactNamespace() {
         DdcScopeGate scopeGate = mock(DdcScopeGate.class);
+        DdcAiResourceRepository resourceRepository = mock(DdcAiResourceRepository.class);
         DdcNamespaceRepository namespaceRepository = mock(DdcNamespaceRepository.class);
         DdcNamespaceEnvAppBindingRepository bindingRepository = mock(DdcNamespaceEnvAppBindingRepository.class);
         DdcNamespaceBO namespace = DdcNamespaceBO.builder().id(NAMESPACE_ID).publicId("namespace-public-71")
@@ -281,12 +282,19 @@ class DdcAiDraftServiceTest {
         securityContext.setAuthentication(new TestingAuthenticationToken(principal, "", List.of()));
         SecurityContextHolder.setContext(securityContext);
 
-        DdcAiScopeValidator validator = new DdcAiScopeValidator(scopeGate, namespaceRepository, bindingRepository);
+        DdcAiScopeValidator validator = new DdcAiScopeValidator(
+                scopeGate, resourceRepository, namespaceRepository, bindingRepository);
 
         assertThat(validator.resolveNamespaceIdForRead(SCOPE)).isEqualTo(NAMESPACE_ID);
+        verifyNoInteractions(resourceRepository);
+        org.mockito.Mockito.clearInvocations(scopeGate);
         assertThatThrownBy(() -> validator.resolveNamespaceIdForWrite(SCOPE))
                 .isInstanceOfSatisfying(CommonException.class,
                         failure -> assertThat(failure.getCode()).isEqualTo(56307));
+        InOrder order = inOrder(resourceRepository, scopeGate);
+        order.verify(resourceRepository).lockScopeParentsForShare(SCOPE);
+        order.verify(scopeGate).invalidate("biz:" + SCOPE.bizCode());
+        order.verify(scopeGate).assertEnabled(SCOPE.bizCode(), SCOPE.appCode(), SCOPE.env(), SCOPE.namespaceCode());
     }
 
     @Test
@@ -321,6 +329,7 @@ class DdcAiDraftServiceTest {
                 .description("").draft(promptContent("new prompt\n")).build();
         DdcAiResourceBO commandBO = DdcAiResourceBO.builder().displayName("Review Order").description("")
                 .draftPrompt("new prompt\n").build();
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(resourceRepository.update(resource)).thenAnswer(invocation -> {
             resource.setVersion(4L);
@@ -338,7 +347,10 @@ class DdcAiDraftServiceTest {
         assertThat(resource.getCurrentVersionId()).isEqualTo(902L);
         assertThat(resource.getLastVersionNo()).isEqualTo(2L);
         assertThat(resource.getDraftPrompt()).isEqualTo("new prompt\n");
-        verify(scopeValidator).assertCanWrite(resource);
+        InOrder lockOrder = inOrder(resourceRepository, scopeValidator);
+        lockOrder.verify(resourceRepository).findActiveById(RESOURCE_ID);
+        lockOrder.verify(scopeValidator).assertCanWrite(resource);
+        lockOrder.verify(resourceRepository).findActiveForUpdateById(RESOURCE_ID);
         verify(draftNodeRepository, never()).delete(any(DdcAiDraftNodeBO.class));
     }
 
@@ -348,6 +360,7 @@ class DdcAiDraftServiceTest {
         DdcAiResourceBO resource = resource(RESOURCE_ID, 4L, DdcAiKindEnum.PROMPT, "old", 902L);
         DdcAiDraftCommand command = DdcAiDraftCommand.builder().expectedRevision("3").displayName("Review Order")
                 .description("").draft(promptContent("new prompt")).build();
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.of(resource));
 
         assertThatThrownBy(() -> service.replaceDraft(new DdcAiIdQuery(RESOURCE_ID), command))
@@ -365,6 +378,7 @@ class DdcAiDraftServiceTest {
         DdcAiResourceBO resource = resource(RESOURCE_ID, 2L, DdcAiKindEnum.SKILL, null, 902L);
         DdcAiDraftNodeBO root = draftNode(91L, "", null, DdcAiNodeTypeEnum.DIRECTORY, null);
         DdcAiDraftNodeBO file = draftNode(92L, "SKILL.md", "", DdcAiNodeTypeEnum.FILE, "check\n");
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(draftNodeRepository.findActiveByResourceId(RESOURCE_ID)).thenReturn(List.of(root, file));
         when(draftNodeRepository.delete(root)).thenReturn(true);
@@ -373,7 +387,10 @@ class DdcAiDraftServiceTest {
 
         service.delete(new DdcAiIdQuery(RESOURCE_ID), DdcAiDeleteCommand.builder().expectedRevision("2").build());
 
-        InOrder order = inOrder(draftNodeRepository, resourceRepository);
+        InOrder order = inOrder(resourceRepository, scopeValidator, draftNodeRepository);
+        order.verify(resourceRepository).findActiveById(RESOURCE_ID);
+        order.verify(scopeValidator).assertCanWrite(resource);
+        order.verify(resourceRepository).findActiveForUpdateById(RESOURCE_ID);
         order.verify(draftNodeRepository).delete(root);
         order.verify(draftNodeRepository).delete(file);
         order.verify(resourceRepository).delete(resource);
@@ -384,7 +401,7 @@ class DdcAiDraftServiceTest {
         executeTransactionCallbacksInline(commandTransactionTemplate);
         DdcAiResourceBO deleted = resource(RESOURCE_ID, 3L, DdcAiKindEnum.PROMPT, "old", 902L);
         deleted.setDeletedAt(java.time.LocalDateTime.parse("2026-09-29T09:00:00"));
-        when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.empty());
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.empty());
         when(resourceRepository.findIncludingDeletedById(RESOURCE_ID)).thenReturn(Optional.of(deleted));
 
         service.delete(new DdcAiIdQuery(RESOURCE_ID), DdcAiDeleteCommand.builder().expectedRevision("2").build());
@@ -398,6 +415,7 @@ class DdcAiDraftServiceTest {
     void deletedAtLifecycleCollisionRollsBackAndRetriesThreeFreshTransactions() {
         executeTransactionCallbacksInline(commandTransactionTemplate);
         DdcAiResourceBO resource = resource(RESOURCE_ID, 2L, DdcAiKindEnum.PROMPT, "old", 902L);
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(draftNodeRepository.findActiveByResourceId(RESOURCE_ID)).thenReturn(List.of());
         DataIntegrityViolationException collision = new DataIntegrityViolationException(
@@ -422,6 +440,7 @@ class DdcAiDraftServiceTest {
         executeTransactionCallbacksInline(commandTransactionTemplate);
         DdcAiResourceBO resource = resource(RESOURCE_ID, 2L, DdcAiKindEnum.SKILL, null, 902L);
         DdcAiDraftNodeBO root = draftNode(91L, "", null, DdcAiNodeTypeEnum.DIRECTORY, null);
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.of(resource));
         when(draftNodeRepository.findActiveByResourceId(RESOURCE_ID)).thenReturn(List.of(root));
         DataIntegrityViolationException collision = new DataIntegrityViolationException(

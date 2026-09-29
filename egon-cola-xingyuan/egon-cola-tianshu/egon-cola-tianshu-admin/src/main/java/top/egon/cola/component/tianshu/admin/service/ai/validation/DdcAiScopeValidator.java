@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiResourceBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceBO;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiResourceRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
@@ -30,6 +31,9 @@ public class DdcAiScopeValidator {
     @Qualifier("ddcScopeGate")
     private final DdcScopeGate scopeGate;
 
+    @Qualifier("ddcAiResourceRepository")
+    private final DdcAiResourceRepository resourceRepository;
+
     @Qualifier("ddcNamespaceRepository")
     private final DdcNamespaceRepository namespaceRepository;
 
@@ -45,6 +49,10 @@ public class DdcAiScopeValidator {
     }
 
     private Long resolveNamespaceId(DdcAiScopeDTO scope, Permission permission) {
+        if (permission != Permission.READ) {
+            resourceRepository.lockScopeParentsForShare(scope);
+            invalidateScopeCache(scope);
+        }
         scopeGate.assertEnabled(scope.bizCode(), scope.appCode(), scope.env(), scope.namespaceCode());
         DdcNamespaceBO namespace = namespaceRepository.findByBizCodeAndNamespaceCode(
                         scope.bizCode(), scope.namespaceCode())
@@ -54,6 +62,13 @@ public class DdcAiScopeValidator {
         if (!bound) throw new CommonException(DdcErrorStatus.SCOPE_DISABLED);
         requireNamespacePermission(namespace.getPublicId(), permission);
         return namespace.getId();
+    }
+
+    private void invalidateScopeCache(DdcAiScopeDTO scope) {
+        scopeGate.invalidate("biz:" + scope.bizCode());
+        scopeGate.invalidate("namespace:" + scope.bizCode() + ":" + scope.namespaceCode());
+        scopeGate.invalidate("env:" + scope.env());
+        scopeGate.invalidate("app:" + scope.bizCode() + ":" + scope.appCode());
     }
 
     public void assertCanRead(@NotNull @Valid DdcAiResourceBO resource) {

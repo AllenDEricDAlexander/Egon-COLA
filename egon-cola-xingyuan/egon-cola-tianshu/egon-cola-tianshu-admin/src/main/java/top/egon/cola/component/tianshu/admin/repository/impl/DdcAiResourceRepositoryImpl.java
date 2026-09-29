@@ -16,6 +16,7 @@ import top.egon.cola.component.tianshu.admin.model.po.DdcAiResourcePO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcAiResourceRepository;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
+import top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO;
 
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +65,16 @@ public class DdcAiResourceRepositoryImpl extends EgonColaRepository<DdcAiResourc
     public Optional<DdcAiResourceBO> findActiveForUpdateById(Long id) {
         return Optional.ofNullable(mapper.selectForUpdateById(EgonColaTenantIdProvider.currentTenantId(), id))
                 .map(converter::toTarget);
+    }
+
+    @Override
+    public void lockScopeParentsForShare(DdcAiScopeDTO scope) {
+        Long tenantId = EgonColaTenantIdProvider.currentTenantId();
+        mapper.selectBizIdForShare(tenantId, scope.bizCode());
+        mapper.selectNamespaceIdForShare(tenantId, scope.bizCode(), scope.namespaceCode());
+        mapper.selectEnvIdForShare(tenantId, scope.env());
+        mapper.selectAppIdForShare(tenantId, scope.bizCode(), scope.appCode());
+        mapper.selectBindingIdForShare(tenantId, scope.bizCode(), scope.namespaceCode(), scope.env(), scope.appCode());
     }
 
     @Override

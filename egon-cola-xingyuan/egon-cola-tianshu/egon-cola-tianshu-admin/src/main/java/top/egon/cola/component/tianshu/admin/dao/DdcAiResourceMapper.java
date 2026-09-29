@@ -55,6 +55,51 @@ public interface DdcAiResourceMapper extends EgonColaMapper<DdcAiResourcePO> {
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long id);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
+    Long selectBizIdForShare(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("bizCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String bizCode);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Long selectNamespaceIdForShare(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("bizCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String bizCode,
+            @Param("namespaceCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String namespaceCode);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Long selectEnvIdForShare(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("envCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 32, groups = EgonColaModelValidationGroups.Query.class) String envCode);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Long selectAppIdForShare(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("bizCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String bizCode,
+            @Param("appCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String appCode);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
+    Long selectBindingIdForShare(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("bizCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String bizCode,
+            @Param("namespaceCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String namespaceCode,
+            @Param("envCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 32, groups = EgonColaModelValidationGroups.Query.class) String envCode,
+            @Param("appCode") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Size(max = 128, groups = EgonColaModelValidationGroups.Query.class) String appCode);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
     List<DdcAiResourcePO> selectActiveByIds(
             @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
