@@ -27,6 +27,7 @@ public interface DdcAiVersionConverter extends BaseConverter<DdcAiVersionPO, Ddc
     @Mapping(target = "sourceVersionId", source = "sourceVersionId")
     @Mapping(target = "changeNote", source = "changeNote")
     @Mapping(target = "createdAt", source = "createTime")
+    @Mapping(target = "createdBy", source = "createUserId")
     DdcAiVersionSummaryDTO toVersionSummary(DdcAiVersionBO source);
 
     @Named("aiKindCode")

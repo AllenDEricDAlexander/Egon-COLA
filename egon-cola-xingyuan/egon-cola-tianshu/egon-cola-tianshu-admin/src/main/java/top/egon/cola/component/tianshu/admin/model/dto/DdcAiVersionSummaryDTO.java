@@ -1,6 +1,7 @@
 package top.egon.cola.component.tianshu.admin.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -26,24 +27,28 @@ public class DdcAiVersionSummaryDTO {
     @NotNull
     @Positive
     @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @Schema(type = "string", pattern = "^[1-9][0-9]{0,18}$")
     private Long id;
 
     @NotNull
     @Positive
     @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @Schema(type = "string", pattern = "^[1-9][0-9]{0,18}$")
     private Long resourceId;
 
     @NotNull
     @Positive
     @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @Schema(type = "string", pattern = "^[1-9][0-9]{0,18}$")
     private Long versionNo;
 
     @NotBlank
     @Pattern(regexp = "^(PROMPT|SKILL)$")
     private String kind;
 
-    @NotNull
-    @Size(max = 128)
+    @NotBlank
+    @Size(min = 1, max = 128)
+    @Schema(minLength = 1, maxLength = 128)
     private String displayName;
 
     @NotNull
@@ -65,6 +70,7 @@ public class DdcAiVersionSummaryDTO {
 
     @Positive
     @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @Schema(type = "string", nullable = true, pattern = "^[1-9][0-9]{0,18}$")
     private Long sourceVersionId;
 
     @NotNull
@@ -74,4 +80,10 @@ public class DdcAiVersionSummaryDTO {
     @NotNull
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant createdAt;
+
+    @NotBlank
+    @Size(max = 128)
+    @Pattern(regexp = "^[^\\p{Cntrl}]+$")
+    @Schema(type = "string", pattern = "^[^\\p{Cntrl}]+$")
+    private String createdBy;
 }

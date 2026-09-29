@@ -71,6 +71,8 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/tianshu/auth/bootstrap"
                         )
                         .authenticated()
+                        .requestMatchers("/api/v1/tianshu/ai/**")
+                        .authenticated()
                         .requestMatchers("/api/v1/tianshu/cache/**")
                         .hasAnyAuthority(
                                 DdcAdminCapability.CACHE.authority(),

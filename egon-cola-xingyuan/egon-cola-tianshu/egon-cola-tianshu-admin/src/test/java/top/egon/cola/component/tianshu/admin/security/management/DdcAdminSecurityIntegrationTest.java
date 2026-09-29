@@ -18,7 +18,9 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import top.egon.cola.component.tianshu.admin.controller.config.DdcCacheController;
 import top.egon.cola.component.tianshu.admin.controller.config.DdcConfigController;
 import top.egon.cola.component.tianshu.admin.controller.config.DdcPublishTaskController;
+import top.egon.cola.component.tianshu.admin.controller.ai.DdcAiResourceController;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
+import top.egon.cola.component.tianshu.admin.model.query.DdcAiIdQuery;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcPublishTaskResultConverter;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
@@ -27,6 +29,7 @@ import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.service.cache.DdcCacheService;
 import top.egon.cola.component.tianshu.admin.service.config.DdcConfigService;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishTaskQueryService;
 import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
@@ -57,6 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DdcConfigController.class,
         DdcPublishTaskController.class,
         DdcCacheController.class,
+        DdcAiResourceController.class,
         DdcAdminSecurityIntegrationTest.HealthInfoController.class,
         DdcAdminSecurityIntegrationTest.RegistryInfoController.class,
         DdcAdminSecurityIntegrationTest.BindingInfoController.class,
@@ -95,6 +99,9 @@ class DdcAdminSecurityIntegrationTest {
 
     @MockBean
     private DdcCacheService cacheService;
+
+    @MockBean(name = "ddcAiResourceService")
+    private DdcAiResourceService aiResourceService;
 
     @MockBean
     private IdpBearerAuthenticationFilter idpBearerAuthenticationFilter;
@@ -279,6 +286,35 @@ class DdcAdminSecurityIntegrationTest {
         mockMvc.perform(get("/api/v1/tianshu/unknown")
                         .with(authority("CAP_*")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void aiRoutesRequireAuthenticationButLeaveNamespacePermissionToTheService() throws Exception {
+        when(aiResourceService.get(any())).thenReturn(null);
+
+        mockMvc.perform(get("/api/v1/tianshu/ai/resources/810001"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.code").value("TIANSHU_ADMIN_AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.message").value("TIANSHU_ADMIN_AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/tianshu/ai/resources/810001")
+                        .with(authentication(rbac3("TIANSHU_AI_READ:namespace-1"))))
+                .andExpect(status().isForbidden())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.code").value("TIANSHU_ADMIN_TENANT_MISMATCH"))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/tianshu/ai/resources/810001")
+                        .header("X-Egon-Tianshu-Tenant", "tenant-a")
+                        .with(authentication(rbac3("TIANSHU_AI_READ:namespace-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(aiResourceService).get(new DdcAiIdQuery(810001L));
     }
 
     @Test

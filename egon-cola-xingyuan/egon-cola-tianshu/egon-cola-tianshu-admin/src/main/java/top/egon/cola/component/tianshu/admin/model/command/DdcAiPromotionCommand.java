@@ -2,6 +2,7 @@ package top.egon.cola.component.tianshu.admin.model.command;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
@@ -40,6 +41,7 @@ public class DdcAiPromotionCommand {
     @Size(max = 19)
     @Pattern(regexp = "^(0|[1-9][0-9]*)$")
     @DecimalMax("9223372036854775807")
+    @Schema(type = "string", nullable = true, pattern = "^(0|[1-9][0-9]{0,18})$")
     private String expectedTargetRevision;
 
     @NotNull

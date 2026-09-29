@@ -15066,7 +15066,7 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Dependencies: Step 15
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 11个REST、权限、错误、分页、严格JSON和实际OAS一致。
-- End state: 11个REST、权限、错误、分页、严格JSON和实际OAS一致；资源summary投影已由Step13 converter提供；本步8个列明文件完成。
+- End state: 11个REST、权限、错误、分页、严格JSON和实际OAS一致；资源summary投影已由Step13 converter提供；本步17个列明文件完成。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11
@@ -15226,24 +15226,26 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 
 #### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiOpenApiConfiguration.java`
 
-- Purpose: 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改
+- Purpose: 注册tianshuBearerAuth；用GlobalOpenApiCustomizer校准Starter内容required/nullable并为11个AI操作的全部响应声明Cache-Control:no-store，复用既有group和根OAS信息
 - Symbols: `DdcAiOpenApiConfiguration`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcAiOpenApiConfiguration`。
 - Dependencies and consumers: 前置Step 15；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改。
-- Contract/signature changes: DdcAiOpenApiConfiguration的具体签名/配置/字段变更：原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Contract/signature changes: 添加HTTP JWT Bearer SecurityScheme和具名GlobalOpenApiCustomizer；不改变根info/server、既有group或各操作路由。
+- Input/output and state mapping: 已生成OpenAPI对象为Starter ContentDTO/NodeDTO补齐required与nullable，并确保每个AI operation response包含Cache-Control:no-store；其他模型Schema来自实际DTO/Controller/Jackson注解。
+- Error and edge behavior: 不拦截业务HTTP；文档默认关闭由既有TIANSHU_HTTP_OPENAPI_ENABLED:false控制，仅contract slice显式开启。
+- Standards impact: MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 3, Rule 4, Rule 5, Rule 6；使用当前springdoc组和已批准security scheme，不另加生成器或依赖。
+- Literal rule enforcement: 配置Bean具名 (Rule 4)；JDK集合处理Schema (Rule 5)；仅为既有wire字段同步OpenAPI required/null/security (Rule 6)。
 - Implementation pseudocode:
 
 ```java
-// DdcAiOpenApiConfiguration: 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改
-@Validated boundary accepts @Valid command/query under trusted tenant and four-dimensional scope;
-load resource by tenant + root id or exact key; lock target root FOR UPDATE for command; check revision/requestId before writing;
-map BO to DTO through named MapStruct converter; throw named 400/403/404/409 conflict without partial insert;
-// version snapshots are immutable, Skill tree is validated as one live set, promotion creates independent target version.
+@SecurityScheme(name="tianshuBearerAuth", type=HTTP, scheme="bearer", bearerFormat="JWT")
+@Bean(name="ddcAiSchemaOpenApiCustomizer") GlobalOpenApiCustomizer ddcAiSchemaOpenApiCustomizer() {
+  return api -> { require(api, "DdcAiContentDTO", "promptText", "nodes");
+                 nullableString(api, "DdcAiContentDTO", "promptText");
+                 require(api, "DdcAiNodeDTO", "content"); nullableString(api, "DdcAiNodeDTO", "content"); };
+}
+// existing application.yml tianshu group, info and server configuration remain the source of truth.
 ```
 
 - Verification contribution: DdcAiResourceControllerTest,DdcAiOpenApiContractTest聚焦本文件的原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改；最终由本步GREEN门禁验证。
@@ -15274,14 +15276,239 @@ finally { restorePriorMdcAndCallbackState(); }
 - Verification contribution: DdcAiResourceControllerTest,DdcAiOpenApiContractTest聚焦本文件的AI路径只先authenticated，namespace细权限由Service判断，不能只匹配全局cap而拒ns权限；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiPublicationResult.java`
+
+- Purpose: 保持内部publicationId访问器，按原Spec将管理REST回执的发布记录标识序列化为id十进制字符串。
+- Symbols: `DdcAiPublicationResult.publicationId`
+- Repository evidence: 当前SHA256 `8e1a7b827b1e523c9d6feae2129c090a3640ecc5cfac83bc63e5530679928950`；已有VO使用@JsonFormat(shape=STRING)输出十进制字符串；原Spec API-008～011成功样例固定字段名为id。
+- Dependencies and consumers: 前置Step 15；本步8个已排序文件；由API-008、API-009、API-010响应及API-011审计分页消费。
+- Why now: 真实OpenAPI/HTTP核对发现当前`publicationId` JSON属性与已确认Spec的`id`不一致；只修改JSON属性名，Java访问器和持久化字段不变。
+- Contract/signature changes: 外部JSON键为`id`，值仍为Long十进制字符串；所有其他回执字段和Service签名保持不变。
+- Input/output and state mapping: `publicationId`内部Long → JSON `id`字符串；时间、来源、版本和revision字段沿用当前VO及Jackson格式。
+- Error and edge behavior: NULL/正Long格式及其原@NotNull/@Positive约束不变；不增加别名双写，避免同一回执暴露两个ID字段。
+- Standards impact: MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 5, Rule 6, Rule 10；仅改变消费者JSON属性名，遵循现有VO类型和Jackson序列化策略。
+- Literal rule enforcement: 名称与发布结果职责一致 (Rule 1)；已有校验保持 (Rule 2)；POJO使用既有class/Lombok建模 (Rule 3)；不增加依赖 (Rule 5)；显式稳定JSON字段名 (Rule 6)；既有Instant/UTC语义不变 (Rule 10)。
+- Implementation pseudocode:
+
+```java
+@JsonProperty("id")
+@JsonFormat(shape = JsonFormat.Shape.STRING)
+public Long getPublicationId() { return publicationId; }
+```
+
+- Verification contribution: DdcAiResourceControllerTest与DdcAiOpenApiContractTest断言`data.id`、audit `records[].id` 和其string schema；最终由本步GREEN门禁验证。
+- After this file: Service/Repository继续使用`getPublicationId()`；REST/OAS只呈现Spec规定的`id`。
+
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiVersionSummaryDTO.java`
+
+- Purpose: 让实际OAS将版本id/resourceId/versionNo/sourceVersionId声明为十进制字符串，并保留sourceVersionId的nullable语义；补齐原Spec要求的createdBy。
+- Symbols: `DdcAiVersionSummaryDTO`
+- Repository evidence: committed Step 13 baseline SHA256 `9e07e7ce517921f5be72be88967c320d7938566e9d231e56a08d231e8e051f30`；当前类字段使用Long与@JsonFormat(STRING)，静态MockMvc OAS仍生成int64；原Spec§9.0.1/§10要求Long wire字段为string。
+- Dependencies and consumers: 前置Step 13；本步9个已排序文件；消费方为版本列表和版本详情Controller响应。
+- Why now: OAS从真实Controller/DTO生成，运行时@JsonFormat不改变springdoc推导的整数Schema。
+- Contract/signature changes: 增加createdBy字符串投影，并增加字段级@Schema type/pattern/minLength/nullable；内部Long转换不变。
+- Input/output and state mapping: 正ID/版本使用`^[1-9][0-9]{0,18}$`字符串；来源版本允许null；contentBytes/nodeCount继续为数值；createdBy从可信版本审计列派生。
+- Error and edge behavior: 仅文档约束与既有@NotNull/@Positive一致；NULL来源不变。
+- Standards impact: MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 2, Rule 3, Rule 5, Rule 6, Rule 10；值类字段类型/运行行为不变。
+- Literal rule enforcement: DTO职责与字段名不变 (Rule 1)；原约束保留 (Rule 2)；class/Lombok不变 (Rule 3)；无依赖变化 (Rule 5)；OAS显式long-string/null (Rule 6)；Instant UTC不变 (Rule 10)。
+- Implementation pseudocode:
+
+```java
+@JsonFormat(shape = STRING) @Schema(type = "string", pattern = "^[1-9][0-9]{0,18}$") private Long id;
+@JsonFormat(shape = STRING) @Schema(type = "string", pattern = "^[1-9][0-9]{0,18}$") private Long resourceId;
+@JsonFormat(shape = STRING) @Schema(type = "string", pattern = "^[1-9][0-9]{0,18}$") private Long versionNo;
+@JsonFormat(shape = STRING) @Schema(type = "string", nullable = true, pattern = "^[1-9][0-9]{0,18}$") private Long sourceVersionId;
+```
+
+- Verification contribution: DdcAiOpenApiContractTest断言版本ID字段的OAS string/pattern/nullability及createdBy；Controller测试核对历史详情。
+- After this file: 版本JSON仍由Long与@JsonFormat产生，OAS字段不再误报int64，历史审计主体回到响应。
+
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiResourceSummaryDTO.java`
+
+- Purpose: 明确资源summary的id/revision/lastVersionNo/currentVersionId/currentVersionNo OAS string与nullable合同。
+- Symbols: `DdcAiResourceSummaryDTO`
+- Repository evidence: committed Step 13 baseline SHA256 `4c4d82b1e293838e702003e5a2bcbdcd6b2e343bdc0580e52be7af6beed62e19`；其字段已是String，但当前OpenAPI不能从类型推出十进制pattern与nullable字段含义。
+- Dependencies and consumers: 前置Step 13；本步10个已排序文件；消费方为资源列表以及create/get/replace结果。
+- Why now: §9.0.1规定非负revision/version和可空当前发布指针，实际OAS应直接表达。
+- Contract/signature changes: 只增加字段级@Schema type/pattern/minLength/nullable；Java和JSON文本值不变。
+- Input/output and state mapping: ID/current IDs用正十进制字符串；revision/lastVersionNo为非负十进制字符串；当前指针字段nullable。
+- Error and edge behavior: 不改变服务端scope、版本或ResourceResult行为。
+- Standards impact: MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001；Rule 1, Rule 2, Rule 3, Rule 5, Rule 6, Rule 10；仅补齐对外Schema约束。
+- Literal rule enforcement: DTO职责/字段不变 (Rule 1)；原校验不变 (Rule 2)；Lombok class不变 (Rule 3)；无依赖变化 (Rule 5)；OAS string/null明确 (Rule 6)；Instant UTC不变 (Rule 10)。
+- Implementation pseudocode:
+
+```java
+@Schema(type = "string", pattern = "^[1-9][0-9]{0,18}$") private String id;
+@Schema(type = "string", pattern = "^(0|[1-9][0-9]{0,18})$") private String revision;
+@Schema(type = "string", pattern = "^(0|[1-9][0-9]{0,18})$") private String lastVersionNo;
+@Schema(type = "string", nullable = true, pattern = "^[1-9][0-9]{0,18}$") private String currentVersionId;
+@Schema(type = "string", nullable = true, pattern = "^[1-9][0-9]{0,18}$") private String currentVersionNo;
+```
+
+- Verification contribution: DdcAiOpenApiContractTest断言summary ID、revision与nullable current pointer的OAS形状。
+- After this file: 已有summary JSON字段保持原样，schema可表达字符串比较语义。
+
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiPromotionCommand.java`
+
+- Purpose: 将expectedTargetRevision的“必须出现但允许NULL”反映到真实OpenAPI Schema。
+- Symbols: `DdcAiPromotionCommand.expectedTargetRevision`
+- Repository evidence: committed Step 15 baseline SHA256 `86ce2725738060b0c37968c9837b5b4a85f51c413630938d311c9241f220dee2`；已有字段与@JsonCreator(required=true)；实际OAS显示required但没有nullable。
+- Dependencies and consumers: 前置Step 15；本步11个已排序文件；消费方为promote REST请求。
+- Why now: 原Spec明确NULL要求目标不存在，缺失字段不是同义值。
+- Contract/signature changes: 增加`@Schema(type="string", nullable=true, pattern=...)`；显式creator、服务端冲突和wire值不变。
+- Input/output and state mapping: JSON字段required=true；NULL或非负十进制字符串；tenant仍不接受body字段。
+- Error and edge behavior: 缺失仍由creator拒绝，NULL继续表示目标必须不存在。
+- Standards impact: MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 5, Rule 6, Rule 10；无业务算法变化。
+- Literal rule enforcement: Command职责不变 (Rule 1)；原validation/creator不变 (Rule 2)；class/Lombok不变 (Rule 3)；无依赖变化 (Rule 5)；required-and-nullable Schema精确表达 (Rule 6)；时间不变 (Rule 10)。
+- Implementation pseudocode:
+
+```java
+@JsonCreator(mode = PROPERTIES)
+public static DdcAiPromotionCommand of(
+    @JsonProperty(value="expectedTargetRevision", required=true) String expectedTargetRevision, ...) {
+  return builder().expectedTargetRevision(expectedTargetRevision).build(); // null preserved
+}
+@Schema(type = "string", nullable = true, pattern = "^(0|[1-9][0-9]{0,18})$")
+private String expectedTargetRevision;
+```
+
+- Verification contribution: Controller JSON测试区分缺失与NULL；OpenAPI测试断言required与nullable同时存在。
+- After this file: promote只接受Spec定义的“显式NULL/指定修订”两种情况。
+
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiContentDTO.java`
+
+- Purpose: 对内容对象promptText（可NULL）与nodes（必填）建立同一JSON creator合同，OAS nullability由Admin专属OpenApiCustomizer校准。
+- Symbols: `DdcAiContentDTO`
+- Repository evidence: committed Step 4 baseline SHA256 `fcb866f60d19fc3529331aed525002fa35db42681f60acb5b4a656316889311d`；当前ContentDTO由Admin Command级联使用；promptText没有@NotNull，因为是否可NULL取决于PROMPT/SKILL策略。
+- Dependencies and consumers: 前置Step 4；本步12个已排序文件；消费方为create/replaceDraft嵌套body和AI读取响应。
+- Why now: 原Spec示例要求Content对象两个键始终出现，promptText仅按kind允许NULL。
+- Contract/signature changes: 增加显式JsonCreator(required=true)；不让Starter依赖springdoc，OAS仅由Admin配置校准；Builder和业务Strategy行为不变。
+- Input/output and state mapping: 必须出现promptText与nodes；promptText可NULL，nodes继续不可NULL/有界。
+- Error and edge behavior: 缺promptText拒绝反序列化；Skill NULL和Prompt非NULL规则仍由ContentStrategy验证。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 5, Rule 6, Rule 10；Starter公共值类型改动仅收紧既定JSON要求。
+- Literal rule enforcement: 语义类型不变 (Rule 1)；级联validation不变 (Rule 2)；class/Lombok不变 (Rule 3)；无依赖变化 (Rule 5)；OAS/creator显式null和必填 (Rule 6)；无时间字段 (Rule 10)。
+- Implementation pseudocode:
+
+```java
+@JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+public static DdcAiContentDTO of(@JsonProperty(value = "promptText", required = true) String promptText,
+        @JsonProperty(value = "nodes", required = true) List<DdcAiNodeDTO> nodes) { ... }
+// Admin DdcAiOpenApiConfiguration marks both properties required and promptText nullable in the generated OAS.
+```
+
+- Verification contribution: Controller测试验证缺失字段400、显式NULL合法；OAS测试检查required/null。
+- After this file: 两种内容策略继续决定promptText语义，不在Controller重复实现。
+
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiNodeDTO.java`
+
+- Purpose: 对树节点path、nodeType和nullable content建立显式required creator合同；Admin专属customizer校准OAS。
+- Symbols: `DdcAiNodeDTO`
+- Repository evidence: committed Step 4 baseline SHA256 `06162c9655fda3ba27c9174dacb6631b7e065ba9ae3a62a2114a4733439b315d`；当前节点POJO字段由目录/文件共享；content对目录必须NULL、对文件原文可为空串。
+- Dependencies and consumers: 前置Step 4；本步13个已排序文件；消费方为ContentDTO草稿、版本和推广整树。
+- Why now: OpenAPI必须区别显式NULL目录content与缺失content；运行校验已有ValidAiNode。
+- Contract/signature changes: 增加显式JsonCreator(required=true)；不引入Starter→springdoc依赖，nullable Schema由Admin配置校准；节点类型、树校验与正文不变。
+- Input/output and state mapping: path/nodeType/content均须出现；content允许NULL或原始字符串。
+- Error and edge behavior: 缺少任一属性为400；目录/文件与content合法性继续由现有validator决定。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 5, Rule 6, Rule 10；仅收紧wire必填项。
+- Literal rule enforcement: 节点值职责不变 (Rule 1)；已有validator保留 (Rule 2)；class/Lombok不变 (Rule 3)；无依赖变化 (Rule 5)；OAS/creator required-null一致 (Rule 6)；无时间字段 (Rule 10)。
+- Implementation pseudocode:
+
+```java
+@JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+public static DdcAiNodeDTO of(@JsonProperty(value = "path", required = true) String path,
+        @JsonProperty(value = "nodeType", required = true) DdcAiNodeTypeEnum nodeType,
+        @JsonProperty(value = "content", required = true) String content) { ... }
+// Admin DdcAiOpenApiConfiguration declares content required and nullable for DIRECTORY/FILE union semantics.
+```
+
+- Verification contribution: Controller测试覆盖显式NULL/缺失节点属性；OAS测试断言content为required/nullable。
+- After this file: 目录和文件仍共用节点类型，JSON完整性与树语义不混淆。
+
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionConverter.java`
+
+- Purpose: 将版本BO中的可信createUserId映射到Spec要求的createdBy历史投影字段。
+- Symbols: `DdcAiVersionConverter.toVersionSummary`
+- Repository evidence: current SHA256 `ca7291ba03f96e6eace4ea281137eee756d3b62664a7775e617e56365d705fa9`；DdcAiVersionBO保留createUserId且序列化@JsonIgnore，当前summary投影未映射。
+- Dependencies and consumers: 前置Step 14；本步14个已排序文件；仅由Service的version detail/list转换调用。
+- Why now: 原Spec API-007的版本头字段含createdBy，不能从PO/BO直接暴露或让HTTP回读信任body。
+- Contract/signature changes: 映射`source.createUserId`→`DdcAiVersionSummaryDTO.createdBy`；其他字段映射保持。
+- Input/output and state mapping: trusted audit actor string经已命名MapStruct投影返回；Long ID继续内部值、外部格式由DTO Jackson/Schema决定。
+- Error and edge behavior: MapStruct `unmappedTargetPolicy=ERROR`继续确保字段清单完整；无可用审计主体由既有数据约束/投影校验揭示，不回退拼接。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10；复用现有显式MapStruct converter。
+- Literal rule enforcement: Converter职责与命名一致 (Rule 1)；原Mapper和Service验证保留 (Rule 2)；投影映射仍用MapStruct/BaseConverter既有类型 (Rule 3)；不加依赖 (Rule 5)；createdBy来自可信审计字段而非HTTP (Rule 6)；时间不变 (Rule 10)。
+- Implementation pseudocode:
+
+```java
+@Mapper(componentModel = "spring", uses = DdcAiEnumConverter.class, unmappedTargetPolicy = ERROR)
+interface DdcAiVersionConverter extends BaseConverter<DdcAiVersionPO, DdcAiVersionBO> {
+  @BeanMapping(ignoreByDefault = true)
+  @Mapping(target = "createdBy", source = "createUserId")
+  @Mapping(target = "versionNo", source = "versionNo")
+  DdcAiVersionSummaryDTO toVersionSummary(DdcAiVersionBO source);
+}
+```
+
+- Verification contribution: DdcAiResourceControllerTest/DdcAiOpenApiContractTest断言历史详情含createdBy，OpenAPI将其列为非空string。
+- After this file: source.createUserId由可信MP审计填充并随精确版本查询返回。
+
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityIntegrationTest.java`
+
+- Purpose: 验证AI路由匿名401为两字段安全错误；认证用户带namespace级AI READ权限可进入Controller，粗粒度SecurityFilterChain不要求旧全局capability。
+- Symbols: `DdcAdminSecurityIntegrationTest.aiRoutesRequireAuthenticationButLeaveNamespacePermissionToTheService`
+- Repository evidence: committed test baseline SHA256 `ff23763e658eb9d09ef838f9ed118e8036e39c7e3e904f0ab0c05e881f27a1b3`；该slice已覆盖Admin bearer/RBAC/tenant filter，可增加AI Controller和具名Service mock。
+- Dependencies and consumers: 前置认证/tenant步骤、File 3 Controller和File 8 DdcAdminSecurityConfiguration；本Step15个已排序文件；验证AI路径入口。
+- Why now: File 8 放行原则要求已认证后由Service执行namespace细授权，不能被原CAP_TIANSHU_READ/WRITE/PUBLISH route matcher提前拒绝。
+- Contract/signature changes: 新增匿名拒绝和namespace-only authenticated permission的MockMvc断言；不改认证算法和租户解析。
+- Input/output and state mapping: 无Authentication → HTTP 401，两字段；受信用户＋匹配X-Egon-Tianshu-Tenant＋namespace permission → 进入Service mock。
+- Error and edge behavior: 不带全局read capability的身份不得读取匿名数据；Service仍是业务权限最终守卫；租户Header不匹配继续由既有filter拒绝。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001；Rule 1, Rule 2, Rule 4, Rule 5, Rule 11；只验证现有认证过滤链、AI route matcher和service边界。
+- Literal rule enforcement: 测试名/责任一致 (Rule 1)；Controller boundary维持验证 (Rule 2)；具名Service mock按Qualifier注入 (Rule 4)；无依赖 (Rule 5)；真实tenant filter与本地安全链 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+mockMvc.perform(get(aiPath)).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.data").doesNotExist());
+mockMvc.perform(get(aiPath).header(TENANT_HEADER, "tenant-a")
+        .with(authentication(rbac3("TIANSHU_AI_READ:namespace-1"))))
+    .andExpect(status().isOk());
+verify(aiResourceService).get(new DdcAiIdQuery(resourceId));
+```
+
+- Verification contribution: 和Controller测试的七字段Service拒绝、两字段身份拒绝一起验证两种错误契约及namespace级权限。
+- After this file: AI REST粗粒度入口仅要求认证，source/target namespace权限仍由Service验证。
+
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminAuthenticationEntryPoint.java`
+
+- Purpose: 给AI路径的401/403两字段安全错误增加Cache-Control:no-store，既有非AI安全响应维持原头。
+- Symbols: `commence`, `handle`, `handleTenantMismatch`
+- Repository evidence: current SHA256 `8d781005fdce6995108d572bdc56c6c4878d1e1746380c2477d775eef0fd5e6c`；现有writer已经稳定输出code/message两字段，tenant filter沿此入口处理身份错配。
+- Dependencies and consumers: 前置Step 5 tenant filter与本Step File 8 security matcher；本步16个已排序文件。
+- Why now: 原Spec§9.0.1规定新AI API响应no-store，安全过滤器在Controller Advice前结束请求，必须在共享writer按AI路径区分。
+- Contract/signature changes: AI API的未认证、粗权限和tenant mismatch响应添加no-store；非AI路径响应不变，两字段JSON字段和值不变。
+- Input/output and state mapping: Request URI属于`/api/v1/tianshu/ai/`时在响应头设置Cache-Control:no-store，再写既有安全code/message。
+- Error and edge behavior: 不改变401/403状态或既有tenant/security错误码；不在安全响应加入业务ResultRecord。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001；Rule 1, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；对AI路径做窄作用域响应头补充。
+- Literal rule enforcement: 错误入口类型不变 (Rule 1)；具名entry point bean与Qualifier wiring不变 (Rule 4)；不加依赖 (Rule 5)；wire两字段保持 (Rule 6)；时间不变 (Rule 10)；tenant来自认证filter (Rule 11)。
+- Implementation pseudocode:
+
+```java
+private void write(HttpServletRequest request, HttpServletResponse response, int status, String code) {
+  response.setStatus(status);
+  if (request.getRequestURI().startsWith("/api/v1/tianshu/ai/")) response.setHeader("Cache-Control", "no-store");
+  objectMapper.writeValue(response.getOutputStream(), Map.of("code", code, "message", code));
+}
+```
+
+- Verification contribution: DdcAdminSecurityIntegrationTest断言AI匿名401与租户错配403均为两字段并含no-store；既有安全测试维持。
+- After this file: AI路径无论成功、业务错误或过滤器拒绝都保持no-store。
+
 - Validation working directory: repository root
-- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiResourceControllerTest,DdcAiOpenApiContractTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiResourceControllerTest,DdcAiOpenApiContractTest,DdcAdminSecurityIntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
 - Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiResourceControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiResourceController.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiExceptionAdvice.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAdminSecurityErrorResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiWebConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiOpenApiConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`
-- Commit: `feat(tianshu): step-16-----rest---openapi`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiResourceControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiResourceController.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAiExceptionAdvice.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/ai/DdcAdminSecurityErrorResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiWebConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiOpenApiConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAiPublicationResult.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiVersionSummaryDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcAiResourceSummaryDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/command/DdcAiPromotionCommand.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiContentDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiNodeDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcAiVersionConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityIntegrationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminAuthenticationEntryPoint.java`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
+- Commit: `feat(tianshu): step-16-admin-rest-openapi`（本Step单独语义提交，不并入其他已完成Step）。
 
 ### Step 17 — 接通默认关闭的AI读取RPC与starter
 

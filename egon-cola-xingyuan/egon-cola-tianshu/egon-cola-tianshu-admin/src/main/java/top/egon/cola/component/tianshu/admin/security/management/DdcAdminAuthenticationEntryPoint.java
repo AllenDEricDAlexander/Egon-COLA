@@ -30,6 +30,7 @@ public final class DdcAdminAuthenticationEntryPoint
             HttpServletResponse response,
             AuthenticationException exception) throws IOException {
         write(
+                request,
                 response,
                 HttpServletResponse.SC_UNAUTHORIZED,
                 "TIANSHU_ADMIN_AUTHENTICATION_REQUIRED"
@@ -42,6 +43,7 @@ public final class DdcAdminAuthenticationEntryPoint
             HttpServletResponse response,
             AccessDeniedException exception) throws IOException {
         write(
+                request,
                 response,
                 HttpServletResponse.SC_FORBIDDEN,
                 "TIANSHU_ADMIN_CAPABILITY_REQUIRED"
@@ -54,6 +56,7 @@ public final class DdcAdminAuthenticationEntryPoint
             HttpServletResponse response) throws IOException {
         log.debug("Rejected Tianshu admin request because tenant context did not match");
         write(
+                request,
                 response,
                 HttpServletResponse.SC_FORBIDDEN,
                 "TIANSHU_ADMIN_TENANT_MISMATCH"
@@ -61,15 +64,22 @@ public final class DdcAdminAuthenticationEntryPoint
     }
 
     private void write(
+            HttpServletRequest request,
             HttpServletResponse response,
             int status,
             String code) throws IOException {
         response.setStatus(status);
+        if (isAiPath(request)) response.setHeader("Cache-Control", "no-store");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), Map.of(
                 "code", code,
                 "message", code
         ));
+    }
+
+    private boolean isAiPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path != null && path.startsWith("/api/v1/tianshu/ai/");
     }
 }

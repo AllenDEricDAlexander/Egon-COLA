@@ -1,5 +1,7 @@
 package top.egon.cola.component.tianshu.model.ai;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.Valid;
@@ -26,4 +28,12 @@ public class DdcAiNodeDTO {
     private DdcAiNodeTypeEnum nodeType;
 
     private String content;
+
+    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+    public static DdcAiNodeDTO of(
+            @JsonProperty(value = "path", required = true) String path,
+            @JsonProperty(value = "nodeType", required = true) DdcAiNodeTypeEnum nodeType,
+            @JsonProperty(value = "content", required = true) String content) {
+        return DdcAiNodeDTO.builder().path(path).nodeType(nodeType).content(content).build();
+    }
 }
