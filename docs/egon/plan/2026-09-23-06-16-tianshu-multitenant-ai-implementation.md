@@ -13999,7 +13999,7 @@ requireSameResourceScope(candidate, locked); compare expectedRevision; only then
 - Requirements: `REQ-005`, `REQ-006`
 - Dependencies: Step 13
 - Baseline state: Step 13 implementation commit ffd7ed4166bca0263de6817963ae86bc22ac468d plus corrective commit e9fd4308dbbb8e57105404f065ed81281bff1dc4; shared-path evidence hashes below are refreshed to that HEAD. At Step14 lock capture current Plan HEAD and verify clean status.
-- Observable outcome: API-008/009发布回滚、API-006/007/011历史查询经named Repository运行；版本/整树/回执/pointer同事务一致，tenant级requestId覆盖跨root重用；发布/回滚记录Spec§15.4安全日志并发出低基数Micrometer计数。
+- Observable outcome: API-008/009发布回滚、API-006/007/011历史查询经named Repository运行；版本/整树/回执/pointer同事务一致，tenant级requestId覆盖跨root重用；草稿编辑/发布/回滚按Spec§15.4记录安全日志并发出低基数Micrometer计数。
 - End state: 27条唯一路径、31个有序编辑动作的Repository/权限/结果转换/Service合同与行为完成；无DDL、依赖、REST shape或AI Event变化。
 - Test-first gate: Required — File 1 tenant-global receipt先RED/GREEN，File 6 targetVersionNo join投影再RED/GREEN，File 28在显式UnsupportedOperationException编译seam上产生typed行为RED；compile prerequisite失败不得算RED。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001
@@ -14829,12 +14829,12 @@ assert `tianshu.ai.version.commands` uses only operation/result tags and disting
 
 #### File 29 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/ai/impl/DdcAiResourceServiceImpl.java`
 
-- Purpose: 用单个READ_COMMITTED LOCAL事务实现版本发布/历史读取/tenant幂等回执/pointer-only回滚，并按Spec§15.4记录安全命令日志和operation/result Micrometer计数。
+- Purpose: 用单个READ_COMMITTED LOCAL事务实现版本发布/历史读取/tenant幂等回执/pointer-only回滚，并按Spec§15.4为草稿编辑/发布/回滚记录安全命令日志和operation/result Micrometer计数。
 - Symbols: `DdcAiResourceServiceImpl`
 - Repository evidence: committed Step14 code baseline SHA256 e9a9b497d779ab3457a7a0958945944ae9c3fc5223d2f95ae706434d63c632f6; pending changes, if present, belong to this declared Step.
 - Dependencies and consumers: 实现DdcAiResourceService，复用Step13 transaction/content/scope与本Step named Repository；MeterRegistry由Admin既有spring-boot-starter-actuator提供，不新增依赖。
 - Why now: 上一文件已证明行为缺失，此文件把typed RED转换为Spec要求的GREEN。
-- Contract/signature changes: 用单个READ_COMMITTED LOCAL事务实现版本发布/历史读取/tenant幂等回执/pointer-only回滚。发布/回滚日志含tenant/root/version/operation/Idempotency-Key的SHA-256/result/duration/trace，不记正文、token或原requestId；`tianshu.ai.version.commands` Micrometer计数仅使用operation=PUBLISH|ROLLBACK与result=success|failure两个低基数标签。
+- Contract/signature changes: 用单个READ_COMMITTED LOCAL事务实现版本发布/历史读取/tenant幂等回执/pointer-only回滚。草稿编辑/发布/回滚日志含tenant/root/version/operation/requestId的SHA-256（无requestId时为NULL）/result/duration/trace，不记正文、token或原requestId；`tianshu.ai.commands` Micrometer计数仅使用operation=DRAFT_SAVE|PUBLISH|ROLLBACK与result=success|failure两个低基数标签。
 - Input/output and state mapping: tenant remains trusted-context-derived; validated decimal String values map to Long through MapStruct; 用单个READ_COMMITTED LOCAL事务实现版本发布/历史读取/tenant幂等回执/pointer-only回滚。
 - Error and edge behavior: key/hash冲突56305、revision冲突56303、快照完整性56309；失败事务不泄漏部分Version/Node/Publication/pointer。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001; Rule 1语义命名；Rule 2逐层Validation；Rule 3普通class/值对象及MapStruct BaseConverter/BaseForwardConverter；Rule 4具名Slf4j/Qualifier；Rule 5工具allowlist；Rule 6 Jackson；Rule 7配置未触及并以N/A闭合；Rule 9复用Content Strategy；Rule 10 java.time；Rule 11传统三层、MP Repository、分布式DDL及本地事务。
@@ -14845,7 +14845,7 @@ assert `tianshu.ai.version.commands` uses only operation/result tags and disting
 outside the failed TransactionTemplate, start a fresh LOCAL lookup transaction, revalidate PUBLISH scope locks/permission, then query the tenant-global receipt and compare canonical hash; replay only the same actor/action/root/version/expectedRevision/changeNote, else 56305.
 inside ddcAiCommandTransactionTemplate, read root without lock; PUBLISH-authorize to lock biz→namespace→env→app→binding and refresh cache; check tenant/requestId receipt before CAS; on a miss lock root, compare revision, prepare ContentStrategy, insert Version+all nodes+Publication and update pointer/lastVersionNo atomically.
 rollback inserts receipt and updates pointer/revision only; getVersion reads exact VersionId nodes and verifies count/bytes/hash; AI emits no Event.
-publish/rollback increment `tianshu.ai.version.commands` with only operation/result tags and log requestId hash, never request body or tenant/root metric tags.
+draft edit/publish/rollback increment `tianshu.ai.commands` with only operation/result tags and log requestId hash when present, never request body or tenant/root metric tags.
 ```
 
 - Verification contribution: RED/GREEN DdcAiVersionServiceTest、PTest、DDL contract及Draft回归。
@@ -14858,7 +14858,7 @@ publish/rollback increment `tianshu.ai.version.commands` with only operation/res
 - Repository evidence: committed Step13 baseline SHA256 e1c569b121a022708db0fc415c83f654081e11e8b2d9c0788a7e1e1f132e9a2e; this existing test directly invokes the Service constructor.
 - Dependencies and consumers: follows File 29's required constructor injection; exact Step14 reactor gate compiles and runs this Step13 regression suite.
 - Why now: the implementation added six mandatory qualified dependencies, and root reactor test compilation identified this direct caller.
-- Contract/signature changes: add `@Mock` fields for DdcAiVersionRepository, DdcAiVersionNodeRepository, DdcAiPublicationRepository, DdcAiVersionConverter, DdcAiPublicationConverter and MeterRegistry; pass them at their declared constructor positions.
+- Contract/signature changes: add collaborator mocks for DdcAiVersionRepository, DdcAiVersionNodeRepository, DdcAiPublicationRepository, DdcAiVersionConverter and DdcAiPublicationConverter; pass them at their declared constructor positions and use SimpleMeterRegistry for the telemetry dependency.
 - Input/output and state mapping: no business input/output or test assertions change; existing draft test doubles remain responsible for their current behavior.
 - Error and edge behavior: preserve all Step13 assertions; constructor compilation must succeed so the focused GREEN gate can exercise draft regressions.
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10 and Rule 11 apply as in the preceding Service action; the test fixture adds only qualified collaborator mocks.
@@ -14871,7 +14871,7 @@ publish/rollback increment `tianshu.ai.version.commands` with only operation/res
 @Mock private DdcAiPublicationRepository publicationRepository;
 @Mock private DdcAiVersionConverter versionConverter;
 @Mock private DdcAiPublicationConverter publicationConverter;
-@Mock private MeterRegistry meterRegistry;
+private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 
 service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, scopeValidator,
         resourceConverter, draftNodeConverter, versionRepository, versionNodeRepository,
@@ -14879,7 +14879,7 @@ service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, 
         strategyRegistry, readTransactionTemplate, commandTransactionTemplate);
 ```
 
-- Verification contribution: DdcAiDraftServiceTest remains in the required Step14 reactor command and verifies Step13 draft behavior after constructor wiring changes.
+- Verification contribution: DdcAiDraftServiceTest remains in the required Step14 reactor command, verifies Step13 draft behavior and proves a successful draft save increments the bounded DRAFT_SAVE/success counter.
 - After this file: File 31 updates the version-service fixture to inject the existing MeterRegistry and assert low-cardinality counters.
 
 #### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiVersionServiceTest.java`
@@ -14889,7 +14889,7 @@ service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, 
 - Repository evidence: File28在本Step创建该测试；File31是在File29增加MeterRegistry构造依赖后的有序fixture更新。
 - Dependencies and consumers: 复用Admin已存在的Actuator/Micrometer类型，不新增POM依赖；只有测试使用内存SimpleMeterRegistry。
 - Why now: File29按Spec§15.4发出Micrometer计数，显式构造的Service测试必须传入MeterRegistry并验证有限标签。
-- Contract/signature changes: 构造器传入SimpleMeterRegistry；读取`tianshu.ai.version.commands`的operation与result标签，禁止tenant/root标签。
+- Contract/signature changes: 构造器传入SimpleMeterRegistry；读取`tianshu.ai.commands`的operation与result标签，禁止tenant/root标签。
 - Input/output and state mapping: 测试覆盖PUBLISH/ROLLBACK success/failure，requestId不进入标签；生产日志敏感字段由Service安全日志合同检查。
 - Error and edge behavior: 计数验证不改变命令结果、事务或异常语义；MeterRegistry关闭局限测试生命周期。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001; Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11 apply as in the preceding Service action.
@@ -14899,7 +14899,7 @@ service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, 
 ```java
 private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 service = new DdcAiResourceServiceImpl(..., resultConverter, meterRegistry, ...);
-assertThat(meterRegistry.get("tianshu.ai.version.commands")
+assertThat(meterRegistry.get("tianshu.ai.commands")
         .tag("operation", "PUBLISH").tag("result", "success").counter().count()).isEqualTo(2);
 ```
 
