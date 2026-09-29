@@ -15050,9 +15050,10 @@ map BO to DTO through named MapStruct converter; throw named 400/403/404/409 con
 - Verification contribution: DdcAiPromotionServiceTest聚焦本文件的target PUBLISH scope父行锁先于root；source/target根按ID升序锁；固定source snapshot；target已有只切发布，新建初始化草稿；一target LOCAL事务写来源/版本/receipt/指针；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
-- Verification command: `mvn -q -Dtest=DdcAiPromotionServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
+- Validation working directory: repository root
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am '-Dtest=DdcAiPromotionServiceTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Validation clarification: direct Admin-module invocation failed in testCompile because workspace-local Tianshu Starter/model, Outbox and RPC generated classes were not on the standalone module classpath; root-reactor `-am` is required so RED/GREEN evidence reflects the current sibling-module sources.
+- Expected result: RED first only for the absent promotion type/API/behavior after all `-am` dependencies compile; final GREEN has the focused promotion contract passed and reactor dependencies compiled.
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
