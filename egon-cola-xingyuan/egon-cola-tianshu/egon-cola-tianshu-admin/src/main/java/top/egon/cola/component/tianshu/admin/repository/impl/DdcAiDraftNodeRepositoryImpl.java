@@ -14,6 +14,7 @@ import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiDraftNodeConve
 import top.egon.cola.component.tianshu.admin.model.po.DdcAiDraftNodePO;
 import top.egon.cola.component.tianshu.admin.repository.DdcAiDraftNodeRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -42,5 +43,22 @@ public class DdcAiDraftNodeRepositoryImpl extends EgonColaRepository<DdcAiDraftN
     public Optional<DdcAiDraftNodeBO> findActiveById(Long id) {
         return Optional.ofNullable(mapper.selectActiveById(EgonColaTenantIdProvider.currentTenantId(), id))
                 .map(converter::toTarget);
+    }
+
+    @Override
+    public List<DdcAiDraftNodeBO> findActiveByResourceId(Long resourceId) {
+        return converter.toTargetList(mapper.selectTree(EgonColaTenantIdProvider.currentTenantId(), resourceId));
+    }
+
+    @Override
+    public DdcAiDraftNodeBO insert(DdcAiDraftNodeBO node) {
+        DdcAiDraftNodePO persisted = converter.toSource(node);
+        if (!save(persisted)) throw new IllegalStateException("AI_DRAFT_NODE_INSERT_FAILED");
+        return converter.toTarget(persisted);
+    }
+
+    @Override
+    public boolean delete(DdcAiDraftNodeBO node) {
+        return removeById(converter.toSource(node));
     }
 }

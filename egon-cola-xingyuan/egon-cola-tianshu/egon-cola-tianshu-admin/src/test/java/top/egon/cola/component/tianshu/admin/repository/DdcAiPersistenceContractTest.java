@@ -3,9 +3,11 @@ package top.egon.cola.component.tianshu.admin.repository;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import jakarta.validation.executable.ExecutableValidator;
@@ -21,6 +23,7 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import top.egon.cola.component.common.core.converter.BaseConverter;
 import top.egon.cola.component.common.core.enums.EgonEnum;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
@@ -37,6 +40,7 @@ import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiDraftNodeConve
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiEnumConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiPublicationConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiResourceConverter;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiResourceResultConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiVersionConverter;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiVersionNodeConverter;
 import top.egon.cola.component.tianshu.admin.model.enums.DdcAiKindPersistenceEnum;
@@ -47,6 +51,7 @@ import top.egon.cola.component.tianshu.admin.model.po.DdcAiPublicationPO;
 import top.egon.cola.component.tianshu.admin.model.po.DdcAiResourcePO;
 import top.egon.cola.component.tianshu.admin.model.po.DdcAiVersionNodePO;
 import top.egon.cola.component.tianshu.admin.model.po.DdcAiVersionPO;
+import top.egon.cola.component.tianshu.admin.model.dto.DdcAiResourceSummaryDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiNodeTypeEnum;
 
@@ -71,6 +76,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcAiPersistenceContractTest {
@@ -114,6 +120,7 @@ class DdcAiPersistenceContractTest {
             businessColumns.removeAll(EGON_MODEL_COLUMNS);
             Set<String> poColumns = Arrays.stream(po.getDeclaredFields())
                     .filter(field -> !Modifier.isStatic(field.getModifiers()) && !field.isSynthetic())
+                    .filter(this::isPersistedField)
                     .map(this::databaseColumn)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
             assertThat(ddlColumns).doesNotContain("public_id");
@@ -267,6 +274,38 @@ class DdcAiPersistenceContractTest {
         }
     }
 
+    @Test
+    void resourceSummaryConverterUsesDecimalStringIdsAndNeverSerializesStorageIdentity() throws Exception {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.register(requiredType("model.convertor.DdcAiEnumConverterImpl"),
+                    requiredType("model.convertor.DdcAiResourceResultConverterImpl"));
+            context.refresh();
+            DdcAiResourceResultConverter converter = context.getBean(DdcAiResourceResultConverter.class);
+            DdcAiResourceBO resource = DdcAiResourceBO.builder().id(810001L).tenantId(1001L).version(4L)
+                    .bizCode("retail").namespaceId(71L).namespaceCode("dev-space").envCode("dev")
+                    .appCode("assistant-app").kind(DdcAiKindEnum.PROMPT).resourceKey("review-order")
+                    .displayName("Review Order").description("").draftPrompt("internal prompt")
+                    .lastVersionNo(2L).currentVersionId(820001L).currentVersionNo(2L)
+                    .updateTime(Instant.parse("2026-09-29T09:00:00Z")).build();
+
+            DdcAiResourceSummaryDTO summary = converter.toTarget(resource);
+
+            assertThat(summary.getId()).isEqualTo("810001");
+            assertThat(summary.getRevision()).isEqualTo("4");
+            assertThat(summary.getLastVersionNo()).isEqualTo("2");
+            assertThat(summary.getCurrentVersionId()).isEqualTo("820001");
+            assertThat(summary.getCurrentVersionNo()).isEqualTo("2");
+            assertThat(summary.getScope().namespaceCode()).isEqualTo("dev-space");
+            ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+            String summaryJson = mapper.writeValueAsString(summary);
+            String internalJson = mapper.writeValueAsString(resource);
+            assertThat(summaryJson).contains("\"id\":\"810001\"", "\"revision\":\"4\"")
+                    .doesNotContain("internal prompt", "tenantId", "namespaceId");
+            assertThat(internalJson).doesNotContain("tenantId", "namespaceId", "draftPrompt", "lastVersionNo",
+                    "currentVersionId", "namespaceCode", "currentVersionNo");
+        }
+    }
+
     private void assertAiConverterRoundTrips(AnnotationConfigApplicationContext context) {
         DdcAiEnumConverter enums = context.getBean(DdcAiEnumConverter.class);
         DdcAiResourceConverter resources = context.getBean(DdcAiResourceConverter.class);
@@ -368,9 +407,12 @@ class DdcAiPersistenceContractTest {
         String rootSql = mappedSql(configuration, BASE + "dao.DdcAiResourceMapper.selectActiveById", activeParameters);
         assertThat(rootSql).contains("tenant_id = ?", "id = ?", "deleted_at is null");
         String historySql = mappedSql(configuration, BASE + "dao.DdcAiResourceMapper.selectIncludingDeletedById", activeParameters);
-        assertThat(historySql).contains("tenant_id = ?", "id = ?").doesNotContain("deleted_at is null");
+        assertThat(historySql).contains("r.tenant_id = ?", "r.id = ?", "r.deleted_at is not null")
+                .doesNotContain("r.deleted_at is null", "join ddc_namespace", "join ddc_ai_version");
+        assertThatCode(() -> CCJSqlParserUtil.parse(historySql)).doesNotThrowAnyException();
         String lockSql = mappedSql(configuration, BASE + "dao.DdcAiResourceMapper.selectForUpdateById", activeParameters);
         assertThat(lockSql).contains("tenant_id = ?", "id = ?", "deleted_at is null", "for update");
+        assertThatCode(() -> CCJSqlParserUtil.parse(lockSql)).doesNotThrowAnyException();
         String businessKeySql = mappedSql(configuration, BASE + "dao.DdcAiResourceMapper.selectByBusinessKey",
                 Map.of("tenantId", 41L, "bizCode", "biz", "namespaceId", 51L, "envCode", "dev",
                         "appCode", "agent", "kind", DdcAiKindPersistenceEnum.SKILL, "resourceKey", "skill"));
@@ -401,6 +443,55 @@ class DdcAiPersistenceContractTest {
             String sql = mappedSql(configuration, BASE + "dao." + mapperName + ".deleteVersionedById", deleteParameters);
             assertThat(sql).contains("tenant_id = ?", "id = ?", "version = ?", "deleted_at is null");
         }
+    }
+
+    @Test
+    void resourceReadProjectionIsTransientAndItsShareLockAndPageJoinsStayTenantScoped() throws Exception {
+        Field namespaceCode = DdcAiResourcePO.class.getDeclaredField("namespaceCode");
+        Field currentVersionNo = DdcAiResourcePO.class.getDeclaredField("currentVersionNo");
+        assertThat(namespaceCode.getType()).isEqualTo(String.class);
+        assertThat(namespaceCode.getAnnotation(TableField.class).exist()).isFalse();
+        assertThat(currentVersionNo.getType()).isEqualTo(Long.class);
+        assertThat(currentVersionNo.getAnnotation(TableField.class).exist()).isFalse();
+
+        Field boNamespaceCode = DdcAiResourceBO.class.getDeclaredField("namespaceCode");
+        Field boCurrentVersionNo = DdcAiResourceBO.class.getDeclaredField("currentVersionNo");
+        assertThat(boNamespaceCode.isAnnotationPresent(JsonIgnore.class)).isTrue();
+        assertThat(boCurrentVersionNo.isAnnotationPresent(JsonIgnore.class)).isTrue();
+
+        Configuration configuration = aiMappers();
+        String mapper = BASE + "dao.DdcAiResourceMapper.";
+        String lockSql = mappedSql(configuration, mapper + "selectActiveForShareById",
+                Map.of("tenantId", 41L, "id", 83L));
+        assertThat(lockSql).contains("from ddc_ai_resource r", "r.tenant_id = ?", "r.id = ?",
+                "r.deleted_at is null", "n.deleted_at is null", "cv.deleted_at is null", "for share of r");
+        assertThat(lockSql).doesNotContain("for update");
+        assertThat(configuration.getMappedStatement(mapper + "selectActiveForShareById").getTimeout()).isEqualTo(2);
+        assertThat(configuration.getMappedStatement(mapper + "selectForUpdateById").getTimeout()).isEqualTo(2);
+
+        Map<String, Object> pageParameters = new HashMap<>();
+        pageParameters.put("tenantId", 41L);
+        pageParameters.put("bizCode", "biz");
+        pageParameters.put("namespaceId", 51L);
+        pageParameters.put("envCode", "dev");
+        pageParameters.put("appCode", "agent");
+        pageParameters.put("kind", DdcAiKindPersistenceEnum.SKILL);
+        pageParameters.put("resourceKeyPrefix", "sk");
+        pageParameters.put("displayName", "Skill");
+        pageParameters.put("offset", 0L);
+        pageParameters.put("limit", 10);
+        String pageSql = mappedSql(configuration, mapper + "selectPage", pageParameters);
+        assertThat(pageSql).contains("n.namespace_code as namespace_code", "cv.version_no as current_version_no",
+                "left join ddc_namespace n on n.tenant_id = r.tenant_id and n.id = r.namespace_id",
+                "left join ddc_ai_version cv on cv.tenant_id = r.tenant_id and cv.resource_id = r.id",
+                "n.deleted_at is null", "cv.id = r.current_version_id", "cv.deleted_at is null",
+                "r.tenant_id = ?", "r.deleted_at is null",
+                "order by r.update_time desc, r.id desc", "resource_key like concat(?, '%') escape e'\\\\'");
+        assertThat(pageSql).doesNotContain("for share", "for update");
+        assertThatCode(() -> CCJSqlParserUtil.parse(pageSql)).doesNotThrowAnyException();
+        assertThat(configuration.getResultMap(mapper + "DdcAiResourcePOResultMap").getResultMappings())
+                .extracting(org.apache.ibatis.mapping.ResultMapping::getProperty)
+                .contains("namespaceCode", "currentVersionNo");
     }
 
     @Test
@@ -562,7 +653,8 @@ class DdcAiPersistenceContractTest {
             String sql = mappedSql(configuration, statement, parameters);
             assertThat(sql).as(statement).contains("tenant_id = ?");
             if (statement.equals(BASE + "dao.DdcAiResourceMapper.selectIncludingDeletedById")) {
-                assertThat(sql).contains("id = ?").doesNotContain("deleted_at is null");
+                assertThat(sql).contains("r.id = ?", "r.deleted_at is not null")
+                        .doesNotContain("r.deleted_at is null", "join ddc_namespace", "join ddc_ai_version");
             } else {
                 assertThat(sql).as(statement).contains("deleted_at is null");
             }
@@ -605,6 +697,11 @@ class DdcAiPersistenceContractTest {
         TableField mapping = field.getAnnotation(TableField.class);
         if (mapping != null && !mapping.value().isBlank()) return mapping.value();
         return field.getName().replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isPersistedField(Field field) {
+        TableField mapping = field.getAnnotation(TableField.class);
+        return mapping == null || mapping.exist();
     }
 
     private Set<String> poFieldNames(Class<?> po) {

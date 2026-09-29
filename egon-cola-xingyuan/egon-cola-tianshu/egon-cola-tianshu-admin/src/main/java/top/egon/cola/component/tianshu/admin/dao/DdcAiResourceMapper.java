@@ -48,6 +48,13 @@ public interface DdcAiResourceMapper extends EgonColaMapper<DdcAiResourcePO> {
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long id);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
+    DdcAiResourcePO selectActiveForShareById(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("id") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long id);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
     List<DdcAiResourcePO> selectActiveByIds(
             @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,

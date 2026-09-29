@@ -87,6 +87,12 @@ public class DdcAiResourcePO extends EgonModel<DdcAiResourcePO> {
     @TableField("current_version_id")
     private Long currentVersionId;
 
+    @TableField(exist = false)
+    private String namespaceCode;
+
+    @TableField(exist = false)
+    private Long currentVersionNo;
+
     @AssertTrue(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Update.class,
             EgonColaModelValidationGroups.Persisted.class})
     public boolean isDraftPromptCompatibleWithKind() {

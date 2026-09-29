@@ -43,7 +43,7 @@ public class DdcAiResourceBO {
             EgonColaModelValidationGroups.Persisted.class})
     @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Update.class,
             EgonColaModelValidationGroups.Persisted.class})
-    private Long namespaceId;
+    @JsonIgnore private Long namespaceId;
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Update.class,
             EgonColaModelValidationGroups.Persisted.class})
@@ -82,13 +82,16 @@ public class DdcAiResourceBO {
             EgonColaModelValidationGroups.Persisted.class})
     private String description;
 
-    private String draftPrompt;
+    @JsonIgnore private String draftPrompt;
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Update.class,
             EgonColaModelValidationGroups.Persisted.class})
     @Min(value = 0, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Update.class,
             EgonColaModelValidationGroups.Persisted.class})
-    private Long lastVersionNo;
+    @JsonIgnore private Long lastVersionNo;
 
-    private Long currentVersionId;
+    @JsonIgnore private Long currentVersionId;
+
+    @JsonIgnore private String namespaceCode;
+    @JsonIgnore private Long currentVersionNo;
 }

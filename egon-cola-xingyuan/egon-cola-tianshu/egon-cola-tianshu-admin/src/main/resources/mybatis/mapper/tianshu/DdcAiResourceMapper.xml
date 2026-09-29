@@ -23,6 +23,8 @@
         <result property="draftPrompt" column="draft_prompt"/>
         <result property="lastVersionNo" column="last_version_no"/>
         <result property="currentVersionId" column="current_version_id"/>
+        <result property="namespaceCode" column="namespace_code"/>
+        <result property="currentVersionNo" column="current_version_no"/>
     </resultMap>
 
     <sql id="ResourceColumns">
@@ -32,18 +34,25 @@
     </sql>
 
     <sql id="ActiveResourceFilter">
-        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
-        <if test="bizCode != null">AND biz_code = #{bizCode}</if>
-        <if test="namespaceId != null">AND namespace_id = #{namespaceId}</if>
-        <if test="envCode != null">AND env_code = #{envCode}</if>
-        <if test="appCode != null">AND app_code = #{appCode}</if>
-        <if test="kind != null">AND kind = #{kind}</if>
+        WHERE r.tenant_id = #{tenantId} AND r.deleted_at IS NULL
+        <if test="bizCode != null">AND r.biz_code = #{bizCode}</if>
+        <if test="namespaceId != null">AND r.namespace_id = #{namespaceId}</if>
+        <if test="envCode != null">AND r.env_code = #{envCode}</if>
+        <if test="appCode != null">AND r.app_code = #{appCode}</if>
+        <if test="kind != null">AND r.kind = #{kind}</if>
         <if test="resourceKeyPrefix != null and resourceKeyPrefix != ''">
-            AND resource_key LIKE CONCAT(#{resourceKeyPrefix}, '%')
+            AND r.resource_key LIKE CONCAT(#{resourceKeyPrefix}, '%') ESCAPE E'\\'
         </if>
         <if test="displayName != null and displayName != ''">
-            AND display_name ILIKE CONCAT('%', #{displayName}, '%')
+            AND r.display_name ILIKE CONCAT('%', #{displayName}, '%')
         </if>
+    </sql>
+
+    <sql id="ResourceProjectionColumns">
+        r.id, r.tenant_id, r.create_user_id, r.create_time, r.update_user_id, r.update_time, r.deleted_at, r.version,
+        r.biz_code, r.namespace_id, r.env_code, r.app_code, r.kind, r.resource_key, r.display_name, r.description,
+        r.draft_prompt, r.last_version_no, r.current_version_id,
+        n.namespace_code AS namespace_code, cv.version_no AS current_version_no
     </sql>
 
     <select id="selectActiveById" resultMap="DdcAiResourcePOResultMap">
@@ -62,15 +71,28 @@
 
     <select id="selectIncludingDeletedById" resultMap="DdcAiResourcePOResultMap">
         SELECT <include refid="ResourceColumns"/>
-        FROM ddc_ai_resource
-        WHERE tenant_id = #{tenantId} AND id = #{id}
+        FROM ddc_ai_resource r
+        WHERE r.tenant_id = #{tenantId} AND r.id = #{id} AND r.deleted_at IS NOT NULL
     </select>
 
-    <select id="selectForUpdateById" resultMap="DdcAiResourcePOResultMap">
-        SELECT <include refid="ResourceColumns"/>
-        FROM ddc_ai_resource
-        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
-        FOR UPDATE
+    <select id="selectForUpdateById" resultMap="DdcAiResourcePOResultMap" timeout="2">
+        SELECT <include refid="ResourceProjectionColumns"/>
+        FROM ddc_ai_resource r
+        LEFT JOIN ddc_namespace n ON n.tenant_id = r.tenant_id AND n.id = r.namespace_id AND n.deleted_at IS NULL
+        LEFT JOIN ddc_ai_version cv ON cv.tenant_id = r.tenant_id AND cv.resource_id = r.id
+            AND cv.id = r.current_version_id AND cv.deleted_at IS NULL
+        WHERE r.tenant_id = #{tenantId} AND r.id = #{id} AND r.deleted_at IS NULL
+        FOR UPDATE OF r
+    </select>
+
+    <select id="selectActiveForShareById" resultMap="DdcAiResourcePOResultMap" timeout="2">
+        SELECT <include refid="ResourceProjectionColumns"/>
+        FROM ddc_ai_resource r
+        LEFT JOIN ddc_namespace n ON n.tenant_id = r.tenant_id AND n.id = r.namespace_id AND n.deleted_at IS NULL
+        LEFT JOIN ddc_ai_version cv ON cv.tenant_id = r.tenant_id AND cv.resource_id = r.id
+            AND cv.id = r.current_version_id AND cv.deleted_at IS NULL
+        WHERE r.tenant_id = #{tenantId} AND r.id = #{id} AND r.deleted_at IS NULL
+        FOR SHARE OF r
     </select>
 
     <select id="selectByBusinessKey" resultMap="DdcAiResourcePOResultMap">
@@ -82,16 +104,19 @@
     </select>
 
     <select id="selectPage" resultMap="DdcAiResourcePOResultMap">
-        SELECT <include refid="ResourceColumns"/>
-        FROM ddc_ai_resource
+        SELECT <include refid="ResourceProjectionColumns"/>
+        FROM ddc_ai_resource r
+        LEFT JOIN ddc_namespace n ON n.tenant_id = r.tenant_id AND n.id = r.namespace_id AND n.deleted_at IS NULL
+        LEFT JOIN ddc_ai_version cv ON cv.tenant_id = r.tenant_id AND cv.resource_id = r.id
+            AND cv.id = r.current_version_id AND cv.deleted_at IS NULL
         <include refid="ActiveResourceFilter"/>
-        ORDER BY update_time DESC, id DESC
+        ORDER BY r.update_time DESC, r.id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="countPage" resultType="long">
         SELECT count(*)
-        FROM ddc_ai_resource
+        FROM ddc_ai_resource r
         <include refid="ActiveResourceFilter"/>
     </select>
 
