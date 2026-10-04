@@ -28,7 +28,6 @@ import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.tianshu.listener.config.DdcConfigChangeListener;
-import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
 import top.egon.cola.component.tianshu.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 import top.egon.cola.component.tianshu.service.refresh.DdcConfigurationPropertiesRebinder;
@@ -368,11 +367,11 @@ public class DdcAutoConfiguration {
     @Bean(name = "ddcRedisChangeSubscription")
     @ConditionalOnBean(name = "ddcRedisTopic")
     @SuppressWarnings("unchecked")
-    public DdcRedisTopicSubscription<DdcTenantMessageDTO<DdcPublishMessage>> ddcRedisChangeSubscription(
+    public DdcRedisTopicSubscription<DdcTenantMessageDTO<?>> ddcRedisChangeSubscription(
             @Qualifier("ddcRedisTopic") RTopic topic,
             @Qualifier("ddcConfigChangeListener") DdcConfigChangeListener listener) {
-        Class<DdcTenantMessageDTO<DdcPublishMessage>> messageType =
-                (Class<DdcTenantMessageDTO<DdcPublishMessage>>) (Class<?>) DdcTenantMessageDTO.class;
+        Class<DdcTenantMessageDTO<?>> messageType =
+                (Class<DdcTenantMessageDTO<?>>) (Class<?>) DdcTenantMessageDTO.class;
         return new DdcRedisTopicSubscription<>(
                 List.of(topic),
                 messageType,
@@ -467,7 +466,7 @@ public class DdcAutoConfiguration {
             @Qualifier("ddcConfigClient") DdcConfigClient adminClient,
             @Qualifier("ddcRefreshService") DdcRefreshService refreshService,
             @Qualifier("ddcRedisChangeSubscription")
-            DdcRedisTopicSubscription<DdcTenantMessageDTO<DdcPublishMessage>> subscription,
+            DdcRedisTopicSubscription<?> subscription,
             @Qualifier("ddcLeaseSessionHolder") DdcLeaseSessionHolder sessionHolder) {
         return new DdcRuntimeCoordinator(
                 properties,

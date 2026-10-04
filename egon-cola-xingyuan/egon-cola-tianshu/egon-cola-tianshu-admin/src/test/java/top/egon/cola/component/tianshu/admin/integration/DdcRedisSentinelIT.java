@@ -1,5 +1,6 @@
 package top.egon.cola.component.tianshu.admin.integration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -99,7 +100,7 @@ class DdcRedisSentinelIT {
 
     @Test
     void reconnectsAfterSentinelPromotesTheReplica() throws Exception {
-        DdcRedisRepository repository = new DdcRedisRepository(redisson);
+        DdcRedisRepository repository = new DdcRedisRepository(redisson, new ObjectMapper());
         repository.writeConfig(
                 "sentinel-demo", "test", "default", "switch", "before", 1L
         );

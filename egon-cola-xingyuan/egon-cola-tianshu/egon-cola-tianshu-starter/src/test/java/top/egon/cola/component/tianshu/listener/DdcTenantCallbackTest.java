@@ -12,6 +12,7 @@ import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantPropert
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.listener.config.DdcConfigChangeListener;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
+import top.egon.cola.component.tianshu.model.config.DdcPublishTarget;
 import top.egon.cola.component.tianshu.error.DdcException;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseRole;
@@ -19,6 +20,7 @@ import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
 import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
+import top.egon.cola.component.tianshu.model.event.DdcConfigDispatchPreparedEvent;
 import top.egon.cola.component.tianshu.service.refresh.DdcRefreshService;
 import top.egon.cola.component.tianshu.state.DdcActiveRegistrationIndex;
 import top.egon.cola.component.tianshu.state.DdcLeaseSessionHolder;
@@ -26,6 +28,7 @@ import top.egon.cola.component.tianshu.state.DdcLocalConfigState;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -81,19 +84,55 @@ class DdcTenantCallbackTest {
     void redissonDefaultCodecPreservesTypedPayloadInsideTenantEnvelope() throws Exception {
         Kryo5Codec codec = new Kryo5Codec();
         ByteBuf encoded = codec.getValueEncoder().encode(
-                new DdcTenantMessageDTO<>(101L, publishMessage()));
+                new DdcTenantMessageDTO<>(101L, preparedEvent(101L, publishMessage())));
         try {
             Object decoded = codec.getValueDecoder().decode(encoded, new State());
 
             assertThat(decoded).isInstanceOf(DdcTenantMessageDTO.class);
             DdcTenantMessageDTO<?> envelope = (DdcTenantMessageDTO<?>) decoded;
             assertThat(envelope.getTenantId()).isEqualTo(101L);
-            assertThat(envelope.getPayload()).isInstanceOf(DdcPublishMessage.class);
-            assertThat(((DdcPublishMessage) envelope.getPayload()).getContent())
+            assertThat(envelope.getPayload()).isInstanceOf(DdcConfigDispatchPreparedEvent.class);
+            DdcConfigDispatchPreparedEvent event = (DdcConfigDispatchPreparedEvent) envelope.getPayload();
+            assertThat(event.getEventId()).hasSize(64);
+            assertThat(event.getTenantId()).isEqualTo(101L);
+            assertThat(event.getMessage().getContent())
                     .isEqualTo("feature: true\n");
         } finally {
             encoded.release();
         }
+    }
+
+    @Test
+    void rejectsPreparedEventWithInvalidEnvelopeIdentityBeforeRefresh() {
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail");
+        properties.setEnv("dev");
+        properties.setAppCode("order");
+        DdcTenantProperties tenantProperties = new DdcTenantProperties();
+        tenantProperties.setTenantId(101L);
+        DdcRefreshService refreshService = mock(DdcRefreshService.class);
+        DdcConfigChangeListener listener = new DdcConfigChangeListener(
+                properties, tenantProperties, refreshService, validationUtils);
+        DdcConfigDispatchPreparedEvent event = preparedEvent(101L, publishMessage());
+        event.setEventChecksum("0".repeat(64));
+
+        listener.onMessage("tenant-topic", new DdcTenantMessageDTO<>(101L, event));
+
+        verifyNoInteractions(refreshService);
+    }
+
+    @Test
+    void publishMessageKeepsDefensiveTargetsAndDoesNotExposeContentInToString() {
+        DdcPublishMessage message = publishMessage();
+        List<DdcPublishTarget> targets = new java.util.ArrayList<>(message.getTargets());
+
+        message.setTargets(targets);
+        targets.clear();
+
+        assertThat(message.getTargets()).containsExactly(new DdcPublishTarget("instance-1", "lease-1"));
+        assertThatThrownBy(() -> message.getTargets().add(new DdcPublishTarget("instance-2", "lease-2")))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(message.toString()).doesNotContain(message.getContent());
     }
 
     @Test
@@ -142,10 +181,27 @@ class DdcTenantCallbackTest {
         message.setFormat("yaml");
         message.setContent("feature: true\n");
         message.setTargetVersion(2L);
+        message.setPublishMode("SYNC_ALL_ACK");
+        message.setOperator("user:test");
+        message.setTimestamp(1790000000000L);
         message.setResourceChecksum(DdcChecksum.resource(
                 message.getResourceName(), message.getFormat(), message.getContent()));
+        message.setTargets(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         message.setChecksum(DdcChecksum.sha256(message));
         return message;
+    }
+
+    private DdcConfigDispatchPreparedEvent preparedEvent(Long tenantId, DdcPublishMessage message) {
+        DdcConfigDispatchPreparedEvent event = new DdcConfigDispatchPreparedEvent();
+        event.setEventId(DdcConfigDispatchPreparedEvent.eventId(tenantId, message.getChangeId(), 0));
+        event.setTenantId(tenantId);
+        event.setSchemaVersion("1");
+        event.setAttempt(0);
+        event.setConfigId("810001");
+        event.setExpectedPublishedVersion(1L);
+        event.setMessage(message);
+        event.setEventChecksum(event.calculateEventChecksum());
+        return event;
     }
 
     private DdcLeaseSession session(String instanceId, String leaseId, Instant now) {

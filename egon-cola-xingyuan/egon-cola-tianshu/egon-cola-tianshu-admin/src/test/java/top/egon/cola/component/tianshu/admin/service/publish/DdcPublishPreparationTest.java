@@ -32,6 +32,8 @@ import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
 import top.egon.cola.component.tianshu.model.config.DdcPublishTarget;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
+import top.egon.cola.component.outbox.api.OutboxMessage;
+import top.egon.cola.component.tianshu.model.event.DdcConfigDispatchPreparedEvent;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -167,18 +169,24 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).dispatch(any());
+        }).when(redisRepository).dispatch(any(), any());
         DdcPublishRequest request = request("switch-all", "true");
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
                     executor.submit(() -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.publish(request, "tester")));
+            OutboxMessage outboxMessage = persistence.takeOutboxMessage(2, TimeUnit.SECONDS);
+            assertThat(outboxMessage).isNotNull();
+            DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(outboxMessage);
+            assertThat(event.getEventId()).hasSize(64);
+            assertThat(event.getAttempt()).isZero();
+            assertThat(persistence.deliver(event)).isTrue();
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
 
             ArgumentCaptor<DdcAtomicPublishCommand> command =
                     ArgumentCaptor.forClass(DdcAtomicPublishCommand.class);
-            verify(redisRepository).dispatch(command.capture());
+            verify(redisRepository).dispatch(command.capture(), any());
             DdcPublishMessage message = command.getValue().message();
             assertThat(message.getTargets())
                     .containsExactly(
@@ -231,13 +239,16 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).dispatch(any());
+        }).when(redisRepository).dispatch(any(), any());
         DdcPublishRequest first = request("switch-lock", "true");
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
                     executor.submit(() -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.publish(first, "tester")));
+            OutboxMessage outboxMessage = persistence.takeOutboxMessage(2, TimeUnit.SECONDS);
+            assertThat(outboxMessage).isNotNull();
+            assertThat(persistence.deliver(persistence.preparedEvent(outboxMessage))).isTrue();
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
 
             DdcPublishRequest second = request("switch-lock", "other");
@@ -292,7 +303,7 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).dispatch(any());
+        }).when(redisRepository).dispatch(any(), any());
         DdcPublishRequest request = request("shared-admin-ack", "true");
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -300,6 +311,9 @@ class DdcPublishPreparationTest {
                     () -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.publish(request, "first-admin"))
             );
+            OutboxMessage outboxMessage = persistence.takeOutboxMessage(2, TimeUnit.SECONDS);
+            assertThat(outboxMessage).isNotNull();
+            assertThat(persistence.deliver(persistence.preparedEvent(outboxMessage))).isTrue();
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
             new TransactionTemplate(transactionManager).executeWithoutResult(
                     status -> taskRepository.transitionToTerminal(
@@ -332,7 +346,7 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).dispatch(any());
+        }).when(redisRepository).dispatch(any(), any());
         DdcPublishRequest first = request("parallel-a", "true");
         DdcPublishRequest second = request("parallel-b", "true");
 
@@ -343,6 +357,12 @@ class DdcPublishPreparationTest {
             Future<DdcPublishResultVO> secondResult =
                     executor.submit(() -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.publish(second, "tester")));
+            OutboxMessage firstOutbox = persistence.takeOutboxMessage(2, TimeUnit.SECONDS);
+            OutboxMessage secondOutbox = persistence.takeOutboxMessage(2, TimeUnit.SECONDS);
+            assertThat(firstOutbox).isNotNull();
+            assertThat(secondOutbox).isNotNull();
+            assertThat(persistence.deliver(persistence.preparedEvent(firstOutbox))).isTrue();
+            assertThat(persistence.deliver(persistence.preparedEvent(secondOutbox))).isTrue();
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
 
             publishService.ack(ack(first, "instance-1", "lease-1"));
@@ -360,9 +380,9 @@ class DdcPublishPreparationTest {
         saveConfig("dispatch-failure");
         when(leaseService.activeTargets("default", "dev", "dispatch-failure"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
-        doThrow(new IllegalStateException("redis unavailable"))
-                .when(redisRepository)
-                .dispatch(any());
+        doThrow(new IllegalStateException("outbox unavailable"))
+                .when(persistence.outbox)
+                .enqueue(any());
         DdcPublishRequest request = request("dispatch-failure", "true");
 
         assertThat(publishService.publish(request, "tester").getStatus())
@@ -371,7 +391,7 @@ class DdcPublishPreparationTest {
         assertThat(taskRepository.findByChangeId(request.getChangeId()))
                 .get()
                 .extracting(task -> task.getStatus() + ":" + task.getFailureStage())
-                .isEqualTo("UNKNOWN:REDIS_DISPATCH");
+                .isEqualTo("UNKNOWN:OUTBOX_ENQUEUE");
         assertThat(resourceRegistry.owner(new DdcConfigResourceKey(
                 "dispatch-failure", "dev", "default", "application.yml"
         ))).isEmpty();

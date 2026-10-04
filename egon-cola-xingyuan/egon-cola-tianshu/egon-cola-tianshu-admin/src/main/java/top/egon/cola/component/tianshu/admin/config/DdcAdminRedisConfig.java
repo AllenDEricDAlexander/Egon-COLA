@@ -56,11 +56,13 @@ public class DdcAdminRedisConfig {
         );
     }
 
-    @Bean
+    @Bean("ddcRedisRepository")
     @ConditionalOnBean(name = "ddcAdminRedissonClient")
     @ConditionalOnMissingBean
-    public DdcRedisRepository ddcRedisRepository(@Qualifier("ddcAdminRedissonClient") RedissonClient redissonClient) {
-        return new DdcRedisRepository(redissonClient);
+    public DdcRedisRepository ddcRedisRepository(
+            @Qualifier("ddcAdminRedissonClient") RedissonClient redissonClient,
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper) {
+        return new DdcRedisRepository(redissonClient, objectMapper);
     }
 
     @Bean

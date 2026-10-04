@@ -10,8 +10,13 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.api.OutboxMessage;
+import top.egon.cola.component.outbox.api.OutboxReceipt;
+import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
+import top.egon.cola.component.tianshu.admin.config.DdcOutboxConfiguration.DdcConfigDispatchOutboxRouteDTO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishAckBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
@@ -24,16 +29,20 @@ import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository
 import top.egon.cola.component.tianshu.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService;
+import top.egon.cola.component.tianshu.admin.service.config.DdcYamlConfigValidator;
 import top.egon.cola.component.tianshu.admin.service.publish.PublishCompletionWaiterRegistry;
 import top.egon.cola.component.tianshu.admin.service.publish.PublishFailureRecorder;
 import top.egon.cola.component.tianshu.admin.service.publish.PublishResourceLockRegistry;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextDTO;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcOperationLogBO;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcConfigDispatchEventConverterImpl;
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
+import top.egon.cola.component.tianshu.model.event.DdcConfigDispatchPreparedEvent;
 
+import jakarta.validation.Validation;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.time.Clock;
@@ -45,6 +54,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -327,12 +338,19 @@ public class DdcAckServiceTest {
         public final DdcPublishTaskRepository tasks = Mockito.mock(DdcPublishTaskRepository.class);
         public final DdcPublishAckRepository acks = Mockito.mock(DdcPublishAckRepository.class);
         public final TestTransactionManager transactionManager = new TestTransactionManager();
+        public final TransactionalOutbox outbox = Mockito.mock(TransactionalOutbox.class);
+        private final LinkedBlockingQueue<OutboxMessage> pendingOutbox = new LinkedBlockingQueue<>();
         public final PublishResourceLockRegistry resourceRegistry = new PublishResourceLockRegistry();
         public final PublishCompletionWaiterRegistry waiterRegistry = new PublishCompletionWaiterRegistry();
         private DdcPublishStateTransitionService transitions;
         private DdcPendingPublishDispatcher dispatcher;
 
         public InMemoryPersistence() {
+            Mockito.when(outbox.enqueue(Mockito.any())).thenAnswer(invocation -> {
+                OutboxMessage message = invocation.getArgument(0);
+                pendingOutbox.add(message);
+                return new OutboxReceipt(message.messageId(), message.idempotencyKey(), true);
+            });
             Mockito.when(tasks.findByChangeId(Mockito.anyString()))
                     .thenAnswer(invocation -> Optional.ofNullable(taskRows.get(invocation.getArgument(0))));
             Mockito.when(tasks.findForUpdateByChangeId(Mockito.anyString()))
@@ -478,15 +496,37 @@ public class DdcAckServiceTest {
                 DdcConfigLeaseService leases, DdcRedisRepository redisRepository, DdcAdminProperties properties) {
             DdcPublishStateTransitionService state = stateTransitions(configItems);
             dispatcher = new DdcPendingPublishDispatcher(
-                    configItems, versions, tasks, acks, redisRepository, state, properties,
-                    transactionManager, Clock.systemUTC());
+                    configItems, versions, tasks, acks, redisRepository, state,
+                    new DdcConfigDispatchEventConverterImpl(), outbox,
+                    new DdcConfigDispatchOutboxRouteDTO("tianshu.config-dispatch", "1"),
+                    new org.springframework.transaction.support.TransactionTemplate(transactionManager),
+                    Clock.systemUTC(), new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator()),
+                    properties);
             return new DdcPublishService(configItems, versions, tasks, acks, operationLogs, dispatcher,
                     leases, resourceRegistry, waiterRegistry, state, new PublishFailureRecorder(tasks),
-                    properties, transactionManager, Clock.systemUTC());
+                    properties, new DdcYamlConfigValidator(properties.getMaxConfigBytes()),
+                    new org.springframework.transaction.support.TransactionTemplate(transactionManager),
+                    Clock.systemUTC());
         }
 
         public DdcPendingPublishDispatcher dispatcher() {
             return dispatcher;
+        }
+
+        public OutboxMessage takeOutboxMessage(long timeout, TimeUnit unit) throws InterruptedException {
+            return pendingOutbox.poll(timeout, unit);
+        }
+
+        public OutboxMessage pollOutboxMessage() {
+            return pendingOutbox.poll();
+        }
+
+        public DdcConfigDispatchPreparedEvent preparedEvent(OutboxMessage message) {
+            return (DdcConfigDispatchPreparedEvent) message.payload();
+        }
+
+        public boolean deliver(DdcConfigDispatchPreparedEvent event) {
+            return dispatcher.deliverPrepared(event);
         }
 
         private Optional<DdcPublishAckBO> findAck(String changeId, String instanceId, String leaseId) {

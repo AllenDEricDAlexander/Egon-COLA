@@ -27,6 +27,27 @@ egon:
         admin:
           redis:
             password: ${TIANSHU_REDIS_PASSWORD}
+      transactional-outbox:
+        enabled: true
+        polling:
+          enabled: true
+          fixed-delay: 1s
+          batch-size: 100
+          concurrency: 4
+        delivery:
+          timeout: 10s
+          lease-duration: 60s
+          queue-capacity: 1000
+        retry:
+          max-attempts: 10
+          initial-delay: 1s
+          multiplier: 2.0
+          max-delay: 5m
+          jitter: 0.2
+        payload:
+          max-bytes: 8MB
+          max-header-count: 64
+          max-header-bytes: 16KB
       rpc:
         tls:
           development-plaintext: true

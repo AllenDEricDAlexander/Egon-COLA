@@ -2,27 +2,34 @@ package top.egon.cola.component.tianshu.admin.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.MDC;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
+import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
+import top.egon.cola.component.tianshu.model.event.DdcConfigDispatchPreparedEvent;
 import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 
+import java.util.Objects;
+
+@Slf4j
+@RequiredArgsConstructor
 public class DdcRedisRepository {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
+    @Qualifier("ddcAdminRedissonClient")
     private final RedissonClient redissonClient;
 
-    public DdcRedisRepository(RedissonClient redissonClient) {
-        this.redissonClient = redissonClient;
-    }
+    @Qualifier("jacksonObjectMapper")
+    private final ObjectMapper objectMapper;
 
     public void writeConfig(
             String bizCode, String env, String appCode,
@@ -42,6 +49,49 @@ public class DdcRedisRepository {
 
     public void dispatch(DdcAtomicPublishCommand command) {
         long tenantId = requiredTenantId();
+        dispatch(command, tenantId, command.changeId(), command.changeId() + ":" + command.eventChecksum(),
+                new DdcTenantMessageDTO<>(tenantId, command.message()), false);
+    }
+
+    public void dispatch(
+            DdcAtomicPublishCommand command,
+            DdcConfigDispatchPreparedEvent event) {
+        long tenantId = requiredTenantId();
+        if (command == null || event == null || command.message() == null || !event.hasValidIdentityAndChecksum()
+                || !Long.valueOf(tenantId).equals(event.getTenantId())
+                || !Long.valueOf(tenantId).equals(command.tenantId())
+                || !event.getEventId().equals(command.eventId())
+                || !Objects.equals(event.getAttempt(), command.attempt())
+                || !event.getMessage().getChangeId().equals(command.changeId())
+                || !Objects.equals(command.eventChecksum(), event.getEventChecksum())
+                || !Objects.equals(command.configId(), event.getConfigId())
+                || !Objects.equals(command.expectedPublishedVersion(), event.getExpectedPublishedVersion())
+                || !Objects.equals(command.targetVersion(), event.getMessage().getTargetVersion())
+                || !Objects.equals(command.content(), event.getMessage().getContent())
+                || !Objects.equals(command.bizCode(), event.getMessage().getBizCode())
+                || !Objects.equals(command.env(), event.getMessage().getEnv())
+                || !Objects.equals(command.appCode(), event.getMessage().getAppCode())
+                || !Objects.equals(command.resourceName(), event.getMessage().getResourceName())
+                || !Objects.equals(command.message().getChecksum(), event.getMessage().getChecksum())
+                || !Objects.equals(command.message().getPublishMode(), event.getMessage().getPublishMode())
+                || !Objects.equals(command.message().getOperator(), event.getMessage().getOperator())
+                || !Objects.equals(command.message().getTimestamp(), event.getMessage().getTimestamp())
+                || !Objects.equals(command.message().getChecksum(), DdcChecksum.sha256(command.message()))
+                || !Objects.equals(event.getMessage().getChecksum(), DdcChecksum.sha256(event.getMessage()))) {
+            throw new DdcAdminException("prepared config event does not match the trusted dispatch command");
+        }
+        dispatch(command, tenantId, event.getEventId(),
+                event.getEventId() + ":" + event.getEventChecksum(),
+                new DdcTenantMessageDTO<>(tenantId, event), true);
+    }
+
+    private void dispatch(
+            DdcAtomicPublishCommand command,
+            long tenantId,
+            String idempotencyIdentity,
+            String fingerprint,
+            DdcTenantMessageDTO<?> envelope,
+            boolean republishMatchingEvent) {
         RLock lock = configLock(tenantId, command.bizCode(), command.env(), command.appCode());
         lock.lock();
         try {
@@ -50,12 +100,16 @@ public class DdcRedisRepository {
             String versionKey = DdcRedisKeys.version(
                     tenantId, command.bizCode(), command.env(), command.appCode(), command.resourceName());
             String idempotencyKey = DdcRedisKeys.publishIdempotency(
-                    tenantId, command.bizCode(), command.env(), command.appCode(), command.changeId());
-            String fingerprint = command.changeId() + ":" + command.eventChecksum();
+                    tenantId, command.bizCode(), command.env(), command.appCode(), idempotencyIdentity);
             String existing = redissonClient.<String>getBucket(idempotencyKey).get();
             if (existing != null) {
                 if (!existing.equals(fingerprint)) {
                     throw new DdcAdminException(DdcErrorStatus.CHANGE_ID_CONFLICT);
+                }
+                if (republishMatchingEvent) {
+                    redissonClient.getTopic(DdcRedisKeys.topic(
+                            tenantId, command.bizCode(), command.env(), command.appCode()
+                    )).publish(envelope);
                 }
                 return;
             }
@@ -81,7 +135,7 @@ public class DdcRedisRepository {
             redissonClient.<String>getBucket(idempotencyKey).set(fingerprint);
             redissonClient.getTopic(DdcRedisKeys.topic(
                     tenantId, command.bizCode(), command.env(), command.appCode()
-            )).publish(new DdcTenantMessageDTO<>(tenantId, command.message()));
+            )).publish(envelope);
         } finally {
             lock.unlock();
         }
@@ -145,7 +199,7 @@ public class DdcRedisRepository {
 
     private String toJson(Object value) {
         try {
-            return OBJECT_MAPPER.writeValueAsString(value);
+            return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("serialize ddc value failed", e);
         }

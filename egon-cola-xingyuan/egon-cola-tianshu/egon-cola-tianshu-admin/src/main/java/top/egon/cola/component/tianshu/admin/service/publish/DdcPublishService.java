@@ -1,9 +1,9 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Objects;
 
 @Service("ddcPublishService")
+@Slf4j
+@RequiredArgsConstructor
 public class DdcPublishService {
 
     private static final List<String> RETRYABLE_STATUSES = List.of(
@@ -56,98 +58,50 @@ public class DdcPublishService {
             PublishStatus.UNKNOWN.name()
     );
 
+    @Qualifier("ddcConfigItemRepository")
     private final DdcConfigItemRepository configItemRepository;
 
+    @Qualifier("ddcConfigVersionRepository")
     private final DdcConfigVersionRepository versionRepository;
 
+    @Qualifier("ddcPublishTaskRepository")
     private final DdcPublishTaskRepository publishTaskRepository;
 
+    @Qualifier("ddcPublishAckRepository")
     private final DdcPublishAckRepository publishAckRepository;
 
+    @Qualifier("ddcOperationLogRepository")
     private final DdcOperationLogRepository operationLogRepository;
 
+    @Qualifier("ddcPendingPublishDispatcher")
     private final DdcPendingPublishDispatcher dispatcher;
 
+    @Qualifier("ddcConfigLeaseService")
     private final DdcConfigLeaseService leaseService;
 
+    @Qualifier("publishResourceLockRegistry")
     private final PublishResourceLockRegistry resourceRegistry;
 
+    @Qualifier("publishCompletionWaiterRegistry")
     private final PublishCompletionWaiterRegistry waiterRegistry;
 
+    @Qualifier("ddcPublishStateTransitionService")
     private final DdcPublishStateTransitionService stateTransitions;
 
+    @Qualifier("publishFailureRecorder")
     private final PublishFailureRecorder failureRecorder;
 
+    @Qualifier("egon.cola.component.tianshu.admin-top.egon.cola.component.tianshu.admin.config.DdcAdminProperties")
     private final DdcAdminProperties properties;
 
+    @Qualifier("ddcYamlConfigValidator")
     private final DdcYamlConfigValidator yamlValidator;
 
+    @Qualifier("ddcPublishTransactionTemplate")
     private final TransactionTemplate transactionTemplate;
 
+    @Qualifier("ddcPublishClock")
     private final Clock clock;
-
-    @Autowired
-    public DdcPublishService(@Qualifier("ddcConfigItemRepository") DdcConfigItemRepository configItemRepository,
-            @Qualifier("ddcConfigVersionRepository") DdcConfigVersionRepository versionRepository,
-            DdcPublishTaskRepository publishTaskRepository,
-            DdcPublishAckRepository publishAckRepository,
-            DdcOperationLogRepository operationLogRepository,
-            DdcPendingPublishDispatcher dispatcher,
-            DdcConfigLeaseService leaseService,
-            PublishResourceLockRegistry resourceRegistry,
-            PublishCompletionWaiterRegistry waiterRegistry,
-            DdcPublishStateTransitionService stateTransitions,
-            PublishFailureRecorder failureRecorder,
-            DdcAdminProperties properties,
-            PlatformTransactionManager transactionManager) {
-        this(configItemRepository,
-                versionRepository,
-                publishTaskRepository,
-                publishAckRepository,
-                operationLogRepository,
-                dispatcher,
-                leaseService,
-                resourceRegistry,
-                waiterRegistry,
-                stateTransitions,
-                failureRecorder,
-                properties,
-                transactionManager,
-                Clock.systemUTC());
-    }
-
-    DdcPublishService(DdcConfigItemRepository configItemRepository,
-            DdcConfigVersionRepository versionRepository,
-            DdcPublishTaskRepository publishTaskRepository,
-            DdcPublishAckRepository publishAckRepository,
-            DdcOperationLogRepository operationLogRepository,
-            DdcPendingPublishDispatcher dispatcher,
-            DdcConfigLeaseService leaseService,
-            PublishResourceLockRegistry resourceRegistry,
-            PublishCompletionWaiterRegistry waiterRegistry,
-            DdcPublishStateTransitionService stateTransitions,
-            PublishFailureRecorder failureRecorder,
-            DdcAdminProperties properties,
-            PlatformTransactionManager transactionManager,
-            Clock clock) {
-        this.configItemRepository = configItemRepository;
-        this.versionRepository = versionRepository;
-        this.publishTaskRepository = publishTaskRepository;
-        this.publishAckRepository = publishAckRepository;
-        this.operationLogRepository = operationLogRepository;
-        this.dispatcher = dispatcher;
-        this.leaseService = leaseService;
-        this.resourceRegistry = resourceRegistry;
-        this.waiterRegistry = waiterRegistry;
-        this.stateTransitions = stateTransitions;
-        this.failureRecorder = failureRecorder;
-        this.properties = properties;
-        this.yamlValidator = new DdcYamlConfigValidator(
-                properties.getMaxConfigBytes()
-        );
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
-        this.clock = clock;
-    }
 
     public DdcPublishResultVO publish(DdcPublishRequest request, String operator) {
         validatePublishRequest(request);
@@ -193,6 +147,9 @@ public class DdcPublishService {
                 return DdcPublishResultVO.from(dispatched);
             }
         }
+        // Outbox enqueue leaves the task PUBLISHING; only client ACK/state transitions complete this waiter.
+        log.debug("YAML publish event is queued; waiting for client acknowledgements, changeId={}",
+                request.getChangeId());
         return await(request.getChangeId(), waiter);
     }
 
@@ -239,6 +196,8 @@ public class DdcPublishService {
             stateTransitions.releaseIfTerminal(dispatched);
             return DdcPublishResultVO.from(dispatched);
         }
+        // DeliveryResult.success() is transport progress, not completion of the business ACK protocol.
+        log.debug("YAML retry event is queued; waiting for client acknowledgements, changeId={}", changeId);
         return await(changeId, waiter);
     }
 

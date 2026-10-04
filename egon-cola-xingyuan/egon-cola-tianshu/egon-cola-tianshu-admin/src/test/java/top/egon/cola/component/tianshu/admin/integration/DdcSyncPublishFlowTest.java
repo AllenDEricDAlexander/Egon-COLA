@@ -11,6 +11,7 @@ import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigItemBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcConfigVersionBO;
+import top.egon.cola.component.tianshu.admin.model.bo.DdcPublishTaskBO;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPublishResultVO;
@@ -37,6 +38,8 @@ import top.egon.cola.component.tianshu.admin.service.publish.PublishStartupRecov
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
+import top.egon.cola.component.tianshu.model.event.DdcConfigDispatchPreparedEvent;
+import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.tianshu.model.config.DdcPublishTarget;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
 
@@ -174,9 +177,11 @@ class DdcSyncPublishFlowTest {
             Future<DdcPublishResultVO> result =
                     executor.submit(() -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.publish(request, "tester")));
+            DdcConfigDispatchPreparedEvent event = deliverNextPreparedEvent();
             DdcPublishMessage message = published.poll(2, TimeUnit.SECONDS);
 
             assertThat(message).isNotNull();
+            assertThat(event.getMessage()).isEqualTo(message);
             assertThat(message.getTargets()).containsExactly(
                     new DdcPublishTarget("instance-1", "lease-1"),
                     new DdcPublishTarget("instance-2", "lease-2")
@@ -202,6 +207,7 @@ class DdcSyncPublishFlowTest {
             Future<DdcPublishResultVO> result =
                     executor.submit(() -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.publish(first, "tester")));
+            deliverNextPreparedEvent();
             assertThat(published.poll(2, TimeUnit.SECONDS)).isNotNull();
 
             DdcPublishRequest second = request("other", 2000);
@@ -217,30 +223,38 @@ class DdcSyncPublishFlowTest {
     }
 
     @Test
-    void exposesUncertainRedisDispatchWithoutAdvancingPublishedPointer() {
+    void transientDeliveryFailureDoesNotAdvancePointerOrCompleteBusinessPublish() throws Exception {
         saveConfig("dispatch-failure");
         when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         doThrow(new IllegalStateException("redis unavailable"))
                 .when(redisRepository)
-                .dispatch(any());
+                .dispatch(any(), any());
         DdcPublishRequest request =
                 request("true", 2000);
 
-        assertThat(publishService.publish(request, "tester").getStatus())
-                .isEqualTo(PublishStatus.UNKNOWN.name());
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<DdcPublishResultVO> result = executor.submit(() -> DdcAckServiceTest.withTenantContext(
+                    () -> publishService.publish(request, "tester")));
+            DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(
+                    persistence.takeOutboxMessage(2, TimeUnit.SECONDS));
 
-        assertThat(taskRepository.findByChangeId(request.getChangeId()))
-                .get()
-                .satisfies(task -> {
-                    assertThat(task.getStatus()).isEqualTo("UNKNOWN");
-                    assertThat(task.getFailureStage()).isEqualTo("REDIS_DISPATCH");
-                });
-        assertThat(config("demo").getPublishedVersion()).isNull();
+            assertThatThrownBy(() -> persistence.deliver(event))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("redis unavailable");
+            assertThat(result.isDone()).isFalse();
+            assertThat(taskRepository.findByChangeId(request.getChangeId()))
+                    .get().extracting(DdcPublishTaskBO::getStatus)
+                    .isEqualTo(PublishStatus.PUBLISHING.name());
+            assertThat(config("demo").getPublishedVersion()).isNull();
+
+            persistence.stateTransitions().timeout(request.getChangeId(), "test timeout");
+            assertThat(result.get(2, TimeUnit.SECONDS).getStatus()).isEqualTo(PublishStatus.TIMEOUT.name());
+        }
     }
 
     @Test
-    void restartRecoveryReplaysTheSameEvent() throws Exception {
+    void restartRecoveryRequeuesTheSameFrozenOutboxIdentity() throws Exception {
         saveConfig("restart-unknown");
         when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
@@ -253,16 +267,9 @@ class DdcSyncPublishFlowTest {
             Future<DdcPublishResultVO> result =
                     executor.submit(() -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.publish(request, "tester")));
-            DdcPublishMessage first = published.poll(2, TimeUnit.SECONDS);
-            assertThat(first).isNotNull();
-
-            await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-                assertThat(config("demo").getPublishedVersion()).isEqualTo(2L);
-                assertThat(taskRepository.findByChangeId(request.getChangeId()))
-                        .get()
-                        .satisfies(task -> assertThat(task.getStatus())
-                                .isEqualTo(PublishStatus.PUBLISHING.name()));
-            });
+            DdcConfigDispatchPreparedEvent first = persistence.preparedEvent(
+                    persistence.takeOutboxMessage(2, TimeUnit.SECONDS));
+            assertThat(first.getAttempt()).isZero();
             var persistedTask = taskRepository.findByChangeId(
                     request.getChangeId()
             ).orElseThrow();
@@ -271,12 +278,18 @@ class DdcSyncPublishFlowTest {
             );
             taskRepository.update(persistedTask);
             startupRecovery.run(null);
-            DdcPublishMessage replay = published.poll(2, TimeUnit.SECONDS);
+            DdcConfigDispatchPreparedEvent retry = persistence.preparedEvent(
+                    persistence.takeOutboxMessage(2, TimeUnit.SECONDS));
 
-            assertThat(replay).isNotNull();
-            assertThat(replay.getChangeId()).isEqualTo(first.getChangeId());
-            assertThat(replay.getTimestamp()).isEqualTo(first.getTimestamp());
-            assertThat(replay.getChecksum()).isEqualTo(first.getChecksum());
+            assertThat(retry.getAttempt()).isEqualTo(0);
+            assertThat(retry.getEventId()).isEqualTo(first.getEventId());
+            assertThat(retry.getMessage().getTimestamp()).isEqualTo(first.getMessage().getTimestamp());
+            assertThat(retry.getEventChecksum()).isEqualTo(first.getEventChecksum());
+            assertThat(persistence.deliver(first)).isTrue();
+            assertThat(persistence.deliver(retry)).isTrue();
+            DdcPublishMessage delivered = published.poll(2, TimeUnit.SECONDS);
+            assertThat(delivered).isNotNull();
+            assertThat(delivered.getChangeId()).isEqualTo(retry.getMessage().getChangeId());
             publishService.ack(ack(request, "instance-1", "lease-1"));
             assertThat(result.get(2, TimeUnit.SECONDS).getStatus())
                     .isEqualTo("SUCCESS");
@@ -302,18 +315,25 @@ class DdcSyncPublishFlowTest {
         DdcPublishRequest request =
                 request("true", 100);
 
-        DdcPublishResultVO timedOut =
-                publishService.publish(request, "tester");
-        DdcPublishMessage firstAttempt = published.poll(2, TimeUnit.SECONDS);
-
-        assertThat(timedOut.getStatus()).isEqualTo("TIMEOUT");
-        assertThat(firstAttempt).isNotNull();
-        assertThat(firstAttempt.getTargets()).containsExactlyElementsOf(originalTargets);
-
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<DdcPublishResultVO> timedOutFuture = executor.submit(() -> DdcAckServiceTest.withTenantContext(
+                    () -> publishService.publish(request, "tester")));
+            DdcConfigDispatchPreparedEvent firstAttempt = persistence.preparedEvent(
+                    persistence.takeOutboxMessage(2, TimeUnit.SECONDS));
+            assertThat(persistence.deliver(firstAttempt)).isTrue();
+            DdcPublishMessage firstMessage = published.poll(2, TimeUnit.SECONDS);
+            assertThat(firstMessage).isNotNull();
+            assertThat(firstMessage.getTargets()).containsExactlyElementsOf(originalTargets);
+            assertThat(timedOutFuture.get(2, TimeUnit.SECONDS).getStatus()).isEqualTo("TIMEOUT");
+
             Future<DdcPublishResultVO> retried =
                     executor.submit(() -> DdcAckServiceTest.withTenantContext(
                             () -> publishService.retry(request.getChangeId())));
+            DdcConfigDispatchPreparedEvent retryEvent = persistence.preparedEvent(
+                    persistence.takeOutboxMessage(2, TimeUnit.SECONDS));
+            assertThat(retryEvent.getAttempt()).isEqualTo(1);
+            assertThat(retryEvent.getEventId()).isNotEqualTo(firstAttempt.getEventId());
+            assertThat(persistence.deliver(retryEvent)).isTrue();
             DdcPublishMessage retryMessage = published.poll(2, TimeUnit.SECONDS);
 
             assertThat(retryMessage).isNotNull();
@@ -335,8 +355,16 @@ class DdcSyncPublishFlowTest {
             DdcAtomicPublishCommand command = invocation.getArgument(0);
             published.add(command.message());
             return null;
-        }).when(redisRepository).dispatch(any());
+        }).when(redisRepository).dispatch(any(), any());
         return published;
+    }
+
+    private DdcConfigDispatchPreparedEvent deliverNextPreparedEvent() throws InterruptedException {
+        OutboxMessage outboxMessage = persistence.takeOutboxMessage(2, TimeUnit.SECONDS);
+        assertThat(outboxMessage).isNotNull();
+        DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(outboxMessage);
+        assertThat(persistence.deliver(event)).isTrue();
+        return event;
     }
 
     private void saveConfig(String ignoredLabel) {

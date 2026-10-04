@@ -27,6 +27,8 @@ import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
 import top.egon.cola.component.tianshu.model.config.DdcPublishMessage;
+import top.egon.cola.component.tianshu.model.event.DdcConfigDispatchPreparedEvent;
+import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.tianshu.model.config.DdcPublishTarget;
 import top.egon.cola.component.tianshu.model.config.DdcAckStatus;
 
@@ -132,7 +134,7 @@ class DdcPublishRetryTest {
             DdcAtomicPublishCommand command = invocation.getArgument(0);
             published.add(command.message());
             return null;
-        }).when(redisRepository).dispatch(any());
+        }).when(redisRepository).dispatch(any(), any());
         when(leaseService.areActiveTargets(
                 eq("default"),
                 eq("dev"),
@@ -152,6 +154,11 @@ class DdcPublishRetryTest {
                 Future<DdcPublishResultVO> result =
                         executor.submit(() -> DdcAckServiceTest.withTenantContext(
                                 () -> publishService.retry(task.getChangeId(), auditOperator)));
+                OutboxMessage outboxMessage = persistence.takeOutboxMessage(2, TimeUnit.SECONDS);
+                assertThat(outboxMessage).isNotNull();
+                DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(outboxMessage);
+                assertThat(event.getAttempt()).isEqualTo(1);
+                assertThat(persistence.deliver(event)).isTrue();
                 DdcPublishMessage message = published.poll(2, TimeUnit.SECONDS);
                 assertThat(message).isNotNull();
                 assertThat(message.getTargets()).containsExactly(

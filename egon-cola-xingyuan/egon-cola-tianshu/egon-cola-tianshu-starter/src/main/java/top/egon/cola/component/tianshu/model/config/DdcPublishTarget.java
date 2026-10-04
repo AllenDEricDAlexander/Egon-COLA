@@ -1,5 +1,7 @@
 package top.egon.cola.component.tianshu.model.config;
 
+import jakarta.validation.constraints.NotBlank;
+
 /**
  * 配置发布的目标实例及其租约。
  * / Target instance and lease for a configuration publication.
@@ -8,7 +10,7 @@ package top.egon.cola.component.tianshu.model.config;
  * @param leaseId    目标实例的租约标识 / lease identifier of the target instance
  */
 public record DdcPublishTarget(
-        String instanceId,
-        String leaseId
+        @NotBlank String instanceId,
+        @NotBlank String leaseId
 ) {
 }

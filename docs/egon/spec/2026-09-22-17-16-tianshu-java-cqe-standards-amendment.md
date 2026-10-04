@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 已接受规格的建模/包结构/删除契约修订，MP受控能力扩展，Outbox事务/Redis投递，多模块实施依赖 |
 | Created | `2026-09-22 17:16 Asia/Shanghai` |
-| Updated | `2026-09-29 01:16 Asia/Shanghai` |
+| Updated | `2026-10-02 08:40 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢既定多租户Prompt/Skill功能；最新Java/CQE标准与已批准组件扩展 |
@@ -735,11 +735,11 @@ gRPC OK，原DdcPromptResult/DdcSkillResult字段完全不变：resourceId/resou
 
 ##### Identity and purpose
 
-DdcConfigDispatchPreparedEvent，producer DdcPendingPublishDispatcher；Outbox channel `TIANSHU_CONFIG_DISPATCH`，destination为原tenant v4 config topic，consumer DdcConfigDispatchDeliveryHandler→原SDK配置listener。
+DdcConfigDispatchPreparedEvent，producer DdcPendingPublishDispatcher；Outbox channel `tianshu.config-dispatch`（组件要求小写channel），headers.eventType=`TIANSHU_CONFIG_DISPATCH`，destination为原tenant v4 config topic，consumer DdcConfigDispatchDeliveryHandler→原SDK配置listener。
 
 ##### Request parameters
 
-class字段eventId(String64 SHA256)、tenantId(Long>0)、schemaVersion("1")、attempt(int>=0)、configId(String)、expectedPublishedVersion(Long可空)、eventChecksum(String64)、@Valid DdcPublishMessage message。事件不引用Admin里的DdcAtomicPublishCommand，避免starter反向依赖Admin；其余scope/正文/版本从message唯一派生。全部字段见完整例；targets非空、instance/lease均非空且组合唯一，namespace旧@JsonIgnore不放入payload。冻结timestamp从当前task attempt准备时间读取；一个attempt仅首次冻结，已PUBLISHING或同eventId重入复用冻结命令，不重新markPublishing/Clock改变fingerprint；排序targets确保fingerprint稳定。eventId=SHA256(长度前缀域标记、tenant、changeId、attempt)；幂等key相同，headers含tenantId/eventType。
+class字段eventId(String64 SHA256)、tenantId(Long>0)、schemaVersion("1")、attempt(int>=0)、configId(String)、expectedPublishedVersion(Long可空)、eventChecksum(String64)、@Valid DdcPublishMessage message。事件不引用Admin里的DdcAtomicPublishCommand，避免starter反向依赖Admin；其余scope/正文/版本从message唯一派生。全部字段见完整例；targets非空、instance/lease均非空且组合唯一，namespace旧@JsonIgnore不放入payload。冻结timestamp从当前attempt的dispatchedAt读取；一个attempt仅首次冻结，已PUBLISHING或同eventId重入复用相同消息，不重新markPublishing或改动timestamp；排序targets确保fingerprint稳定。eventId=SHA256(长度前缀域标记、tenant、changeId、attempt)；幂等key相同，headers含tenantId/eventType。
 ```jsonc
 {
   "eventId": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", // eventId：下述字段规则定义；示例ID/摘要为合成值
@@ -779,18 +779,18 @@ enqueue返回组件OutboxReceipt，只表示意图已加入当前事务；事务
 
 ##### Error responses
 
-无相同DS事务立即OutboxTransactionMismatch；超出8MiB payload拒绝并回滚准备；Redis/SQL暂时错误retryable，tenant/目的地不符permanent，耗尽DEAD；原task状态仍按原UNKNOWN/FAILED/TIMEOUT/ACK判断。
+无相同DS事务立即OutboxTransactionMismatch；超出8MiB payload拒绝并回滚准备；Redis/SQL暂时错误返回retryable，重投耗尽进入DEAD；当前attempt上的业务fencing/幂等冲突按原state transition持久化FAILED，租户/目的地错误和陈旧/过期attempt永久拒绝且不激活版本。DeliveryResult.success不等于业务ACK。
 
 ##### Interface logic for frontend and consumers
 
-在prepare/markPublishing同一个TransactionTemplate中冻结命令并enqueue→提交后worker验证tenant和目标topic→读取当前task核验attempt/版本/期限→复用DdcRedisRepository.dispatch的Lua幂等/fencing→按原advancePublishedVersion＋refreshAfterAck执行→返回DeliveryResult。旧attempt/已终结任务不再次推旧版本；重试允许消息重复，SDK仍按tenant/changeId/lease/version/checksum处理并重送ACK。
+在prepare/markPublishing同一个TransactionTemplate中冻结命令并enqueue→提交后worker验证tenant和目标topic→读取当前task核验attempt/版本/期限→复用DdcRedisRepository现有的tenant-scoped lock、缓存/version与幂等键检查→按原advancePublishedVersion＋refreshAfterAck执行→返回DeliveryResult。当前源码没有Lua脚本，因此不以Lua描述该实现，也不在本Step另建Redis协议。旧attempt/已终结任务不再次推旧版本；Outbox重试可能重复发布Topic通知，现有Redis状态写由幂等键保护，SDK仍按tenant/changeId/lease/version/checksum处理并重送ACK。
 
 ##### Compatibility and verification
 
 TEST-103证明同事务回滚、错误DataSource、消费者断线、远端已成功本地崩溃、过期attempt不能迟到激活。新增依赖已批准；不更改旧客户端发布模式/ACK结果wire。
 
 
-Outbox中冻结的事件JSON即最终Redis发布body。DdcConfigDispatchEventConverter（Admin、BaseForwardConverter）把内部AtomicPublishCommand映射为该事件，并提供显式反向重建命令方法；handler调用原dispatch的重载(command,eventJson)，Lua的fencing/cache/幂等保持，PUBLISH参数改用冻结事件JSON。SDK取event.message交给原验证/应用/ACK流程，不能遗漏eventId/schema/tenant边界。message.checksum仍按原消息合同计算，eventChecksum/包络身份另验证。
+Outbox中冻结的事件JSON是重投时的权威事件快照。DdcConfigDispatchEventConverter（Admin、BaseForwardConverter）把内部AtomicPublishCommand映射为该事件，并提供显式反向重建命令方法；handler按Spring Boot Jackson解析快照，再调用现有DdcRedisRepository的prepared-event分发重载。该Repository当前通过Redisson对象codec发布`DdcTenantMessageDTO<PreparedEvent>`，不声称将Outbox JSON字节原样作为Redis Pub/Sub字节；SDK取event.message交给原验证/应用/ACK流程，不能遗漏eventId/schema/tenant边界。message.checksum仍按原消息合同计算，eventChecksum/包络身份另验证。
 
 #### EVENT-102 — 目录修订可用通知
 

@@ -1,6 +1,7 @@
 package top.egon.cola.component.tianshu.admin.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -97,7 +98,7 @@ class DdcRedisClusterIT {
 
     @Test
     void configAndLeaseLifecycleCompletesWithoutCrossSlot() {
-        DdcRedisRepository configs = new DdcRedisRepository(redisson);
+        DdcRedisRepository configs = new DdcRedisRepository(redisson, new ObjectMapper());
         DdcConfigLeaseRedisRepository leases = new DdcConfigLeaseRedisRepository(
                 redisson,
                 new ObjectMapper()

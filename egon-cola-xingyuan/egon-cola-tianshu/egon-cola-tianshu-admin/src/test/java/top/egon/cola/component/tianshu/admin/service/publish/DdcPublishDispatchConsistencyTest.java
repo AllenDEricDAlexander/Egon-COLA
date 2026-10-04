@@ -1,6 +1,7 @@
 package top.egon.cola.component.tianshu.admin.service.publish;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,7 +33,10 @@ import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService
 import top.egon.cola.component.tianshu.format.DdcChecksum;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 import top.egon.cola.component.tianshu.model.config.DdcConfigValue;
+import top.egon.cola.component.tianshu.model.event.DdcConfigDispatchPreparedEvent;
+import top.egon.cola.component.outbox.api.OutboxMessage;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +54,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcPublishDispatchConsistencyTest {
+
+    @BeforeAll
+    static void bindSnowflakeGenerator() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final String OLD_YAML = "feature:\n  value: old\n";
 
@@ -156,15 +165,22 @@ class DdcPublishDispatchConsistencyTest {
         DdcPublishTaskBO task = savePreparedPublish("redis-failure");
         doThrow(new IllegalStateException("redis response lost"))
                 .when(redisRepository)
-                .dispatch(any());
+                .dispatch(any(), any());
 
         DdcPublishTaskBO result = dispatcher.dispatch(task.getChangeId());
+        DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(persistence.pollOutboxMessage());
 
-        assertThat(result.getStatus()).isEqualTo(PublishStatus.UNKNOWN.name());
+        assertThat(result.getStatus()).isEqualTo(PublishStatus.PUBLISHING.name());
+        assertThatThrownBy(() -> persistence.deliver(event))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("redis response lost");
         assertThat(configItemRepository.findByPublicId(task.getConfigId()))
                 .get()
                 .extracting(DdcConfigItemBO::getPublishedVersion)
                 .isEqualTo(1L);
+        assertThat(taskRepository.findByChangeId(task.getChangeId()))
+                .get().extracting(DdcPublishTaskBO::getStatus)
+                .isEqualTo(PublishStatus.PUBLISHING.name());
         assertThat(configService.pull("default", "dev", task.getAppCode()))
                 .singleElement()
                 .extracting(
@@ -177,6 +193,8 @@ class DdcPublishDispatchConsistencyTest {
     @Test
     void databaseFailureReplaysTheSameEventWithoutCreatingAnotherVersion() {
         DdcPublishTaskBO task = savePreparedPublish("db-failure");
+        dispatcher.dispatch(task.getChangeId());
+        DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(persistence.pollOutboxMessage());
         doThrow(new IllegalStateException("database response lost"))
                 .doAnswer(invocation -> {
                     DdcConfigItemBO config = configItemRepository
@@ -194,20 +212,24 @@ class DdcPublishDispatchConsistencyTest {
                         any(LocalDateTime.class)
                 );
 
-        assertThat(dispatcher.dispatch(task.getChangeId()).getStatus())
-                .isEqualTo(PublishStatus.UNKNOWN.name());
-        assertThat(dispatcher.dispatch(task.getChangeId()).getStatus())
-                .isEqualTo(PublishStatus.PUBLISHING.name());
+        assertThatThrownBy(() -> persistence.deliver(event))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("database response lost");
+        assertThat(persistence.deliver(event)).isTrue();
         assertThat(taskRepository.findByChangeId(task.getChangeId()))
                 .get()
                 .extracting(DdcPublishTaskBO::getAttemptCount)
-                .isEqualTo(1);
+                .isEqualTo(0);
 
         ArgumentCaptor<DdcAtomicPublishCommand> commands =
                 ArgumentCaptor.forClass(DdcAtomicPublishCommand.class);
-        verify(redisRepository, times(2)).dispatch(commands.capture());
+        ArgumentCaptor<DdcConfigDispatchPreparedEvent> events =
+                ArgumentCaptor.forClass(DdcConfigDispatchPreparedEvent.class);
+        verify(redisRepository, times(2)).dispatch(commands.capture(), events.capture());
         DdcAtomicPublishCommand first = commands.getAllValues().get(0);
         DdcAtomicPublishCommand replay = commands.getAllValues().get(1);
+        assertThat(events.getAllValues()).extracting(DdcConfigDispatchPreparedEvent::getEventId)
+                .containsOnly(event.getEventId());
         assertThat(replay.changeId()).isEqualTo(first.changeId());
         assertThat(replay.targetVersion()).isEqualTo(first.targetVersion());
         assertThat(replay.content()).isEqualTo(first.content());
@@ -225,21 +247,23 @@ class DdcPublishDispatchConsistencyTest {
     }
 
     @Test
-    void changeIdFingerprintConflictIsPersistedAndReturnedWithStableError() {
+    void changeIdFingerprintConflictIsSurfacedForOutboxPermanentHandling() {
         DdcPublishTaskBO task = savePreparedPublish("change-id-conflict");
+        dispatcher.dispatch(task.getChangeId());
+        DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(persistence.pollOutboxMessage());
         doThrow(new DdcAdminException(DdcErrorStatus.CHANGE_ID_CONFLICT))
                 .when(redisRepository)
-                .dispatch(any());
+                .dispatch(any(), any());
 
-        assertThatThrownBy(() -> dispatcher.dispatch(task.getChangeId()))
+        assertThatThrownBy(() -> persistence.deliver(event))
                 .isInstanceOf(DdcAdminException.class)
                 .hasMessageContaining("change id conflict");
 
         assertThat(taskRepository.findByChangeId(task.getChangeId()))
                 .get()
                 .satisfies(failed -> {
-                    assertThat(failed.getStatus()).isEqualTo(PublishStatus.FAILED.name());
-                    assertThat(failed.getFailureStage()).isEqualTo("REDIS_DISPATCH");
+                    assertThat(failed.getStatus()).isEqualTo(PublishStatus.PUBLISHING.name());
+                    assertThat(failed.getFailureStage()).isNull();
                 });
         assertThat(configItemRepository.findByPublicId(task.getConfigId()))
                 .get()
@@ -261,9 +285,12 @@ class DdcPublishDispatchConsistencyTest {
             assertThat(stateTransitions.refreshAfterAck(task.getChangeId()).getStatus())
                     .isEqualTo(PublishStatus.PUBLISHING.name());
             return null;
-        }).when(redisRepository).dispatch(any());
+        }).when(redisRepository).dispatch(any(), any());
 
-        DdcPublishTaskBO completed = dispatcher.dispatch(task.getChangeId());
+        dispatcher.dispatch(task.getChangeId());
+        DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(persistence.pollOutboxMessage());
+        assertThat(persistence.deliver(event)).isTrue();
+        DdcPublishTaskBO completed = taskRepository.findByChangeId(task.getChangeId()).orElseThrow();
 
         assertThat(completed.getStatus()).isEqualTo(PublishStatus.SUCCESS.name());
         assertThat(configItemRepository.findByPublicId(task.getConfigId()))
@@ -285,11 +312,13 @@ class DdcPublishDispatchConsistencyTest {
         DdcPublishTaskBO result = dispatcher.dispatch(task.getChangeId());
 
         assertThat(result.getStatus()).isEqualTo(PublishStatus.PUBLISHING.name());
-        ArgumentCaptor<DdcAtomicPublishCommand> command =
-                ArgumentCaptor.forClass(DdcAtomicPublishCommand.class);
-        verify(redisRepository).dispatch(command.capture());
+        DdcConfigDispatchPreparedEvent event = persistence.preparedEvent(persistence.pollOutboxMessage());
+        assertThat(event.getMessage().getContent()).isEqualTo(largeYaml);
+        ArgumentCaptor<DdcAtomicPublishCommand> command = ArgumentCaptor.forClass(DdcAtomicPublishCommand.class);
+        assertThat(persistence.deliver(event)).isTrue();
+        verify(redisRepository).dispatch(command.capture(), any());
         assertThat(command.getValue().content()).isEqualTo(largeYaml);
-        assertThat(command.getValue().message().getContent()).isNull();
+        assertThat(command.getValue().message().getContent()).isEqualTo(largeYaml);
     }
 
     private DdcPublishTaskBO savePreparedPublish(String label) {

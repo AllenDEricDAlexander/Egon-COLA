@@ -3,6 +3,20 @@ package top.egon.cola.component.tianshu.model.config;
 import org.springframework.lang.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,26 +25,39 @@ import java.util.List;
  * Admin 通过消息通道发送给配置客户端的发布消息。
  * / Publication message sent by Admin to configuration clients through the message channel.
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
+@Accessors(chain = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class DdcPublishMessage {
 
     /**
      * 配置变更标识。 / Configuration change identifier.
      */
+    @NotBlank
+    @Size(max = 64)
     private String changeId;
 
     /**
      * 业务编码。 / Business code.
      */
+    @NotBlank
+    @Size(max = 128)
     private String bizCode;
 
     /**
      * 应用编码。 / Application code.
      */
+    @NotBlank
+    @Size(max = 128)
     private String appCode;
 
     /**
      * 运行环境。 / Runtime environment.
      */
+    @NotBlank
+    @Size(max = 128)
     private String env;
 
     /**
@@ -41,52 +68,106 @@ public class DdcPublishMessage {
     /**
      * 配置资源名。 / Configuration resource name.
      */
+    @NotBlank
+    @Size(max = 255)
     private String resourceName;
 
     /**
      * 配置内容。 / Configuration content.
      */
+    @Size(max = 8_388_608)
     private String content;
 
     /**
      * 配置格式的线协议名称。 / Wire name of the configuration format.
      */
+    @NotBlank
+    @Size(max = 32)
     private String format;
 
     /**
      * 本次发布的目标版本。 / Target version of this publication.
      */
+    @NotNull
+    @Positive
     private Long targetVersion;
 
     /**
      * 发布模式的线协议名称。 / Wire name of the publication mode.
      */
+    @NotBlank
+    @Size(max = 32)
     private String publishMode;
 
     /**
      * 发布操作人。 / Publication operator.
      */
+    @Size(max = 512)
     private String operator;
 
     /**
      * 发布时间的毫秒时间戳。 / Publication time as an epoch-millisecond timestamp.
      */
+    @NotNull
+    @Positive
     private Long timestamp;
 
     /**
      * 配置资源校验和。 / Configuration resource checksum.
      */
+    @NotBlank
+    @Pattern(regexp = "^[a-f0-9]{64}$")
     private String resourceChecksum;
 
     /**
      * 本次发布的目标实例列表。 / Target instances of this publication.
      */
+    @NotEmpty
+    @Valid
     private List<DdcPublishTarget> targets = new ArrayList<>();
 
     /**
      * 整条发布消息的校验和。 / Checksum of the complete publication message.
      */
+    @NotBlank
+    @Pattern(regexp = "^[a-f0-9]{64}$")
     private String checksum;
+
+    @Builder
+    public static DdcPublishMessage create(
+            String changeId,
+            String bizCode,
+            String appCode,
+            String env,
+            String namespace,
+            String resourceName,
+            String content,
+            String format,
+            Long targetVersion,
+            String publishMode,
+            String operator,
+            Long timestamp,
+            String resourceChecksum,
+            @Nullable List<DdcPublishTarget> targets,
+            String checksum) {
+        DdcPublishMessage message = new DdcPublishMessage();
+        message.setChangeId(changeId);
+        message.setBizCode(bizCode);
+        message.setAppCode(appCode);
+        message.setEnv(env);
+        message.setNamespace(namespace);
+        message.setResourceName(resourceName);
+        message.setContent(content);
+        message.setFormat(format);
+        message.setTargetVersion(targetVersion);
+        message.setPublishMode(publishMode);
+        message.setOperator(operator);
+        message.setTimestamp(timestamp);
+        message.setResourceChecksum(resourceChecksum);
+        message.setTargets(targets);
+        message.setChecksum(checksum);
+        return message;
+    }
 
 
     /**
