@@ -1,11 +1,49 @@
 import type {PageResultRecord, ResultEnvelope} from './types'
 
 type UnauthorizedHandler = () => void
+type TenantMismatchHandler = () => void
+
+export type DdcRequestContext = Readonly<{
+  tenantId?: string
+  sessionGeneration: number
+}>
+
+const TENANT_HEADER = 'X-Egon-Tianshu-Tenant'
 
 let unauthorizedHandler: UnauthorizedHandler = () => {}
+let tenantMismatchHandler: TenantMismatchHandler = () => {}
+let requestContext: DdcRequestContext = { sessionGeneration: 0 }
 
 export const setDdcUnauthorizedHandler = (handler: UnauthorizedHandler): void => {
   unauthorizedHandler = handler
+}
+
+export const setDdcTenantMismatchHandler = (handler: TenantMismatchHandler): void => {
+  tenantMismatchHandler = handler
+}
+
+export const beginDdcSession = (): number => {
+  requestContext = { sessionGeneration: requestContext.sessionGeneration + 1 }
+  return requestContext.sessionGeneration
+}
+
+export const setDdcExpectedTenantId = (tenantId?: string): void => {
+  requestContext = {
+    ...requestContext,
+    tenantId: tenantId || undefined,
+  }
+}
+
+export const getDdcRequestContext = (): DdcRequestContext => ({ ...requestContext })
+
+export const isCurrentDdcSession = (sessionGeneration: number): boolean =>
+  requestContext.sessionGeneration === sessionGeneration
+
+export const requireDdcExpectedTenantId = (): string => {
+  if (!requestContext.tenantId) {
+    throw new Error('A verified Tianshu tenant is required before calling an AI endpoint')
+  }
+  return requestContext.tenantId
 }
 
 export class DdcApiError extends Error {
@@ -43,23 +81,29 @@ export type DdcRequestOptions = {
   method?: string
   body?: unknown
   signal?: AbortSignal
+  headers?: HeadersInit
 }
 
 const requestEnvelope = async (
   path: string,
   options: DdcRequestOptions,
 ): Promise<ResultEnvelope & Record<string, unknown>> => {
-  const headers = new Headers()
+  const requestContextAtStart = getDdcRequestContext()
+  const headers = new Headers(options.headers)
   let body: string | undefined
   if (options.body !== undefined) {
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(options.body)
   }
-    const request = () => fetch(`${import.meta.env.VITE_YUHENG_ORIGIN ?? ''}${path}`, {
+  headers.delete(TENANT_HEADER)
+  if (requestContextAtStart.tenantId) {
+    headers.set(TENANT_HEADER, encodeURIComponent(requestContextAtStart.tenantId))
+  }
+  const request = () => fetch(`${import.meta.env.VITE_YUHENG_ORIGIN ?? ''}${path}`, {
     method: options.method ?? 'GET',
     headers,
     body,
-        credentials: 'include',
+    credentials: 'include',
     signal: options.signal,
   })
 
@@ -77,11 +121,27 @@ const requestEnvelope = async (
     )
   }
 
+  if (!isCurrentDdcSession(requestContextAtStart.sessionGeneration)) {
+    throw new DOMException('Response belongs to a previous Tianshu session', 'AbortError')
+  }
+
   const payload = (await response.json().catch(() => ({}))) as
     Partial<ResultEnvelope> & Record<string, unknown>
+  if (!isCurrentDdcSession(requestContextAtStart.sessionGeneration)) {
+    throw new DOMException('Response belongs to a previous Tianshu session', 'AbortError')
+  }
   if (response.status === 401) {
     unauthorizedHandler()
     throw new DdcApiError(401, 'UNAUTHORIZED', '统一身份登录已过期，请重新登录', payload.traceId)
+  }
+  if (response.status === 403 && String(payload.code) === 'TIANSHU_ADMIN_TENANT_MISMATCH') {
+    tenantMismatchHandler()
+    throw new DdcApiError(
+      403,
+      'TIANSHU_ADMIN_TENANT_MISMATCH',
+      String(payload.message ?? '当前身份租户已变化，请重新加载页面'),
+      payload.traceId,
+    )
   }
   if (!response.ok || payload.success === false) {
     const errorStatus = response.ok ? 500 : response.status

@@ -1,5 +1,13 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
-import {ddcApi, DdcApiError, ddcPageApi, setDdcUnauthorizedHandler,} from './client'
+import {
+  beginDdcSession,
+  ddcApi,
+  DdcApiError,
+  ddcPageApi,
+  setDdcExpectedTenantId,
+  setDdcTenantMismatchHandler,
+  setDdcUnauthorizedHandler,
+} from './client'
 
 const record = (data: unknown) => ({
   success: true, code: 0, status: 'SUCCESS', message: '', data,
@@ -27,9 +35,13 @@ const pageRecord = <T,>(records: T[], total = records.length) => ({
 describe('ddcApi', () => {
   beforeEach(() => {
     setDdcUnauthorizedHandler(() => {})
+    setDdcTenantMismatchHandler(() => {})
+    beginDdcSession()
+    setDdcExpectedTenantId('1001')
     vi.stubGlobal('fetch', vi.fn())
   })
   afterEach(() => {
+    setDdcExpectedTenantId(undefined)
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
@@ -44,6 +56,7 @@ describe('ddcApi', () => {
     expect(url).toBe('/api/v1/tianshu/apps')
         expect(init!.credentials).toBe('include')
         expect((init!.headers as Headers).has('Authorization')).toBe(false)
+    expect((init!.headers as Headers).get('X-Egon-Tianshu-Tenant')).toBe('1001')
   })
 
   it('stringifies JSON bodies with content type', async () => {
@@ -156,5 +169,69 @@ describe('ddcApi', () => {
         category: 'NOT_FOUND',
         traceId: 'trace-audit-missing',
       })
+  })
+
+  it('sends the URI-encoded tenant supplied by the verified bootstrap', async () => {
+    setDdcExpectedTenantId('tenant/1001')
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(record({ id: '810001' })))
+
+    await ddcApi('/api/v1/tianshu/ai/resources')
+
+    const headers = vi.mocked(fetch).mock.calls[0][1]?.headers as Headers
+    expect(headers.get('X-Egon-Tianshu-Tenant')).toBe(encodeURIComponent('tenant/1001'))
+  })
+
+  it('does not allow request options to override the bootstrap tenant', async () => {
+    setDdcExpectedTenantId('1001')
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(record(null)))
+
+    await ddcApi('/api/v1/tianshu/apps', {
+      headers: {'X-Egon-Tianshu-Tenant': '2002'},
+    })
+
+    const headers = vi.mocked(fetch).mock.calls[0][1]?.headers as Headers
+    expect(headers.get('X-Egon-Tianshu-Tenant')).toBe('1001')
+  })
+
+  it('keeps legacy requests tenant-optional before the first verified bootstrap', async () => {
+    setDdcExpectedTenantId(undefined)
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(record(null)))
+
+    await ddcApi('/api/v1/tianshu/apps')
+
+    const headers = vi.mocked(fetch).mock.calls[0][1]?.headers as Headers
+    expect(headers.has('X-Egon-Tianshu-Tenant')).toBe(false)
+  })
+
+  it('drops a response completed under an older session generation', async () => {
+    beginDdcSession()
+    setDdcExpectedTenantId('1001')
+    let resolveResponse: ((response: Response) => void) | undefined
+    vi.mocked(fetch).mockImplementation(() => new Promise<Response>((resolve) => {
+      resolveResponse = resolve
+    }))
+
+    const pending = ddcApi('/api/v1/tianshu/ai/resources')
+    beginDdcSession()
+    setDdcExpectedTenantId('2002')
+    resolveResponse?.(jsonResponse(record({ id: '810001' })))
+
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
+  })
+
+  it('handles tenant mismatch without resending the original request', async () => {
+    setDdcExpectedTenantId('1001')
+    const recover = vi.fn()
+    setDdcTenantMismatchHandler(recover)
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({
+      code: 'TIANSHU_ADMIN_TENANT_MISMATCH',
+      message: 'TIANSHU_ADMIN_TENANT_MISMATCH',
+    }, 403))
+
+    await expect(ddcApi('/api/v1/tianshu/ai/resources'))
+      .rejects.toMatchObject({ status: 403, code: 'TIANSHU_ADMIN_TENANT_MISMATCH' })
+    expect(recover).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
   })
 })

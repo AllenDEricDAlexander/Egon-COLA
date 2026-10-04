@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-10-05 02:14 Asia/Shanghai` |
+| Updated | `2026-10-05 04:12 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -104,7 +104,7 @@
 | Step 17 | Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 12个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 18 | Step 10, Step 11, Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 33个本步实现、调用者与测试文件；另含本计划和Spec修订各1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 19 | Step 18 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 13个本步实现、调用者与测试文件；另含本计划和Spec各1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 20 | Step 17, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 8个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 20 | Step 17, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 8个本步实现与测试文件；另含本计划gate记录1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 21 | Step 20 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 7个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 22 | Step 21 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 5个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 23 | Step 11, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 6个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -17441,9 +17441,10 @@ transactionalOutbox.enqueue(msg); // serializer preserves raw application/json S
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: API字段与新selector/错误一致，切租户清缓存/取消旧响应，旧tab写入被预期tenant头拒绝。
 - End state: API字段与新selector/错误一致，切租户清缓存/取消旧响应，旧tab写入被预期tenant头拒绝；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Plan clarification: Step 20 is one focused logical task and its own commit; preserve the already committed Step 18 and Step 19 history without merging or rewriting.
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001
-- Literal Rules: Rule 6, Rule 7, Rule 11
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
+- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`
@@ -17653,8 +17654,61 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/query/queryClient.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.ts`
-- Commit: `feat(tianshu): step-20---web-------ai`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/query/queryClient.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.ts`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
+- Commit: `feat(tianshu): step-20-web-ai-tenant`（本Plan Step作为一个独立逻辑提交；保留既有Step提交，不合并或改写）。
+
+#### Step 20 pre-commit gate record
+
+- State at pre-commit: Verified.
+- Baseline HEAD: fa58c977f442f9e830462a1c0d0339e2f1ac327b (Step 19 commit).
+- RED evidence: npm test -- src/api/ai.test.ts compiled and failed its runtime contract assertion because ai.ts was absent. npm test -- src/api/client.test.ts kept its 10 prior tests green and failed three new runtime assertions because the expected-tenant/session-generation/mismatch APIs were missing. npm test -- src/auth/AuthContext.test.ts compiled and failed its two session-context assertions because the client request-context getter was missing. These were expected missing contracts, not dependency or fixture failures.
+- GREEN evidence: npm test -- --run exited 0; Vitest reports 22 test files, 78 tests, 0 failures, 0 errors, 0 skipped. npm run typecheck exited 0. Strict Plan validation and git diff --check pass.
+- Warning classification: Vitest prints non-failing jsdom warnings for Ant Design calls to getComputedStyle with pseudo-elements; the command exits 0.
+- Design decision: reuse the existing React Context as the auth/tenant state owner and the existing TanStack QueryClient for cancellation/cache clearing; a session-generation check drops responses that complete after a switch. A separate State machine would duplicate this short login/bootstrap/switch/logout lifecycle.
+- Deviations: None. The work stays in the Web client/API/auth slice and preserves the existing Admin route/body contracts.
+
+| Manual Check | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| MC-ARCH-001 | Applicable | PASS | Only the existing Tianshu Admin Web module changes; no Admin Controller, Service, Repository, POM or DDL path changes | Existing Web-to-Admin route boundary remains | None |
+| MC-REUSE-001 | Applicable | PASS | Reuses shared gatewayAuth, current ddcApi/ddcPageApi fetch client, React Context and TanStack Query | No parallel HTTP/auth/cache implementation | None |
+| MC-DEP-001 | Applicable | PASS | package.json and lockfile diffs are empty | No dependency added | None |
+| MC-NAME-001 | Applicable | PASS | DdcAi wire types, 11 operation functions and tenant-scoped query keys | Names express API/resource/query roles | None |
+| MC-VALID-001 | Applicable | PASS | AI client checks decimal Long strings and Idempotency-Key syntax; backend Jakarta/Bean Validation remains authoritative | Invalid local identity strings are not coerced to JS numbers | None |
+| MC-MODEL-001 | Not applicable | N/A | No Java persistence/entity/value-object model is changed; TypeScript declarations model existing wire DTOs | No Java model annotations or constructors are introduced | None |
+| MC-CONVERT-001 | Not applicable | N/A | No object-to-object projection is added; AI request payload fields serialize directly to the existing HTTP DTO shape | MapStruct/BaseConverter scope is unchanged | None |
+| MC-LOG-001 | Not applicable | N/A | No production logging path is added or changed | No logging behavior to review | None |
+| MC-BEAN-001 | Not applicable | N/A | No Spring-managed Bean or constructor injection is changed | Spring bean wiring is outside this Web Step | None |
+| MC-UTIL-001 | Applicable | PASS | Uses browser URLSearchParams, encodeURIComponent and AbortSignal only; package manifest unchanged | No additional utility package or custom parser | None |
+| MC-JSON-001 | Applicable | PASS | Tests cover all 11 API routes, JSON bodies, decimal-string IDs/revisions, nullable target revision, 204 and ResultRecord errors | Browser JSON stays aligned with the accepted API contract | None |
+| MC-TIME-001 | Not applicable | N/A | No timestamp/date conversion or temporal field is added | Existing ISO/UTC timestamps remain opaque strings | None |
+| MC-CONFIG-001 | Not applicable | N/A | No application profile or browser environment key is changed | No profile parity change in this Step | None |
+| MC-PATTERN-001 | Applicable | PASS | Existing AuthContext owns session state; TanStack Query cancellation and a generation guard isolate stale async results | Reuses current state/query boundaries without another framework | None |
+| MC-SCOPE-001 | Applicable | PASS | Eight ordered Web implementation/test paths plus this Plan path exactly equal the nine-path manifest and worktree diff | No undeclared path remains | None |
+| MC-TEST-001 | Applicable | PASS | Full Vitest suite: 22 files, 78 tests; npm typecheck; RED evidence above | Routes, headers, errors, stale generation, cancellation and tenant cache isolation are covered | None |
+| MC-BLOCKER-001 | Applicable | PASS | Every Manual Check and Literal Rule row below is PASS or evidence-backed N/A | No unresolved Step 20 blocker remains | None |
+
+| Literal Rule | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| Rule 1 | Not applicable | N/A | No Java class/record/enum is added or changed | Java semantic suffix rules do not apply to TypeScript source | None |
+| Rule 2 | Not applicable | N/A | No Spring/Jakarta validation boundary is changed; client scalar guards supplement existing backend validation | No Java validation annotation/group change | None |
+| Rule 3 | Not applicable | N/A | No Java POJO, record, Lombok or MapStruct conversion is changed | Frontend wire types stay TypeScript type aliases | None |
+| Rule 4 | Not applicable | N/A | No Spring business Bean or Java constructor is changed | Bean naming/injection rules are outside this Web Step | None |
+| Rule 5 | Not applicable | N/A | No Java utility import or Maven dependency is added | Java allowlist is unchanged | None |
+| Rule 6 | Not applicable | N/A | No Java JSON serializer is changed; frontend tests preserve the Jackson-backed API wire contract | Jackson usage remains owned by existing Admin APIs | None |
+| Rule 7 | Not applicable | N/A | No Spring application profile is edited | Environment config parity is unchanged | None |
+| Rule 9 | Applicable | PASS | Existing React Context and TanStack Query own tenant session/cache behavior; generation guard is a local stale-response check | No complex business workflow or custom state machine is added | None |
+| Rule 10 | Not applicable | N/A | No Java date/time field, converter or import changes | Java time rule does not apply to this TypeScript-only Step | None |
+| Rule 11 | Applicable | PASS | Changes are confined to the Web API/auth client; existing Admin Controller → Service → Repository and MP/Outbox architecture are unchanged | Selected platform architecture remains intact | None |
+
+- Validation working directory: egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
+- Verification command: npm test -- --run
+- Additional verification command: npm run typecheck
+- Expected result: all 11 AI operation contracts, tenant header/generation guards, cache clear/cancel behavior and legacy client regressions pass; TypeScript build graph has no type errors; no browser, backend service or external integration starts.
+- Failure returns to: first failing Step 20 test/client/AuthContext file and effective Spec §9.0.1 / §12.4.
+- Completion criteria: every declared path is reviewed, exact validation passes, all Manual Checks and Literal Rules close, and a non-empty path-limited commit contains only the Step 20 manifest.
+- Rollback: before the Step 20 commit, revert only the nine manifest paths; no backend or persisted data is changed.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/query/queryClient.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.ts`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
+- Commit: feat(tianshu): step-20-web-ai-tenant (one focused logical Step commit; preserve prior Step history without merging or rewriting).
 
 ### Step 21 — 交付文本树草稿管理页面
 

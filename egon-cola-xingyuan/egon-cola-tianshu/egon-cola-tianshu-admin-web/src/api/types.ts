@@ -244,3 +244,129 @@ export type DdcNamespaceEnvAppBindingRequest = {
   appCode: string
   enabled: boolean
 }
+
+export type DdcAiKind = 'PROMPT' | 'SKILL'
+
+export type DdcAiNodeType = 'DIRECTORY' | 'FILE'
+
+export type DdcAiScope = {
+  bizCode: string
+  namespaceCode: string
+  env: string
+  appCode: string
+}
+
+export type DdcAiNode = {
+  path: string
+  nodeType: DdcAiNodeType
+  content: string | null
+}
+
+export type DdcAiContent = {
+  promptText: string | null
+  nodes: DdcAiNode[]
+}
+
+export type DdcAiResourceSummary = {
+  id: string
+  scope: DdcAiScope
+  kind: DdcAiKind
+  resourceKey: string
+  displayName: string
+  description: string
+  revision: string
+  lastVersionNo: string
+  currentVersionId: string | null
+  currentVersionNo: string | null
+  updatedAt: string
+}
+
+export type DdcAiResourceResult = {
+  resource: DdcAiResourceSummary
+  draft: DdcAiContent
+}
+
+export type DdcAiVersionSummary = {
+  id: string
+  resourceId: string
+  versionNo: string
+  kind: DdcAiKind
+  displayName: string
+  description: string
+  contentSha256: string
+  contentBytes: number
+  nodeCount: number
+  sourceVersionId: string | null
+  changeNote: string
+  createdAt: string
+  createdBy: string
+}
+
+export type DdcAiVersionResult = {
+  version: DdcAiVersionSummary
+  content: DdcAiContent
+}
+
+export type DdcAiPublicationResult = {
+  id: string
+  resourceId: string
+  operation: 'PUBLISH' | 'ROLLBACK' | 'PROMOTE'
+  previousVersionId: string | null
+  targetVersionId: string
+  targetVersionNo: string
+  sourceVersionId: string | null
+  resourceRevision: string
+  targetCreated: boolean
+  createdAt: string
+}
+
+export type DdcAiCreateCommand = {
+  scope: DdcAiScope
+  kind: DdcAiKind
+  resourceKey: string
+  displayName: string
+  description: string
+  draft: DdcAiContent
+}
+
+export type DdcAiDraftCommand = {
+  expectedRevision: string
+  displayName: string
+  description: string
+  draft: DdcAiContent
+}
+
+export type DdcAiPublishCommand = {
+  expectedRevision: string
+  changeNote: string
+}
+
+export type DdcAiRollbackCommand = {
+  expectedRevision: string
+  versionNo: string
+  changeNote: string
+}
+
+export type DdcAiPromotionCommand = {
+  sourceVersionNo: string
+  targetScope: DdcAiScope
+  targetResourceKey: string
+  expectedTargetRevision: string | null
+  changeNote: string
+}
+
+export type DdcAiResourcePageParams = DdcAiScope & {
+  kind: DdcAiKind
+  resourceKeyPrefix?: string
+  pageNo?: number
+  pageSize?: number
+}
+
+export type DdcAiVersionPageParams = {
+  pageNo?: number
+  pageSize?: number
+}
+
+export type DdcAiPublicationPageParams = DdcAiVersionPageParams & {
+  requestId?: string
+}
