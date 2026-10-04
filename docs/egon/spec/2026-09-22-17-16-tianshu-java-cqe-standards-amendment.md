@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 已接受规格的建模/包结构/删除契约修订，MP受控能力扩展，Outbox事务/Redis投递，多模块实施依赖 |
 | Created | `2026-09-22 17:16 Asia/Shanghai` |
-| Updated | `2026-10-02 08:40 Asia/Shanghai` |
+| Updated | `2026-10-05 02:03 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢既定多租户Prompt/Skill功能；最新Java/CQE标准与已批准组件扩展 |
@@ -808,7 +808,7 @@ Outbox中冻结的事件JSON是重投时的权威事件快照。DdcConfigDispatc
 
 ##### Identity and purpose
 
-DdcRegistryRevisionEvent；producer DdcNotificationPublisher由现有Registry writer调用；channel `TIANSHU_REGISTRY_EVENT`；destination为对应tenant v4 registry topic，consumer原目录subscription。
+DdcRegistryRevisionEvent；producer DdcNotificationPublisher由现有Registry writer调用；Outbox channel `tianshu.registry-event`（组件只接受小写channel），headers.eventType=`TIANSHU_REGISTRY_EVENT`；destination为对应tenant v4 registry topic，consumer原目录subscription。
 
 ##### Request parameters
 

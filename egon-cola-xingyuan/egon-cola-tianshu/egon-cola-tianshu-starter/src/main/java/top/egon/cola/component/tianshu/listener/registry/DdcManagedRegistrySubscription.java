@@ -3,6 +3,7 @@ package top.egon.cola.component.tianshu.listener.registry;
 import jakarta.validation.ConstraintViolationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RTopic;
@@ -10,6 +11,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.lang.Nullable;
 import org.redisson.client.codec.StringCodec;
 import org.slf4j.MDC;
+import top.egon.cola.component.tianshu.model.event.DdcRegistryRevisionEvent;
 import top.egon.cola.component.tianshu.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.tianshu.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
@@ -33,7 +35,7 @@ import java.util.function.Consumer;
 @Slf4j
 abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription {
 
-    private static final TypeReference<DdcTenantMessageDTO<DdcRegistryEvent>> EVENT_TYPE =
+    private static final TypeReference<DdcTenantMessageDTO<JsonNode>> ENVELOPE_JSON_TYPE =
             new TypeReference<>() { };
 
     protected final long tenantId;
@@ -127,27 +129,31 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
             return;
         }
         try {
-            DdcTenantMessageDTO<DdcRegistryEvent> envelope =
-                    eventMapper.readValue(payload, EVENT_TYPE);
-            if (envelope == null) {
+            DdcTenantMessageDTO<JsonNode> rawEnvelope =
+                    eventMapper.readValue(payload, ENVELOPE_JSON_TYPE);
+            if (rawEnvelope == null) {
                 log.warn("Discarding Tianshu registry message without a tenant envelope; tenantId={}",
                         tenantId);
                 return;
             }
             try {
-                validationUtils.validate(envelope);
+                validationUtils.validate(rawEnvelope);
             } catch (ConstraintViolationException invalidEnvelope) {
                 log.warn("Discarding Tianshu registry message with invalid envelope constraints; tenantId={}",
                         tenantId);
                 return;
             }
-            if (!envelope.belongsToTenant(tenantId)) {
+            if (!rawEnvelope.belongsToTenant(tenantId)) {
                 log.warn("Discarding Tianshu registry message with an invalid tenant envelope; tenantId={}",
                         tenantId);
                 return;
             }
+            DdcRegistryEvent registryEvent = registryEvent(rawEnvelope);
+            if (registryEvent == null) {
+                return;
+            }
             runWithTenant(() -> {
-                if (relevant(envelope.getPayload())) {
+                if (relevant(registryEvent)) {
                     queueRefresh();
                 }
             });
@@ -155,6 +161,44 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
             log.warn("Discarding invalid Tianshu registry event; tenantId={}, reason={}",
                     tenantId, exception.getClass().getSimpleName());
         }
+    }
+
+    private DdcRegistryEvent registryEvent(DdcTenantMessageDTO<JsonNode> rawEnvelope)
+            throws JsonProcessingException {
+        JsonNode payload = rawEnvelope.getPayload();
+        if (payload == null || payload.isNull()) {
+            log.warn("Discarding empty Tianshu registry payload; tenantId={}", tenantId);
+            return null;
+        }
+        if (payload.has("eventId")) {
+            DdcRegistryRevisionEvent event = eventMapper.treeToValue(payload, DdcRegistryRevisionEvent.class);
+            DdcTenantMessageDTO<DdcRegistryRevisionEvent> typedEnvelope =
+                    new DdcTenantMessageDTO<>(rawEnvelope.getTenantId(), event);
+            try {
+                validationUtils.validate(typedEnvelope);
+            } catch (ConstraintViolationException invalidEvent) {
+                log.warn("Discarding Tianshu registry event with invalid schema or revision; tenantId={}",
+                        tenantId);
+                return null;
+            }
+            if (!Long.valueOf(tenantId).equals(event.getTenantId()) || !event.hasValidIdentity()) {
+                log.warn("Discarding Tianshu registry event with invalid identity; tenantId={}, eventId={}",
+                        tenantId, event.getEventId());
+                return null;
+            }
+            return event.getEvent();
+        }
+
+        DdcRegistryEvent legacyEvent = eventMapper.treeToValue(payload, DdcRegistryEvent.class);
+        DdcTenantMessageDTO<DdcRegistryEvent> legacyEnvelope =
+                new DdcTenantMessageDTO<>(rawEnvelope.getTenantId(), legacyEvent);
+        try {
+            validationUtils.validate(legacyEnvelope);
+        } catch (ConstraintViolationException invalidLegacyEvent) {
+            log.warn("Discarding legacy Tianshu registry event with invalid revision; tenantId={}", tenantId);
+            return null;
+        }
+        return legacyEvent;
     }
 
     protected final void queueRefresh() {

@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
+import top.egon.cola.component.tianshu.admin.service.notification.DdcNotificationPublisher;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
@@ -58,9 +59,14 @@ class DdcAdminRedisConfigTest {
             return mock(RedissonClient.class);
         }
 
-        @Bean
+        @Bean("jacksonObjectMapper")
         ObjectMapper objectMapper() {
             return new ObjectMapper();
+        }
+
+        @Bean("ddcNotificationPublisher")
+        DdcNotificationPublisher ddcNotificationPublisher() {
+            return mock(DdcNotificationPublisher.class);
         }
 
         @Bean

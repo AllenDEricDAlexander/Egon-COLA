@@ -15,6 +15,7 @@ import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
+import top.egon.cola.component.tianshu.admin.service.notification.DdcNotificationPublisher;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcServiceRegistryRedisRepository;
@@ -141,7 +142,8 @@ class DdcRedisClusterIT {
         DdcServiceRegistryRedisRepository registry =
                 new DdcServiceRegistryRedisRepository(
                         redisson,
-                        new ObjectMapper().registerModule(new JavaTimeModule())
+                        new ObjectMapper().registerModule(new JavaTimeModule()),
+                        org.mockito.Mockito.mock(DdcNotificationPublisher.class)
                 );
         DdcServiceInstance instance = instance();
 

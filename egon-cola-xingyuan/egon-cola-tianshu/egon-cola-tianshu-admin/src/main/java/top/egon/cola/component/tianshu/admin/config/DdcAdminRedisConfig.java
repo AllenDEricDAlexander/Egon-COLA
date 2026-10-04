@@ -27,6 +27,7 @@ import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService
 import top.egon.cola.component.tianshu.admin.service.lease.DdcLeaseExpiryScanner;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
+import top.egon.cola.component.tianshu.admin.service.notification.DdcNotificationPublisher;
 import top.egon.cola.component.tianshu.admin.service.registry.DdcServiceRegistryService;
 import top.egon.cola.component.tianshu.redis.DdcRedisClientFactory;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
@@ -130,13 +131,14 @@ public class DdcAdminRedisConfig {
                 registrationVerifier);
     }
 
-    @Bean
+    @Bean("ddcServiceRegistryRedisRepository")
     @ConditionalOnBean(name = "ddcAdminRedissonClient")
     @ConditionalOnMissingBean
     public DdcServiceRegistryRedisRepository ddcServiceRegistryRedisRepository(
             @Qualifier("ddcAdminRedissonClient") RedissonClient redissonClient,
-            ObjectMapper objectMapper) {
-        return new DdcServiceRegistryRedisRepository(redissonClient, objectMapper);
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
+            @Qualifier("ddcNotificationPublisher") DdcNotificationPublisher notificationPublisher) {
+        return new DdcServiceRegistryRedisRepository(redissonClient, objectMapper, notificationPublisher);
     }
 
     @Bean

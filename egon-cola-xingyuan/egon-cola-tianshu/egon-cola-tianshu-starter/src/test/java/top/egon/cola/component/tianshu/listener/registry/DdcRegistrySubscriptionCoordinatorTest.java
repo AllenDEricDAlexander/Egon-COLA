@@ -14,11 +14,13 @@ import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
 import top.egon.cola.component.tianshu.model.registry.DdcRegistryEvent;
+import top.egon.cola.component.tianshu.model.event.DdcRegistryRevisionEvent;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceInstance;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceQuery;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 import top.egon.cola.component.tianshu.api.registry.DdcRegistrySubscription;
 
 import java.time.Clock;
@@ -209,6 +211,60 @@ class DdcRegistrySubscriptionCoordinatorTest {
     }
 
     @Test
+    void typedRevisionEnvelopeRefreshesWithoutRegressingAndLegacyEnvelopeRemainsSupported()
+            throws Exception {
+        AtomicReference<DdcServiceSnapshot> snapshot =
+                new AtomicReference<>(snapshot(2L, "instance-2"));
+        AtomicInteger loads = new AtomicInteger();
+        DdcRegistrySnapshotLoader loader = new DelegatingSnapshotLoader() {
+            @Override
+            public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey) {
+                loads.incrementAndGet();
+                return snapshot.get();
+            }
+        };
+        TopicFixture topic = topic(new ArrayList<>());
+        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        ScheduledFuture<?> reconcile = mock(ScheduledFuture.class);
+        List<Runnable> queued = new java.util.concurrent.CopyOnWriteArrayList<>();
+        doReturn(reconcile).when(scheduler).scheduleWithFixedDelay(
+                any(Runnable.class), anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
+        doAnswer(invocation -> {
+            queued.add(invocation.getArgument(0));
+            return null;
+        }).when(scheduler).execute(any(Runnable.class));
+        List<Long> revisions = new java.util.concurrent.CopyOnWriteArrayList<>();
+        DdcRegistrySubscriptionCoordinator manager = new DdcRegistrySubscriptionCoordinator(
+                loader, topic.redisson(), TENANT_ID, new ObjectMapper(), VALIDATION_UTILS,
+                Clock.fixed(NOW, ZoneOffset.UTC), scheduler, 60_000L);
+        manager.subscribe(SERVICE_KEY, value -> revisions.add(value.revision()));
+
+        snapshot.set(snapshot(3L, "instance-3"));
+        topic.listener().get().onMessage("topic", revisionEventJson(TENANT_ID, TENANT_ID, 3L, 2L));
+        assertThat(queued).hasSize(1);
+        queued.removeFirst().run();
+        assertThat(revisions).containsExactly(2L, 3L);
+
+        topic.listener().get().onMessage("topic", revisionEventJson(TENANT_ID, 202L, 4L, 3L));
+        assertThat(queued).isEmpty();
+
+        snapshot.set(snapshot(2L, "stale-instance"));
+        topic.listener().get().onMessage("topic", revisionEventJson(TENANT_ID, TENANT_ID, 2L, 1L));
+        assertThat(queued).hasSize(1);
+        queued.removeFirst().run();
+        assertThat(revisions).containsExactly(2L, 3L);
+
+        snapshot.set(snapshot(4L, "instance-4"));
+        topic.listener().get().onMessage("topic", eventJson(TENANT_ID, 4L));
+        assertThat(queued).hasSize(1);
+        queued.removeFirst().run();
+        assertThat(revisions).containsExactly(2L, 3L, 4L);
+        assertThat(loads).hasValue(4);
+
+        manager.close();
+    }
+
+    @Test
     void expiresCachedInstancesWhenAdminIsUnavailable() throws Exception {
         MutableClock clock = new MutableClock(NOW);
         AtomicBoolean unavailable = new AtomicBoolean();
@@ -298,6 +354,22 @@ class DdcRegistrySubscriptionCoordinatorTest {
                   }
                 }
                 """.formatted(tenantId, serviceRevision);
+    }
+
+    private String revisionEventJson(
+            long envelopeTenantId,
+            long eventTenantId,
+            long serviceRevision,
+            long catalogRevision) throws Exception {
+        DdcRegistryEvent registryEvent = new DdcRegistryEvent(
+                SERVICE_KEY, serviceRevision, catalogRevision);
+        DdcRegistryRevisionEvent revisionEvent = new DdcRegistryRevisionEvent(
+                DdcRegistryRevisionEvent.eventId(eventTenantId, registryEvent),
+                eventTenantId,
+                "1",
+                registryEvent);
+        return new ObjectMapper().writeValueAsString(
+                new DdcTenantMessageDTO<>(envelopeTenantId, revisionEvent));
     }
 
     private DdcRegistrySnapshotLoader loader(AtomicReference<DdcServiceSnapshot> snapshot,

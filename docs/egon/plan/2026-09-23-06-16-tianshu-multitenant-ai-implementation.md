@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-10-04 23:51 Asia/Shanghai` |
+| Updated | `2026-10-05 02:14 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -14,7 +14,7 @@
 | Baseline Revision | `main@b31357a0a`；其他任务工作区改动不纳入 |
 | Implements Spec | [天枢 Java/CQE 规范修订](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md) |
 | Spec Status | `Accepted` |
-| Spec Revision | `2026-10-02 08:40 Asia/Shanghai`；Outbox manifest/schema/read-only bootstrap、SINGLE schema路由及AI五表decimal-string id映射校准；Step 18修正既有Redisson投递描述与Outbox channel约束 |
+| Spec Revision | `2026-10-05 02:03 Asia/Shanghai`；Outbox manifest/schema/read-only bootstrap、SINGLE schema路由及AI五表decimal-string id映射校准；Step 18校准Redisson投递描述；Step 19按Outbox小写channel规则修正目录事件route并补MapStruct投影 |
 | Effective Specs | [主修订稿](../spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md)；[已确认原Spec](../spec/2026-09-21-17-18-tianshu-prompt-skill-management.md) |
 | Depends On Plans | None |
 | Supersedes | None |
@@ -103,7 +103,7 @@
 | Step 16 | Step 15 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 8个本步文件；result projections已在Step14提交 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 17 | Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 12个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 18 | Step 10, Step 11, Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 33个本步实现、调用者与测试文件；另含本计划和Spec修订各1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 19 | Step 18 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 9个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 19 | Step 18 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 13个本步实现、调用者与测试文件；另含本计划和Spec各1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 20 | Step 17, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 8个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 21 | Step 20 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 7个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 22 | Step 21 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 5个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -151,7 +151,7 @@
 | 接通管理REST与真实OpenAPI合同 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest | Step 15 | 11个REST、权限、错误、分页、严格JSON和实际OAS一致 | Step 17 | Step 16 |
 | 接通默认关闭的AI读取RPC与starter | REQ-007 REQ-008 REQ-019 | DdcAiRpcContractTest,DdcAiAutoConfigurationTest | Step 16 | 两独立开关、custom port、无默认网络；固定root版本读取不串重建身份 | Step 18 | Step 17 |
 | 将YAML分发意图接入Outbox并保留ACK语义 | REQ-011 REQ-017 | DdcConfigOutboxContractTest | Step 10, Step 11, Step 16 | 冻结当前attempt与enqueue同事务；handler复用原原子dispatch，不把投递成功当业务ACK | Step 19 | Step 18 |
-| 让目录通知经Outbox并保留源到队列窗口恢复 | REQ-013 REQ-017 | DdcRegistryOutboxTest | Step 18 | 目录通知真实enqueue/handler；Redis权威状态和SQL非原子窗口被明确测试，原reconcile保持 | Step 20 | Step 19 |
+| 让目录通知经Outbox并保留源到队列窗口恢复 | REQ-013 REQ-017 | DdcAdminRedisConfigTest,DdcRegistryOutboxTest,DdcServiceRegistryRedisRepositoryTest,DdcRegistrySubscriptionCoordinatorTest | Step 18 | 目录通知真实enqueue/handler；Redis权威状态和SQL非原子窗口被明确测试，原reconcile保持 | Step 20 | Step 19 |
 | 建立Web租户隔离请求与AI客户端合同 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract | Step 17, Step 19 | API字段与新selector/错误一致，切租户清缓存/取消旧响应，旧tab写入被预期tenant头拒绝 | Step 21 | Step 20 |
 | 交付文本树草稿管理页面 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-014 | AiDraftUI | Step 20 | 列表/创建/纯文本Tree编辑/保存冲突/离开保护形成完整用户流程 | Step 22 | Step 21 |
 | 交付版本、回滚与跨ns推广交互 | REQ-005 REQ-006 REQ-012 REQ-019 | AiVersionsUI | Step 21 | 只读历史、ID+version固定配置、双边权限推广与结果核验可操作 | Step 23 | Step 22 |
@@ -288,7 +288,8 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css` | SHA256 fbe85db04b96 | admin | Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库 | Step 21 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-014 | AiDraftUI |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml` | SHA256 ea05746b67e6 | pom | A加入MP5.4.1与Outbox5.4.1；A/R使用已批MapStruct1.6.3/processor和binding0.2.0；保留Boot/Lombok处理器；此阶段不删除JPA，不触及components/pom.xml | Step 3, Step 11, Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcProfileParityTest,DdcEndToEndContractTest, compile |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/DynamicConfigCenterAdminApplication.java` | SHA256 3f876d7f2d56 | DynamicConfigCenterAdminApplication | 移除JPA/Flyway/SQLite运行依赖/旧Page重载，Mapper扫描到admin.dao，保留旧归档SQL；不激活旧数据自动导入 | Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfig.java` | SHA256 eaf98d974276 | DdcAdminRedisConfig | DdcRedisRepository bean factory passes the Admin Redisson client and Boot ObjectMapper explicitly | Step 10, Step 18 | REQ-011 REQ-013 REQ-015 | DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest,DdcConfigOutboxContractTest,DdcRedisRepositoryTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfig.java` | SHA256 eaf98d974276 | DdcAdminRedisConfig | Ddc Redis repository bean factories pass the Admin Redisson client, Boot ObjectMapper and notification publisher explicitly | Step 10, Step 18, Step 19 | REQ-011 REQ-013 REQ-015 REQ-017 | DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest,DdcConfigOutboxContractTest,DdcRedisRepositoryTest,DdcRegistryOutboxTest,DdcServiceRegistryRedisRepositoryTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfigTest.java` | SHA256 baee61fef5fd | DdcAdminRedisConfigTest | Qualified Jackson and notification publisher fixtures satisfy the registry repository factory wiring | Step 19 | REQ-013 REQ-017 | DdcAdminRedisConfigTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiOpenApiConfiguration.java` | CREATE：基线不存在 | DdcAiOpenApiConfiguration | 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiTransactionConfiguration.java` | CREATE：基线不存在 | DdcAiTransactionConfiguration | 当前Step仅create/get/page/replaceDraft/delete；注解验证后状态权限/parent locks/root CAS，保留typed错误和原scope | Step 13 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019 | DdcAiDraftServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAiWebConfiguration.java` | CREATE：基线不存在 | DdcAiWebConfiguration | 原11API完整映射；Controller→Service；新路径专用strict ObjectMapper/Advice；旧HTTP不全局改 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
@@ -448,7 +449,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishAckRepository.java` | SHA256 0589d97a553b | DdcPublishAckRepository | ddc_publish_ack；DdcPublishAck；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 10, Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishTaskRepository.java` | SHA256 8e4b23819c60 | DdcPublishTaskRepository | ddc_publish_task；DdcPublishTask；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 10, Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java` | SHA256 171de35ddc59 | DdcRedisRepository | tenant v4 keys; prepared-event retry republishes frozen envelope while event-id idempotency guards state writes; heartbeat JSON uses injected Boot ObjectMapper | Step 6, Step 18 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcConfigOutboxContractTest,DdcRedisRepositoryTest,DdcTenantRedisKeyTest,DdcTenantCallbackTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java` | SHA256 36bcad8af260 | DdcServiceRegistryRedisRepository | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java` | SHA256 36bcad8af260 | DdcServiceRegistryRedisRepository | Tenant-scoped Redis state remains authoritative; notification production moves to Outbox publisher; preserve scope and revision semantics | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest,DdcServiceRegistryRedisRepositoryTest,DdcRedisClusterIT,DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiDraftNodeRepositoryImpl.java` | CREATE: 基线不存在；MODIFY: SHA256 9e4f52921dfbf3279f70 | DdcAiDraftNodeRepositoryImpl | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiPublicationRepositoryImpl.java` | CREATE: prior path; MODIFY: committed Step14 baseline SHA256 15d185889b7b6ffc802d48199eb898b2c86b31a5769843eca03f9fa92776b5a9 | DdcAiPublicationRepositoryImpl | Step14 version/idempotency persistence responsibility | Step 12, Step 14 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest,DdcAiVersionServiceTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/impl/DdcAiResourceRepositoryImpl.java` | CREATE: introduced before Step13; current corrective baseline SHA256 f5edab4b267aed1edc25755980fa814843562f54ce133620ea88f74a550f4b75 | DdcAiResourceRepositoryImpl | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
@@ -593,10 +594,10 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisClusterSlotContractTest.java` | SHA256 8d9481b057a6 | DdcRedisClusterSlotContractTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepositoryTest.java` | SHA256 973767470b08 | DdcRedisRepositoryTest | preserves legacy dispatch and verifies prepared event-id idempotency, frozen tenant envelope, and same-event topic replay | Step 6, Step 18 | REQ-011 REQ-013 REQ-014 | DdcRedisRepositoryTest,DdcConfigOutboxContractTest,DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcRedisSentinelIT.java` | SHA256 baseline | DdcRedisSentinelIT | Direct constructor supplies test ObjectMapper; Sentinel failover behavior unchanged; only source compilation runs in Step 18 | Step 18 | REQ-011 REQ-017 | compile |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcRedisClusterIT.java` | SHA256 baseline | DdcRedisClusterIT | Direct constructor supplies test ObjectMapper; Redis cluster slot behavior unchanged; only source compilation runs in Step 18 | Step 18 | REQ-011 REQ-017 | compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcRedisClusterIT.java` | SHA256 baseline | DdcRedisClusterIT | Redis-only integration fixture supplies a mock Outbox publisher; cluster slot behavior unchanged; test source is compile-checked only | Step 18, Step 19 | REQ-011 REQ-017 | test-compile |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRepositoryTest.java` | SHA256 de73375ce6a6 | DdcRepositoryTest | 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 9, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryPersistenceBoundaryTest.java` | SHA256 8180b61d8d6a | DdcServiceRegistryPersistenceBoundaryTest | 完成剩余Spring Data/JPA类型替换；不改变既有流程；如前Step已处理则仅检查剩余指定引用 | Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java` | SHA256 170b812e7a53 | DdcServiceRegistryRedisRepositoryTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java` | SHA256 170b812e7a53 | DdcServiceRegistryRedisRepositoryTest | Repository assertions verify Outbox publisher handoff while retaining tenant Redis key/revision behavior | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest,DdcServiceRegistryRedisRepositoryTest,DdcRegistrySubscriptionCoordinatorTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityIntegrationTest.java` | SHA256 2ad5b61d451a | DdcAdminSecurityIntegrationTest | Step 5注册可信USER租户映射并验证旧REST兼容头与tenant mismatch；Step 10/11继续验证旧Entity调用迁移到BO后的权限/错误/Repository合同 | Step 5, Step 10, Step 11 | REQ-011 REQ-013 REQ-015 | DdcTenantIsolationTest,DdcAdminSecurityIntegrationTest,DdcLegacyBehaviorContractTest,DdcArchitectureContractTest,DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java` | CREATE：基线不存在 | DdcTenantIsolationTest | USER映射/HMAC exact tenant、未知/停用拒绝、MDC异常后恢复；预期tenant头只比较主体 | Step 5 | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/ai/DdcAiDraftServiceTest.java` | CREATE before Step13; MODIFY baseline SHA256 e1c569b121a022708db0fc415c83f654081e11e8b2d9c0788a7e1e1f132e9a2e | DdcAiDraftServiceTest | Step13草稿/删除行为回归；Step14补齐版本Repository/Converter/MeterRegistry构造依赖，不改草稿行为 | Step 13, Step 14 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-019 | DdcAiDraftServiceTest,DdcAiVersionServiceTest |
@@ -637,10 +638,10 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/properties/DdcTenantProperties.java` | CREATE：基线不存在 | DdcTenantProperties | class tenantId及redis认证信息，关闭时可不填、默认适配器启用时必填 | Step 5 | REQ-007 REQ-008 REQ-011 REQ-013 REQ-014 REQ-015 | DdcTenantIsolationTest,DdcTenantBootstrapTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/tenant/DdcTenantMessageDTO.java` | CREATE：基线不存在 | DdcTenantMessageDTO<T> | 正Long tenantId＋@Valid非空payload；belongsToTenant只匹配确切订阅tenant；payload不进入toString | Step 6 | REQ-013 | DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/config/DdcConfigChangeListener.java` | SHA256 53f195d4bbfd | DdcConfigChangeListener | 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 18 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcConfigOutboxContractTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java` | SHA256 b40c67ee00fd | DdcCatalogSubscription | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java` | SHA256 b5d18aebfa71 | DdcInstanceSubscription | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java` | SHA256 b40c67ee00fd | DdcCatalogSubscription | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java` | SHA256 b5d18aebfa71 | DdcInstanceSubscription | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言；本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java` | SHA256 0110cca25206 | DdcManagedRegistrySubscription | 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java` | SHA256 1498af69b27d | DdcRegistrySubscriptionCoordinator | 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java` | SHA256 1498af69b27d | DdcRegistrySubscriptionCoordinator | 本地Map/订阅identity包含tenant；callback/envelope校验；原ACK/reconcile不删除 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcRegistryOutboxTest, DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiContentDTO.java` | CREATE：基线不存在 | DdcAiContentDTO | class promptText/nodes，@ValidAiContent和Publishable组 | Step 4 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-015 REQ-016 REQ-019 | DdcAiJavaContractTest,DdcAiStableVersionSelectorTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiKindEnum.java` | CREATE：基线不存在 | DdcAiKindEnum | JSON枚举PROMPT/SKILL，显式稳定code＋JsonValue/Creator，无MP注解 | Step 4 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-015 REQ-016 REQ-019 | DdcAiJavaContractTest,DdcAiStableVersionSelectorTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/ai/DdcAiNodeDTO.java` | CREATE：基线不存在 | DdcAiNodeDTO | class path/nodeType/content，@ValidAiNode | Step 4 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-015 REQ-016 REQ-019 | DdcAiJavaContractTest,DdcAiStableVersionSelectorTest |
@@ -669,6 +670,8 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/config/DdcPublishTarget.java` | SHA256 baseline | DdcPublishTarget | record components加入instanceId/leaseId非空约束；wire字段不变 | Step 18 | REQ-011 REQ-017 | DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfiguration.java` | SHA256 f0e6d170e0a9 | DdcAutoConfiguration.ddcRedisChangeSubscription/ddcRuntimeCoordinator | Topic订阅及唯一运行时注入改为wildcard tenant payload以接收PreparedEvent并兼容旧DdcPublishMessage | Step 18 | REQ-011 REQ-017 | DdcTenantCallbackTest, compile |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/event/DdcRegistryRevisionEvent.java` | CREATE：基线不存在 | DdcRegistryRevisionEvent | class eventId/tenantId/schemaVersion/event(DdcRegistryEvent)；ID由scope+两revision决定，无重试Clock字段 | Step 19 | REQ-013 REQ-017 | DdcRegistryOutboxTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcRegistryRevisionEventConverter.java` | CREATE：基线不存在 | DdcRegistryRevisionEventConverter | MapStruct/BaseForwardConverter将不可变Registry fact投影为租户事件包络；可信tenant/context用于eventId | Step 19 | REQ-013 REQ-017 | DdcRegistryOutboxTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcRegistryEvent.java` | SHA256 ef3d68d6e0b8 | DdcRegistryEvent | Adds cascaded service-key validation and nonnegative revision constraints without changing record or JSON contract | Step 19 | REQ-013 REQ-017 | DdcRegistryOutboxTest,DdcRegistrySubscriptionCoordinatorTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisClientFactory.java` | SHA256 857f50eea111 | DdcRedisClientFactory | 锁/缓存key包含tenant；消费Redis ACL username接线，SDK只授必要读/订阅，不默认共享全权账号 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcRedisClientFactoryTest.java` | SHA256 79ed2d522448 | DdcRedisClientFactoryTest | Verifies ACL username propagation for SINGLE, SENTINEL and CLUSTER, plus preserved legacy factory entry point | Step 6 | REQ-013 | DdcRedisClientFactoryTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/redis/DdcRedisKeys.java` | SHA256 c6c3a7a6dede | DdcRedisKeys | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
@@ -682,7 +685,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` | SHA256 a0f50ca06627 | org.springframework.boot.autoconfigure.AutoConfiguration | 注册新轻量配置、两个开关false；tenant无默认值；不触发原lease/registry | Step 17 | REQ-007 REQ-008 REQ-019 | DdcAiRpcContractTest,DdcAiAutoConfigurationTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/autoconfigure/DdcAutoConfigurationTest.java` | SHA256 35752159749c | DdcAutoConfigurationTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/DdcTenantCallbackTest.java` | CREATE：基线不存在 | DdcTenantCallbackTest | 错tenant包络拒绝，异常/异步回调恢复MDC，重复/乱序不倒退 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java` | SHA256 ef2e4693429f | DdcRegistrySubscriptionCoordinatorTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java` | SHA256 ef2e4693429f | DdcRegistrySubscriptionCoordinatorTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6, Step 19 | REQ-011 REQ-013 REQ-014 REQ-017 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcRedisKeysTest.java` | SHA256 26fe5dce7feb | DdcRedisKeysTest | DdcRedisKeys每次调用显式传可信tenant；保留原scope/后缀、Lua键同slot；更新对应键断言 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/redis/DdcTenantRedisKeyTest.java` | CREATE：基线不存在 | DdcTenantRedisKeyTest | same scope/different tenant keys/topics/catalog不同；slot输入含tenant；无v3读回退 | Step 6 | REQ-011 REQ-013 REQ-014 | DdcTenantRedisKeyTest,DdcTenantCallbackTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/main/resources/application.yml` | SHA256 a1a0e969ad09 | application | 测试调用方显式tenant/hmac/Redis用户名，无默认租户；AI默认false；仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
@@ -17016,9 +17019,10 @@ assertThat(test.getProperty(prefix + "polling.enabled")).isEqualTo("false");
 - Dependencies: Step 18
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 目录通知真实enqueue/handler；Redis权威状态和SQL非原子窗口被明确测试，原reconcile保持。
-- End state: 目录通知真实enqueue/handler；Redis权威状态和SQL非原子窗口被明确测试，原reconcile保持；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- End state: 目录通知真实enqueue/handler；Redis权威状态和SQL非原子窗口被明确测试，原reconcile保持；13个实现、调用者与测试路径通过验证，后续Step未完成前不宣称整系统可部署。
+- Plan clarification: Outbox `DeliveryHandlerRegistry` accepts only `[a-z][a-z0-9._-]{0,63}`; use channel `tianshu.registry-event` and header `eventType=TIANSHU_REGISTRY_EVENT`. This changes only the internal route label. Repository construction, unit tests and the Redis-only Cluster IT are listed because they directly instantiate the repository. The shared Managed subscription unwraps typed and legacy events; catalog/instance snapshot loaders already reject older revisions, so those subclasses and the coordinator remain unchanged. Each Plan Step is one focused logical commit; preserve Step 18 history without merge, squash or rewrite.
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-MODEL-001, MC-REUSE-001, MC-DEP-001, MC-PATTERN-001
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
@@ -17073,12 +17077,70 @@ assertThat(test.getProperty(prefix + "polling.enabled")).isEqualTo("false");
 - Verification contribution: DdcRegistryOutboxTest聚焦本文件的class eventId/tenantId/schemaVersion/event(DdcRegistryEvent)；ID由scope+两revision决定，无重试Clock字段；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryEventDeliveryHandler.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcRegistryEvent.java`
+
+- Purpose: 为现有不可变Registry Event添加Jakarta级联验证：serviceKey必填且级联，两个Redis revision非负；保持record与Jackson字段不变。
+- Symbols: `DdcRegistryEvent`
+- Repository evidence: 当前路径存在，SHA256前12位`ef3d68d6e0b8`；现有record有serviceKey/serviceRevision/catalogRevision但没有约束注解。
+- Dependencies and consumers: 前置File 2定义外层`DdcRegistryRevisionEvent`并级联到本Event；File 4 Handler和Starter registry subscriptions共同验证。
+- Why now: 新Outbox envelope把现有Registry Event嵌套为事实payload；若内层revision缺乏边界验证，tenant/schema检查不能证明完整修订信息有效。
+- Contract/signature changes: record构造参数、JSON属性和访问器不变；仅加`@NotNull @Valid`与`@PositiveOrZero`组件约束。
+- Input/output and state mapping: Jackson/Outbox registry JSON → Jakarta验证serviceKey及修订号 → 原snapshot reload/reconcile。
+- Error and edge behavior: null serviceKey、负revision由ValidationUtils拒绝；已有DdcServiceKey canonical constructor继续验证键字段。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001；Rule 1, Rule 2, Rule 3, Rule 6, Rule 11。
+- Literal rule enforcement: Event继续作为不可变value record (Rule 3)；嵌套输入约束和revision边界落实Rule 2；JSON名和数值格式不变 (Rule 6)；Starter仍使用原registry模型层 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+public record DdcRegistryEvent(
+    @NotNull @Valid DdcServiceKey serviceKey,
+    @PositiveOrZero long serviceRevision,
+    @PositiveOrZero long catalogRevision) { }
+// Outer DdcRegistryRevisionEvent carries @Valid on this record; the tenant and schema checks remain at the envelope boundary.
+```
+
+- Verification contribution: new Outbox contract tests reject invalid revisions and missing serviceKey; existing registry subscription tests preserve valid legacy events.
+- After this file: nested validation proves the original registry fact before Outbox or Redis subscriber processing.
+
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcRegistryRevisionEventConverter.java`
+
+- Purpose: 用MapStruct和Egon `BaseForwardConverter`把既有不可变`DdcRegistryEvent`投影到Starter-owned revision envelope；trusted tenant与稳定eventId由显式重载补入。
+- Symbols: `DdcRegistryRevisionEventConverter`
+- Repository evidence: 当前路径不存在；模块已有MapStruct `BaseForwardConverter`模式与`DdcConfigDispatchEventConverter`实现。
+- Dependencies and consumers: 前置File 2事件类型与File 3内层验证约束；File 6 Publisher通过限定Mapper Bean构造冻结Outbox事件。
+- Why now: 新Registry envelope是单向投影；复用现有MapStruct/BaseForwardConverter契约，避免Publisher手写对象字段映射并保持稳定event identity规则集中。
+- Contract/signature changes: `toTarget(DdcRegistryEvent, Long tenantId)`显式接收可信tenant，设置schemaVersion和基于tenant/serviceKey/revisions的SHA-256 eventId；BaseForwardConverter基础映射把源Event整体放入`event`字段。
+- Input/output and state mapping: trusted tenant + immutable Registry fact → validated DdcRegistryRevisionEvent → JSON snapshot / existing tenant envelope。
+- Error and edge behavior: tenant必须为正数，serviceKey/revision经源Event约束验证；不包含occurredAt或重试变化字段。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-UTIL-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 11。
+- Literal rule enforcement: 命名Converter和投影继承BaseForwardConverter (Rule 1, Rule 3)；身份散列复用现有Digests (Rule 5)；无Admin模型反向依赖Starter (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Mapper(componentModel="spring", implementationName="DdcRegistryRevisionEventConverterImpl")
+interface DdcRegistryRevisionEventConverter
+        extends BaseForwardConverter<DdcRegistryEvent, DdcRegistryRevisionEvent> {
+  @Mapping(target="event", source=".")
+  @Mapping(target="schemaVersion", constant="1")
+  DdcRegistryRevisionEvent toTarget(DdcRegistryEvent source);
+  default DdcRegistryRevisionEvent toTarget(DdcRegistryEvent source, Long trustedTenantId) {
+    var target = toTarget(source);
+    target.setTenantId(trustedTenantId);
+    target.setEventId(DdcRegistryRevisionEvent.eventId(trustedTenantId, source));
+    return target;
+  }
+}
+```
+
+- Verification contribution: DdcRegistryOutboxTest compares stable tenant/scope/revision identities and confirms the generated converter preserves the source event.
+- After this file: Publisher receives a validated typed event without manually copying fields.
+
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryEventDeliveryHandler.java`
 
 - Purpose: 原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子
 - Symbols: `DdcRegistryEventDeliveryHandler`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcRegistryEventDeliveryHandler`。
-- Dependencies and consumers: 前置Step 18；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置File 4 Converter与Step 18 Outbox事务Template；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子。
 - Contract/signature changes: DdcRegistryEventDeliveryHandler的具体签名/配置/字段变更：原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子。
 - Input/output and state mapping: 冻结的tenant/eventId/schema/payload → Outbox存储/Redis包络 → 原SDK消费；重复投递不能重复业务ACK。
@@ -17099,37 +17161,95 @@ DeliveryResult deliver(DeliveryContext ctx) {
 - Verification contribution: DdcRegistryOutboxTest聚焦本文件的原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcNotificationPublisher.java`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcNotificationPublisher.java`
 
 - Purpose: 原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子
 - Symbols: `DdcNotificationPublisher`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcNotificationPublisher`。
-- Dependencies and consumers: 前置Step 18；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子。
-- Contract/signature changes: DdcNotificationPublisher的具体签名/配置/字段变更：原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子。
+- Dependencies and consumers: 使用File 4的`DdcRegistryRevisionEventConverter`与Step 18共享的transactionTemplate/TransactionalOutbox；由File 9 registry repository调用。
+- Why now: 其上游事件/Converter合同已在前置文件定义；此文件负责Redis变更后的独立SQL事务enqueue和缺口日志，handler重试/DEAD由组件管理，不宣称源和队列原子。
+- Contract/signature changes: `publish(tenantId, DdcRegistryEvent)`验证源事件，调用Converter生成stable Event，序列化一次TenantMessage JSON并作为Outbox raw application/json payload入队。
 - Input/output and state mapping: 冻结的tenant/eventId/schema/payload → Outbox存储/Redis包络 → 原SDK消费；重复投递不能重复业务ACK。
 - Error and edge behavior: 丢失确认可重投；过期/旧attempt不迟到激活；DEAD不伪造ACK；Redis离线仍靠原reconcile。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-REUSE-001, MC-DEP-001, MC-PATTERN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 9, Rule 10, Rule 11；原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-BEAN-001, MC-MODEL-001, MC-CONVERT-001, MC-REUSE-001, MC-DEP-001, MC-VALID-001, MC-UTIL-001, MC-JSON-001, MC-LOG-001, MC-PATTERN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 9, Rule 11；原Redis提交后独立SQL事务enqueue；Outbox失败记录tenant/event/revision，不伪造Redis回滚。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；复杂投递使用Outbox DeliveryHandler Strategy (Rule 9)；本Event无业务时间字段 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcNotificationPublisher: 原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子
-OutboxMessage msg = OutboxMessage.builder().messageId(stableEventId).idempotencyKey(stableEventId).channel(channel).destination(destination).payload(frozenJson).contentType("application/json").schemaVersion("1").headers(tenantHeaders).build();
-transactionalOutbox.enqueue(msg); // serializer preserves raw application/json String payload
-// same local DataSource transaction only for YAML prepared event; Redis registry mutation precedes a separate SQL enqueue transaction.
-// component worker calls named DeliveryHandler; RETRYABLE_FAILURE/DEAD is monitored; original ACK and reconcile remain authoritative.
+var event = eventConverter.toTarget(sourceEvent, trustedTenantId);
+validationUtils.validate(event);
+String frozenEnvelopeJson = objectMapper.writeValueAsString(new DdcTenantMessageDTO<>(trustedTenantId, event));
+OutboxMessage msg = OutboxMessage.builder().messageId(event.getEventId()).idempotencyKey(event.getEventId())
+    .channel(CHANNEL).destination(destination(event)).payload(frozenEnvelopeJson)
+    .contentType("application/json").schemaVersion("1")
+    .header("tenantId", Long.toString(trustedTenantId)).header("eventType", EVENT_TYPE).build();
+transactionTemplate.executeWithoutResult(status -> transactionalOutbox.enqueue(msg));
+// Redisson state is authoritative; enqueue failure is logged and existing snapshot reconciliation closes the window.
 ```
 
 - Verification contribution: DdcRegistryOutboxTest聚焦本文件的原Redis提交后独立SQL事务enqueue；handler只验证并publish，重试/DEAD由组件；不宣称源和队列原子；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfig.java`
+
+- Purpose: 将Outbox producer注入现有registry Repository Bean factory，保留同一Redisson/ObjectMapper和条件化创建。
+- Symbols: `ddcServiceRegistryRedisRepository`
+- Repository evidence: 当前路径已由Step 18提交；HEAD文件SHA256前12位`35ed7bfab268`；该Bean factory当前只注入RedissonClient与ObjectMapper。
+- Dependencies and consumers: 依赖File 4 `DdcNotificationPublisher`；为File 6 Repository构造器提供受限定依赖。
+- Why now: Repository由配置类手动new；若不改这个直接创建点，Outbox producer既不能注入，也会导致构造器或Spring Wiring不一致。
+- Contract/signature changes: 显式Bean名`ddcServiceRegistryRedisRepository`；新增`@Qualifier("ddcNotificationPublisher")`参数，并为Jackson ObjectMapper补精确Qualifier。
+- Input/output and state mapping: Admin RedissonClient、Boot ObjectMapper和named NotificationPublisher → `ddcServiceRegistryRedisRepository` Bean → Registry service维持既有依赖。
+- Error and edge behavior: 保留`ddcAdminRedissonClient`条件与`@ConditionalOnMissingBean`；依赖缺失时不创建半配置Repository。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-BEAN-001, MC-DEP-001；Rule 4, Rule 11。
+- Literal rule enforcement: 命名Bean和构造工厂的依赖使用精确Qualifier (Rule 4)；只扩展Tianshu原有三层配置，不引入新模块 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Bean("ddcServiceRegistryRedisRepository")
+@ConditionalOnBean(name = "ddcAdminRedissonClient")
+@ConditionalOnMissingBean
+DdcServiceRegistryRedisRepository ddcServiceRegistryRedisRepository(
+    @Qualifier("ddcAdminRedissonClient") RedissonClient client,
+    @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
+    @Qualifier("ddcNotificationPublisher") DdcNotificationPublisher publisher) {
+  return new DdcServiceRegistryRedisRepository(client, objectMapper, publisher);
+}
+```
+
+- Verification contribution: module compile and Outbox/repository contracts prove the named publisher is supplied at the only production constructor call.
+- After this file: production bean wiring matches the repository's new constructor before its behavior is changed.
+
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfigTest.java`
+
+- Purpose: 更新DdcAdminRedisConfig的ApplicationContextRunner fixture，提供精确命名的Jackson mapper和notification publisher，使配置装配合同覆盖新Bean参数。
+- Symbols: `DdcAdminRedisConfigTest.TestInfrastructure`
+- Repository evidence: 当前路径SHA256前12位`baee61fef5fd`；现有fixture只提供默认名ObjectMapper且没有DdcNotificationPublisher。
+- Dependencies and consumers: 依赖File 6配置Bean factory的Qualifier/命名；后续Admin启动装配复用。
+- Why now: 新增依赖是直接Bean factory签名变更；不更新最小配置测试会因缺少精确Bean qualifier而失败或遗漏 wiring contract。
+- Contract/signature changes: 把ObjectMapper fixture Bean命名为`jacksonObjectMapper`并增加`ddcNotificationPublisher` mock Bean；不启动Redisson或Outbox。
+- Input/output and state mapping: 配置类+命名Mapper+mock publisher+mock Redis → Repository Bean构造完成 → 原verifier合同仍通过。
+- Error and edge behavior: 测试保持隔离；不注册真实Outbox worker或外部服务。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-BEAN-001, MC-REUSE-001；Rule 4, Rule 11。
+- Literal rule enforcement: fixture显式命名Jackson与publisher Bean供Qualifier解析 (Rule 4)；只更新Tianshu现有配置测试，不改变模块边界 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Bean("jacksonObjectMapper") ObjectMapper objectMapper() { return new ObjectMapper(); }
+@Bean("ddcNotificationPublisher") DdcNotificationPublisher notificationPublisher() {
+  return mock(DdcNotificationPublisher.class);
+}
+// ApplicationContextRunner still asserts DdcAdminRedisConfig's existing verifier bean.
+```
+
+- Verification contribution: DdcAdminRedisConfigTest proves the conditional repository factory can resolve every qualified dependency without starting Redis.
+- After this file: the changed factory signature has a direct wiring regression check.
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`
 
 - Purpose: 原通知调用改为NotificationPublisher，不在Redis存储类复制Outbox调度；冻结key/revision，失败明确窗口日志
 - Symbols: `DdcServiceRegistryRedisRepository`
-- Repository evidence: 当前存在，SHA256前12位`36bcad8af260`；源符号`DdcServiceRegistryRedisRepository`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 18；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Repository evidence: 当前存在，SHA256前12位`a1ca1e560707`；源符号`DdcServiceRegistryRedisRepository`或相邻同层调用可定位。
+- Dependencies and consumers: 前置Step 18；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责原通知调用改为NotificationPublisher，不在Redis存储类复制Outbox调度；冻结key/revision，失败明确窗口日志。
 - Contract/signature changes: DdcServiceRegistryRedisRepository的具体签名/配置/字段变更：原通知调用改为NotificationPublisher，不在Redis存储类复制Outbox调度；冻结key/revision，失败明确窗口日志。
 - Input/output and state mapping: 冻结的tenant/eventId/schema/payload → Outbox存储/Redis包络 → 原SDK消费；重复投递不能重复业务ACK。
@@ -17149,42 +17269,95 @@ transactionalOutbox.enqueue(msg); // serializer preserves raw application/json S
 - Verification contribution: DdcRegistryOutboxTest聚焦本文件的原通知调用改为NotificationPublisher，不在Redis存储类复制Outbox调度；冻结key/revision，失败明确窗口日志；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`
 
-- Purpose: 校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐
-- Symbols: `DdcCatalogSubscription`
-- Repository evidence: 当前存在，SHA256前12位`b40c67ee00fd`；源符号`DdcCatalogSubscription`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 18；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
-- Contract/signature changes: DdcCatalogSubscription的具体签名/配置/字段变更：校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
-- Input/output and state mapping: 冻结的tenant/eventId/schema/payload → Outbox存储/Redis包络 → 原SDK消费；重复投递不能重复业务ACK。
-- Error and edge behavior: 丢失确认可重投；过期/旧attempt不迟到激活；DEAD不伪造ACK；Redis离线仍靠原reconcile。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Purpose: 将旧的直接Redis Pub/Sub断言改为冻结Outbox事件交付契约；保留注册、heartbeat、deregister、revision与租户Redis键断言。
+- Symbols: `DdcServiceRegistryRedisRepositoryTest`
+- Repository evidence: 当前路径SHA256前12位`99de131a8917`；现有register合同直接读取Redis topic发布的旧`DdcTenantMessageDTO<DdcRegistryEvent>`。
+- Dependencies and consumers: File 6新Repository构造器与File 4 publisher；同Step的DdcRegistryOutboxTest验证完整投递结果。
+- Why now: 构造器和通知所有权已从Repository内部Redis publish移至Outbox producer；旧topic断言必须迁到producer/handler合同而不能继续描述旧实现。
+- Contract/signature changes: fixture注入mock `DdcNotificationPublisher`；注册后断言publisher收到trusted tenant与完整revision event；不把mock Outbox当作跨Redis/SQL原子证明。
+- Input/output and state mapping: Registry操作及tenant-bound Redis更新 → publisher收到revision snapshot → 测试断言完整scope和revision。
+- Error and edge behavior: 重复/乱序revision保持；失败窗口由DdcRegistryOutboxTest覆盖；保留Redis状态写和tenant key断言。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-JSON-001；Rule 2, Rule 6, Rule 11。
+- Literal rule enforcement: 事件包络字段按Jackson合同断言 (Rule 6)；只验证各自Redis/Outbox边界，不声称双存储原子 (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcCatalogSubscription: 校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐
-OutboxMessage msg = OutboxMessage.builder().messageId(stableEventId).idempotencyKey(stableEventId).channel(channel).destination(destination).payload(frozenJson).contentType("application/json").schemaVersion("1").headers(tenantHeaders).build();
-transactionalOutbox.enqueue(msg); // serializer preserves raw application/json String payload
-// same local DataSource transaction only for YAML prepared event; Redis registry mutation precedes a separate SQL enqueue transaction.
-// component worker calls named DeliveryHandler; RETRYABLE_FAILURE/DEAD is monitored; original ACK and reconcile remain authoritative.
+repository.register(instance);
+verify(notificationPublisher).publish(eq(tenantId), eventCaptor.capture());
+assertThat(eventCaptor.getValue().event().serviceRevision()).isEqualTo(expectedRevision);
 ```
 
-- Verification contribution: DdcRegistryOutboxTest聚焦本文件的校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: preserves existing repository behavior coverage while relocating notification assertions to the producer boundary.
+- After this file: Admin unit tests no longer expect the Repository to publish directly to Redis.
 
-#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcRedisClusterIT.java`
+
+- Purpose: 保持该IT只验证Redis Cluster路由/状态；显式mock独立Outbox publisher，不要求启动SQL或Outbox worker。
+- Symbols: `serviceRegistrationHeartbeatAndDeregistrationCompleteWithoutCrossSlot`
+- Repository evidence: 当前路径SHA256前12位`18191a161646`；测试直接调用`new DdcServiceRegistryRedisRepository(redissonClient, objectMapper)`。
+- Dependencies and consumers: File 6新增publisher构造参数；测试仅覆盖原Redis Cluster与cross-slot边界。
+- Why now: 构造器新增真实Outbox依赖后，这个Redis-only fixture需明确隔离外部SQL能力，并在不运行容器的本Step编译检查中保持可编译。
+- Contract/signature changes: 以mock `DdcNotificationPublisher`构造repository；既有Redis数据断言不变，Outbox语义由独立测试覆盖。
+- Input/output and state mapping: Testcontainers Redis Cluster client、Jackson mapper和mock publisher → registry state methods → cluster Redis state assertions。
+- Error and edge behavior: 本Step不启动Testcontainers；Redis live行为仍属于用户控制的runtime gate。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001；Rule 5, Rule 11。
+- Literal rule enforcement: 复用JDK/既有Mockito (Rule 5)；测试边界不扩展到应用数据库或Outbox runtime (Rule 11)。
+- Implementation pseudocode:
+
+```java
+var mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+var publisher = mock(DdcNotificationPublisher.class);
+var registry = new DdcServiceRegistryRedisRepository(redisson, mapper, publisher);
+registry.register(instance(), identity(NOW.plusSeconds(60)));
+assertThat(registry.getInstances(instance().serviceKey(), NOW).instances()).hasSize(1);
+assertThat(registry.heartbeat(request, identity(NOW.plusSeconds(60)), NOW.plusSeconds(1)).status())
+    .isEqualTo(DdcLeaseOperationStatus.RENEWED);
+assertThat(registry.deregister(request, NOW.plusSeconds(2)).status())
+    .isEqualTo(DdcLeaseOperationStatus.DELETED);
+```
+
+- Verification contribution: test-compile validates the only Redis Cluster integration caller without starting Testcontainers.
+- After this file: all direct repository construction sites reflect the new dependency.
+
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java`
+
+- Purpose: 验证Starter订阅读取新`DdcRegistryRevisionEvent`包络，同时继续读取旧`DdcRegistryEvent`消息；重复和乱序通知不回退权威snapshot。
+- Symbols: `DdcRegistrySubscriptionCoordinatorTest`
+- Repository evidence: 当前路径SHA256前12位`391862e7494b`；现有测试只构造legacy tenant envelope。
+- Dependencies and consumers: 前置File 2/3事件模型；此测试先固定新旧envelope兼容和revision monotonicity，再由File 11更新ManagedRegistrySubscription实现。
+- Why now: 先让typed-envelope行为在Starter subscriber边界RED，覆盖Outbox新payload和滚动升级旧消息，再实现File 11。
+- Contract/signature changes: 增加typed-event JSON夹具与identity错误负例；原legacy消息覆盖保留。
+- Input/output and state mapping: tenant envelope + typed/legacy registry payload → relevant service-key event → 原snapshot loader/reconcile。
+- Error and edge behavior: envelope tenant、内层tenant/schema/eventId错误时不触发刷新；较旧snapshot不替换当前cache；offline event仍由reconcile恢复。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-JSON-001, MC-ARCH-001；Rule 2, Rule 6, Rule 11。
+- Literal rule enforcement: 新旧内外层分别校验并保持Jackson协议 (Rule 2, Rule 6)；只重用Starter现有Registry subscription和snapshot loader (Rule 11)。
+- Implementation pseudocode:
+
+```java
+var newEventJson = registryEventJson(TENANT_ID, event(TENANT_ID, 3L, 2L));
+listener.onMessage(topicName, newEventJson);
+assertThat(queuedRefreshes).hasSize(1);
+queuedRefreshes.removeFirst().run();
+assertThat(observedSnapshots).extracting(DdcServiceSnapshot::revision).containsExactly(2L, 3L);
+listener.onMessage(topicName, eventJson(TENANT_ID, 1L)); // legacy payload still parses; stale snapshot does not replace revision 3.
+```
+
+- Verification contribution: paired typed/legacy payload tests prove tenant fencing, migration compatibility, revision monotonicity and periodic reconciliation.
+- After this file: the registry consumer remains compatible across a rolling Admin/Starter deployment.
+
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`
 
 - Purpose: 校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐
 - Symbols: `DdcManagedRegistrySubscription`
-- Repository evidence: 当前存在，SHA256前12位`0110cca25206`；源符号`DdcManagedRegistrySubscription`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 18；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
-- Contract/signature changes: DdcManagedRegistrySubscription的具体签名/配置/字段变更：校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
+- Repository evidence: 当前存在，SHA256前12位`fe508a9d544a`；源符号`DdcManagedRegistrySubscription`或相邻同层调用可定位。
+- Dependencies and consumers: 前置Step 18；本步12个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责在typed-envelope RED测试通过后接受新旧包络，维持原snapshot reload/reconcile和revision monotonicity。
+- Contract/signature changes: DdcManagedRegistrySubscription的具体签名/配置/字段变更：在typed-envelope RED测试通过后接受新旧包络，维持原snapshot reload/reconcile和revision monotonicity。
 - Input/output and state mapping: 冻结的tenant/eventId/schema/payload → Outbox存储/Redis包络 → 原SDK消费；重复投递不能重复业务ACK。
 - Error and edge behavior: 丢失确认可重投；过期/旧attempt不迟到激活；DEAD不伪造ACK；Redis离线仍靠原reconcile。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；在typed-envelope RED测试通过后接受新旧包络，维持原snapshot reload/reconcile和revision monotonicity。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -17199,64 +17372,67 @@ transactionalOutbox.enqueue(msg); // serializer preserves raw application/json S
 - Verification contribution: DdcRegistryOutboxTest聚焦本文件的校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java`
-
-- Purpose: 校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐
-- Symbols: `DdcInstanceSubscription`
-- Repository evidence: 当前存在，SHA256前12位`b5d18aebfa71`；源符号`DdcInstanceSubscription`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 18；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
-- Contract/signature changes: DdcInstanceSubscription的具体签名/配置/字段变更：校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
-- Input/output and state mapping: 冻结的tenant/eventId/schema/payload → Outbox存储/Redis包络 → 原SDK消费；重复投递不能重复业务ACK。
-- Error and edge behavior: 丢失确认可重投；过期/旧attempt不迟到激活；DEAD不伪造ACK；Redis离线仍靠原reconcile。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
-- Implementation pseudocode:
-
-```java
-// DdcInstanceSubscription: 校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐
-OutboxMessage msg = OutboxMessage.builder().messageId(stableEventId).idempotencyKey(stableEventId).channel(channel).destination(destination).payload(frozenJson).contentType("application/json").schemaVersion("1").headers(tenantHeaders).build();
-transactionalOutbox.enqueue(msg); // serializer preserves raw application/json String payload
-// same local DataSource transaction only for YAML prepared event; Redis registry mutation precedes a separate SQL enqueue transaction.
-// component worker calls named DeliveryHandler; RETRYABLE_FAILURE/DEAD is monitored; original ACK and reconcile remain authoritative.
-```
-
-- Verification contribution: DdcRegistryOutboxTest聚焦本文件的校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
-
-#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java`
-
-- Purpose: 校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐
-- Symbols: `DdcRegistrySubscriptionCoordinator`
-- Repository evidence: 当前存在，SHA256前12位`1498af69b27d`；源符号`DdcRegistrySubscriptionCoordinator`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 18；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
-- Contract/signature changes: DdcRegistrySubscriptionCoordinator的具体签名/配置/字段变更：校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。
-- Input/output and state mapping: 冻结的tenant/eventId/schema/payload → Outbox存储/Redis包络 → 原SDK消费；重复投递不能重复业务ACK。
-- Error and edge behavior: 丢失确认可重投；过期/旧attempt不迟到激活；DEAD不伪造ACK；Redis离线仍靠原reconcile。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11；校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；Jackson稳定JSON与显式枚举code (Rule 6)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
-- Implementation pseudocode:
-
-```java
-// DdcRegistrySubscriptionCoordinator: 校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐
-OutboxMessage msg = OutboxMessage.builder().messageId(stableEventId).idempotencyKey(stableEventId).channel(channel).destination(destination).payload(frozenJson).contentType("application/json").schemaVersion("1").headers(tenantHeaders).build();
-transactionalOutbox.enqueue(msg); // serializer preserves raw application/json String payload
-// same local DataSource transaction only for YAML prepared event; Redis registry mutation precedes a separate SQL enqueue transaction.
-// component worker calls named DeliveryHandler; RETRYABLE_FAILURE/DEAD is monitored; original ACK and reconcile remain authoritative.
-```
-
-- Verification contribution: DdcRegistryOutboxTest聚焦本文件的校验typed包络，max revision不倒退；仍保留原snapshot reload/reconcile，不保证离线PubSub收齐；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
-
-- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
-- Verification command: `mvn -q -Dtest=DdcRegistryOutboxTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
-- Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
+- Validation working directory: repository root
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter -am '-Dtest=DdcAdminRedisConfigTest,DdcRegistryOutboxTest,DdcServiceRegistryRedisRepositoryTest,DdcRegistrySubscriptionCoordinatorTest' -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Expected result: 依赖编译和四个聚焦测试退出0；Outbox通知route/tenant/identity校验通过；现存旧registry envelope可兼容读取；Redis成功但enqueue失败时不伪造回滚，后续reconcile仍能恢复；不启动Redis、PostgreSQL或Testcontainers。
+- Failure returns to: 本Step首个产生失败的File及其对应Spec EVENT-102 / Outbox§8；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
-- Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryOutboxTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/event/DdcRegistryRevisionEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryEventDeliveryHandler.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcNotificationPublisher.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcCatalogSubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcInstanceSubscription.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinator.java`
-- Commit: `feat(tianshu): step-19-------outbox`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；Redis已提交后的通知缺口由既有snapshot reconcile恢复，不伪造跨Redis/SQL事务回滚。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryOutboxTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/event/DdcRegistryRevisionEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcRegistryEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcRegistryRevisionEventConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryEventDeliveryHandler.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcNotificationPublisher.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfig.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfigTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcRedisClusterIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`, `docs/egon/spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md`
+- Commit: `feat(tianshu): step-19-registry-outbox`（本Plan Step作为一个独立逻辑提交；保留Step 18已提交历史，不合并或改写）。
+
+#### Step 19 pre-commit gate record
+
+- State at pre-commit: Verified.
+- Baseline HEAD: f3016a95956be99d6ad97f4411b1f04b2116aefe (Step 18 commit).
+- RED evidence: DdcRegistryOutboxTest compiled and failed at runtime first because DdcRegistryRevisionEvent was absent, then because the DeliveryHandler and publisher contracts were absent. DdcRegistrySubscriptionCoordinatorTest compiled and failed its refresh assertion because the old listener rejected the new envelope. Failures were missing contracts/behavior, not fixtures or external services.
+- GREEN evidence: the exact four-class root-reactor command exited 0; Surefire reports 23 tests, 0 failures, 0 errors, 0 skipped. Strict Plan validation and git diff --check pass.
+- Design pattern: reuse the Outbox DeliveryHandler Strategy/Registry for durable retry and dead-letter behavior; MapStruct plus BaseForwardConverter owns the one-way Registry event projection. Existing snapshots remain authoritative for duplicate and out-of-order events.
+- Source-grounded clarification: Outbox accepts lowercase channel names, so the internal channel is tianshu.registry-event and the eventType header remains TIANSHU_REGISTRY_EVENT. The Plan adds DdcAdminRedisConfig and its config test plus direct repository callers because they are the actual construction paths. The shared subscriber unwraps typed and legacy envelopes; catalog/instance snapshot loaders already reject older revisions, so those production subclasses and the coordinator remain unchanged.
+- Deviations: these Plan/Spec clarifications and direct caller/test paths are source-grounded Step 19 corrections; the MapStruct converter was added after review to satisfy Rule 3 before the final gate. No dependency, DDL, public topic or event-field expansion was made.
+
+| Manual Check | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| MC-ARCH-001 | Applicable | PASS | Admin Registry Repository → named Outbox publisher/handler; Starter event/subscriber; POM edges unchanged | Existing three-layer and Admin-to-Starter boundaries remain | None |
+| MC-REUSE-001 | Applicable | PASS | TransactionalOutbox, DeliveryHandler/Registry, Redisson StringCodec, DdcRedisKeys and Step 18 transactionTemplate | Reuses approved Outbox and existing Redis route/key contracts | None |
+| MC-DEP-001 | Applicable | PASS | Step 19 POM diff is empty; no broker or library dependency added | Existing approved dependencies cover the capability | None |
+| MC-NAME-001 | Applicable | PASS | DdcRegistryRevisionEvent, DdcRegistryEvent, DdcRegistryRevisionEventConverter, DdcNotificationPublisher, DdcRegistryEventDeliveryHandler | Model, projection, publisher and handler names match their roles | None |
+| MC-VALID-001 | Applicable | PASS | Jakarta constraints on outer/inner Events; producer, handler and listener invoke ValidationUtils/cascades | Tenant, schema, event identity, nested service key and revisions are checked | None |
+| MC-MODEL-001 | Applicable | PASS | Mutable outer Event uses complete Lombok class contract; DdcRegistryEvent and DdcServiceKey remain immutable records | Carrier/value semantics match the current model rules | None |
+| MC-CONVERT-001 | Applicable | PASS | MapStruct converter extends BaseForwardConverter; generated implementation is compiled and exercised by tests | One-way event projection is generated | None |
+| MC-LOG-001 | Applicable | PASS | Named publisher/handler use Slf4j; logs carry tenant/event/revision identity without payload JSON | Enqueue and delivery failures remain diagnosable without logging event bodies | None |
+| MC-BEAN-001 | Applicable | PASS | Named Service, Component and repository Bean; constructor dependencies use Qualifier; Tianshu lombok.config copies Qualifier | Constructor wiring and exact Jackson bean name are covered by DdcAdminRedisConfigTest | None |
+| MC-UTIL-001 | Applicable | PASS | Digests from existing Egon common crypto plus JDK, Jackson, Spring and Mockito; no new helper library | Utility use remains inside approved dependencies | None |
+| MC-JSON-001 | Applicable | PASS | Spring Boot ObjectMapper freezes the tenant envelope; raw application/json string is republished with StringCodec; old envelope remains accepted | Inner tenant uses string JSON shape; outer envelope and topic payload remain compatible | None |
+| MC-TIME-001 | Not applicable | N/A | New Registry event contains no application time field; technical enqueue time remains owned by Outbox | No new time mapping or deadline behavior is introduced | None; Outbox timestamp remains component-owned |
+| MC-CONFIG-001 | Not applicable | N/A | Step 19 changes no profile keys; Outbox profile parity was implemented and checked in Step 18 | No environment configuration surface changes in this Step | None |
+| MC-PATTERN-001 | Applicable | PASS | Existing Outbox DeliveryHandler Strategy dispatches a named channel; handler returns success/retryable/permanent outcomes | Complex delivery reuses the component variation point | None |
+| MC-SCOPE-001 | Applicable | PASS | 13 ordered implementation/test files plus Plan and Spec exactly equal the 15-path manifest and worktree diff | No undeclared path remains | None |
+| MC-TEST-001 | Applicable | PASS | Four-class root-reactor command; 23 tests, 0 failures/errors/skips; RED evidence recorded above | Event identity, tenant fencing, Outbox transaction, failure window, Redis retry and legacy/reconcile behavior covered | None |
+| MC-BLOCKER-001 | Applicable | PASS | Every Manual Check and Literal Rule row below is PASS or evidence-backed N/A | No unresolved Step 19 blocker remains | None |
+
+| Literal Rule | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| Rule 1 | Applicable | PASS | Event, converter, publisher and handler declarations | Semantic suffixes match their roles | None |
+| Rule 2 | Applicable | PASS | Jakarta constraints and cascades on typed/legacy envelopes; explicit validation at producer, handler and listener boundaries | Invalid tenant, schema, eventId, service key or negative revision is rejected | None |
+| Rule 3 | Applicable | PASS | Full Lombok outer Event; immutable Registry records; MapStruct BaseForwardConverter projection | POJO/value-object and generated mapping rules are satisfied | None |
+| Rule 4 | Applicable | PASS | Slf4j, explicit Bean names, RequiredArgs constructors and qualified dependencies | Managed behaviors use named, qualified constructor wiring | None |
+| Rule 5 | Applicable | PASS | Production imports and unchanged POMs | Only JDK and existing approved Egon/Spring/Jackson/MapStruct APIs are used | None |
+| Rule 6 | Applicable | PASS | Boot Jackson, stable tenant string encoding, frozen JSON payload and typed/legacy compatibility tests | No alternate serializer or incompatible topic envelope | None |
+| Rule 7 | Not applicable | N/A | No environment profile is edited in Step 19 | Existing Step 18 Outbox profile key structure is unchanged | None |
+| Rule 9 | Applicable | PASS | DeliveryHandler Strategy/Registry and retryable/permanent outcome tests | Complex notification delivery uses the approved pattern | None |
+| Rule 10 | Not applicable | N/A | No application time field or java.util date type is introduced | Outbox owns its technical enqueue timestamp | None |
+| Rule 11 | Applicable | PASS | Admin repository/config/service and Starter event/subscriber paths; actual TransactionalOutbox enqueue runs inside the selected transaction | Existing three-layer structure remains and the event uses approved Outbox delivery | None |
+
+- Validation working directory: repository root
+- Verification command: mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter -am '-Dtest=DdcAdminRedisConfigTest,DdcRegistryOutboxTest,DdcServiceRegistryRedisRepositoryTest,DdcRegistrySubscriptionCoordinatorTest' -Dsurefire.failIfNoSpecifiedTests=false test
+- Structural validation: python3 .agents/skills/egon-coding-writing-plan/scripts/validate_plan.py docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md --strict
+- Expected result: all four focused test classes pass; the config test compiles a Redis-free fixture; no Redis, PostgreSQL, Docker or Testcontainers runtime is started.
+- Failure returns to: first failing Step 19 file and effective Spec EVENT-102 / Outbox §8.
+- Completion criteria: every declared path is reviewed, exact validation passes, all Manual Checks and Literal Rules close, and a non-empty path-limited commit contains only the Step 19 manifest.
+- Rollback: before commit, revert only Step 19 paths; Redis mutations remain authoritative and existing snapshot reconciliation covers the separately logged enqueue gap.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryOutboxTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/event/DdcRegistryRevisionEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcRegistryEvent.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/convertor/DdcRegistryRevisionEventConverter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcRegistryEventDeliveryHandler.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/notification/DdcNotificationPublisher.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfig.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfigTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcRedisClusterIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/listener/registry/DdcRegistrySubscriptionCoordinatorTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/listener/registry/DdcManagedRegistrySubscription.java`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`, `docs/egon/spec/2026-09-22-17-16-tianshu-java-cqe-standards-amendment.md`
+- Commit: feat(tianshu): step-19-registry-outbox (one focused logical Step commit; preserve Step 18 history without merging or rewriting).
 
 ### Step 20 — 建立Web租户隔离请求与AI客户端合同
 

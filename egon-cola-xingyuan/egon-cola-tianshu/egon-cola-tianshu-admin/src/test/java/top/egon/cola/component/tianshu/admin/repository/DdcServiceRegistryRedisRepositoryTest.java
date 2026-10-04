@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,14 +15,23 @@ import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
 import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RSet;
-import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.AbstractPlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.api.OutboxMessage;
+import top.egon.cola.component.outbox.api.TransactionalOutbox;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcRegistryRevisionEventConverterImpl;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
+import top.egon.cola.component.tianshu.admin.service.notification.DdcNotificationPublisher;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
+import top.egon.cola.component.tianshu.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceInstance;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceSnapshot;
@@ -38,9 +48,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import static top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationTestFixture.identity;
 
 class DdcServiceRegistryRedisRepositoryTest {
+
+    private final DdcNotificationPublisher notificationPublisher = mock(DdcNotificationPublisher.class);
 
     @BeforeEach
     void bindTenant() {
@@ -67,7 +80,6 @@ class DdcServiceRegistryRedisRepositoryTest {
         RAtomicLong serviceRevision = mock(RAtomicLong.class);
         RSet<String> catalog = set();
         RAtomicLong catalogRevision = mock(RAtomicLong.class);
-        RTopic topic = mock(RTopic.class);
         RSet<String> globalCatalog = set();
         RAtomicLong globalRevision = mock(RAtomicLong.class);
         when(redisson.getLock(DdcRedisKeys.registryInstance(101L, SERVICE_KEY, "scope") + ":lock"))
@@ -87,15 +99,13 @@ class DdcServiceRegistryRedisRepositoryTest {
         when(catalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
         when(redisson.getAtomicLong(catalogRevisionKey())).thenReturn(catalogRevision);
         when(catalogRevision.incrementAndGet()).thenReturn(3L);
-        when(redisson.getTopic(topicKey(), StringCodec.INSTANCE)).thenReturn(topic);
         when(redisson.<String>getSet(
                 DdcRedisKeys.globalRegistryCatalog(101L), StringCodec.INSTANCE
         )).thenReturn(globalCatalog);
         when(globalCatalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
         when(redisson.getAtomicLong(DdcRedisKeys.globalRegistryCatalogRevision(101L)))
                 .thenReturn(globalRevision);
-        DdcServiceRegistryRedisRepository repository =
-                new DdcServiceRegistryRedisRepository(redisson, objectMapper);
+        DdcServiceRegistryRedisRepository repository = repository(redisson);
 
         repository.register(instance());
 
@@ -110,14 +120,65 @@ class DdcServiceRegistryRedisRepositoryTest {
                 .isEqualTo(NOW.plusSeconds(30).toEpochMilli());
         assertThat(stored.path("revision").asLong()).isEqualTo(7L);
         verify(instances).add(NOW.plusSeconds(30).toEpochMilli(), "provider-1");
-        ArgumentCaptor<String> eventJson = ArgumentCaptor.forClass(String.class);
-        verify(topic).publish(eventJson.capture());
-        JsonNode envelope = objectMapper.readTree(eventJson.getValue());
-        assertThat(envelope.path("tenantId").asLong()).isEqualTo(101L);
-        assertThat(envelope.path("payload").path("serviceRevision").asLong()).isEqualTo(7L);
-        assertThat(envelope.path("payload").path("serviceKey").path("serviceName").asText())
-                .isEqualTo(SERVICE_KEY.serviceName());
+        verify(notificationPublisher).publish(101L, new DdcRegistryEvent(SERVICE_KEY, 7L, 3L));
         verify(globalRevision).incrementAndGet();
+        verify(scopeLock).unlock();
+        verify(globalLock).unlock();
+    }
+
+    @Test
+    void outboxEnqueueFailureDoesNotUndoTheRedisAuthorityMutation() {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RLock scopeLock = mock(RLock.class);
+        RLock globalLock = mock(RLock.class);
+        RBucket<String> bucket = bucket();
+        RScoredSortedSet<String> instances = scoredSet();
+        RAtomicLong serviceRevision = mock(RAtomicLong.class);
+        RSet<String> catalog = set();
+        RAtomicLong catalogRevision = mock(RAtomicLong.class);
+        RSet<String> globalCatalog = set();
+        RAtomicLong globalRevision = mock(RAtomicLong.class);
+        when(redisson.getLock(DdcRedisKeys.registryInstance(101L, SERVICE_KEY, "scope") + ":lock"))
+                .thenReturn(scopeLock);
+        when(redisson.getLock(DdcRedisKeys.globalRegistryCatalog(101L) + ":lock"))
+                .thenReturn(globalLock);
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.registryInstance(101L, SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+        )).thenReturn(bucket);
+        when(redisson.<String>getScoredSortedSet(
+                DdcRedisKeys.registryService(101L, SERVICE_KEY), StringCodec.INSTANCE
+        )).thenReturn(instances);
+        when(redisson.getAtomicLong(DdcRedisKeys.registryRevision(101L, SERVICE_KEY)))
+                .thenReturn(serviceRevision);
+        when(serviceRevision.incrementAndGet()).thenReturn(7L);
+        when(redisson.<String>getSet(catalogKey(), StringCodec.INSTANCE)).thenReturn(catalog);
+        when(catalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
+        when(redisson.getAtomicLong(catalogRevisionKey())).thenReturn(catalogRevision);
+        when(catalogRevision.incrementAndGet()).thenReturn(3L);
+        when(redisson.<String>getSet(DdcRedisKeys.globalRegistryCatalog(101L), StringCodec.INSTANCE))
+                .thenReturn(globalCatalog);
+        when(globalCatalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
+        when(redisson.getAtomicLong(DdcRedisKeys.globalRegistryCatalogRevision(101L)))
+                .thenReturn(globalRevision);
+
+        TransactionalOutbox outbox = mock(TransactionalOutbox.class);
+        doThrow(new IllegalStateException("outbox unavailable"))
+                .when(outbox).enqueue(org.mockito.ArgumentMatchers.any(OutboxMessage.class));
+        DdcNotificationPublisher publisher = new DdcNotificationPublisher(
+                outbox,
+                new TransactionTemplate(new InMemoryTransactionManager()),
+                objectMapper,
+                new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator()),
+                new DdcRegistryRevisionEventConverterImpl());
+        DdcServiceRegistryRedisRepository repository =
+                new DdcServiceRegistryRedisRepository(redisson, objectMapper, publisher);
+
+        repository.register(instance());
+
+        verify(bucket).set(org.mockito.ArgumentMatchers.anyString(), eq(Duration.ofSeconds(30)));
+        verify(instances).add(NOW.plusSeconds(30).toEpochMilli(), "provider-1");
+        verify(catalog).add(SERVICE_KEY.canonicalValue());
+        verify(globalCatalog).add(SERVICE_KEY.canonicalValue());
         verify(scopeLock).unlock();
         verify(globalLock).unlock();
     }
@@ -148,10 +209,7 @@ class DdcServiceRegistryRedisRepositoryTest {
                 DdcRedisKeys.registryRevision(101L, SERVICE_KEY)
         )).thenReturn(revision);
 
-        DdcServiceSnapshot snapshot = new DdcServiceRegistryRedisRepository(
-                redisson,
-                objectMapper
-        ).getInstances(SERVICE_KEY, NOW);
+        DdcServiceSnapshot snapshot = repository(redisson).getInstances(SERVICE_KEY, NOW);
 
         assertThat(snapshot.instances()).hasSize(1);
         assertThat(snapshot.instances().getFirst().resourceVersion()).isZero();
@@ -174,8 +232,7 @@ class DdcServiceRegistryRedisRepositoryTest {
         when(bucket.get()).thenReturn(objectMapper.writeValueAsString(
                 instance(otherService, "lease-1")));
 
-        assertThatThrownBy(() -> new DdcServiceRegistryRedisRepository(
-                redisson, objectMapper).register(instance()))
+        assertThatThrownBy(() -> repository(redisson).register(instance()))
                 .isInstanceOf(DdcAdminException.class)
                 .hasMessageContaining("instance id conflict");
         verify(lock).unlock();
@@ -192,8 +249,7 @@ class DdcServiceRegistryRedisRepositoryTest {
                 DdcRedisKeys.registryInstance(101L, SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(registrationJson(instance()));
-        DdcServiceRegistryRedisRepository repository =
-                new DdcServiceRegistryRedisRepository(redisson, objectMapper);
+        DdcServiceRegistryRedisRepository repository = repository(redisson);
         DdcServiceLeaseRequest request = leaseRequest("different-lease");
 
         assertThat(repository.heartbeat(
@@ -238,8 +294,7 @@ class DdcServiceRegistryRedisRepositoryTest {
         when(redisson.getAtomicLong(
                 DdcRedisKeys.globalRegistryCatalogRevision(101L)
         )).thenReturn(globalRevision);
-        DdcServiceRegistryRedisRepository repository =
-                new DdcServiceRegistryRedisRepository(redisson, objectMapper);
+        DdcServiceRegistryRedisRepository repository = repository(redisson);
 
         var result = repository.heartbeat(
                 leaseRequest("lease-1"),
@@ -276,7 +331,6 @@ class DdcServiceRegistryRedisRepositoryTest {
         RAtomicLong serviceRevision = mock(RAtomicLong.class);
         RSet<String> serviceCatalog = set();
         RAtomicLong catalogRevision = mock(RAtomicLong.class);
-        RTopic topic = mock(RTopic.class);
         RAtomicLong globalRevision = mock(RAtomicLong.class);
         DdcServiceKey otherApp = new DdcServiceKey(
                 "pay-biz", "dev", "billing-app",
@@ -334,18 +388,10 @@ class DdcServiceRegistryRedisRepositoryTest {
                 catalogRevisionKey()
         )).thenReturn(catalogRevision);
         when(catalogRevision.get()).thenReturn(3L);
-        when(redisson.getTopic(
-                topicKey(),
-                StringCodec.INSTANCE
-        )).thenReturn(topic);
         when(redisson.getAtomicLong(
                 DdcRedisKeys.globalRegistryCatalogRevision(101L)
         )).thenReturn(globalRevision);
-        DdcServiceRegistryRedisRepository repository =
-                new DdcServiceRegistryRedisRepository(
-                        redisson,
-                        objectMapper
-                );
+        DdcServiceRegistryRedisRepository repository = repository(redisson);
 
         int removed = repository.revokeResourceAdmission(
                 "resource-1", "pay-biz", "dev", "orders-app", 7L
@@ -359,6 +405,7 @@ class DdcServiceRegistryRedisRepositoryTest {
                 DdcRedisKeys.registryInstance(101L, otherApp, "covered"),
                 StringCodec.INSTANCE
         );
+        verify(notificationPublisher).publish(101L, new DdcRegistryEvent(SERVICE_KEY, 8L, 3L));
     }
 
     private DdcServiceInstance instance() {
@@ -413,10 +460,28 @@ class DdcServiceRegistryRedisRepositoryTest {
                 SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
     }
 
-    private String topicKey() {
-        return DdcRedisKeys.registryTopic(101L,
-                SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
-                SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
+    private DdcServiceRegistryRedisRepository repository(RedissonClient redisson) {
+        return new DdcServiceRegistryRedisRepository(redisson, objectMapper, notificationPublisher);
+    }
+
+    private static final class InMemoryTransactionManager extends AbstractPlatformTransactionManager {
+
+        @Override
+        protected Object doGetTransaction() {
+            return new Object();
+        }
+
+        @Override
+        protected void doBegin(Object transaction, TransactionDefinition definition) {
+        }
+
+        @Override
+        protected void doCommit(DefaultTransactionStatus status) {
+        }
+
+        @Override
+        protected void doRollback(DefaultTransactionStatus status) {
+        }
     }
 
     @SuppressWarnings("unchecked")

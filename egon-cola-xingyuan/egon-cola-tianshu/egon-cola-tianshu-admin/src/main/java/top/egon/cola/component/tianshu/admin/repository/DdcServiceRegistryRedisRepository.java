@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicLong;
 import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
@@ -12,7 +14,9 @@ import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
+import top.egon.cola.component.tianshu.admin.service.notification.DdcNotificationPublisher;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationAuthenticationException;
 import top.egon.cola.component.tianshu.admin.security.registration.VerifiedDdcRegistrationIdentity;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
@@ -26,7 +30,6 @@ import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceQuery;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.tianshu.model.tenant.DdcTenantMessageDTO;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -38,19 +41,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 import java.util.function.IntSupplier;
 
+@Slf4j
+@RequiredArgsConstructor
 public class DdcServiceRegistryRedisRepository {
 
+    @Qualifier("ddcAdminRedissonClient")
     private final RedissonClient redissonClient;
 
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
 
-    private final Set<TenantServiceKey> knownServiceKeys = ConcurrentHashMap.newKeySet();
+    @Qualifier("ddcNotificationPublisher")
+    private final DdcNotificationPublisher notificationPublisher;
 
-    public DdcServiceRegistryRedisRepository(RedissonClient redissonClient,
-                                             ObjectMapper objectMapper) {
-        this.redissonClient = redissonClient;
-        this.objectMapper = objectMapper;
-    }
+    private final Set<TenantServiceKey> knownServiceKeys = ConcurrentHashMap.newKeySet();
 
     public void register(DdcServiceInstance instance) {
         register(instance, null);
@@ -548,12 +552,8 @@ public class DdcServiceRegistryRedisRepository {
     private void publishEvent(DdcServiceKey serviceKey,
                               long serviceRevision,
                               long catalogRevision) {
-        redissonClient.getTopic(DdcRedisKeys.registryTopic(
-                tenantId(),
-                serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
-                serviceKey.serviceKind(), serviceKey.protocol()), StringCodec.INSTANCE
-        ).publish(json(new DdcTenantMessageDTO<>(tenantId(), new DdcRegistryEvent(
-                serviceKey, serviceRevision, catalogRevision))));
+        notificationPublisher.publish(tenantId(), new DdcRegistryEvent(
+                serviceKey, serviceRevision, catalogRevision));
     }
 
     private String instanceJson(DdcServiceInstance instance, long revision) {

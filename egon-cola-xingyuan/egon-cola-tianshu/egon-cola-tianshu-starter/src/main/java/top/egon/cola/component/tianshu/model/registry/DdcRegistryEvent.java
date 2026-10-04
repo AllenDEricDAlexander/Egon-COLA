@@ -1,5 +1,9 @@
 package top.egon.cola.component.tianshu.model.registry;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+
 /**
  * 注册中心通过消息主题发布的服务变更事件。
  * / Service change event published through the registry topic.
@@ -9,8 +13,8 @@ package top.egon.cola.component.tianshu.model.registry;
  * @param catalogRevision 服务目录修订号 / service catalog revision
  */
 public record DdcRegistryEvent(
-        DdcServiceKey serviceKey,
-        long serviceRevision,
-        long catalogRevision
+        @NotNull @Valid DdcServiceKey serviceKey,
+        @PositiveOrZero long serviceRevision,
+        @PositiveOrZero long catalogRevision
 ) {
 }
