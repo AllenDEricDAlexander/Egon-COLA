@@ -2,3 +2,40 @@
   min-width: 0;
   overflow-x: auto;
 }
+
+.tianshu-ai-page {
+  width: 100%;
+}
+
+.tianshu-ai-page__filters > .ant-space-item:first-child {
+  width: 100%;
+}
+
+.tianshu-ai-skill-editor {
+  display: grid;
+  grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.tianshu-ai-skill-editor__tree,
+.tianshu-ai-skill-editor__content {
+  min-width: 0;
+}
+
+.tianshu-ai-skill-editor__actions {
+  margin-bottom: 16px;
+}
+
+.tianshu-ai-conflict pre {
+  max-height: 320px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .tianshu-ai-skill-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

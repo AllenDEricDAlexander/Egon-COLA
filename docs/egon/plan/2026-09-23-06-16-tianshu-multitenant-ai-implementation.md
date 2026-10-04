@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-10-05 04:12 Asia/Shanghai` |
+| Updated | `2026-10-05 05:49 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -105,7 +105,7 @@
 | Step 18 | Step 10, Step 11, Step 16 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 33个本步实现、调用者与测试文件；另含本计划和Spec修订各1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 19 | Step 18 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 13个本步实现、调用者与测试文件；另含本计划和Spec各1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 20 | Step 17, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 8个本步实现与测试文件；另含本计划gate记录1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 21 | Step 20 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 7个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 21 | Step 20 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 9个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 22 | Step 21 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 5个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 23 | Step 11, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 6个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 24 | Step 22, Step 23 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 54个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
@@ -273,8 +273,8 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.test.ts` | SHA256 6b398c2df35e | client.test | sessionGeneration、expected tenant header、query key tenant、clear/cancel/drop stale response；原API兼容；新types按Spec字段 | Step 20 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.ts` | SHA256 e4eb181346d6 | client | sessionGeneration、expected tenant header、query key tenant、clear/cancel/drop stale response；原API兼容；新types按Spec字段 | Step 20 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts` | SHA256 f25476e86104 | types | sessionGeneration、expected tenant header、query key tenant、clear/cancel/drop stale response；原API兼容；新types按Spec字段 | Step 20 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts` | SHA256 a68433c56e3f | AuthContext.test | sessionGeneration、expected tenant header、query key tenant、clear/cancel/drop stale response；原API兼容；新types按Spec字段 | Step 20 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx` | SHA256 e0dbd402d597 | AuthContext | sessionGeneration、expected tenant header、query key tenant、clear/cancel/drop stale response；原API兼容；新types按Spec字段 | Step 20 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts` | SHA256 370c705033f0（Step20提交后基线） | AuthContext.test | verified tenant/sessionGeneration测试；新增未保存保护器对login/logout/tenant mismatch的取消/确认合同 | Step 20, Step 21 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract, AiDraftUI |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx` | SHA256 c44cfb95b323（Step20提交后基线） | AuthContext | verified tenant/sessionGeneration；新增单一异步未保存保护器，在login/logout/tenant mismatch的beginSession与清缓存前执行；拒绝后不切换/重放 | Step 20, Step 21 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract, AiDraftUI |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx` | SHA256 ff951c9280b9 | AdminLayout | Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库 | Step 21 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-014 | AiDraftUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.test.tsx` | CREATE：基线不存在 | AiPromotionDialog.test | 固定源和明确目标；absent NULL/现存revision；超时原key核验；既有目标草稿提示、无前端搬运正文 | Step 22 | REQ-005 REQ-006 REQ-012 REQ-019 | AiVersionsUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.tsx` | CREATE：基线不存在 | AiPromotionDialog | API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec | Step 22 | REQ-005 REQ-006 REQ-012 REQ-019 | AiVersionsUI |
@@ -17717,8 +17717,9 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 列表/创建/纯文本Tree编辑/保存冲突/离开保护形成完整用户流程。
 - End state: 列表/创建/纯文本Tree编辑/保存冲突/离开保护形成完整用户流程；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Plan clarification: Step20的tenant mismatch handler会立即递增sessionGeneration并清QueryClient；为满足Spec§12.4，dirty draft必须在该会话切换前确认。把单一异步dirty guard放到AuthContext会话边界，在login/logout/401授权清理/tenant mismatch重新bootstrap之前执行；拒绝时保持tenant/generation/cache和本地buffer，确认后只执行一次会话切换，原403请求不重放。编辑器用该guard保护session transition，仍用React Router blocker保护路由离开；无新增依赖或API。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-JSON-001
+- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-JSON-001, MC-REUSE-001, MC-DEP-001, MC-PATTERN-001
 - Literal Rules: Rule 6, Rule 7, Rule 11
 - Ordered files:
 
@@ -17774,12 +17775,68 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: AiDraftUI聚焦本文件的Tree目录/文件增删改名、纯文本、无格式执行、未保存切换、409保留buffer、新root身份提示；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.tsx`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`
 
+- Purpose: 验证dirty guard在login/logout/tenant mismatch前执行；取消时tenant、sessionGeneration、QueryClient数据保持；确认后清理一次；原403请求不重放。
+- Symbols: `AuthContext.test`
+- Repository evidence: Step20已提交，当前HEAD基线SHA256 `370c705033f0524a55bb215057fba43d8a7d35b6c1dbdae13192718e1647e0d0`；现有tenant bootstrap、logout、mismatch合同测试。
+- Dependencies and consumers: 前置Step20；本步2个已排序测试文件；后续由本步AuthContext实现与AiResourceEditorPage注册消费。
+- Why now: 先固定会话切换是唯一清缓存边界，dirty guard拒绝不会丢失未保存buffer。
+- Contract/signature changes: 新增`registerUnsavedChangesGuard(guard): unregister`可观察行为；测试覆盖拒绝login/logout/mismatch及确认后允许的既有session transition。
+- Input/output and state mapping: trusted tenant/sessionGeneration＋guard决策 → 取消时保持generation/query cache；允许时才调用beginSession、取消旧请求、清cache并bootstrap。
+- Error and edge behavior: 同一时间已有session transition时拒绝并发第二次切换；guard拒绝不重放触发mismatch的业务请求。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-JSON-001；Rule 6、Rule 7、Rule 11；仅测试既有Jackson-backed wire，不修改序列化或profile。
+- Literal rule enforcement: Rule 6, Rule 7, Rule 11；现有JSON wire保持不变；无profile变化；auth仍只负责Web session边界，不移动Controller/Service/Repository职责。
+- Implementation pseudocode:
+
+```typescript
+it('keeps tenant, generation and cache when the dirty guard declines mismatch', async () => {
+  registerUnsavedChangesGuard(async () => false);
+  await expect(triggerTenantMismatch()).rejects.toMatchObject({status: 403});
+  expect(sessionGeneration).toBe(previousGeneration);
+  expect(queryClient.getQueryData(oldTenantKey)).toBe(previousData);
+  expect(fetch).toHaveBeenCalledTimes(1); // never replay the business request
+});
+```
+
+- Verification contribution: AuthContext tests prove the guard runs before identity changes and cache clearing; the pre-existing no-guard session behavior remains green.
+- After this file: 取消/确认合同已固定；实现文件只有满足该合同后才可进入GREEN。
+
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`
+
+- Purpose: 把login、logout、401授权清理和tenant mismatch重bootstrap汇合到同一会话变更守卫，dirty时先确认，再允许beginSession清理缓存。
+- Symbols: `AuthContext`, `registerUnsavedChangesGuard`
+- Repository evidence: Step20已提交，当前HEAD基线SHA256 `c44cfb95b323a8ea172a9ca04a46e48accbcd1bde68e7d3aff059ba9b674c746`；现有`beginSession`负责sessionGeneration、expected tenant、bootstrap及QueryClient clear。
+- Dependencies and consumers: 前置Step20与File3测试；后续AiResourceEditorPage从现有useAuth context注册guard，AdminLayout继续调用logout。
+- Why now: 只有AuthContext实际拥有beginSession及tenant mismatch处理；页面/布局各自守卫不能覆盖跨tab Cookie变化。
+- Contract/signature changes: AuthContext增加`registerUnsavedChangesGuard(guard): unregister`；拒绝时login/logout/mismatch均不调用beginSession、不清cache、不重放业务请求；允许时保留现有转换语义。
+- Input/output and state mapping: 多个组件注册的Promise<boolean> guard → 按序全部允许后执行一次session transition；任一拒绝则保持当前认证状态。
+- Error and edge behavior: guard异常失败关闭并保留当前session；transition进行中拒绝并发第二个session change；旧generation异步响应仍按现有检查丢弃。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001；Rule 6、Rule 7、Rule 11；无新的认证依据、wire字段、配置或backend API。
+- Literal rule enforcement: Rule 6, Rule 7, Rule 11；复用React Context、现有sessionGeneration与QueryClient取消清空函数；JSON/profile/后端CQE边界不变。
+- Implementation pseudocode:
+
+```typescript
+const runSessionTransition = async (transition: () => Promise<void>) => {
+  if (transitionPending.current) return;
+  transitionPending.current = true;
+  try {
+    for (const guard of guards.current) if (!(await guard())) return;
+    await transition(); // only now call beginSession and clear tenant queries
+  } finally {
+    transitionPending.current = false;
+  }
+};
+```
+
+- Verification contribution: File3 cancellation/confirmation tests and existing switch/logout/mismatch cache-cancellation tests establish ordering and no-replay behavior.
+- After this file: all session entry points share the tested boundary before the UI registers its current dirty buffer.
+
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.tsx`
 - Purpose: Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库
 - Symbols: `AiResourcesPage`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`AiResourcesPage`。
-- Dependencies and consumers: 前置Step 20；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 20；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Contract/signature changes: AiResourcesPage的具体签名/配置/字段变更：Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Input/output and state mapping: 认证tenant/四维scope＋当前resourceId/revision/draft buffer → API参数与query key → success/409/空/拒绝UI。
@@ -17799,12 +17856,11 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: AiDraftUI聚焦本文件的Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`
-
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`
 - Purpose: Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库
 - Symbols: `AiResourceEditorPage`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`AiResourceEditorPage`。
-- Dependencies and consumers: 前置Step 20；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 20；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Contract/signature changes: AiResourceEditorPage的具体签名/配置/字段变更：Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Input/output and state mapping: 认证tenant/四维scope＋当前resourceId/revision/draft buffer → API参数与query key → success/409/空/拒绝UI。
@@ -17824,12 +17880,11 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: AiDraftUI聚焦本文件的Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx`
-
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx`
 - Purpose: Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库
 - Symbols: `App`
 - Repository evidence: 当前存在，SHA256前12位`1f5c18748770`；源符号`App`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 20；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 20；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Contract/signature changes: App的具体签名/配置/字段变更：Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Input/output and state mapping: 认证tenant/四维scope＋当前resourceId/revision/draft buffer → API参数与query key → success/409/空/拒绝UI。
@@ -17849,12 +17904,11 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: AiDraftUI聚焦本文件的Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`
-
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`
 - Purpose: Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库
 - Symbols: `AdminLayout`
 - Repository evidence: 当前存在，SHA256前12位`ff951c9280b9`；源符号`AdminLayout`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 20；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 20；本步7个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Contract/signature changes: AdminLayout的具体签名/配置/字段变更：Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Input/output and state mapping: 认证tenant/四维scope＋当前resourceId/revision/draft buffer → API参数与query key → success/409/空/拒绝UI。
@@ -17874,12 +17928,11 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: AiDraftUI聚焦本文件的Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css`
-
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css`
 - Purpose: Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库
 - Symbols: `admin`
 - Repository evidence: 当前存在，SHA256前12位`fbe85db04b96`；源符号`admin`或相邻同层调用可定位。
-- Dependencies and consumers: 前置Step 20；本步6个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 20；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Contract/signature changes: admin的具体签名/配置/字段变更：Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库。
 - Input/output and state mapping: 认证tenant/四维scope＋当前resourceId/revision/draft buffer → API参数与query key → success/409/空/拒绝UI。
@@ -17899,14 +17952,54 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: AiDraftUI聚焦本文件的Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
+#### Step 21 pre-commit gate record
+
+- Baseline HEAD: `c4bcab89cd88ab5a88eb4eb0c5d0c2fa271867b3` (committed Step20); only the nine Step21 implementation/test paths plus this Plan path are in scope.
+- RED evidence: before either page implementation existed, `npm test -- --run src/pages/AiResourcesPage.test.tsx src/pages/AiResourceEditorPage.test.tsx` failed because Vite could not resolve the two missing page modules. Before AuthContext implementation, `npm test -- --run src/auth/AuthContext.test.ts -t 'keeps tenant session' --reporter=dot --silent` failed because `registerUnsavedChangesGuard` was absent; the assertion also showed logout cleared tenant state before the guard could run.
+- GREEN evidence: targeted `AuthContext.test.ts,AdminLayout.test.tsx,AiResourceEditorPage.test.tsx` passed 20 tests; full `npm test -- --run` passed 24 files / 92 tests; `npm run typecheck` passed; strict Plan validator passed. Vitest emitted existing jsdom `getComputedStyle` pseudo-element warnings, with no failed/skipped tests.
+- Runtime boundary: no app, browser, database, Redis, Docker, or external integration was started.
+
+| Manual Check | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| MC-ARCH-001 | Applicable | PASS | All nine code paths are under `egon-cola-tianshu-admin-web`; routes remain App → AdminLayout → page components; AuthContext owns only identity/session transitions | Existing React Web module and backend boundaries remain | None |
+| MC-REUSE-001 | Applicable | PASS | Reuses Ant Design, TanStack Query, existing `ddcApi`/AI API wrappers, `ScopeSelects`, `AuthContext`, and React Router `useBlocker` | No parallel auth, API, or query system | None |
+| MC-DEP-001 | Applicable | PASS | `package.json` and lockfile are unchanged; no new dependency or processor | Existing dependency set is sufficient | None |
+| MC-NAME-001 | Not applicable | N/A | Step21 creates/changes TypeScript modules only; no Java carrier/type is introduced | Java semantic suffix rules do not apply | None |
+| MC-VALID-001 | Not applicable | N/A | No Java/Spring validation boundary is changed; frontend preserves input and displays server 400/403/409 responses | Server Bean Validation remains authoritative | None |
+| MC-MODEL-001 | Not applicable | N/A | No Java POJO, Entity, record, or Lombok model is touched | Model rule is outside this Web Step | None |
+| MC-CONVERT-001 | Not applicable | N/A | No Java converter or object projection is added | MapStruct/BaseConverter scope is unchanged | None |
+| MC-LOG-001 | Not applicable | N/A | No production logging path is added or changed | No logging behavior to review | None |
+| MC-BEAN-001 | Not applicable | N/A | No Spring-managed Bean or constructor injection is added or changed | Spring wiring is outside this Web Step | None |
+| MC-UTIL-001 | Applicable | PASS | Only existing dependencies and browser `TextEncoder`/`URLSearchParams` APIs are used; package manifests are unchanged | No utility package or custom parser added | None |
+| MC-JSON-001 | Applicable | PASS | Typed `DdcAiCreateCommand`/`DdcAiDraftCommand` flow through existing AI API wrappers; page tests assert exact bodies, raw text, Long-string revision, 204/delete and 403/409 behavior | No alternate serializer or wire field introduced | None |
+| MC-TIME-001 | Not applicable | N/A | No Java date/time field, converter, or temporal calculation is changed; timestamps still use existing `formatTime` | Java time rule does not apply | None |
+| MC-CONFIG-001 | Not applicable | N/A | No application profile or browser environment key is changed | Profile parity is unchanged | None |
+| MC-PATTERN-001 | Applicable | PASS | Session transition uses an Observer-style async guard registry in the existing AuthContext; route departures use React Router `useBlocker` | A shared session boundary supports multiple dirty surfaces without coupling AuthContext to a page; no extra strategy/factory layer is needed | None |
+| MC-SCOPE-001 | Applicable | PASS | Actual diff contains the nine ordered Step21 code paths and the Plan path listed in the 10-path commit manifest | No undeclared or unrelated path remains | None |
+| MC-TEST-001 | Applicable | PASS | Full Vitest: 24 files / 92 tests; `npm run typecheck`; RED evidence recorded above | List, create, tree operations, exact text, conflict preservation, dirty route/session guards and prior Web regressions are covered | None |
+| MC-BLOCKER-001 | Applicable | PASS | Every Manual Check and Literal Rule below is PASS or evidence-backed N/A | No unresolved Step21 blocker remains | None |
+
+| Literal rule | Applicability | Status | Diff/path/symbol evidence | Test/static evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rule 1 | Not applicable | N/A | No Java class/record/enum is added or changed | TypeScript page/context symbols are role-named | None |
+| Rule 2 | Not applicable | N/A | No Spring/Jakarta validation boundary is changed; API server remains authoritative | Existing API error tests retain field/server failures | None |
+| Rule 3 | Not applicable | N/A | No Java POJO, Lombok or MapStruct conversion is changed | No Java model compilation is involved | None |
+| Rule 4 | Not applicable | N/A | No Java business Bean or injection is changed | No Spring Bean wiring is involved | None |
+| Rule 5 | Not applicable | N/A | No Java utility import or Maven dependency is added | Browser-native path/URL helpers only | None |
+| Rule 6 | Applicable | PASS | The UI uses existing typed AI API functions and request DTO shapes; Jackson-backed Admin wire contracts are unchanged | Tests assert create/draft JSON shape, nulls, string revisions and server errors | No alternate JSON stack or serializer bypass | None |
+| Rule 7 | Not applicable | N/A | No Spring application profile is edited | No profile-key change | None |
+| Rule 9 | Applicable | PASS | Observer-style guard callbacks are registered/unregistered at AuthContext session boundary; React Router owns route blocking | Session mismatch, login/logout cancellation and confirmation have focused tests | Pattern separates session orchestration from page-specific dirty-state decision | None |
+| Rule 10 | Not applicable | N/A | No Java date/time field, converter or import changes | Existing display formatter remains unchanged | None |
+| Rule 11 | Applicable | PASS | All code remains in the traditional Admin Web module; Admin Controller → Service → Repository, MP/DDL/Outbox and RPC layers are unchanged | Full Web suite and typecheck pass | Existing platform architecture and dependency direction remain intact | None |
+
 - Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web`
 - Verification command: `npm test -- --run`；Web另运行`npm run typecheck`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
+- Expected result: Web全量Vitest与typecheck退出0；列表/树编辑/冲突/离开/身份切换保护合同通过；无browser、后端服务或外部基础设施启动。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css`
-- Commit: `feat(tianshu): step-21`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
+- Commit: `feat(tianshu): step-21-ai-draft-ui`（本Plan Step作为一个独立逻辑提交；保留既有Step提交，不合并或改写）。
 
 ### Step 22 — 交付版本、回滚与跨ns推广交互
 

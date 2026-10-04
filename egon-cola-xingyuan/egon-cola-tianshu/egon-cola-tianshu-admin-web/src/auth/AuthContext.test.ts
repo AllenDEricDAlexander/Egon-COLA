@@ -43,6 +43,26 @@ function SessionProbe() {
   )
 }
 
+function GuardedSessionProbe({guard}: {guard: () => Promise<boolean>}) {
+  const auth = useAuth()
+  const guardedAuth = auth as unknown as {
+    registerUnsavedChangesGuard: (callback: () => Promise<boolean>) => () => void
+  }
+  return createElement(
+    'div',
+    null,
+    createElement('span', { 'data-testid': 'tenant' }, auth.tenantId),
+    createElement('span', { 'data-testid': 'generation' }, String(auth.sessionGeneration)),
+    createElement('button', {
+      onClick: () => guardedAuth.registerUnsavedChangesGuard(guard),
+    }, 'register-guard'),
+    createElement('button', {
+      onClick: () => void auth.login('2002', 'operator', 'password'),
+    }, 'guarded-login'),
+    createElement('button', { onClick: () => void auth.logout() }, 'guarded-logout'),
+  )
+}
+
 describe('AuthContext tenant session isolation', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -138,6 +158,95 @@ describe('AuthContext tenant session isolation', () => {
     expect(requestContext().sessionGeneration).toBeGreaterThan(generation)
     expect(queryClient.getQueryData(tenantKey)).toBeUndefined()
     expect(gatewayAuth.logout).toHaveBeenCalledTimes(1)
+    unmount()
+  })
+
+  it('keeps tenant session and query data when an unsaved-change guard declines login and logout', async () => {
+    vi.spyOn(gatewayAuth, 'bootstrap').mockResolvedValue(bootstrap('1001'))
+    const login = vi.spyOn(gatewayAuth, 'login').mockResolvedValue(undefined as never)
+    const logout = vi.spyOn(gatewayAuth, 'logout').mockResolvedValue(undefined as never)
+    const guard = vi.fn().mockResolvedValue(false)
+    const {queryClient, unmount} = renderWithQueryClient(
+      createElement(AuthProvider, null, createElement(GuardedSessionProbe, {guard})),
+    )
+    await waitFor(() => expect(requestContext().tenantId).toBe('1001'))
+    fireEvent.click(screen.getByText('register-guard'))
+    const generation = requestContext().sessionGeneration
+    const tenantKey = ['tianshu', 'tenant', '1001', 'ai', 'resources'] as const
+    queryClient.setQueryData(tenantKey, [{id: '810001'}])
+
+    fireEvent.click(screen.getByText('guarded-login'))
+
+    await waitFor(() => expect(guard).toHaveBeenCalledTimes(1))
+    expect(requestContext().tenantId).toBe('1001')
+    expect(requestContext().sessionGeneration).toBe(generation)
+    expect(queryClient.getQueryData(tenantKey)).toEqual([{id: '810001'}])
+    expect(login).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('guarded-logout'))
+
+    await waitFor(() => expect(guard).toHaveBeenCalledTimes(2))
+    expect(requestContext().tenantId).toBe('1001')
+    expect(requestContext().sessionGeneration).toBe(generation)
+    expect(queryClient.getQueryData(tenantKey)).toEqual([{id: '810001'}])
+    expect(logout).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('clears session once after a dirty guard approves logout', async () => {
+    vi.spyOn(gatewayAuth, 'bootstrap').mockResolvedValue(bootstrap('1001'))
+    const logout = vi.spyOn(gatewayAuth, 'logout').mockResolvedValue(undefined as never)
+    const guard = vi.fn().mockResolvedValue(true)
+    const {queryClient, unmount} = renderWithQueryClient(
+      createElement(AuthProvider, null, createElement(GuardedSessionProbe, {guard})),
+    )
+    await waitFor(() => expect(requestContext().tenantId).toBe('1001'))
+    fireEvent.click(screen.getByText('register-guard'))
+    const generation = requestContext().sessionGeneration
+    const tenantKey = ['tianshu', 'tenant', '1001', 'ai', 'resources'] as const
+    queryClient.setQueryData(tenantKey, [{id: '810001'}])
+
+    fireEvent.click(screen.getByText('guarded-logout'))
+
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1))
+    expect(guard).toHaveBeenCalledTimes(1)
+    expect(requestContext().tenantId).toBeUndefined()
+    expect(requestContext().sessionGeneration).toBeGreaterThan(generation)
+    expect(queryClient.getQueryData(tenantKey)).toBeUndefined()
+    unmount()
+  })
+
+  it('keeps dirty tenant state when mismatch recovery is declined and never replays the request', async () => {
+    const bootstraps = [bootstrap('1001'), bootstrap('2002')]
+    const bootstrapMock = vi.spyOn(gatewayAuth, 'bootstrap').mockImplementation(
+      async () => bootstraps.shift() as AuthorizationBootstrap,
+    )
+    const guard = vi.fn().mockResolvedValue(false)
+    const {queryClient, unmount} = renderWithQueryClient(
+      createElement(AuthProvider, null, createElement(GuardedSessionProbe, {guard})),
+    )
+    await waitFor(() => expect(requestContext().tenantId).toBe('1001'))
+    fireEvent.click(screen.getByText('register-guard'))
+    const generation = requestContext().sessionGeneration
+    const tenantKey = ['tianshu', 'tenant', '1001', 'ai', 'resources'] as const
+    const cachedResources = [{id: '810001', draft: 'private'}]
+    queryClient.setQueryData(tenantKey, cachedResources)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      code: 'TIANSHU_ADMIN_TENANT_MISMATCH',
+      message: 'TIANSHU_ADMIN_TENANT_MISMATCH',
+    }), {status: 403, headers: {'Content-Type': 'application/json'}})))
+
+    await expect(ddcApi('/api/v1/tianshu/ai/resources/810001/draft', {
+      method: 'PUT',
+      body: {expectedRevision: '3'},
+    })).rejects.toMatchObject({status: 403, code: 'TIANSHU_ADMIN_TENANT_MISMATCH'})
+
+    await waitFor(() => expect(guard).toHaveBeenCalledTimes(1))
+    expect(requestContext().tenantId).toBe('1001')
+    expect(requestContext().sessionGeneration).toBe(generation)
+    expect(queryClient.getQueryData(tenantKey)).toEqual(cachedResources)
+    expect(bootstrapMock).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
     unmount()
   })
 })

@@ -1,4 +1,4 @@
-import {createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState} from 'react'
+import {createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react'
 import {useQueryClient} from '@tanstack/react-query'
 import {createGatewayAuthClient} from '@egon-cola/xingyuan-admin-web-shared'
 import {
@@ -10,6 +10,8 @@ import {
 } from '../api/client'
 import type {AuthorizationBootstrap} from '../api/types'
 import {cancelAndClearDdcQueryClient} from '../query/queryClient'
+
+type UnsavedChangesGuard = () => Promise<boolean>
 
 const gatewayAuth = createGatewayAuthClient({
   baseUrl: import.meta.env.VITE_YUHENG_ORIGIN ?? '',
@@ -24,6 +26,7 @@ type AuthContextValue = {
   readonly authorized: boolean
   loading: boolean
   error?: string
+  registerUnsavedChangesGuard: (guard: UnsavedChangesGuard) => () => void
   login: (tenantId: string, username: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -36,9 +39,40 @@ export function AuthProvider({children}: {children: ReactNode}) {
   const [sessionGeneration, setSessionGeneration] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
+  const unsavedChangesGuards = useRef(new Set<UnsavedChangesGuard>())
+  const sessionTransitionPending = useRef(false)
   const identity = bootstrap?.user.identitySub ?? ''
   const tenantId = bootstrap?.user.tenantId ?? ''
   const authorized = bootstrap?.permissions.includes('TIANSHU_READ') ?? false
+
+  const registerUnsavedChangesGuard = useCallback((guard: UnsavedChangesGuard) => {
+    unsavedChangesGuards.current.add(guard)
+    return () => {
+      unsavedChangesGuards.current.delete(guard)
+    }
+  }, [])
+
+  const runSessionTransition = useCallback(async (transition: () => Promise<void>): Promise<void> => {
+    if (sessionTransitionPending.current) return
+    sessionTransitionPending.current = true
+    try {
+      for (const guard of unsavedChangesGuards.current) {
+        let allowed: boolean
+        try {
+          allowed = await guard()
+        } catch (failure) {
+          setError(failure instanceof Error
+            ? `无法确认未保存的编辑状态：${failure.message}`
+            : '无法确认未保存的编辑状态')
+          return
+        }
+        if (!allowed) return
+      }
+      await transition()
+    } finally {
+      sessionTransitionPending.current = false
+    }
+  }, [])
 
   const beginSession = useCallback((): number => {
     const generation = beginDdcSession()
@@ -59,59 +93,67 @@ export function AuthProvider({children}: {children: ReactNode}) {
   }, [])
 
   const clearAuthorization = useCallback(() => {
-    beginSession()
-    setError(undefined)
-    setLoading(false)
-  }, [beginSession])
+    void runSessionTransition(async () => {
+      beginSession()
+      setError(undefined)
+      setLoading(false)
+    })
+  }, [beginSession, runSessionTransition])
 
   const refreshAfterTenantMismatch = useCallback(() => {
-    const generation = beginSession()
-    setError(undefined)
-    setLoading(true)
-    void loadBootstrap(generation)
-      .catch((failure: unknown) => {
+    void runSessionTransition(async () => {
+      const generation = beginSession()
+      setError(undefined)
+      setLoading(true)
+      try {
+        await loadBootstrap(generation)
+      } catch (failure) {
         if (isCurrentDdcSession(generation)) {
           setError(failure instanceof Error ? failure.message : '无法刷新当前租户身份')
         }
-      })
-      .finally(() => {
+      } finally {
         if (isCurrentDdcSession(generation)) setLoading(false)
-      })
-  }, [beginSession, loadBootstrap])
+      }
+    })
+  }, [beginSession, loadBootstrap, runSessionTransition])
 
   const login = useCallback(async (selectedTenantId: string, username: string, password: string) => {
-    const generation = beginSession()
-    setError(undefined)
-    setLoading(true)
-    try {
-      await gatewayAuth.login({tenantId: selectedTenantId, username, password})
-      await loadBootstrap(generation)
-    } catch (failure) {
-      if (isCurrentDdcSession(generation)) {
-        setBootstrap(undefined)
-        setError(failure instanceof Error ? failure.message : '统一身份登录失败')
+    await runSessionTransition(async () => {
+      const generation = beginSession()
+      setError(undefined)
+      setLoading(true)
+      try {
+        await gatewayAuth.login({tenantId: selectedTenantId, username, password})
+        await loadBootstrap(generation)
+      } catch (failure) {
+        if (isCurrentDdcSession(generation)) {
+          setBootstrap(undefined)
+          setError(failure instanceof Error ? failure.message : '统一身份登录失败')
+        }
+        throw failure
+      } finally {
+        if (isCurrentDdcSession(generation)) setLoading(false)
       }
-      throw failure
-    } finally {
-      if (isCurrentDdcSession(generation)) setLoading(false)
-    }
-  }, [beginSession, loadBootstrap])
+    })
+  }, [beginSession, loadBootstrap, runSessionTransition])
 
   const logout = useCallback(async () => {
-    const generation = beginSession()
-    setError(undefined)
-    setLoading(true)
-    try {
-      await gatewayAuth.logout()
-    } catch (failure) {
-      if (isCurrentDdcSession(generation)) {
-        setError(failure instanceof Error ? failure.message : '统一身份退出失败')
+    await runSessionTransition(async () => {
+      const generation = beginSession()
+      setError(undefined)
+      setLoading(true)
+      try {
+        await gatewayAuth.logout()
+      } catch (failure) {
+        if (isCurrentDdcSession(generation)) {
+          setError(failure instanceof Error ? failure.message : '统一身份退出失败')
+        }
+        throw failure
+      } finally {
+        if (isCurrentDdcSession(generation)) setLoading(false)
       }
-      throw failure
-    } finally {
-      if (isCurrentDdcSession(generation)) setLoading(false)
-    }
-  }, [beginSession])
+    })
+  }, [beginSession, runSessionTransition])
 
   useEffect(() => {
     setDdcUnauthorizedHandler(clearAuthorization)
@@ -144,8 +186,10 @@ export function AuthProvider({children}: {children: ReactNode}) {
   }, [beginSession, loadBootstrap, queryClient])
 
   const value = useMemo(
-    () => ({identity, tenantId, sessionGeneration, authorized, loading, error, login, logout}),
-    [authorized, error, identity, loading, login, logout, sessionGeneration, tenantId],
+    () => ({identity, tenantId, sessionGeneration, authorized, loading, error,
+      registerUnsavedChangesGuard, login, logout}),
+    [authorized, error, identity, loading, login, logout, registerUnsavedChangesGuard,
+      sessionGeneration, tenantId],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

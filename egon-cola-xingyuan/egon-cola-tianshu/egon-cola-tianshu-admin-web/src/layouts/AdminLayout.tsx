@@ -26,6 +26,10 @@ interface WujieRuntimeWindow extends Window {
 
 // 平台自己的导航树；shared 只负责左侧递归树的渲染与高亮。
 const navigation: readonly EnterpriseNavigationItem[] = [
+  { key: 'ai-resources', label: 'AI 资源管理', icon: <FileTextOutlined />, children: [
+    { key: 'ai-prompts', label: 'Prompt 管理', path: '/ai/prompts', icon: <FileTextOutlined /> },
+    { key: 'ai-skills', label: 'Skill 管理', path: '/ai/skills', icon: <FileTextOutlined /> },
+  ] },
   { key: 'runtime', label: '运行状态', icon: <ClusterOutlined />, children: [
     { key: 'registry', label: '服务注册', path: '/registry', icon: <ClusterOutlined /> },
     { key: 'instances', label: '配置客户端实例', path: '/instances', icon: <ClusterOutlined /> },
