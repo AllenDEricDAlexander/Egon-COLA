@@ -21,6 +21,9 @@ egon:
       id:
         enabled: false
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
+        redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
         enabled: false
         rpc:
           target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}

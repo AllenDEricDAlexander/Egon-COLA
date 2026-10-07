@@ -148,7 +148,7 @@ egon:
                 env-patterns: ${TIANSHU_RPC_RUNTIME_ENV_PATTERNS:*}
                 biz-code-patterns: ${TIANSHU_RPC_RUNTIME_BIZ_CODE_PATTERNS:*}
                 namespace-patterns: ${TIANSHU_RPC_RUNTIME_NAMESPACE_PATTERNS:*}
-                allowed-operations: SDK_REGISTER,SDK_HEARTBEAT,SDK_OFFLINE,CONFIG_PULL,PUBLISH_ACK
+                allowed-operations: SDK_REGISTER,SDK_HEARTBEAT,SDK_OFFLINE,CONFIG_PULL,PUBLISH_ACK,AI_READ
               - credential-id: ${TIANSHU_RPC_REGISTRY_CREDENTIAL_ID:registry}
                 access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
                 secret: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}

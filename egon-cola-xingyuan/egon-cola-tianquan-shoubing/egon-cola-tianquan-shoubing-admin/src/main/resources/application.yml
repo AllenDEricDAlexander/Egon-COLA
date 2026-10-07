@@ -141,6 +141,7 @@ egon:
         enabled: true
         node-id: ${TIANQUAN_SHOUBING_INSTANCE_ID:tianquan-shoubing-local-1}
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
         enabled: ${TIANQUAN_SHOUBING_TIANSHU_ENABLED:false}
         biz-code: ${TIANQUAN_SHOUBING_RESOURCE_BIZ_CODE:permission}
         app-code: ${TIANQUAN_SHOUBING_RESOURCE_APP_CODE:tianquan-shoubing}
@@ -171,6 +172,7 @@ egon:
               access-key: ${TIANSHU_RPC_MANAGEMENT_ACCESS_KEY:}
               secret-key: ${TIANSHU_RPC_MANAGEMENT_SECRET_KEY:}
         redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
           enabled: ${TIANQUAN_SHOUBING_TIANSHU_ENABLED:false}
           mode: SINGLE
           host: ${TIANSHU_REGISTRY_REDIS_HOST:127.0.0.1}

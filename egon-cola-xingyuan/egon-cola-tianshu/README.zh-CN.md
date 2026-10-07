@@ -84,6 +84,12 @@ GET /api/v1/tianshu/bizs/page?pageNo=1&pageSize=10
 页码从 1 开始。这些 REST 接口服务于 Admin Web 和其他人工管理客户端；Starter 与
 RPC 机器客户端仍消费完整目录和快照，不使用 Admin 分页契约。
 
+## Prompt 与 Skill 资源
+
+Admin 管理按 tenant 隔离的 Prompt 文本和 Skill 文件树。Skill 文件以文本保存，界面不提供按文件格式定制的渲染。发布版本不可变；消费者同时固定 `resourceId` 与 `versionNo`。同 tenant 内可将指定源版本复制发布到明确的目标 scope，目标现有草稿保持不变。
+
+Starter 分别提供 `egon.cola.component.tianshu.prompt.enabled` 和 `skill.enabled` 开关，默认关闭。直接调用方必须配置正数 `TIANSHU_TENANT_ID`；Redis 启用时还必须配置该 tenant 的 `TIANSHU_REDIS_USERNAME`。Prompt/Skill RPC 读取只需要只读 `AI_READ` 操作权限。tenant 登记、DDL 就绪、V9 导入、回滚边界及 opt-in PostgreSQL/Redis 集成测试见 [Prompt/Skill 上线与迁移手册](docs/tianshu-ai-migration-runbook.md)。
+
 ## Starter 分包
 
 ```text
@@ -522,8 +528,10 @@ egon:
           trust-certificate-collection-path: ${TIANSHU_TRUST_CERTIFICATE}
 ```
 
-`test` Profile 使用 SQLite `create-drop`，并关闭 Flyway 和 Admin Redis
-连接；这不是生产存储拓扑。
+Admin `test` Profile 使用 PostgreSQL 配置，并关闭 Flyway 和 Admin Redis
+连接。内存 SQLite 仅作为 V9 导入 fixture 保留在 test scope，不是 Admin 持久化拓扑。
+外部 PostgreSQL/Redis 检查必须显式启用 `tianshu-ai-persistence-it` Failsafe
+Profile 并提供隔离目标，具体要求见迁移手册。
 
 ## 构建和验证
 

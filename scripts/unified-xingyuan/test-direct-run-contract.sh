@@ -99,6 +99,10 @@ source "${function_file}"
 [[ "$(java_property_key EGON_COLA_COMPONENT_TIANSHU_CONSISTENCY_FAIL_FAST)" \
     == 'egon.cola.component.tianshu.consistency.fail-fast' ]] \
   || fail 'Tianshu consistency fail-fast must use its canonical property key'
+[[ "$(java_property_key TIANSHU_TENANT_ID)" == 'TIANSHU_TENANT_ID' ]] \
+  || fail 'Tianshu tenant identity must remain available to its configured property placeholder'
+[[ "$(java_property_key TIANSHU_REDIS_USERNAME)" == 'TIANSHU_REDIS_USERNAME' ]] \
+  || fail 'Tianshu Redis ACL username must remain available to its configured property placeholder'
 [[ "$(java_property_key EGON_COLA_COMPONENT_YUHENG_ENGINE_HTTP_PUBLIC_PORT)" \
     == 'egon.cola.component.yuheng.engine.http.public-port' ]] \
   || fail 'Yuheng public listener must use its nested canonical property key'
@@ -296,7 +300,7 @@ generated_runtime="${temporary_dir}/generated-runtime"
   postgres_password() {
     printf '%s' 'test-postgres-password'
   }
-  service_tenant_id=default
+  service_tenant_id=42001
   database_table_exists() {
     return 1
   }
@@ -307,6 +311,10 @@ generated_runtime="${temporary_dir}/generated-runtime"
 )
 
 mcp_engine_env="${generated_runtime}/env/yuheng-mcp-gateway.env"
+assert_env_equals "${mcp_engine_env}" TIANSHU_TENANT_ID 42001 \
+  'MCP Engine must receive an explicit numeric Tianshu tenant ID'
+assert_env_equals "${mcp_engine_env}" TIANSHU_REDIS_USERNAME default \
+  'local MCP Engine must name the Redis default ACL user explicitly'
 assert_env_equals "${mcp_engine_env}" TIANSHU_APP_CODE yuheng-mcp-gateway-default \
   'MCP Engine must use its own source-bound Tianshu application'
 assert_env_equals "${mcp_engine_env}" YUHENG_MCP_ENGINE_RESOURCE_SERVER_ID \
@@ -396,7 +404,7 @@ assert_env_equals "${idp_env}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_PRIVA
 assert_env_equals "${idp_env}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_RESOURCE_URI \
   https://api.egon.internal/local/permission/tianquan-jianshen \
   'local Tianquan-Shoubing must request a token for the exact Tianquan-Jianshen Resource'
-assert_env_equals "${idp_env}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_TENANT_ID default \
+assert_env_equals "${idp_env}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_TENANT_ID 42001 \
   'local Tianquan-Shoubing service calls must bind one exact tenant'
 assert_env_equals "${idp_env}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_SCOPES \
   'service:authorization:decide service:authorization:snapshot service:identity:resolve' \
@@ -832,6 +840,11 @@ assert_contains "${identity_script}" '[[ -s "${file}" ]] || return 0' \
 assert_contains "${repo_root}/scripts/unified-xingyuan/lib/common.sh" \
   '[[ -s "${pid_file}" ]] || return 0' \
   'platform shutdown must tolerate an already stopped process'
+assert_contains "${identity_script}" 'write_tianshu_client_identity_env()' \
+  'local service profiles must write a numeric Tianshu tenant and Redis ACL username'
+assert_contains "${repo_root}/scripts/unified-xingyuan/lib/common.sh" \
+  'unified_xingyuan_write_tianshu_identity_env()' \
+  'platform test fixtures must share Tianshu tenant and Redis ACL validation'
 
 assert_service_config() {
   local relative_file="$1" service="$2" file="${repo_root}/$1"
@@ -898,6 +911,8 @@ assert_contains "${prepare_script}" '.properties' \
   'preparation must verify generated Java runtime configuration'
 assert_contains "${start_script}" 'test-live-frontend-login.sh' \
   'stack startup must prove fresh password login and authorization before success'
+assert_contains "${start_script}" 'unified_xingyuan_write_tianshu_identity_env' \
+  'local MCP provider must receive its resolved Tianshu tenant and ACL identity'
 assert_contains "${identity_script}" 'publish_gateway_routes true' \
   'deferred startup must prepare HTTP routes before the unified MCP release'
 assert_contains "${identity_script}" 'publish-yuheng-routes' \

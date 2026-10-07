@@ -157,6 +157,7 @@ egon:
           private-key-path: ${RPC_PRIVATE_KEY_PATH:}
           trust-certificate-collection-path: ${RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
         enabled: ${TIANSHU_ENABLED:true}
         biz-code: ${TIANSHU_BIZ_CODE:student-management}
         app-code: ${TIANSHU_APP_CODE:${spring.application.name}}
@@ -164,6 +165,7 @@ egon:
         namespace: ${TIANSHU_NAMESPACE:default}
         registration-resource-uri: ${TIANSHU_REGISTRATION_RESOURCE_URI:}
         redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
           enabled: ${TIANSHU_REDIS_ENABLED:true}
           host: ${TIANSHU_REDIS_HOST:localhost}
           port: ${TIANSHU_REDIS_PORT:6379}

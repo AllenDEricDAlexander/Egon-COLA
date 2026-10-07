@@ -50,11 +50,13 @@ egon:
               scopes: ${YUHENG_TIANQUAN_JIANSHEN_SERVICE_TOKEN_SCOPES:}
     component:
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
         rpc:
           target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           tls:
             development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
           password: ${TIANSHU_REDIS_PASSWORD:HomeLab666}
       yuheng:
         reporting:

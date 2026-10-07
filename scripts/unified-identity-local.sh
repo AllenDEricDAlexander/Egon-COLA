@@ -452,6 +452,16 @@ write_env() {
     "$(properties_escape "${value}")" >>"${properties_file}"
 }
 
+write_tianshu_client_identity_env() {
+  local file="$1" tenant_id="$2" redis_username="$3"
+  [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
+    || fail "Tianshu client tenant ID must be a positive integer"
+  [[ -n "${redis_username}" ]] \
+    || fail "Tianshu Redis ACL username must not be empty"
+  write_env "${file}" TIANSHU_TENANT_ID "${tenant_id}"
+  write_env "${file}" TIANSHU_REDIS_USERNAME "${redis_username}"
+}
+
 new_env_file() {
   local file="${env_dir}/$1.env" properties_file
   properties_file="${file%.env}.properties"
@@ -526,8 +536,9 @@ write_tenant_aware_rbac3_service_token_env() {
 }
 
 write_service_env_files() {
-  local redis_password postgres_password_value file
+  local redis_password postgres_password_value redis_username file
   redis_password="$(<"${secret_dir}/redis.password")"
+  redis_username="${TIANSHU_REDIS_USERNAME:-default}"
   postgres_password_value="$(postgres_password)"
 
   file="$(new_env_file tianshu)"
@@ -587,6 +598,7 @@ write_service_env_files() {
   write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/tianshu-yuheng-report.json"
 
   file="$(new_env_file tianquan-shoubing)"
+  write_tianshu_client_identity_env "${file}" "${service_tenant_id}" "${redis_username}"
   common_identity_env "${file}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
     tianquan-shoubing-service tianquan-shoubing-local "${secret_dir}/tianquan-shoubing-private.pem"
@@ -673,6 +685,7 @@ write_service_env_files() {
   write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/tianquan-shoubing-yuheng-report.json"
 
   file="$(new_env_file tianquan-jianshen)"
+  write_tianshu_client_identity_env "${file}" "${service_tenant_id}" "${redis_username}"
   common_identity_env "${file}"
   write_tenant_aware_rbac3_service_token_env "${file}" tianquan-jianshen-service
   write_env "${file}" TIANQUAN_JIANSHEN_POSTGRES_URL "$(rbac3_jdbc_url)"
@@ -735,6 +748,7 @@ write_service_env_files() {
   write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/tianquan-jianshen-yuheng-report.json"
 
   file="$(new_env_file yuheng-admin)"
+  write_tianshu_client_identity_env "${file}" "${service_tenant_id}" "${redis_username}"
   common_identity_env "${file}"
   write_env "${file}" DEPLOYMENT_ENV local
   write_tenant_aware_rbac3_service_token_env "${file}" \
@@ -809,6 +823,7 @@ write_service_env_files() {
   write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/yuheng-admin-yuheng-report.json"
 
   file="$(new_env_file mock-backend)"
+  write_tianshu_client_identity_env "${file}" "${service_tenant_id}" "${redis_username}"
   common_identity_env "${file}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
     mock-backend-service mock-backend-local \
@@ -838,6 +853,7 @@ write_service_env_files() {
   write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/mock-backend-yuheng-report.json"
 
   file="$(new_env_file yuheng-biz-gateway)"
+  write_tianshu_client_identity_env "${file}" "${service_tenant_id}" "${redis_username}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
     yuheng-biz-gateway-service yuheng-biz-gateway-local \
     "${secret_dir}/yuheng-biz-gateway-private.pem"
@@ -947,10 +963,12 @@ write_service_env_files() {
 # The MCP process has its own OAuth resource/client and Tianshu source scope.
 # Do not copy the API Engine environment: its identity and ports are not aliases.
 write_mcp_engine_env_file() {
-  local file redis_password postgres_password_value
+  local file redis_password postgres_password_value redis_username
   file="$(new_env_file yuheng-mcp-gateway)"
   redis_password="$(<"${secret_dir}/redis.password")"
+  redis_username="${TIANSHU_REDIS_USERNAME:-default}"
   postgres_password_value="$(postgres_password)"
+  write_tianshu_client_identity_env "${file}" "${service_tenant_id}" "${redis_username}"
   common_identity_env "${file}"
   write_tenant_aware_rbac3_service_token_env "${file}" yuheng-mcp-gateway-service
   write_env "${file}" SERVER_PORT 18186

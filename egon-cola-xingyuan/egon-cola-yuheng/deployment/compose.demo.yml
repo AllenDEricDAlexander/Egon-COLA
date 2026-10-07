@@ -9,6 +9,8 @@ services:
       - path: .demo/http-provider.env
         required: false
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18080
       EGON_COLA_COMPONENT_TIANSHU_ENABLED: "true"
       EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE: ${YUHENG_BIZ_CODE}
@@ -47,6 +49,8 @@ services:
       args:
         APP_JAR: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/target/yuheng-test-webflux-http-provider-exec.jar
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18080
       EGON_COLA_COMPONENT_TIANSHU_ENABLED: "true"
       EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE: ${YUHENG_BIZ_CODE}
@@ -81,6 +85,8 @@ services:
       - path: .demo/rpc-provider.env
         required: false
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18080
       EGON_COLA_COMPONENT_TIANSHU_ENABLED: "true"
       EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE: ${YUHENG_BIZ_CODE}
@@ -122,6 +128,8 @@ services:
       args:
         APP_JAR: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-consumer/target/yuheng-test-rpc-consumer-exec.jar
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18080
       EGON_COLA_COMPONENT_TIANSHU_ENABLED: "true"
       EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE: ${YUHENG_BIZ_CODE}

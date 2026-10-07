@@ -122,6 +122,8 @@ services:
     build:
       context: ../yuheng-admin
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18080
       EGON_COLA_COMPONENT_ID_MACHINE_ID: "2"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_admin
@@ -157,6 +159,8 @@ services:
     build:
       context: ../yuheng-biz-gateway
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18083
       EGON_COLA_COMPONENT_ID_MACHINE_ID: "10"
       EGON_COLA_COMPONENT_TIANSHU_INSTANCE_ID: yuheng-biz-gateway
@@ -226,6 +230,8 @@ services:
     build:
       context: ../yuheng-biz-gateway
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18083
       EGON_COLA_COMPONENT_ID_MACHINE_ID: "11"
       EGON_COLA_COMPONENT_TIANSHU_INSTANCE_ID: yuheng-biz-gateway-2
@@ -295,6 +301,8 @@ services:
     build:
       context: ../yuheng-mcp-gateway
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       EGON_COLA_COMPONENT_ID_MACHINE_ID: "12"
       EGON_COLA_COMPONENT_TIANSHU_ENABLED: "true"
       EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE: ${YUHENG_BIZ_CODE}
@@ -363,6 +371,8 @@ services:
     build:
       context: ../yuheng-mcp-gateway
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       EGON_COLA_COMPONENT_ID_MACHINE_ID: "13"
       EGON_COLA_COMPONENT_TIANSHU_ENABLED: "true"
       EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE: ${YUHENG_BIZ_CODE}

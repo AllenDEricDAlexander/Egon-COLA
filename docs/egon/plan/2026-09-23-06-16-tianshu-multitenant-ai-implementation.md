@@ -261,11 +261,11 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/contract/DdcAiStableVersionSelectorTest.java` | CREATE：基线不存在 | DdcAiStableVersionSelectorTest | versionNo无resourceId拒绝；旧id删除同key新root-v1不误读；当前读取可不固定ID | Step 4 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-015 REQ-016 REQ-019 | DdcAiJavaContractTest,DdcAiStableVersionSelectorTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml` | SHA256 ff62a646cdfd | application-local | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml` | SHA256 21976a9948c2 | application | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh` | SHA256 1cbff0c78b3a | verify-static | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh` | SHA256 1cbff0c78b3a | verify-static | 核验production profile显式tenant/Redis ACL identity；容忍连续追加的Flyway forward versions并指向当前源码包路径 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml` | SHA256 36dc2f5476e3 | application-local | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml` | SHA256 4c149d6fa95a | application | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/README.md` | SHA256 b653dd0e40ee | README | tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md` | SHA256 2c6c8263e476 | README.zh-CN | tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/README.md` | SHA256 468a5a430025 | README | tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md` | SHA256 6eb70a3da529 | README.zh-CN | tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/docs/tianshu-ai-migration-runbook.md` | CREATE：基线不存在 | tianshu-ai-migration-runbook | tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx` | SHA256 1f5c18748770 | App | Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库 | Step 21 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-014 | AiDraftUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/ai.test.ts` | CREATE：基线不存在 | ai.test | 11API参数/headers/Long字符串/204/两种错误；Idempotency-Key复用；tenant header来自bootstrap而非表单 | Step 20 | REQ-007 REQ-012 REQ-013 REQ-014 REQ-019 | DdcAiClientContract |
@@ -515,7 +515,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/support/DdcAdminPageSupport.java` | SHA256 a30a6a60e674 | DdcAdminPageSupport | 新增DdcPageResult重载生成原PageResultRecord；旧JPA重载暂留到Step11全部消费者迁完 | Step 8, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcMetadataRepositoryContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml` | SHA256 5c42cdc2affb | application-local | 同结构导入共享MP配置、tenant bindings和Outbox键；启用需明确新PG目标和tenant，无默认0/1；test外部连接仅显式IT | Step 11, Step 18 | REQ-011 REQ-013 REQ-015 REQ-017 | DdcConfigOutboxContractTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-test.yml` | SHA256 a0a64cff7558 | application-test | 同结构导入共享MP配置、tenant bindings和Outbox键；启用需明确新PG目标和tenant，无默认0/1；test外部连接仅显式IT | Step 11, Step 18 | REQ-011 REQ-013 REQ-015 REQ-017 | DdcConfigOutboxContractTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml` | SHA256 f1ebe0325c54 | application | 同结构导入共享MP配置、tenant bindings和Outbox键；启用需明确新PG目标和tenant，无默认0/1；test外部连接仅显式IT | Step 11, Step 18 | REQ-011 REQ-013 REQ-015 REQ-017 | DdcConfigOutboxContractTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml` | Step 11/18 SHA256 `f1ebe0325c54`; Step 24 baseline HEAD SHA256 `46c49bb6fab8` | application | 保留共享MP/tenant/Outbox配置；Step 24 runtime credential 增加只读 `AI_READ`，使Prompt/Skill Get RPC可用但不授管理写操作 | Step 11, Step 18, Step 24 | REQ-007 REQ-008 REQ-011 REQ-017 | DdcProfileParityTest,DdcConfigOutboxContractTest,DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260922_001__tianshu_platform.sql` | CREATE：基线不存在 | V20260922_001__tianshu_platform | 16 Tianshu业务表＋public.ddl_history＋egon_outbox schema；不duplicate Outbox表/history；父表先于子/FK后加；八组lifecycle/live键 | Step 7 | REQ-009 REQ-011 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/V20260928_001__tianshu_instance_business_key.sql` | CREATE：基线不存在 | V20260928_001__tianshu_instance_business_key | 仅追加`uk_instance_business(tenant_id, instance_id)`唯一索引；不清理/合并重复实例；已提交V001字节不变 | Step 10 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcTianshuDdlContractTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/egon-mp/repository-manifest.json` | CREATE: 基线不存在；MODIFY: SHA256 ff5ee5024aacca | repository-manifest | family tianshu；保留已应用V001前缀，追加V20260928_001前向脚本及真实SHA256 | Step 7, Step 10 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
@@ -540,7 +540,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcArchitectureContractTest.java` | CREATE：基线不存在 | DdcArchitectureContractTest | controller不得引用dao/PO，service不得MP/JPA；业务查询命名XML；普通POJO class和Qualifier传播；无生成器依赖 | Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java` | CREATE：基线不存在 | DdcEndToEndContractTest | 受控mock/协议fixture闭合create-save-publish-promote-read，跨tenant/删除重建固定版失败，Outbox结果与ACK分离 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcLegacyBehaviorContractTest.java` | CREATE：基线不存在 | DdcLegacyBehaviorContractTest | 原Controller/proto fixture对照JSON字段、String public IDs、PageMeta、Date和错误；同业务跨tenant不泄漏 | Step 11 | REQ-011 REQ-013 REQ-015 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java` | CREATE：基线不存在 | DdcProfileParityTest | Step 18直接验证Outbox三个Admin profile key parity与test poller关闭；Step 24扩展剩余profile/data contract | Step 18, Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java` | Step 18 CREATE：基线不存在；Step 24 MODIFY：当前HEAD SHA256前12位 `f681f77b9468` | DdcProfileParityTest | Step 18验证Outbox三个Admin profile key parity与test poller关闭；Step 24保留该断言并扩展29个调用方tenant/ACL profile和runtime AI_READ最小授权合同 | Step 18, Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiOpenApiContractTest.java` | CREATE：基线不存在 | DdcAiOpenApiContractTest | MockMvc实际/v3/api-docs/tianshu解析；11个ID/required/null/enum/安全/headers/204；默认关闭 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAiResourceControllerTest.java` | CREATE：基线不存在 | DdcAiResourceControllerTest | 原Spec全部REST正反fixture，身份两字段错误与业务七字段区别；额外tenant拒绝；DELETE204 | Step 16 | REQ-001 REQ-002 REQ-005 REQ-009 REQ-012 REQ-015 | DdcAiResourceControllerTest,DdcAiOpenApiContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAppControllerTest.java` | SHA256 4ba8c45cc64e | DdcAppControllerTest | 仅本Step的 DdcBiz,DdcEnv,DdcApp,DdcNamespace,DdcNamespaceEnvAppBinding 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 8, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcMetadataRepositoryContractTest |
@@ -557,11 +557,11 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiConcurrencyIT.java` | CREATE：基线不存在 | DdcAiConcurrencyIT | 两连接同key/响应丢失/节点失败全回滚；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiPersistenceIT.java` | CREATE：基线不存在 | DdcAiPersistenceIT | 真实PG/SS的FK/live/lifecycle约束；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiPromotionIT.java` | CREATE：基线不存在 | DdcAiPromotionIT | 同tenant跨四维整树复制、源/目标草稿保护；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcConfigOutboxIntegrationTest.java` | CREATE：基线不存在 | DdcConfigOutboxIntegrationTest | SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcConfigOutboxIntegrationTest.java` | CREATE：基线不存在 | DdcConfigOutboxIntegrationTest | SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcLegacyMigrationIT.java` | CREATE：基线不存在 | DdcLegacyMigrationIT | V9冻结夹具到新PG字段/ID/tenant/历史逐表比对；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcLifecycleUniqueIT.java` | CREATE：基线不存在 | DdcLifecycleUniqueIT | same microsecond重复删、恢复撞live、NULL active唯一；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcSyncPublishFlowTest.java` | SHA256 c2ea539e6cbf | DdcSyncPublishFlowTest | 仅本Step的 DdcConfigItem,DdcConfigVersion 类型/Repository调用从Entity到BO，外部结果用Forward Converter，原业务分支/字段/状态/事务保持 | Step 9, Step 10, Step 11 | REQ-011 REQ-013 REQ-015 REQ-019 | DdcConfigRepositoryContractTest,DdcConfigServiceTest, DdcLegacyBehaviorContractTest,DdcArchitectureContractTest, DdcPublishPersistenceContractTest,DdcConfigLeaseServiceTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTenantRedisIT.java` | CREATE：基线不存在 | DdcTenantRedisIT | 真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTenantRedisIT.java` | CREATE：基线不存在 | DdcTenantRedisIT | 真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTianshuDdlIT.java` | CREATE：基线不存在 | DdcTianshuDdlIT | 空库/正确history重入/漂移拒绝/未知提交核验；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java` | CREATE：基线不存在 | DdcLegacyImportContractTest | non-numeric id、env复制、未知tenant/孤儿/冲突、分批中断、同源hash跳过不同hash停止、old datetime不改 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java` | CREATE: 基线不存在；MODIFY: Step 7/10/12；MODIFY Step 23 基线 SHA256 `e34437b28781ffc2ee51aee6b34e905b1459dc73ecc6b654c141c14e44554b54` | DdcTianshuDdlContractTest | Tianshu DDL/history/Outbox合同；Step 23扩展CLI mode与usage合同，确保validate/initialize兼容并覆盖import/verify | Step 7, Step 10, Step 12, Step 23 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcTianshuDdlContractTest,DdcLegacyImportContractTest |
@@ -693,12 +693,12 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/pom.xml` | SHA256 2391dd63ed0b | pom | A加入MP5.4.1与Outbox5.4.1；A/R使用已批MapStruct1.6.3/processor和binding0.2.0；保留Boot/Lombok处理器；此阶段不删除JPA，不触及components/pom.xml | Step 3 | REQ-010 REQ-011 REQ-015 REQ-016 REQ-017 | compile |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.demo.yml` | SHA256 b00d923e7943 | compose.demo | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha-mtls.yml` | SHA256 a614c9be8e2f | compose.ha-mtls | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml` | SHA256 e660c98057b8 | compose.ha | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml` | SHA256 31982fd19e1f | compose.ha | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.mtls.yml` | SHA256 7b29bf0c5ee4 | compose.mtls | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml` | SHA256 d1de89723422 | compose | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/tianshu-rpc-credentials.yml` | SHA256 c6f4b373449a | tianshu-rpc-credentials | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml` | SHA256 caca50f46e62 | application-local | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
-| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml` | SHA256 1665c73fa681 | application | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml` | SHA256 dcda4208dffe | compose | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/tianshu-rpc-credentials.yml` | SHA256 c6f4b373449a | tianshu-rpc-credentials | 保留runtime与Yuheng MCP SDK能力并只追加AI_READ；其他运行时/RPC管理权限不变；tenant/Redis参数由直接调用方profile透传 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml` | SHA256 e6948965ba68 | application-local | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml` | SHA256 75edd8a09564 | application | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml` | SHA256 6aafdb61a90a | application-operations | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml` | SHA256 aba391d881d4 | application | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml` | SHA256 541e99b421b5 | application-operations | 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置 | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
@@ -18449,24 +18449,26 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 - Requirements: `REQ-001`, `REQ-002`, `REQ-003`, `REQ-004`, `REQ-005`, `REQ-006`, `REQ-007`, `REQ-008`, `REQ-009`, `REQ-010`, `REQ-011`, `REQ-012`, `REQ-013`, `REQ-014`, `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`, `REQ-019`
 - Dependencies: Step 22, Step 23
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
-- Observable outcome: 精确调用方tenant参数/ACL/签名升级和所有测试证据闭合；不自动部署或启动应用。
-- End state: 精确调用方tenant参数/ACL/签名升级和所有测试证据闭合；不自动部署或启动应用；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Observable outcome: 精确调用方tenant参数/ACL、AI只读RPC授权、外部集成隔离与所有测试证据闭合；不自动部署或启动应用。
+- End state: 精确调用方tenant参数/ACL、`AI_READ`只读凭据、外部集成门禁与所有测试证据闭合；不自动部署或启动应用；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Plan clarification: 当前Step24基线为`1ed5d471b13cb56d3742d866f9abb2fd4813b31e`。路径复核发现前置提交已完成部分本Step工作：DdcProfileParityTest由Step18提交`f3016a959`创建，本步改为MODIFY并保留Outbox断言；Admin POM由`ade89bf9e`完成JPA/runtime SQLite移除，SQLite仅保留test scope，本步只补齐显式Failsafe与Surefire隔离；README/README.zh-CN已由`1f1853e2a`更新，Yuheng compose由`0e640fac8`更新，Yuheng Admin profiles由`bdae6c83d`更新。本步以当前HEAD的实际hash作为这些路径的修改基线，仅增补被本Spec要求的tenant/ACL配置、跨profile合同和迁移说明，保留前置提交内容。Yuheng、Tianquan Shoubing/Jianshen及archetype路径均有实际Tianshu RPC adapter/HTTP registration或配置消费者调用；本步的application/compose变更只透传这些直接调用方的tenant与ACL参数，不改其业务逻辑。另核对 `DdcRpcScopeExtractor` 与 `DdcRpcOperation.AI_READ` 后发现默认Admin runtime credential以及Docker override中的runtime和Yuheng MCP runtime两条SDK allowlist尚未包含新Prompt/Skill查询操作；增加Admin `application.yml`和override两条runtime lists，并由profile contract断言所有SDK runtime entry保留CONFIG_PULL且只增加只读AI_READ，不扩大管理写权限。运行既有Jianshen静态合同时又发现该脚本把V1–V5硬编码为唯一迁移总数（当前仓库已有连续V1–V13）且三个源码符号路径把包名`tianquan/jianshen`误写为`tianquan-jianshen`；本步将该静态守卫调整为连续版本校验并修正源码路径。
+- Test implementation alignment: 现有 `MybatisPlusOutboxStore` 的worker流程是候选查询、`pg_try_advisory_xact_lock`、version/status CAS claim，再按retry budget写RETRY_WAIT/DEAD；`DdcConfigOutboxIntegrationTest`按这条真实SQL状态机验证，不另造一个不被生产代码使用的CTE。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
 - Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONFIG-001, MC-BEAN-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 7, Rule 10, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`
 
-- Purpose: base/local/test新增键结构一致；旧JPA/Flyway未激活；generator/Rabbit/Kafka依赖未进入应用；不会把missing tenant默认1
+- Purpose: 保留Step18的Outbox profile合同；核对29个直接Tianshu调用方profile的tenant/Redis ACL参数不缺省；Prompt/Skill默认关闭；runtime credential仅追加AI_READ；旧JPA/Flyway及generator/Rabbit/Kafka应用依赖不激活
 - Symbols: `DdcProfileParityTest`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcProfileParityTest`。
+- Repository evidence: 已由Step 18提交`f3016a959`创建；当前HEAD基线SHA256前12位`f681f77b9468`。保留原Outbox三个Admin profile key parity/test poller关闭断言，再增加Tianshu base/local/test的tenant、AI默认关闭、MP白名单与legacy persistence边界检查。
 - Dependencies and consumers: 前置Step 22, Step 23；本步0个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 先固定本步RED合同。
-- Contract/signature changes: DdcProfileParityTest新增可观察断言：base/local/test新增键结构一致；旧JPA/Flyway未激活；generator/Rabbit/Kafka依赖未进入应用；不会把missing tenant默认1。
+- Why now: 在改动各调用方profile前，先扩大既有profile合同以固定本步RED行为。
+- Contract/signature changes: DdcProfileParityTest保留Outbox三个Admin profile key set/测试poller合同；遍历Plan列明的29个直接调用方profile，要求`egon.cola.component.tianshu.tenant-id=${TIANSHU_TENANT_ID:}`与`redis.username=${TIANSHU_REDIS_USERNAME:}`显式传递且无数值回退，并验证Prompt/Skill未被默认打开；读取Admin默认runtime、Yuheng Docker runtime及Yuheng MCP runtime SDK allowlist，要求保留CONFIG_PULL、追加AI_READ且不得包含管理写权限。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：base/local/test新增键结构一致；旧JPA/Flyway未激活；generator/Rabbit/Kafka依赖未进入应用；不会把missing tenant默认1；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按base/local/test新增键结构一致；旧JPA/Flyway未激活；generator/Rabbit/Kafka依赖未进入应用；不会把missing tenant默认1判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；base/local/test新增键结构一致；旧JPA/Flyway未激活；generator/Rabbit/Kafka依赖未进入应用；不会把missing tenant默认1。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-CONFIG-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 7, Rule 10, Rule 11；profile parity、旧JPA/Flyway未激活、无默认tenant及无code-generator/Rabbit/Kafka应用依赖。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
@@ -18479,7 +18481,7 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 }
 ```
 
-- Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的base/local/test新增键结构一致；旧JPA/Flyway未激活；generator/Rabbit/Kafka依赖未进入应用；不会把missing tenant默认1；最终由本步GREEN门禁验证。
+- Verification contribution: DdcProfileParityTest覆盖29个调用方profile、Admin Outbox profile和runtime AI_READ只读授权；`DdcEndToEndContractTest`覆盖REST/RPC固定版本路径；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java`
@@ -18588,28 +18590,28 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 
 #### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTenantRedisIT.java`
 
-- Purpose: 真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
+- Purpose: 真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
 - Symbols: `DdcTenantRedisIT`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcTenantRedisIT`。
 - Dependencies and consumers: 前置Step 22, Step 23；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
-- Contract/signature changes: DdcTenantRedisIT新增可观察断言：真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
+- Contract/signature changes: DdcTenantRedisIT新增可观察断言：真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
+- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；按修订稿§9/§11保持原wire字段。
+- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker判定；失败不得越权、半提交或吞掉原错误语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 @Test void DdcTenantRedisIT_contract() {
-  // arrange: 真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
+  // arrange: 真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
   // invoke: call the named public boundary under trusted tenant and record returned state plus side effects.
   // assert: success payload/state and negative conflict/denial/rollback cases; no cross-tenant row, Redis key or event is observable.
   // RED before production: the target contract or its intended invariant is absent; GREEN only after matching implementation.
 }
 ```
 
-- Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；最终由本步GREEN门禁验证。
+- Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的真实ACL拒绝他租户键/Topic；周期快照对账补偿错过通知；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTianshuDdlIT.java`
@@ -18666,28 +18668,28 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 
 #### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcConfigOutboxIntegrationTest.java`
 
-- Purpose: SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
+- Purpose: SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
 - Symbols: `DdcConfigOutboxIntegrationTest`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcConfigOutboxIntegrationTest`。
 - Dependencies and consumers: 前置Step 22, Step 23；本步8个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
-- Contract/signature changes: DdcConfigOutboxIntegrationTest新增可观察断言：SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
+- Contract/signature changes: DdcConfigOutboxIntegrationTest新增可观察断言：SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。
+- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；按修订稿§9/§11保持原wire字段。
+- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker判定；失败不得越权、半提交或吞掉原错误语义。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 10, Rule 11；SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；每个输入交界用@Valid/@Validated及分组/ConstraintValidator (Rule 2)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
 @Test void DdcConfigOutboxIntegrationTest_contract() {
-  // arrange: SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
+  // arrange: SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker
   // invoke: call the named public boundary under trusted tenant and record returned state plus side effects.
   // assert: success payload/state and negative conflict/denial/rollback cases; no cross-tenant row, Redis key or event is observable.
   // RED before production: the target contract or its intended invariant is absent; GREEN only after matching implementation.
 }
 ```
 
-- Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker CTE/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；最终由本步GREEN门禁验证。
+- Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的SS logical同DataSource里任务+enqueue原子、错DS拒绝、worker候选扫描/advisory锁+CAS claim/重试/DEAD；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcLifecycleUniqueIT.java`
@@ -18718,22 +18720,22 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 
 #### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`
 
-- Purpose: 最终配置显式Failsafe profile tianshu-ai-persistence-it，默认不跑外部IT；生产依赖退出JPA/SQLite；保持唯一DDL版本
+- Purpose: JPA/runtime SQLite已由Step 11移除；仅增加显式Failsafe profile `tianshu-ai-persistence-it`并排除默认Surefire执行外部`DdcConfigOutboxIntegrationTest`；SQLite仅保留test scope；保持唯一DDL版本
 - Symbols: `pom`
-- Repository evidence: 当前存在，SHA256前12位`ea05746b67e6`；源符号`pom`或相邻同层调用可定位。
+- Repository evidence: Step 11提交`ade89bf9e`已移除JPA/runtime SQLite；当前HEAD基线SHA256前12位`e85c11f09251`，SQLite JDBC仍为test scope；本步仅扩展Surefire exclude与显式Failsafe include。
 - Dependencies and consumers: 前置Step 22, Step 23；本步10个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责最终配置显式Failsafe profile tianshu-ai-persistence-it，默认不跑外部IT；生产依赖退出JPA/SQLite；保持唯一DDL版本。
-- Contract/signature changes: pom的具体签名/配置/字段变更：最终配置显式Failsafe profile tianshu-ai-persistence-it，默认不跑外部IT；生产依赖退出JPA/SQLite；保持唯一DDL版本。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：最终配置显式Failsafe profile tianshu-ai-persistence-it，默认不跑外部IT；生产依赖退出JPA/SQLite；保持唯一DDL版本；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按最终配置显式Failsafe profile tianshu-ai-persistence-it，默认不跑外部IT；生产依赖退出JPA/SQLite；保持唯一DDL版本判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001；Rule 11；最终配置显式Failsafe profile tianshu-ai-persistence-it，默认不跑外部IT；生产依赖退出JPA/SQLite；保持唯一DDL版本。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Why now: 其上游合同已在前置文件/Step定义；此文件负责配置显式Failsafe profile tianshu-ai-persistence-it和Surefire隔离；此前完成的MP/JPA切换保持不变，SQLite仅留在test scope；保持唯一DDL版本。
+- Contract/signature changes: POM增加opt-in的`tianshu-ai-persistence-it` Failsafe profile，显式包含8个`*IT`及`DdcConfigOutboxIntegrationTest`；默认Surefire排除该`*IntegrationTest`以免无profile误触真实环境；既有active-active/Redis profiles保持。
+- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：显式profile启用时由Failsafe运行指定的PG/Redis IT；默认测试仅跑unit/contract suite；按修订稿§9/§11保持原wire字段。
+- Error and edge behavior: 缺profile不得默认连接外部PG/Redis；测试失败应回到对应Spec§8或§16集成边界；JPA/runtime SQLite不得重新进入生产依赖。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001；Rule 11；无runtime依赖升级/新增，仅调整Surefire/Failsafe测试发现和profile；唯一DDL版本保持不变。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```xml
-in egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml preserve existing BOM and compiler/plugin order;
-add only the approved MP/Outbox/MapStruct processor entries applicable to this module at Step 24;
-keep JPA until Step 11 cutover, then remove its runtime dependency; at Step 24 add opt-in Failsafe profile only.
+in egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml preserve the current BOM, compile setup and existing Failsafe profiles;
+keep SQLite JDBC test-scoped and confirm no JPA/runtime SQLite dependencies;
+exclude DdcConfigOutboxIntegrationTest from default Surefire and include it with the 8 Ddc*IT classes only in the opt-in tianshu-ai-persistence-it Failsafe profile.
 ```
 
 - Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的最终配置显式Failsafe profile tianshu-ai-persistence-it，默认不跑外部IT；生产依赖退出JPA/SQLite；保持唯一DDL版本；最终由本步GREEN门禁验证。
@@ -18743,7 +18745,7 @@ keep JPA until Step 11 cutover, then remove its runtime dependency; at Step 24 a
 
 - Purpose: tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令
 - Symbols: `README`
-- Repository evidence: 当前存在，SHA256前12位`b653dd0e40ee`；源符号`README`或相邻同层调用可定位。
+- Repository evidence: 当前存在，SHA256前12位`468a5a430025`；源符号`README`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步11个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令。
 - Contract/signature changes: README的具体签名/配置/字段变更：tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令。
@@ -18767,7 +18769,7 @@ Document Outbox worker retries/DEAD, Redis-to-enqueue window and original SDK re
 
 - Purpose: tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令
 - Symbols: `README.zh-CN`
-- Repository evidence: 当前存在，SHA256前12位`2c6c8263e476`；源符号`README.zh-CN`或相邻同层调用可定位。
+- Repository evidence: 当前存在，SHA256前12位`6eb70a3da529`；源符号`README.zh-CN`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步12个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令。
 - Contract/signature changes: README.zh-CN的具体签名/配置/字段变更：tenant登记、HMAC v2、Redis v4 ACL、两AI开关、rootID固定版、Outbox窗口、DDL初始化/导入/切换/前向修复与测试命令。
@@ -18909,33 +18911,33 @@ assert the related focused test against success, malformed input, duplicate and 
 
 #### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/deployment/tianshu-rpc-credentials.yml`
 
-- Purpose: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
+- Purpose: 保留既有runtime RPC操作并追加只读`AI_READ`以读取Prompt/Skill；tenant/Redis身份由直接调用方profile透传
 - Symbols: `tianshu-rpc-credentials`
 - Repository evidence: 当前存在，SHA256前12位`c6f4b373449a`；源符号`tianshu-rpc-credentials`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步18个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
-- Contract/signature changes: tianshu-rpc-credentials的具体签名/配置/字段变更：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-CONFIG-001；Rule 7, Rule 11；仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Why now: `DdcRpcScopeExtractor` 将 `GetPrompt/GetSkill` 映射到只读 `AI_READ`；此部署配置覆盖Tianshu server runtime credential allowlist。
+- Contract/signature changes: 仅在runtime和Yuheng MCP runtime两个SDK `allowed-operations` 增加 `AI_READ`；保留原SDK_REGISTER/HEARTBEAT/OFFLINE、CONFIG_PULL、PUBLISH_ACK；REGISTRY与MANAGEMENT credential保持原权限范围。
+- Input/output and state mapping: SDK Runtime calls that read a fixed Prompt/Skill snapshot now pass server operation authorization with `AI_READ`; no additional write side effect or REST field is introduced.
+- Error and edge behavior: Missing AI_READ remains denied by the server; adding AI_READ does not grant MANAGEMENT_CONFIG_WRITE/PUBLISH or cross-tenant scope.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-CONFIG-001；Rule 7, Rule 11；只追加最小只读RPC操作，不扩大管理写权限。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 多profile键结构一致 (Rule 7)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```yaml
-// tianshu-rpc-credentials: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
-read validated input from the previous layer and map exact Spec fields to the next named dependency;
-preserve existing status, error and tenant isolation; do not invent a new endpoint or framework;
-assert the related focused test against success, malformed input, duplicate and rollback paths.
+// tianshu-rpc-credentials
+append only AI_READ to the default and Yuheng MCP runtime SDK credential operation lists;
+keep Registry and Management credentials unchanged and do not grant AI write operations;
+assert each runtime SDK operation list through DdcProfileParityTest.
 ```
 
-- Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置；最终由本步GREEN门禁验证。
+- Verification contribution: DdcProfileParityTest核对默认Admin和Docker override两条SDK runtime凭据的AI_READ边界；DdcEndToEndContractTest验证固定版本读取及越权拒绝。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml`
 
 - Purpose: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
 - Symbols: `compose.ha`
-- Repository evidence: 当前存在，SHA256前12位`e660c98057b8`；源符号`compose.ha`或相邻同层调用可定位。
+- Repository evidence: 当前存在，SHA256前12位`31982fd19e1f`；源符号`compose.ha`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步19个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
 - Contract/signature changes: compose.ha的具体签名/配置/字段变更：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
@@ -18959,7 +18961,7 @@ assert the related focused test against success, malformed input, duplicate and 
 
 - Purpose: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
 - Symbols: `compose`
-- Repository evidence: 当前存在，SHA256前12位`d1de89723422`；源符号`compose`或相邻同层调用可定位。
+- Repository evidence: 当前存在，SHA256前12位`dcda4208dffe`；源符号`compose`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步20个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
 - Contract/signature changes: compose的具体签名/配置/字段变更：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
@@ -19175,7 +19177,7 @@ assert the related focused test against success, malformed input, duplicate and 
 
 - Purpose: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
 - Symbols: `application`
-- Repository evidence: 当前存在，SHA256前12位`1665c73fa681`；源符号`application`或相邻同层调用可定位。
+- Repository evidence: 当前存在，SHA256前12位`75edd8a09564`；源符号`application`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步29个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
 - Contract/signature changes: application的具体签名/配置/字段变更：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
@@ -19199,7 +19201,7 @@ assert the related focused test against success, malformed input, duplicate and 
 
 - Purpose: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
 - Symbols: `application-local`
-- Repository evidence: 当前存在，SHA256前12位`caca50f46e62`；源符号`application-local`或相邻同层调用可定位。
+- Repository evidence: 当前存在，SHA256前12位`e6948965ba68`；源符号`application-local`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步30个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
 - Contract/signature changes: application-local的具体签名/配置/字段变更：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
@@ -19317,26 +19319,26 @@ assert the related focused test against success, malformed input, duplicate and 
 
 #### File 36 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh`
 
-- Purpose: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
+- Purpose: production Tianshu client必须显式使用TIANSHU_TENANT_ID和Redis ACL username；静态migration/source-symbol守卫匹配当前连续Flyway版本和真实包路径
 - Symbols: `verify-static`
 - Repository evidence: 当前存在，SHA256前12位`1cbff0c78b3a`；源符号`verify-static`或相邻同层调用可定位。
 - Dependencies and consumers: 前置Step 22, Step 23；本步35个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
-- Contract/signature changes: verify-static的具体签名/配置/字段变更：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001；Rule 11；仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Why now: 其上游profile合同已固定真实tenant/ACL占位符；此脚本必须检查生产profile透传身份，并保持迁移链与源码引用守卫能在当前仓库通过。
+- Contract/signature changes: 检查生产profile含无数值回退的tenant ID和Redis ACL username；迁移脚本按实际连续版本数验证V1至latest，源码符号指向实际Java package path。
+- Input/output and state mapping: 静态验证返回退出码和首个失败合同；不访问网络、数据库或Redis。
+- Error and edge behavior: 缺少tenant/ACL配置、迁移版本断档或源码入口丢失时失败；当前V1–V13连续链应通过。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-CONFIG-001；Rule 7, Rule 11；验证配置无默认tenant并保留现有security/static边界。
 - Literal rule enforcement: 传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```text
-// verify-static: 仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置
-read validated input from the previous layer and map exact Spec fields to the next named dependency;
-preserve existing status, error and tenant isolation; do not invent a new endpoint or framework;
-assert the related focused test against success, malformed input, duplicate and rollback paths.
+// verify-static
+assert production Tianshu tenant-id and Redis ACL username are explicit placeholders;
+assert Flyway migration versions are contiguous from V1 to latest;
+resolve verification symbols from the current package paths.
 ```
 
-- Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置；最终由本步GREEN门禁验证。
+- Verification contribution: `bash egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh --verify` checks the production placeholders, contiguous migrations and current source symbols; `DdcProfileParityTest` independently loads all direct caller profiles.
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
 #### File 37 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
@@ -19771,14 +19773,73 @@ assert the related focused test against success, malformed input, duplicate and 
 - Verification contribution: DdcProfileParityTest,DdcEndToEndContractTest聚焦本文件的仅加入/透传TIANSHU_TENANT_ID及已配置Redis ACL用户名，保持原业务；原AI开关false；修改前比对当前用户改动，不触碰非相关配置；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
+#### File 55 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml`
+
+- Purpose: 默认Admin runtime SDK credential允许只读AI_READ，以支持Prompt/Skill固定版本查询。
+- Symbols: `admin.rpc.credentials[0].allowed-operations`
+- Repository evidence: 该路径由Step 11/18管理；Step24当前HEAD基线SHA256前12位`46c49bb6fab8`。现有runtime allowlist含CONFIG_PULL但不含AI_READ；`DdcRpcScopeExtractor`将GetPrompt/GetSkill映射为AI_READ。
+- Dependencies and consumers: 前置Step 17；本Step54个已排序文件；`DdcProfileParityTest`验证只读权限和配置边界。
+- Why now: Starter AI client/API已在前置Step实现，但默认凭据和Yuheng部署override未放行AI_READ，导致正确调用也会被服务端拒绝。
+- Contract/signature changes: 只在runtime SDK `allowed-operations` 追加AI_READ；CONFIG_PULL/PUBLISH_ACK及SDK注册操作保留；REGISTRY/MANAGEMENT credential和写权限不变。
+- Input/output and state mapping: 固定版本GetPrompt/GetSkill请求经过现有tenant、namespace与HMAC校验后可读；其他运行时操作映射不变。
+- Error and edge behavior: 无AI_READ仍被拒绝；AI_READ只允许既有scope extractor验证的只读操作，不授权写/跨tenant访问。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-CONFIG-001；Rule 7, Rule 11；仅增加Spec要求的AI只读RPC操作，不增加依赖或改变HTTP/API字段。
+- Literal rule enforcement: profile配置合同 (Rule 7)；RPC/tenant/ACL边界保持既有直连结构 (Rule 11)。
+- Implementation pseudocode:
+
+```yaml
+# application.yml
+admin.rpc.credentials[0].allowed-operations:
+  # retain SDK_REGISTER, SDK_HEARTBEAT, SDK_OFFLINE, CONFIG_PULL, PUBLISH_ACK
+  # append AI_READ to every runtime SDK credential only; never add management write operations here
+```
+
+- Verification contribution: `DdcProfileParityTest.runtimeCredentialAllowsReadOnlyAiRpcForPromptAndSkill` asserts CONFIG_PULL and AI_READ for the default Admin runtime plus both Docker SDK runtime credentials, while MANAGEMENT_CONFIG_WRITE/PUBLISH stay absent.
+- After this file: direct RPC authorization configuration is complete; verify together with all Step24 profile and REST/RPC end-to-end contracts.
+
 - Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
-- Verification command: `mvn -q -Dtest=DdcProfileParityTest,DdcEndToEndContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Dtest=DdcProfileParityTest,DdcEndToEndContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Expected result: 所列聚焦测试GREEN/依赖编译退出0；29个调用方profile显式透传tenant/Redis ACL identity，Prompt/Skill默认false，runtime RPC AI_READ仅读，REST/RPC版本与拒绝分支通过；外部PG/Redis Failsafe未在普通测试中运行。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiPersistenceIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiConcurrencyIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiPromotionIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTenantRedisIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTianshuDdlIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcLegacyMigrationIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcConfigOutboxIntegrationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcLifecycleUniqueIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/README.md`, `egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md`, `egon-cola-xingyuan/egon-cola-tianshu/docs/tianshu-ai-migration-runbook.md`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha-mtls.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.demo.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.mtls.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/tianshu-rpc-credentials.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-consumer/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`, `scripts/unified-identity-local.sh`, `scripts/unified-xingyuan/start-local-stack.sh`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `scripts/unified-xingyuan/lib/common.sh`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcProfileParityTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/contract/DdcEndToEndContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiPersistenceIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiConcurrencyIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcAiPromotionIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTenantRedisIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTianshuDdlIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcLegacyMigrationIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcConfigOutboxIntegrationTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcLifecycleUniqueIT.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`, `egon-cola-xingyuan/egon-cola-tianshu/README.md`, `egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md`, `egon-cola-xingyuan/egon-cola-tianshu/docs/tianshu-ai-migration-runbook.md`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha-mtls.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.demo.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.mtls.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/tianshu-rpc-credentials.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-consumer/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`, `scripts/unified-identity-local.sh`, `scripts/unified-xingyuan/start-local-stack.sh`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `scripts/unified-xingyuan/lib/common.sh`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
 - Commit: `feat(tianshu): step-24`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+
+#### Step 24 execution gate record
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| RED | PASS | 原 `DdcProfileParityTest.directTianshuCallerProfilesRequireTenantAndRedisAclIdentityWithoutEnablingAiByDefault` 首次运行因Tianshu测试profile缺tenant-id失败；随后新增runtime权限断言先红，准确显示默认credential仅有CONFIG_PULL而没有AI_READ。失败均为目标配置合同缺失，不是fixture或外部连接错误。 |
+| GREEN | PASS | root reactor `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Dtest=DdcProfileParityTest,DdcEndToEndContractTest -Dsurefire.failIfNoSpecifiedTests=false test`退出0，4 tests（profile 3、REST/RPC E2E 1）；`mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Ptianshu-ai-persistence-it -DskipTests verify`退出0，编译并绑定opt-in Failsafe profile但跳过外部测试。`bash -n`四个修改的shell脚本通过；`bash scripts/unified-xingyuan/test-direct-run-contract.sh`通过；Jianshen `verify-static.sh --verify`通过。 |
+| Static and Plan | PASS | 逐项复核Step24 55个实现路径与Plan清单；严格Plan校验与`git diff --check`在提交前执行。YamlProperties合同实际解析29个profile；Jianshen静态脚本同时验证tenant/ACL占位符、连续V1–V13迁移链及真实源码package路径。 |
+| Runtime boundary | N/A | 未运行`tianshu-ai-persistence-it`、真实PostgreSQL/Redis、Docker Compose、数据库DDL/import或浏览器。全量Admin reactor测试在既有Testcontainers测试尝试启动Ryuk时立即Ctrl-C；之后按`ancestor=testcontainers/ryuk:0.12.0`和`label=org.testcontainers=true`查询均无匹配容器。Runbook中的8个Failsafe测试仅编译；需要用户为PG/DDL/legacy/Outbox与Redis分别提供隔离目标后再运行。 |
+| Dependency and scope | PASS | 无新增依赖、代码生成器或服务入口；DDL manifest/SQL不变。POM仅隔离默认Surefire的Outbox IntegrationTest并增加显式Failsafe profile。 |
+| Pattern decision | PASS | 未为配置接线增加业务抽象；shell env验证复用一个小型写入helper，业务层和现有Starter/RPC/Outbox策略保持原有边界。 |
+
+#### Step 24 Literal Rule review
+
+| Rule | Applicability | Status | Evidence and finding |
+| --- | --- | --- | --- |
+| Rule 1 | Applicable | PASS | 新测试类使用`*Test`/`*IT`职责后缀；没有改生产Java行为类命名。 |
+| Rule 2 | Not applicable | N/A | 没有新增或修改生产请求/配置验证边界；租户值仍由Starter既有正数校验处理。 |
+| Rule 3 | Not applicable | N/A | 没有新增生产PO/BO/DTO或转换实现；测试夹具未创建业务carrier层。 |
+| Rule 4 | Not applicable | N/A | 未新增Spring Bean或构造注入；当前测试只实例化既有Coordinator/Runner。 |
+| Rule 5 | Applicable | PASS | 不增Maven依赖；测试使用JDK JDBC、PG driver/Redisson/Validator等已有模块依赖。 |
+| Rule 7 | Applicable | PASS | `DdcProfileParityTest`解析Plan列出的29个caller YAML，逐一断言tenant与Redis ACL占位符；默认Prompt/Skill为false。Compose显式透传两项环境值。 |
+| Rule 10 | Applicable | PASS | 不改既有业务时间合同；PG fixtures使用明确UTC/微秒值，legacy fixture保留源本地时间表示。 |
+| Rule 11 | Applicable | PASS | 仍是现有Starter + RPC adapter + Admin MVC/Service/Repository + MP/Outbox结构；唯一新运行授权为`AI_READ`只读；现有DDL与数据库拓扑不变。 |
+
+#### Step 24 Manual Check review
+
+| Check ID | Applicability | Status | Evidence and finding |
+| --- | --- | --- | --- |
+| `MC-SCOPE-001` | Applicable | PASS | 最终diff与55条Step24文件清单及本Plan文件一致；无其他模块业务逻辑、组件POM或generator改动。 |
+| `MC-TEST-001` | Applicable | PASS | 4个聚焦默认测试、带显式Failsafe profile的`-DskipTests verify`、启动脚本合同和Jianshen静态验证通过。外部8个PG/Redis IT未执行，见Runtime boundary；不得把编译证据解释为真实数据库/ACL结果。 |
+| `MC-ARCH-001` | Applicable | PASS | 生产改动仅是现有Tianshu调用方配置透传、只读RPC权限和文档；无新架构层或反向依赖。 |
+| `MC-NAME-001` | Applicable | PASS | 新持久化/协议IT按被验证的AI persistence、concurrency、promotion、tenant Redis、DDL、migration、Outbox及lifecycle职责命名。 |
+| `MC-CONFIG-001` | Applicable | PASS | 29个profile合同测试全部通过；local shell和Compose不再隐式猜测tenant，缺租户/ACL变量的Compose服务会提示配置错误。 |
+| `MC-BEAN-001` | Not applicable | N/A | 无生产Spring Bean和注入变更；新测试只构造既有组件/fixture。 |
 
 ## 8. Test, Validation, and Quality Gates
 

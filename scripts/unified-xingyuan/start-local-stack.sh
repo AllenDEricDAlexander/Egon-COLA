@@ -238,8 +238,10 @@ package_mcp_fixtures() {
 }
 
 write_extra_service_env_files() {
-  local file properties_file redis_password
+  local file properties_file redis_password redis_username tenant_id
   redis_password="$(<"${unified_xingyuan_secret_dir}/redis.password")"
+  redis_username="${TIANSHU_REDIS_USERNAME:-default}"
+  tenant_id="${TIANSHU_TENANT_ID:-${default_tenant_id:-}}"
 
   file="${unified_xingyuan_env_dir}/mcp-remote.env"
   : >"${file}"
@@ -340,6 +342,7 @@ write_extra_service_env_files() {
     EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
     "service:authorization:decide service:authorization:snapshot service:identity:resolve"
   unified_xingyuan_write_env "${file}" TIANSHU_ENABLED true
+  unified_xingyuan_write_tianshu_identity_env "${file}" "${tenant_id}" "${redis_username}"
   unified_xingyuan_write_env "${file}" \
     EGON_COLA_COMPONENT_TIANSHU_REGISTRATION_RESOURCE_URI \
     https://api.egon.internal/local/platform/tianshu

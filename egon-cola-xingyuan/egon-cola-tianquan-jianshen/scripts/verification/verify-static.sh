@@ -26,15 +26,23 @@ check_config() {
 
 verify() {
   check_config
-  local migrations
+  local migrations version migration_matches
   local admin_root="${TIANQUAN_JIANSHEN_MODULE_ROOT}/egon-cola-tianquan-jianshen-admin"
   local production_yaml="${admin_root}/src/main/resources/application.yml"
-  local declarations="${admin_root}/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/config/tianshu/Rbac3DdcValueDeclarations.java"
-  local metrics="${admin_root}/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/config/tianshu/Rbac3IntegrationMetrics.java"
-  local integration_config="${admin_root}/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/config/runtime/Rbac3PlatformIntegrationConfiguration.java"
+  local declarations="${admin_root}/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/config/tianshu/Rbac3DdcValueDeclarations.java"
+  local metrics="${admin_root}/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/config/tianshu/Rbac3IntegrationMetrics.java"
+  local integration_config="${admin_root}/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/config/runtime/Rbac3PlatformIntegrationConfiguration.java"
   local catalog_contract="${admin_root}/src/test/resources/contracts/tianquan-jianshen-yuheng-catalog-semantic-baseline.json"
   migrations="$(find "${TIANQUAN_JIANSHEN_MODULE_ROOT}" -path '*/src/main/resources/db/migration/V*__*.sql' -type f | wc -l | tr -d ' ')"
-  [[ "${migrations}" == '5' ]] || rbac3_die "expected the Tianquan-Jianshen V1 through V5 migration chain, found ${migrations}"
+  [[ "${migrations}" =~ ^[0-9]+$ && "${migrations}" -ge 5 ]] \
+    || rbac3_die "expected at least the Tianquan-Jianshen V1 through V5 migration chain, found ${migrations}"
+  for ((version = 1; version <= migrations; version++)); do
+    migration_matches="$(find "${TIANQUAN_JIANSHEN_MODULE_ROOT}" \
+      -path "*/src/main/resources/db/migration/V${version}__*.sql" -type f \
+      | wc -l | tr -d ' ')"
+    [[ "${migration_matches}" == '1' ]] \
+      || rbac3_die "expected one Tianquan-Jianshen V${version} migration, found ${migration_matches}"
+  done
   [[ -f "${TIANQUAN_JIANSHEN_MODULE_ROOT}/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V1__create_rbac3_schema.sql" ]]
   [[ -f "${TIANQUAN_JIANSHEN_MODULE_ROOT}/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V2__add_session_strong_authentication_time.sql" ]]
   [[ -f "${TIANQUAN_JIANSHEN_MODULE_ROOT}/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V5__remove_sessions_and_minimize_authorization_user.sql" ]]
@@ -47,10 +55,14 @@ verify() {
   rg -q 'gatewayRateLimitRedissonClient' "${TIANQUAN_JIANSHEN_MODULE_ROOT}"
   rg -q 'rbac3RuntimeRedissonClient' "${TIANQUAN_JIANSHEN_MODULE_ROOT}"
 
-  rg -Uq 'tianshu:\n[[:space:]]+enabled: true' "${production_yaml}" \
+  rg -Uq 'tianshu:\n[[:space:]]+tenant-id: \$\{TIANSHU_TENANT_ID:\}\n[[:space:]]+enabled: true' "${production_yaml}" \
     || rbac3_die "production application.yml must enable the Tianshu config client"
   rg -Uq 'registry:\n[[:space:]]+enabled: true' "${production_yaml}" \
     || rbac3_die "production application.yml must enable Tianshu service registration"
+  rg -Fq 'tenant-id: ${TIANSHU_TENANT_ID:}' "${production_yaml}" \
+    || rbac3_die "production Tianshu client must not guess a tenant ID"
+  rg -Fq 'username: ${TIANSHU_REDIS_USERNAME:}' "${production_yaml}" \
+    || rbac3_die "production Tianshu Redis client must declare its ACL username"
   rg -q 'ddcHttpRegistrationServerReadyListener' "${integration_config}" \
     || rbac3_die "Tianquan-Jianshen must own the Tianshu-gated HTTP provider ready listener"
 

@@ -69,6 +69,7 @@ egon:
       id:
         machine-id: ${TIANQUAN_JIANSHEN_SNOWFLAKE_MACHINE_ID:0}
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
         enabled: ${TIANQUAN_JIANSHEN_TIANSHU_ENABLED:false}
         env: local
         rpc:
@@ -76,6 +77,7 @@ egon:
           tls:
             development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
           password: ${TIANSHU_REGISTRY_REDIS_PASSWORD:HomeLab666}
         registry:
           enabled: ${TIANQUAN_JIANSHEN_TIANSHU_ENABLED:false}

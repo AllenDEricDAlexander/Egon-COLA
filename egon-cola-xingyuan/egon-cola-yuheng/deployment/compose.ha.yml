@@ -63,6 +63,8 @@ services:
   yuheng-admin:
     profiles: ["ha"]
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
   yuheng-admin-2:
@@ -70,6 +72,8 @@ services:
     build:
       context: ../yuheng-admin
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       SERVER_PORT: 18080
       EGON_COLA_COMPONENT_ID_MACHINE_ID: "4"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_admin
@@ -106,21 +110,29 @@ services:
   yuheng-biz-gateway:
     profiles: ["ha"]
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
   yuheng-biz-gateway-2:
     profiles: ["ha"]
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
   yuheng-mcp-gateway:
     profiles: ["ha"]
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
   yuheng-mcp-gateway-2:
     profiles: ["ha"]
     environment:
+      TIANSHU_TENANT_ID: ${TIANSHU_TENANT_ID:?set TIANSHU_TENANT_ID}
+      TIANSHU_REDIS_USERNAME: ${TIANSHU_REDIS_USERNAME:?set TIANSHU_REDIS_USERNAME}
       EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
   yuheng-data-plane-proxy:

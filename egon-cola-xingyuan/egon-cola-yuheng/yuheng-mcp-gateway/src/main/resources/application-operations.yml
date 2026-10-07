@@ -93,6 +93,7 @@ egon:
           private-key-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_PRIVATE_KEY_PATH:}
           trust-certificate-collection-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
         enabled: ${TIANSHU_ENABLED:true}
         biz-code: ${TIANSHU_BIZ_CODE:infra}
         env: ${TIANSHU_ENV:local}
@@ -114,6 +115,7 @@ egon:
               access-key: ${YUHENG_MCP_TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
               secret-key: ${YUHENG_MCP_TIANSHU_RPC_REGISTRY_SECRET_KEY:}
         redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
           enabled: true
           mode: ${TIANSHU_REDIS_MODE:SINGLE}
           host: ${TIANSHU_REDIS_HOST:127.0.0.1}

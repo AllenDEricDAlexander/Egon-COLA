@@ -53,6 +53,9 @@ egon:
       id:
         enabled: false
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
+        redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
         enabled: false
         registration-resource-uri: ${TIANSHU_REGISTRATION_RESOURCE_URI:https://tianshu.egon.internal/local}
         biz-code: ${TIANSHU_BIZ_CODE:test-biz}

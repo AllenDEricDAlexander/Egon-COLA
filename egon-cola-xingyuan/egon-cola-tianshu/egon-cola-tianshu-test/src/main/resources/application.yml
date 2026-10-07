@@ -4,6 +4,7 @@ egon:
       id:
         enabled: false
       tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
         enabled: ${TIANSHU_ENABLED:false}
         app-code: ${TIANSHU_APP_CODE:demo-app}
         env: ${TIANSHU_ENV:dev}
@@ -22,6 +23,7 @@ egon:
               access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
               secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
         redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
           enabled: ${TIANSHU_REDIS_ENABLED:true}
           mode: ${TIANSHU_REDIS_MODE:SINGLE}
           host: ${TIANSHU_REDIS_HOST:127.0.0.1}

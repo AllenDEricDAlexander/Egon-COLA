@@ -142,6 +142,15 @@
         <finalName>egon-cola-tianshu-admin</finalName>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/DdcConfigOutboxIntegrationTest.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring.boot.version}</version>
@@ -229,6 +238,38 @@
                                 <configuration>
                                     <includes>
                                         <include>**/DdcRedisClusterIT.java</include>
+                                    </includes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>tianshu-ai-persistence-it</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>tianshu-ai-persistence-it</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <includes>
+                                        <include>**/DdcAiPersistenceIT.java</include>
+                                        <include>**/DdcAiConcurrencyIT.java</include>
+                                        <include>**/DdcAiPromotionIT.java</include>
+                                        <include>**/DdcTenantRedisIT.java</include>
+                                        <include>**/DdcTianshuDdlIT.java</include>
+                                        <include>**/DdcLegacyMigrationIT.java</include>
+                                        <include>**/DdcConfigOutboxIntegrationTest.java</include>
+                                        <include>**/DdcLifecycleUniqueIT.java</include>
                                     </includes>
                                 </configuration>
                             </execution>

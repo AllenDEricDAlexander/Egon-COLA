@@ -93,6 +93,12 @@ Page numbers start at 1. These REST endpoints are for Admin Web and other human
 management clients. Starter and RPC machine clients continue to consume complete
 catalogs and snapshots rather than the Admin page contract.
 
+## Prompt and Skill resources
+
+The Admin manages tenant-scoped Prompt text and Skill file trees. Skill files are stored as text; the UI does not add format-specific rendering. Published versions are immutable. Consumers pin a resource with both `resourceId` and `versionNo`; same-tenant promotion copies a selected source snapshot into an explicit target scope while preserving existing target drafts.
+
+The Starter exposes separate `egon.cola.component.tianshu.prompt.enabled` and `skill.enabled` switches, both disabled by default. Direct callers must configure a positive `TIANSHU_TENANT_ID` and, when Redis is enabled, a tenant-scoped `TIANSHU_REDIS_USERNAME`. Prompt/Skill RPC reads require the read-only `AI_READ` operation. See the [Prompt/Skill rollout and migration runbook](docs/tianshu-ai-migration-runbook.md) for tenant setup, DDL readiness, V9 import, rollback limits, and the opt-in PostgreSQL/Redis integration profile.
+
 ## Starter Package Layout
 
 ```text
@@ -563,8 +569,11 @@ egon:
           trust-certificate-collection-path: ${TIANSHU_TRUST_CERTIFICATE}
 ```
 
-The `test` profile uses SQLite with `create-drop` and disables Flyway and the
-Admin Redis connection. It is not the production storage topology.
+The Admin `test` profile uses PostgreSQL settings and disables Flyway and the
+Admin Redis connection. In-memory SQLite remains test-scoped for frozen V9
+migration fixtures; it is not an Admin persistence topology. External PostgreSQL
+and Redis checks require the explicit `tianshu-ai-persistence-it` Failsafe
+profile and isolated targets documented in the migration runbook.
 
 ## Build and Validation
 

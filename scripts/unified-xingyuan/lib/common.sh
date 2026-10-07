@@ -149,6 +149,16 @@ unified_xingyuan_write_env() {
   printf '%s=%q\n' "${key}" "${value}" >>"${file}"
 }
 
+unified_xingyuan_write_tianshu_identity_env() {
+  local file="$1" tenant_id="$2" redis_username="$3"
+  [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
+    || unified_xingyuan_fail "Tianshu client tenant ID must be a positive integer"
+  [[ -n "${redis_username}" ]] \
+    || unified_xingyuan_fail "Tianshu Redis ACL username must not be empty"
+  unified_xingyuan_write_env "${file}" TIANSHU_TENANT_ID "${tenant_id}"
+  unified_xingyuan_write_env "${file}" TIANSHU_REDIS_USERNAME "${redis_username}"
+}
+
 unified_xingyuan_write_property() {
   local file="$1" key="$2" value="$3"
   value="${value//\\/\\\\}"
