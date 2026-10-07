@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FileTextOutlined, FolderOpenOutlined, FolderOutlined } from '@ant-design/icons'
 import {
   Alert,
   App,
@@ -93,7 +94,7 @@ const subTreeSize = (nodes: DdcAiNode[], path: string): number =>
 const treeData = (nodes: DdcAiNode[]): DataNode[] => {
   const root: DataNode = {
     key: '',
-    title: 'Skill 文件根目录（目录）',
+    title: <span><FolderOpenOutlined aria-hidden="true" /> Skill 文件根目录（目录）</span>,
     isLeaf: false,
     children: [],
   }
@@ -102,7 +103,14 @@ const treeData = (nodes: DdcAiNode[]): DataNode[] => {
     if (node.path === '') continue
     entries.set(node.path, {
       key: node.path,
-      title: `${basename(node.path)}（${node.nodeType === 'DIRECTORY' ? '目录' : '文件'}）`,
+      title: (
+        <span>
+          {node.nodeType === 'DIRECTORY'
+            ? <FolderOutlined aria-hidden="true" />
+            : <FileTextOutlined aria-hidden="true" />}
+          {' '}{basename(node.path)}（{node.nodeType === 'DIRECTORY' ? '目录' : '文件'}）
+        </span>
+      ),
       isLeaf: node.nodeType === 'FILE',
       children: node.nodeType === 'DIRECTORY' ? [] : undefined,
     })

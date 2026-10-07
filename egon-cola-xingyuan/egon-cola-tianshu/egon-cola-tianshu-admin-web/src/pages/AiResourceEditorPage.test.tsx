@@ -201,9 +201,11 @@ describe('AiResourceEditorPage', () => {
       { path: 'guides', nodeType: 'DIRECTORY', content: null },
       { path: 'guides/old.txt', nodeType: 'FILE', content: 'old' },
     ]))
-    renderEditor()
+    const { container } = renderEditor()
 
     expect(await screen.findByText('SKILL.md')).toBeInTheDocument()
+    expect(container.querySelector('svg[data-icon="folder"]')).toBeInTheDocument()
+    expect(container.querySelector('svg[data-icon="file-text"]')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '新增目录' }))
     fireEvent.change(screen.getByLabelText('目录路径'), { target: { value: 'docs' } })
     fireEvent.click(screen.getByRole('button', { name: '确认新增' }))
