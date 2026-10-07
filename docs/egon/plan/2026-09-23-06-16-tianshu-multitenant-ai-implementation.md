@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-10-07 16:36 Asia/Shanghai` |
+| Updated | `2026-10-07 16:49 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -107,7 +107,7 @@
 | Step 20 | Step 17, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 8个本步实现与测试文件；另含本计划gate记录1个文档路径 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 21 | Step 20 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 9个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 22 | Step 21 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 5个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
-| Step 23 | Step 11, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 6个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
+| Step 23 | Step 11, Step 19 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 7个本步实现与测试文件；另含本计划gate记录1个文档路径；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 | Step 24 | Step 22, Step 23 | 仅不同模块且无共同路径时可并行；默认顺序实施 | 54个本步文件；重复路径按本步语义依次修改 | 上步类型/DDL/身份/contract可用后才能验证 |
 
 ### 4.4 Commit boundaries
@@ -325,7 +325,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyRowDTO.java` | CREATE：基线不存在 | DdcLegacyRowDTO | 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyTableStrategy.java` | CREATE：基线不存在 | DdcLegacyTableStrategy | 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcMigrationReportResult.java` | CREATE：基线不存在 | DdcMigrationReportResult | 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java` | CREATE：基线不存在 | DdcPersistenceMigrationCli | standalone validate/initialize；初始化先跑Tianshu manifest创建business schema与egon_outbox schema，再显式运行component-outbox manifest；无Web/后台import | Step 7, Step 23 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcLegacyImportContractTest, DdcTianshuDdlContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java` | CREATE Step 7；MODIFY Step 23 基线 SHA256 `4b117402caefd583ca5a2ad5dc91b788fc3f69d038380288615ca5e39aab13cc` | DdcPersistenceMigrationCli | standalone validate/initialize/import/verify；保留受管DDL行为，新增Spec§16显式旧库导入/核验命令；无Web/后台import | Step 7, Step 23 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcLegacyImportContractTest, DdcTianshuDdlContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiDraftNodeBO.java` | CREATE：基线不存在 | DdcAiDraftNodeBO | ddc_ai_draft_node；DdcAiDraftNode；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiPublicationBO.java` | CREATE: prior path; MODIFY: committed Step14 baseline SHA256 30ca2ccd5250b1e0ceafff75cf01358e0bf3ee16bbfd373d336540225492d869 | DdcAiPublicationBO | receipt fields plus JsonIgnore targetVersionNo joined projection | Step 12, Step 14 | REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiVersionServiceTest,DdcAiPersistenceContractTest |
 | CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/bo/DdcAiResourceBO.java` | CREATE: 基线不存在；MODIFY: SHA256 66e1f4cac5d572f4e76d | DdcAiResourceBO | ddc_ai_resource；DdcAiResource；原Spec同表全部字段/键/状态，修订按新lifecycle和最新POJO规则；PO仅内部、public_id外部兼容 | Step 12, Step 13 | REQ-001 REQ-002 REQ-005 REQ-006 REQ-009 REQ-019 | DdcAiPersistenceContractTest |
@@ -564,7 +564,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTenantRedisIT.java` | CREATE：基线不存在 | DdcTenantRedisIT | 真实ACL拒绝他租户键/Topic、断线reconcile；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/integration/DdcTianshuDdlIT.java` | CREATE：基线不存在 | DdcTianshuDdlIT | 空库/正确history重入/漂移拒绝/未知提交核验；仅显式profile使用用户提供隔离PG/Redis，缺环境报告未验证，不启动服务/Docker | Step 24 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-007 REQ-008 REQ-009 REQ-010 REQ-011 REQ-012 REQ-013 REQ-014 REQ-015 REQ-016 REQ-017 REQ-018 REQ-019 | DdcProfileParityTest,DdcEndToEndContractTest |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java` | CREATE：基线不存在 | DdcLegacyImportContractTest | non-numeric id、env复制、未知tenant/孤儿/冲突、分批中断、同源hash跳过不同hash停止、old datetime不改 | Step 23 | REQ-009 REQ-011 REQ-013 REQ-019 | DdcLegacyImportContractTest |
-| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java` | CREATE: 基线不存在；MODIFY: SHA256 ded428a0e68a | DdcTianshuDdlContractTest | Tianshu 16 business/public history and component Outbox manifest contracts; V001→V002 prefix, exact SHA, indexes, plus Step 12 exact AI history-read whitelist | Step 7, Step 10, Step 12 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcTianshuDdlContractTest |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java` | CREATE: 基线不存在；MODIFY: Step 7/10/12；MODIFY Step 23 基线 SHA256 `e34437b28781ffc2ee51aee6b34e905b1459dc73ecc6b654c141c14e44554b54` | DdcTianshuDdlContractTest | Tianshu DDL/history/Outbox合同；Step 23扩展CLI mode与usage合同，确保validate/initialize兼容并覆盖import/verify | Step 7, Step 10, Step 12, Step 23 | REQ-009 REQ-011 REQ-013 REQ-017 REQ-019 | DdcTianshuDdlContractTest,DdcLegacyImportContractTest |
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMpStorageProperties.java` | SHA256 f988e4509fbb | OutboxMpStorageProperties | 新增autoInitializeDdl=true默认，独立于maintenance migrationMode；Tianshu runtime设false | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/migration/OutboxManagedDdlInitializer.java` | SHA256 11df7a8dbdd0 | OutboxManagedDdlInitializer | autoInitializeDdl=false只准备readiness供OutboxSchemaMetadataValidator只读检查；显式initialize保持同manifest DDL执行 | Step 7 | REQ-009 REQ-017 | OutboxManagedDdlIntegrationTest |
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfiguration.java` | SHA256 e43d0711e940 | OutboxMybatisPlusAutoConfiguration.validateStoreInfrastructure | 接受NATIVE/STRATEGY；保留SHARDING、单PRIMARY、tenant ignore、同DS事务及mapper XML守卫 | Step 7 | REQ-009 REQ-017 | OutboxMybatisPlusAutoConfigurationTest |
@@ -18201,19 +18201,21 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 
 ### Step 23 — 补齐受控旧库导入、核验与恢复报告
 
+- Safety clarification: migration mode rejects identical normalized source/target/mapping paths and compares PostgreSQL `current_database()`, `inet_server_addr()` and `inet_server_port()` before import; overlap writes a failed report and stops. If target rollback fails, the connection remains outside auto-commit. Import reports include the checkpoint filename when present, per-table counts, and batch error table/public ID/hash; minimal connection-failure reports serialize an empty per-table map.
 - Requirements: `REQ-009`, `REQ-011`, `REQ-013`, `REQ-019`
 - Dependencies: Step 11, Step 19
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 11旧表到明确tenant映射可重入核验，保留旧公共ID/原内容/原业务时间，无隐式接管。
 - End state: 11旧表到明确tenant映射可重入核验，保留旧公共ID/原内容/原业务时间，无隐式接管；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Plan clarification: 当前基线为 `f553edeaaa24230b29058172e791632781734f95`。`DdcPersistenceMigrationCli.java` 已由Step 7创建并负责受管DDL的 `validate/initialize`（当前SHA256 `4b117402caefd583ca5a2ad5dc91b788fc3f69d038380288615ca5e39aab13cc`）；本步对该文件执行MODIFY，保留DDL行为并按Spec§16增加离线 `validate/import/verify` 参数入口。无迁移参数的 `validate` 仍执行既有只读schema校验；带齐四个迁移文件参数的 `validate` 执行来源/tenant/target预检。目标配置必须提供部署分配且唯一的 `egon.cola.component.id.machine-id`；CLI复用Starter `SnowflakeIdGenerator.initialize`，不推导或随机分配machine-id。映射清单采用JDK Ed25519签名envelope，target-config提供受信keyId公钥；CLI在打开数据库连接前验证签名及payload中的source fingerprint、V9 checksum清单、target routeFingerprint和显式tenant规则。source fingerprint由脱敏后的JDBC身份、V9 checksum清单和父先子后每条源行的tenant/public_id/规范字段hash组成，不含凭据或正文。`DdcTianshuDdlContractTest`（当前SHA256 `e34437b28781ffc2ee51aee6b34e905b1459dc73ecc6b654c141c14e44554b54`）作为File 2先扩展mode/usage合同，再实现File 3；File 1覆盖签名、V9表映射、tenant/父引用、幂等/hash冲突、批次事务和本地时间。Plan文件加入本步提交路径，记录此基线修正和执行门禁；不增加依赖、数据库脚本或新服务启动入口。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-TIME-001, MC-PATTERN-001
-- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11
+- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-BLOCKER-001
+- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java`
 
-- Purpose: non-numeric id、env复制、未知tenant/孤儿/冲突、分批中断、同源hash跳过不同hash停止、old datetime不改
+- Purpose: Ed25519映射签名/篡改拒绝；source/target重叠拒绝；DTO Jakarta校验与输入Map防别名；non-numeric id、env复制、未知tenant/孤儿/冲突、分批中断及rollback失败保护；报告checkpoint、逐表计数、空失败报告序列化与old datetime
 - Symbols: `DdcLegacyImportContractTest`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcLegacyImportContractTest`。
 - Dependencies and consumers: 前置Step 11, Step 19；本步0个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
@@ -18237,64 +18239,90 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: DdcLegacyImportContractTest聚焦本文件的non-numeric id、env复制、未知tenant/孤儿/冲突、分批中断、同源hash跳过不同hash停止、old datetime不改；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`
+
+- Purpose: 更新既有CLI模式合同：无参数validate/initialize保持有效，validate带完整迁移参数转入预检，import/verify成为显式受支持模式；source/target/mapping路径重叠、未知mode和参数缺项均拒绝。
+- Symbols: `DdcTianshuDdlContractTest.persistenceMigrationCliRequiresExplicitSupportedModes`
+- Repository evidence: Step 7/10/12已创建并修改；本步当前基线SHA256 `e34437b28781ffc2ee51aee6b34e905b1459dc73ecc6b654c141c14e44554b54`。
+- Dependencies and consumers: 前置Step 7受管DDL CLI；本步1个已排序文件；测试先于CLI实现固定其兼容/扩展边界。
+- Why now: 当前测试明确锁定仅validate/initialize；在生产代码改动前扩展其mode/usage断言，避免CLI contract与Spec§16.2分离。
+- Contract/signature changes: 添加对两类validate、initialize、import、verify解析、必需source/target/mapping/report参数、未知/重复参数拒绝的RED断言；保留原DDL校验和initialize调用。
+- Input/output and state mapping: args → explicit Mode and protected config path fields；无DB连接，不读凭据、不导入数据。
+- Error and edge behavior: 缺mode、混用模式参数、缺必需路径、未知/重复参数均明确拒绝；原DDL initialize调用契约保持。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001；Rule 1, Rule 6, Rule 11；只验证CLI合同，不改DDL、配置或runtime。
+- Literal rule enforcement: 类型语义/命名 (Rule 1)；typed CLI arguments不序列化业务ordinal (Rule 6)；保持既有三层与MP受管DDL入口 (Rule 11)。
+- Implementation pseudocode:
+
+```java
+@Test void persistenceMigrationCliRequiresExplicitSupportedModes() {
+  assertThat(parseMode("validate")).isEqualTo(VALIDATE);
+  assertThat(parseMode("initialize")).isEqualTo(INITIALIZE);
+  assertThat(parseMode("validate", migrationOptions)).isEqualTo(VALIDATE);
+  assertThat(parseMode("import", migrationOptions)).isEqualTo(IMPORT);
+  assertThat(parseMode("verify", migrationOptions)).isEqualTo(VERIFY);
+  assertThatThrownBy(() -> parseMode("import", missingOptions)).hasMessageContaining("USAGE");
+}
+```
+
+- Verification contribution: 与File 1组成RED；只有mode/options合同通过后才实现File 3。
+- After this file: CLI兼容与新增命令合同已固定；不运行数据库或连接外部source。
+
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`
 
 - Purpose: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
 - Symbols: `DdcPersistenceMigrationCli`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcPersistenceMigrationCli`。
-- Dependencies and consumers: 前置Step 11, Step 19；本步1个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
-- Contract/signature changes: DdcPersistenceMigrationCli的具体签名/配置/字段变更：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；按修订稿§9/§11保持原wire字段。
-- Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入判定；失败不得越权、半提交或吞掉原错误语义。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
+- Repository evidence: Step 7已创建DDL入口；当前基线SHA256 `4b117402caefd583ca5a2ad5dc91b788fc3f69d038380288615ca5e39aab13cc`；保留 `validate/initialize`，本步补充Spec§16明确的 `import/verify` 命令和参数。
+- Dependencies and consumers: 前置Step 11, Step 19及Files 1–2 RED合同；本步2个已排序文件；`DdcArchitectureContractTest`、`DdcActiveActiveAdminIT`原有 `initialize` 调用保持兼容。
+- Why now: 同一受控CLI拥有DDL validate/initialize和旧库validate/import/verify维护入口；不创建第二个迁移入口，不将离线导入放到Admin启动或Web请求。
+- Contract/signature changes: `main(String[] args)`及 `parseMode(String[] args)`接受Spec§16.2精确模式和 `--source-config`、`--target-config`、`--mapping`、`--report-dir`；先拒绝相同配置路径，再比较源/目标PostgreSQL数据库身份；migration mode验证受保护文件和target配置中的唯一machine-id后绑定已有Snowflake engine；无迁移参数的DDL模式继续读取classpath配置并用受管runner。
+- Input/output and state mapping: `args`解析为显式Mode及受保护文件路径；迁移validate只预检，import调用 `DdcLegacyImportService`，verify只读比对报告/目标记录；无迁移参数的DDL模式继续读取classpath配置并用受管runner。
+- Error and edge behavior: 缺少命令/配置项、路径不安全、source/target配置或数据库重叠、未知mode或模式参数混用时fail closed并写安全报告；异常保留表/阶段/公共ID/hash但不记录明文凭据或内容；import源连接只读并在finally关闭，目标批次rollback失败不得通过auto-commit隐式提交。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-PATTERN-001；Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；CLI只作显式维护入口，不注册Spring Bean、不增加依赖或配置profile。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcPersistenceMigrationCli: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
-validate signed tenant mapping and source V9 schema; source connection is read only;
-for each table in parent order page <= 1000 rows: compare source hash/public_id/tenant, insert missing row in target transaction;
-if matching hash skip; if mismatch/unknown tenant/orphan stop with report and do not overwrite;
-verify row counts, field hashes, FK and business version/status before cutover; close owned resources.
+// parse explicit migration mode/options; preserve DDL behavior and reject incomplete migration modes.
+var invocation = DdcPersistenceMigrationCli.parseInvocation(args);
+if (invocation.mode() == IMPORT) return importer.import(invocation);
+if (invocation.mode() == VERIFY) return importer.verify(invocation);
+// validate performs preflight only; existing validate/initialize continues to use MP-SDJ managed DDL.
 ```
 
-- Verification contribution: DdcLegacyImportContractTest聚焦本文件的完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；最终由本步GREEN门禁验证。
+- Verification contribution: `DdcLegacyImportContractTest`覆盖四个明确mode、必需参数与未知/重复选项拒绝；现有 `DdcTianshuDdlContractTest`继续覆盖legacy `parseMode`，Architecture/active-active调用继续覆盖 `initialize` 兼容。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportService.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportService.java`
 
 - Purpose: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
 - Symbols: `DdcLegacyImportService`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcLegacyImportService`。
-- Dependencies and consumers: 前置Step 11, Step 19；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 11, Step 19；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
-- Contract/signature changes: DdcLegacyImportService的具体签名/配置/字段变更：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
-- Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；按修订稿§9/§11保持原wire字段。
+- Contract/signature changes: 无Spring Bean的离线服务；`verifyMappingSignature(byte[],byte[],String)`复用JDK Ed25519；`validateDatabase`/`verifyDatabase`只读核对V9 history、源指纹、租户映射、父子和目标字段；`importDatabase`按mapping和checkpoint父先子后搬迁并输出checkpoint文件名/逐表计数；`importRows(Connection,List<DdcLegacyRowDTO>,String,DdcLegacyTableStrategy,LongSupplier,Clock)`每次最多1000行一个目标事务，rollback失败时不恢复auto-commit；已有public ID仅在所有映射字段完全相同、等价于row source hash时跳过，不一致立即停止。
+- Input/output and state mapping: 输入为target连接、租户绑定后的行DTO、有序Strategy、唯一Snowflake id supplier和UTC Clock；输出逐批计数/最后原ID/checkpoint，source侧只执行SELECT。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
 - Literal rule enforcement: 类型/行为后缀与实际职责一致 (Rule 1)；普通class完整Lombok、PO SuperBuilder、投影BaseForwardConverter (Rule 3)；业务Slf4j、具名Bean、RequiredArgs及Qualifier传播 (Rule 4)；仅JDK/允许工具库 (Rule 5)；复杂内容/投递使用Content Strategy或DeliveryHandler (Rule 9)；java.time/UTC且旧时间语义保留 (Rule 10)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
 - Implementation pseudocode:
 
 ```java
-// DdcLegacyImportService: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
-validate signed tenant mapping and source V9 schema; source connection is read only;
-for each table in parent order page <= 1000 rows: compare source hash/public_id/tenant, insert missing row in target transaction;
-if matching hash skip; if mismatch/unknown tenant/orphan stop with report and do not overwrite;
-verify row counts, field hashes, FK and business version/status before cutover; close owned resources.
+var rows = strategy.mapSourceRow(legacyTable, sourceRow, tenantId, resolvedParentIds);
+var report = service.importRows(target, List.of(rows), jobId, strategy, idSupplier, Clock.systemUTC());
+// Matching tenant+public_id+fields skips; mismatch stops. Each <=1000-row target batch commits independently.
 ```
 
 - Verification contribution: DdcLegacyImportContractTest聚焦本文件的完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyTableStrategy.java`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyTableStrategy.java`
 
 - Purpose: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
 - Symbols: `DdcLegacyTableStrategy`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcLegacyTableStrategy`。
-- Dependencies and consumers: 前置Step 11, Step 19；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 11, Step 19；本步4个已排序文件；由DdcLegacyImportService注册使用。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
-- Contract/signature changes: DdcLegacyTableStrategy的具体签名/配置/字段变更：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
+- Contract/signature changes: `orderedLegacyTableNames()`返回版本化11张旧表的父先子后顺序；`mapSourceRow(String,Map<String,Object>,Long,Map<String,Long>)`按具名列白名单映射旧行并输出DdcLegacyRowDTO；tenant缺失、父public_id无法解析、未知表/值均拒绝。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -18302,24 +18330,23 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 - Implementation pseudocode:
 
 ```java
-// DdcLegacyTableStrategy: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
-validate signed tenant mapping and source V9 schema; source connection is read only;
-for each table in parent order page <= 1000 rows: compare source hash/public_id/tenant, insert missing row in target transaction;
-if matching hash skip; if mismatch/unknown tenant/orphan stop with report and do not overwrite;
-verify row counts, field hashes, FK and business version/status before cutover; close owned resources.
+Map<String, DdcLegacyRowDTO> mappings = explicitV9TableRegistry();
+if (tenantId == null) fail("TIANSHU_LEGACY_TENANT_REQUIRED");
+if (bindingParentId == null) fail("TIANSHU_LEGACY_PARENT_MAPPING_REQUIRED");
+// ddc_env may be projected once per explicitly mapped tenant; keep its original public_id.
 ```
 
 - Verification contribution: DdcLegacyImportContractTest聚焦本文件的完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyRowDTO.java`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyRowDTO.java`
 
 - Purpose: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
 - Symbols: `DdcLegacyRowDTO`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcLegacyRowDTO`。
-- Dependencies and consumers: 前置Step 11, Step 19；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 11, Step 19；本步5个已排序文件；由File 4–5的读写边界消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
-- Contract/signature changes: DdcLegacyRowDTO的具体签名/配置/字段变更：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
+- Contract/signature changes: 普通可变DTO class；字段为sourceTable、targetTable、legacyId、tenantId、publicId、sourceHash、targetValues和技术version；builder/setter复制targetValues且getter不暴露可变Map，时间列保留LocalDateTime原义。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -18327,24 +18354,22 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 - Implementation pseudocode:
 
 ```java
-// DdcLegacyRowDTO: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
-validate signed tenant mapping and source V9 schema; source connection is read only;
-for each table in parent order page <= 1000 rows: compare source hash/public_id/tenant, insert missing row in target transaction;
-if matching hash skip; if mismatch/unknown tenant/orphan stop with report and do not overwrite;
-verify row counts, field hashes, FK and business version/status before cutover; close owned resources.
+@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain = true) @Builder
+class DdcLegacyRowDTO { String sourceTable; String targetTable; String legacyId; Long tenantId;
+  String publicId; String sourceHash; Map<String, Object> targetValues; Long technicalVersion; }
 ```
 
 - Verification contribution: DdcLegacyImportContractTest聚焦本文件的完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcMigrationReportResult.java`
+#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcMigrationReportResult.java`
 
 - Purpose: 完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入
 - Symbols: `DdcMigrationReportResult`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`DdcMigrationReportResult`。
-- Dependencies and consumers: 前置Step 11, Step 19；本步5个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
+- Dependencies and consumers: 前置Step 11, Step 19；本步6个已排序文件；由CLI/import service返回每次validate/import/verify报告。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
-- Contract/signature changes: DdcMigrationReportResult的具体签名/配置/字段变更：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。
+- Contract/signature changes: 报告包含mode、job/source/target指纹、status、逐表行数、插入/跳过/差异、最后原ID、存在时的checkpoint文件名和错误阶段/表/原ID/hash；错误详情不包含正文/凭据。
 - Input/output and state mapping: 输入为上游已验证状态，输出/副作用为：完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；按修订稿§9/§11保持原wire字段。
 - Error and edge behavior: 非法tenant/缺字段/重复/冲突/异常按完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入判定；失败不得越权、半提交或吞掉原错误语义。
 - Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-NAME-001, MC-PATTERN-001；Rule 1, Rule 3, Rule 4, Rule 5, Rule 9, Rule 10, Rule 11；完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
@@ -18362,14 +18387,62 @@ verify row counts, field hashes, FK and business version/status before cutover; 
 - Verification contribution: DdcLegacyImportContractTest聚焦本文件的完成validate/import/verify；版本化11表映射、原public ID对照、≤1000行批次；source只读，无Rest端点/后台自动导入；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
-- Verification command: `mvn -q -Dtest=DdcLegacyImportContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Validation working directory: repository root `/Users/mario/SelfProject/Egon-COLA`。
+- Verification command: `mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Dtest=DdcLegacyImportContractTest,DdcTianshuDdlContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。Admin单模块构建会解析已安装的旧Tianshu工件；本步必须用reactor `-am`编译当前工作区依赖。
 - Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyTableStrategy.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyRowDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcMigrationReportResult.java`
-- Commit: `feat(tianshu): step-23`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/migration/DdcTianshuDdlContractTest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcPersistenceMigrationCli.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyImportService.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyTableStrategy.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcLegacyRowDTO.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/migration/DdcMigrationReportResult.java`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
+- Commit: `feat(tianshu): step-23-legacy-import`（本Plan Step作为一个独立逻辑提交；保留已完成Step历史，不合并或改写）。
+
+#### Step 23 execution gate record
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| RED | PASS | 受控RED审计临时关闭新增守卫/行为后，聚焦套件出现4个预期断言失败：source/target相同配置路径被接受、checkpoint字段为null、builder输入Map别名泄漏、rollback失败后恢复auto-commit。随后新增默认Map合同先红，出现2个预期NPE：DTO缺值builder及最小失败报告的`rowsByTable`为null。均无编译/fixture错误；实现恢复后重新跑GREEN。源/目标真实数据库身份比较另由JDBC mock覆盖，未连接真实PG。 |
+| GREEN | PASS | 仓库根目录执行`mvn -q -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -Dtest=DdcLegacyImportContractTest,DdcTianshuDdlContractTest -Dsurefire.failIfNoSpecifiedTests=false test`，33个测试通过（15+18），退出0；覆盖V9映射、Ed25519、源只读、tenant fan-out、幂等冲突、checkpoint恢复、报告、批次事务和CLI兼容。 |
+| Static and Plan | PASS | `python3 .agents/skills/egon-coding-writing-plan/scripts/validate_plan.py docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md --strict`退出0；`git diff --check`退出0。 |
+| Runtime boundary | N/A | 只运行in-memory SQLite合同测试与JDBC mock；未连接真实PostgreSQL/Redis、未运行CLI迁移、未执行DDL/数据导入、未启动服务。Step 24/受控环境继续承担实际PG落点和切换前数据验收。 |
+| Dependency and scope | PASS | Admin/root POM无差异；无新增依赖、DDL、profile或服务入口；仅Step23七个代码/测试文件及本Plan变更。 |
+| Pattern decision | PASS | `DdcLegacyTableStrategy`以版本化表注册表和`TenantResolver`策略处理11表/单租户与环境fan-out差异，避免按表名散落条件分支；CLI和批次事务保持直接编排，不增加转发层。 |
+
+#### Step 23 Literal Rule review
+
+| Rule | Applicability | Status | Evidence and finding |
+| --- | --- | --- | --- |
+| Rule 1 | Applicable | PASS | `DdcLegacyImportService`、`DdcLegacyRowDTO`、`DdcLegacyTableStrategy`、`DdcMigrationReportResult`分别表达服务、DTO、策略和结果；CLI/策略/内部command与checkpoint record不是业务POJO。 |
+| Rule 2 | Applicable | PASS | DTO Jakarta约束由`importRows` Validator执行；tenant/父引用/mapping/路径/目标配置在边界拒绝。`importRowsValidatesLegacyDtoBeforeWriting`覆盖负例且目标行数为0。 |
+| Rule 3 | Applicable | PASS | 两个普通carrier均为class并有`@Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true)`及目标Builder；row DTO工厂Builder复制输入Map，getter返回不可变副本；report用`@Builder.Default`保持空Map；record仅表示不可变值。 |
+| Rule 4 | Applicable | PASS | CLI、import service与table strategy使用`@Slf4j`；无Spring依赖注入，故无需Bean名/`@RequiredArgsConstructor`/`@Qualifier`。日志只记录job、计数、状态/SQLState，不记录凭据或正文。 |
+| Rule 5 | Applicable | PASS | 新加摘要/签名/时间/路径/SQL能力使用JDK；Jackson、Spring、Jakarta Validation均为模块已有依赖；没有工具库或POM新增。 |
+| Rule 6 | Applicable | PASS | JSON通过Spring Boot Jackson builder；CLI `Mode`写入显式名称而非ordinal，版本/ID维持字符串或数值合同。 |
+| Rule 7 | Not applicable | N/A | 未修改任何环境profile或配置文件；migration配置作为显式受保护输入读取。 |
+| Rule 9 | Applicable | PASS | 表映射与租户解析用Strategy隔离11表差异；无新增Factory/Handler转发层。 |
+| Rule 10 | Applicable | PASS | 旧业务时间用`LocalDateTime`保留无时区语义；技术审计时间用UTC `Clock`/`OffsetDateTime`；fixture验证历史值。 |
+| Rule 11 | Applicable | PASS | 目标DDL继续由MP-SDJ管理；raw JDBC仅在Spec§16.2批准的离线受控导入使用；源只读、单primary、目标route校验，运行时无JPA/JDBC后门；维护Command不产生业务Event。 |
+
+#### Step 23 Manual Check review
+
+| Check ID | Applicability | Status | Evidence and finding |
+| --- | --- | --- | --- |
+| `MC-ARCH-001` | Applicable | PASS | 新代码全部位于现有Admin migration package；保留传统Controller/Service/Repository与MP持久化架构，CLI未注册Spring服务。 |
+| `MC-REUSE-001` | Applicable | PASS | DDL继续复用`EgonColaPhysicalDataSourceFactory`、MP-SDJ runner、TopologyValidator与`SnowflakeIdGenerator`；映射为离线专用，不复制运行时repository。 |
+| `MC-DEP-001` | Applicable | PASS | Admin/root POM无差异；无SQLite生产依赖或新增库。 |
+| `MC-NAME-001` | Applicable | PASS | `DdcLegacyRowDTO`、`DdcMigrationReportResult`、`DdcLegacyImportService`、`DdcLegacyTableStrategy`按数据/行为职责命名；未加入含糊通用类。 |
+| `MC-VALID-001` | Applicable | PASS | `DdcLegacyRowDTO`字段注解、`importRows` Jakarta Validator及tenant/父ID/mapping/CLI文件守卫覆盖handoff；非法publicId测试证明拒绝写入。 |
+| `MC-MODEL-001` | Applicable | PASS | 普通DTO/result使用标准class＋Lombok；row工厂builder防止输入Map别名，report builder提供非null空Map，均有对应断言；时间和ID字段语义清楚。 |
+| `MC-CONVERT-001` | Not applicable | N/A | 本步没有PO/BO/VO之间的常规模型转换；源是JDBC动态列Map，按签名版本化11表注册表映射到迁移DTO，使用MapStruct会要求引入11套并行源模型且无法表达tenant/父ID解析。 |
+| `MC-LOG-001` | Applicable | PASS | 业务迁移类`@Slf4j`；审阅log调用仅记录jobId、计数、SQLState和受控错误码，不含映射正文/凭据。 |
+| `MC-BEAN-001` | Not applicable | N/A | CLI和迁移service/strategy不是Spring Bean，不做构造注入或Bean name/Qualifier变更。 |
+| `MC-UTIL-001` | Applicable | PASS | SHA-256、Ed25519、文件保护、数据库映射和时间逻辑使用JDK；没有新增utility依赖。 |
+| `MC-JSON-001` | Applicable | PASS | signed mapping和report经Spring Boot Jackson/ObjectMapper读写；合同覆盖签名篡改拒绝、最小错误报告序列化和安全报告字段。 |
+| `MC-TIME-001` | Applicable | PASS | 源业务时间经`LocalDateTime`映射、不推测时区；技术审计时间使用UTC；映射合同验证原值。 |
+| `MC-CONFIG-001` | Not applicable | N/A | 本步未编辑base/local/test或其他profile配置；CLI只读取外部显式配置。 |
+| `MC-PATTERN-001` | Applicable | PASS | 11表字段映射、父表关系及single/fan-out tenant resolver是明确变化点，Strategy避免散落分支；回归验证其表顺序/租户行为。 |
+| `MC-SCOPE-001` | Applicable | PASS | 最终差异限定为Step23七个Admin Java文件及本Plan gate；无POM、SQL、组件、archetype或其他Xingyuan路径。 |
+| `MC-TEST-001` | Applicable | PASS | reactor聚焦测试33/33通过，严格Plan校验及diff check退出0；RED阶段出现的失败均为预期断言/NPE。 |
+| `MC-BLOCKER-001` | Applicable | PASS | 上述所有Applicable行通过，N/A均有范围依据；真实PG/Redis/CLI迁移和切换前全量数据核验保留为Step24/受控运行证据。 |
 
 ### Step 24 — 闭合配置调用方、文档和整链验收门禁
 

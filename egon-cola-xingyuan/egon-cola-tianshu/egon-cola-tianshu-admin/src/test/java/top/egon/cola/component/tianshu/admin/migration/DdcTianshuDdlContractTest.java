@@ -405,14 +405,42 @@ class DdcTianshuDdlContractTest {
     }
 
     @Test
-    void persistenceMigrationCliRequiresOneExplicitSupportedMode() throws Exception {
+    void persistenceMigrationCliKeepsDdlModesAndSupportsExplicitLegacyImportModes() throws Exception {
         Class<?> cli = Class.forName("top.egon.cola.component.tianshu.admin.migration.DdcPersistenceMigrationCli");
         Method parseMode = cli.getMethod("parseMode", String[].class);
 
         assertThat(parseMode.invoke(null, (Object) new String[]{"validate"}).toString()).isEqualTo("VALIDATE");
         assertThat(parseMode.invoke(null, (Object) new String[]{"initialize"}).toString()).isEqualTo("INITIALIZE");
+        String[] migrationOptions = {
+                "--source-config", "/protected/source.yml",
+                "--target-config", "/protected/target.yml",
+                "--mapping", "/protected/tenant-mapping.json",
+                "--report-dir", "/var/tmp/tianshu-migration"
+        };
+        assertThat(parseMode.invoke(null, (Object) withMode("validate", migrationOptions)).toString())
+                .isEqualTo("VALIDATE");
+        assertThat(parseMode.invoke(null, (Object) withMode("import", migrationOptions)).toString())
+                .isEqualTo("IMPORT");
+        assertThat(parseMode.invoke(null, (Object) withMode("verify", migrationOptions)).toString())
+                .isEqualTo("VERIFY");
+        String[] overlappingConfigs = migrationOptions.clone();
+        overlappingConfigs[3] = overlappingConfigs[1];
+        assertThatThrownBy(() -> parseMode.invoke(null, (Object) withMode("import", overlappingConfigs)))
+                .rootCause()
+                .hasMessageStartingWith("USAGE: DdcPersistenceMigrationCli");
+        assertThatThrownBy(() -> parseMode.invoke(null, (Object) new String[]{"import", "--mapping", "map.json"}))
+                .rootCause()
+                .hasMessageStartingWith("USAGE: DdcPersistenceMigrationCli");
         assertThatThrownBy(() -> parseMode.invoke(null, (Object) new String[]{"automatic"}))
-                .hasRootCauseMessage("USAGE: DdcPersistenceMigrationCli <validate|initialize>");
+                .rootCause()
+                .hasMessageStartingWith("USAGE: DdcPersistenceMigrationCli");
+    }
+
+    private static String[] withMode(String mode, String[] options) {
+        String[] result = new String[options.length + 1];
+        result[0] = mode;
+        System.arraycopy(options, 0, result, 1, options.length);
+        return result;
     }
 
     @Test
