@@ -11,12 +11,13 @@ import {
   Modal,
   Space,
   Spin,
+  Tabs,
   Tree,
   Typography,
 } from 'antd'
 import type { DataNode } from 'antd/es/tree'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useBlocker, useNavigate, useParams } from 'react-router-dom'
+import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { BlockerFunction } from 'react-router-dom'
 import { DdcApiError } from '../api/client'
 import {
@@ -34,6 +35,7 @@ import type {
 import { useAuth } from '../auth/AuthContext'
 import AdminPageHeader from '../components/page/AdminPageHeader'
 import { formatTime } from '../lib/query'
+import AiVersionsPanel from './AiVersionsPanel'
 
 type DraftBuffer = {
   displayName: string
@@ -149,6 +151,8 @@ export default function AiResourceEditorPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState(() => searchParams.has('versionNo') ? 'versions' : 'draft')
   const queryKey = ddcAiQueryKeys.resource(id)
   const resourceQuery = useQuery({
     queryKey,
@@ -165,11 +169,16 @@ export default function AiResourceEditorPage() {
   const [targetDirectoryPath, setTargetDirectoryPath] = useState('')
   const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false)
   const logoutConfirmationResolver = useRef<((allowed: boolean) => void) | null>(null)
+  const [pendingVersionOperation, setPendingVersionOperation] = useState(false)
   const dirtyRef = useRef(false)
 
   const isDirty = baseline !== null && buffer !== null
     && !sameBuffer(buffer, toBuffer(baseline))
   dirtyRef.current = isDirty
+
+  useEffect(() => {
+    if (searchParams.has('versionNo')) setActiveTab('versions')
+  }, [searchParams])
 
   useEffect(() => {
     const server = resourceQuery.data
@@ -181,14 +190,14 @@ export default function AiResourceEditorPage() {
   }, [resourceQuery.data])
 
   useEffect(() => {
-    if (!isDirty) return
+    if (!isDirty && !pendingVersionOperation) return
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault()
       event.returnValue = ''
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [isDirty])
+  }, [isDirty, pendingVersionOperation])
 
   const leaveGuard = useCallback((): Promise<boolean> => new Promise((resolve) => {
     logoutConfirmationResolver.current = resolve
@@ -202,15 +211,14 @@ export default function AiResourceEditorPage() {
   }
 
   useEffect(() => {
-    if (!isDirty) return
+    if (!isDirty && !pendingVersionOperation) return
     return registerUnsavedChangesGuard(leaveGuard)
-  }, [isDirty, leaveGuard, registerUnsavedChangesGuard])
+  }, [isDirty, leaveGuard, pendingVersionOperation, registerUnsavedChangesGuard])
 
-  const shouldBlock = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => isDirty && (
+  const shouldBlock = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) =>
+    (isDirty || pendingVersionOperation) && (
     currentLocation.pathname !== nextLocation.pathname
-    || currentLocation.search !== nextLocation.search
-    || currentLocation.hash !== nextLocation.hash
-  ), [isDirty])
+  ), [isDirty, pendingVersionOperation])
   const blocker = useBlocker(shouldBlock)
 
   const updateDraft = (update: (current: DraftBuffer) => DraftBuffer) => {
@@ -397,6 +405,12 @@ export default function AiResourceEditorPage() {
     })
   }
 
+  const updatePublishedResource = (updated: DdcAiResourceResult) => {
+    setBaseline(updated)
+    queryClient.setQueryData(queryKey, updated)
+    if (!dirtyRef.current) setBuffer(toBuffer(updated))
+  }
+
   if (resourceQuery.isPending && !resourceQuery.data) {
     return <Spin fullscreen description="读取 AI 草稿" />
   }
@@ -410,6 +424,16 @@ export default function AiResourceEditorPage() {
   const resource = resourceQuery.data.resource
   const latestServer = resourceQuery.data
   const canAcknowledgeConflict = conflict && latestServer.resource.revision !== baseline.resource.revision
+  const handleTabChange = (key: string) => {
+    setActiveTab(key)
+    const next = new URLSearchParams(searchParams)
+    if (key === 'draft') {
+      next.delete('versionNo')
+    } else if (!next.has('versionNo') && resource.currentVersionNo !== null) {
+      next.set('versionNo', resource.currentVersionNo)
+    }
+    setSearchParams(next)
+  }
 
   return (
     <Space orientation="vertical" size="large" className="tianshu-ai-page">
@@ -419,7 +443,7 @@ export default function AiResourceEditorPage() {
         extra={(
           <Space wrap>
             <Button onClick={() => navigate(toListUrl(resource))}>返回资源列表</Button>
-            <Button danger onClick={confirmDeleteResource} disabled={!writable || resourceQuery.isError || saveMutation.isPending || deleteMutation.isPending}>
+            <Button danger onClick={confirmDeleteResource} disabled={!writable || resourceQuery.isError || pendingVersionOperation || saveMutation.isPending || deleteMutation.isPending}>
               删除资源
             </Button>
           </Space>
@@ -479,104 +503,133 @@ export default function AiResourceEditorPage() {
         />
       )}
 
-      {resource.kind === 'PROMPT' ? (
-        <Card title="Prompt 正文（纯文本）">
-          <Input.TextArea
-            aria-label="Prompt 正文"
-            rows={20}
-            value={buffer.draft.promptText ?? ''}
-            onChange={(event) => updateDraft((current) => ({
-              ...current,
-              draft: { ...current.draft, promptText: event.target.value },
-            }))}
-          />
-        </Card>
-      ) : (
-        <div className="tianshu-ai-skill-editor">
-          <Card title="Skill 文件树" className="tianshu-ai-skill-editor__tree">
-            <Space wrap className="tianshu-ai-skill-editor__actions">
-              <Button onClick={() => openNewNode('new-file')}>新增文件</Button>
-              <Button onClick={() => openNewNode('new-directory')}>新增目录</Button>
-              <Button onClick={openMove} disabled={!selectedNode || selectedNode.path === ''}>移动</Button>
-              <Button onClick={openRename} disabled={!selectedNode || selectedNode.path === ''}>重命名</Button>
-              <Button danger onClick={confirmDeleteNode} disabled={!selectedNode || selectedNode.path === ''}>删除节点</Button>
-            </Space>
-            <Tree
-              aria-label="Skill 文件树"
-              treeData={visibleTree}
-              selectedKeys={selectedPath ? [selectedPath] : []}
-              defaultExpandAll
-              onSelect={(keys) => {
-                const nextPath = String(keys[0] ?? '')
-                if (nextPath === selectedPath) return
-                if (!isDirty) {
-                  setSelectedPath(nextPath)
-                  return
-                }
-                modal.confirm({
-                  title: '当前草稿有未保存修改',
-                  content: '继续切换文件会保留当前本地树和文本，确认后再选择其他节点。',
-                  okText: '保留并切换',
-                  cancelText: '留在当前文件',
-                  onOk: () => setSelectedPath(nextPath),
-                })
-              }}
-            />
-          </Card>
-          <Card title={selectedNode?.nodeType === 'FILE' ? selectedPath : '选择一个文本文件'} className="tianshu-ai-skill-editor__content">
-            {selectedNode?.nodeType === 'FILE' ? (
-              <Input.TextArea
-                aria-label={`文件正文: ${selectedPath}`}
-                rows={22}
-                value={selectedNode.content ?? ''}
-                onChange={(event) => updateDraft((current) => ({
-                  ...current,
-                  draft: {
-                    ...current.draft,
-                    nodes: current.draft.nodes.map((node) => node.path === selectedPath
-                      ? { ...node, content: event.target.value }
-                      : node),
-                  },
-                }))}
-              />
-            ) : (
-              <Typography.Text type="secondary">目录没有正文；所有文件均作为原始文本编辑。</Typography.Text>
-            )}
-          </Card>
-        </div>
+      {(isDirty || pendingVersionOperation) && activeTab === 'versions' && (
+        <Alert type="info" showIcon title="本地草稿仍保留；切换历史版本不会覆盖未保存编辑。" />
       )}
-
-      <Space>
-        <Button
-          type="primary"
-          onClick={saveDraft}
-          disabled={!isDirty || resourceQuery.isError || saveMutation.isPending || conflict}
-          loading={saveMutation.isPending}
-        >
-          保存草稿
-        </Button>
-        <Button
-          disabled={!isDirty || saveMutation.isPending}
-          onClick={() => {
-            const saved = savedBuffer
-            if (!saved) return
-            modal.confirm({
-              title: '放弃本地草稿修改？',
-              content: '本地未保存的内容将被服务器草稿替换。',
-              okText: '放弃修改',
-              cancelText: '继续编辑',
-              onOk: () => {
-                setBuffer(saved)
-                setBaseline(resourceQuery.data)
-                setConflict(false)
-                setSaveFailure(undefined)
-              },
-            })
-          }}
-        >
-          放弃修改
-        </Button>
-      </Space>
+      <Tabs
+        activeKey={activeTab}
+        onChange={handleTabChange}
+        items={[
+          {
+            key: 'draft',
+            label: '草稿编辑',
+            children: (
+              <Space orientation="vertical" size="large" className="tianshu-ai-page">
+                {resource.kind === 'PROMPT' ? (
+                  <Card title="Prompt 正文（纯文本）">
+                    <Input.TextArea
+                      aria-label="Prompt 正文"
+                      rows={20}
+                      value={buffer.draft.promptText ?? ''}
+                      onChange={(event) => updateDraft((current) => ({
+                        ...current,
+                        draft: { ...current.draft, promptText: event.target.value },
+                      }))}
+                    />
+                  </Card>
+                ) : (
+                  <div className="tianshu-ai-skill-editor">
+                    <Card title="Skill 文件树" className="tianshu-ai-skill-editor__tree">
+                      <Space wrap className="tianshu-ai-skill-editor__actions">
+                        <Button onClick={() => openNewNode('new-file')}>新增文件</Button>
+                        <Button onClick={() => openNewNode('new-directory')}>新增目录</Button>
+                        <Button onClick={openMove} disabled={!selectedNode || selectedNode.path === ''}>移动</Button>
+                        <Button onClick={openRename} disabled={!selectedNode || selectedNode.path === ''}>重命名</Button>
+                        <Button danger onClick={confirmDeleteNode} disabled={!selectedNode || selectedNode.path === ''}>删除节点</Button>
+                      </Space>
+                      <Tree
+                        aria-label="Skill 文件树"
+                        treeData={visibleTree}
+                        selectedKeys={selectedPath ? [selectedPath] : []}
+                        defaultExpandAll
+                        onSelect={(keys) => {
+                          const nextPath = String(keys[0] ?? '')
+                          if (nextPath === selectedPath) return
+                          if (!isDirty) {
+                            setSelectedPath(nextPath)
+                            return
+                          }
+                          modal.confirm({
+                            title: '当前草稿有未保存修改',
+                            content: '继续切换文件会保留当前本地树和文本，确认后再选择其他节点。',
+                            okText: '保留并切换',
+                            cancelText: '留在当前文件',
+                            onOk: () => setSelectedPath(nextPath),
+                          })
+                        }}
+                      />
+                    </Card>
+                    <Card title={selectedNode?.nodeType === 'FILE' ? selectedPath : '选择一个文本文件'} className="tianshu-ai-skill-editor__content">
+                      {selectedNode?.nodeType === 'FILE' ? (
+                        <Input.TextArea
+                          aria-label={`文件正文: ${selectedPath}`}
+                          rows={22}
+                          value={selectedNode.content ?? ''}
+                          onChange={(event) => updateDraft((current) => ({
+                            ...current,
+                            draft: {
+                              ...current.draft,
+                              nodes: current.draft.nodes.map((node) => node.path === selectedPath
+                                ? { ...node, content: event.target.value }
+                                : node),
+                            },
+                          }))}
+                        />
+                      ) : (
+                        <Typography.Text type="secondary">目录没有正文；所有文件均作为原始文本编辑。</Typography.Text>
+                      )}
+                    </Card>
+                  </div>
+                )}
+                <Space>
+                  <Button
+                    type="primary"
+                    onClick={saveDraft}
+                    disabled={!isDirty || resourceQuery.isError || pendingVersionOperation || saveMutation.isPending || conflict}
+                    loading={saveMutation.isPending}
+                  >
+                    保存草稿
+                  </Button>
+                  <Button
+                    disabled={!isDirty || saveMutation.isPending}
+                    onClick={() => {
+                      const saved = savedBuffer
+                      if (!saved) return
+                      modal.confirm({
+                        title: '放弃本地草稿修改？',
+                        content: '本地未保存的内容将被服务器草稿替换。',
+                        okText: '放弃修改',
+                        cancelText: '继续编辑',
+                        onOk: () => {
+                          setBuffer(saved)
+                          setBaseline(resourceQuery.data)
+                          setConflict(false)
+                          setSaveFailure(undefined)
+                        },
+                      })
+                    }}
+                  >
+                    放弃修改
+                  </Button>
+                </Space>
+              </Space>
+            ),
+          },
+          {
+            key: 'versions',
+            label: '版本与发布',
+            children: (
+              <AiVersionsPanel
+                resource={resource}
+                draftDirty={isDirty}
+                resourceUnavailable={resourceQuery.isError}
+                onResourceChanged={updatePublishedResource}
+                onPendingOperationChange={setPendingVersionOperation}
+              />
+            ),
+          },
+        ]}
+      />
 
       <Modal
         title={nodeDialog?.operation === 'new-file' ? '新增文本文件'
@@ -623,25 +676,32 @@ export default function AiResourceEditorPage() {
       </Modal>
 
       <Modal
-        title="当前草稿尚未保存"
+        title={pendingVersionOperation ? '发布操作尚未核验' : '当前草稿尚未保存'}
         open={logoutConfirmationOpen}
-        onOk={() => answerLogoutConfirmation(true)}
+        onOk={() => answerLogoutConfirmation(!pendingVersionOperation)}
         onCancel={() => answerLogoutConfirmation(false)}
-        okText="放弃修改并继续"
-        cancelText="继续编辑"
+        okText={pendingVersionOperation ? '返回并继续核验' : '放弃修改并继续'}
+        cancelText={pendingVersionOperation ? '留在当前会话' : '继续编辑'}
       >
-        继续会切换或清除当前身份会话，本地未保存内容将丢失。是否确认？
+        {pendingVersionOperation
+          ? '发布操作结果尚未确认。请先核验原请求或使用原请求号重试；此时不能切换身份会话。'
+          : '继续会切换或清除当前身份会话，本地未保存内容将丢失。是否确认？'}
       </Modal>
 
       <Modal
-        title="离开编辑页？"
+        title={pendingVersionOperation ? '发布操作尚未核验' : '离开编辑页？'}
         open={blocker.state === 'blocked'}
-        onOk={() => blocker.proceed?.()}
+        onOk={() => {
+          if (!pendingVersionOperation) blocker.proceed?.()
+        }}
         onCancel={() => blocker.reset?.()}
+        okButtonProps={{ disabled: pendingVersionOperation }}
         okText="离开并放弃本地修改"
-        cancelText="继续编辑"
+        cancelText={pendingVersionOperation ? '返回核验' : '继续编辑'}
       >
-        当前草稿尚未保存，离开会丢弃本地修改。
+        {pendingVersionOperation
+          ? '发布结果未知；先核验原请求回执或使用原请求号重试。'
+          : '当前草稿尚未保存，离开会丢弃本地修改。'}
       </Modal>
     </Space>
   )

@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `In Progress` |
 | Created | `2026-09-23 06:16 Asia/Shanghai` |
-| Updated | `2026-10-05 05:49 Asia/Shanghai` |
+| Updated | `2026-10-07 16:36 Asia/Shanghai` |
 | Owner | mario |
 | Repository | Egon-COLA |
 | Scope | 天枢传统三层Admin/Starter、Direct RPC适配、Admin Web；已批准MP与Outbox组件扩展 |
@@ -279,7 +279,7 @@ egon-cola-xingyuan/egon-cola-tianshu/
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.test.tsx` | CREATE：基线不存在 | AiPromotionDialog.test | 固定源和明确目标；absent NULL/现存revision；超时原key核验；既有目标草稿提示、无前端搬运正文 | Step 22 | REQ-005 REQ-006 REQ-012 REQ-019 | AiVersionsUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.tsx` | CREATE：基线不存在 | AiPromotionDialog | API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec | Step 22 | REQ-005 REQ-006 REQ-012 REQ-019 | AiVersionsUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.test.tsx` | CREATE：基线不存在 | AiResourceEditorPage.test | Tree目录/文件增删改名、纯文本、无格式执行、未保存切换、409保留buffer、新root身份提示 | Step 21 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-014 | AiDraftUI |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx` | CREATE：基线不存在 | AiResourceEditorPage | Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库 | Step 21, Step 22 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-012 REQ-014 REQ-019 | AiDraftUI, AiVersionsUI |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx` | CREATE：原计划基线不存在；MODIFY：Step21修正提交后SHA256 25023b5edac2 | AiResourceEditorPage | Step21纯文本草稿；Step22只读版本历史/发布回滚/推广入口；revision与本地buffer分离 | Step 21, Step 22 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-005 REQ-006 REQ-012 REQ-014 REQ-019 | AiDraftUI, AiVersionsUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.test.tsx` | CREATE：基线不存在 | AiResourcesPage.test | scope/kind完整，查询/空/拒绝/创建，JSON与权限，不把empty误判未发布 | Step 21 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-014 | AiDraftUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourcesPage.tsx` | CREATE：基线不存在 | AiResourcesPage | Antd Tree/TextArea，local draft与query snapshot分开；保存整树PUT；kind路由固定；无额外UI库 | Step 21 | REQ-001 REQ-002 REQ-003 REQ-004 REQ-014 | AiDraftUI |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.test.tsx` | CREATE：基线不存在 | AiVersionsPanel.test | 只读旧版、当前指针不同于草稿、rollback不清空buffer、resourceId+version一起复制 | Step 22 | REQ-005 REQ-006 REQ-012 REQ-019 | AiVersionsUI |
@@ -18008,14 +18008,15 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Baseline state: 当前仓库HEAD加已完成的前置Step；本Step路径复核hash及其他任务并发改动。
 - Observable outcome: 只读历史、ID+version固定配置、双边权限推广与结果核验可操作。
 - End state: 只读历史、ID+version固定配置、双边权限推广与结果核验可操作；本步清单中的文件与目标契约一致，后续Step未完成前不宣称整系统可部署。
+- Plan clarification: Step21主提交`7b1a6cc592f1e9f398a1e5c4a2936a798d6671ac`之后，按Spec§12.5单独补交Skill树节点图标修正`f4a08f6310dd6c87a827f3233ea186c75c3f5931`；当前干净基线HEAD为`f4a08f6310dd6c87a827f3233ea186c75c3f5931`。`AiResourceEditorPage.tsx`由Step21创建，本步执行MODIFY（当前基线SHA256 `25023b5edac2be2a861b1dc010327005e66fbe5c9da5b4e1d28744ace22febfb`）。AiVersionsPanel嵌入复制发布弹窗，因此先建立两个RED测试，再实现AiPromotionDialog，再实现AiVersionsPanel，最后接入编辑页；不增加依赖、API或服务端权限规则。
 - Test-first gate: Required — 首个聚焦测试先因新目标类型/方法/守卫或行为不存在而RED；不得因fixture、连接环境或其他任务失败误判。
-- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001
+- Manual Checks: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-UTIL-001, MC-JSON-001, MC-PATTERN-001, MC-BLOCKER-001
 - Literal Rules: Rule 6, Rule 7, Rule 11
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.test.tsx`
 
-- Purpose: 只读旧版、当前指针不同于草稿、rollback不清空buffer、resourceId+version一起复制
+- Purpose: 只读固定版本快照、当前指针与草稿分离、回滚不清空本地buffer、resourceId+version固定复制发布
 - Symbols: `AiVersionsPanel.test`
 - Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`AiVersionsPanel.test`。
 - Dependencies and consumers: 前置Step 21；本步0个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
@@ -18065,61 +18066,63 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 - Verification contribution: AiVersionsUI聚焦本文件的固定源和明确目标；absent NULL/现存revision；超时原key核验；既有目标草稿提示、无前端搬运正文；最终由本步GREEN门禁验证。
 - After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.tsx`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.tsx`
 
-- Purpose: API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec
-- Symbols: `AiVersionsPanel`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`AiVersionsPanel`。
-- Dependencies and consumers: 前置Step 21；本步2个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。
-- Contract/signature changes: AiVersionsPanel的具体签名/配置/字段变更：API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。
-- Input/output and state mapping: 认证tenant/四维scope＋当前resourceId/revision/draft buffer → API参数与query key → success/409/空/拒绝UI。
-- Error and edge behavior: 401/403/404/409、空列表、204空体、会话切换、并发保存均有明确UI状态；409保留本地buffer。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001；Rule 6, Rule 7, Rule 11；API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: Jackson稳定JSON与显式枚举code (Rule 6)；多profile键结构一致 (Rule 7)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
-- Implementation pseudocode:
-
-```tsx
-// AiVersionsPanel: API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec
-const scope = verifiedAuth.tenantScope; const requestKey = [scope.tenantId, biz, namespace, env, app, kind, resourceKey];
-await aiApi.operation({ resourceId, versionNo, requestId, expectedRevision }); // keep draft buffer separate from immutable published snapshot
-if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
-// 409 preserves local edits; 204 has no JSON body; loading/empty/denied states are distinct.
-```
-
-- Verification contribution: AiVersionsUI聚焦本文件的API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
-
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.tsx`
-
-- Purpose: API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec
+- Purpose: 固定源资源ID+immutable versionNo；选择完整目标scope/key；预览目标revision/草稿状态；API-010提交sourceVersionNo+expectedTargetRevision；未知结果保留Idempotency-Key并核验，不上传源正文。
 - Symbols: `AiPromotionDialog`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`AiPromotionDialog`。
-- Dependencies and consumers: 前置Step 21；本步3个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
-- Why now: 其上游合同已在前置文件/Step定义；此文件负责API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。
-- Contract/signature changes: AiPromotionDialog的具体签名/配置/字段变更：API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。
-- Input/output and state mapping: 认证tenant/四维scope＋当前resourceId/revision/draft buffer → API参数与query key → success/409/空/拒绝UI。
-- Error and edge behavior: 401/403/404/409、空列表、204空体、会话切换、并发保存均有明确UI状态；409保留本地buffer。
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001；Rule 6, Rule 7, Rule 11；API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。Java普通carrier遵守完整Lombok，具名业务Bean遵守Slf4j/Qualifier；非Java文件以其所承载合同检查。
-- Literal rule enforcement: Jackson稳定JSON与显式枚举code (Rule 6)；多profile键结构一致 (Rule 7)；传统三层＋MP分布式DDL＋生命周期键/真实Event (Rule 11)。
+- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树与已有`promoteAiVersion/pageAiResources/getAiResource/getAiVersion/pageAiPublications` API wrappers新建。
+- Dependencies and consumers: 前置Step21与Files1–2 RED合同；本步2个已排序测试文件；后续由File4 `AiVersionsPanel`消费。
+- Why now: promotion modal封装固定源版、目标四维scope、目标revision预览、同一请求key重试和结果核验；先于历史Panel接线以避免反向依赖。
+- Contract/signature changes: 新建受控对话框props接收来源`resourceId`与不可变`versionNo`，提交API-010命令；目标scope不含tenantId，target key不能与源完整身份相同。
+- Input/output and state mapping: source resource/version + user-selected target scope/key/changeNote → exact target lookup and expectedTargetRevision (`null` only when absent) → PROMOTE receipt with target resource/version。
+- Error and edge behavior: 403/404/409保留目标输入；未知网络/503结果保存原Idempotency-Key，不自动生成新key；Verify先按目标scope/key查目标ID再按requestId读API-011回执；无回执时只允许以相同key和相同payload显式重试；源正文不下载再上传。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-JSON-001；Rule 6, Rule 7, Rule 11；没有新依赖或租户选择字段。
+- Literal rule enforcement: API-010/011严格使用既有typed JSON DTO及decimal-string版本字段 (Rule 6)；不改profile (Rule 7)；仅通过现有Admin Web→REST→Service边界 (Rule 11)。
 - Implementation pseudocode:
 
 ```tsx
-// AiPromotionDialog: API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec
-const scope = verifiedAuth.tenantScope; const requestKey = [scope.tenantId, biz, namespace, env, app, kind, resourceKey];
-await aiApi.operation({ resourceId, versionNo, requestId, expectedRevision }); // keep draft buffer separate from immutable published snapshot
-if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
-// 409 preserves local edits; 204 has no JSON body; loading/empty/denied states are distinct.
+const requestId = pending?.requestId ?? uuidV7();
+const expectedTargetRevision = target?.resource.revision ?? null;
+const command: DdcAiPromotionCommand = { sourceVersionNo, targetScope, targetResourceKey,
+  expectedTargetRevision, changeNote };
+await promoteAiVersion(source.resource.id, requestId, command); // no content field
+// On unknown result, keep the exact requestId and payload; verify target receipt before retry.
 ```
 
-- Verification contribution: AiVersionsUI聚焦本文件的API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec；最终由本步GREEN门禁验证。
-- After this file: 该路径的本步语义已写明；本Step余下文件接线与聚焦测试完成后才判GREEN。
+- Verification contribution: `AiPromotionDialog.test.tsx` asserts full four-dimensional target, null-vs-exact revision, no content upload, key retention, receipt verification and denied/conflict states.
+- After this file: API-010 submit/verify state exists independently; File4 composes it from an exact historical source version.
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.tsx`
+
+- Purpose: API-006/007历史列表与只读快照、API-008发布、API-009回滚、API-011发布/推广回执；版本号/revision保持十进制字符串；提供复制发布入口。
+- Symbols: `AiVersionsPanel`
+- Repository evidence: 当前路径不存在；复用Step20已完成的`pageAiVersions/getAiVersion/publishAiDraft/rollbackAiPublication/pageAiPublications`与tenant-scoped query keys。
+- Dependencies and consumers: 前置Step21与Files1–3；本步3个已排序文件；由Step21 `AiResourceEditorPage`以历史/发布Tab嵌入。
+- Why now: 历史列表不带正文，只有用户选定versionNo后读取固定快照；发版与审计保持独立于草稿缓存。
+- Contract/signature changes: 新建Panel接收resource摘要、草稿dirty状态和服务端资源刷新callback；选中versionNo写入URL；发布只在草稿已保存时开放，回滚指定目标自己的versionNo，promotion把固定源版本交给File3。
+- Input/output and state mapping: tenant+resourceId+page/version/requestId → tenant-scoped React Query keys → immutable summary/detail, receipt, publish/rollback result。
+- Error and edge behavior: 403/404显示拒绝/不存在而非空历史；发布409保留dirty buffer；rollback只更新当前发布指针并刷新revision，不清草稿；unknown network/503保留同一个Idempotency-Key和payload，显式核验API-011回执后才结束。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-ARCH-001, MC-JSON-001；Rule 6, Rule 7, Rule 11；无依赖、profile、wire-contract变更。
+- Literal rule enforcement: JSON字段和`versionNo/revision`字符串与现有typed API wrappers一致 (Rule 6)；无profile变化 (Rule 7)；沿现有Controller/Service/Repository边界 (Rule 11)。
+- Implementation pseudocode:
+
+```tsx
+const versions = useQuery({ queryKey: ddcAiQueryKeys.versions(resource.id, params),
+  queryFn: ({signal}) => pageAiVersions(resource.id, params, {signal}) });
+const selected = searchParams.get('versionNo');
+const snapshot = useQuery({ queryKey: ddcAiQueryKeys.version(resource.id, selected ?? ''),
+  queryFn: ({signal}) => getAiVersion(resource.id, selected!, {signal}), enabled: selected !== null });
+// Display snapshot read-only; rollback uses this exact versionNo and never edits the draft buffer.
+```
+
+- Verification contribution: `AiVersionsPanel.test.tsx` covers list/detail read-only, current pointer vs draft, publish/rollback idempotency, audit receipt and fixed resourceId+versionNo promotion source.
+- After this file: API-006–011 UI is wired through the previously tested AI client; final RED/GREEN belongs to these two tests plus Step21 page integration.
+
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`
 
 - Purpose: API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec
 - Symbols: `AiResourceEditorPage`
-- Repository evidence: 当前路径不存在；按有效Spec§8目标文件树/现有模块相邻目录新建`AiResourceEditorPage`。
+- Repository evidence: Step21已创建并修正提交；当前基线SHA256 `25023b5edac2be2a861b1dc010327005e66fbe5c9da5b4e1d28744ace22febfb`；只在该编辑页接入版本与发布历史标签。
 - Dependencies and consumers: 前置Step 21；本步4个已排序文件；后续由同模块入口/Repository/Direct RPC/Web及相关合同测试消费。
 - Why now: 其上游合同已在前置文件/Step定义；此文件负责API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。
 - Contract/signature changes: AiResourceEditorPage的具体签名/配置/字段变更：API006～011对齐；显示来源/目标版本和发布回执；状态/焦点/禁用按钮按Spec。
@@ -18142,12 +18145,59 @@ if (sessionGenerationChanged || responseTenantMismatch) discardResponse();
 
 - Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web`
 - Verification command: `npm test -- --run`；Web另运行`npm run typecheck`。
-- Expected result: 所列聚焦测试GREEN/依赖编译退出0；租户、版本、否定分支及旧兼容断言均通过；当前计划阶段尚未运行。
+- Expected result: 26个测试文件/104个用例通过，TypeScript检查和严格Plan校验退出0；租户、版本、拒绝/冲突/未知结果分支及旧兼容断言通过。jsdom的getComputedStyle伪元素提示不影响测试退出状态。
 - Failure returns to: 本Step首个产生失败的File及其对应Spec§9/§11；若依赖或外部环境不满足，回到前置Step/受控运行门禁。
 - Completion criteria: 本Step所有列明路径语义完成、聚焦测试和静态边界检查通过；不以整系统尚未完成掩盖本步失败。
 - Rollback: 在唯一最终提交前只撤销本Step路径的本步语义；DDL如已应用不可改原脚本，以新前向版本修复且切换前保留旧库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`
-- Commit: `feat(tianshu): step-22----------ns`（执行时遵守用户一次逻辑任务最多一个提交，合并已完成Step的路径）。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiPromotionDialog.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiVersionsPanel.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AiResourceEditorPage.tsx`, `docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md`
+- Commit: `feat(tianshu): step-22-version-promotion-ui`（本Plan Step作为一个独立逻辑提交；保留已完成Step历史，不合并或改写）。
+
+#### Step 22 execution gate record
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| RED | PASS | 实现前先新增 `AiVersionsPanel.test.tsx` 与 `AiPromotionDialog.test.tsx`；聚焦运行因尚不存在的 `AiVersionsPanel`/`AiPromotionDialog` 模块解析失败而RED，未由fixture或环境错误触发。 |
+| GREEN | PASS | Web工作目录运行 `npm test -- --run`：26个文件、104个测试通过；`npm run typecheck` 退出0；Plan严格校验 `python3 .agents/skills/egon-coding-writing-plan/scripts/validate_plan.py docs/egon/plan/2026-09-23-06-16-tianshu-multitenant-ai-implementation.md --strict` 退出0；`git diff --check` 退出0。 |
+| Runtime boundary | N/A | 仅运行Vitest/jsdom与TypeScript静态检查；未启动应用、真实浏览器、数据库、Redis、Docker或外部服务。 |
+| Dependency and scope | PASS | `package.json`、lock文件无差异；本步仅有5个声明的Web文件及本Plan记录，未增加API、服务端权限规则、依赖或持久化结构。 |
+| Pattern decision | PASS | 复杂发布/回滚操作使用不可变、判别联合的Command快照保存操作类型、完整payload和requestId；未知结果可核验或以同一命令重试。直接在重试回调重新构造payload/key会破坏幂等身份，因此Command形状有明确收益；不再增加Factory/Strategy转发层。 |
+
+#### Step 22 Literal Rule review
+
+| Rule | Applicability | Status | Evidence and finding |
+| --- | --- | --- | --- |
+| Rule 1 | N/A | N/A | 本步仅React/TypeScript组件和测试，无Java POJO/Java类型命名变更。 |
+| Rule 2 | N/A | N/A | 未修改Java层间handoff或验证配置；UI通过既有typed API DTO提交，服务端Bean Validation合同不变。 |
+| Rule 3 | N/A | N/A | 无Java实体、DTO、POJO或Converter新增/修改。 |
+| Rule 4 | N/A | N/A | 无Spring业务Bean或Java依赖注入改动。 |
+| Rule 5 | N/A | N/A | 未新增Java工具库或工具类；Web代码复用现有项目运行时依赖。 |
+| Rule 6 | PASS | PASS | `AiVersionsPanel`/`AiPromotionDialog`复用 `DdcAi*` API类型与既有JSON client；ID、revision、versionNo保持十进制字符串，kind/operation使用显式字符串编码，无ordinal或自建JSON栈。 |
+| Rule 7 | N/A | N/A | 本步未改任何Spring环境配置或profile。 |
+| Rule 9 | PASS | PASS | `PendingPublicationRequest` 与 `PendingPromotion`封装PUBLISH/ROLLBACK/PROMOTE的稳定命令和请求号，处理请求结果未知时的核验/重试变化点；测试覆盖原key/原payload。 |
+| Rule 10 | N/A | N/A | 未新增或转换时间模型；时间仅交由既有 `formatTime` 展示工具处理。 |
+| Rule 11 | PASS | PASS | 仅扩展既有天枢Admin Web页面；服务端仍沿Controller/Service/Repository及MP DDL/Outbox结构，本步不改Java模块边界、表或事件。 |
+
+#### Step 22 Manual Check review
+
+| Check ID | Applicability | Status | Evidence and finding |
+| --- | --- | --- | --- |
+| MC-ARCH-001 | Applicable | PASS | 仅修改Admin Web既有pages目录中的编辑页，并新增同目录两个页面组件及对应测试；Java传统三层/组件结构不变。 |
+| MC-REUSE-001 | Applicable | PASS | 复用Ant Design、React Router、TanStack Query、`ScopeSelects`、现有`../api/ai`方法、tenant-scoped query keys、`uuidV7`和`formatTime`；没有平行client或状态框架。 |
+| MC-DEP-001 | Applicable | PASS | 本步六个提交路径之外无新增依赖；`package.json`与lock文件diff为空。 |
+| MC-NAME-001 | Applicable | PASS | 新增组件名`AiPromotionDialog`、`AiVersionsPanel`和状态模型`PendingPromotion`、`PendingPublicationRequest`准确表达页面/命令职责；无含混Java carrier类型。 |
+| MC-VALID-001 | Applicable | PASS | 目标scope必须完整、resourceKey非空并trim、输入长度受控；Command使用既有API强类型；403/409/目标状态读取失败均拒绝静默提交或覆盖，服务端继续执行权威校验。 |
+| MC-MODEL-001 | N/A | N/A | 本步无Java实体、普通class、record、Lombok模型或MapStruct模型改动。 |
+| MC-CONVERT-001 | N/A | N/A | 本步无数据转换器或Java API mapping改动；只显示既有typed API响应。 |
+| MC-LOG-001 | N/A | N/A | 本步无后端业务类或日志变更；前端不输出正文/凭据诊断日志。 |
+| MC-BEAN-001 | N/A | N/A | React组件不是Spring Bean；本步无Bean命名、Qualifier或构造注入变化。 |
+| MC-UTIL-001 | Applicable | PASS | 复用既有UUID与时间格式工具；内容相等性只使用语言内JSON stringify和排序，无重复工具模块或新包依赖。 |
+| MC-JSON-001 | Applicable | PASS | 仅经既有Jackson-backed API client发请求，沿用显式typed DTO和字符串ID/版本字段；没有新增序列化器、字段或wire契约。 |
+| MC-TIME-001 | N/A | N/A | 未增加数据库/Java时间模型；`createdAt`仅调用现有`formatTime`作展示。 |
+| MC-CONFIG-001 | N/A | N/A | 本步不改base/local/test配置或profile键。 |
+| MC-PATTERN-001 | Applicable | PASS | 发布操作分支通过Command快照封装；稳定命令既供mutation首次提交，也供未知结果核验/原请求重试，避免重建命令。 |
+| MC-SCOPE-001 | Applicable | PASS | `git status`与Step22路径清单吻合；`git diff --check`通过；除5个计划Web文件和Plan外无触及路径。 |
+| MC-TEST-001 | Applicable | PASS | 完整Web套件26文件/104测试通过；TypeScript检查、严格Plan校验和diff check均通过，覆盖固定快照、草稿保护、发布/回滚、双scope promotion、403及未知结果。 |
+| MC-BLOCKER-001 | Applicable | PASS | 上述Applicable行全部PASS、N/A均有本步范围证据；唯一初始断言重复匹配已修正并有聚焦测试及完整Web回归通过。 |
 
 ### Step 23 — 补齐受控旧库导入、核验与恢复报告
 
