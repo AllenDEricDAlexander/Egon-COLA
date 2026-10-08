@@ -14,6 +14,8 @@ import io.grpc.ServerInterceptor;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
@@ -22,8 +24,10 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.web.reactive.function.client.WebClient;
 import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
 import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.tianquan.shoubing.starter.client.ServiceTokenWebClientConfiguration;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.CurrentIdentity;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpJwtVerifier;
@@ -34,6 +38,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcClien
 import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityResourceServerStateReader;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -59,6 +64,23 @@ class IdpStarterAutoConfigurationTest {
                             "egon.cola.platform.tianquan.shoubing.jwk-set-uri=https://tianquan-shoubing.local/oauth2/jwks",
                             "egon.cola.platform.tianquan.shoubing.resource-server-id=resource-tianquan-jianshen-prod",
                             "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/prod/permission/tianquan-jianshen");
+
+    @Test
+    void registersServiceTokenConfigurationAfterItsBeanDependencies() throws IOException {
+        String resource = "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports";
+        try (var input = getClass().getClassLoader().getResourceAsStream(resource)) {
+            assertThat(input).isNotNull();
+            String imports = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            String autoConfiguration = ServiceTokenWebClientConfiguration.class.getName();
+            assertThat(imports.lines().filter(autoConfiguration::equals).count())
+                    .isEqualTo(1L);
+        }
+        AutoConfigureAfter order = ServiceTokenWebClientConfiguration.class
+                .getAnnotation(AutoConfigureAfter.class);
+        assertThat(order.value()).contains(
+                IdpStarterAutoConfiguration.class,
+                WebClientAutoConfiguration.class);
+    }
 
     @Test
     void providesIdentityOnlyFilterBeforeRbac3Filter() {
@@ -176,16 +198,19 @@ class IdpStarterAutoConfigurationTest {
                 .clientSecret("orders-secret")
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .tokenUri("https://tianquan-shoubing.local/oauth2/token")
+                .issuerUri("https://tianquan-shoubing.local")
                 .build();
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        IdpStarterAutoConfiguration.class))
+                        IdpStarterAutoConfiguration.class,
+                        ServiceTokenWebClientConfiguration.class))
                 .withBean(ObjectMapper.class, ObjectMapper::new)
                 .withBean(RedissonClient.class,
                         () -> mock(RedissonClient.class))
                 .withBean(ClientRegistrationRepository.class,
                         () -> new InMemoryClientRegistrationRepository(
                                 registration))
+                .withBean(WebClient.Builder.class, WebClient::builder)
                 .withPropertyValues(
                         "egon.cola.platform.tianquan.shoubing.enabled=true",
                         "egon.cola.platform.tianquan.shoubing.issuer=https://tianquan-shoubing.local",
@@ -193,12 +218,18 @@ class IdpStarterAutoConfigurationTest {
                         "egon.cola.platform.tianquan.shoubing.resource-server-id=rs-tianquan-shoubing-prod",
                         "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/tianquan-shoubing",
                         "egon.cola.platform.tianquan.shoubing.service-client.app-id=orders-app",
-                        "egon.cola.platform.tianquan.shoubing.service-client.registration-id=egon-tianquan-shoubing")
+                        "egon.cola.platform.tianquan.shoubing.service-client.registration-id=egon-tianquan-shoubing",
+                        "egon.cola.platform.tianquan.shoubing.service-client.credential-versions.egon-tianquan-shoubing=8")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(
                             OAuth2AuthorizedClientManager.class);
                     assertThat(context).hasSingleBean(IdpServiceOAuth2Client.class);
+                    assertThat(context).hasBean("serviceTokenWebClient");
+                    assertThat(context.getBean(
+                            "idpStarterProperties", IdpStarterProperties.class)
+                            .getServiceClient().getCredentialVersions())
+                            .containsEntry("egon-tianquan-shoubing", 8L);
                 });
     }
 

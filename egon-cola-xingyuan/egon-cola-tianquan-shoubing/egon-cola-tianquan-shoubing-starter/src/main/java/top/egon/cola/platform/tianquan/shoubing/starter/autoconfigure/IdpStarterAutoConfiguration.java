@@ -220,7 +220,7 @@ public class IdpStarterAutoConfiguration {
     }
 
     /** Creates the request converter used by the standard client-credentials provider. */
-    @Bean
+    @Bean(name = "idpClientCredentialsRequestEntityConverter")
     @ConditionalOnBean(ClientRegistrationRepository.class)
     @ConditionalOnMissingBean
     public IdpClientCredentialsRequestEntityConverter
@@ -229,7 +229,7 @@ public class IdpStarterAutoConfiguration {
     }
 
     /** Provides the default in-memory authorized-client store for service tokens. */
-    @Bean
+    @Bean(name = "idpOAuth2AuthorizedClientService")
     @ConditionalOnBean(ClientRegistrationRepository.class)
     @ConditionalOnMissingBean
     public OAuth2AuthorizedClientService idpOAuth2AuthorizedClientService(
@@ -278,8 +278,12 @@ public class IdpStarterAutoConfiguration {
     }
 
     /** Creates the one recommended SERVICE-token API for biz services. */
-    @Bean
-    @ConditionalOnBean(OAuth2AuthorizedClientManager.class)
+    @Bean(name = "idpServiceOAuth2Client")
+    @ConditionalOnBean({
+            OAuth2AuthorizedClientManager.class,
+            ClientRegistrationRepository.class,
+            OAuth2AuthorizedClientService.class
+    })
     @ConditionalOnMissingBean
     @ConditionalOnProperty(
             prefix = "egon.cola.platform.tianquan.shoubing.service-client",
@@ -288,14 +292,22 @@ public class IdpStarterAutoConfiguration {
     public IdpServiceOAuth2Client idpServiceOAuth2Client(
             OAuth2AuthorizedClientManager manager,
             IdpClientCredentialsRequestEntityConverter converter,
-            @Qualifier("idpStarterProperties") IdpStarterProperties properties
+            ClientRegistrationRepository registrations,
+            OAuth2AuthorizedClientService authorizedClients,
+            @Qualifier("trustedIssuerRegistry") TrustedIssuerRegistry trustedIssuerRegistry,
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties,
+            @Qualifier("idpClock") Clock idpClock
     ) {
         properties.getServiceClient().validate();
-        return new IdpServiceOAuth2Client(
+        return IdpServiceOAuth2Client.createConfigured(
                 manager,
                 converter,
-                Clock.systemUTC(),
-                properties.getServiceClient().getRenewalSkew()
+                idpClock,
+                properties.getServiceClient().getRenewalSkew(),
+                registrations,
+                authorizedClients,
+                trustedIssuerRegistry,
+                properties
         );
     }
 

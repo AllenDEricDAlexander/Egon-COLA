@@ -752,7 +752,8 @@ public class IdpStarterProperties {
 
         private String appId;
         private String registrationId;
-        private Duration renewalSkew = Duration.ofSeconds(30);
+        private Map<String, Long> credentialVersions = new LinkedHashMap<>();
+        private Duration renewalSkew = Duration.ofSeconds(60);
 
         public String getAppId() {
             return appId;
@@ -768,6 +769,33 @@ public class IdpStarterProperties {
 
         public void setRegistrationId(String registrationId) {
             this.registrationId = registrationId;
+        }
+
+        public Map<String, Long> getCredentialVersions() {
+            return credentialVersions;
+        }
+
+        public void setCredentialVersions(Map<String, Long> credentialVersions) {
+            this.credentialVersions = credentialVersions == null
+                    ? new LinkedHashMap<>()
+                    : new LinkedHashMap<>(credentialVersions);
+        }
+
+        /** Resolves the explicitly configured credential generation for one registration. */
+        public long credentialVersion(String registrationId) {
+            if (registrationId == null || registrationId.isBlank()) {
+                throw new IllegalStateException("service-client registrationId is required");
+            }
+            Long version = credentialVersions.get(registrationId);
+            if (version == null) {
+                throw new IllegalStateException(
+                        "egon.cola.platform.tianquan.shoubing.service-client.credential-versions."
+                                + registrationId + " is required");
+            }
+            if (version < 0L) {
+                throw invalid("service-client credentialVersion must be non-negative");
+            }
+            return version;
         }
 
         public Duration getRenewalSkew() {
@@ -791,6 +819,12 @@ public class IdpStarterProperties {
                         "egon.cola.platform.tianquan.shoubing.service-client.renewal-skew must be non-negative"
                 );
             }
+            credentialVersions.forEach((key, version) -> {
+                if (key == null || !key.matches("[A-Za-z0-9._-]{1,128}")
+                        || version == null || version < 0L) {
+                    throw invalid("service-client credential-versions entry is invalid");
+                }
+            });
         }
     }
 }
