@@ -70,6 +70,8 @@ public final class TenantContextFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        TenantContext previousContext = TenantContext.currentOrNull();
+        Object previousTenantAttribute = request.getAttribute(TENANT_ATTRIBUTE);
         try {
             TenantContext context = resolver.resolve(
                     request, SecurityContextHolder.getContext().getAuthentication());
@@ -82,7 +84,17 @@ public final class TenantContextFilter extends OncePerRequestFilter {
             response.getWriter().write("{\"error\":{\"code\":\""
                     + error.reasonCode() + "\"}}");
         } finally {
-            TenantContext.clear();
+            if (previousContext == null) {
+                TenantContext.clear();
+                request.removeAttribute(TENANT_ATTRIBUTE);
+            } else {
+                TenantContext.set(previousContext);
+                if (previousTenantAttribute == null) {
+                    request.removeAttribute(TENANT_ATTRIBUTE);
+                } else {
+                    request.setAttribute(TENANT_ATTRIBUTE, previousTenantAttribute);
+                }
+            }
         }
     }
 

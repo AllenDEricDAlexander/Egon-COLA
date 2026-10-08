@@ -6,28 +6,22 @@ import top.egon.cola.component.yuheng.core.exchange.GatewayExchange;
 import top.egon.cola.component.yuheng.core.security.AuthenticationFailure;
 import top.egon.cola.component.yuheng.core.security.CredentialRecoveryResult;
 import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
-import top.egon.cola.component.yuheng.core.security.GatewayCredential;
 import top.egon.cola.component.yuheng.core.security.GatewayCredentialOnlineStateResult;
 import top.egon.cola.component.yuheng.core.security.GatewayCredentialRecoveryProvider;
-import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
- * Recovers one USER AT from the RT cookie, then verifies it before retrying the request.
+ * Stops legacy USER refresh-token recovery while retaining authenticated online-state checks.
  */
 public final class IdpUserCredentialRecoveryProvider
         implements GatewayCredentialRecoveryProvider {
 
     public static final String PROVIDER_ID = "tianquan-shoubing-user-refresh";
 
-    private final IdpRefreshClient client;
-    private final IdpGatewayJwtVerifier verifier;
     private final IdpReservedHeaderSanitizer sanitizer;
     private final IdpUserOnlineStateProvider onlineStateProvider;
     private final String refreshCookieName;
@@ -49,8 +43,8 @@ public final class IdpUserCredentialRecoveryProvider
             String refreshCookieName,
             String accessCookieName,
             IdpUserOnlineStateProvider onlineStateProvider) {
-        this.client = Objects.requireNonNull(client, "client");
-        this.verifier = Objects.requireNonNull(verifier, "verifier");
+        Objects.requireNonNull(client, "client");
+        Objects.requireNonNull(verifier, "verifier");
         this.sanitizer = Objects.requireNonNull(sanitizer, "sanitizer");
         this.onlineStateProvider = onlineStateProvider;
         this.refreshCookieName = required(refreshCookieName, "refreshCookieName");
@@ -71,13 +65,15 @@ public final class IdpUserCredentialRecoveryProvider
                 && failure != AuthenticationFailure.EXPIRED) {
             return Mono.just(CredentialRecoveryResult.notRecoverable());
         }
-        String refreshToken = cookie(exchange, refreshCookieName);
-        if (refreshToken == null) {
+        if (cookie(exchange, refreshCookieName) == null
+                && cookie(exchange, accessCookieName) == null) {
             return Mono.just(CredentialRecoveryResult.notRecoverable());
         }
-        return client.refresh(refreshToken)
-                .map(response -> response(response, context))
-                .onErrorReturn(CredentialRecoveryResult.failed());
+        return Mono.just(new CredentialRecoveryResult(
+                CredentialRecoveryResult.Outcome.NOT_RECOVERABLE,
+                null,
+                sanitizer.fieldsToRemove(),
+                expireCookies()));
     }
 
     @Override
@@ -88,51 +84,6 @@ public final class IdpUserCredentialRecoveryProvider
             return Mono.just(GatewayCredentialOnlineStateResult.active());
         }
         return onlineStateProvider.validateAuthenticated(context, exchange);
-    }
-
-    private CredentialRecoveryResult response(
-            IdpRefreshClient.Response response,
-            GatewayAuthContext context) {
-        if (response.status() == 401 || response.status() == 400) {
-            return new CredentialRecoveryResult(
-                    CredentialRecoveryResult.Outcome.NOT_RECOVERABLE,
-                    null,
-                    sanitizer.fieldsToRemove(),
-                    expireCookies());
-        }
-        if (response.status() >= 500) {
-            return CredentialRecoveryResult.failed();
-        }
-        String accessToken = accessToken(response.headers());
-        if (accessToken == null) {
-            return CredentialRecoveryResult.failed();
-        }
-        IdpGatewayJwtVerifier.Verification verified = verifier.verify(
-                context,
-                accessToken);
-        if (verified.failure() != top.egon.cola.component.yuheng.core.security.AuthenticationFailure.NONE
-                || !(verified.principal() instanceof IdentityPrincipal)) {
-            return CredentialRecoveryResult.notRecoverable();
-        }
-        return CredentialRecoveryResult.recovered(
-                new GatewayCredential("bearer", accessToken, Map.of(
-                        "source", "refresh")),
-                sanitizer.fieldsToRemove(),
-                Map.of("set-cookie", List.of(
-                        response.headers().getOrDefault("set-cookie", List.of()).getFirst())));
-    }
-
-    private String accessToken(Map<String, List<String>> headers) {
-        for (String value : headers.getOrDefault("set-cookie", List.of())) {
-            if (!value.startsWith(accessCookieName + "=")) {
-                continue;
-            }
-            int end = value.indexOf(';');
-            String token = value.substring(accessCookieName.length() + 1,
-                    end < 0 ? value.length() : end);
-            return token.isBlank() ? null : token;
-        }
-        return null;
     }
 
     private Map<String, List<String>> expireCookies() {

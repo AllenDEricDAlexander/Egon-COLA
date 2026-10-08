@@ -48,6 +48,15 @@ public record TenantContext(
     private static final ThreadLocal<TenantContext> CURRENT = new ThreadLocal<>();
 
     /**
+     * 返回当前线程绑定的租户上下文；没有活动作用域时返回 {@code null}。
+     *
+     * <p>Returns the context bound to this thread, or {@code null} when no scope is active.</p>
+     */
+    public static TenantContext currentOrNull() {
+        return CURRENT.get();
+    }
+
+    /**
      * 方法 `set` 按照 `TenantContext` 的职责处理输入，完成 `set` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `set` processes its inputs according to `TenantContext`'s responsibility, performs the `set` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
      *

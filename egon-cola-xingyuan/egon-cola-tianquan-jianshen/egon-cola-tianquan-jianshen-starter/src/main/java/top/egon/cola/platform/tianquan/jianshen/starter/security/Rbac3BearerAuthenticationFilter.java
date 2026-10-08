@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
@@ -16,6 +17,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.cache.SingleFlightSnapsh
 import top.egon.cola.platform.tianquan.jianshen.starter.client.Rbac3AuthorizationClient;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -108,8 +110,15 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
         }
         try {
             Rbac3UserDetails details = userDetailsLoader.load(user);
+            List<? extends GrantedAuthority> verifiedScopeAuthorities = authentication
+                    .getAuthorities()
+                    .stream()
+                    .filter(authority -> authority.getAuthority() != null
+                            && authority.getAuthority().startsWith("SCOPE_"))
+                    .toList();
             var securityContext = SecurityContextHolder.createEmptyContext();
-            securityContext.setAuthentication(new Rbac3AuthenticationToken(details));
+            securityContext.setAuthentication(new Rbac3AuthenticationToken(
+                    details, verifiedScopeAuthorities));
             SecurityContextHolder.setContext(securityContext);
             filterChain.doFilter(request, response);
         } catch (Rbac3AuthorizationClient.AuthorizationDeniedException exception) {

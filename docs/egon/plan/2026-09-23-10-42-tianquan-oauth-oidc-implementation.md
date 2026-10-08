@@ -167,7 +167,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | 在资源服务器建立多issuer本地验签和租户上下文 | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024 | Required — 新多issuer/tenant/Redis故障测试RED；创建resolver/Bridge之后GREEN。 | Step 11 | 所有受保护资源请求本地RS256后共享撤销检查，Servlet ThreadLocal/MDC最终清理。 | Step 13 | Step 12 |
 | 改造机器客户端缓存并装配WebClient | REQ-005, REQ-009, REQ-011, REQ-016 | Required — 当前manager/cache无法按可信issuer/client/version完整分区且没有安全WebClient过滤器，先RED后GREEN。 | Step 12 | 双层缓存完整隔离、bounded renewal与同origin Bearer filter完成，无client_credentials RT和不安全重放。 | Step 14 | Step 13 |
 | 建立SCG OAuth2登录和服务端会话 | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042 | Required — 先确认session encryption/durable authenticated multi-client logout+CSRF/OpenAPI/Gateway route-binding/refresh single-flight/exact held-token session-state的行为RED；按24个有序文件GREEN。 | Step 13 | encrypted issuer-bound session; API-015 current exact token validity; logout requires BFF session+CSRF; scope-protected opt-in OpenAPI; distributed refresh lock; durable logout intents; correct static routes and compile-time Lombok wiring. | Step 15 | Step 14 |
-| 保留玉衡、鉴神与天枢准入链 | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025 | Required — old cookie/provider/PLATFORM acceptance routes fail new fixturesRED，再接入新principal和范围校验GREEN。 | Step 14 | 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入。 | Step 16 | Step 15 |
+| 保留玉衡、鉴神与天枢准入链 | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025 | Required — USER refresh-cookie、`SCOPE_*`桥接及Jianshen嵌套tenant恢复先通过目标行为RED；实现后按11个有序文件GREEN，同时保留Tianshu registry/header/HMAC与SERVICE准入合同。 | Step 14 | 失效USER Bearer不再刷新RT；已验证scope与独立RBAC快照同时进入最终认证；嵌套Jianshen tenant scope恢复，外层ThreadLocal与请求属性清理；平台SERVICE和Tianshu registry/HMAC边界保持。 | Step 16 | Step 15 |
 | 迁移共享认证客户端与五个前端消费者 | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026 | Required — gatewayAuthClient旧密码POST与AT/RT Cookie契约使新BFF test RED；共享客户端与各消费者更新后GREEN。 | Step 15 | Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token。 | Step 17 | Step 16 |
 | 提供受控数据导入、切流及本地验证入口 | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023 | Required — 迁移测试先对旧JPA/旧登录路径RED；新增Service/脚本/运行手册后静态与单元GREEN，真实导入由用户操作者运行。 | Step 15 | 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收。 | Step 18 | Step 17 |
 | 退役旧协议并校验全域回归 | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027 | Required — old token/login controllers still registered produce non410 RED；retirement filter/config GREEN。 | Step 16, Step 17；均GREEN并提交后 | 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出。 | 发布验收 | Step 18 |
@@ -530,12 +530,16 @@ CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml  # Step 14
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java  # Step 15
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java  # Step 15
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java  # Step 15
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilterTest.java  # Step 15
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3AuthenticationToken.java  # Step 15
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java  # Step 15
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/TenantContextFilterTest.java  # Step 15
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/domain/TenantContext.java  # Step 15
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java  # Step 15
-MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/registration/IdpJwtDdcRegistrationCredentialVerifier.java  # Step 15
 MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java  # Step 15
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 15
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 15
 MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts  # Step 16
@@ -932,13 +936,17 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | matching local profile schema | matching local profile schema; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
 | MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | source evidence and REQ/DEC/TEST alignment | source evidence and REQ/DEC/TEST alignment; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
 | MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | exact Step 14 executable file boundary | exact Step 14 executable file boundary; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | RED旧网关仍自动刷新USER Cookie。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 玉衡身份Provider使用Starter多issuer验证。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 新入口交SCG。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 已验JWT仍进入鉴神UserDetails/snapshot。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 配合Starter一次可信上下文绑定。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/registration/IdpJwtDdcRegistrationCredentialVerifier.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 天枢注册维持独立platform token。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 复用当前租户隔离测试覆盖新JWT与原registry/意图header。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java` | Current Gateway recovery path is driven by legacy USER RT cookies | Add RED proving missing or expired USER credentials do not call the refresh endpoint and legacy auth cookies expire | Valid Bearer and SERVICE cases stay unchanged | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilterTest.java` | Jianshen bridge currently drops validated SCOPE_* authorities | Assert validated SCOPE_* survives beside RBAC snapshot permissions and unrelated ROLE_* is not copied | No OAuth scope becomes an RBAC permission | Step 15 | REQ-006 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/TenantContextFilterTest.java` | TenantContextFilter has no nested-scope restoration contract | Add RED for parent restore on nested success/error and outer request cleanup | No pooled-thread tenant state leaks | Step 15 | REQ-007 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java` | Existing USER recovery provider refreshes rotating RT cookies | Return nonrecoverable and expire legacy AT/RT cookies; preserve online-status transition behavior | No USER RT retry reaches the token endpoint | Step 15 | REQ-010,REQ-012,REQ-024 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3AuthenticationToken.java` | Final RBAC token currently exposes snapshot authorities only | Add a compatible overload merging only trusted SCOPE_* at token level | Rbac3UserDetails and RuntimeAuthorizationContext stay unchanged | Step 15 | REQ-006 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java` | RBAC bridge replaces the verified Idp token with snapshot-only authorities | Pass only verified SCOPE_* authorities beside current RBAC snapshot authorities | SERVICE bypass and 403/503 behavior stay unchanged | Step 15 | REQ-006,REQ-007 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/domain/TenantContext.java` | TenantContext has no nullable current-scope accessor | Add currentOrNull for nested scope snapshot and restoration | No new identity source or module dependency | Step 15 | REQ-007 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java` | TenantContextFilter unconditionally clears the current scope | Restore parent ThreadLocal/request attribute after nested work; clear/remove outer state in finally; leave MDC ownership in Starter | No stale tenant remains on pooled threads | Step 15 | REQ-007,REQ-027 | Step 15 focused cross-module suite |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java` | Tianshu isolation fixture uses a generic Authentication token | Use actual Rbac3AuthenticationToken while retaining registry and tenant-intent header/HMAC checks | Tenant remains registry-mapped; header remains a match assertion | Step 15 | REQ-024,REQ-025 | Step 15 focused cross-module suite |
+| MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | Current-code amendment records scope and tenant-context ownership gaps | Update existing EVD/DEC/TEST/REQ trace rows to match current source and tests | Spec stays Review and accepted base contract remains intact | Step 15 | REQ-006,REQ-007 | Step 15 focused cross-module suite |
+| MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | Current executable Plan has stale Step15 files and obsolete provider scope | Keep exact 11-file allowlist, RED/GREEN command, and current requirement trace | Strict Plan/Spec validation matches implementation scope | Step 15 | REQ-006,REQ-007,REQ-027 | Step 15 focused cross-module suite |
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
@@ -11254,196 +11262,296 @@ RESULT -> Step 14 ordered files, gates, tests and exact commit paths; expose no 
 
 - Requirements: REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025
 - Dependencies: Step 14
-- Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在newBearerNoCookieRecovery所列新行为。
-- Observable outcome: 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入。
-- End state: 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入；后续Step的Consumer尚未切流，不声明完整生产验收。
-- Test-first gate: Required — old cookie/provider/PLATFORM acceptance routes fail new fixturesRED，再接入新principal和范围校验GREEN。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
+- Baseline state: Step 14 commit 3fb37e6a490f0a27bbd15cc06c3383bafe307429. Current Yuheng identity provider and Tianshu PLATFORM verifier already satisfy their unchanged contracts; remaining gaps are USER RT-cookie refresh, SCOPE_* loss at RBAC token replacement, and nested ThreadLocal restore.
+- Observable outcome: old USER RT-cookie recovery is disabled; authenticated USER context retains validated SCOPE_* beside the independent RBAC3 permission snapshot; nested Jianshen tenant scopes restore and outer scopes clear; Tianshu registry/HMAC admission remains unchanged.
+- End state: PLATFORM control SERVICE and USER authorization stay separately enforced; no stale pooled-thread tenant/MDC state remains; later frontend migration is still pending.
+- Test-first gate: Required — RED USER refresh-cookie, scope bridge and nested context cases before production changes; retain existing Starter verifier, Tianshu PLATFORM and HMAC regression suites.
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
 #### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`
 
-- Purpose: RED旧网关仍自动刷新USER Cookie。
-- Symbols: `newBearerNoCookieRecovery`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 14 与本Step此前文件；输出供 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 本Step的编译前置/RED契约先锁定； RED旧网关仍自动刷新USER Cookie在此位置后才可接消费者。
-- Contract/signature changes: newBearerNoCookieRecovery；RED旧网关仍自动刷新USER Cookie。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: existing GatewayFailClosedSecurityMatrix fixtures。
-- Error and edge behavior: old cookie branch causes RED。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 11, Rule 2, Rule 4；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
-- 本轮修订的强制实现细节: 对齐当前消费者：只清理列举的伪造身份头，保留X-Egon-Tianshu-Tenant原意图值，缺/错header由当前DdcTenantContextFilter拒绝；验证后principal保持Rbac3UserDetails，identityTenant经DdcTenantRegistry映射storageTenant。PLATFORM注册aud/scope/source guard与RPC credentialId+signedTenantId HMAC同时成立，token不替代HMAC。Yuheng Netty数据面LLM/SSE/MCP保持原路由/取消/背压，管理Spring端口deny-all不变。
+- Purpose: Lock the regression before disabling USER refresh-token cookie recovery in the Yuheng Gateway adapter.
+- Symbols: no USER refresh-token recovery after missing or expired Bearer credentials; existing stateless identity and SERVICE cases
+- Repository evidence: Current IdpUserCredentialRecoveryProvider reads the RT cookie and calls IdpRefreshClient.refresh after MISSING or EXPIRED; BFF login and TokenRelay are now owned by the Edge module.
+- Dependencies and consumers: Gateway security tests and the current recovery provider; output is consumed by the downstream bearer-authentication path.
+- Why now: The former browser refresh path must fail a focused behavior assertion before its provider changes.
+- Contract/signature changes: Add a fixture with both legacy AT/RT cookies and a missing/expired USER Bearer; recovery must not invoke the refresh client and must expire legacy auth cookies. Valid direct Bearer and SERVICE behavior remain unchanged.
+- Input/output and state mapping: Use the existing GatewayExchange fake, AuthContext, cookie names and provider ports; no network or token endpoint.
+- Error and edge behavior: Expired/missing user credentials return NOT_RECOVERABLE; no HTTP refresh is attempted; SERVICE and valid Bearer tests remain intact.
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: Keep the existing Gateway provider boundary and test doubles; no new recovery strategy or policy hierarchy.
 - Implementation pseudocode:
 
 ```java
-INPUT -> existing GatewayFailClosedSecurityMatrix fixtures。
-FLOW -> supply new USER/SERVICE tenant JWT, platform token, hostile identity headers, no RT cookie; assert direct biz/mcp bearer, platform denied business, stable RBAC role/policy
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> old cookie branch causes RED。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Use the existing GatewayExchange fake, AuthContext, cookie names and provider ports; no network or token endpoint.
+FLOW -> Arrange a user RT/AT cookie pair; call the configured recovery provider with MISSING and EXPIRED; assert NOT_RECOVERABLE, cookie expiry and zero refresh calls. Keep valid Bearer and SERVICE principal acceptance assertions.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Expired/missing user credentials return NOT_RECOVERABLE; no HTTP refresh is attempted; SERVICE and valid Bearer tests remain intact.
+RESULT -> IdpGatewaySecurityProviderTest; no refresh token retry.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 newBearerNoCookieRecovery 的正例与 old cookie branch causes RED 负例。
-- After this file: newBearerNoCookieRecovery 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; this path is validated with its specific contract cases and the focused reactor suite.
+- After this file: IdpGatewaySecurityProviderTest; no refresh token retry; it is available to its next declared consumer; Step 15 is complete only after all RED/GREEN, scope and cross-module checks pass.
 
-#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilterTest.java`
 
-- Purpose: 玉衡身份Provider使用Starter多issuer验证。
-- Symbols: `Bearer-only identity`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 14 与本Step此前文件；输出供 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 玉衡身份Provider使用Starter多issuer验证在此位置后才可接消费者。
-- Contract/signature changes: Bearer-only identity；玉衡身份Provider使用Starter多issuer验证。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: biz/app/env from published target rule。
-- Error and edge behavior: missingBearer→401, revoked→401, Redis down→503。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Add RED for OAuth scope preservation through the Jianshen RBAC token replacement.
+- Symbols: Rbac3BearerAuthenticationFilterTest scope/RBAC authority bridge
+- Repository evidence: IdpBearerAuthenticationFilter installs validated SCOPE_* authorities, but the RBAC filter replaces its token with RBAC snapshot-only authorities.
+- Dependencies and consumers: Existing IdentityPrincipal, IdpAuthenticationToken and mocked RBAC snapshot.
+- Why now: Capture simultaneous OAuth-scope and RBAC predicates before the bridge changes.
+- Contract/signature changes: A trusted SCOPE_* authority must survive; snapshot permissions remain; non-SCOPE identity authorities must not be copied.
+- Input/output and state mapping: Synthetic IdpAuthenticationToken and RBAC snapshot; no Redis or DB.
+- Error and edge behavior: Current token replacement drops the SCOPE_* assertion; wrong tenant and unavailable snapshot remain 403/503.
+- Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-TEST-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 6, Rule 9, Rule 11.
+- Design pattern consideration: Exercise the existing filter bridge; no new authorization service or strategy.
 - Implementation pseudocode:
 
 ```java
-INPUT -> biz/app/env from published target rule。
-FLOW -> read Authorization Bearer; call IdpGatewayJwtVerifier/IdpJwtVerifier; map verified principal to current GatewayAuthContext; scrub untrusted headers; no username/tenant from request
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missingBearer→401, revoked→401, Redis down→503。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Synthetic IdpAuthenticationToken and RBAC snapshot; no Redis or DB.
+FLOW -> Set a verified IdpAuthenticationToken with SCOPE_finance:read plus ROLE_ADMIN; assert final Authentication retains the scope and snapshot authority but not ROLE_ADMIN.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Current token replacement drops the SCOPE_* assertion; wrong tenant and unavailable snapshot remain 403/503.
+RESULT -> Rbac3BearerAuthenticationFilterTest.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 Bearer-only identity 的正例与 missingBearer→401, revoked→401, Redis down→503 负例。
-- After this file: Bearer-only identity 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; the new behavior and cross-module regression cases run in this focused reactor suite.
+- After this file: Rbac3BearerAuthenticationFilterTest; it is available to its next consumer; Step 15 completes only after all focused tests and cross-module gates pass.
 
-#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/TenantContextFilterTest.java`
 
-- Purpose: 新入口交SCG。
-- Symbols: `remove USER Cookie RT recovery`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 14 与本Step此前文件；输出供 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 新入口交SCG在此位置后才可接消费者。
-- Contract/signature changes: remove USER Cookie RT recovery；新入口交SCG。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: new access token comes from SCG Bearer。
-- Error and edge behavior: expired token returns401, no attempted old refresh。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
-- 本轮修订的强制实现细节: 对齐当前消费者：只清理列举的伪造身份头，保留X-Egon-Tianshu-Tenant原意图值，缺/错header由当前DdcTenantContextFilter拒绝；验证后principal保持Rbac3UserDetails，identityTenant经DdcTenantRegistry映射storageTenant。PLATFORM注册aud/scope/source guard与RPC credentialId+signedTenantId HMAC同时成立，token不替代HMAC。Yuheng Netty数据面LLM/SSE/MCP保持原路由/取消/背压，管理Spring端口deny-all不变。
+- Purpose: Add RED for nested tenant context restoration and outer request cleanup.
+- Symbols: TenantContextFilterTest ThreadLocal/request attribute lifecycle
+- Repository evidence: TenantContextFilter unconditionally clears after the chain and TenantContext lacks a current-scope accessor.
+- Dependencies and consumers: Existing TenantContextResolver and mock servlet requests; Starter is the sole verified MDC owner.
+- Why now: Prove the accepted finally/restore contract before implementation.
+- Contract/signature changes: A prior TenantContext returns after child success/resolution error; outer requests clear ThreadLocal and request attribute.
+- Input/output and state mapping: Mock servlet requests with authenticated Rbac3UserDetails; no servlet container.
+- Error and edge behavior: Tenant mismatch remains 400/403 and cannot erase or leak prior context.
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-TIME-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 10, Rule 11.
+- Design pattern consideration: Use the existing ThreadLocal as a lexical scope with try/finally; no parallel context abstraction.
 - Implementation pseudocode:
 
 ```java
-INPUT -> new access token comes from SCG Bearer。
-FLOW -> disable old cookie refresh on new paths; legacy isolated route only until Step18; keep no 302 for XHR/MCP
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> expired token returns401, no attempted old refresh。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Mock servlet requests with authenticated Rbac3UserDetails; no servlet container.
+FLOW -> Seed a parent context; invoke a child filter; assert the child inside, parent after success/error, and no context after an outer call.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Tenant mismatch remains 400/403 and cannot erase or leak prior context.
+RESULT -> TenantContextFilterTest.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove USER Cookie RT recovery 的正例与 expired token returns401, no attempted old refresh 负例。
-- After this file: remove USER Cookie RT recovery 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; the new behavior and cross-module regression cases run in this focused reactor suite.
+- After this file: TenantContextFilterTest; it is available to its next consumer; Step 15 completes only after all focused tests and cross-module gates pass.
 
-#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java`
 
-- Purpose: 已验JWT仍进入鉴神UserDetails/snapshot。
-- Symbols: `IdentityPrincipal bridge`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 14 与本Step此前文件；输出供 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 已验JWT仍进入鉴神UserDetails/snapshot在此位置后才可接消费者。
-- Contract/signature changes: IdentityPrincipal bridge；已验JWT仍进入鉴神UserDetails/snapshot。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: OAuth scope and RBAC both required。
-- Error and edge behavior: wrong tenant/permission403, unavailable503。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Retire the legacy USER refresh-token cookie recovery while preserving status checks and constructor compatibility.
+- Symbols: IdpUserCredentialRecoveryProvider.recover and validateAuthenticated
+- Repository evidence: Step 14 Edge owns the opaque browser session and TokenRelay; refresh-token family revocation is durable in the BFF store, so the Yuheng data plane must not refresh a USER token from an RT cookie.
+- Dependencies and consumers: Existing Gateway adapter auto-configuration and IdpUserOnlineStateProvider; retain existing public constructor overloads for source compatibility.
+- Why now: This is the production branch proven RED by File 1.
+- Contract/signature changes: MISSING/EXPIRED USER credentials return NOT_RECOVERABLE, request removal of reserved auth headers and expire legacy AT/RT cookies; never call IdpRefreshClient or re-issue the bearer. Keep validateAuthenticated online-state semantics for current clients.
+- Input/output and state mapping: Inputs remain GatewayAuthContext, GatewayExchange and AuthenticationFailure; output remains CredentialRecoveryResult.
+- Error and edge behavior: No remote refresh call; request remains fail-closed and non-recoverable; current Bearer auth and SERVICE identities are unchanged.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-LOG-001, MC-BEAN-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: Preserve the current GatewayCredentialRecoveryProvider adapter but remove the unsupported USER refresh behavior; no new strategy.
 - Implementation pseudocode:
 
 ```java
-INPUT -> OAuth scope and RBAC both required。
-FLOW -> accept IdpAuthenticationToken built by VerifiedPrincipalConverter; lookup authorization snapshot by tenant+subject+app; field/data/SoD/Fence preserved; finally SecurityContextHolder.clearContext
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> wrong tenant/permission403, unavailable503。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Inputs remain GatewayAuthContext, GatewayExchange and AuthenticationFailure; output remains CredentialRecoveryResult.
+FLOW -> For MISSING/EXPIRED return NOT_RECOVERABLE with sanitizer removals and expiring cookie headers. Leave refresh-status validation separate. Never call the refresh HTTP client.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> No remote refresh call; request remains fail-closed and non-recoverable; current Bearer auth and SERVICE identities are unchanged.
+RESULT -> IdpUserCredentialRecoveryProvider.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 IdentityPrincipal bridge 的正例与 wrong tenant/permission403, unavailable503 负例。
-- After this file: IdentityPrincipal bridge 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; this path is validated with its specific contract cases and the focused reactor suite.
+- After this file: IdpUserCredentialRecoveryProvider; it is available to its next declared consumer; Step 15 is complete only after all RED/GREEN, scope and cross-module checks pass.
 
-#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3AuthenticationToken.java`
 
-- Purpose: 配合Starter一次可信上下文绑定。
-- Symbols: `finally clear or restore MDC`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 14 与本Step此前文件；输出供 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 配合Starter一次可信上下文绑定在此位置后才可接消费者。
-- Contract/signature changes: finally clear or restore MDC；配合Starter一次可信上下文绑定。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: Long tenant parsed from verified token, not headers。
-- Error and edge behavior: pooled thread no stale tenant。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Extend the final Jianshen Authentication token to carry scopes separately from RBAC snapshot permissions.
+- Symbols: Rbac3AuthenticationToken scope-aware constructor
+- Repository evidence: Current token exposes only Rbac3UserDetails authorities; protocol scopes must remain independent from the RBAC snapshot.
+- Dependencies and consumers: Existing RuntimeAuthorizationContext and Rbac3UserDetails constructors stay compatible.
+- Why now: Provide a precise authority projection for the Jianshen bridge without modifying RBAC domain data.
+- Contract/signature changes: Add an overload that merges only validated SCOPE_* with snapshot authorities, de-duplicated; no scope becomes a role/permission/data policy.
+- Input/output and state mapping: One verified RBAC principal plus trusted scope authorities.
+- Error and edge behavior: Unrelated/null authorities do not grant permission; authentication context is unchanged.
+- Standards impact: MC-NAME-001, MC-MODEL-001, MC-VALID-001, MC-TEST-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 6, Rule 9, Rule 11.
+- Design pattern consideration: A small overload extends the existing final token; no registry or Strategy needed.
 - Implementation pseudocode:
 
 ```java
-INPUT -> Long tenant parsed from verified token, not headers。
-FLOW -> if verified bridge already bound, compare request.attribute, TenantContext and MDC; no duplicate override; try chain finally remove/reset outer MDC and TenantContext
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> pooled thread no stale tenant。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> One verified RBAC principal plus trusted scope authorities.
+FLOW -> Keep prior constructors; produce an immutable union of principal authorities and only SCOPE_* values.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unrelated/null authorities do not grant permission; authentication context is unchanged.
+RESULT -> Rbac3AuthenticationToken.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 finally clear or restore MDC 的正例与 pooled thread no stale tenant 负例。
-- After this file: finally clear or restore MDC 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; the new behavior and cross-module regression cases run in this focused reactor suite.
+- After this file: Rbac3AuthenticationToken; it is available to its next consumer; Step 15 completes only after all focused tests and cross-module gates pass.
 
-#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/registration/IdpJwtDdcRegistrationCredentialVerifier.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java`
 
-- Purpose: 天枢注册维持独立platform token。
-- Symbols: `PLATFORM issuer resource source guard`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/registration/IdpJwtDdcRegistrationCredentialVerifier.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 14 与本Step此前文件；输出供 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 天枢注册维持独立platform token在此位置后才可接消费者。
-- Contract/signature changes: PLATFORM issuer resource source guard；天枢注册维持独立platform token。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: no Admission Ticket, no business tenant default。
-- Error and edge behavior: resource disable/version mismatch denies。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
-- 本轮修订的强制实现细节: 对齐当前消费者：只清理列举的伪造身份头，保留X-Egon-Tianshu-Tenant原意图值，缺/错header由当前DdcTenantContextFilter拒绝；验证后principal保持Rbac3UserDetails，identityTenant经DdcTenantRegistry映射storageTenant。PLATFORM注册aud/scope/source guard与RPC credentialId+signedTenantId HMAC同时成立，token不替代HMAC。Yuheng Netty数据面LLM/SSE/MCP保持原路由/取消/背压，管理Spring端口deny-all不变。
+- Purpose: Preserve validated OAuth scope authorities while loading the independent RBAC3 snapshot for USER requests.
+- Symbols: Rbac3BearerAuthenticationFilter.doFilterInternal
+- Repository evidence: The filter currently recognizes IdentityPrincipal and loads RBAC3, then replaces IdpAuthenticationToken with a permissions-only Rbac3AuthenticationToken.
+- Dependencies and consumers: Consumes Shoubing IdpAuthenticationToken from the preceding Starter filter and current RBAC3 snapshot loader; SERVICE principal remains outside snapshot enrichment.
+- Why now: Connect the scope-aware token from File 5 after the File 2 behavior is fixed.
+- Contract/signature changes: USER requests resolve snapshot by verified tenant+subject, then pass only incoming SCOPE_* authorities to the new token; snapshot permissions remain unchanged. SERVICE and /internal paths preserve existing behavior.
+- Input/output and state mapping: Input is verified IdpAuthenticationToken; output is authenticated Rbac3AuthenticationToken with the original immutable identity and RBAC snapshot context.
+- Error and edge behavior: Wrong tenant/permission returns 403; snapshot outage returns redacted 503; SecurityContextHolder cleanup remains finally on success/error.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 6, Rule 9, Rule 11.
+- Design pattern consideration: Keep the existing filter/template bridge and reuse the new token overload; no second authentication framework.
 - Implementation pseudocode:
 
 ```java
-INPUT -> no Admission Ticket, no business tenant default。
-FLOW -> verify issuer=/platform, scope tianshu:registration:write, aud Tianshu resource, source biz/app/env matches submitted registration; reject business tenant token
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> resource disable/version mismatch denies。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Input is verified IdpAuthenticationToken; output is authenticated Rbac3AuthenticationToken with the original immutable identity and RBAC snapshot context.
+FLOW -> Read SCOPE_* from the verified Idp token; load RBAC3 details by exact subject/tenant; install the scope-aware Rbac3AuthenticationToken; preserve SERVICE bypass and clear the security context in finally.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Wrong tenant/permission returns 403; snapshot outage returns redacted 503; SecurityContextHolder cleanup remains finally on success/error.
+RESULT -> Rbac3BearerAuthenticationFilter.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 PLATFORM issuer resource source guard 的正例与 resource disable/version mismatch denies 负例。
-- After this file: PLATFORM issuer resource source guard 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; this path is validated with its specific contract cases and the focused reactor suite.
+- After this file: Rbac3BearerAuthenticationFilter; it is available to its next declared consumer; Step 15 is complete only after all RED/GREEN, scope and cross-module checks pass.
 
-#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/domain/TenantContext.java`
 
-- Purpose: 复用当前租户隔离测试覆盖新JWT与原registry/意图header。
-- Symbols: `DdcTenantIsolationTest`，以下伪代码所列方法与字段。
-- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java及其引用链；修订Spec§8/10。
-- Dependencies and consumers: Step 14及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
-- Why now: 先固定目标失败行为，避免用删除断言修测试。
-- Contract/signature changes: 复用当前租户隔离测试覆盖新JWT与原registry/意图header；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 复用当前租户隔离测试覆盖新JWT与原registry/意图header。
-- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
-- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Purpose: Expose the current immutable ThreadLocal TenantContext for nested restoration.
+- Symbols: TenantContext.currentOrNull
+- Repository evidence: TenantContext currently provides set/require/clear but no nonthrowing current-value read.
+- Dependencies and consumers: Only the existing Jianshen filter consumes the accessor; no Starter dependency.
+- Why now: Provide the smallest accessor needed for File 3 RED.
+- Contract/signature changes: Return CURRENT.get() as nullable; preserve existing record and methods.
+- Input/output and state mapping: ThreadLocal read only; no request input.
+- Error and edge behavior: Returns null when no scope exists and never creates state.
+- Standards impact: MC-ARCH-001, MC-NAME-001, MC-MODEL-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 1, Rule 3, Rule 10, Rule 11.
+- Design pattern consideration: Direct accessor keeps the existing ThreadLocal boundary.
 - Implementation pseudocode:
 
 ```java
-verify real SecurityFilterChain receives converted Rbac3UserDetails after JWT signature check;
-valid tenant A + AI X-Egon-Tianshu-Tenant=A -> registry storage mapping;
-header missing/B, unknown identity tenant, forged identity headers -> reject before DAO;
-platform registration token never creates business tenant context;
-assert original HMAC credential binding and namespace test fixtures remain authoritative;
-assert MDC/context cleared on success, rejection and exception;
+INPUT -> ThreadLocal read only; no request input.
+FLOW -> Add currentOrNull and preserve set/require/clear behavior.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Returns null when no scope exists and never creates state.
+RESULT -> TenantContext.currentOrNull.
 ```
 
-- Verification contribution: Step 15 的 `DdcTenantIsolationTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
-- After this file: DdcTenantIsolationTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; the new behavior and cross-module regression cases run in this focused reactor suite.
+- After this file: TenantContext.currentOrNull; it is available to its next consumer; Step 15 completes only after all focused tests and cross-module gates pass.
 
-- Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
-- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 先确认上述RED由缺失目标行为引起，GREEN时命名用例成功、模块编译成功、`git diff --check`零错误；不以不存在依赖/数据库/fixture而失败作为RED。
-- Failure returns to: Step 14 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
-- Completion criteria: 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
-- Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/registration/IdpJwtDdcRegistrationCredentialVerifier.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`。
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java`
+
+- Purpose: Restore nested Jianshen TenantContext and request attribute after the authenticated chain, while clearing outer pooled-thread state.
+- Symbols: TenantContextFilter.doFilterInternal
+- Repository evidence: The Starter VerifiedTenantContextFilter already owns tenant/user MDC and restores it around the chain; TenantContextFilter owns only Jianshen ThreadLocal context and currently unconditionally clears it.
+- Dependencies and consumers: Consumes verified Idp/Rbac3 authentication, TenantContextResolver and TenantContext.currentOrNull; stays after the Rbac filter in the existing security chain.
+- Why now: The filter currently fails the planned nested-scope lifecycle contract; keep module ownership explicit.
+- Contract/signature changes: Snapshot prior ThreadLocal context, resolve from authenticated identity, bind the child context plus effective tenant request attribute for the chain; finally restore the prior value/attribute if present, otherwise clear/remove. Do not write or clear MDC.
+- Input/output and state mapping: Tenant/header remains a consistency assertion; tenant context comes from verified Rbac3UserDetails or SERVICE principal.
+- Error and edge behavior: Resolver error, downstream exception and nested success all restore previous context; outer requests leave no tenant ThreadLocal or request attribute.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: Use a lexical try/finally scope in the existing servlet filter; do not add another context holder or Starter dependency.
+- Implementation pseudocode:
+
+```java
+INPUT -> Tenant/header remains a consistency assertion; tenant context comes from verified Rbac3UserDetails or SERVICE principal.
+FLOW -> TenantContext previous=currentOrNull(); try resolve/set/request-attribute and call chain; finally restore previous context and effective id or clear/remove when previous is null.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Resolver error, downstream exception and nested success all restore previous context; outer requests leave no tenant ThreadLocal or request attribute.
+RESULT -> TenantContextFilter.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; this path is validated with its specific contract cases and the focused reactor suite.
+- After this file: TenantContextFilter; it is available to its next declared consumer; Step 15 is complete only after all RED/GREEN, scope and cross-module checks pass.
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`
+
+- Purpose: Exercise the updated verified RBAC principal in Tianshu tenant/header isolation regression tests.
+- Symbols: DdcTenantIsolationTest authentication fixture
+- Repository evidence: The current fixture builds UsernamePasswordAuthenticationToken directly from Rbac3UserDetails, while production now emits Rbac3AuthenticationToken after scope-aware bridging.
+- Dependencies and consumers: Uses the existing DdcTenantRegistry, DdcTenantContextFilter and configured HMAC/client namespace fixture.
+- Why now: This downstream regression must consume the exact authentication type produced by the preceding Jianshen bridge.
+- Contract/signature changes: Use Rbac3AuthenticationToken in the authenticated fixture and keep identity tenant, registry storage mapping, intent-header equality, missing/mismatching AI header and credential-HMAC assertions unchanged.
+- Input/output and state mapping: Synthetic claims and in-memory filters/registry only; no RPC or database.
+- Error and edge behavior: Wrong/missing tenant intent and unregistered tenant still reject before business dispatch; scope does not select tenant.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 11.
+- Design pattern consideration: Reuse the current registry/HMAC filter chain; no new tenant mapping or trust adapter.
+- Implementation pseudocode:
+
+```java
+INPUT -> Synthetic claims and in-memory filters/registry only; no RPC or database.
+FLOW -> Build the same verified USER principal/snapshot but authenticate with Rbac3AuthenticationToken; assert registry/storage mapping, X-Egon-Tianshu-Tenant mismatch rejection, no business tenant from platform scope and existing HMAC-bound credential mapping.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Wrong/missing tenant intent and unregistered tenant still reject before business dispatch; scope does not select tenant.
+RESULT -> DdcTenantIsolationTest.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; this path is validated with its specific contract cases and the focused reactor suite.
+- After this file: DdcTenantIsolationTest; it is available to its next declared consumer; Step 15 is complete only after all RED/GREEN, scope and cross-module checks pass.
+
+#### File 10 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: Record the current scope-loss and nested-context requirements in the effective Review Spec.
+- Symbols: EVD-138/139, DEC-134/135, TEST-131/132 and REQ-006/007 trace
+- Repository evidence: Starter verifies scopes and owns MDC; Jianshen currently drops SCOPE_* at RBAC replacement and clears nested ThreadLocal.
+- Dependencies and consumers: Active Spec stays Review; accepted base remains unchanged.
+- Why now: Keep requirements aligned before Step implementation.
+- Contract/signature changes: Update existing evidence/test mappings; no endpoint, scope grant or HMAC semantics change.
+- Input/output and state mapping: Use the declared Step15 paths and tests only.
+- Error and edge behavior: Any public protocol or trust change returns to Spec review.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
+- Design pattern consideration: No new pattern; preserve the existing filter chain and authority owners.
+- Implementation pseudocode:
+
+```java
+INPUT -> Use the declared Step15 paths and tests only.
+FLOW -> Update evidence, decisions, acceptance and trace rows; keep Review status.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Any public protocol or trust change returns to Spec review.
+RESULT -> Active current-code alignment Spec; Review.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; the new behavior and cross-module regression cases run in this focused reactor suite.
+- After this file: Active current-code alignment Spec; Review; it is available to its next consumer; Step 15 completes only after all focused tests and cross-module gates pass.
+
+#### File 11 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: Replace stale Step15 paths with the exact behavior/test boundary.
+- Symbols: Step15 files, command, gates and commit allowlist
+- Repository evidence: Current Yuheng identity provider and Tianshu verifier already satisfy unchanged contracts; gaps are refresh-cookie recovery, scope loss and nested ThreadLocal restore.
+- Dependencies and consumers: Step14 commit 3fb37e6a490f0a27bbd15cc06c3383bafe307429 plus the Review Spec.
+- Why now: Remove unchanged paths and add the missing scope/context tests/types.
+- Contract/signature changes: Nine code/test paths plus the Spec/Plan docs; later Steps unchanged.
+- Input/output and state mapping: Only Step15 is in progress.
+- Error and edge behavior: If HMAC/issuer/public API semantics change, return to Spec review before code.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
+- Design pattern consideration: Keep the current verified filter and adapter structure; no new auth framework.
+- Implementation pseudocode:
+
+```java
+INPUT -> Only Step15 is in progress.
+FLOW -> Maintain nine ordered behavior paths and exact 11-path commit list.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> If HMAC/issuer/public API semantics change, return to Spec review before code.
+RESULT -> Step15 implementation Plan; Review.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`; the new behavior and cross-module regression cases run in this focused reactor suite.
+- After this file: Step15 implementation Plan; Review; it is available to its next consumer; Step 15 completes only after all focused tests and cross-module gates pass.
+- Validation working directory: `/Users/mario/SelfProject/Egon-COLA`.
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`.
+- Expected result: cookie-refresh, scope-bridge and nested-context assertions fail first without compile/fixture errors; after implementation selected Gateway/Jianshen/Tianshu suites and module compilation succeed. No live DB, Redis, AS, RPC or browser is contacted.
+- Failure returns to: Step14 BFF bearer/tenant boundary; issuer, PLATFORM/HMAC, tenant-source or public API changes require updating the effective Spec first.
+- Completion criteria: evaluate all 17 Manual Checks and 10 Literal Rules individually; no USER RT-cookie recovery; final RBAC Authentication keeps verified SCOPE_* separate from snapshot permissions; nested Jianshen context restores and outer state clears; Tianshu registry/HMAC behavior remains unchanged; exact 11-path allowlist passes.
+- Rollback: before commit restore only these Step15 paths; preserve Step14 and unrelated predecessor Specs.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/TenantContextFilterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3AuthenticationToken.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/domain/TenantContext.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/tenancy/DdcTenantIsolationTest.java`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
 - Commit: `feat(xingyuan): integrate edge identity with gateway rbac and tianshu`。
-
 ### Step 16 — 迁移共享认证客户端与五个前端消费者
 
 - Requirements: REQ-003, REQ-004, REQ-010, REQ-017, REQ-026
@@ -13295,7 +13403,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | Step 12 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=MultiIssuerResourceServerTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 在资源服务器建立多issuer本地验签和租户上下文 | 精确用例先目标RED后GREEN；模块编译通过 | Step 12对应File | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024；运行环境证据另列 |
 | Step 13 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=IdpServiceOAuth2ClientTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 改造机器客户端缓存并装配WebClient | 精确用例先目标RED后GREEN；模块编译通过 | Step 13对应File | REQ-005, REQ-009, REQ-011, REQ-016；运行环境证据另列 |
 | Step 14 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 建立SCG OAuth2登录和服务端会话 | 目标行为先RED后GREEN；Edge module compile、profile/OpenAPI/Gateway-prefix/path gates pass | Step 14对应24 Files | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042；Redis/AS runtime另由用户验收 |
-| Step 15 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 保留玉衡、鉴神与天枢准入链 | 精确用例先目标RED后GREEN；模块编译通过 | Step 15对应File | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025；运行环境证据另列 |
+| Step 15 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 保留玉衡、鉴神与天枢准入链 | Cookie refresh、SCOPE bridge、nested context行为先RED后GREEN；Starter/Tianshu现有验证合同与模块编译通过 | Step 15对应File | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025；真实Redis/AS/HMAC运行证据另列 |
 | Step 16 | /Users/mario/SelfProject/Egon-COLA | `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`。 | 迁移共享认证客户端与五个前端消费者 | 精确用例先目标RED后GREEN；模块编译通过 | Step 16对应File | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026；运行环境证据另列 |
 | Step 17 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；`python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`仅脚本语法补充。 | 提供受控数据导入、切流及本地验证入口 | 精确用例先目标RED后GREEN；模块编译通过 | Step 17对应File | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023；运行环境证据另列 |
 | Step 18 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test`；其余受影响consumer门禁按§8。必须无JPA生产引用、无漏迁fixture；不启动应用。 | 退役旧协议并校验全域回归 | 精确用例先目标RED后GREEN；模块编译通过 | Step 18对应File | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027；运行环境证据另列 |
@@ -13333,8 +13441,8 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | REQ-003 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 6; Step 9; Step 14; Step 16 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthAuthorizationPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 对应Step RED/GREEN与§8矩阵 | 缺 PKCE/plain/错 verifier/URI 通配符/重复 code 均拒绝 |
 | REQ-004 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 6; Step 8; Step 9; Step 14; Step 16 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthAuthorizationPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 对应Step RED/GREEN与§8矩阵 | iss/aud/nonce 校验、UserInfo sub 一致，ID Token 不能访问业务 |
 | REQ-005 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 4; Step 5; Step 9; Step 10; Step 13; Step 15 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/po/OAuthResourcePO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2ClientTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceAuthorizationKey.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2Client.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceTokenWebClientConfiguration.java` | IdpServiceOAuth2ClientTest / IdpStarterAutoConfigurationTest; 对应Step RED/GREEN与§8矩阵 | scope/resource超授权拒绝；出站请求只发送本次已授权的least-privilege scopes
-| REQ-006 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 12; Step 14; Step 15; Step 18 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 对应Step RED/GREEN与§8矩阵 | 有缓存公钥时不逐请求调用授权服务器；错 aud/alg 拒绝 |
-| REQ-007 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 12; Step 15 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java` | 对应Step RED/GREEN与§8矩阵 | ThreadLocal、MDC、异步取消/异常均无跨请求污染 |
+| REQ-006 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 12; Step 14; Step 15; Step 18 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilterTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3AuthenticationToken.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/security/Rbac3BearerAuthenticationFilter.java`| 对应Step RED/GREEN与§8矩阵 | 有缓存公钥时不逐请求调用授权服务器；错 aud/alg 拒绝 |
+| REQ-007 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 12; Step 15 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/TenantContextFilterTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/domain/TenantContext.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java`| 对应Step RED/GREEN与§8矩阵 | ThreadLocal、MDC、异步取消/异常均无跨请求污染 |
 | REQ-008 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §11 | Step 2; Step 5; Step 12 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/po/OAuthResourcePO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java` | 对应Step RED/GREEN与§8矩阵 | 两租户相同业务 ID、批处理/自定义 SQL/逻辑删除不能串租户 |
 | REQ-009 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 13 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2ClientTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceAuthorizationKey.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2Client.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceTokenWebClientConfiguration.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterAutoConfiguration.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterAutoConfigurationTest.java`; `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`; `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` | IdpServiceOAuth2ClientTest / IdpStarterAutoConfigurationTest; 对应Step RED/GREEN与§8矩阵 | 完整key贯穿两层缓存；同key只授权一次；最多10000项且淘汰底层授权记录；活跃key在renewalSkew前单飞重获；401只安全重试GET
 | REQ-010 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 1; Step 14; Step 15; Step 16; Step 18 | `egon-cola-xingyuan/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 对应Step RED/GREEN与§8矩阵 | 浏览器只持 HttpOnly 会话 cookie；下游仍自行验签 |

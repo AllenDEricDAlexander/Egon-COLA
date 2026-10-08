@@ -24,6 +24,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TenantContextFilterTest {
 
@@ -66,13 +69,15 @@ class TenantContextFilterTest {
         authenticate(principal("platform", Set.of("system:platform:admin", "system:tenant:target")));
         MockHttpServletRequest request = request("/api/v1/platform/tenants/users");
         request.addHeader("X-TIANQUAN-JIANSHEN-Target-Tenant", "tenant-2");
-        MockFilterChain chain = new MockFilterChain();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter.doFilter(request, response, chain);
+        filter.doFilter(request, response, (currentRequest, currentResponse) -> {
+            assertEquals("tenant-2",
+                    currentRequest.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+        });
 
         assertEquals(200, response.getStatus());
-        assertEquals("tenant-2", request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+        assertNull(request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
         assertEquals(TenantContext.class.getName(), TenantContextFilter.TENANT_ATTRIBUTE);
     }
 
@@ -100,12 +105,52 @@ class TenantContextFilterTest {
         MockHttpServletRequest request = request(
                 "/api/tianquan-jianshen/v1/internal/authorization/decisions");
         request.addHeader("X-TIANQUAN-JIANSHEN-Tenant", "tenant-1");
-        MockFilterChain chain = new MockFilterChain();
+        filter.doFilter(request, new MockHttpServletResponse(),
+                (currentRequest, response) -> assertEquals("tenant-1",
+                        currentRequest.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE)));
 
-        filter.doFilter(request, new MockHttpServletResponse(), chain);
+        assertNull(request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+    }
 
-        assertEquals("tenant-1",
-                request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+    @Test
+    void restoresParentContextAndRequestAttributeAfterNestedSuccessAndRejection()
+            throws Exception {
+        TenantContext parent = new TenantContext("parent-tenant", "parent-tenant", false);
+        TenantContext.set(parent);
+        authenticate(principal("tenant-1", Set.of()));
+
+        MockHttpServletRequest nestedSuccess = request("/api/v1/auth/bootstrap");
+        nestedSuccess.setAttribute(TenantContextFilter.TENANT_ATTRIBUTE, "parent-tenant");
+        MockHttpServletResponse successResponse = new MockHttpServletResponse();
+        filter.doFilter(nestedSuccess, successResponse, new MockFilterChain());
+
+        assertEquals(200, successResponse.getStatus());
+        assertSame(parent, TenantContext.requireCurrent());
+        assertEquals("parent-tenant",
+                nestedSuccess.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+
+        MockHttpServletRequest nestedRejection = request("/api/v1/auth/bootstrap");
+        nestedRejection.addHeader("X-TIANQUAN-JIANSHEN-Tenant", "tenant-2");
+        nestedRejection.setAttribute(TenantContextFilter.TENANT_ATTRIBUTE, "parent-tenant");
+        MockHttpServletResponse rejectionResponse = new MockHttpServletResponse();
+        filter.doFilter(nestedRejection, rejectionResponse, new MockFilterChain());
+
+        assertEquals(400, rejectionResponse.getStatus());
+        assertSame(parent, TenantContext.requireCurrent());
+        assertEquals("parent-tenant",
+                nestedRejection.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+    }
+
+    @Test
+    void removesTenantRequestAttributeAndThreadContextAfterOuterRequest()
+            throws Exception {
+        authenticate(principal("tenant-1", Set.of()));
+        MockHttpServletRequest request = request("/api/v1/auth/bootstrap");
+
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertNull(request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+        assertThrows(IllegalStateException.class, TenantContext::requireCurrent);
     }
 
     private MockHttpServletResponse execute(MockHttpServletRequest request)

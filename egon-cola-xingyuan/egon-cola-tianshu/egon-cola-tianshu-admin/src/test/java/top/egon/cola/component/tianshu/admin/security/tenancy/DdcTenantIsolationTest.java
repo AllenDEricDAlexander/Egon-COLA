@@ -8,12 +8,12 @@ import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.security.management.DdcAdminAuthenticationEntryPoint;
 import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 import top.egon.cola.platform.tianquan.jianshen.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3AuthenticationToken;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
 
 import java.time.Instant;
@@ -143,7 +143,7 @@ class DdcTenantIsolationTest {
         return request;
     }
 
-    private UsernamePasswordAuthenticationToken authentication(String tenantId, String subject) {
+    private Rbac3AuthenticationToken authentication(String tenantId, String subject) {
         Instant now = Instant.parse("2026-09-27T00:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
                 subject, tenantId, "token-1", Set.of("tianshu-admin-web"), now,
@@ -153,7 +153,7 @@ class DdcTenantIsolationTest {
                 List.of("tianshu-admin"), Set.of("TIANSHU_READ"), Map.of(), Map.of(),
                 "snapshot-checksum", now, now.plusSeconds(900));
         Rbac3UserDetails principal = new Rbac3UserDetails(identity, snapshot);
-        return new UsernamePasswordAuthenticationToken(principal, "", principal.getAuthorities());
+        return new Rbac3AuthenticationToken(principal);
     }
 
     private DdcTenantRegistry registry() {

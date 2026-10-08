@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
@@ -95,6 +96,33 @@ class Rbac3BearerAuthenticationFilterTest {
                         "TIANQUAN_JIANSHEN_payment:read", "CAP_payment:read");
         assertThat(seen.get().getName()).isEqualTo("alice-sub");
         assertThat(seen.get().getPrincipal()).isInstanceOf(Rbac3UserDetails.class);
+    }
+
+    @Test
+    void preservesOnlyVerifiedScopeAuthoritiesAlongsideSnapshotPermissions()
+            throws Exception {
+        IdentityPrincipal principal = principal();
+        SingleFlightSnapshotLoader loader = mock(SingleFlightSnapshotLoader.class);
+        when(loader.load(principal)).thenReturn(snapshot());
+        Rbac3BearerAuthenticationFilter filter = new Rbac3BearerAuthenticationFilter(
+                loader, new ObjectMapper());
+        SecurityContextHolder.getContext().setAuthentication(
+                new IdpAuthenticationToken(principal, List.of(
+                        new SimpleGrantedAuthority("SCOPE_finance:read"),
+                        new SimpleGrantedAuthority("ROLE_ADMIN"))));
+        AtomicReference<org.springframework.security.core.Authentication> seen =
+                new AtomicReference<>();
+
+        filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(),
+                (request, response) -> seen.set(
+                        SecurityContextHolder.getContext().getAuthentication()));
+
+        assertThat(seen.get().getAuthorities())
+                .extracting("authority")
+                .contains("SCOPE_finance:read", "TIANQUAN_JIANSHEN_payment:read")
+                .doesNotContain("ROLE_ADMIN");
+        assertThat(((Rbac3UserDetails) seen.get().getPrincipal()).snapshot())
+                .isEqualTo(snapshot());
     }
 
     @Test

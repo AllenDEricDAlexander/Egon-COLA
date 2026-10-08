@@ -12,8 +12,10 @@ import top.egon.cola.component.yuheng.core.exchange.GatewayExchange;
 import top.egon.cola.component.yuheng.core.exchange.GatewayRequest;
 import top.egon.cola.component.yuheng.core.exchange.ImmutableGatewayHeaders;
 import top.egon.cola.component.yuheng.core.security.AuthenticationDecision;
+import top.egon.cola.component.yuheng.core.security.AuthenticationFailure;
 import top.egon.cola.component.yuheng.core.security.AuthenticationMode;
 import top.egon.cola.component.yuheng.core.security.AuthorizationDecisionMode;
+import top.egon.cola.component.yuheng.core.security.CredentialRecoveryResult;
 import top.egon.cola.component.yuheng.core.security.CredentialForwardingMode;
 import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
 import top.egon.cola.component.yuheng.core.security.GatewayCredential;
@@ -31,9 +33,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 class IdpGatewaySecurityProviderTest {
 
@@ -73,6 +77,41 @@ class IdpGatewaySecurityProviderTest {
                         context(GatewayPrincipal.anonymous()), policy())))
                 .assertNext(result -> assertThat(result.valid()).isFalse())
                 .verifyComplete();
+    }
+
+    @Test
+    void doesNotRefreshMissingOrExpiredUserBearerFromLegacyCookies() {
+        AtomicInteger refreshCalls = new AtomicInteger();
+        IdpUserCredentialRecoveryProvider provider = new IdpUserCredentialRecoveryProvider(
+                token -> {
+                    refreshCalls.incrementAndGet();
+                    return Mono.just(new IdpRefreshClient.Response(401, Map.of()));
+                },
+                mock(IdpGatewayJwtVerifier.class),
+                new IdpReservedHeaderSanitizer(),
+                "__Host-egon_user_rt",
+                "__Host-egon_user_at");
+        GatewayExchange exchange = exchange(Map.of(
+                "Cookie", List.of(
+                        "__Host-egon_user_at=legacy-access; __Host-egon_user_rt=legacy-refresh")));
+
+        for (AuthenticationFailure failure : List.of(
+                AuthenticationFailure.MISSING,
+                AuthenticationFailure.EXPIRED)) {
+            StepVerifier.create(Mono.from(provider.recover(
+                            context(GatewayPrincipal.anonymous()), exchange, failure)))
+                    .assertNext(result -> {
+                        assertThat(result.outcome())
+                                .isEqualTo(CredentialRecoveryResult.Outcome.NOT_RECOVERABLE);
+                        assertThat(result.responseHeaders().get("set-cookie"))
+                                .hasSize(2)
+                                .allSatisfy(cookie -> assertThat(cookie)
+                                        .contains("Max-Age=0"));
+                    })
+                    .verifyComplete();
+        }
+
+        assertThat(refreshCalls).hasValue(0);
     }
 
     @Test
