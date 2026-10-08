@@ -23,6 +23,7 @@
         <module>yuheng-runtime-core</module>
         <module>yuheng-biz-gateway</module>
         <module>yuheng-mcp-gateway</module>
+        <module>yuheng-edge-gateway</module>
         <module>yuheng-admin</module>
         <module>yuheng-llm-gateway</module>
         <module>yuheng-starter</module>
