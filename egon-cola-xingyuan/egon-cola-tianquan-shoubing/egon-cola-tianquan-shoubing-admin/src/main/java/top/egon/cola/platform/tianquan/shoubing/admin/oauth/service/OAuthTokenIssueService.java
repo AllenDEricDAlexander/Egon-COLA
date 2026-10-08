@@ -44,7 +44,25 @@ public interface OAuthTokenIssueService {
     record ClientCredentialsIssueContext(
             long authorizationId,
             OAuthSecuritySnapshotBO securitySnapshot,
-            ClientCredentialsAccessPolicy.ServiceResourceAccess resourceAccess) {
+            ClientCredentialsAccessPolicy.ServiceResourceAccess resourceAccess,
+            String appId,
+            String credentialId) {
+
+        public ClientCredentialsIssueContext {
+            if (appId == null || appId.isBlank() || !appId.equals(appId.trim())
+                    || credentialId == null || credentialId.isBlank()
+                    || !credentialId.equals(credentialId.trim())) {
+                throw new IllegalArgumentException("SERVICE client identity claims are required");
+            }
+        }
+
+        public ClientCredentialsIssueContext(
+                long authorizationId,
+                OAuthSecuritySnapshotBO securitySnapshot,
+                ClientCredentialsAccessPolicy.ServiceResourceAccess resourceAccess) {
+            this(authorizationId, securitySnapshot, resourceAccess,
+                    resourceAccess.sourceAppCode(), resourceAccess.sourceClientId());
+        }
     }
 
     record UserAuthorizationIssueContext(

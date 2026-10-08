@@ -18,6 +18,8 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.UserAccessToken
 import top.egon.cola.platform.tianquan.shoubing.starter.security.VerifiedUserTokenCarrier;
 
 import java.time.Instant;
+import java.lang.reflect.Constructor;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -106,6 +108,40 @@ class IdpRpcBearerServerInterceptorTest {
 
         assertRejected(verifier, bearer("expired"));
         assertRejected(verifier, bearer("invalid"));
+    }
+
+    @Test
+    void sharedRevocationUnavailableUsesGrpcUnavailableInsteadOfUnauthenticated() {
+        UserAccessTokenVerifier verifier = mock(UserAccessTokenVerifier.class);
+        when(verifier.verify("state-unavailable"))
+                .thenReturn(unavailableOrCurrentInvalidResult());
+        RecordingServerCall call = new RecordingServerCall();
+        RecordingHandler next = new RecordingHandler();
+
+        new IdpRpcBearerServerInterceptor(verifier).interceptCall(
+                call,
+                bearer("state-unavailable"),
+                next);
+
+        assertThat(call.status.getCode()).isEqualTo(Status.Code.UNAVAILABLE);
+        assertThat(call.status.getDescription())
+                .isEqualTo("oauth_security_state_unavailable");
+        assertThat(next.calls).isZero();
+    }
+
+    @SuppressWarnings("unchecked")
+    private AccessTokenVerification<IdentityPrincipal> unavailableOrCurrentInvalidResult() {
+        try {
+            Class<?> unavailableType = Class.forName(
+                    "top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification$Unavailable");
+            Constructor<?> constructor = unavailableType.getConstructor(String.class);
+            return (AccessTokenVerification<IdentityPrincipal>) constructor
+                    .newInstance("OAUTH_SECURITY_STATE_UNAVAILABLE");
+        } catch (ClassNotFoundException | NoSuchMethodException compatibilityBaseline) {
+            return new AccessTokenVerification.Invalid<>("OAUTH_SECURITY_STATE_UNAVAILABLE");
+        } catch (ReflectiveOperationException failure) {
+            throw new AssertionError("UNAVAILABLE result must be constructible", failure);
+        }
     }
 
     private void assertRejected(

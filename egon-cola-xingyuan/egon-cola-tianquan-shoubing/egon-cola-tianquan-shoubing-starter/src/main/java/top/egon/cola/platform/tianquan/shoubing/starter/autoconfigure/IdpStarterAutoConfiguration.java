@@ -10,13 +10,15 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ClientCredentialsOAuth2AuthorizedClientProvider;
@@ -37,6 +39,14 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.CurrentIdentity
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpJwtVerifier;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.LegacyIssuerCutoverPolicy;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.OAuthRevocationReader;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.TenantIssuerAuthenticationManagerComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.VerifiedPrincipalConverter;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.VerifiedTenantContextFilter;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.impl.RedisOAuthRevocationReader;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.reactive.ReactiveOAuthRevocationReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.ServiceAccessTokenVerifier;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.UserAccessTokenVerifier;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.RetryingJwtDecoder;
@@ -66,15 +76,21 @@ import java.util.List;
  */
 @AutoConfiguration
 @AutoConfigureAfter(OAuth2ClientAutoConfiguration.class)
-@EnableConfigurationProperties({
-        IdpStarterProperties.class
+@EnableConfigurationProperties
+@Import({
+        IdpStarterAutoConfiguration.OAuthAuditConfiguration.class,
+        IdpStarterAutoConfiguration.VerifiedPrincipalConverterConfiguration.class
 })
-@Import(IdpStarterAutoConfiguration.OAuthAuditConfiguration.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.tianquan.shoubing",
         name = "enabled",
         havingValue = "true")
 public class IdpStarterAutoConfiguration {
+
+    @Configuration(proxyBeanMethods = false)
+    @ComponentScan(basePackageClasses = VerifiedPrincipalConverter.class)
+    public static class VerifiedPrincipalConverterConfiguration {
+    }
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnProperty(
@@ -103,10 +119,104 @@ public class IdpStarterAutoConfiguration {
     }
 
     /** Exposes the request-bound verified USER identity accessor. */
-    @Bean
+    @Bean(name = "currentIdentity")
     @ConditionalOnMissingBean
     public CurrentIdentity currentIdentity() {
         return new CurrentIdentity();
+    }
+
+    @Bean(name = "idpStarterProperties")
+    @ConfigurationProperties("egon.cola.platform.tianquan.shoubing")
+    @ConditionalOnMissingBean(name = "idpStarterProperties")
+    public IdpStarterProperties idpStarterProperties() {
+        return new IdpStarterProperties();
+    }
+
+    @Bean(name = "idpClock")
+    @ConditionalOnMissingBean(name = "idpClock")
+    public Clock idpClock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean(name = "trustedIssuerRegistry")
+    @ConditionalOnMissingBean(name = "trustedIssuerRegistry")
+    public TrustedIssuerRegistry trustedIssuerRegistry(@Qualifier("idpStarterProperties") IdpStarterProperties properties) {
+        return new TrustedIssuerRegistry(properties);
+    }
+
+    @Bean(name = "verifiedPrincipalConverter")
+    @Primary
+    @ConditionalOnBean(name = "verifiedPrincipalConverterImpl")
+    @ConditionalOnMissingBean(name = "verifiedPrincipalConverter")
+    public VerifiedPrincipalConverter verifiedPrincipalConverter(
+            @Qualifier("verifiedPrincipalConverterImpl") VerifiedPrincipalConverter generatedConverter) {
+        return generatedConverter;
+    }
+
+    @Bean(name = "tenantIssuerAuthenticationManagerComponent")
+    @ConditionalOnMissingBean(name = "tenantIssuerAuthenticationManagerComponent")
+    public TenantIssuerAuthenticationManagerComponent tenantIssuerAuthenticationManagerComponent(
+            @Qualifier("trustedIssuerRegistry") TrustedIssuerRegistry trustedIssuerRegistry,
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties,
+            @Qualifier("idpClock") Clock idpClock) {
+        TenantIssuerAuthenticationManagerComponent component =
+                new TenantIssuerAuthenticationManagerComponent(
+                        trustedIssuerRegistry, properties, idpClock);
+        component.initialize();
+        return component;
+    }
+
+    @Bean(name = "oauthRevocationReader")
+    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnMissingBean(OAuthRevocationReader.class)
+    public OAuthRevocationReader oauthRevocationReader(
+            ObjectProvider<RedissonClient> redissonClients,
+            ListableBeanFactory beanFactory,
+            @Qualifier("trustedIssuerRegistry") TrustedIssuerRegistry trustedIssuerRegistry,
+            ObjectProvider<ObjectMapper> objectMappers,
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties) {
+        ObjectMapper objectMapper = beanFactory.containsBean("jacksonObjectMapper")
+                ? beanFactory.getBean("jacksonObjectMapper", ObjectMapper.class)
+                : objectMappers.getIfUnique();
+        if (objectMapper == null) {
+            throw new IllegalStateException("OAuth revocation Reader requires the named Jackson mapper");
+        }
+        return new RedisOAuthRevocationReader(
+                identityStateRedisson(redissonClients, beanFactory),
+                trustedIssuerRegistry,
+                objectMapper,
+                properties);
+    }
+
+    @Bean(name = "reactiveOAuthRevocationReader")
+    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnMissingBean(name = "reactiveOAuthRevocationReader")
+    public ReactiveOAuthRevocationReader reactiveOAuthRevocationReader(
+            ObjectProvider<RedissonClient> redissonClients,
+            ListableBeanFactory beanFactory,
+            @Qualifier("trustedIssuerRegistry") TrustedIssuerRegistry trustedIssuerRegistry,
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties) {
+        return new ReactiveOAuthRevocationReader(
+                identityStateRedisson(redissonClients, beanFactory).reactive(),
+                trustedIssuerRegistry,
+                properties);
+    }
+
+    @Bean(name = "verifiedTenantContextFilter")
+    @ConditionalOnMissingBean(name = "verifiedTenantContextFilter")
+    public VerifiedTenantContextFilter verifiedTenantContextFilter() {
+        return new VerifiedTenantContextFilter();
+    }
+
+    @Bean(name = "legacyIssuerCutoverPolicy")
+    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnMissingBean(name = "legacyIssuerCutoverPolicy")
+    public LegacyIssuerCutoverPolicy legacyIssuerCutoverPolicy(
+            ObjectProvider<RedissonClient> redissonClients,
+            ListableBeanFactory beanFactory,
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties) {
+        return new LegacyIssuerCutoverPolicy(
+                identityStateRedisson(redissonClients, beanFactory), properties);
     }
 
     /** Creates the request converter used by the standard client-credentials provider. */
@@ -131,7 +241,7 @@ public class IdpStarterAutoConfiguration {
     /**
      * Configures Spring's client-credentials provider with the Tianquan-Shoubing extension converter.
      */
-    @Bean
+    @Bean(name = "idpOAuth2AuthorizedClientManager")
     @ConditionalOnBean({
             ClientRegistrationRepository.class,
             OAuth2AuthorizedClientService.class
@@ -145,7 +255,7 @@ public class IdpStarterAutoConfiguration {
             ClientRegistrationRepository registrations,
             OAuth2AuthorizedClientService authorizedClients,
             IdpClientCredentialsRequestEntityConverter converter,
-            IdpStarterProperties properties
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties
     ) {
         properties.getServiceClient().validate();
         RestClientClientCredentialsTokenResponseClient responseClient =
@@ -178,7 +288,7 @@ public class IdpStarterAutoConfiguration {
     public IdpServiceOAuth2Client idpServiceOAuth2Client(
             OAuth2AuthorizedClientManager manager,
             IdpClientCredentialsRequestEntityConverter converter,
-            IdpStarterProperties properties
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties
     ) {
         properties.getServiceClient().validate();
         return new IdpServiceOAuth2Client(
@@ -229,8 +339,11 @@ public class IdpStarterAutoConfiguration {
      *         {@code idpJwtDecoder}
      */
     @Bean(name = "idpJwtDecoder")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.tianquan.shoubing",
+            name = {"issuer", "jwk-set-uri"})
     @ConditionalOnMissingBean(name = "idpJwtDecoder")
-    public JwtDecoder idpJwtDecoder(IdpStarterProperties properties) {
+    public JwtDecoder idpJwtDecoder(@Qualifier("idpStarterProperties") IdpStarterProperties properties) {
         properties.validate();
         return new RetryingJwtDecoder(() -> decoder(properties));
     }
@@ -255,7 +368,7 @@ public class IdpStarterAutoConfiguration {
                     ObjectProvider<RedissonClient> redissonClients,
                     ListableBeanFactory beanFactory,
                     ObjectMapper objectMapper,
-                    IdpStarterProperties properties
+                    @Qualifier("idpStarterProperties") IdpStarterProperties properties
             ) {
         properties.validate();
         return new RedisIdentityResourceServerStateReader(
@@ -284,7 +397,7 @@ public class IdpStarterAutoConfiguration {
             ObjectProvider<RedissonClient> redissonClients,
             ListableBeanFactory beanFactory,
             ObjectMapper objectMapper,
-            IdpStarterProperties properties
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties
     ) {
         properties.validate();
         return new RedisIdentityOAuthClientStateReader(
@@ -305,27 +418,37 @@ public class IdpStarterAutoConfiguration {
      * @param properties Tianquan-Shoubing Starter 配置；Tianquan-Shoubing Starter settings
      * @return Tianquan-Shoubing JWT 验证器；Tianquan-Shoubing JWT verifier
      */
-    @Bean
+    @Bean(name = "idpJwtVerifier")
     @ConditionalOnBean({
             IdentityResourceServerStateReader.class,
             IdentityOAuthClientStateReader.class
     })
     @ConditionalOnMissingBean
     public IdpJwtVerifier idpJwtVerifier(
-            @Qualifier("idpJwtDecoder") JwtDecoder decoder,
+            @Qualifier("idpJwtDecoder") ObjectProvider<JwtDecoder> legacyDecoder,
             IdentityResourceServerStateReader resourceStates,
             IdentityOAuthClientStateReader clientStates,
-            IdpStarterProperties properties
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties,
+            @Qualifier("tenantIssuerAuthenticationManagerComponent")
+                    TenantIssuerAuthenticationManagerComponent tenantIssuerAuthenticationManager,
+            ObjectProvider<OAuthRevocationReader> revocationReaders,
+            @Qualifier("verifiedPrincipalConverter") VerifiedPrincipalConverter verifiedPrincipalConverter,
+            ObjectProvider<LegacyIssuerCutoverPolicy> legacyIssuerCutoverPolicies,
+            @Qualifier("idpClock") Clock idpClock
     ) {
         properties.validate();
-        return new IdpJwtVerifier(
-                decoder,
+        return IdpJwtVerifier.createConfigured(
+                legacyDecoder.getIfAvailable(),
                 resourceStates,
                 clientStates,
                 properties.getResourceServerId(),
                 properties.getResourceUri(),
                 properties.getPlatformAudience(),
-                Clock.systemUTC());
+                idpClock,
+                tenantIssuerAuthenticationManager,
+                revocationReaders.getIfAvailable(),
+                verifiedPrincipalConverter,
+                legacyIssuerCutoverPolicies.getIfAvailable());
     }
 
     /**
@@ -343,7 +466,7 @@ public class IdpStarterAutoConfiguration {
      *
      * @return trusted RPC USER credential relay
      */
-    @Bean
+    @Bean(name = "idpRpcClientCredentialInterceptorFactory")
     @ConditionalOnBean(UserAccessTokenVerifier.class)
     @ConditionalOnMissingBean
     public IdpRpcClientCredentialInterceptorFactory
@@ -357,7 +480,7 @@ public class IdpStarterAutoConfiguration {
      * @param verifier shared USER access-token verifier
      * @return RPC USER Bearer server interceptor
      */
-    @Bean
+    @Bean(name = "idpRpcBearerServerInterceptor")
     @ConditionalOnBean(UserAccessTokenVerifier.class)
     @ConditionalOnMissingBean
     public IdpRpcBearerServerInterceptor idpRpcBearerServerInterceptor(
@@ -418,13 +541,17 @@ public class IdpStarterAutoConfiguration {
             UserAccessTokenVerifier userAccessTokenVerifier,
             ServiceAccessTokenVerifier serviceAccessTokenVerifier,
             IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            VerifiedTenantContextFilter verifiedTenantContextFilter,
+            IdpJwtVerifier combinedVerifier
     ) {
-        return new IdpBearerAuthenticationFilter(
+        return IdpBearerAuthenticationFilter.create(
                 userAccessTokenVerifier,
                 serviceAccessTokenVerifier,
                 endpointAuthenticationPolicy,
-                objectMapper);
+                objectMapper,
+                verifiedTenantContextFilter,
+                combinedVerifier);
     }
 
     /**
@@ -444,7 +571,7 @@ public class IdpStarterAutoConfiguration {
     public FilterRegistrationBean<IdpBearerAuthenticationFilter>
             idpBearerFilterRegistration(
                     IdpBearerAuthenticationFilter filter,
-                    IdpStarterProperties properties) {
+                    @Qualifier("idpStarterProperties") IdpStarterProperties properties) {
         FilterRegistrationBean<IdpBearerAuthenticationFilter> registration =
                 new FilterRegistrationBean<>(filter);
         registration.setName("idpBearerAuthenticationFilter");
@@ -462,7 +589,7 @@ public class IdpStarterAutoConfiguration {
      * @param properties 已完成校验的 Tianquan-Shoubing Starter 配置；validated Tianquan-Shoubing Starter settings
      * @return 配置完成的 JWT 解码器；configured JWT decoder
      */
-    private JwtDecoder decoder(IdpStarterProperties properties) {
+    private JwtDecoder decoder(@Qualifier("idpStarterProperties") IdpStarterProperties properties) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(
                         properties.getJwkSetUri().trim())
                 .validateType(false)

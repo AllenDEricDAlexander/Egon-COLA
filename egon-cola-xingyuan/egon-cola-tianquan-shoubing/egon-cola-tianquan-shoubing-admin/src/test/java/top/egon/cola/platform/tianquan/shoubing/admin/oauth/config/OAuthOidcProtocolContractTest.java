@@ -71,6 +71,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClie
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthConsentRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthTokenIssueServiceImpl;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TransactionalOAuthRevocationAuthenticationProvider;
@@ -84,6 +85,7 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.AuthenticatedIdentity;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityFacade;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ClientResourceGrant;
+import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthClient;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServer;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServerStatus;
@@ -518,6 +520,84 @@ class OAuthOidcProtocolContractTest {
         assertEquals("SERVICE", result.getPrincipalType());
         assertEquals(List.of("https://api.example.test/orders"), result.getAudiences());
         assertEquals(OAuthTokenTypeEnum.ACCESS, result.getTokens().getFirst().getTokenType());
+    }
+
+    @Test
+    void carriesAppAndVersionBoundCredentialIdentityIntoServiceJwtClaims() throws Exception {
+        Set<String> issueContextFields = Arrays.stream(
+                        OAuthTokenIssueService.ClientCredentialsIssueContext.class.getRecordComponents())
+                .map(java.lang.reflect.RecordComponent::getName)
+                .collect(java.util.stream.Collectors.toSet());
+        assertTrue(issueContextFields.containsAll(Set.of("appId", "credentialId")));
+
+        var claimMapper = Arrays.stream(AuthorizationServerConfiguration.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("serviceIdentityClaims"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(claimMapper);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> claims = (Map<String, Object>) claimMapper.invoke(
+                null, "stable-app-42", "501:8");
+        assertEquals("stable-app-42", claims.get("app_id"));
+        assertEquals("501:8", claims.get("credential_id"));
+    }
+
+    @Test
+    void derivesServiceCredentialIdentityFromTheLockedClientVersion() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+        TrustedRealmBO realm = trustedTenant();
+        URI targetUri = URI.create("https://api.example.test/orders");
+        Set<String> requestedScopes = Set.of("orders:read");
+        OAuthClientRepository clients = mock(OAuthClientRepository.class);
+        OAuthRealmRepository realms = mock(OAuthRealmRepository.class);
+        OAuthSecurityProjectionComponent projection = mock(OAuthSecurityProjectionComponent.class);
+        ClientCredentialsAccessPolicy accessPolicy = mock(ClientCredentialsAccessPolicy.class);
+        ResourceServerStore resources = mock(ResourceServerStore.class);
+        OAuthGrantRepository grants = mock(OAuthGrantRepository.class);
+        OAuthClientBO client = OAuthClientBO.builder()
+                .id(501L).version(2L).clientId("orders-service").appId("stable-app-42")
+                .clientType(OAuthClient.ClientType.CONFIDENTIAL)
+                .purpose(OAuthClientPurposeEnum.SERVICE).status(OAuthClient.Status.ACTIVE)
+                .credentialVersion(8L).resourceUris(List.of(targetUri.toASCIIString()))
+                .accessTtlSeconds(300).refreshTtlSeconds(0).build();
+        ResourceServer target = new ResourceServer(
+                "orders-resource", targetUri, "orders", "orders", "prod",
+                "orders-service", "orders", "orders:entry", Duration.ofMinutes(5),
+                ResourceServerStatus.ACTIVE, 2L);
+        ClientCredentialsAccessPolicy.ServiceResourceAccess access =
+                new ClientCredentialsAccessPolicy.ServiceResourceAccess(
+                        "orders-service", "source-resource", "commerce", "orders", "prod",
+                        "orders-resource", targetUri, 2L, "1001", requestedScopes, 4L,
+                        top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.TENANT);
+        OAuthSecuritySnapshotBO snapshot = OAuthSecuritySnapshotBO.builder()
+                .realmGeneration(1L).clientGeneration(2L).readyEpoch("epoch-1").revision(4L).build();
+        when(clients.findById(realm, 501L)).thenReturn(Optional.of(client));
+        when(realms.findByRealmKeyForUpdate(realm)).thenReturn(Optional.of(
+                OAuthRealmBO.builder().id(1001L).build()));
+        when(clients.findByClientIdForUpdate(realm, "orders-service"))
+                .thenReturn(Optional.of(client));
+        when(projection.snapshotForAuthorization(realm, 501L, "SERVICE", null))
+                .thenReturn(snapshot);
+        when(resources.findByUri(targetUri)).thenReturn(Optional.of(target));
+        when(accessPolicy.authorize(any(OAuthClient.class), any(ResourceServer.class),
+                eq("1001"), eq(requestedScopes))).thenReturn(access);
+        when(grants.findGrantForUpdate(realm, 501L, "orders-resource",
+                ResourceGrantType.CLIENT_CREDENTIALS)).thenReturn(Optional.of(OAuthGrantBO.builder()
+                .id(700L).version(4L).clientPk(501L).resourceServerId("orders-resource")
+                .grantType(ResourceGrantType.CLIENT_CREDENTIALS)
+                .allowedScopes(List.of("orders:read"))
+                .status(ClientResourceGrant.Status.ACTIVE).resourceVersion(2L).build()));
+        OAuthTokenIssueServiceImpl service = new OAuthTokenIssueServiceImpl(
+                mock(OAuthTokenRepository.class), mock(OAuthAuthorizationRepository.class), clients,
+                grants, mock(OAuthConsentRepository.class), realms, mock(OAuthAuditRepository.class),
+                mock(TransactionalOutbox.class), projection, accessPolicy, resources,
+                Clock.fixed(NOW, ZoneOffset.UTC), mock(TenantMembershipPort.class), 1001L);
+
+        OAuthTokenIssueService.ClientCredentialsIssueContext result =
+                service.authorizeClientCredentials(realm, 501L, targetUri, requestedScopes);
+
+        assertEquals("stable-app-42", result.appId());
+        assertEquals("501:8", result.credentialId());
     }
 
     @Test

@@ -356,6 +356,8 @@ public class AuthorizationServerConfiguration {
                     .claim("client_id", registeredClient.getClientId())
                     .claim("authorization_id", Long.toString(issue.authorizationId()))
                     .claim("client_registration_id", registeredClient.getId())
+                    .claims(values -> values.putAll(
+                            serviceIdentityClaims(issue.appId(), issue.credentialId())))
                     .claim("principal_type", "SERVICE")
                     .claim("scope_context", access.scopeContext().name())
                     .claim("source_biz", access.sourceBizCode())
@@ -439,6 +441,17 @@ public class AuthorizationServerConfiguration {
             version.put("subject", snapshot.getSubjectGeneration());
         }
         return version;
+    }
+
+    static Map<String, Object> serviceIdentityClaims(String appId, String credentialId) {
+        if (appId == null || appId.isBlank() || !appId.equals(appId.trim())
+                || credentialId == null || credentialId.isBlank()
+                || !credentialId.equals(credentialId.trim())
+                || appId.length() > 128 || credentialId.length() > 128) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("invalid_grant", "Request rejected", null));
+        }
+        return Map.of("app_id", appId, "credential_id", credentialId);
     }
 
     private static long parsePositiveId(String value, String errorCode) {

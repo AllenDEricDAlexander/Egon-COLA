@@ -4,6 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * 描述普通 Servlet 资源服务器接入统一 Tianquan-Shoubing 时使用的配置。
@@ -76,6 +79,21 @@ public class IdpStarterProperties {
      * <p>Redis key prefix used for OAuth Client runtime projections.</p>
      */
     private String oauthClientStateKeyPrefix = "identity:oauth-client:";
+
+    /** Exact issuer settings trusted by multi-issuer Resource Server verification. */
+    private Map<String, TrustedIssuerSettings> trustedIssuers = new LinkedHashMap<>();
+
+    /** Clock skew applied to every locally verified issuer. */
+    private Duration clockSkew = Duration.ofSeconds(30);
+
+    /** Strict shared revocation state configuration. */
+    private Revocation revocation = new Revocation();
+
+    /** Bounds the number of configured issuer decoders and their JWK cache lifetime. */
+    private JwksCache jwksCache = new JwksCache();
+
+    /** Optional, explicitly bounded legacy-token cutover configuration. */
+    private Migration migration = new Migration();
 
     /** Standard Spring OAuth2 Client machine-token settings. */
     private ServiceClient serviceClient = new ServiceClient();
@@ -274,6 +292,51 @@ public class IdpStarterProperties {
         this.oauthClientStateKeyPrefix = oauthClientStateKeyPrefix;
     }
 
+    public Map<String, TrustedIssuerSettings> getTrustedIssuers() {
+        return trustedIssuers;
+    }
+
+    public void setTrustedIssuers(Map<String, TrustedIssuerSettings> trustedIssuers) {
+        this.trustedIssuers = trustedIssuers == null
+                ? new LinkedHashMap<>() : new LinkedHashMap<>(trustedIssuers);
+    }
+
+    public Revocation getRevocation() {
+        return revocation;
+    }
+
+    public void setRevocation(Revocation revocation) {
+        this.revocation = Objects.requireNonNull(revocation, "revocation");
+    }
+
+    public JwksCache getJwksCache() {
+        return jwksCache;
+    }
+
+    public void setJwksCache(JwksCache jwksCache) {
+        this.jwksCache = Objects.requireNonNull(jwksCache, "jwksCache");
+    }
+
+    public Migration getMigration() {
+        return migration;
+    }
+
+    public void setMigration(Migration migration) {
+        this.migration = Objects.requireNonNull(migration, "migration");
+    }
+
+    public boolean isMultiIssuerConfigured() {
+        return !trustedIssuers.isEmpty();
+    }
+
+    public Duration getClockSkew() {
+        return clockSkew;
+    }
+
+    public void setClockSkew(Duration clockSkew) {
+        this.clockSkew = clockSkew;
+    }
+
     /** @return Spring OAuth2 Client service settings. */
     public ServiceClient getServiceClient() {
         return serviceClient;
@@ -293,8 +356,25 @@ public class IdpStarterProperties {
      *                               setting is missing or the Resource URI is invalid
      */
     public void validate() {
-        required(issuer, "issuer");
-        required(jwkSetUri, "jwkSetUri");
+        if (clockSkew == null || clockSkew.isNegative()
+                || clockSkew.compareTo(Duration.ofSeconds(60)) > 0) {
+            throw invalid("clock-skew must be between 0 and 60 seconds");
+        }
+        migration.validate();
+        if (trustedIssuers.isEmpty()) {
+            required(issuer, "issuer");
+            required(jwkSetUri, "jwkSetUri");
+        } else {
+            if (trustedIssuers.size() > jwksCache.maxIssuers) {
+                throw invalid("trusted-issuers exceeds jwks-cache.max-issuers");
+            }
+            trustedIssuers.forEach((key, value) -> {
+                required(key, "trusted-issuers map key");
+                Objects.requireNonNull(value, "trusted issuer entry").validate(key);
+            });
+            revocation.validate();
+            jwksCache.validate();
+        }
         required(resourceServerId, "resourceServerId");
         resource(resourceUri, "resourceUri");
         required(platformAudience, "platformAudience");
@@ -311,7 +391,7 @@ public class IdpStarterProperties {
      * @param field 配置字段名；setting field name
      * @throws IllegalStateException 当配置为空时；when the setting is blank
      */
-    private void required(String value, String field) {
+    private static void required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
                     "egon.cola.platform.tianquan.shoubing." + field + " is required");
@@ -336,6 +416,335 @@ public class IdpStarterProperties {
                             + " must be an absolute normalized URI without a fragment"
             );
         }
+    }
+
+    private static IllegalStateException invalid(String message) {
+        return new IllegalStateException(
+                "egon.cola.platform.tianquan.shoubing." + message);
+    }
+
+    /** Mutable binding value validated before it enters the trusted issuer registry. */
+    public static class TrustedIssuerSettings {
+
+        private String issuer;
+        private String jwksUri;
+        private String realmKey;
+        private String realmType;
+        private String tenantId;
+        private String status = "ACTIVE";
+        private long trustVersion;
+
+        public String getIssuer() {
+            return issuer;
+        }
+
+        public void setIssuer(String issuer) {
+            this.issuer = issuer;
+        }
+
+        public String getJwksUri() {
+            return jwksUri;
+        }
+
+        public void setJwksUri(String jwksUri) {
+            this.jwksUri = jwksUri;
+        }
+
+        public String getRealmKey() {
+            return realmKey;
+        }
+
+        public void setRealmKey(String realmKey) {
+            this.realmKey = realmKey;
+        }
+
+        public String getRealmType() {
+            return realmType;
+        }
+
+        public void setRealmType(String realmType) {
+            this.realmType = realmType;
+        }
+
+        public String getTenantId() {
+            return tenantId;
+        }
+
+        public void setTenantId(String tenantId) {
+            this.tenantId = tenantId;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public long getTrustVersion() {
+            return trustVersion;
+        }
+
+        public void setTrustVersion(long trustVersion) {
+            this.trustVersion = trustVersion;
+        }
+
+        public void validate(String mapKey) {
+            if (mapKey == null || !mapKey.matches("[A-Za-z0-9._-]{1,128}")) {
+                throw invalid("trusted-issuers map key must be a stable ASCII identifier");
+            }
+            URI issuerUri = secureUri(issuer, "issuer");
+            URI jwks = secureUri(jwksUri, "jwks-uri");
+            if (!issuerUri.toASCIIString().equals(issuer)) {
+                throw invalid("trusted issuer value must be an exact canonical URI");
+            }
+            if (!sameOrigin(issuerUri, jwks)) {
+                throw invalid("trusted issuer JWKS URI must use the issuer origin");
+            }
+            if (realmKey == null || !realmKey.matches("[A-Za-z0-9:_-]{1,128}")) {
+                throw invalid("trusted issuer realm-key is invalid");
+            }
+            if (!"TENANT".equals(realmType) && !"PLATFORM".equals(realmType)) {
+                throw invalid("trusted issuer realm-type must be TENANT or PLATFORM");
+            }
+            if ("TENANT".equals(realmType)) {
+                if (tenantId == null || !tenantId.matches("[1-9][0-9]{0,18}")) {
+                    throw invalid("TENANT issuer requires a positive decimal tenant-id");
+                }
+                try {
+                    if (Long.parseLong(tenantId) <= 0L) {
+                        throw invalid("TENANT issuer requires a positive tenant-id");
+                    }
+                } catch (NumberFormatException failure) {
+                    throw invalid("TENANT issuer tenant-id is outside Long range");
+                }
+            } else if (tenantId != null) {
+                throw invalid("PLATFORM issuer must not carry tenant-id");
+            }
+            if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
+                throw invalid("trusted issuer status must be ACTIVE or INACTIVE");
+            }
+            if (trustVersion < 0L) {
+                throw invalid("trusted issuer trust-version must be non-negative");
+            }
+        }
+    }
+
+    public static class Revocation {
+
+        private String primaryEndpoint;
+        private String mode = "STRICT_SHARED";
+        private Duration timeout = Duration.ofMillis(500);
+        private String epoch;
+
+        public String getPrimaryEndpoint() {
+            return primaryEndpoint;
+        }
+
+        public void setPrimaryEndpoint(String primaryEndpoint) {
+            this.primaryEndpoint = primaryEndpoint;
+        }
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration timeout) {
+            this.timeout = timeout;
+        }
+
+        public String getEpoch() {
+            return epoch;
+        }
+
+        public void setEpoch(String epoch) {
+            this.epoch = epoch;
+        }
+
+        private void validate() {
+            URI endpoint = secureRedisUri(primaryEndpoint, "revocation.primary-endpoint");
+            if (!"STRICT_SHARED".equals(mode)) {
+                throw invalid("revocation.mode must be STRICT_SHARED");
+            }
+            if (timeout == null || timeout.isZero() || timeout.isNegative()
+                    || timeout.compareTo(Duration.ofSeconds(5)) > 0) {
+                throw invalid("revocation.timeout must be between 1ms and 5s");
+            }
+            if (epoch == null || !epoch.matches("[A-Za-z0-9._-]{1,128}")) {
+                throw invalid("revocation.epoch is required");
+            }
+            if (endpoint.getUserInfo() != null || endpoint.getFragment() != null) {
+                throw invalid("revocation.primary-endpoint must not contain credentials or fragment");
+            }
+        }
+    }
+
+    public static class JwksCache {
+
+        private Duration ttl = Duration.ofSeconds(300);
+        private Duration connectTimeout = Duration.ofSeconds(2);
+        private Duration readTimeout = Duration.ofSeconds(5);
+        private int maxIssuers = 1000;
+
+        public Duration getTtl() {
+            return ttl;
+        }
+
+        public void setTtl(Duration ttl) {
+            this.ttl = ttl;
+        }
+
+        public Duration getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        public void setConnectTimeout(Duration connectTimeout) {
+            this.connectTimeout = connectTimeout;
+        }
+
+        public Duration getReadTimeout() {
+            return readTimeout;
+        }
+
+        public void setReadTimeout(Duration readTimeout) {
+            this.readTimeout = readTimeout;
+        }
+
+        public int getMaxIssuers() {
+            return maxIssuers;
+        }
+
+        public void setMaxIssuers(int maxIssuers) {
+            this.maxIssuers = maxIssuers;
+        }
+
+        private void validate() {
+            if (ttl == null || ttl.isNegative() || ttl.isZero()
+                    || ttl.compareTo(Duration.ofHours(1)) > 0) {
+                throw invalid("jwks-cache.ttl must be between 1ms and 1h");
+            }
+            if (connectTimeout == null || connectTimeout.isZero() || connectTimeout.isNegative()
+                    || connectTimeout.compareTo(Duration.ofSeconds(10)) > 0
+                    || readTimeout == null || readTimeout.isZero() || readTimeout.isNegative()
+                    || readTimeout.compareTo(Duration.ofSeconds(10)) > 0) {
+                throw invalid("jwks-cache connect/read timeouts must be between 1ms and 10s");
+            }
+            if (maxIssuers < 1 || maxIssuers > 1000) {
+                throw invalid("jwks-cache.max-issuers must be between 1 and 1000");
+            }
+        }
+    }
+
+    public static class Migration {
+
+        private String legacyIssuer;
+        private String legacyTenantAllowlistKey;
+
+        public String getLegacyIssuer() {
+            return legacyIssuer;
+        }
+
+        public void setLegacyIssuer(String legacyIssuer) {
+            this.legacyIssuer = legacyIssuer;
+        }
+
+        public String getLegacyTenantAllowlistKey() {
+            return legacyTenantAllowlistKey;
+        }
+
+        public void setLegacyTenantAllowlistKey(String legacyTenantAllowlistKey) {
+            this.legacyTenantAllowlistKey = legacyTenantAllowlistKey;
+        }
+
+        private void validate() {
+            boolean issuerConfigured = legacyIssuer != null && !legacyIssuer.isBlank();
+            boolean keyConfigured = legacyTenantAllowlistKey != null
+                    && !legacyTenantAllowlistKey.isBlank();
+            if (issuerConfigured != keyConfigured) {
+                throw invalid("migration.legacy-issuer and legacy-tenant-allowlist-key must be configured together");
+            }
+            if (issuerConfigured) {
+                secureUri(legacyIssuer, "migration.legacy-issuer");
+                if (!legacyTenantAllowlistKey.matches("[A-Za-z0-9:_.-]{1,256}")) {
+                    throw invalid("migration.legacy-tenant-allowlist-key is invalid");
+                }
+            }
+        }
+    }
+
+    private static URI secureUri(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw invalid(field + " is required");
+        }
+        URI uri;
+        try {
+            uri = URI.create(value);
+        } catch (IllegalArgumentException malformed) {
+            throw invalid(field + " is invalid");
+        }
+        if (!uri.isAbsolute() || uri.isOpaque() || uri.getHost() == null
+                || !("https".equalsIgnoreCase(uri.getScheme())
+                || "http".equalsIgnoreCase(uri.getScheme()) && isLoopbackHost(uri.getHost()))
+                || uri.getUserInfo() != null || uri.getQuery() != null
+                || uri.getFragment() != null || !uri.normalize().equals(uri)
+                || !uri.toASCIIString().equals(value)) {
+            throw invalid(field + " must be HTTPS or exact loopback HTTP and canonical");
+        }
+        return uri;
+    }
+
+    private static URI secureRedisUri(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw invalid(field + " is required");
+        }
+        URI uri;
+        try {
+            uri = URI.create(value);
+        } catch (IllegalArgumentException malformed) {
+            throw invalid(field + " is invalid");
+        }
+        if (!uri.isAbsolute() || uri.isOpaque() || uri.getHost() == null
+                || !("rediss".equalsIgnoreCase(uri.getScheme())
+                || "redis".equalsIgnoreCase(uri.getScheme()) && isLoopbackHost(uri.getHost()))
+                || uri.getUserInfo() != null || uri.getQuery() != null
+                || uri.getFragment() != null || !uri.normalize().equals(uri)
+                || !uri.toASCIIString().equals(value)) {
+            throw invalid(field + " must be rediss or exact loopback redis and canonical");
+        }
+        return uri;
+    }
+
+    private static boolean isLoopbackHost(String host) {
+        return "127.0.0.1".equals(host) || "localhost".equalsIgnoreCase(host)
+                || "::1".equals(host) || "[::1]".equals(host);
+    }
+
+    private static boolean sameOrigin(URI left, URI right) {
+        return left.getScheme().equalsIgnoreCase(right.getScheme())
+                && left.getHost().equalsIgnoreCase(right.getHost())
+                && effectivePort(left) == effectivePort(right);
+    }
+
+    private static int effectivePort(URI uri) {
+        if (uri.getPort() >= 0) {
+            return uri.getPort();
+        }
+        if ("https".equalsIgnoreCase(uri.getScheme())) {
+            return 443;
+        }
+        if ("http".equalsIgnoreCase(uri.getScheme())) {
+            return 80;
+        }
+        return 6379;
     }
 
     /** Standard Spring registration identity and cache renewal settings. */

@@ -3,6 +3,7 @@ package top.egon.cola.platform.tianquan.shoubing.starter.security;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.core.AuthenticationException;
 import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdpClaimNames;
@@ -15,6 +16,9 @@ import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServerStat
 import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityResourceServerState;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityResourceServerStateReader;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.OAuthRevocationReader.Result;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.OAuthRevocationReader.Status;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.VerifiedJwtBO;
 
 import java.net.URI;
 import java.time.Clock;
@@ -24,12 +28,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * Validates Tianquan-Shoubing USER and SERVICE access tokens.
  * USER validation is completely stateless; SERVICE validation keeps its existing
  * Resource/Client runtime checks.
  */
+@Slf4j
+@RequiredArgsConstructor(staticName = "create")
 public final class IdpJwtVerifier {
 
     private static final Set<String> USER_FORBIDDEN_CLAIMS = Set.of(
@@ -38,14 +47,32 @@ public final class IdpJwtVerifier {
             "roles", "permissions", "capabilities", "dataScopes", "fieldPolicies",
             "authVersion", "sessionVersion", "contextVersion");
 
+    private static final Set<String> NEW_USER_FORBIDDEN_CLAIMS = Set.of(
+            "sid", "session_id", "token_version", "resource_server_id", "resource",
+            "resource_version", "nonce", "roles", "permissions", "capabilities",
+            "dataScopes", "fieldPolicies", "authVersion", "sessionVersion", "contextVersion");
+
+    @Qualifier("idpJwtDecoder")
     private final JwtDecoder decoder;
+    @Qualifier("identityResourceServerStateReader")
     private final IdentityResourceServerStateReader resourceStates;
+    @Qualifier("identityOAuthClientStateReader")
     private final IdentityOAuthClientStateReader clientStates;
     private final String resourceServerId;
     private final URI resourceUri;
     private final String platformAudience;
+    @Qualifier("idpClock")
     private final Clock clock;
+    @Qualifier("tenantIssuerAuthenticationManagerComponent")
+    private final TenantIssuerAuthenticationManagerComponent tenantIssuerAuthenticationManager;
+    @Qualifier("oauthRevocationReader")
+    private final OAuthRevocationReader revocationReader;
+    @Qualifier("verifiedPrincipalConverter")
+    private final VerifiedPrincipalConverter verifiedPrincipalConverter;
+    @Qualifier("legacyIssuerCutoverPolicy")
+    private final LegacyIssuerCutoverPolicy legacyIssuerCutoverPolicy;
 
+    /** Keeps the former stateful constructor as a source-compatible legacy adapter. */
     public IdpJwtVerifier(
             JwtDecoder decoder,
             IdentityResourceServerStateReader resourceStates,
@@ -55,50 +82,87 @@ public final class IdpJwtVerifier {
             String platformAudience,
             Clock clock
     ) {
-        this.decoder = Objects.requireNonNull(decoder, "decoder");
-        this.resourceStates = Objects.requireNonNull(resourceStates, "resourceStates");
-        this.clientStates = Objects.requireNonNull(clientStates, "clientStates");
-        this.resourceServerId = required(resourceServerId, "resourceServerId");
-        this.resourceUri = validResource(resourceUri);
-        this.platformAudience = required(platformAudience, "platformAudience");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this(decoder, resourceStates, clientStates, resourceServerId, resourceUri,
+                platformAudience, clock, null, null, null, null);
+        Objects.requireNonNull(decoder, "decoder");
+        Objects.requireNonNull(resourceStates, "resourceStates");
+        Objects.requireNonNull(clientStates, "clientStates");
+        required(resourceServerId, "resourceServerId");
+        validResource(resourceUri);
+        required(platformAudience, "platformAudience");
+        Objects.requireNonNull(clock, "clock");
     }
 
-    /**
-     * Creates a verifier for stateless USER tokens only.
-     */
+    /** Keeps the former stateless USER constructor as a source-compatible adapter. */
     public IdpJwtVerifier(
             JwtDecoder decoder,
             String platformAudience,
             Clock clock) {
-        this.decoder = Objects.requireNonNull(decoder, "decoder");
-        this.resourceStates = null;
-        this.clientStates = null;
-        this.resourceServerId = null;
-        this.resourceUri = null;
-        this.platformAudience = required(platformAudience, "platformAudience");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this(decoder, null, null, null, null, platformAudience, clock,
+                null, null, null, null);
+        Objects.requireNonNull(decoder, "decoder");
+        required(platformAudience, "platformAudience");
+        Objects.requireNonNull(clock, "clock");
+    }
+
+    /** Validates and creates the configured Servlet verifier through the generated required-args constructor. */
+    public static IdpJwtVerifier createConfigured(
+            JwtDecoder decoder,
+            IdentityResourceServerStateReader resourceStates,
+            IdentityOAuthClientStateReader clientStates,
+            String resourceServerId,
+            URI resourceUri,
+            String platformAudience,
+            Clock clock,
+            TenantIssuerAuthenticationManagerComponent tenantIssuerAuthenticationManager,
+            OAuthRevocationReader revocationReader,
+            VerifiedPrincipalConverter verifiedPrincipalConverter,
+            LegacyIssuerCutoverPolicy legacyIssuerCutoverPolicy) {
+        Objects.requireNonNull(resourceStates, "resourceStates");
+        Objects.requireNonNull(clientStates, "clientStates");
+        required(resourceServerId, "resourceServerId");
+        validResource(resourceUri);
+        required(platformAudience, "platformAudience");
+        Objects.requireNonNull(clock, "clock");
+        TenantIssuerAuthenticationManagerComponent manager = Objects.requireNonNull(
+                tenantIssuerAuthenticationManager, "tenantIssuerAuthenticationManager");
+        Objects.requireNonNull(verifiedPrincipalConverter, "verifiedPrincipalConverter");
+        if (manager.isConfigured() && revocationReader == null) {
+            throw new IllegalStateException("multi-issuer mode requires shared revocation reader");
+        }
+        if (!manager.isConfigured() && decoder == null) {
+            throw new IllegalStateException("a configured legacy JWT decoder is required");
+        }
+        return new IdpJwtVerifier(decoder, resourceStates, clientStates, resourceServerId,
+                resourceUri, platformAudience, clock, manager, revocationReader,
+                verifiedPrincipalConverter, legacyIssuerCutoverPolicy);
     }
 
     /**
      * Verifies a USER token without any Redis or Tianquan-Shoubing-user-state lookup.
      */
     public AccessTokenVerification<IdentityPrincipal> verifyUser(String token) {
+        if (multiIssuerConfigured()) {
+            if (legacyIssuerCutoverPolicy != null
+                    && legacyIssuerCutoverPolicy.isLegacyIssuerHint(token)) {
+                return verifyLegacyUser(token);
+            }
+            return castVerification(
+                    verifyMultiIssuer(token, PrincipalType.USER), IdentityPrincipal.class);
+        }
+        return verifyLegacyUser(token);
+    }
+
+    private AccessTokenVerification<IdentityPrincipal> verifyLegacyUser(String token) {
         try {
             Jwt jwt = decode(token);
-            commonHeaders(jwt);
-            if (principalType(jwt) != PrincipalType.USER) {
-                return new AccessTokenVerification.Invalid<>("JWT_PRINCIPAL_TYPE_INVALID");
-            }
-            Instant expiresAt = instant(jwt, "exp");
-            if (!expiresAt.isAfter(clock.instant())) {
-                return new AccessTokenVerification.Expired<>();
-            }
-            return new AccessTokenVerification.Valid<>(user(jwt, exactAudience(jwt, platformAudience)));
+            return verifyLegacyUserJwt(jwt);
+        } catch (LegacyStateUnavailableException unavailable) {
+            return new AccessTokenVerification.Unavailable<>("LEGACY_ISSUER_STATE_UNAVAILABLE");
         } catch (ExpiredTokenException expired) {
             return new AccessTokenVerification.Expired<>();
         } catch (InvalidTokenException invalid) {
-            return new AccessTokenVerification.Invalid<>(invalid.getMessage());
+            return invalidOutcome(invalid.getMessage());
         } catch (JwtException | IllegalArgumentException | NullPointerException invalid) {
             return new AccessTokenVerification.Invalid<>("JWT_INVALID");
         }
@@ -108,6 +172,18 @@ public final class IdpJwtVerifier {
      * Verifies a SERVICE token and retains Resource/Client runtime checks.
      */
     public AccessTokenVerification<ServiceIdentityPrincipal> verifyService(String token) {
+        if (multiIssuerConfigured()) {
+            if (legacyIssuerCutoverPolicy != null
+                    && legacyIssuerCutoverPolicy.isLegacyIssuerHint(token)) {
+                return verifyLegacyService(token);
+            }
+            return castVerification(
+                    verifyMultiIssuer(token, PrincipalType.SERVICE), ServiceIdentityPrincipal.class);
+        }
+        return verifyLegacyService(token);
+    }
+
+    private AccessTokenVerification<ServiceIdentityPrincipal> verifyLegacyService(String token) {
         try {
             if (resourceStates == null || clientStates == null
                     || resourceServerId == null || resourceUri == null) {
@@ -115,51 +191,285 @@ public final class IdpJwtVerifier {
                         "SERVICE_VERIFIER_NOT_CONFIGURED");
             }
             Jwt jwt = decode(token);
-            commonHeaders(jwt);
-            if (principalType(jwt) != PrincipalType.SERVICE) {
-                return new AccessTokenVerification.Invalid<>("JWT_PRINCIPAL_TYPE_INVALID");
-            }
-            Instant expiresAt = instant(jwt, "exp");
-            if (!expiresAt.isAfter(clock.instant())) {
-                return new AccessTokenVerification.Expired<>();
-            }
-            long resourceVersion = number(jwt, IdpClaimNames.RESOURCE_VERSION);
-            verifyResource(resourceVersion);
-            return new AccessTokenVerification.Valid<>(service(jwt, resourceVersion));
+            return verifyLegacyServiceJwt(jwt);
+        } catch (LegacyStateUnavailableException unavailable) {
+            return new AccessTokenVerification.Unavailable<>("LEGACY_ISSUER_STATE_UNAVAILABLE");
         } catch (ExpiredTokenException expired) {
             return new AccessTokenVerification.Expired<>();
         } catch (InvalidTokenException invalid) {
-            return new AccessTokenVerification.Invalid<>(invalid.getMessage());
+            return invalidOutcome(invalid.getMessage());
         } catch (JwtException | IllegalArgumentException | NullPointerException invalid) {
             return new AccessTokenVerification.Invalid<>("JWT_INVALID");
         }
+    }
+
+    private AccessTokenVerification<IdentityPrincipal> verifyLegacyUserJwt(Jwt jwt) {
+        commonHeaders(jwt);
+        if (principalType(jwt) != PrincipalType.USER) {
+            return new AccessTokenVerification.Invalid<>("JWT_PRINCIPAL_TYPE_INVALID");
+        }
+        enforceLegacyTenantCutover(jwt);
+        Instant expiresAt = instant(jwt, "exp");
+        if (!expiresAt.isAfter(clock.instant())) {
+            return new AccessTokenVerification.Expired<>();
+        }
+        IdentityPrincipal principal = user(jwt, exactAudience(jwt, platformAudience));
+        Set<String> scopes = jwt.hasClaim(IdpClaimNames.SCOPE)
+                ? scopes(jwt) : Set.of();
+        return new AccessTokenVerification.Valid<>(principal, scopes);
+    }
+
+    private AccessTokenVerification<ServiceIdentityPrincipal> verifyLegacyServiceJwt(Jwt jwt) {
+        if (resourceStates == null || clientStates == null
+                || resourceServerId == null || resourceUri == null) {
+            return new AccessTokenVerification.Invalid<>("SERVICE_VERIFIER_NOT_CONFIGURED");
+        }
+        commonHeaders(jwt);
+        if (principalType(jwt) != PrincipalType.SERVICE) {
+            return new AccessTokenVerification.Invalid<>("JWT_PRINCIPAL_TYPE_INVALID");
+        }
+        enforceLegacyTenantCutover(jwt);
+        Instant expiresAt = instant(jwt, "exp");
+        if (!expiresAt.isAfter(clock.instant())) {
+            return new AccessTokenVerification.Expired<>();
+        }
+        long resourceVersion = number(jwt, IdpClaimNames.RESOURCE_VERSION);
+        verifyResource(resourceVersion);
+        ServiceIdentityPrincipal principal = service(jwt, resourceVersion);
+        return new AccessTokenVerification.Valid<>(principal, principal.scopes());
+    }
+
+    private AccessTokenVerification<IdpPrincipal> verifyLegacyAny(String token) {
+        try {
+            Jwt jwt = decode(token);
+            PrincipalType type = principalType(jwt);
+            if (type == PrincipalType.USER) {
+                return copyVerification(verifyLegacyUserJwt(jwt));
+            }
+            return copyVerification(verifyLegacyServiceJwt(jwt));
+        } catch (LegacyStateUnavailableException unavailable) {
+            return new AccessTokenVerification.Unavailable<>("LEGACY_ISSUER_STATE_UNAVAILABLE");
+        } catch (ExpiredTokenException expired) {
+            return new AccessTokenVerification.Expired<>();
+        } catch (InvalidTokenException invalid) {
+            return invalidOutcome(invalid.getMessage());
+        } catch (JwtException | IllegalArgumentException | NullPointerException invalid) {
+            return new AccessTokenVerification.Invalid<>("JWT_INVALID");
+        }
+    }
+
+    private void enforceLegacyTenantCutover(Jwt jwt) {
+        if (legacyIssuerCutoverPolicy == null) {
+            return;
+        }
+        String issuer = jwt.getIssuer() == null ? null : jwt.getIssuer().toExternalForm();
+        if (!legacyIssuerCutoverPolicy.isLegacyIssuer(issuer)) {
+            return;
+        }
+        LegacyIssuerCutoverPolicy.Decision decision = legacyIssuerCutoverPolicy.check(
+                issuer, jwt.getClaimAsString("tid"));
+        if (decision == LegacyIssuerCutoverPolicy.Decision.UNAVAILABLE) {
+            throw new LegacyStateUnavailableException();
+        }
+        if (decision != LegacyIssuerCutoverPolicy.Decision.ALLOWED) {
+            throw new InvalidTokenException("LEGACY_ISSUER_TENANT_RETIRED");
+        }
+    }
+
+    /** Verifies a shared USER-or-SERVICE path with one local decode and one shared-state read. */
+    public AccessTokenVerification<IdpPrincipal> verifyAny(String token) {
+        if (multiIssuerConfigured()) {
+            if (legacyIssuerCutoverPolicy != null
+                    && legacyIssuerCutoverPolicy.isLegacyIssuerHint(token)) {
+                return verifyLegacyAny(token);
+            }
+            return verifyMultiIssuer(token, null);
+        }
+        Jwt jwt;
+        try {
+            jwt = decode(token);
+            PrincipalType type = principalType(jwt);
+            if (type == PrincipalType.USER) {
+                return copyVerification(verifyLegacyUserJwt(jwt));
+            }
+            return copyVerification(verifyLegacyServiceJwt(jwt));
+        } catch (LegacyStateUnavailableException unavailable) {
+            return new AccessTokenVerification.Unavailable<>("LEGACY_ISSUER_STATE_UNAVAILABLE");
+        } catch (ExpiredTokenException expired) {
+            return new AccessTokenVerification.Expired<>();
+        } catch (InvalidTokenException invalid) {
+            return invalidOutcome(invalid.getMessage());
+        } catch (JwtException | IllegalArgumentException | NullPointerException invalid) {
+            return new AccessTokenVerification.Invalid<>("JWT_INVALID");
+        }
+    }
+
+    private AccessTokenVerification<IdpPrincipal> verifyMultiIssuer(
+            String token,
+            PrincipalType expectedType) {
+        try {
+            if (tenantIssuerAuthenticationManager == null
+                    || revocationReader == null || verifiedPrincipalConverter == null) {
+                return new AccessTokenVerification.Unavailable<>(
+                        "OAUTH_SECURITY_STATE_UNAVAILABLE");
+            }
+            VerifiedJwtBO verified = tenantIssuerAuthenticationManager.authenticate(token);
+            Jwt jwt = verified.getJwt();
+            commonHeaders(jwt);
+            PrincipalType actualType = verified.getPrincipalType();
+            if (expectedType != null && expectedType != actualType) {
+                return new AccessTokenVerification.Invalid<>("JWT_PRINCIPAL_TYPE_INVALID");
+            }
+            Set<String> audiences = verifiedAudiences(jwt);
+            if (!audiences.contains(resourceUri.toASCIIString())) {
+                throw new InvalidTokenException("JWT_AUDIENCE_INVALID");
+            }
+            String clientId = claim(jwt, IdpClaimNames.CLIENT_ID);
+            Set<String> verifiedScopes = verifiedPrincipalConverter.scopes(jwt);
+            IdpPrincipal principal;
+            if (actualType == PrincipalType.USER) {
+                rejectNewUserClaims(jwt);
+                if (clientId.isBlank()) {
+                    throw new InvalidTokenException("JWT_CLIENT_ID_INVALID");
+                }
+                principal = verifiedPrincipalConverter.toTarget(jwt);
+            } else if (actualType == PrincipalType.SERVICE) {
+                if (!jwt.getSubject().equals(clientId)) {
+                    throw new InvalidTokenException("SERVICE_SUBJECT_INVALID");
+                }
+                if (audiences.size() != 1) {
+                    throw new InvalidTokenException("SERVICE_AUDIENCE_INVALID");
+                }
+                long serviceResourceVersion = number(jwt, IdpClaimNames.RESOURCE_VERSION);
+                verifyResource(serviceResourceVersion);
+                principal = verifiedPrincipalConverter.toServicePrincipal(jwt, resourceUri);
+            } else {
+                throw new InvalidTokenException("JWT_PRINCIPAL_TYPE_INVALID");
+            }
+            OAuthRevocationReader.Result result;
+            try {
+                result = revocationReader.check(verified);
+            } catch (RuntimeException unavailable) {
+                return new AccessTokenVerification.Unavailable<>(
+                        "OAUTH_SECURITY_STATE_UNAVAILABLE");
+            }
+            if (result == null || result.status() == Status.UNAVAILABLE) {
+                return new AccessTokenVerification.Unavailable<>(result == null
+                        ? "OAUTH_SECURITY_STATE_UNAVAILABLE" : result.reasonCode());
+            }
+            if (result.status() == Status.REVOKED) {
+                return new AccessTokenVerification.Invalid<>(result.reasonCode());
+            }
+            return new AccessTokenVerification.Valid<>(principal, verifiedScopes);
+        } catch (ExpiredTokenException expired) {
+            return new AccessTokenVerification.Expired<>();
+        } catch (TenantIssuerAuthenticationManagerComponent.InvalidIssuerException invalid) {
+            return new AccessTokenVerification.Invalid<>(invalid.getMessage());
+        } catch (InvalidTokenException invalid) {
+            return invalidOutcome(invalid.getMessage());
+        } catch (AuthenticationException | JwtException invalid) {
+            if (expired(invalid)) {
+                return new AccessTokenVerification.Expired<>();
+            }
+            return new AccessTokenVerification.Invalid<>("JWT_INVALID");
+        } catch (IllegalArgumentException | NullPointerException invalid) {
+            return new AccessTokenVerification.Invalid<>("JWT_INVALID");
+        }
+    }
+
+    private void rejectNewUserClaims(Jwt jwt) {
+        for (String forbidden : NEW_USER_FORBIDDEN_CLAIMS) {
+            if (jwt.hasClaim(forbidden)) {
+                throw new InvalidTokenException(
+                        "JWT_FORBIDDEN_CLAIM_" + forbidden.toUpperCase());
+            }
+        }
+    }
+
+    private Set<String> verifiedAudiences(Jwt jwt) {
+        List<String> values = jwt.getAudience();
+        if (values == null || values.isEmpty()) {
+            throw new InvalidTokenException("JWT_AUDIENCE_INVALID");
+        }
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        for (String value : values) {
+            String audience = text(value, "aud");
+            URI normalized;
+            try {
+                normalized = URI.create(audience);
+            } catch (IllegalArgumentException invalid) {
+                throw new InvalidTokenException("JWT_AUDIENCE_INVALID", invalid);
+            }
+            if (!normalized.isAbsolute() || normalized.getHost() == null
+                    || !"https".equalsIgnoreCase(normalized.getScheme())
+                    || normalized.getUserInfo() != null || normalized.getFragment() != null
+                    || !normalized.equals(normalized.normalize())
+                    || "*".equals(audience) || !normalized.toASCIIString().equals(audience)
+                    || !result.add(normalized.toASCIIString())) {
+                throw new InvalidTokenException("JWT_AUDIENCE_INVALID");
+            }
+        }
+        return Set.copyOf(result);
+    }
+
+    private boolean multiIssuerConfigured() {
+        return tenantIssuerAuthenticationManager != null
+                && tenantIssuerAuthenticationManager.isConfigured();
+    }
+
+    private static <T extends IdpPrincipal> AccessTokenVerification<T> castVerification(
+            AccessTokenVerification<IdpPrincipal> result,
+            Class<T> principalType) {
+        if (result instanceof AccessTokenVerification.Valid<IdpPrincipal> valid
+                && principalType.isInstance(valid.principal())) {
+            return new AccessTokenVerification.Valid<>(
+                    principalType.cast(valid.principal()), valid.scopes());
+        }
+        if (result instanceof AccessTokenVerification.Expired<?>) {
+            return new AccessTokenVerification.Expired<>();
+        }
+        if (result instanceof AccessTokenVerification.Unavailable<?> unavailable) {
+            return new AccessTokenVerification.Unavailable<>(unavailable.reasonCode());
+        }
+        if (result instanceof AccessTokenVerification.Invalid<?> invalid) {
+            return new AccessTokenVerification.Invalid<>(invalid.reasonCode());
+        }
+        return new AccessTokenVerification.Invalid<>("JWT_PRINCIPAL_TYPE_INVALID");
+    }
+
+    private static <T extends IdpPrincipal> AccessTokenVerification<IdpPrincipal> copyVerification(
+            AccessTokenVerification<T> result) {
+        if (result instanceof AccessTokenVerification.Valid<?> valid) {
+            return new AccessTokenVerification.Valid<>((IdpPrincipal) valid.principal(), valid.scopes());
+        }
+        if (result instanceof AccessTokenVerification.Expired<?>) {
+            return new AccessTokenVerification.Expired<>();
+        }
+        if (result instanceof AccessTokenVerification.Unavailable<?> unavailable) {
+            return new AccessTokenVerification.Unavailable<>(unavailable.reasonCode());
+        }
+        if (result instanceof AccessTokenVerification.Invalid<?> invalid) {
+            return new AccessTokenVerification.Invalid<>(invalid.reasonCode());
+        }
+        return new AccessTokenVerification.Invalid<>("JWT_INVALID");
     }
 
     /**
      * Compatibility facade used by existing filters while they migrate to explicit paths.
      */
     public IdpPrincipal verify(String token) {
-        Jwt jwt;
-        try {
-            jwt = decode(token);
-            PrincipalType type = principalType(jwt);
-            if (type == PrincipalType.USER) {
-                AccessTokenVerification<IdentityPrincipal> result = verifyUser(token);
-                if (result instanceof AccessTokenVerification.Valid<IdentityPrincipal> valid) {
-                    return valid.principal();
-                }
-                throw verificationException(result);
-            }
-            AccessTokenVerification<ServiceIdentityPrincipal> result = verifyService(token);
-            if (result instanceof AccessTokenVerification.Valid<ServiceIdentityPrincipal> valid) {
+        if (multiIssuerConfigured()) {
+            AccessTokenVerification<IdpPrincipal> result = verifyAny(token);
+            if (result instanceof AccessTokenVerification.Valid<IdpPrincipal> valid) {
                 return valid.principal();
             }
             throw verificationException(result);
-        } catch (InvalidTokenException invalid) {
-            throw invalid;
-        } catch (JwtException | IllegalArgumentException | NullPointerException invalid) {
-            throw new InvalidTokenException("JWT_INVALID", invalid);
         }
+        AccessTokenVerification<IdpPrincipal> result = verifyLegacyAny(token);
+        if (result instanceof AccessTokenVerification.Valid<IdpPrincipal> valid) {
+            return valid.principal();
+        }
+        throw verificationException(result);
     }
 
     private Jwt decode(String token) {
@@ -368,6 +678,9 @@ public final class IdpJwtVerifier {
     }
 
     private static RuntimeException verificationException(AccessTokenVerification<?> result) {
+        if (result instanceof AccessTokenVerification.Unavailable<?> unavailable) {
+            return new TokenVerificationUnavailableException(unavailable.reasonCode());
+        }
         if (result instanceof AccessTokenVerification.Expired<?>) {
             return new InvalidTokenException("JWT_EXPIRED");
         }
@@ -375,6 +688,28 @@ public final class IdpJwtVerifier {
             return new InvalidTokenException(invalid.reasonCode());
         }
         return new InvalidTokenException("JWT_INVALID");
+    }
+
+    private static <T extends IdpPrincipal> AccessTokenVerification<T> invalidOutcome(
+            String reasonCode) {
+        String safeReason = reasonCode == null || reasonCode.isBlank()
+                ? "JWT_INVALID" : reasonCode;
+        if (safeReason.endsWith("_UNAVAILABLE")) {
+            return new AccessTokenVerification.Unavailable<>("OAUTH_SECURITY_STATE_UNAVAILABLE");
+        }
+        return new AccessTokenVerification.Invalid<>(safeReason);
+    }
+
+    private static boolean expired(Throwable failure) {
+        Throwable current = failure;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase().contains("expired")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private static String required(String value, String name) {
@@ -396,6 +731,9 @@ public final class IdpJwtVerifier {
     private static final class ExpiredTokenException extends RuntimeException {
     }
 
+    private static final class LegacyStateUnavailableException extends RuntimeException {
+    }
+
     public static final class InvalidTokenException extends RuntimeException {
         public InvalidTokenException(String message) {
             super(message);
@@ -403,6 +741,13 @@ public final class IdpJwtVerifier {
 
         public InvalidTokenException(String message, Throwable cause) {
             super(message, cause);
+        }
+    }
+
+    public static final class TokenVerificationUnavailableException extends RuntimeException {
+
+        public TokenVerificationUnavailableException(String reasonCode) {
+            super(reasonCode);
         }
     }
 }

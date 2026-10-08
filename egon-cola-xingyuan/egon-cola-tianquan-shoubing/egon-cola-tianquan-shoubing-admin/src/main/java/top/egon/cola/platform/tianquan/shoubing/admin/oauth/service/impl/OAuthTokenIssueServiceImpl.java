@@ -224,7 +224,16 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
         if (authorizationId <= 0L) {
             throw new IllegalStateException("OAUTH_AUTHORIZATION_ID_INVALID");
         }
-        return new ClientCredentialsIssueContext(authorizationId, snapshot, access);
+        String appId = client.getAppId();
+        if (appId == null || appId.isBlank() || !appId.equals(appId.trim())) {
+            throw invalidGrant();
+        }
+        return new ClientCredentialsIssueContext(
+                authorizationId,
+                snapshot,
+                access,
+                appId,
+                versionedCredentialId(client));
     }
 
     @Override
@@ -416,6 +425,16 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
         } catch (java.security.NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 is unavailable", impossible);
         }
+    }
+
+    private static String versionedCredentialId(OAuthClientBO client) {
+        Long clientPk = client.getId();
+        Long credentialVersion = client.getCredentialVersion();
+        if (clientPk == null || clientPk <= 0L
+                || credentialVersion == null || credentialVersion < 0L) {
+            throw invalidGrant();
+        }
+        return clientPk + ":" + credentialVersion;
     }
 
     private static OAuth2AuthenticationException invalidGrant() {

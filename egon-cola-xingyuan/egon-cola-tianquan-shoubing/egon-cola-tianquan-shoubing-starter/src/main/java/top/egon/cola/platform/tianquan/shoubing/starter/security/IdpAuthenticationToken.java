@@ -5,6 +5,8 @@ import top.egon.cola.platform.tianquan.shoubing.contract.IdpPrincipal;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Collection;
+import org.springframework.security.core.GrantedAuthority;
 
 /**
  * 表示已通过 Tianquan-Shoubing 校验的 Spring Security 身份凭据。
@@ -32,7 +34,15 @@ public final class IdpAuthenticationToken
      * @param principal 已验证的身份主体；validated identity principal
      */
     public IdpAuthenticationToken(IdpPrincipal principal) {
-        super(List.of());
+        this(principal, List.of());
+    }
+
+    /** Creates an identity authentication carrying only validated OAuth scope authorities. */
+    public IdpAuthenticationToken(
+            IdpPrincipal principal,
+            Collection<? extends GrantedAuthority> authorities
+    ) {
+        super(List.copyOf(Objects.requireNonNull(authorities, "authorities")));
         this.principal = Objects.requireNonNull(principal, "principal");
         setAuthenticated(true);
     }

@@ -5,15 +5,25 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdpPrincipal;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 从单个 Bearer 访问令牌建立仅包含身份的 Spring Security 上下文。
@@ -24,6 +34,8 @@ import java.util.Objects;
  * without a token continue through the chain, while malformed or invalid tokens receive a uniform
  * JSON 401 response. Endpoint ownership is selected by the explicit policy.</p>
  */
+@Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
 
     /**
@@ -39,16 +51,19 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
      *
      * <p>Access-token verifier.</p>
      */
+    @Qualifier("userAccessTokenVerifier")
     private final UserAccessTokenVerifier userAccessTokenVerifier;
 
     /**
      * Explicit SERVICE access-token verifier.
      */
+    @Qualifier("serviceAccessTokenVerifier")
     private final ServiceAccessTokenVerifier serviceAccessTokenVerifier;
 
     /**
      * Endpoint policy selecting PUBLIC, USER or SERVICE handling.
      */
+    @Qualifier("idpEndpointAuthenticationPolicy")
     private final IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy;
 
     /**
@@ -56,7 +71,16 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
      *
      * <p>JSON serializer for authentication failure responses.</p>
      */
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
+
+    /** Combined verifier used on explicit USER-or-SERVICE paths to avoid a second decode. */
+    @Qualifier("idpJwtVerifier")
+    private final IdpJwtVerifier combinedVerifier;
+
+    /** Binds verified identity MDC while the downstream authorization chain runs. */
+    @Qualifier("verifiedTenantContextFilter")
+    private final VerifiedTenantContextFilter verifiedTenantContextFilter;
 
     /**
      * 创建 Tianquan-Shoubing Bearer 身份过滤器。
@@ -74,7 +98,9 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                 new UserAccessTokenVerifier(jwtVerifier),
                 new ServiceAccessTokenVerifier(jwtVerifier),
                 new IdpEndpointAuthenticationPolicy(),
-                objectMapper);
+                objectMapper,
+                jwtVerifier,
+                new VerifiedTenantContextFilter());
     }
 
     /**
@@ -90,13 +116,30 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
             ObjectMapper objectMapper
     ) {
-        this.userAccessTokenVerifier = Objects.requireNonNull(
-                userAccessTokenVerifier, "userAccessTokenVerifier");
-        this.serviceAccessTokenVerifier = Objects.requireNonNull(
-                serviceAccessTokenVerifier, "serviceAccessTokenVerifier");
-        this.endpointAuthenticationPolicy = Objects.requireNonNull(
-                endpointAuthenticationPolicy, "endpointAuthenticationPolicy");
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+        this(userAccessTokenVerifier,
+                serviceAccessTokenVerifier,
+                endpointAuthenticationPolicy,
+                objectMapper,
+                null,
+                new VerifiedTenantContextFilter());
+    }
+
+    /** Creates the filter with the shared verified identity scope and single-pass verifier. */
+    public static IdpBearerAuthenticationFilter create(
+            UserAccessTokenVerifier userAccessTokenVerifier,
+            ServiceAccessTokenVerifier serviceAccessTokenVerifier,
+            IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
+            ObjectMapper objectMapper,
+            VerifiedTenantContextFilter verifiedTenantContextFilter,
+            IdpJwtVerifier combinedVerifier
+    ) {
+        return new IdpBearerAuthenticationFilter(
+                Objects.requireNonNull(userAccessTokenVerifier, "userAccessTokenVerifier"),
+                Objects.requireNonNull(serviceAccessTokenVerifier, "serviceAccessTokenVerifier"),
+                Objects.requireNonNull(endpointAuthenticationPolicy, "endpointAuthenticationPolicy"),
+                Objects.requireNonNull(objectMapper, "objectMapper"),
+                combinedVerifier,
+                Objects.requireNonNull(verifiedTenantContextFilter, "verifiedTenantContextFilter"));
     }
 
     /**
@@ -143,29 +186,46 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             unauthorized(response, "AUTHORIZATION_HEADER_INVALID");
             return;
         }
+        SecurityContext previousContext = null;
+        boolean restorePreviousContext = false;
+        boolean contextInstalled = false;
         try {
             IdpPrincipal principal;
             boolean userToken;
+            Set<String> verifiedScopes;
             if (requirement
                     == IdpEndpointAuthenticationPolicy.Requirement.USER_OR_SERVICE) {
-                var verification = userAccessTokenVerifier.verify(token);
-                if (verification instanceof AccessTokenVerification.Valid<?> valid) {
-                    principal = valid.principal();
-                    userToken = true;
-                } else if (principalTypeMismatch(verification)) {
-                    var serviceVerification =
-                            serviceAccessTokenVerifier.verify(token);
-                    if (serviceVerification
-                            instanceof AccessTokenVerification.Valid<?> valid) {
+                if (combinedVerifier != null) {
+                    var verification = combinedVerifier.verifyAny(token);
+                    if (verification instanceof AccessTokenVerification.Valid<?> valid) {
                         principal = valid.principal();
-                        userToken = false;
+                        userToken = principal.principalType()
+                                == top.egon.cola.platform.tianquan.shoubing.contract.PrincipalType.USER;
+                        verifiedScopes = valid.scopes();
                     } else {
-                        unauthorized(response, reason(serviceVerification));
+                        authenticationFailure(response, verification);
                         return;
                     }
                 } else {
-                    unauthorized(response, reason(verification));
-                    return;
+                    var verification = userAccessTokenVerifier.verify(token);
+                    if (verification instanceof AccessTokenVerification.Valid<?> valid) {
+                        principal = valid.principal();
+                        userToken = true;
+                        verifiedScopes = valid.scopes();
+                    } else if (principalTypeMismatch(verification)) {
+                        var serviceVerification = serviceAccessTokenVerifier.verify(token);
+                        if (serviceVerification instanceof AccessTokenVerification.Valid<?> valid) {
+                            principal = valid.principal();
+                            userToken = false;
+                            verifiedScopes = valid.scopes();
+                        } else {
+                            authenticationFailure(response, serviceVerification);
+                            return;
+                        }
+                    } else {
+                        authenticationFailure(response, verification);
+                        return;
+                    }
                 }
             } else if (requirement
                     == IdpEndpointAuthenticationPolicy.Requirement.USER) {
@@ -173,8 +233,9 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                 if (verification instanceof AccessTokenVerification.Valid<?> valid) {
                     principal = valid.principal();
                     userToken = true;
+                    verifiedScopes = valid.scopes();
                 } else {
-                    unauthorized(response, reason(verification));
+                    authenticationFailure(response, verification);
                     return;
                 }
             } else {
@@ -182,21 +243,48 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                 if (verification instanceof AccessTokenVerification.Valid<?> valid) {
                     principal = valid.principal();
                     userToken = false;
+                    verifiedScopes = valid.scopes();
                 } else {
-                    unauthorized(response, reason(verification));
+                    authenticationFailure(response, verification);
                     return;
                 }
             }
+            previousContext = SecurityContextHolder.getContext();
+            restorePreviousContext = previousContext.getAuthentication() != null;
             var context = SecurityContextHolder.createEmptyContext();
-            context.setAuthentication(new IdpAuthenticationToken(principal));
+            context.setAuthentication(new IdpAuthenticationToken(
+                    principal, scopeAuthorities(verifiedScopes)));
             SecurityContextHolder.setContext(context);
+            contextInstalled = true;
             if (userToken) {
                 VerifiedUserTokenCarrier.set(request, token);
             }
-            filterChain.doFilter(request, response);
+            verifiedTenantContextFilter.doFilter(request, response, filterChain);
         } finally {
             VerifiedUserTokenCarrier.clear(request);
-            SecurityContextHolder.clearContext();
+            if (contextInstalled && restorePreviousContext) {
+                SecurityContextHolder.setContext(previousContext);
+            } else if (contextInstalled) {
+                SecurityContextHolder.clearContext();
+            }
+        }
+    }
+
+    private List<GrantedAuthority> scopeAuthorities(Set<String> scopes) {
+        List<GrantedAuthority> authorities = new ArrayList<>(scopes.size());
+        for (String scope : scopes) {
+            authorities.add(new SimpleGrantedAuthority("SCOPE_" + scope));
+        }
+        return List.copyOf(authorities);
+    }
+
+    private void authenticationFailure(
+            HttpServletResponse response,
+            AccessTokenVerification<?> verification) throws IOException {
+        if (verification instanceof AccessTokenVerification.Unavailable<?> unavailable) {
+            temporarilyUnavailable(response, unavailable.reasonCode());
+        } else {
+            unauthorized(response, reason(verification));
         }
     }
 
@@ -207,6 +295,9 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String reason(AccessTokenVerification<?> verification) {
+        if (verification instanceof AccessTokenVerification.Unavailable<?> unavailable) {
+            return unavailable.reasonCode();
+        }
         if (verification instanceof AccessTokenVerification.Expired<?>) {
             return "JWT_EXPIRED";
         }
@@ -248,5 +339,14 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
         objectMapper.writeValue(response.getOutputStream(), Map.of(
                 "code", reasonCode,
                 "message", "Tianquan-Shoubing authentication failed"));
+    }
+
+    private void temporarilyUnavailable(HttpServletResponse response, String reasonCode)
+            throws IOException {
+        response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getOutputStream(), Map.of(
+                "code", reasonCode,
+                "message", "Tianquan-Shoubing authentication state is temporarily unavailable"));
     }
 }

@@ -8,6 +8,9 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification;
@@ -15,18 +18,20 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.UserAccessToken
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Verifies an optional RPC USER Bearer token before invoking provider callbacks. Anonymous calls
  * remain anonymous; malformed, duplicate, expired, or invalid credentials fail closed.
  */
+@Slf4j
+@RequiredArgsConstructor
 public final class IdpRpcBearerServerInterceptor
         implements ServerInterceptor {
 
     private static final int MAX_CREDENTIAL_LENGTH = 8192;
     private static final String BEARER_PREFIX = "Bearer ";
 
+    @Qualifier("userAccessTokenVerifier")
     private final UserAccessTokenVerifier verifier;
 
     /**
@@ -34,10 +39,6 @@ public final class IdpRpcBearerServerInterceptor
      *
      * @param verifier USER access-token verifier
      */
-    public IdpRpcBearerServerInterceptor(UserAccessTokenVerifier verifier) {
-        this.verifier = Objects.requireNonNull(verifier, "verifier");
-    }
-
     /**
      * Verifies one optional USER Bearer credential and scopes identity state to every callback.
      *
@@ -67,6 +68,9 @@ public final class IdpRpcBearerServerInterceptor
         }
         AccessTokenVerification<IdentityPrincipal> verification =
                 verifier.verify(token);
+        if (verification instanceof AccessTokenVerification.Unavailable<?>) {
+            return reject(call, Status.UNAVAILABLE, "oauth_security_state_unavailable");
+        }
         if (!(verification instanceof AccessTokenVerification.Valid<?> valid)) {
             String reason = verification instanceof AccessTokenVerification.Expired<?>
                     ? "jwt_expired"
@@ -144,8 +148,16 @@ public final class IdpRpcBearerServerInterceptor
             ServerCall<RequestT, ResponseT> call,
             String reason
     ) {
+        return reject(call, Status.UNAUTHENTICATED, reason);
+    }
+
+    private <RequestT, ResponseT> ServerCall.Listener<RequestT> reject(
+            ServerCall<RequestT, ResponseT> call,
+            Status status,
+            String reason
+    ) {
         call.close(
-                Status.UNAUTHENTICATED.withDescription(reason),
+                status.withDescription(reason),
                 new Metadata()
         );
         return new ServerCall.Listener<>() {
