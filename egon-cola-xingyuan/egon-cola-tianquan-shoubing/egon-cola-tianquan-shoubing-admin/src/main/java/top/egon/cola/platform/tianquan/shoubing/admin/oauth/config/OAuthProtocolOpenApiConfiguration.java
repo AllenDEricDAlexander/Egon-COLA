@@ -10,7 +10,9 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.headers.Header;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 
@@ -18,6 +20,7 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 public class OAuthProtocolOpenApiConfiguration {
 
     private static final String DISCOVERY_PATH = "/tenants/{tenantId}/.well-known/openid-configuration";
+    private static final String LOGIN_PATH = "/tenants/{tenantId}/login";
 
     @Bean("oauthProtocolOpenApiCustomizer")
     OpenApiCustomizer oauthProtocolOpenApiCustomizer() {
@@ -36,7 +39,50 @@ public class OAuthProtocolOpenApiConfiguration {
                     .responses(discoveryResponses())
                     .security(List.of());
             openApi.path(DISCOVERY_PATH, new PathItem().get(discovery));
+            PathItem login = openApi.getPaths().get(LOGIN_PATH);
+            if (login == null) {
+                login = new PathItem();
+            }
+            login.setPost(loginSubmitOperation());
+            openApi.path(LOGIN_PATH, login);
         };
+    }
+
+    private static Operation loginSubmitOperation() {
+        ObjectSchema form = new ObjectSchema();
+        form.addProperty("username", new StringSchema().minLength(1).maxLength(128));
+        form.addProperty("password", new StringSchema().minLength(1).maxLength(1024).writeOnly(true));
+        form.addProperty("_csrf", new StringSchema().minLength(1));
+        form.required(List.of("username", "password", "_csrf"));
+        Content requestContent = new Content().addMediaType(
+                "application/x-www-form-urlencoded", new MediaType().schema(form));
+        ApiResponses responses = new ApiResponses()
+                .addApiResponse("303", new ApiResponse().description("Authenticated; resume saved authorization request")
+                        .addHeaderObject("Location", new Header().required(true)
+                                .schema(new StringSchema().format("uri-reference"))))
+                .addApiResponse("400", htmlError("Invalid login form or CSRF"))
+                .addApiResponse("401", htmlError("Authentication failed"))
+                .addApiResponse("403", htmlError("Membership disabled or password change required"))
+                .addApiResponse("404", htmlError("Authorization transaction unavailable"))
+                .addApiResponse("503", htmlError("Identity or issuer service unavailable"));
+        return new Operation()
+                .operationId("oauthSasLoginSubmit")
+                .summary("Authenticate the user and resume the saved issuer authorization request")
+                .tags(List.of("OAuth Protocol"))
+                .addParametersItem(new Parameter()
+                        .name("tenantId")
+                        .in("path")
+                        .required(true)
+                        .description("Positive tenant identifier")
+                        .schema(new StringSchema().pattern("^[1-9][0-9]{0,18}$")))
+                .requestBody(new RequestBody().required(true).content(requestContent))
+                .responses(responses)
+                .security(List.of());
+    }
+
+    private static ApiResponse htmlError(String description) {
+        return new ApiResponse().description(description)
+                .content(new Content().addMediaType("text/html", new MediaType().schema(new StringSchema())));
     }
 
     private static ApiResponses discoveryResponses() {

@@ -142,13 +142,19 @@ public class OAuthAuthorizationRepositoryImpl extends EgonColaRepository<OAuthAu
                 } else {
                     id = authorization.getId();
                     current = baseMapper.selectByIdForUpdate(tenantId, id);
-                    if (current == null || current.getVersion() != expectedVersion
+                    if (current == null) {
+                        if (expectedVersion != 0L || authorization.getVersion() != 0L) {
+                            throw stale(expectedVersion, -1L);
+                        }
+                    } else if (current.getVersion() != expectedVersion
                             || authorization.getVersion() != Math.addExact(expectedVersion, 1L)) {
                         throw stale(expectedVersion, current == null ? -1L : current.getVersion());
-                    }
-                    requireImmutableIdentity(current, authorization);
-                    if (!Objects.equals(toTarget(trustedRealm, current).getAttributes(), authorization.getAttributes())) {
-                        throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_IMMUTABLE");
+                    } else {
+                        requireImmutableIdentity(current, authorization);
+                        if (!Objects.equals(toTarget(trustedRealm, current).getAttributes(),
+                                authorization.getAttributes())) {
+                            throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_IMMUTABLE");
+                        }
                     }
                 }
 

@@ -88,6 +88,8 @@ egon.cola.platform:
       jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
       resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID}
       resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI}
+      revocation:
+        epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
     jianshen:
       enabled: ${UNIFIED_IDENTITY_ENABLED:true}
       register-filter: false
@@ -107,6 +109,7 @@ egon:
     oauth:
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
       public-origin: ${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}
+      platform-management-tenant-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_MANAGEMENT_TENANT_ID}
       login-uri: ${TIANQUAN_SHOUBING_OAUTH_LOGIN_URI}
       allowed-origins: ${TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS:}
       refresh-cookie-secure: ${TIANQUAN_SHOUBING_REFRESH_COOKIE_SECURE:true}

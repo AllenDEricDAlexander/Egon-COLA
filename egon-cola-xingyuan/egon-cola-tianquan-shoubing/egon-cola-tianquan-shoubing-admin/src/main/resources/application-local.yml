@@ -18,6 +18,8 @@ egon.cola.platform:
     shoubing:
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
       jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+      revocation:
+        epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
     jianshen:
       runtime:
         redis-address: ${TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
@@ -36,6 +38,7 @@ egon:
     oauth:
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
       public-origin: ${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}
+      platform-management-tenant-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_MANAGEMENT_TENANT_ID}
       login-uri: ${TIANQUAN_SHOUBING_OAUTH_LOGIN_URI:http://127.0.0.1:18121/login}
       allowed-origins: ${TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS:http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152}
       refresh-cookie-secure: false

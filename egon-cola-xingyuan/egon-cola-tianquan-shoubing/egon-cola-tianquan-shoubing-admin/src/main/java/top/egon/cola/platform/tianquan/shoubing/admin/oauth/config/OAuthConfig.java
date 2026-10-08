@@ -104,7 +104,7 @@ public class OAuthConfig {
      * @param resources Resource 与 Grant 查询端口；Resource and Grant lookup port
      * @return Client Credentials 授权策略；Client Credentials authorization policy
      */
-    @Bean
+    @Bean("clientCredentialsAccessPolicy")
     ClientCredentialsAccessPolicy clientCredentialsAccessPolicy(
             ResourceServerStore resources
     ) {

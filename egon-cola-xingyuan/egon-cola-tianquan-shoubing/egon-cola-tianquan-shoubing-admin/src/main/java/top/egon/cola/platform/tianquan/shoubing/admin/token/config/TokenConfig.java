@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repo.RedisRefreshTokenStore;
@@ -28,19 +27,6 @@ import java.time.Clock;
  */
 @Configuration(proxyBeanMethods = false)
 public class TokenConfig {
-
-    /**
-     * 暴露 Tianquan-Shoubing 公钥 JWT 验签器。
-     *
-     * <p>Exposes the Tianquan-Shoubing public-key JWT decoder.</p>
-     *
-     * @param tokens RS256 Token 服务；RS256 token service
-     * @return JWT 验签器；JWT decoder
-     */
-    @Bean
-    JwtDecoder idpJwtDecoder(Rs256TokenService tokens) {
-        return tokens.jwtDecoder();
-    }
 
     /**
      * 创建签名密钥运行态状态提供器。

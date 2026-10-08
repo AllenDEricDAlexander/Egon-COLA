@@ -63,11 +63,11 @@
 | REQ-009 | 主Spec §4 | WebClient 自动令牌与临期重获 | 键隔离、同键并发仅一次获取、访问令牌 300–600 秒 | Step 13 |
 | REQ-010 | 主Spec §4 | SCG OAuth2 Client/BFF 入口 | 浏览器只持 HttpOnly 会话 cookie；下游仍自行验签 | Step 1; Step 14; Step 15; Step 16; Step 18 |
 | REQ-011 | 主Spec §4 | HTTPS 与 secret 哈希 | 生产 HTTP/明文 RPC 配置拒绝；新 client secret bcrypt | Step 1; Step 4; Step 9; Step 10; Step 13; Step 14; Step 17 |
-| REQ-012 | 主Spec §4 | 即时撤销 | 撤销返回成功后新鉴权拒绝，Redis 不可用返回503，在途请求不取消 | Step 6; Step 7; Step 11; Step 12; Step 14; Step 17; Step 18 |
+| REQ-012 | 主Spec §4 | 即时撤销 | 撤销返回成功后新鉴权拒绝，Redis 不可用返回503，在途请求不取消 | Step 6; Step 7; Step 9; Step 11; Step 12; Step 14; Step 17; Step 18 |
 | REQ-013 | 主Spec §4 | 密钥定期轮换 | 多键重叠，旧 token 可验证至到期，泄露键可紧急拒绝 | Step 7; Step 8; Step 10; Step 11 |
-| REQ-014 | 主Spec §4 | token 申请/使用/撤销全量脱敏审计 | 不记录原 token/secret/code/password，投递有恢复证据 | Step 2; Step 7; Step 11 |
+| REQ-014 | 主Spec §4 | token 申请/使用/撤销全量脱敏审计 | 不记录原 token/secret/code/password，投递有恢复证据 | Step 2; Step 7; Step 9; Step 11 |
 | REQ-015 | 主Spec §4 | 指标与告警 | JWT 延迟、缓存命中、失败授权、撤销依赖/投递积压可观测 | Step 7; Step 11 |
-| REQ-016 | 主Spec §4 | 保留隔离 PLATFORM 控制面 | `/platform` 只服务控制面；业务 tenant token 必含 tenant_id | Step 5; Step 8; Step 11; Step 12; Step 13; Step 15; Step 17 |
+| REQ-016 | 主Spec §4 | 保留隔离 PLATFORM 控制面 | `/platform` 只服务控制面；业务 tenant token 必含 tenant_id；PLATFORM USER 需平台管理tenant ACTIVE membership | Step 5; Step 8; Step 9; Step 11; Step 12; Step 13; Step 15; Step 17 |
 | REQ-017 | 主Spec §4 | 旧链迁移且保留业务数据 | 用户/tenant/client/grant 映射可审计；切换/回退界限明确 | Step 2; Step 5; Step 6; Step 10; Step 16; Step 17; Step 18 |
 | REQ-018 | 主Spec §4 | 按最新 Java/CQE/MP/DDL 规范 | §6.2、§20 每项证据闭合；保留传统业务分包 | Step 1; Step 2; Step 4; Step 17 |
 | REQ-019 | 修订§4/DEC-108 | 仅修订Spec和Plan、禁generator/自动运行 | diff只有相关文档；没有运行/实施动作 | Step 17; Step 18 |
@@ -104,7 +104,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | Step 6 | Step 5 | None，逐Step完成并提交 | 其他未完成Step写域 | 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写。 |
 | Step 7 | Step 6 | None，逐Step完成并提交 | 其他未完成Step写域 | 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写。 |
 | Step 8 | Step 7 | None，逐Step完成并提交 | 其他未完成Step写域 | SAS多issuer精确registry、JWK与protocol discovery逐租户独立。 |
-| Step 9 | Step 8 | None，逐Step完成并提交 | 其他未完成Step写域 | 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限。 |
+| Step 9 | Step 8 | None，逐Step完成并提交 | 其他未完成Step写域 | 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限；PLATFORM USER校验配置的管理tenant membership；签发审计与Outbox同事务。 |
 | Step 10 | Step 9 | None，逐Step完成并提交 | 其他未完成Step写域 | 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示。 |
 | Step 11 | Step 10 | None，逐Step完成并提交 | 其他未完成Step写域 | 成功撤销后新鉴权拒绝；Redis故障503；审计持久可恢复。 |
 | Step 12 | Step 11 | None，逐Step完成并提交 | 其他未完成Step写域 | 所有受保护资源请求本地RS256后共享撤销检查，Servlet ThreadLocal/MDC最终清理。 |
@@ -147,7 +147,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | 持久化授权码、令牌和同意 | REQ-003, REQ-004, REQ-012, REQ-017, REQ-023, REQ-027, REQ-028 | Required — 必需PO/BO/Repository签名先让test编译；测试在Mapper/Impl装配前因缺Bean或缺具名SQL按目标RED，随后GREEN。 | Step 5 | 加密authorization/refresh与明文access-token digest事实、consent范围可按可信realm/tenant/active/version读写，所有新converter遵守PO→BO方向。 | Step 7 | Step 6 |
 | 持久化密钥、撤销与审计状态 | REQ-012, REQ-013, REQ-014, REQ-015, REQ-020, REQ-021, REQ-023, REQ-027, REQ-028 | Required — 必需PO/BO/Repository签名先让test编译；测试在Mapper/Impl装配前因缺Bean或缺具名SQL按目标RED，随后GREEN。 | Step 6 | 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写。 | Step 8 | Step 7 |
 | 装配多issuer SAS仓储与协议发现 | REQ-001, REQ-002, REQ-004, REQ-013, REQ-016 | Required — 两issuer测试先因SPI/多路径缺失RED，再补真实SAS装配GREEN。 | Step 7 | SAS多issuer精确registry、JWK与protocol discovery逐租户独立。 | Step 9 | Step 8 |
-| 实现授权码、PKCE和登录交互 | REQ-003, REQ-004, REQ-005, REQ-011 | Required — 旧token controller无authorization_code/PKCE/OIDC，focused protocol RED后仅最小Provider/登录改动GREEN。 | Step 8 | 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限。 | Step 10 | Step 9 |
+| 实现授权码、PKCE和登录交互 | REQ-003, REQ-004, REQ-005, REQ-011, REQ-012, REQ-014, REQ-016 | Required — default SAS UUID/request attributes and S256 policy are fixed by focused RED/GREEN tests; code/token audit and component Outbox enqueue share the local transaction, and PLATFORM USER access requires configured manager membership. | Step 8 | 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限。 | Step 10 | Step 9 |
 | 改造客户端、资源与密钥管理 | REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026 | Required — 当前JPA/Argon2/全局资源UI路径使租户/密钥测试RED，修最小管理链后GREEN。 | Step 9 | 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示。 | Step 11 | Step 10 |
 | 闭合撤销、审计、密钥轮换 | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-020, REQ-021 | Required — 初始无共享状态/恢复handler，RED由新用例而非容器启动失败；单元先GREEN，真实Redis/PG在用户运行门禁。 | Step 10 | 成功撤销后新鉴权拒绝；Redis故障503；审计持久可恢复。 | Step 12 | Step 11 |
 | 在资源服务器建立多issuer本地验签和租户上下文 | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024 | Required — 新多issuer/tenant/Redis故障测试RED；创建resolver/Bridge之后GREEN。 | Step 11 | 所有受保护资源请求本地RS256后共享撤销检查，Servlet ThreadLocal/MDC最终清理。 | Step 13 | Step 12 |
@@ -213,7 +213,7 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java  # Step 2
 MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2,3,4,5,6
-MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3,4,5,6,8
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3,4,5,6,8,9
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/oauth-sharding-native.yml  # Step 2
@@ -376,10 +376,10 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java  # Step 8
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java  # Step 8
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java  # Step 8,9
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java  # Step 8
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java  # Step 8; MODIFY Step 9
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml  # Step 8
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml  # Step 8
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java  # Step 9
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java  # Step 9
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java  # Step 9
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java  # Step 9,18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java  # Step 9,18
@@ -388,6 +388,14 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java  # Step 9
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java  # Step 9
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java  # Step 9
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java  # Step 9
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java  # Step 9
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java  # Step 9
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthAuthorizationRepositoryImpl.java  # Step 9
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/support/outbox/OAuthAuditOutboxDeliveryHandler.java  # Step 9
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml  # Step 9
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml  # Step 9
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java  # Step 9
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java  # Step 10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientViewConverter.java  # Step 10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/ClientResourceGrantViewConverter.java  # Step 10
@@ -437,7 +445,7 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthRetentionServiceTest.java  # Step 11
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthRetentionService.java  # Step 11
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthRetentionServiceImpl.java  # Step 11
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java  # Step 11
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java  # Step 9; MODIFY in Step 11
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TokenRevocationServiceImpl.java  # Step 11
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/support/outbox/OAuthSecurityDeliveryHandler.java  # Step 11
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSigningKeyRotationServiceImpl.java  # Step 11
@@ -727,16 +735,24 @@ DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | SAS Consent SPI。 | Step 8 | REQ-001,REQ-002,REQ-004,REQ-013,REQ-016 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | active private signer + all allowed public verification keys。 | Step 8 | REQ-001,REQ-002,REQ-004,REQ-013,REQ-016 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | SAS+OIDC Filter ordering。 | Step 8, Step 9 | REQ-001,REQ-002,REQ-003,REQ-004,REQ-005,REQ-011,REQ-013,REQ-016 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | document true SAS Filter endpoints。 | Step 8 | REQ-001,REQ-002,REQ-004,REQ-013,REQ-016 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | RED缺code/nonce拒绝。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `ConsumeOAuthTokenCommand` 在主Spec中的字段/消费依赖。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | document true SAS Filter endpoints。 | Step 8 | REQ-001,REQ-002,REQ-004,REQ-013,REQ-016 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | RED缺code/nonce拒绝。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `ConsumeOAuthTokenCommand` 在主Spec中的字段/消费依赖。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 关闭 `TokenConfig coexistence` 在主Spec中的字段/消费依赖。 | Step 9, Step 18 | REQ-001,REQ-003,REQ-004,REQ-005,REQ-006,REQ-010,REQ-011,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 关闭 `OAuthConfig coexistence` 在主Spec中的字段/消费依赖。 | Step 9, Step 18 | REQ-001,REQ-003,REQ-004,REQ-005,REQ-006,REQ-010,REQ-011,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | SAS业务侧发行约束。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 签发编排与事务状态守卫。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 保持SAS原协议处理但同事务校验。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 呈现现有IdentityFacade人员认证页。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 使用真实密码/锁定/membership规则。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | SAS业务侧发行约束。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 签发编排与事务状态守卫。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 保持SAS原协议处理但同事务校验。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 呈现现有IdentityFacade人员认证页。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml` | Accepted Spec §15.5 requires the key; current base profile lacks it | `platform-management-tenant-id` | Required operator-owned PLATFORM USER membership tenant. | Step 9 | REQ-012,REQ-016 | Step 9 three focused tests/profile parity |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml` | Accepted Spec §15.5 requires base/local parity; current local profile lacks it | `platform-management-tenant-id` | Same required PLATFORM membership binding, no default. | Step 9 | REQ-012,REQ-016 | Step 9 three focused tests/profile parity |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/support/outbox/OAuthAuditOutboxDeliveryHandler.java` | TransactionalOutbox DeliveryHandler extension point exists | `oauthAuditOutboxDeliveryHandler` | Send safe issuance audit envelope to EVENT-002 stream after local commit. | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | Step 9 focused command |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java` | Step 8 regression fixture; now supplies snapshot collaborator | `TenantAuthorizationServiceImpl` fixture wiring | Keep issuer/JWKS isolation contracts after Step 9 wiring. | Step 9 | REQ-003,REQ-004 | Step 9 three-test focused command |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java` | 当前测试存在；Step 9锁定受信显式ID插入 | `explicitAuthorizationIdInsert` | client_credentials签名ID必须与持久化ID一致。 | Step 9 | REQ-003,REQ-004,REQ-005 | Step 9双focused测试命令 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java` | SAS 1.5.8保存授权请求属性；当前转换器拒绝未类型化SAS授权 | `toSource` saved request mapping | 从SAS可信attributes读取PKCE/nonce/redirect/resources。 | Step 9 | REQ-003,REQ-004,REQ-005 | Step 9双focused测试命令 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java` | 当前SPI实现拒绝默认SAS授权attributes | save/find security snapshot roundtrip | 持久化和读取签发时相同的租户安全快照。 | Step 9 | REQ-003,REQ-004,REQ-005 | Step 9双focused测试命令 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthAuthorizationRepositoryImpl.java` | 当前首次insert自动重分配non-null id | preserveExplicitIdFirstInsert | 保留受信正数id并维持null id Snowflake行为。 | Step 9 | REQ-003,REQ-004,REQ-005 | OAuthAuthorizationPersistenceContractTest |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 使用真实密码/锁定/membership规则。 | Step 9 | REQ-003,REQ-004,REQ-005,REQ-011,REQ-014 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | RED现有全局client/Argon2路径。 | Step 10 | REQ-002,REQ-005,REQ-011,REQ-013,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientViewConverter.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthClientViewConverter` 在主Spec中的字段/消费依赖。 | Step 10 | REQ-002,REQ-005,REQ-011,REQ-013,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/ClientResourceGrantViewConverter.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `ClientResourceGrantViewConverter` 在主Spec中的字段/消费依赖。 | Step 10 | REQ-002,REQ-005,REQ-011,REQ-013,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
@@ -786,7 +802,7 @@ DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthRetentionServiceTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthRetentionServiceTest` 在主Spec中的字段/消费依赖。 | Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthRetentionService.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthRetentionService` 在主Spec中的字段/消费依赖。 | Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthRetentionServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthRetentionServiceImpl` 在主Spec中的字段/消费依赖。 | Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 单调Redis Lua状态与ready/fence。 | Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java` | Step 9 source and accepted §15.1 keys | `snapshotForAuthorization`, `requireCurrentSnapshot` | Step 9 reads; Step 11 extends write-side projection. | Step 9, Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TokenRevocationServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 先DB事实/Outbox后Redis可见确认。 | Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/support/outbox/OAuthSecurityDeliveryHandler.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 真实Outbox投影消费。 | Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSigningKeyRotationServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 定时90天生命周期。 | Step 11 | REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-020,REQ-021 | 对应Step精确命令/原回归 |
@@ -6085,41 +6101,66 @@ RESULT -> the Plan identifies the full config/test/service commit boundary.
 
 ### Step 9 — 实现授权码、PKCE和登录交互
 
-- Requirements: REQ-003, REQ-004, REQ-005, REQ-011
+- Requirements: REQ-003, REQ-004, REQ-005, REQ-011, REQ-012, REQ-014, REQ-016
 - Dependencies: Step 8
 - Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在codeS256RedirectNonceReplay所列新行为。
-- Observable outcome: 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限。
-- End state: 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限；后续Step的Consumer尚未切流，不声明完整生产验收。
-- Test-first gate: Required — 旧token controller无authorization_code/PKCE/OIDC，focused protocol RED后仅最小Provider/登录改动GREEN。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
+- Observable outcome: 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限；PLATFORM USER 授权要求配置管理tenant的ACTIVE membership。
+- End state: standard Code/PKCE/consent/login and machine Client Credentials remain bounded by scope/audience; PLATFORM USER authorization checks the configured management-tenant membership; successful issuance audit is durable in the local transaction and has a retryable Outbox delivery; later consumers remain uncutover.
+- Test-first gate: Required — converter/S256 and explicit authorization-ID contracts were run RED first; GREEN verifies snapshot EVAL, platform membership, login/session/CSRF, Outbox stream whitelisting, and profile parity.
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
+- Plan clarification: Step 9 keeps the existing root `/oauth2/*` controller dependencies active until Step 18 retires those endpoints. Remove only the exported single-issuer `idpJwtDecoder`; preserve the legacy `Rs256TokenService`/TokenFacade/refresh beans for those root handlers. The SAS chain uses its own tenant-aware `JwtDecoder` over the Step 8 JWKSource and verifies `iss` against `TenantIssuerService.resolveCurrentIssuer()`. The SAS built-in Basic provider authenticates against the tenant-scoped `RegisteredClientRepository`; the legacy JPA Basic authenticator remains confined to the root legacy token controller. `ClientCredentialsAccessPolicy` is the shared business rule; the root handler retains its separate URL until Step 18. Spring Authorization Server 1.5.8 `OAuth2Authorization.Builder.build()` assigns a UUID to a new authorization and its authorization-code provider stores the `OAuth2AuthorizationRequest` in `OAuth2Authorization.attributes`; File 14 treats that framework UUID as an absent storage ID and maps the trusted request attributes before persistence. For a new authorization-code transaction, File 14 allocates a positive Snowflake storage ID before inserting the row; the later code-exchange customizer uses the ID loaded from that row. For client_credentials, the JWT customizer allocates a positive numeric authorization ID before signing and persists that exact claim with version 0; no persistence path may replace a signed ID. File 6 introduces the security snapshot read needed by both signed claims and persisted authorizations: compare authoritative DB rows for REALM `self`, CLIENT decimal client PK, and USER subject against one same-slot Redis read-only EVAL of ready epoch and current generation/revision; fail closed if the DB/Redis view is missing or stale. Step 11 extends this component with the write-side projection. Client-credentials commands carry no fabricated token digest; only code/refresh consumption carries the actual presented token digest. Authorization, token, audit-row and Outbox enqueue share the local MP/DataSource transaction; delivery publishes only a typed safe audit envelope to the existing Redis Streams MQ; do not add a second transaction manager or copy Outbox component DDL.
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`
 
-- Purpose: RED缺code/nonce拒绝。
-- Symbols: `codeS256RedirectNonceReplay`。
+- Purpose: 锁定SAS默认保存request attributes的PKCE/nonce转换与S256-only门禁。
+- Symbols: `mapsSavedAuthorizationRequestToTypedPkceAndOidcAttributes`, `requiresS256AndRejectsMissingPlainOrMalformedChallenges`, `mapsClientCredentialsSignedAuthorizationIdInsteadOfSasUuid`, `readsOneSameSlotSecuritySnapshotAndFailsWhenTheReadyFenceIsMissing`, `platformUserAuthorizationUsesTheConfiguredManagementTenantMembership`, and the login/Outbox contracts.
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 8 与本Step此前文件；输出供 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 本Step的编译前置/RED契约先锁定； RED缺code/nonce拒绝在此位置后才可接消费者。
 - Contract/signature changes: codeS256RedirectNonceReplay；RED缺code/nonce拒绝。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: synthetic two tenants, URI allowlist, fixed Clock。
-- Error and edge behavior: oldOAuthTokenController仅supports client_credentials → RED。
+- Error and edge behavior: 当前SasAuthorizationConverter对SAS保存的OAuth2AuthorizationRequest返回OAUTH_AUTHORIZATION_ATTRIBUTES_REQUIRED；框架缺少显式S256-only行为校验 → RED。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 11, Rule 2, Rule 4；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
 - Implementation pseudocode:
 
 ```java
 INPUT -> synthetic two tenants, URI allowlist, fixed Clock。
-FLOW -> MockMvc Code+S256, clientCredentials+aud, OIDC IDToken, duplicate code/RT; assert no password/implicit/plain; no raw token log
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> oldOAuthTokenController仅supports client_credentials → RED。
+FLOW -> adapt the actual Spring Authorization Server 1.5.8 saved request attributes, assert state is digest-only and nonce/verifier are not logged, exercise the configured S256 helper with valid/missing/plain/malformed inputs, and map a signed client_credentials authorization_id instead of the framework UUID
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missing typed SAS request mapping and S256-only authorization validation are the target REDs; unsupported fields, stale security state, and invalid membership fail closed.
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 codeS256RedirectNonceReplay 的正例与 oldOAuthTokenController仅supports client_credentials → RED 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责saved request PKCE/nonce的正例、S256拒绝负例及 client_credentials signed-ID映射。
 - After this file: codeS256RedirectNonceReplay 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java`
+
+- Purpose: 锁定client_credentials签名ID与持久化ID一致。
+- Symbols: `explicitAuthorizationIdInsert`。
+- Repository evidence: 当前测试已覆盖首次插入自动Snowflake ID、版本及租户隔离；同一文件可锁定customizer受信预分配ID。
+- Dependencies and consumers: 只依赖现有OAuthAuthorizationRepository/Mapper测试边界；不连接数据库。
+- Why now: client_credentials JWT customizer在持久化前签名 `authorization_id`，先固定ID一致性和重复ID冲突行为。
+- Contract/signature changes: 允许且仅允许 `id > 0 && expectedVersion == 0 && authorization.version == 0` 的受信BO首次插入保留显式ID；重复、已存在或负值仍失败。
+- Input/output and state mapping: 精确tenant context下授权ID不被仓储重分配，插入后版本为0。
+- Error and edge behavior: 非法/已存在ID返回持久化冲突或状态错误，不静默改用Snowflake ID。
+- Standards impact: MC-TEST-001, MC-VALID-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted client_credentials OAuthAuthorizationBO with the positive signed claim id, version 0 and expectedVersion 0.
+FLOW -> assert mapper insert receives that exact id and duplicate/nonpositive IDs are rejected; keep null-id first insert Snowflake behavior unchanged.
+FAIL -> no signed authorization_id may differ from the persisted id.
+```
+
+- Verification contribution: Step 9 command runs this persistence test with the protocol and issuer-isolation tests; focused assertions distinguish explicit client_credentials ID from the SAS UUID / code-flow Snowflake storage ID.
+- After this file: the positive client_credentials ID signed into the JWT is accepted unchanged as the first persisted authorization identifier.
+
+
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java`
 
 - Purpose: 关闭 `ConsumeOAuthTokenCommand` 在主Spec中的字段/消费依赖。
 - Symbols: `ConsumeOAuthTokenCommand`。
@@ -6143,14 +6184,14 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 9 的focus测试对 `ConsumeOAuthTokenCommand` 的字段、装配、负例及不泄密断言。
 - After this file: `ConsumeOAuthTokenCommand` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`
 
 - Purpose: 关闭 `TokenConfig coexistence` 在主Spec中的字段/消费依赖。
 - Symbols: `TokenConfig coexistence`。
 - Repository evidence: 当前同名文件存在，符号/消费者由rg确认。
 - Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §7.3.1/§9，不产生新HTTP路由。
 - Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: legacy signer and refresh Beans only on explicitly isolated legacy profile; new AS uses tenant keyring, no duplicate JwtEncoder/JwtDecoder。
+- Contract/signature changes: keep Rs256TokenService/TokenFacade/legacy refresh collaborators for root handlers until Step 18; remove the exported single-issuer `idpJwtDecoder`, and use the tenant JWKSource-backed JwtDecoder for SAS OIDC. No JwkEncoder/Decoder bean is shared across issuers.
 - Input/output and state mapping: 精确字段由主Spec §7.3.1/§9 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -6159,7 +6200,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 
 ```java
 INPUT -> 仅接受主Spec §7.3.1/§9 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> legacy signer and refresh Beans only on explicitly isolated legacy profile; new AS uses tenant keyring, no duplicate JwtEncoder/JwtDecoder。
+FLOW -> retain legacy signer/refresh beans required by existing root controller injections through Step 18; remove only the global single-issuer JwtDecoder. SAS resolves JWT keys from the exact issuer context and tenant JWKSource.
 OUTPUT -> TokenConfig coexistence 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
@@ -6167,14 +6208,14 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 9 的focus测试对 `TokenConfig coexistence` 的字段、装配、负例及不泄密断言。
 - After this file: `TokenConfig coexistence` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`
 
 - Purpose: 关闭 `OAuthConfig coexistence` 在主Spec中的字段/消费依赖。
 - Symbols: `OAuthConfig coexistence`。
 - Repository evidence: 当前同名文件存在，符号/消费者由rg确认。
 - Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §7.3.1/§9，不产生新HTTP路由。
 - Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: existing Basic authenticator/client policy reused by SAS adapter; legacy signer dependency isolated to legacy profile; no two /oauth2/token mappers。
+- Contract/signature changes: preserve root legacy Basic/client-credentials handler dependencies until Step 18; SAS uses its per-issuer RegisteredClientRepository and built-in Basic provider; reuse ClientCredentialsAccessPolicy for business resource/scope checks; root and tenant-prefixed token routes remain distinct.
 - Input/output and state mapping: 精确字段由主Spec §7.3.1/§9 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -6183,7 +6224,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 
 ```java
 INPUT -> 仅接受主Spec §7.3.1/§9 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> existing Basic authenticator/client policy reused by SAS adapter; legacy signer dependency isolated to legacy profile; no two /oauth2/token mappers。
+FLOW -> keep the old JpaOAuthClientStore/Basic/ClientCredentialsTokenService only for root legacy handlers; new SAS Basic authentication reads tenant-scoped RegisteredClient data; share ClientCredentialsAccessPolicy for explicit resource/scope policy without sharing client or signing state.
 OUTPUT -> OAuthConfig coexistence 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
@@ -6191,14 +6232,37 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 9 的focus测试对 `OAuthConfig coexistence` 的字段、装配、负例及不泄密断言。
 - After this file: `OAuthConfig coexistence` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java`
+
+- Purpose: read and validate the current authorization security-generation snapshot before a code or JWT can be committed.
+- Symbols: `snapshotForAuthorization`, `requireCurrentSnapshot`.
+- Repository evidence: existing `OAuthSecurityStateRepository.findByTargetForUpdate` is the DB authority; accepted Spec §15.1 defines ready/generation Redis keys, issuer hash slotting, and fail-closed behavior.
+- Dependencies and consumers: uses only the existing MP state repository, Redisson primary client, canonical issuer digest, and the required operator epoch; Step 9 token issue and authorization persistence use the same component; Step 11 adds its write-side projection.
+- Why now: SAS token customizers need the current REALM/CLIENT/USER generation tuple and authorization persistence must record the same snapshot.
+- Contract/signature changes: require REALM target `self`, CLIENT decimal PK, and SUBJECT identitySub for USER; obtain DB rows under realm→client→subject lock order; one `RScript.Mode.READ_ONLY` EVAL returns ready epoch/status/revision and matching generations from same-slot keys; SERVICE omits subject. `requireCurrentSnapshot` compares the generation tuple while accepting a newer global revision when those generations are unchanged.
+- Input/output and state mapping: canonical issuer hash is SHA-256 hex; subject key is SHA-256 of identitySub; ready epoch must match the required configured epoch; DB and Redis generation/enabled/revision must agree.
+- Error and edge behavior: absent/disabled target, missing/stale projection, non-READY status, or epoch mismatch fails closed; DB/Redis dependency errors become temporarily_unavailable; never read from a replica or negative-cache.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001.
+- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11.
+- Implementation pseudocode:
+
+```java
+INPUT -> TrustedRealmBO, positive clientPk, USER/SERVICE principalType, and USER identitySub only.
+FLOW -> lock REALM self then CLIENT then optional USER SUBJECT in the current DataSource transaction; issue one same-slot read-only EVAL; compare against the required ready epoch and fail closed on mismatch.
+FAIL -> missing DB state, absent Redis hash, stale revision/generation, disabled state, or unavailable primary never emits a usable snapshot.
+```
+
+- Verification contribution: `OAuthOidcProtocolContractTest` asserts one READ_ONLY EVAL, same-slot hashed subject keys, exact DB/Redis tuple mapping, and missing ready rejection.
+- After this file: downstream code can attach a current, typed security snapshot without adding Redis calls inside the user identity domain.
+
+#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`
 
 - Purpose: SAS业务侧发行约束。
 - Symbols: `consumeAndIssue(TrustedRealmBO,ConsumeOAuthTokenCommand)`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 8 与本Step此前文件；输出供 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； SAS业务侧发行约束在此位置后才可接消费者。
-- Contract/signature changes: consumeAndIssue(TrustedRealmBO,ConsumeOAuthTokenCommand)；SAS业务侧发行约束。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Contract/signature changes: consumeAndIssue(TrustedRealmBO,ConsumeOAuthTokenCommand), authorizeClientCredentials(TrustedRealmBO,Long,Set<String>)；SAS业务侧发行约束。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: resource/scope from registered+grant+consent intersection。
 - Error and edge behavior: no user scope implicit all。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
@@ -6207,15 +6271,15 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 
 ```java
 INPUT -> resource/scope from registered+grant+consent intersection。
-FLOW -> @Validated OAuth2AccessTokenAuthenticationToken consumeAndIssue(TrustedRealmBO, @Valid ConsumeOAuthTokenCommand); lower-level framework handles protocol shape
+FLOW -> consumeAndIssue validates one actual code/refresh digest and grant state; authorizeClientCredentials validates client resource/scope intersection without inventing tokenDigest; return typed issue context with authorizationId allocated before JWT signing and current security snapshot
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no user scope implicit all。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 consumeAndIssue(TrustedRealmBO,ConsumeOAuthTokenCommand) 的正例与 no user scope implicit all 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 consumeAndIssue(TrustedRealmBO,ConsumeOAuthTokenCommand) 的正例与 no user scope implicit all 负例。
 - After this file: consumeAndIssue(TrustedRealmBO,ConsumeOAuthTokenCommand) 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`
 
 - Purpose: 签发编排与事务状态守卫。
 - Symbols: `consumeAndIssue`。
@@ -6231,15 +6295,15 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> auth attributes+token rows only within same realm。
-FLOW -> @Service("oauthTokenIssueService") @Slf4j @RequiredArgsConstructor; use ClientCredentialsAccessPolicy; lock realm→client→subject→authorization→token; map grant/context to USER/SERVICE claims; enqueue audit; reject SERVICE RT/IDToken
+FLOW -> @Service("oauthTokenIssueService") @Slf4j @RequiredArgsConstructor; use ClientCredentialsAccessPolicy, OAuthRealmRepository, TenantMembershipPort, existing OAuthAuditRepository and component TransactionalOutbox; lock realm→client→security subject→consent/grant→authorization→token; map exact SAS saved request plus current DB/Redis security snapshot into USER/SERVICE claims; allocate a positive authorization ID before encoding and persist exactly it with version 0; write OAuthAuditRepository and enqueue a durable typed audit envelope through TransactionalOutbox in the same local transaction; reject SERVICE RT/IDToken
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> replayed code/RT rollback; no partial token。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 consumeAndIssue 的正例与 replayed code/RT rollback; no partial token 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 consumeAndIssue 的正例与 replayed code/RT rollback; no partial token 负例。
 - After this file: consumeAndIssue 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`
+#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`
 
 - Purpose: 保持SAS原协议处理但同事务校验。
 - Symbols: `authorizeCode/refresh/clientCredentials wrappers`。
@@ -6260,10 +6324,10 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> unknown commit invalid_grant; no dup
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 authorizeCode/refresh/clientCredentials wrappers 的正例与 unknown commit invalid_grant; no duplicate issue 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 authorizeCode/refresh/clientCredentials wrappers 的正例与 unknown commit invalid_grant; no duplicate issue 负例。
 - After this file: authorizeCode/refresh/clientCredentials wrappers 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java`
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java`
 
 - Purpose: 呈现现有IdentityFacade人员认证页。
 - Symbols: `GET /tenants/{tenantId}/login`。
@@ -6284,10 +6348,10 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> unknown issuer/expired transaction s
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 GET /tenants/{tenantId}/login 的正例与 unknown issuer/expired transaction safe error 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 GET /tenants/{tenantId}/login 的正例与 unknown issuer/expired transaction safe error 负例。
 - After this file: GET /tenants/{tenantId}/login 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`
 
 - Purpose: 使用真实密码/锁定/membership规则。
 - Symbols: `POST /tenants/{tenantId}/login`。
@@ -6308,18 +6372,18 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> wrong login no subject leak; no pass
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 POST /tenants/{tenantId}/login 的正例与 wrong login no subject leak; no password grant 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 POST /tenants/{tenantId}/login 的正例与 wrong login no subject leak; no password grant 负例。
 - After this file: POST /tenants/{tenantId}/login 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
 
 - Purpose: 接入授权码/同意/会话与claims。
 - Symbols: `token endpoint provider list`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 8 与本Step此前文件；输出供 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； 接入授权码/同意/会话与claims在此位置后才可接消费者。
-- Contract/signature changes: token endpoint provider list；接入授权码/同意/会话与claims。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: IDToken client aud; AT target resource aud; USER vs SERVICE。
+- Contract/signature changes: token endpoint provider list plus a primary tenant-aware JwtDecoder bean backed by the scoped JWKSource; issuer claim must match the currently resolved trusted realm; add the OAuth Security projection/snapshot reader used by authorization persistence and JWT claims.
+- Input/output and state mapping: IDToken client aud; AT target resource aud; USER vs SERVICE; UserInfo decoder validates signature, time, and exact current issuer.
 - Error and edge behavior: typ/kid/issuer mismatch reject and do not publish unauthorized endpoint。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 2, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
@@ -6327,23 +6391,234 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> IDToken client aud; AT target resource aud; USER vs SERVICE。
-FLOW -> enable Code+S256 only; TokenSettings 300–600s; OIDC id_token nonce; Basic bcrypt; resourceUri exact; issue JWT iss/aud/sub/scope/tenant_id and security_version
+FLOW -> remove TokenConfig single-issuer JwtDecoder; create tenant JwtDecoder from OAuth2AuthorizationServerConfiguration.jwtDecoder(tenantJwkSource) and compare iss to current trusted realm; configure the authorization-code request validator for S256 only; token customizer preserves PKCE/nonce/redirect/state/resource/audience and security snapshot from the saved SAS authorization request; allocate client_credentials authorization ID before signing; code-grant storage ID is allocated by TenantAuthorizationServiceImpl before its first save; enforce IDToken client aud vs AT target aud; add /tenants/{id}/login only to the issuer chain and retain CSRF on login
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> typ/kid/issuer mismatch reject and do not publish unauthorized endpoint。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 token endpoint provider list 的正例与 typ/kid/issuer mismatch reject and do not publish unauthorized endpoint 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 token endpoint provider list 的正例与 typ/kid/issuer mismatch reject and do not publish unauthorized endpoint 负例。
 - After this file: token endpoint provider list 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
+#### File 13 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: align Step 9 bean isolation, SAS UUID handling, signed authorization IDs, projection order, and token decoder wiring with the current source lifecycle.
+- Symbols: Step 9 File 4/5/12/6/14/15/16 contracts, exact commit scope, and Step 11 projection lifecycle.
+- Repository evidence: root OAuthLogin/StepUp/Token/Metadata/InternalRefresh controllers still require TokenFacade, Rs256TokenService and legacy refresh dependencies through Step 18; only `TokenConfig.idpJwtDecoder` is a global single-issuer decoder. SAS authorization builders assign UUIDs before the MP adapter persists numeric IDs, and client_credentials access tokens need their signed numeric authorization id preserved.
+- Dependencies and consumers: documents the existing root compatibility routes and the new SAS tenant-scoped SPI/JWK path.
+- Why now: disabling all legacy signer/refresh beans by profile would break current controller wiring before Step 18; retaining the global decoder would make OIDC UserInfo verify tenant-key tokens with the legacy PEM.
+- Contract/signature changes: keep legacy root collaborators alive through their declared retirement; remove the exported single-issuer decoder; add a tenant-aware decoder using the scoped JWKSource and exact issuer check; treat SAS-generated UUID as absent storage ID for code grants, allocate an MP Snowflake ID before persistence, and preserve the client_credentials claim ID.
+- Input/output and state mapping: no external route changes; `/oauth2/*` remains the legacy root path, SAS endpoints remain issuer-prefixed.
+- Error and edge behavior: unknown/mismatched issuer and unsupported signing key fail closed; no fallback to the legacy decoder.
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-NAME-001, MC-TEST-001; preserve compatibility and prevent decoder ambiguity.
+- Literal rule enforcement: Rule 7, Rule 11; keep base/local configuration and current module boundaries consistent.
+- Implementation pseudocode:
+
+```text
+INPUT -> current TokenConfig/OAuthConfig bean graph, SAS 1.5.8 authorization builder, MP authorization repository, exact SAS JWKSource, and the strict Plan validator.
+FLOW -> amend the Step 9 descriptions and one exact Plan-file path; SAS UUIDs are not database identifiers, code grants receive a Snowflake ID before persistence, and client_credentials IDs remain equal to the signed claim.
+OUTPUT -> legacy handlers keep their injected beans until Step 18 while SAS OIDC UserInfo uses the tenant-aware decoder and JWT/storage IDs remain consistent.
+FAIL -> if implementing this correction requires a new external route or schema, return to the effective Spec before coding.
+```
+
+- Verification contribution: strict Plan validator and Step 9 path list/commit allowlist comparison.
+- After this file: the exact Step 9 implementation boundary matches current code and issuer-security requirements.
+
+
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`
+
+- Purpose: 从SAS自身保存的协议请求还原授权状态。
+- Symbols: `toSource(OAuth2Authorization,OAuthAuthorizationBO,ObjectMapper)`。
+- Repository evidence: SAS 1.5.8 authorization-code provider stores its `OAuth2AuthorizationRequest` and `Principal` in the authorization attributes, while `OAuth2Authorization.Builder.build()` generates a UUID; the current converter rejects both the request attributes and nonnumeric ID.
+- Dependencies and consumers: uses existing `OAuthAuthorizationAttributesBO`, `OAuthSecuritySnapshotBO`, and typed token claims; caller remains `TenantAuthorizationServiceImpl`.
+- Why now: saved code request is authoritative for PKCE/nonce/redirect/resource values and must become typed data before local persistence.
+- Contract/signature changes: derive code challenge/method, redirect URI, nonce, state digest and requested resources from the saved request; preserve the authorized principal, authentication time and ACR; retain typed values on later loads and token exchange.
+- Input/output and state mapping: only a saved SAS authorization request and trusted realm context are accepted; no HTTP parameter or forwarded header directly supplies persisted authorization claims.
+- Error and edge behavior: missing request on initial authorization-code save, invalid/non-S256 challenge or malformed resource fails closed; the service supplies the mandatory current security snapshot before persistence, and subsequent updates reuse persisted typed attributes.
+- Standards impact: MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-JSON-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 3, Rule 6, Rule 9, Rule 10, Rule 11.
+- Implementation pseudocode:
+
+```java
+INPUT -> SAS authorization attributes plus an authoritative OAuth2AuthorizationRequest on first code save; persisted typed attributes on subsequent save.
+FLOW -> ignore only the canonical UUID SAS assigns before an authorization receives a database identity; derive a numeric ID from a signed authorization_id claim when present, otherwise leave the storage ID absent for the service to allocate. Map only typed protocol fields and preserve typed claims.
+FAIL -> unsupported grant/authentication state is not converted through a generic BaseConverter fallback.
+```
+
+- Verification contribution: protocol tests assert S256, exact redirect, nonce and resource/audience survive SAS authorization save/load; persistence test retains existing encrypted payload coverage.
+- After this file: SAS default authorization attributes can be stored without weakening the typed OAuth persistence boundary.
+
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`
+
+- Purpose: 为新授权建立一致的安全快照和签发用授权ID。
+- Symbols: `save`, `findById`, `findByToken`。
+- Repository evidence: current implementation rejects authorizations without typed attributes and rejects a UUID assigned by SAS when parsing its database identifier.
+- Dependencies and consumers: uses the Step 9 projection snapshot reader and typed converter; existing SAS SPI remains the sole protocol storage adapter.
+- Why now: authorization-code save/update and token lookup must retain one current tenant snapshot, exact ID and token rows.
+- Contract/signature changes: populate attributes from the SAS request through File 14; preserve an already allocated ID; on initial authorization-code save treat SAS UUID as no database ID and assign one positive Snowflake ID before persistence; for client_credentials use the signed token claim ID and keep it identical to the persisted value; validate current snapshot and active USER membership in the business tenant or configured PLATFORM management tenant before saving; after first code row/token insert, write audit and enqueue component Outbox event before local commit.
+- Input/output and state mapping: tenant identity comes only from `TenantIssuerService`; no arbitrary principal, issuer, tenant, or token claim is trusted as storage routing.
+- Error and edge behavior: missing/stale DB/Redis security snapshot, client mismatch, replay, invalid issuer, or ID mismatch fails closed.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11.
+- Implementation pseudocode:
+
+```java
+INPUT -> exact current TrustedRealmBO and SAS authorization object.
+FLOW -> build typed attributes from saved SAS request; obtain current DB/Redis snapshot; preserve or allocate the numeric storage id according to grant; save authorization/token, audit row and component Outbox event inside the local MP transaction.
+FAIL -> stale or unavailable security projection yields the existing fail-closed OAuth error; no partially persisted authorization.
+```
+
+- Verification contribution: Step 9 protocol and persistence tests cover save/load, issuer isolation, ID equality and stale/missing snapshot rejection with mocks.
+- After this file: SAS authorization persistence can round-trip the state used by signed claims.
+
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthAuthorizationRepositoryImpl.java`
+
+- Purpose: 保留受信SAS预分配授权ID。
+- Symbols: `save`。
+- Repository evidence: current new-row path always replaces null IDs with Snowflake IDs and treats any non-null ID as a required existing row; SAS supplies UUIDs before the first persistence save.
+- Dependencies and consumers: uses existing MP mapper and transaction; no schema/sequence change.
+- Why now: a client_credentials JWT claim and authorization row must use one ID, while authorization-code storage IDs are allocated by the SPI before save and ordinary null-ID callers retain Snowflake allocation.
+- Contract/signature changes: on first insert accept only explicit positive ID with expectedVersion/version both zero; verify row absent before insert; let DB unique constraint reject collision; do not overwrite with Snowflake. Existing update path and generated-ID path remain unchanged.
+- Input/output and state mapping: storage partition still comes from validated TrustedRealmBO; created_at/update fields remain handled by MP.
+- Error and edge behavior: duplicate ID is conflict; no update/upsert behavior for a first insert; no caller-selected tenant context.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11.
+- Implementation pseudocode:
+
+```java
+INPUT -> authorization.id null or an explicit positive numeric ID, version zero and expectedVersion zero for first insert; the SAS SPI maps its generated UUID to an absent storage ID before persistence.
+FLOW -> choose Snowflake only for null id; for explicit id verify it is absent in the trusted storage partition, preserve it, and use existing insert/unique-conflict handling.
+FAIL -> reject mismatched version, nonpositive id, or collision without silently changing the identifier.
+```
+
+- Verification contribution: OAuthAuthorizationPersistenceContractTest asserts null-ID allocation is unchanged and explicit positive-ID insert persists the same value.
+- After this file: any accepted preallocated authorization ID remains stable through database persistence.
+
+
+#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/support/outbox/OAuthAuditOutboxDeliveryHandler.java`
+
+- Purpose: project committed issuance-audit Outbox records to the existing OAuth Redis Streams audit channel.
+- Symbols: `oauthAuditOutboxDeliveryHandler`.
+- Repository evidence: the installed transactional-outbox starter exposes `TransactionalOutbox.enqueue` and `DeliveryHandler`; the effective Spec requires successful OAuth issuance facts in oauth_audit and a durable Outbox event in the same local transaction.
+- Dependencies and consumers: delivery only; `OAuthAuditConsumer` from Step 11 is the idempotent Streams consumer. The handler does not mutate authorization or token rows.
+- Why now: Step 9 writes code/refresh/client_credentials audit facts and provides a replayable event for the existing audit consumer.
+- Contract/signature changes: fixed channel/destination and schemaVersion=1 event envelope; XADD the serialized typed event and eventId to `egon:oauth:audit:v1`; repeated delivery is tolerated by downstream eventId uniqueness.
+- Input/output and state mapping: event contains only eventId, issuer, resource reference, hashed subject/client references, result, reason code, and occurredAt; it never contains token/code/secret/nonce/verifier/private key.
+- Error and edge behavior: unknown schema or malformed envelope permanently fails; Redis unavailable is retryable and leaves the Outbox message pending.
+- Standards impact: MC-ARCH-001, MC-LOG-001, MC-JSON-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11.
+- Implementation pseudocode:
+
+```java
+INPUT -> committed schemaVersion=1 audit event from the component Outbox.
+FLOW -> validate the whitelist and exact issuer/eventId; XADD eventId plus serialized payload to the existing audit stream; never log payload fields.
+FAIL -> malformed payload is permanent failure; stream outage is retryable; no acknowledgement is made by this adapter itself.
+```
+
+- Verification contribution: Step 9 protocol test verifies the handler channel/destination and that XADD fields omit raw credentials/tokens; handler uses a mocked Redisson stream.
+- After this file: successful token issue produces a durable, replayable audit event without a second local transaction.
+
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`
+
+
+- Purpose: adapt the existing SAS isolation fixture to the new authorization security-snapshot collaborator and preserve its Step 8 contracts.
+- Symbols: `TestWebConfiguration`, `TenantAuthorizationServiceImpl` construction.
+- Repository evidence: this existing focused test manually constructs `TenantAuthorizationServiceImpl` and imports `AuthorizationServerConfiguration`; both fixtures remain required after Step 9 changes.
+- Dependencies and consumers: reuse mocked repository and issuer fixtures; do not start PostgreSQL, Redis, or a server.
+- Why now: production constructor and optional SAS security chain providers now have a typed snapshot and token-generation dependency.
+- Contract/signature changes: supply mocked `OAuthRealmRepository`, `OAuthSecurityProjectionComponent`, and `OAuthTokenIssueService` to service construction, assert the platform-management tenant and revocation epoch placeholders match across profiles, and provide only optional infrastructure beans needed to exercise the production chain; retain all Step 8 per-issuer discovery/JWKS assertions.
+- Input/output and state mapping: tenant 1001/1002 and PLATFORM test contexts remain isolated; PLATFORM USER authorization additionally resolves only the configured management-tenant membership.
+- Error and edge behavior: existing discovery, JWKS, cache-header and invalid-client results stay unchanged when token issuance dependencies are absent from this protocol-only fixture.
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 4, Rule 11.
+- Implementation pseudocode:
+
+```java
+INPUT -> current Step 8 MockMvc fixtures and Step 9 constructor/provider wiring.
+FLOW -> add only the collaborator needed to compile and preserve Step 8 tests; keep production beans optional in this protocol-only context.
+FAIL -> no test-only bypass of issuer isolation, JWK key scoping, or protocol errors.
+```
+
+- Verification contribution: run TenantIssuerIsolationTest with the Step 9 protocol and persistence tests.
+- After this file: Step 8 coverage remains executable against Step 9 production wiring.
+
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
+
+- Purpose: expose the required real required platform-management tenant for PLATFORM USER membership authorization.
+- Symbols: `egon.tianquan-shoubing.oauth.platform-management-tenant-id`, `egon.cola.platform.tianquan.shoubing.revocation.epoch`.
+- Repository evidence: accepted Spec §9.0/§15.1/§15.5 requires these values and the current base profile has no key; neither may have a permissive/default value.
+- Dependencies and consumers: consumed by `OAuthTokenIssueServiceImpl` for PLATFORM membership and `OAuthSecurityProjectionComponent` to verify the current fenced Redis PRIMARY epoch.
+- Why now: PLATFORM user grants are only valid for a user with active membership in the configured administrator tenant; every security snapshot read must match the operator-configured epoch; callers never choose either value.
+- Contract/signature changes: add `${EGON_TIANQUAN_SHOUBING_PLATFORM_MANAGEMENT_TENANT_ID}` and `${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}` with no defaults under their exact existing prefixes; do not change legacy issuer or signing configuration.
+- Input/output and state mapping: bind the management tenant as positive long and the revocation epoch as a constrained string; the operator owns both values.
+- Error and edge behavior: absent/invalid environment property prevents startup; no public tenant selector can override either value.
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 7, Rule 11.
+- Implementation pseudocode:
+
+```text
+INPUT -> current base application.yml and accepted Spec required key.
+FLOW -> add only the non-secret environment placeholder with no default.
+FAIL -> no value is logged or persisted from source control.
+```
+
+- Verification contribution: profile parity test asserts both required placeholders exist in base and local without printing YAML values.
+- After this file: platform administration authorization and Redis recovery fencing have required operator-owned values.
+
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+
+- Purpose: keep the local OAuth profile aligned with required PLATFORM membership and Redis recovery-epoch configuration.
+- Symbols: `egon.tianquan-shoubing.oauth.platform-management-tenant-id`, `egon.cola.platform.tianquan.shoubing.revocation.epoch`.
+- Repository evidence: accepted Spec §15.1/§15.5 requires base/local leaf-key parity; current local profile has no matching required leaf keys.
+- Dependencies and consumers: same `OAuthTokenIssueServiceImpl` and `OAuthSecurityProjectionComponent` consumers as File 18.
+- Why now: local startup must reveal missing deployment configuration rather than silently weakening PLATFORM membership checks.
+- Contract/signature changes: add the same `${EGON_TIANQUAN_SHOUBING_PLATFORM_MANAGEMENT_TENANT_ID}` and `${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}` placeholders with no defaults; preserve any local-only values and do not print YAML values.
+- Input/output and state mapping: bind the management tenant as positive long and the revocation epoch as a constrained string; local and production provide their own values.
+- Error and edge behavior: absent/invalid value prevents application start.
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 7, Rule 11.
+- Implementation pseudocode:
+
+```text
+INPUT -> current application-local.yml and the same required base-profile key.
+FLOW -> mirror the exact environment placeholder from File 18.
+FAIL -> no default, literal tenant ID, or secret is introduced.
+```
+
+- Verification contribution: existing profile-parity test asserts key equality without exposing YAML values.
+- After this file: base and local profiles have both required tenant and epoch keys.
+
+
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
+
+- Purpose: document the existing SAS login page and form-submit Filter routes without adding a fake POST controller.
+- Symbols: `oauthSasLoginPage`, `oauthSasLoginSubmit`.
+- Repository evidence: current OpenAPI customizer documents only tenant discovery; API-018 GET is implemented by TenantLoginController and API-019 POST is owned by TenantLoginAuthenticationFilter.
+- Dependencies and consumers: extend the existing `OpenApiCustomizer` and merge POST into the GET PathItem; preserve the Step 8 discovery operation and operationId.
+- Why now: the consumer-visible login form contract must describe the real session/CSRF filter behavior.
+- Contract/signature changes: add `GET /tenants/{tenantId}/login` with 200 HTML/no-store and `POST /tenants/{tenantId}/login` form-urlencoded fields username/password/_csrf, 303 Location, and the specified error responses; no bearer authentication or new route.
+- Input/output and state mapping: tenantId is positive decimal; return/redirect is only the saved issuer authorization request; no output contains the password or session identifier.
+- Error and edge behavior: unknown issuer/transaction is 404; invalid credentials do not reveal whether an identity exists; CSRF is required on POST.
+- Standards impact: MC-SCOPE-001, MC-JSON-001, MC-CONFIG-001, MC-TEST-001.
+- Literal rule enforcement: Rule 6, Rule 7, Rule 11.
+- Implementation pseudocode:
+
+```java
+INPUT -> existing SpringDoc OpenAPI model plus actual login Controller mapping.
+FLOW -> preserve the discovery GET; add the API-019 POST operation to the same issuer login path without defining a Controller mapping for POST.
+FAIL -> generated OpenAPI must not claim a Bearer requirement or document token/password output.
+```
+
+- Verification contribution: TenantIssuerIsolationTest inspects `/v3/api-docs` and asserts the exact GET/POST operationIds, content types, required CSRF field, and Location response.
+- After this file: API-018/API-019 documentation matches the actual MVC page and security filter.
+
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
-- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。
 - Expected result: 先确认上述RED由缺失目标行为引起，GREEN时命名用例成功、模块编译成功、`git diff --check`零错误；不以不存在依赖/数据库/fixture而失败作为RED。
 - Failure returns to: Step 8 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
 - Completion criteria: 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
 - Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthAuthorizationRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/support/outbox/OAuthAuditOutboxDeliveryHandler.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
 - Commit: `feat(shoubing): implement code pkce oidc and client grants`。
-
 ### Step 10 — 改造客户端、资源与密钥管理
 
 - Requirements: REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026
@@ -7587,7 +7862,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 11 的focus测试对 `OAuthRetentionServiceImpl` 的字段、装配、负例及不泄密断言。
 - After this file: `OAuthRetentionServiceImpl` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java`
 
 - Purpose: 单调Redis Lua状态与ready/fence。
 - Symbols: `oauthSecurityProjectionComponent`。
@@ -10623,7 +10898,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | Step 6 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthAuthorizationPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；`git diff --check`。 | 持久化授权码、令牌和同意 | 合同测试因缺cipher/Mapper先目标RED；PO→BO、AES-GCM AAD/schema及授权/token/consent映射最终GREEN，模块编译通过 | Step 6对应File | REQ-003, REQ-004, REQ-012, REQ-017, REQ-023, REQ-027, REQ-028；运行环境证据另列 |
 | Step 7 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 持久化密钥、撤销与审计状态 | 精确用例先目标RED后GREEN；模块编译通过 | Step 7对应File | REQ-012, REQ-013, REQ-014, REQ-015, REQ-020, REQ-021；运行环境证据另列 |
 | Step 8 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 装配多issuer SAS仓储与协议发现 | 精确用例先目标RED后GREEN；模块编译通过 | Step 8对应File | REQ-001, REQ-002, REQ-004, REQ-013, REQ-016；运行环境证据另列 |
-| Step 9 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 实现授权码、PKCE和登录交互 | 精确用例先目标RED后GREEN；模块编译通过 | Step 9对应File | REQ-003, REQ-004, REQ-005, REQ-011；运行环境证据另列 |
+| Step 9 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 实现授权码、PKCE和登录交互 | 精确用例先目标RED后GREEN；模块编译通过 | Step 9对应File | REQ-003, REQ-004, REQ-005, REQ-011；运行环境证据另列 |
 | Step 10 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 改造客户端、资源与密钥管理 | 精确用例先目标RED后GREEN；模块编译通过 | Step 10对应File | REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026；运行环境证据另列 |
 | Step 11 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TokenRevocationServiceTest,IdentityAuthenticationTransactionContractTest,IdentityOutboxPublisherTest,IdentityAuditServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 闭合撤销、审计、密钥轮换 | 精确用例先目标RED后GREEN；模块编译通过 | Step 11对应File | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-020, REQ-021；运行环境证据另列 |
 | Step 12 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=MultiIssuerResourceServerTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 在资源服务器建立多issuer本地验签和租户上下文 | 精确用例先目标RED后GREEN；模块编译通过 | Step 12对应File | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024；运行环境证据另列 |
@@ -10664,15 +10939,15 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | --- | --- | --- | --- | --- | --- |
 | REQ-001 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 1; Step 8; Step 15; Step 18 | `egon-cola-xingyuan/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 对应Step RED/GREEN与§8矩阵 | 只有授柄签发令牌，鉴神不保存密码/私钥 |
 | REQ-002 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 2; Step 4; Step 8; Step 10; Step 12 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java` | 对应Step RED/GREEN与§8矩阵 | A 租户 code/client/key 对 B 不可用；未知 issuer 无出站请求 |
-| REQ-003 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 6; Step 9; Step 14; Step 16 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthAuthorizationPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 对应Step RED/GREEN与§8矩阵 | 缺 PKCE/plain/错 verifier/URI 通配符/重复 code 均拒绝 |
-| REQ-004 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 6; Step 8; Step 9; Step 14; Step 16 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthAuthorizationPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 对应Step RED/GREEN与§8矩阵 | iss/aud/nonce 校验、UserInfo sub 一致，ID Token 不能访问业务 |
-| REQ-005 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 4; Step 5; Step 9; Step 10; Step 13; Step 15 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/po/OAuthResourcePO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2ClientTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceAuthorizationKey.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java` | 对应Step RED/GREEN与§8矩阵 | SERVICE 无 refresh_token/ID Token；scope/resource 超授权拒绝 |
+| REQ-003 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 6; Step 9; Step 14; Step 16 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthAuthorizationPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 对应Step RED/GREEN与§8矩阵 | 缺 PKCE/plain/错 verifier/URI 通配符/重复 code 均拒绝 |
+| REQ-004 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 6; Step 8; Step 9; Step 14; Step 16 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthAuthorizationPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 对应Step RED/GREEN与§8矩阵 | iss/aud/nonce 校验、UserInfo sub 一致，ID Token 不能访问业务 |
+| REQ-005 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 4; Step 5; Step 9; Step 10; Step 13; Step 15 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/po/OAuthResourcePO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2ClientTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceAuthorizationKey.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java` | 对应Step RED/GREEN与§8矩阵 | SERVICE 无 refresh_token/ID Token；scope/resource 超授权拒绝 |
 | REQ-006 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 12; Step 14; Step 15; Step 18 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 对应Step RED/GREEN与§8矩阵 | 有缓存公钥时不逐请求调用授权服务器；错 aud/alg 拒绝 |
 | REQ-007 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 12; Step 15 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java` | 对应Step RED/GREEN与§8矩阵 | ThreadLocal、MDC、异步取消/异常均无跨请求污染 |
 | REQ-008 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §11 | Step 2; Step 5; Step 12 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/po/OAuthResourcePO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java` | 对应Step RED/GREEN与§8矩阵 | 两租户相同业务 ID、批处理/自定义 SQL/逻辑删除不能串租户 |
 | REQ-009 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 13 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2ClientTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceAuthorizationKey.java` | 对应Step RED/GREEN与§8矩阵 | 键隔离、同键并发仅一次获取、访问令牌 300–600 秒 |
 | REQ-010 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 1; Step 14; Step 15; Step 16; Step 18 | `egon-cola-xingyuan/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 对应Step RED/GREEN与§8矩阵 | 浏览器只持 HttpOnly 会话 cookie；下游仍自行验签 |
-| REQ-011 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 1; Step 4; Step 9; Step 10; Step 13; Step 14; Step 17 | `egon-cola-xingyuan/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2ClientTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceAuthorizationKey.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthMigrationService.java` | 对应Step RED/GREEN与§8矩阵 | 生产 HTTP/明文 RPC 配置拒绝；新 client secret bcrypt |
+| REQ-011 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 1; Step 4; Step 9; Step 10; Step 13; Step 14; Step 17 | `egon-cola-xingyuan/pom.xml`; `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthTokenIssueService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2ClientTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/ServiceAuthorizationKey.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthMigrationService.java` | 对应Step RED/GREEN与§8矩阵 | 生产 HTTP/明文 RPC 配置拒绝；新 client secret bcrypt |
 | REQ-012 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 6; Step 7; Step 11; Step 12; Step 14; Step 17; Step 18 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthAuthorizationPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/po/OAuthSigningKeyPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSigningKeyBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/TokenRevocationServiceTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/security/MultiIssuerResourceServerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthMigrationService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 对应Step RED/GREEN与§8矩阵 | 撤销返回成功后新鉴权拒绝，Redis 不可用返回503，在途请求不取消 |
 | REQ-013 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 7; Step 8; Step 10; Step 11 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/po/OAuthSigningKeyPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSigningKeyBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/TokenRevocationServiceTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java` | 对应Step RED/GREEN与§8矩阵 | 多键重叠，旧 token 可验证至到期，泄露键可紧急拒绝 |
 | REQ-014 | [主Spec](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7/9/15/16 | Step 2; Step 7; Step 11 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/po/OAuthSigningKeyPO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSigningKeyBO.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/TokenRevocationServiceTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthSecurityProjectionComponent.java` | 对应Step RED/GREEN与§8矩阵 | 不记录原 token/secret/code/password，投递有恢复证据 |

@@ -29,16 +29,22 @@ import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthSecuritySnapshotBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasAuthorizationConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasRegisteredClientConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthAuthorizationRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenMetadataBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthTokenRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthSecurityProjectionComponent;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.SignedTokenClaimsBO;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 @Service("tenantAuthorizationService")
 @Slf4j
@@ -50,6 +56,8 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
 
     @Qualifier("tenantIssuerService")
     private final TenantIssuerService tenantIssuerService;
+    @Qualifier("oAuthRealmRepository")
+    private final OAuthRealmRepository realmRepository;
     @Qualifier("oAuthAuthorizationRepository")
     private final OAuthAuthorizationRepository authorizationRepository;
     @Qualifier("oAuthTokenRepository")
@@ -64,13 +72,28 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
     private final ObjectMapper objectMapper;
     @Qualifier("egonColaMybatisPlusClock")
     private final Clock clock;
+    @Qualifier("oauthSecurityProjectionComponent")
+    private final OAuthSecurityProjectionComponent securityProjection;
+    @Qualifier("oauthTokenIssueService")
+    private final OAuthTokenIssueService tokenIssueService;
 
     @Override
     @Transactional
     public void save(@NotNull OAuth2Authorization source) {
         OAuth2Authorization authorization = Objects.requireNonNull(source, "authorization");
         TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
-        Long authorizationId = parseOptionalPositiveId(authorization.getId());
+        realmRepository.findByRealmKeyForUpdate(trustedRealm)
+                .orElseThrow(() -> new IllegalStateException("OAUTH_AUTHORIZATION_REALM_NOT_FOUND"));
+        OAuthClientBO client = loadClient(trustedRealm, authorization.getRegisteredClientId());
+        client = clientRepository.findByClientIdForUpdate(trustedRealm, client.getClientId())
+                .filter(value -> value.getStatus() != null && "ACTIVE".equals(value.getStatus().name()))
+                .orElseThrow(() -> new IllegalStateException("OAUTH_AUTHORIZATION_CLIENT_NOT_FOUND"));
+        String principalType = AuthorizationGrantType.CLIENT_CREDENTIALS.equals(
+                authorization.getAuthorizationGrantType()) ? "SERVICE" : "USER";
+        OAuthSecuritySnapshotBO currentSnapshot = securityProjection.snapshotForAuthorization(
+                trustedRealm, client.getId(), principalType,
+                "USER".equals(principalType) ? authorization.getPrincipalName() : null);
+        Long authorizationId = parseSasStorageId(authorization.getId());
         OAuthAuthorizationBO current = authorizationId == null
                 ? null
                 : authorizationRepository.findByIdForUpdate(trustedRealm, authorizationId).orElse(null);
@@ -78,7 +101,6 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
             throw new IllegalStateException("OAUTH_AUTHORIZATION_NOT_FOUND");
         }
 
-        OAuthClientBO client = loadClient(trustedRealm, authorization.getRegisteredClientId());
         RegisteredClient registeredClient = clientConverter.toTarget(client);
         if (!registeredClient.getAuthorizationGrantTypes().contains(authorization.getAuthorizationGrantType())
                 || !client.getAllowedScopes().containsAll(authorization.getAuthorizedScopes())) {
@@ -92,18 +114,74 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
         value.setTokens(null);
         long expectedVersion = current == null ? 0L : current.getVersion();
         if (current != null) {
+            securityProjection.requireCurrentSnapshot(trustedRealm, client.getId(), principalType,
+                    "USER".equals(principalType) ? current.getPrincipalName() : null,
+                    current.getAttributes().getSecuritySnapshot());
             value.setId(current.getId());
             value.setVersion(Math.addExact(current.getVersion(), 1L));
             value.setAttributes(current.getAttributes());
-            value.setAbsoluteExpiresAt(current.getAbsoluteExpiresAt());
+            value.setAbsoluteExpiresAt(absoluteExpiry(current, tokenSnapshot));
         } else {
-            value.setId(null);
+            Long signedAuthorizationId = value.getId();
+            value.setId(signedAuthorizationId == null ? SnowflakeIdGenerator.nextLongId() : signedAuthorizationId);
             value.setVersion(0L);
+            if (value.getId() == null || value.getId() <= 0L) {
+                throw new IllegalStateException("OAUTH_AUTHORIZATION_ID_INVALID");
+            }
+            if (value.getAttributes() == null) {
+                throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_REQUIRED");
+            }
+            if (value.getAttributes().getSecuritySnapshot() == null) {
+                value.getAttributes().setSecuritySnapshot(currentSnapshot);
+            } else if (!value.getAttributes().getSecuritySnapshot().equals(currentSnapshot)) {
+                throw new IllegalStateException("OAUTH_SECURITY_SNAPSHOT_STALE");
+            }
+            value.setAbsoluteExpiresAt(absoluteExpiry(value, tokenSnapshot));
         }
+        requireSignedAuthorizationMatchesSnapshot(tokenSnapshot, value.getId(), currentSnapshot);
 
         OAuthAuthorizationBO saved = authorizationRepository.save(trustedRealm, value, expectedVersion);
         saveTokenSnapshot(trustedRealm, saved.getId(), tokenSnapshot);
         invalidateTokensMissingFromSnapshot(trustedRealm, saved.getId(), tokenSnapshot);
+        if (current == null && AuthorizationGrantType.AUTHORIZATION_CODE.equals(
+                authorization.getAuthorizationGrantType())) {
+            tokenIssueService.recordAuthorizationCodeCreated(trustedRealm, saved);
+        }
+    }
+
+    private static Instant absoluteExpiry(OAuthAuthorizationBO authorization, List<OAuthTokenBO> tokens) {
+        Instant tokenExpiry = tokens.stream()
+                .map(OAuthTokenBO::getExpiresAt)
+                .filter(Objects::nonNull)
+                .max(Instant::compareTo)
+                .orElse(null);
+        Instant priorExpiry = authorization.getAbsoluteExpiresAt();
+        if (priorExpiry == null) {
+            return Objects.requireNonNull(tokenExpiry, "OAUTH_AUTHORIZATION_EXPIRY_REQUIRED");
+        }
+        return tokenExpiry == null || priorExpiry.isAfter(tokenExpiry) ? priorExpiry : tokenExpiry;
+    }
+
+    private static void requireSignedAuthorizationMatchesSnapshot(
+            List<OAuthTokenBO> tokens,
+            Long authorizationId,
+            OAuthSecuritySnapshotBO snapshot) {
+        if (tokens == null || tokens.isEmpty()) {
+            return;
+        }
+        for (OAuthTokenBO token : tokens) {
+            SignedTokenClaimsBO claims = token.getMetadata() == null ? null : token.getMetadata().getClaims();
+            if (claims == null || claims.getAuthorizationId() == null) {
+                continue;
+            }
+            if (!Long.toString(authorizationId).equals(claims.getAuthorizationId())
+                    || claims.getSecurityVersion() == null
+                    || !Objects.equals(claims.getSecurityVersion().getRealm(), snapshot.getRealmGeneration())
+                    || !Objects.equals(claims.getSecurityVersion().getClient(), snapshot.getClientGeneration())
+                    || !Objects.equals(claims.getSecurityVersion().getSubject(), snapshot.getSubjectGeneration())) {
+                throw new IllegalStateException("OAUTH_SIGNED_AUTHORIZATION_STATE_MISMATCH");
+            }
+        }
     }
 
     @Override
@@ -141,7 +219,7 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
         RegisteredClient client = clientConverter.toTarget(loadClient(trustedRealm,
                 Long.toString(authorization.getClientPk())));
         authorization.setTokens(loadCurrentTokens(trustedRealm, authorization.getId()));
-        return authorizationConverter.toTarget(authorization, client, objectMapper);
+        return authorizationConverter.toTarget(authorization, client, objectMapper, trustedRealm.getIssuer());
     }
 
     @Override
@@ -178,7 +256,7 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
         authorization.setTokens(tokens);
         RegisteredClient client = clientConverter.toTarget(loadClient(trustedRealm,
                 Long.toString(authorization.getClientPk())));
-        return authorizationConverter.toTarget(authorization, client, objectMapper);
+        return authorizationConverter.toTarget(authorization, client, objectMapper, trustedRealm.getIssuer());
     }
 
     private OAuthClientBO loadClient(TrustedRealmBO trustedRealm, String clientId) {
@@ -340,5 +418,18 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
         } catch (NumberFormatException failure) {
             return null;
         }
+    }
+
+    private static Long parseSasStorageId(String id) {
+        if (id == null) {
+            return null;
+        }
+        if (id.matches("[1-9][0-9]{0,18}")) {
+            return parseOptionalPositiveId(id);
+        }
+        if (id.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")) {
+            return null;
+        }
+        throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ID_INVALID");
     }
 }

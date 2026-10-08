@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.session.Configuration;
@@ -40,7 +42,10 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthAuthorizationMapper;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationAttributesBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthConsentBO;
@@ -49,11 +54,14 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRea
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.po.OAuthAuthorizationPO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.po.OAuthConsentPO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.OAuthAuthorizationConverter;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.impl.OAuthAuthorizationRepositoryImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.config.OAuthKeyEncryptionProperties;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenMetadataBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.po.OAuthTokenPO;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthPayloadCipherComponent;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServerStatus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,6 +71,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
 
 class OAuthAuthorizationPersistenceContractTest {
 
@@ -503,6 +515,57 @@ class OAuthAuthorizationPersistenceContractTest {
                 () -> consentSave.invoke(consentRepository, trustedTenant(), staleConsent, 1L));
         assertInstanceOf(org.springframework.dao.OptimisticLockingFailureException.class, consentFailure.getCause());
         assertFalse(consentUpdated.get());
+    }
+
+    @Test
+    void explicitAuthorizationIdIsPreservedOnFirstInsert() throws Exception {
+        long expectedId = 9_100_001L;
+        OAuthAuthorizationMapper mapper = Mockito.mock(OAuthAuthorizationMapper.class);
+        OAuthPayloadCipherComponent cipher = Mockito.mock(OAuthPayloadCipherComponent.class);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+        AtomicReference<String> attributesJson = new AtomicReference<>();
+        when(cipher.encrypt(any(TrustedRealmBO.class), eq("authorization-attributes"), eq(Long.toString(expectedId)),
+                any(String.class))).thenAnswer(invocation -> {
+                    attributesJson.set(invocation.getArgument(3));
+                    return "ENC:v1:test:nonce:ciphertext";
+                });
+        when(cipher.decrypt(any(TrustedRealmBO.class), eq("authorization-attributes"), eq(Long.toString(expectedId)),
+                any(String.class))).thenAnswer(invocation -> attributesJson.get());
+        when(mapper.selectByIdForUpdate(TENANT_PARTITION_ID, expectedId)).thenReturn(null);
+        doAnswer(invocation -> 1).when(mapper).insert(any(OAuthAuthorizationPO.class));
+
+        OAuthAuthorizationRepositoryImpl repository = new OAuthAuthorizationRepositoryImpl(
+                mapper,
+                scopedProperties(),
+                Mappers.getMapper(OAuthAuthorizationConverter.class),
+                cipher,
+                objectMapper,
+                mock(EgonColaUserIdProvider.class),
+                Clock.systemUTC());
+        OAuthAuthorizationBO authorization = authorization(authorizationRow(expectedId, 0L), 0L)
+                .setId(expectedId)
+                .setVersion(0L);
+
+        try (ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory()) {
+            EgonColaModelValidationUtils.Binding binding = EgonColaModelValidationUtils.current() == null
+                    ? EgonColaModelValidationUtils.initialize(
+                            new ValidationUtils(validatorFactory.getValidator()),
+                            "OAuthAuthorizationPersistenceContractTest")
+                    : null;
+            try {
+                OAuthAuthorizationBO saved = repository.save(trustedTenant(), authorization, 0L);
+                assertEquals(expectedId, saved.getId());
+                org.mockito.ArgumentCaptor<OAuthAuthorizationPO> inserted =
+                        org.mockito.ArgumentCaptor.forClass(OAuthAuthorizationPO.class);
+                Mockito.verify(mapper).insert(inserted.capture());
+                assertEquals(expectedId, inserted.getValue().getId());
+                assertEquals(0L, inserted.getValue().getVersion());
+            } finally {
+                if (binding != null) {
+                    binding.close();
+                }
+            }
+        }
     }
 
     @Test

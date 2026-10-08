@@ -77,6 +77,7 @@ import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityDirectoryContext;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.config.AuthorizationServerConfiguration;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.config.OAuthProtocolOpenApiConfiguration;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.TenantLoginController;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationAttributesBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
@@ -95,6 +96,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthCons
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.TenantRegisteredClientRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TenantAuthorizationServiceImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TenantConsentServiceImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TenantIssuerServiceImpl;
@@ -107,6 +109,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTo
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthSigningKeyRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthTokenRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthKeyCipherComponent;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthSecurityProjectionComponent;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.TenantJwkSourceComponent;
 import top.egon.cola.platform.tianquan.shoubing.contract.OAuthSecurityVersionBO;
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthClient;
@@ -134,13 +137,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {
         TenantIssuerIsolationTest.TestWebConfiguration.class,
         AuthorizationServerConfiguration.class,
-        OAuthProtocolOpenApiConfiguration.class
+        OAuthProtocolOpenApiConfiguration.class,
+        TenantLoginController.class
 })
 @WebAppConfiguration
 @TestPropertySource(properties = "egon.tianquan-shoubing.oauth.public-origin=https://idp.example.test")
@@ -148,6 +153,13 @@ class TenantIssuerIsolationTest {
 
     private static final String PUBLIC_ORIGIN_KEY = "egon.tianquan-shoubing.oauth.public-origin";
     private static final String PUBLIC_ORIGIN_PLACEHOLDER = "${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}";
+    private static final String PLATFORM_MANAGEMENT_TENANT_KEY =
+            "egon.tianquan-shoubing.oauth.platform-management-tenant-id";
+    private static final String PLATFORM_MANAGEMENT_TENANT_PLACEHOLDER =
+            "${EGON_TIANQUAN_SHOUBING_PLATFORM_MANAGEMENT_TENANT_ID}";
+    private static final String REVOCATION_EPOCH_KEY =
+            "egon.cola.platform.tianquan.shoubing.revocation.epoch";
+    private static final String REVOCATION_EPOCH_PLACEHOLDER = "${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}";
     private static final URI PUBLIC_ORIGIN = URI.create("https://idp.example.test");
     private static final String SHARED_CLIENT_ID = "shared-client";
     private static final String SHARED_KID = "shared-signing-key";
@@ -219,9 +231,21 @@ class TenantIssuerIsolationTest {
                 .getFirst().getProperty(PUBLIC_ORIGIN_KEY);
         String localOrigin = (String) loader.load("local", new ClassPathResource("application-local.yml"))
                 .getFirst().getProperty(PUBLIC_ORIGIN_KEY);
+        String baseManagementTenant = (String) loader.load("base", new ClassPathResource("application.yml"))
+                .getFirst().getProperty(PLATFORM_MANAGEMENT_TENANT_KEY);
+        String localManagementTenant = (String) loader.load("local", new ClassPathResource("application-local.yml"))
+                .getFirst().getProperty(PLATFORM_MANAGEMENT_TENANT_KEY);
+        String baseEpoch = (String) loader.load("base", new ClassPathResource("application.yml"))
+                .getFirst().getProperty(REVOCATION_EPOCH_KEY);
+        String localEpoch = (String) loader.load("local", new ClassPathResource("application-local.yml"))
+                .getFirst().getProperty(REVOCATION_EPOCH_KEY);
 
         assertEquals(PUBLIC_ORIGIN_PLACEHOLDER, baseOrigin);
         assertEquals(PUBLIC_ORIGIN_PLACEHOLDER, localOrigin);
+        assertEquals(PLATFORM_MANAGEMENT_TENANT_PLACEHOLDER, baseManagementTenant);
+        assertEquals(PLATFORM_MANAGEMENT_TENANT_PLACEHOLDER, localManagementTenant);
+        assertEquals(REVOCATION_EPOCH_PLACEHOLDER, baseEpoch);
+        assertEquals(REVOCATION_EPOCH_PLACEHOLDER, localEpoch);
         assertTrue(authorizationServerSettings.isMultipleIssuersAllowed());
         assertNull(authorizationServerSettings.getIssuer());
     }
@@ -282,6 +306,28 @@ class TenantIssuerIsolationTest {
         JsonNode discoveryOperation = OBJECT_MAPPER.readTree(apiDocs)
                 .at("/paths/~1tenants~1{tenantId}~1.well-known~1openid-configuration/get");
         assertEquals("oauthTenantOidcDiscovery", discoveryOperation.path("operationId").asText());
+        JsonNode loginPath = OBJECT_MAPPER.readTree(apiDocs).at("/paths/~1tenants~1{tenantId}~1login");
+        assertEquals("oauthSasLoginPage", loginPath.path("get").path("operationId").asText());
+        assertEquals("oauthSasLoginSubmit", loginPath.path("post").path("operationId").asText());
+        assertTrue(loginPath.path("post").path("requestBody").path("required").asBoolean());
+        assertTrue(loginPath.path("post").path("requestBody").path("content")
+                .has("application/x-www-form-urlencoded"));
+    }
+
+    @Test
+    void tenantLoginSubmitRemainsInsideTheIssuerSessionCsrfChain() throws Exception {
+        mockMvc.perform(tenantRequest(post("/tenants/1001/login")
+                        .contentType("application/x-www-form-urlencoded")
+                        .param("username", "alice")
+                        .param("password", "synthetic-password"), 1001L))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(tenantRequest(post("/tenants/1001/login")
+                        .with(csrf())
+                        .contentType("application/x-www-form-urlencoded")
+                        .param("username", "alice")
+                        .param("password", "synthetic-password"), 1001L))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -401,13 +447,16 @@ class TenantIssuerIsolationTest {
 
         TenantAuthorizationServiceImpl authorizationService = new TenantAuthorizationServiceImpl(
                 issuerService,
+                mock(OAuthRealmRepository.class),
                 authorizations,
                 tokens,
                 clients,
                 org.mapstruct.factory.Mappers.getMapper(SasAuthorizationConverter.class),
                 org.mapstruct.factory.Mappers.getMapper(SasRegisteredClientConverter.class),
                 OBJECT_MAPPER,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                mock(OAuthSecurityProjectionComponent.class),
+                mock(OAuthTokenIssueService.class));
         OAuth2Authorization tenantOneAuthorization = withIssuer("https://idp.example.test/tenants/1001",
                 () -> authorizationService.findByToken("issuer-bound-token", OAuth2TokenType.ACCESS_TOKEN));
         OAuth2Authorization tenantTwoAuthorization = withIssuer("https://idp.example.test/tenants/1002",
@@ -604,6 +653,10 @@ class TenantIssuerIsolationTest {
         assertTrue(operation.getSecurity().isEmpty());
         assertNotNull(operation.getResponses().get("200"));
         assertNotNull(operation.getResponses().get("404"));
+        var loginPath = openApi.getPaths().get("/tenants/{tenantId}/login");
+        assertEquals("oauthSasLoginSubmit", loginPath.getPost().getOperationId());
+        assertTrue(loginPath.getPost().getRequestBody().getRequired());
+        assertNotNull(loginPath.getPost().getResponses().get("303").getHeaders().get("Location"));
     }
 
     @Test

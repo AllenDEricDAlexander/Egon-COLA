@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.net.URI;
+import java.security.Principal;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -20,6 +24,7 @@ import org.springframework.security.oauth2.server.authorization.OAuth2Authorizat
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationCode;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import top.egon.cola.component.common.core.converter.BaseConverter;
+import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationAttributesBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenBO;
@@ -35,6 +40,7 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
     String AUTHORIZATION_STATUS_ATTRIBUTE = "oauthAuthorizationStatus";
     String ABSOLUTE_EXPIRES_AT_ATTRIBUTE = "oauthAbsoluteExpiresAt";
     String REVOKED_AT_ATTRIBUTE = "oauthRevokedAt";
+    String REQUESTED_AUDIENCES_ATTRIBUTE = "oauthRequestedAudiences";
 
     @Override
     default OAuth2Authorization toTarget(OAuthAuthorizationBO source) {
@@ -65,7 +71,8 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
                 .attribute(ATTRIBUTES_ATTRIBUTE, authorization.getAttributes())
                 .attribute(PRINCIPAL_TYPE_ATTRIBUTE, authorization.getPrincipalType())
                 .attribute(AUTHORIZATION_STATUS_ATTRIBUTE, authorization.getStatus())
-                .attribute(ABSOLUTE_EXPIRES_AT_ATTRIBUTE, authorization.getAbsoluteExpiresAt());
+                .attribute(ABSOLUTE_EXPIRES_AT_ATTRIBUTE, authorization.getAbsoluteExpiresAt())
+                .attribute(REQUESTED_AUDIENCES_ATTRIBUTE, List.copyOf(authorization.getAudiences()));
         if (authorization.getRevokedAt() != null) {
             builder.attribute(REVOKED_AT_ATTRIBUTE, authorization.getRevokedAt());
         }
@@ -78,6 +85,43 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
                     builder, token, authorization.getAuthorizedScopes(), objectMapper));
         }
         return builder.build();
+    }
+
+    default OAuth2Authorization toTarget(
+            OAuthAuthorizationBO source,
+            RegisteredClient registeredClient,
+            ObjectMapper objectMapper,
+            URI issuer) {
+        OAuth2Authorization authorization = toTarget(source, registeredClient, objectMapper);
+        if (!AuthorizationGrantType.AUTHORIZATION_CODE.equals(authorization.getAuthorizationGrantType())) {
+            return authorization;
+        }
+        OAuthAuthorizationAttributesBO attributes = Objects.requireNonNull(
+                source.getAttributes(), "authorization.attributes");
+        Map<String, Object> parameters = new HashMap<>();
+        if (attributes.getNonce() != null) {
+            parameters.put("nonce", attributes.getNonce());
+        }
+        if (attributes.getCodeChallenge() != null) {
+            parameters.put("code_challenge", attributes.getCodeChallenge());
+        }
+        if (attributes.getCodeChallengeMethod() != null) {
+            parameters.put("code_challenge_method", attributes.getCodeChallengeMethod());
+        }
+        List<String> audiences = source.getAudiences();
+        if (audiences != null && audiences.size() == 1) {
+            parameters.put("resource", audiences.getFirst());
+        }
+        OAuth2AuthorizationRequest request = OAuth2AuthorizationRequest.authorizationCode()
+                .authorizationUri(Objects.requireNonNull(issuer, "issuer").toASCIIString() + "/oauth2/authorize")
+                .clientId(registeredClient.getClientId())
+                .redirectUri(attributes.getRedirectUri() == null ? null : attributes.getRedirectUri().toASCIIString())
+                .scopes(Set.copyOf(source.getAuthorizedScopes()))
+                .additionalParameters(parameters)
+                .build();
+        return OAuth2Authorization.from(authorization)
+                .attribute(OAuth2AuthorizationRequest.class.getName(), request)
+                .build();
     }
 
     @Override
@@ -96,11 +140,19 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
         if (attributes == null && persisted != null) {
             attributes = persisted.getAttributes();
         }
-        if (attributes == null || attributes.getSchemaVersion() != 1 || attributes.getSecuritySnapshot() == null) {
+        OAuth2AuthorizationRequest authorizationRequest = authorization.getAttribute(
+                OAuth2AuthorizationRequest.class.getName());
+        if (attributes == null) {
+            attributes = attributesFromRequest(authorizationRequest, authorization);
+        }
+        if (attributes == null || attributes.getSchemaVersion() != 1) {
             throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_REQUIRED");
         }
 
         List<OAuthTokenBO> tokens = readTokens(authorization, objectMapper);
+        Long authorizationId = authorization.getId() == null || isSasGeneratedUuid(authorization.getId())
+                ? authorizationIdFromTokens(tokens)
+                : Long.valueOf(parsePositiveId(authorization.getId(), "OAUTH_AUTHORIZATION_ID_INVALID"));
         Instant absoluteExpiresAt = authorization.getAttribute(ABSOLUTE_EXPIRES_AT_ATTRIBUTE);
         if (absoluteExpiresAt == null && persisted != null) {
             absoluteExpiresAt = persisted.getAbsoluteExpiresAt();
@@ -131,16 +183,27 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
             revokedAt = persisted.getRevokedAt();
         }
 
+        List<String> requestedAudiences = authorization.getAttribute(REQUESTED_AUDIENCES_ATTRIBUTE);
+        if (requestedAudiences == null && authorizationRequest != null) {
+            requestedAudiences = requestedAudiences(authorizationRequest);
+        }
+        List<String> audiences = audiences(tokens);
+        if (audiences.isEmpty() && persisted != null && persisted.getAudiences() != null) {
+            audiences = persisted.getAudiences();
+        }
+        if (audiences.isEmpty() && requestedAudiences != null) {
+            audiences = requestedAudiences;
+        }
+
         return OAuthAuthorizationBO.builder()
-                .id(authorization.getId() == null ? null : parsePositiveId(
-                        authorization.getId(), "OAUTH_AUTHORIZATION_ID_INVALID"))
+                .id(authorizationId)
                 .version(persisted == null ? 0L : persisted.getVersion())
                 .clientPk(clientPk)
                 .principalName(authorization.getPrincipalName())
                 .principalType(principalType)
                 .grantType(authorization.getAuthorizationGrantType().getValue())
                 .authorizedScopes(new ArrayList<>(authorization.getAuthorizedScopes()))
-                .audiences(audiences(tokens))
+                .audiences(audiences)
                 .status(status)
                 .authTime(attributes.getAuthTime())
                 .acr(attributes.getAcr())
@@ -149,6 +212,75 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
                 .absoluteExpiresAt(absoluteExpiresAt)
                 .revokedAt(revokedAt)
                 .build();
+    }
+
+    private static OAuthAuthorizationAttributesBO attributesFromRequest(
+            OAuth2AuthorizationRequest authorizationRequest,
+            OAuth2Authorization authorization) {
+        if (authorizationRequest == null) {
+            if (!AuthorizationGrantType.CLIENT_CREDENTIALS.equals(authorization.getAuthorizationGrantType())) {
+                return null;
+            }
+            return OAuthAuthorizationAttributesBO.builder().schemaVersion(1).build();
+        }
+        Map<String, Object> parameters = authorizationRequest.getAdditionalParameters();
+        String state = authorizationRequest.getState();
+        Authentication principal = authorization.getAttribute(Principal.class.getName());
+        Instant authTime = null;
+        String acr = null;
+        if (principal != null && principal.getDetails() instanceof Map<?, ?> details) {
+            Object authTimeValue = details.get("authTime");
+            authTime = authTimeValue instanceof Instant instant ? instant : null;
+            Object acrValue = details.get("acr");
+            acr = acrValue instanceof String value ? value : null;
+        }
+        return OAuthAuthorizationAttributesBO.builder()
+                .schemaVersion(1)
+                .nonce(text(parameters.get("nonce")))
+                .codeChallenge(text(parameters.get("code_challenge")))
+                .codeChallengeMethod(text(parameters.get("code_challenge_method")))
+                .redirectUri(authorizationRequest.getRedirectUri() == null
+                        ? null : java.net.URI.create(authorizationRequest.getRedirectUri()))
+                .stateDigest(state == null ? null : Digests.sha256Hex(state))
+                .authTime(authTime)
+                .acr(acr)
+                .build();
+    }
+
+    private static List<String> requestedAudiences(OAuth2AuthorizationRequest request) {
+        Object resource = request.getAdditionalParameters().get("resource");
+        if (resource == null) {
+            return List.of();
+        }
+        if (resource instanceof String value) {
+            return List.of(value);
+        }
+        if (resource instanceof java.net.URI value) {
+            return List.of(value.toASCIIString());
+        }
+        throw new IllegalArgumentException("OAUTH_AUTHORIZATION_RESOURCE_INVALID");
+    }
+
+    private static String text(Object value) {
+        return value instanceof String text ? text : null;
+    }
+
+    private static Long authorizationIdFromTokens(List<OAuthTokenBO> tokens) {
+        return tokens.stream()
+                .map(OAuthTokenBO::getMetadata)
+                .filter(Objects::nonNull)
+                .map(OAuthTokenMetadataBO::getClaims)
+                .filter(Objects::nonNull)
+                .map(SignedTokenClaimsBO::getAuthorizationId)
+                .filter(Objects::nonNull)
+                .map(value -> parsePositiveId(value, "OAUTH_AUTHORIZATION_ID_INVALID"))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static boolean isSasGeneratedUuid(String value) {
+        return value != null && value.matches(
+                "(?i)[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}");
     }
 
     private static void addToken(
