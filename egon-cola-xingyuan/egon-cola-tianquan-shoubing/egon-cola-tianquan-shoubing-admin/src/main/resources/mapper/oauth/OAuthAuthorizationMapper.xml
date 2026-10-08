@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthAuthorizationMapper">
+    <resultMap id="OAuthAuthorizationPOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.po.OAuthAuthorizationPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="version" column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="clientPk" column="client_pk"/>
+        <result property="principalName" column="principal_name"/>
+        <result property="principalType" column="principal_type"/>
+        <result property="grantType" column="grant_type"/>
+        <result property="authorizedScopes" column="authorized_scopes" typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler"/>
+        <result property="audiences" column="audiences" typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler"/>
+        <result property="status" column="status"/>
+        <result property="authTime" column="auth_time"/>
+        <result property="acr" column="acr"/>
+        <result property="attributesCiphertext" column="attributes_ciphertext"/>
+        <result property="absoluteExpiresAt" column="absolute_expires_at"/>
+        <result property="revokedAt" column="revoked_at"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        client_pk, principal_name, principal_type, grant_type, authorized_scopes, audiences, status,
+        auth_time, acr, attributes_ciphertext, absolute_expires_at, revoked_at
+    </sql>
+
+    <select id="selectActiveById" resultMap="OAuthAuthorizationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_authorization
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByIdForUpdate" resultMap="OAuthAuthorizationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_authorization
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="selectByPrincipalName" resultMap="OAuthAuthorizationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_authorization
+        WHERE tenant_id = #{tenantId} AND principal_name = #{principalName}
+          AND status = #{status} AND id &gt; #{afterId} AND deleted_at IS NULL
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectExpired" resultMap="OAuthAuthorizationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_authorization
+        WHERE tenant_id = #{tenantId} AND absolute_expires_at &lt;= #{expiresBefore}
+          AND id &gt; #{afterId} AND deleted_at IS NULL
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthAuthorizationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_authorization
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <update id="updateExpectedVersion">
+        UPDATE oauth_authorization
+        SET status = #{po.status}, revoked_at = #{po.revokedAt}, version = #{po.version},
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id} AND client_pk = #{po.clientPk}
+          AND principal_name = #{po.principalName} AND principal_type = #{po.principalType}
+          AND grant_type = #{po.grantType} AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_authorization
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id}
+          AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+</mapper>

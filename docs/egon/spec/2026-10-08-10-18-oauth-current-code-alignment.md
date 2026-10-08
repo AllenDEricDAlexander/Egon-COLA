@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 已批准认证目录迁移、单库事务与Outbox、全局身份和业务租户边界、历史导入、现有Tianshu多租户消费者 |
 | Created | `2026-10-08 10:18 Asia/Shanghai` |
-| Updated | `2026-10-08 13:49 Asia/Shanghai` |
+| Updated | `2026-10-08 14:00 Asia/Shanghai` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | 授柄认证持久化/Outbox与历史迁移；原OAuth/OIDC、SCG、Starter及消费者计划的最新源码对齐 |
@@ -60,6 +60,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | EVD-119 | Static repository | 新oauth_client.redirect_uris/resource_uris/allowed_scopes三列为JSONB数组；现有Shoubing tenant handler只接受JsonNode对象，其他common可见handler用Object | OAuthClientPO采用typed List<String>，当前无可安全绑定PG jsonb数组的handler | 为client数组增加专用List<String> TypeHandler并用JDBC Types.OTHER | Mock PreparedStatement契约，无PG执行 |
 | EVD-120 | Static repository | common-core BaseConverter<S,T> exposes T toTarget(S source) and S toSource(T target); Step 3 IdentityUserConverter uses BaseConverter<IdentityUserPO,IdentityUser> | accepted OAuth table and Step4/5 Plan reverse source/target generic arguments | require every new OAuth persistence converter to use BaseConverter<PO,BO> | API/compiler contract source and generated mapping tests for realm/client/resource/grant |
 | EVD-121 | Accepted base Spec §11.2.1/2 and Step 2 V20261008_001 | oauth_realm.trust_version and oauth_client.credential_version are security-relevant monotonic versions | repositories must reject a decreasing value even if row version matches | static table contract plus mocked repository guard |
+| EVD-122 | Static current-module search plus accepted base Spec §10.1/§11.2.4–5 | authorization attributes, token value, and token metadata are persisted as ciphertext; no Shoubing AES-GCM payload component exists before planned Step 7 | Step 6 repositories/converters need secure encryption/decryption before these persistence paths can be complete | Add a shared JDK-only AES-256-GCM payload cipher and required mounted-key settings in Step 6, reused by the Step 7 signing-key cipher | JDK crypto tests with temporary key material; no service/database |
 
 ### 2.4 Evidence and current-chain map
 
@@ -105,6 +106,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | REQ-025 | 保留玉衡实际数据面与流式行为 | Must | 新SCG→biz/mcp/LLM路由，SSE增量/取消、Bearer验证、管理端口约束回归 | EVD-109 |
 | REQ-026 | 补齐现有Grant读合同 | Must | API-045同realm有序≤64条，空[]，65条报503；0写入；UI缓存含realm且处理错误 | EVD-106/Grant提案 |
 | REQ-027 | 文档与依赖方向同步最新基线 | Must | Starter无admin依赖；旧错误前提明确被替换；Spec/Plan验证通过且OAuth persistence converters遵守BaseConverter<S,T>方向 | 本次原请求/EVD-120 |
+| REQ-028 | 加密授权/令牌载荷静态存储 | Must | authorization attributes、必要token value、token metadata仅以ENC:v1 AES-256-GCM密文存储；32-byte KEK只从mounted file加载，base/local配置键同构且无明文；AAD绑定canonical issuer、realmKey、purpose与authorization id/tokenDigest；realm通过converter显式传入；缺KEK、错realm/context、坏tag、未知keyId/schemaVersion均fail-closed；明文/KEK不出PO/BO/VO/log | EVD-122/DEC-118/TEST-117 |
 
 ### 4.1 Scenario matrix
 
@@ -164,6 +166,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | DEC-115 | Shoubing parent集中管理已有MapStruct 1.6.3/Lombok binding版本，admin显式配置API与annotation processor | 四个@Mapper只有接口且当前admin未处理；已存在Tianshu/Yuheng同版本配置 | EVD-118/TEST-111 | REQ-020/027 |
 | DEC-116 | OAuthClientPO的redirect/resource/scope集合使用typed List<String>与专用Types.OTHER handler | 普通String/Jackson raw Object绑定JSONB数组会丢PG类型或绕过字段类型约束 | EVD-119/TEST-112 | REQ-023 |
 | DEC-117 | 所有本Plan新增OAuth持久化converter统一使用BaseConverter<PO,BO>，包括resource/grant | BaseConverter<S,T>的实际方法签名与Step 3已验证惯例明确第一项为source；不改变数据库或wire contract | EVD-120/TEST-113 | REQ-023/027 |
+| DEC-118 | Step 6建立OAuthPayloadCipherComponent与OAuthKeyEncryptionProperties，authorization/token converter使用带显式TrustedRealmBO的具名AES-GCM映射；Step 7 OAuthKeyCipherComponent复用同一envelope实现private-key用途 | Step 6 schema含敏感ciphertext但原Plan仅在后续Step 7创建KEK/cipher，形成不可实现窗口；JDK AES-256-GCM足够，CommonCrypto无AES且不引入第三方库 | EVD-122/TEST-117 | REQ-027/028 |
 
 ### 5.4 Open major decisions
 
@@ -330,6 +333,9 @@ Outbox技术状态严格复用PENDING→PROCESSING→SUCCEEDED / RETRY_WAIT / DE
 | MODIFY | egon-cola-xingyuan/egon-cola-tianquan-shoubing/pom.xml；egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml | 管理仓库已有MapStruct/Lombok binding版本；为admin显式配置API与annotation processor | REQ-020/027 |
 | CREATE | SJ/oauth/dao/OAuthStringListJsonbTypeHandler.java | 严格读写List<String> JSON数组，JDBC Types.OTHER；拒绝非数组/非字符串元素 | REQ-023 |
 | CREATE | SJ/oauth/domain/converter/OAuthRealmConverter.java、OAuthClientConverter.java | BaseConverter<PO,BO>；MapStruct生成实现；显式字段方向与round-trip合同 | REQ-023/027 |
+| CREATE | SJ/token/config/OAuthKeyEncryptionProperties.java；SJ/token/service/impl/OAuthPayloadCipherComponent.java | mounted 32-byte KEK与keyId；JDK AES-256-GCM ENC:v1；AAD按issuer/realm/purpose/record绑定；Step 7 signing-key wrapper复用 | REQ-028 |
+| MODIFY | SA/src/main/resources/application.yml、application-local.yml | base/local同构required `EGON_TIANQUAN_SHOUBING_OAUTH_KEK_ID` / `..._KEK_FILE`引用；不存key material | REQ-028 |
+| MODIFY | SJ/oauth/domain/converter/OAuthAuthorizationConverter.java、SJ/token/domain/converter/OAuthTokenConverter.java | 显式TrustedRealmBO上下文的具名cipher映射；无realm BaseConverter入口fail-closed | REQ-027/028 |
 | CREATE | SJ/identity/domain/po/IdentityUserPO.java、IdentityCredentialPO.java；identity/domain/converter/IdentityUserConverter.java、IdentityCredentialConverter.java；identity/dao/IdentityUserDAO.java、IdentityCredentialDAO.java；SA/src/main/resources/mapper/identity/IdentityUserDAO.xml、IdentityCredentialDAO.xml | user/credential字段与SQL；Converter继承BaseConverter | REQ-020 |
 | CREATE | SJ/identity/repository/IdentityUserRepository.java、IdentityCredentialRepository.java；identity/repo/MpIdentityUserDirectory.java | EgonColaRepository与旧目录port实现 | REQ-020 |
 | MODIFY / DELETE | SJ/identity/repo/IdentityPersistenceAdapter.java；删除JpaIdentityUserDirectory.java和两个旧Identity Entity | 旧port→MP；删除仅在引用迁完后 | REQ-020 |
@@ -894,9 +900,14 @@ API-045页面完全沿用Grant提案§12及主Spec§12：queryKey包含realm/cli
 | TEST-110 | Unit/contract | Named MP Clock alias | idpClock为Primary；常规MP clock按Clock type退让；repository/Outbox使用具名Clock | egonColaMybatisPlusClock alias返回原idpClock实例，不产生独立Clock | 配置源码合同，无Spring运行上下文 | IdentityMpPersistenceContractTest | REQ-023 |
 | TEST-111 | Unit | Generated identity/tenant converters | PO/domain fixture values with sensitive password hash | MapStruct implementations are present and round-trip identity, version, flags, settings and statuses | focused Maven compilation/test; no database | IdentityEntityMappingTest | REQ-020 |
 | TEST-112 | Unit/contract | oauth_client JSONB string arrays | empty/non-empty string list, wrong root or non-string element | TypeHandler binds compact JSON using Types.OTHER and restores the typed list | mocked PreparedStatement/ResultSet; no database | OAuthRealmPersistenceContractTest | REQ-023 |
-| TEST-113 | Unit/contract | OAuth persistence converter generic direction | PO/BO fixtures for realm, client, resource, and grant | Every BaseConverter source is PO and target is BO; generated converters preserve mapped identity/security fields | MapStruct generated mapping tests in OAuthRealmPersistenceContractTest and OAuthResourcePersistenceContractTest; no database | Both focused suites | REQ-023/027 |
+| TEST-113 | Unit/contract | OAuth persistence converter generic direction | PO/BO fixtures for realm, client, resource, grant, authorization, token, consent, signing key, security state, revocation, and audit | Every BaseConverter source is PO and target is BO; generated converters preserve mapped identity/security fields | MapStruct generated mapping tests in OAuthRealmPersistenceContractTest, OAuthResourcePersistenceContractTest, OAuthAuthorizationPersistenceContractTest, and OAuthSigningKeyPersistenceContractTest; no database | All four focused suites | REQ-023/027 |
 | TEST-114 | Unit/contract | Trusted realm persistence MDC scope | TENANT partition=1001, PLATFORM partition=P, prior MDC actor, absent actor, mapper exception | Mapper sees only TrustedRealmBO.storagePartitionId and trusted/fallback actor; both MDC values restore after success/failure | mapper mocks; no database | OAuthRealmPersistenceContractTest | REQ-023/024 |
 | TEST-115 | Unit/contract | Realm/client version monotonicity | matching expected row version, lower trustVersion or credentialVersion | exact stale expectedVersion and security-version regression fail before UPDATE; no row is changed | mocked mappers; no database | OAuthRealmPersistenceContractTest | REQ-023 |
+| TEST-117 | Unit/contract | OAuthPayloadCipherComponent AES-GCM envelope | temporary 32-byte KEK; missing/invalid key file; wrong keyId/issuer/realm/purpose/context; nonce/tag tamper; malformed envelope and schemaVersion != 1 | exact bound context round-trips; all altered/unknown cases fail closed; key/plain payload absent from JSON/toString/logs | JDK crypto with temporary file and mapper mocks; no database/service | OAuthAuthorizationPersistenceContractTest | REQ-028 |
+
+### 15.1 OAuth payload encryption for persisted protocol state
+
+Step 6 adds one `OAuthPayloadCipherComponent` backed by JDK `AES/GCM/NoPadding`; Step 7 `OAuthKeyCipherComponent` delegates to the same envelope for signing private keys. The envelope is `ENC:v1:<keyId>:<base64url nonce>:<base64url ciphertext+tag>`, with a fresh 96-bit nonce, 128-bit GCM tag, 32-byte KEK read from a mounted file, and a configured non-secret keyId. AAD is an unambiguous length-prefixed UTF-8 tuple of canonical issuer, realmKey, purpose, and stable record key: authorization primary id for attributes, token digest for token value/metadata, and signing `kid` for a private key. New authorization ids are assigned before encrypting attributes. Realm must be passed explicitly to every converter mapping that encrypts/decrypts; inherited BaseConverter methods without a trusted realm fail closed. Key bytes, raw opaque token values and key-file contents never appear in logs, public serialization or exceptions; decrypted plaintext exists only in memory inside the named converter/cipher boundary. Missing/unreadable/non-32-byte/over-permissive KEK, unknown keyId/envelope/schemaVersion, malformed envelope, wrong AAD or GCM tag fails closed. JSON schemaVersion is exactly 1 and parsing never enables polymorphic/default typing. Base and local profiles expose the same required `${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_ID}` and `${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_FILE}` references; no key is stored in YAML or source.
 
 原TEST-001–014等主Spec安全矩阵继续执行；本次只静态设计，不报告这些未来测试已通过。真PG/Redis/HMAC/TLS和浏览器/E2E由用户启动环境后验收；H2或mock不能证明物理同事务/SQL执行计划。
 
@@ -954,7 +965,8 @@ SCG/玉衡清理伪造身份头的列表保持显式；保留`X-Egon-Tianshu-Ten
 | REQ-025 | UC-103 | §7/15 | Yuheng Netty数据面 | SSE/MCP/LLM | TEST-105 | 增量/取消/身份回归 |
 | REQ-005 | UC-103 | 主Spec§4及本修订§9 | 最小授权范围 | API-045 | TEST-106 | Grant展示不扩权 |
 | REQ-026 | UC-103 | §8/9/12 | 原Grant写接口/VO | API-045 | TEST-106 | 查询/缓存/OpenAPI闭合 |
-| REQ-027 | UC-102 | §5/6/8/20 | 已接受wire设计与BaseConverter实际API | 修订文档与Step 4/5 persistence converters | TEST-113及静态validator | source-target方向正确且依赖方向明确 |
+| REQ-027 | UC-102 | §5/6/8/20 | 已接受wire设计与BaseConverter实际API | 修订文档与Step 4/5/6 persistence converters | TEST-113及静态validator | source-target方向正确且依赖方向明确 |
+| REQ-028 | UC-102 | §8/10/11/15 | authorization/token ciphertext columns | OAuthPayloadCipherComponent; realm-aware authorization/token converter mappings | TEST-117 plus mapping suites | AES-GCM ciphertext at rest, mounted KEK profiles, issuer/realm/record AAD, no plaintext persistence/log/output |
 
 ## 20. Review and Acceptance
 

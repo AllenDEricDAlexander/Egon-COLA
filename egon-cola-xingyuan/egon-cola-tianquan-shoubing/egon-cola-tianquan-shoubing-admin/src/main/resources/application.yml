@@ -113,6 +113,10 @@ egon:
         kid: ${TIANQUAN_SHOUBING_SIGNING_KEY_KID}
         public-key-file: ${TIANQUAN_SHOUBING_SIGNING_PUBLIC_KEY_FILE}
         private-key-file: ${TIANQUAN_SHOUBING_SIGNING_PRIVATE_KEY_FILE}
+
+      key-encryption:
+        key-id: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_ID}
+        key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_FILE}
   cola:
     component:
       id:
