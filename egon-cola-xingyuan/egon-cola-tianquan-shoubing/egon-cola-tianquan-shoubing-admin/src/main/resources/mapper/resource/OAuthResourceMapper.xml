@@ -32,6 +32,14 @@
         status, admission_ticket_ttl_seconds
     </sql>
 
+    <select id="selectDirectory" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+        ORDER BY resource_server_id ASC, id ASC
+        LIMIT #{limit}
+    </select>
+
     <select id="selectByResourceServerId" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
         FROM oauth_resource

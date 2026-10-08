@@ -2,35 +2,47 @@ package top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import java.util.Set;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType;
 
-import java.util.Set;
+/** Input for creating or updating one application-level Client Resource Grant. */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Accessors(chain = true)
+public class UpsertClientResourceGrantDTO {
 
-/**
- * 新建或更新一个应用级 Client Resource Grant 的输入。
- *
- * <p>Input for creating or updating one application-level Client Resource Grant.</p>
- *
- * @param grantType 授权类型；grant type
- * @param tenantId 服务授权绑定租户；tenant bound to a service grant
- * @param allowedScopes Tianquan-Shoubing 许可的服务 Scope；service scopes allowed by Tianquan-Shoubing
- * @param expectedResourceVersion Resource Server 期望版本；expected Resource Server version
- * @param expectedGrantVersion 已有 Grant 期望版本，新建时为空；expected existing Grant version, null for create
- */
-public record UpsertClientResourceGrantDTO(
-        @NotNull ResourceGrantType grantType,
-        String tenantId,
-        @NotNull Set<String> allowedScopes,
-        @PositiveOrZero long expectedResourceVersion,
-        @PositiveOrZero Long expectedGrantVersion
-) {
+    @NotNull
+    private ResourceGrantType grantType;
+    private String tenantId;
+    @NotNull
+    private Set<String> allowedScopes;
+    @PositiveOrZero
+    private long expectedResourceVersion;
+    @PositiveOrZero
+    private Long expectedGrantVersion;
 
-    /**
-     * 复制调用方集合，避免请求对象被外部修改。
-     *
-     * <p>Copies the caller set so the request cannot be modified externally.</p>
-     */
-    public UpsertClientResourceGrantDTO {
-        allowedScopes = allowedScopes == null ? null : Set.copyOf(allowedScopes);
+    /** Builds a request with a defensive copy of its scope set. */
+    @Builder
+    public static UpsertClientResourceGrantDTO of(ResourceGrantType grantType, String tenantId,
+            Set<String> allowedScopes, long expectedResourceVersion, Long expectedGrantVersion) {
+        return new UpsertClientResourceGrantDTO(grantType, tenantId,
+                allowedScopes == null ? null : Set.copyOf(allowedScopes),
+                expectedResourceVersion, expectedGrantVersion);
+    }
+
+    public Set<String> getAllowedScopes() {
+        return allowedScopes == null ? null : Set.copyOf(allowedScopes);
+    }
+
+    public UpsertClientResourceGrantDTO setAllowedScopes(Set<String> values) {
+        this.allowedScopes = values == null ? null : Set.copyOf(values);
+        return this;
     }
 }

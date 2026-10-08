@@ -1,36 +1,41 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-/**
- * Client Resource Grant 管理视图。
- *
- * <p>Client Resource Grant administration view.</p>
- *
- * @param clientId Client 标识；Client identifier
- * @param resourceServerId Resource Server 标识；Resource Server identifier
- * @param grantType 授权类型；grant type
- * @param tenantId 服务授权租户；service-grant tenant
- * @param allowedScopes Tianquan-Shoubing 许可 Scope；scopes allowed by Tianquan-Shoubing
- * @param status 授权状态；grant status
- * @param version 乐观锁版本；optimistic-lock version
- */
-public record ClientResourceGrantVO(
-        String clientId,
-        String resourceServerId,
-        String grantType,
-        String tenantId,
-        Set<String> allowedScopes,
-        String status,
-        long version
-) {
+/** Safe Client Resource Grant administration view. */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ClientResourceGrantVO {
 
-    /**
-     * 复制 Scope 集合。
-     *
-     * <p>Copies the scope set.</p>
-     */
-    public ClientResourceGrantVO {
-        allowedScopes = Set.copyOf(allowedScopes);
-    }
+    @NotBlank
+    @Size(max = 128)
+    private String clientId;
+    @NotBlank
+    @Size(max = 128)
+    private String resourceServerId;
+    @NotBlank
+    @Size(max = 32)
+    private String grantType;
+    @Size(max = 32)
+    private String tenantId;
+    @Size(max = 64)
+    private Set<@NotBlank @Size(max = 256) String> allowedScopes;
+    @NotBlank
+    @Size(max = 16)
+    private String status;
+    @PositiveOrZero
+    private long version;
 }

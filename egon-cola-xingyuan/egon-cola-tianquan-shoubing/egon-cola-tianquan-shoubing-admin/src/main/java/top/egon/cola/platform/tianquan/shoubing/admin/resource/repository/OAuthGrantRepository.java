@@ -3,6 +3,8 @@ package top.egon.cola.platform.tianquan.shoubing.admin.resource.repository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -31,7 +33,8 @@ public interface OAuthGrantRepository {
 
     List<OAuthGrantBO> listByClient(
             @NotNull @Valid TrustedRealmBO trustedRealm,
-            @Positive Long clientPk);
+            @Positive Long clientPk,
+            @Min(1) @Max(65) int limit);
 
     OAuthGrantBO save(
             @NotNull @Valid TrustedRealmBO trustedRealm,

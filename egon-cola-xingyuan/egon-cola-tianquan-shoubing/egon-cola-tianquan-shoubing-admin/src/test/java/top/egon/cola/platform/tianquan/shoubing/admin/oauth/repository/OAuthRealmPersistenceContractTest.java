@@ -25,11 +25,14 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClien
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.OAuthClientConverter;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.OAuthClientViewConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.OAuthRealmConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.OAuthClientPurposeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.po.OAuthClientPO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.po.OAuthRealmPO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.CreatedOAuthClientVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.RotatedClientSecretVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.impl.OAuthClientRepositoryImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.impl.OAuthRealmRepositoryImpl;
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthClient;
@@ -48,6 +51,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -207,18 +211,52 @@ class OAuthRealmPersistenceContractTest {
         clientSource.setAllowedScopes(List.of("orders:read"));
         clientSource.setAccessTtlSeconds(300);
         clientSource.setRefreshTtlSeconds(86_400);
+        clientSource.setCreateTime(Instant.parse("2026-10-01T01:02:03.123456Z"));
+        clientSource.setUpdateTime(Instant.parse("2026-10-02T04:05:06.654321Z"));
         OAuthClientBO client = (OAuthClientBO) clientConverter.getClass()
                 .getMethod("toTarget", OAuthClientPO.class)
                 .invoke(clientConverter, clientSource);
         assertEquals(OAuthClient.ClientType.CONFIDENTIAL, client.getClientType());
         assertEquals(OAuthClient.Status.ACTIVE, client.getStatus());
         assertEquals(List.of("orders:read"), client.getAllowedScopes());
+        assertEquals(clientSource.getCreateTime(), client.getCreatedAt());
+        assertEquals(clientSource.getUpdateTime(), client.getUpdatedAt());
+        client.setCreatedAt(Instant.parse("2026-10-03T00:00:00Z"))
+                .setUpdatedAt(Instant.parse("2026-10-04T00:00:00Z"));
         OAuthClientPO clientCopy = (OAuthClientPO) clientConverter.getClass()
                 .getMethod("toSource", OAuthClientBO.class)
                 .invoke(clientConverter, client);
         assertEquals(clientSource.getClientId(), clientCopy.getClientId());
         assertEquals(clientSource.getSecretHash(), clientCopy.getSecretHash());
         assertEquals(clientSource.getRedirectUris(), clientCopy.getRedirectUris());
+        assertNull(clientCopy.getCreateTime());
+        assertNull(clientCopy.getUpdateTime());
+    }
+
+    @Test
+    void clientCommandResultViewsMapOnlyTheTransientSecretWithTheEgonConverter() {
+        OAuthClientViewConverter converter = Mappers.getMapper(OAuthClientViewConverter.class);
+        URI issuer = URI.create("https://auth.example/tenants/1001");
+        OAuthClientBO client = OAuthClientBO.builder().id(41L).version(4L).clientId("service-client")
+                .appId("service-app").clientName("Service Client").clientType(OAuthClient.ClientType.CONFIDENTIAL)
+                .purpose(OAuthClientPurposeEnum.SERVICE).status(OAuthClient.Status.ACTIVE)
+                .secretHash("$2a$12$stored-hash").secretHint("H123").credentialVersion(2L)
+                .redirectUris(List.of()).resourceUris(List.of()).allowedScopes(List.of("orders:read"))
+                .accessTtlSeconds(600).refreshTtlSeconds(0)
+                .createdAt(Instant.parse("2026-10-01T00:00:00Z"))
+                .updatedAt(Instant.parse("2026-10-02T00:00:00Z")).build();
+
+        CreatedOAuthClientVO created = converter.toCreatedTarget(client, issuer, "one-time-secret");
+        RotatedClientSecretVO rotated = converter.toRotatedTarget(client, issuer, "rotated-secret",
+                Instant.parse("2026-10-03T00:00:00Z"));
+
+        assertEquals("one-time-secret", created.getClientSecret());
+        assertEquals("rotated-secret", rotated.getClientSecret());
+        assertEquals(issuer.toASCIIString(), created.getIssuer());
+        assertEquals(issuer.toASCIIString(), rotated.getIssuer());
+        assertFalse(created.toString().contains("one-time-secret"));
+        assertFalse(rotated.toString().contains("rotated-secret"));
+        assertFalse(created.toString().contains("stored-hash"));
     }
 
     @Test

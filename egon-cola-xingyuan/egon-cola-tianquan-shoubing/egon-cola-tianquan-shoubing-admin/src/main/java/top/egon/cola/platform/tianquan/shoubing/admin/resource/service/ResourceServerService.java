@@ -8,6 +8,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto.Resour
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto.UpsertClientResourceGrantDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.vo.ClientResourceGrantVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.vo.ResourceServerVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 
 import java.util.List;
 
@@ -19,7 +20,7 @@ import java.util.List;
 public interface ResourceServerService {
 
     /** @return 全部 Resource Server；all Resource Servers */
-    List<ResourceServerVO> list();
+    List<ResourceServerVO> list(TrustedRealmBO platformRealm);
 
     /**
      * 查询 Resource Server 详情。
@@ -29,7 +30,7 @@ public interface ResourceServerService {
      * @param resourceServerId Resource Server 标识；Resource Server identifier
      * @return Resource Server 详情；Resource Server details
      */
-    ResourceServerVO detail(String resourceServerId);
+    ResourceServerVO detail(TrustedRealmBO platformRealm, String resourceServerId);
 
     /**
      * 创建 Resource Server。
@@ -39,7 +40,7 @@ public interface ResourceServerService {
      * @param command 创建输入；create input
      * @return 新 Resource Server；new Resource Server
      */
-    ResourceServerVO create(CreateResourceServerDTO command);
+    ResourceServerVO create(TrustedRealmBO platformRealm, CreateResourceServerDTO command);
 
     /**
      * 启用 Resource Server。
@@ -51,6 +52,7 @@ public interface ResourceServerService {
      * @return 更新结果；updated view
      */
     ResourceServerVO enable(
+            TrustedRealmBO platformRealm,
             String resourceServerId,
             ResourceVersionDTO command
     );
@@ -65,6 +67,7 @@ public interface ResourceServerService {
      * @return 更新结果；updated view
      */
     ResourceServerVO disable(
+            TrustedRealmBO platformRealm,
             String resourceServerId,
             ResourceVersionDTO command
     );
@@ -80,6 +83,8 @@ public interface ResourceServerService {
      * @return Grant 视图；Grant view
      */
     ClientResourceGrantVO putGrant(
+            TrustedRealmBO clientRealm,
+            TrustedRealmBO platformRealm,
             String clientId,
             String resourceServerId,
             UpsertClientResourceGrantDTO command
@@ -95,6 +100,8 @@ public interface ResourceServerService {
      * @param command 删除输入；delete input
      */
     void deleteGrant(
+            TrustedRealmBO clientRealm,
+            TrustedRealmBO platformRealm,
             String clientId,
             String resourceServerId,
             DeleteClientResourceGrantDTO command
@@ -108,7 +115,7 @@ public interface ResourceServerService {
      * @param command 批量输入；batch input
      * @return 逐应用结果；per-application results
      */
-    List<ResourceServerVO> batch(BatchResourceServerActionDTO command);
+    List<ResourceServerVO> batch(TrustedRealmBO platformRealm, BatchResourceServerActionDTO command);
 
     /**
      * 批量增删明确应用的 Client Grant。
@@ -120,7 +127,14 @@ public interface ResourceServerService {
      * @return 逐应用 Grant 结果；per-application Grant results
      */
     List<ClientResourceGrantVO> batchGrants(
+            TrustedRealmBO clientRealm,
+            TrustedRealmBO platformRealm,
             String clientId,
             BatchClientResourceGrantDTO command
     );
+
+    List<ClientResourceGrantVO> listGrants(
+            TrustedRealmBO clientRealm,
+            TrustedRealmBO platformRealm,
+            String clientId);
 }

@@ -3,6 +3,8 @@ package top.egon.cola.platform.tianquan.shoubing.admin.resource.dao;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -48,7 +50,9 @@ public interface OAuthGrantMapper extends EgonColaMapper<OAuthGrantPO> {
             @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
             @Param("clientPk") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
-            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long clientPk);
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long clientPk,
+            @Param("limit") @Min(value = 1, groups = EgonColaModelValidationGroups.Query.class)
+            @Max(value = 65, groups = EgonColaModelValidationGroups.Query.class) int limit);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
     OAuthGrantPO selectActiveById(

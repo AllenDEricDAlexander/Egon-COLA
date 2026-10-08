@@ -78,9 +78,14 @@
 | REQ-023 | 修订§4 | 当前MP校验/DDL/factory/技术StateMachine及family allowlist真实API | TEST-107 family正向/未知拒绝、TEST-108 NATIVE exact route set、TEST-112–115 Step 4 typed JSONB/converter/realm/version gates；TEST-113 PO→BO converters and JSONB array reuse through Step 6 | Step 2; Step 3; Step 4; Step 5; Step 6; Step 17 |
 | REQ-024 | 修订§4 | Tianshu PLATFORM注册及HMAC/registry/AI意图header均保留 | 修订TEST-104及其验收条件 | Step 12; Step 14; Step 15; Step 18 |
 | REQ-025 | 修订§4 | SCG/Yuheng真实Netty数据面与SSE/MCP/LLM行为不退化 | 修订TEST-105及其验收条件 | Step 14; Step 15; Step 18 |
-| REQ-026 | 修订§4 | API-045有界只读Grant列表和realm UI缓存/文档合同 | 修订TEST-106及其验收条件 | Step 10; Step 16; Step 18 |
+| REQ-026 | 修订§4/DEC-123 | API-045同realm有界只读Grant列表和realm UI缓存/文档合同；SQL限读65行供overflow检测 | TEST-106/122及相应Step命令 | Step 10; Step 16; Step 18 |
 | REQ-027 | 修订§4 | 文档基线、共享契约模块依赖与最新源码一致 | 修订TEST-101及其验收条件；所有新persistence converters遵守BaseConverter<S,T>方向 | Step 1; Step 4; Step 5; Step 6; Step 18 |
 | REQ-028 | 修订§4/8/10–11/15 | authorization/token payload encryption uses mounted KEK and realm-bound AES-GCM | TEST-117 envelope, AAD, schema and profile-key negative tests | Step 6; Step 7 |
+| REQ-029 | 修订§4/DEC-119/121 | 管理Controller传递受信TrustedRealmBO且Client/Resource视图时间字段完整 | TEST-118 realm mapping; TEST-120 timestamp mapping | Step 10 |
+| REQ-030 | 修订§4/DEC-120/121 | 每个issuer的signing key管理只使用本realm MP keyring与realm-bound AES-GCM并保留PO审计时间；legacy single-PEM runtime不限制SAS keyring | TEST-119 key/AAD/version; TEST-120 timestamps; TEST-008 fleet/runtime gate | Step 10; Step 11 |
+| REQ-031 | 修订§4/DEC-122 | global Resource collection在PLATFORM分区有界读取、稳定排序并显式检测10001条溢出 | TEST-121 mapper XML/数量门禁；无DB | Step 10 |
+| REQ-032 | 修订§4/DEC-124 | Resource/CC Grant事实与版本化Redis投影event同一PRIMARY Outbox事务；consumer只投影提交后重载的最新MP状态 | TEST-123 service/outbox/handler contract；无Redis/Outbox runtime | Step 10 |
+| REQ-033 | 修订§4/DEC-125 | Client redirects require canonical HTTPS in all environments except an exact IPv4 loopback HTTP callback while `local` profile is active; direct service entry must enforce the same boundary | TEST-124; no browser | Step 10 |
 
 ## 4. Implementation Strategy and Dependency Order
 
@@ -105,7 +110,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | Step 7 | Step 6 | None，逐Step完成并提交 | 其他未完成Step写域 | 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写。 |
 | Step 8 | Step 7 | None，逐Step完成并提交 | 其他未完成Step写域 | SAS多issuer精确registry、JWK与protocol discovery逐租户独立。 |
 | Step 9 | Step 8 | None，逐Step完成并提交 | 其他未完成Step写域 | 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限；PLATFORM USER校验配置的管理tenant membership；签发审计与Outbox同事务。 |
-| Step 10 | Step 9 | None，逐Step完成并提交 | 其他未完成Step写域 | 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示。 |
+| Step 10 | Step 9 | None，逐Step完成并提交 | 其他未完成Step写域 | 原管理URL/权限不变；同realm TrustedRealmBO进入MP service；全局Resource目录固定PLATFORM并有界排序读取；Resource/CC Grant Redis投影只由durable Outbox handler在提交后刷新；keyring按issuer隔离，multi-instance propagation remains a runtime gate。 |
 | Step 11 | Step 10 | None，逐Step完成并提交 | 其他未完成Step写域 | 成功撤销后新鉴权拒绝；Redis故障503；审计持久可恢复。 |
 | Step 12 | Step 11 | None，逐Step完成并提交 | 其他未完成Step写域 | 所有受保护资源请求本地RS256后共享撤销检查，Servlet ThreadLocal/MDC最终清理。 |
 | Step 13 | Step 12 | None，逐Step完成并提交 | 其他未完成Step写域 | 出站调用按issuer/client/凭据版/aud/tenant/scope隔离并临期重获，无client_credentials RT。 |
@@ -148,7 +153,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | 持久化密钥、撤销与审计状态 | REQ-012, REQ-013, REQ-014, REQ-015, REQ-020, REQ-021, REQ-023, REQ-027, REQ-028 | Required — 必需PO/BO/Repository签名先让test编译；测试在Mapper/Impl装配前因缺Bean或缺具名SQL按目标RED，随后GREEN。 | Step 6 | 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写。 | Step 8 | Step 7 |
 | 装配多issuer SAS仓储与协议发现 | REQ-001, REQ-002, REQ-004, REQ-013, REQ-016 | Required — 两issuer测试先因SPI/多路径缺失RED，再补真实SAS装配GREEN。 | Step 7 | SAS多issuer精确registry、JWK与protocol discovery逐租户独立。 | Step 9 | Step 8 |
 | 实现授权码、PKCE和登录交互 | REQ-003, REQ-004, REQ-005, REQ-011, REQ-012, REQ-014, REQ-016 | Required — default SAS UUID/request attributes and S256 policy are fixed by focused RED/GREEN tests; code/token audit and component Outbox enqueue share the local transaction, and PLATFORM USER access requires configured manager membership. | Step 8 | 标准Code/PKCE/consent/login和机器Client Credentials签发保持scope/audience界限。 | Step 10 | Step 9 |
-| 改造客户端、资源与密钥管理 | REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026 | Required — 当前JPA/Argon2/全局资源UI路径使租户/密钥测试RED，修最小管理链后GREEN。 | Step 9 | 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示。 | Step 11 | Step 10 |
+| 改造客户端、资源与密钥管理 | REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026, REQ-029, REQ-030, REQ-031 | Required — Controller realm传递/跨realm拒绝、key AAD、timestamp mapping及资源目录bounded SQL先RED；之后同一focused suite GREEN。 | Step 9 | 原管理URL/权限不变；同realm TrustedRealmBO进入MP service；全局Resource目录固定PLATFORM，稳定排序且读取上限10001；keyring按issuer隔离。 | Step 11 | Step 10 |
 | 闭合撤销、审计、密钥轮换 | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-020, REQ-021 | Required — 初始无共享状态/恢复handler，RED由新用例而非容器启动失败；单元先GREEN，真实Redis/PG在用户运行门禁。 | Step 10 | 成功撤销后新鉴权拒绝；Redis故障503；审计持久可恢复。 | Step 12 | Step 11 |
 | 在资源服务器建立多issuer本地验签和租户上下文 | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024 | Required — 新多issuer/tenant/Redis故障测试RED；创建resolver/Bridge之后GREEN。 | Step 11 | 所有受保护资源请求本地RS256后共享撤销检查，Servlet ThreadLocal/MDC最终清理。 | Step 13 | Step 12 |
 | 改造机器客户端缓存并装配WebClient | REQ-005, REQ-009, REQ-011, REQ-016 | Required — 旧缓存键/TTL对新issuer与凭据版本不满足用例，先RED后GREEN。 | Step 12 | 出站调用按issuer/client/凭据版/aud/tenant/scope隔离并临期重获，无client_credentials RT。 | Step 14 | Step 13 |
@@ -212,8 +217,8 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java  # Step 2
-MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2,3,4,5,6
-MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3,4,5,6,8,9
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2,3,4,5,6,10
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3,4,5,6,8,9,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/oauth-sharding-native.yml  # Step 2
@@ -277,32 +282,32 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmRepository.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthStringListJsonbTypeHandler.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthClientPO.java  # Step 4
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java  # Step 4
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java  # Step 4,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java  # Step 4
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java  # Step 4
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java  # Step 4,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthRealmConverter.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthRealmMapper.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthRealmMapper.xml  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthRealmRepositoryImpl.java  # Step 4
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java  # Step 4
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java  # Step 4,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthClientMapper.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthClientMapper.xml  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthClientRepositoryImpl.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/po/OAuthResourcePO.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthResourceRepository.java  # Step 5
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthResourceRepository.java  # Step 5,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/po/OAuthGrantPO.java  # Step 5
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthGrantBO.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthGrantRepository.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthResourcePersistenceContractTest.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/OAuthResourceConverter.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthResourceMapper.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthResourceMapper.xml  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthResourceRepositoryImpl.java  # Step 5
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthGrantRepository.java  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthResourcePersistenceContractTest.java  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/OAuthResourceConverter.java  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthResourceMapper.java  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthResourceMapper.xml  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthResourceRepositoryImpl.java  # Step 5,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/OAuthGrantConverter.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthGrantMapper.java  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthGrantMapper.xml  # Step 5
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthGrantRepositoryImpl.java  # Step 5
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthGrantMapper.java  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthGrantMapper.xml  # Step 5,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthGrantRepositoryImpl.java  # Step 5,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationAttributesBO.java  # Step 6
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthSecuritySnapshotBO.java  # Step 6
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthTokenMetadataBO.java  # Step 6
@@ -337,7 +342,7 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/OAuthKeyCipherComponent.java  # Step 7
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/OAuthKeyEncryptionProperties.java  # Step 6
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/po/OAuthSigningKeyPO.java  # Step 7
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSigningKeyBO.java  # Step 7
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSigningKeyBO.java  # Step 7,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repository/OAuthSigningKeyRepository.java  # Step 7
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/po/OAuthSecurityStatePO.java  # Step 7
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSecurityStateBO.java  # Step 7
@@ -348,8 +353,8 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/domain/po/OAuthAuditPO.java  # Step 7
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/domain/bo/OAuthAuditBO.java  # Step 7
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/repository/OAuthAuditRepository.java  # Step 7
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthSigningKeyPersistenceContractTest.java  # Step 7
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/converter/OAuthSigningKeyConverter.java  # Step 7
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthSigningKeyPersistenceContractTest.java  # Step 7,10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/converter/OAuthSigningKeyConverter.java  # Step 7,10
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/dao/OAuthSigningKeyMapper.java  # Step 7
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/token/OAuthSigningKeyMapper.xml  # Step 7
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repository/impl/OAuthSigningKeyRepositoryImpl.java  # Step 7
@@ -534,7 +539,7 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java  # Step 18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java  # Step 18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java  # Step 18
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java  # Step 10,18
 DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityUserEntity.java  # Step 18
 DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityCredentialEntity.java  # Step 18
 DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantEntity.java  # Step 18
@@ -558,6 +563,17 @@ DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/JpaResourceServerStore.java  # Step 18
 DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/pojo/IdentitySigningKeyEntity.java  # Step 18
 DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/IdentitySigningKeyRepository.java  # Step 18
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthManagementRealmResolver.java  # Step 10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthManagementRealmResolverTest.java  # Step 10
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthClientService.java  # Step 10
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/SigningKeyService.java  # Step 10
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ResourceServerController.java  # Step 10
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ResourceServerControllerTest.java  # Step 10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/controller/SigningKeyControllerTest.java  # Step 10
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpAdminSecurityIT.java  # Step 10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/ResourceServerProjectionDeliveryHandler.java  # Step 10
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/ResourceServerProjectionDeliveryHandlerTest.java  # Step 10
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/SigningKeyServiceImplTest.java  # Step 10
 ```
 
 | Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
@@ -6621,14 +6637,15 @@ FAIL -> generated OpenAPI must not claim a Bearer requirement or document token/
 - Commit: `feat(shoubing): implement code pkce oidc and client grants`。
 ### Step 10 — 改造客户端、资源与密钥管理
 
-- Requirements: REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026
+- Requirements: REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033
 - Dependencies: Step 9
 - Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在realmIsolatedBcryptRotation所列新行为。
-- Observable outcome: 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示。
-- End state: 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示；后续Step的Consumer尚未切流，不声明完整生产验收。
-- Test-first gate: Required — 当前JPA/Argon2/全局资源UI路径使租户/密钥测试RED，修最小管理链后GREEN。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
+- Observable outcome: 现有管理URL按Realm管理Client/Grant/Key；管理Controller先校验授权和realm意图，再把registry解析的TrustedRealmBO传给MP服务；Client secret一次明文返回，其余时间仅bcrypt；redirect在所有环境要求精确HTTPS，只有local profile下 opt-in 开发bootstrap可登记精确`127.0.0.1` HTTP回调；Resource与service Grant的Redis投影由component Outbox提交后重载当前MP事实。
+- End state: 原管理URL/权限码保持；四个管理路径具备同realm MP隔离；全局Resource主目录固定PLATFORM realm，Grant归属真实client realm；production/nonlocal HTTP redirect拒绝，唯一loopback回调为local profile exact whitelist；不在业务事务内写Redis；Resource/CC Grant投影消息与MP事实原子提交并由幂等Outbox handler重载权威状态；key由每issuer encrypted keyring承载；未做多实例传播验收不宣称生产ready。
+- Test-first gate: Required — controller realm传递、跨realm拒绝、realm resolver和per-realm key contract在实现前先RED；GREEN不连接数据库/Redis服务。
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
+- Plan clarification: Admin controllers are outside the AuthorizationServerContext; they must not call `resolveCurrentIssuer()` or infer realm from MDC. The new stateless `OAuthManagementRealmResolver` defaults an omitted realm to the authenticated principal's exact tenant, accepts `platform` only for the configured platform-management tenant with fresh STRONG authentication, resolves the registered issuer and passes the resulting `TrustedRealmBO` through service interfaces. Resource Server metadata is global and therefore uses only the validated PLATFORM realm; grants remain scoped to the chosen Client realm. Resource/CC Grant service writes enqueue a separate versioned projection event with the MP fact; the Outbox delivery handler validates its envelope, resolves the trusted realm, reloads current MP rows and alone invokes `ResourceServerProjectionService`. It never projects the event's stale snapshot. The original Tianshu disabled-admission event and handler remain separate. Client redirect validation enforces canonical HTTPS generally and accepts only an exact `http://127.0.0.1` callback with a valid port and callback path when the `local` Spring profile is active; it rejects local profile omissions from the whitelist and all other HTTP schemes/hosts. New signing keys use the existing realm-bound AES-GCM cipher and MP key/realm repositories; the legacy one-kid PEM runtime remains for root legacy token handlers and is not the SAS per-realm keyring. Runtime multi-instance/JWKS propagation remains a blocking Manual Check per main Spec TEST-008 and is not inferred from unit tests.
 - Ordered files:
 
 #### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`
@@ -6652,7 +6669,7 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> current all-client listing and Argon
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 realmIsolatedBcryptRotation 的正例与 current all-client listing and Argon2 make RED 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 realmIsolatedBcryptRotation 的正例与 current all-client listing and Argon2 make RED 负例。
 - After this file: realmIsolatedBcryptRotation 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientViewConverter.java`
@@ -6662,7 +6679,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Repository evidence: 当前不存在；主Spec §9.2/§10.2 命名此对象/字段；现有相邻业务包提供放置证据。
 - Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §9.2/§10.2，不产生新HTTP路由。
 - Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: BaseForwardConverter<OAuthClientBO,OAuthClientVO>; omit secret_hash; issuer/secretHint/null PUBLIC mapping。
+- Contract/signature changes: BaseForwardConverter<OAuthClientBO,OAuthClientVO>; omit secret_hash; issuer/secretHint/null PUBLIC mapping; create/rotate result methods receive only the generated one-time secret as explicit context and never map secretHash into clientSecret.
 - Input/output and state mapping: 精确字段由主Spec §9.2/§10.2 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -6671,7 +6688,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> 仅接受主Spec §9.2/§10.2 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> BaseForwardConverter<OAuthClientBO,OAuthClientVO>; omit secret_hash; issuer/secretHint/null PUBLIC mapping。
+FLOW -> BaseForwardConverter<OAuthClientBO,OAuthClientVO>; omit secret_hash; issuer/secretHint/null PUBLIC mapping; MapStruct one-time result mappings bind plaintext only from explicit secret context.
 OUTPUT -> OAuthClientViewConverter 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
@@ -7060,31 +7077,31 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> PUBLIC secret null; confidential app
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 purpose/allowedScopes groups 的正例与 PUBLIC secret null; confidential appId required 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 purpose/allowedScopes groups 的正例与 PUBLIC secret null; confidential appId required 负例。
 - After this file: purpose/allowedScopes groups 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/UpdateOAuthClientDTO.java`
 
-- Purpose: 版本写与scope收缩。
+- Purpose: 版本写与可选scope更新。
 - Symbols: `allowedScopes optional`。
 - Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/UpdateOAuthClientDTO.java；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 9 与本Step此前文件；输出供 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； 版本写与scope收缩在此位置后才可接消费者。
-- Contract/signature changes: allowedScopes optional；版本写与scope收缩。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Contract/signature changes: allowedScopes optional；缺省保留、显式空集合拒绝、非空集合按Service上界校验。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: no purpose/issuer mutable update。
-- Error and edge behavior: scope enlarge no grant/consent auto issue。
+- Error and edge behavior: 空scope拒绝；scope enlarge no grant/consent auto issue。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 6, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
 - Implementation pseudocode:
 
 ```java
 INPUT -> no purpose/issuer mutable update。
-FLOW -> class Lombok set; @Validated Update; absent scope retains, empty scope revokes; expectedVersion nonnegative
+FLOW -> class Lombok set; @Validated Update; absent scope retains, empty scope rejects; expectedVersion nonnegative
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> scope enlarge no grant/consent auto issue。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 allowedScopes optional 的正例与 scope enlarge no grant/consent auto issue 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 allowedScopes optional 的正例与 scope enlarge no grant/consent auto issue 负例。
 - After this file: allowedScopes optional 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImpl.java`
@@ -7094,7 +7111,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImpl.java；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 9 与本Step此前文件；输出供 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； MP ClientRepository + SecretEncoder在此位置后才可接消费者。
-- Contract/signature changes: create/rotate/update/redirects；MP ClientRepository + SecretEncoder。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Contract/signature changes: create/rotate/update/redirects use the MP ClientRepository plus bcrypt; `activeProfiles` gates only the exact `http://127.0.0.1` loopback host with a valid port and callback path, while canonical HTTPS and direct-Service scope/TTL checks remain explicit.
 - Input/output and state mapping: one-time Result only; old Argon2 remains legacy instance。
 - Error and edge behavior: lost rotate response cannot replay/restore raw secret。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
@@ -7103,12 +7120,12 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> one-time Result only; old Argon2 remains legacy instance。
-FLOW -> @Service("oauthClientServiceImpl") @Slf4j @RequiredArgsConstructor final @Qualifier; SecureRandom 32 bytes base64url; BCryptPasswordEncoder cost12; store {bcrypt} hash; version CAS; honor realm guard
+FLOW -> @Service("OAuthClientServiceImpl") @Slf4j @RequiredArgsConstructor final @Qualifier; SecureRandom 32 bytes base64url; BCryptPasswordEncoder cost12; store {bcrypt} hash; version CAS; validate canonical redirects/scope/TTL on direct and HTTP entry; local profile accepts exact IPv4 loopback HTTP only
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> lost rotate response cannot replay/restore raw secret。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 create/rotate/update/redirects 的正例与 lost rotate response cannot replay/restore raw secret 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 create/rotate/update/redirects 的正例与 lost rotate response cannot replay/restore raw secret 负例。
 - After this file: create/rotate/update/redirects 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientController.java`
@@ -7132,7 +7149,7 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> cross-realm403, stale409, 201/200 ex
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 API-020..027 的正例与 cross-realm403, stale409, 201/200 exact 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 API-020..027 的正例与 cross-realm403, stale409, 201/200 exact 负例。
 - After this file: API-020..027 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java`
@@ -7144,7 +7161,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Why now: 先固定目标失败行为，避免用删除断言修测试。
 - Contract/signature changes: API-045真实Controller/OAS权限与空数组合同RED；外部合同服从有效Spec，不额外加URL。
 - Input/output and state mapping: API-045真实Controller/OAS权限与空数组合同RED。
-- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
+- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；production/nonlocal loopback, malformed redirect/scope/TTL reject before write。
 - Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
 - Implementation pseudocode:
@@ -7204,7 +7221,9 @@ List<ClientResourceGrantVO> listGrants(@NotBlank String clientId, String realm);
 replace IdentityClient/Resource/Grant Entity fixtures with target OAuth BOs;
 assert same resource external ID, biz/app/env, status/version and lifecycle eventId;
 assert management client is the authorized PLATFORM registration, not tenant same-name client;
-assert enqueue failure rolls back fact; projection failure follows pending/503, not silent success;
+assert security-audit enqueue failure rolls back OAuth client/grant fact;
+assert production/nonlocal HTTP redirect, invalid scope and invalid TTL reject before write;
+assert the existing exact local loopback callback remains usable only under local profile;
 assert no plain secret/token/password enters payload or log;
 ```
 
@@ -7218,7 +7237,7 @@ assert no plain secret/token/password enters payload or log;
 - Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java及其引用链；修订Spec§8/10。
 - Dependencies and consumers: Step 9及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
 - Why now: 先固定目标失败行为，避免用删除断言修测试。
-- Contract/signature changes: 保留资源/Client当前业务合同并替换旧Entity fixture；外部合同服从有效Spec，不额外加URL。
+- Contract/signature changes: 保留资源/Client当前业务合同并替换旧Entity fixture；补充direct-Service scope/TTL/redirect negative cases and the local-profile loopback allowlist; external routes remain unchanged.
 - Input/output and state mapping: 保留资源/Client当前业务合同并替换旧Entity fixture。
 - Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
 - Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
@@ -7229,7 +7248,9 @@ assert no plain secret/token/password enters payload or log;
 replace IdentityClient/Resource/Grant Entity fixtures with target OAuth BOs;
 assert same resource external ID, biz/app/env, status/version and lifecycle eventId;
 assert management client is the authorized PLATFORM registration, not tenant same-name client;
-assert enqueue failure rolls back fact; projection failure follows pending/503, not silent success;
+assert audit enqueue failure rolls back Client and Grant facts;
+assert nonlocal HTTP redirect, malformed direct-service scopes and invalid TTL fail before MP write;
+assert exact loopback callback is accepted only with the local Spring profile;
 assert no plain secret/token/password enters payload or log;
 ```
 
@@ -7254,7 +7275,9 @@ assert no plain secret/token/password enters payload or log;
 replace IdentityClient/Resource/Grant Entity fixtures with target OAuth BOs;
 assert same resource external ID, biz/app/env, status/version and lifecycle eventId;
 assert management client is the authorized PLATFORM registration, not tenant same-name client;
-assert enqueue failure rolls back fact; projection failure follows pending/503, not silent success;
+assert security-audit enqueue failure rolls back OAuth client/grant facts;
+assert malformed HTTPS and nonlocal HTTP redirect, invalid direct-service scope and TTL fail before MP writes;
+assert canonical HTTPS works in every profile and exact loopback callback is accepted only under local;
 assert no plain secret/token/password enters payload or log;
 ```
 
@@ -7293,7 +7316,7 @@ assert no plain secret/token/password enters payload or log;
 - Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImplTest.java及其引用链；修订Spec§8/10。
 - Dependencies and consumers: Step 9及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
 - Why now: 先固定目标失败行为，避免用删除断言修测试。
-- Contract/signature changes: 保留资源/Client当前业务合同并替换旧Entity fixture；外部合同服从有效Spec，不额外加URL。
+- Contract/signature changes: 保留资源/Client当前业务合同并替换旧Entity fixture；增加direct-Service scope/TTL校验及canonical HTTPS/local-only loopback callback覆盖；外部URL/DTO wire不变。
 - Input/output and state mapping: 保留资源/Client当前业务合同并替换旧Entity fixture。
 - Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
 - Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
@@ -7304,7 +7327,9 @@ assert no plain secret/token/password enters payload or log;
 replace IdentityClient/Resource/Grant Entity fixtures with target OAuth BOs;
 assert same resource external ID, biz/app/env, status/version and lifecycle eventId;
 assert management client is the authorized PLATFORM registration, not tenant same-name client;
-assert enqueue failure rolls back fact; projection failure follows pending/503, not silent success;
+assert security-audit enqueue failure rolls back OAuth client/grant facts;
+assert malformed HTTPS/nonlocal HTTP redirect, invalid direct-Service scope and TTL fail before MP write;
+assert canonical HTTPS is accepted in every profile and exact 127.0.0.1 loopback HTTP only passes under local;
 assert no plain secret/token/password enters payload or log;
 ```
 
@@ -7318,7 +7343,7 @@ assert no plain secret/token/password enters payload or log;
 - Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImpl.java；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 9 与本Step此前文件；输出供 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； MP OAuthResource/Grant Repository在此位置后才可接消费者。
-- Contract/signature changes: resource create/status/grants；MP OAuthResource/Grant Repository。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Contract/signature changes: resource create/status/grants use MP OAuthResource/Grant repositories; Redis is never called by these transactional methods; each changed Resource or CLIENT_CREDENTIALS Grant is enqueued through `TransactionalOutboxResourceServerEventAdapter` with a stable idempotency key. Public behavior stays within main Spec §9 API and §10/11 internal contracts.
 - Input/output and state mapping: preserve external resourceServerId/URI and status VO。
 - Error and edge behavior: no implicit grant, wrong realm403, atomic batch。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
@@ -7329,11 +7354,11 @@ assert no plain secret/token/password enters payload or log;
 ```java
 INPUT -> preserve external resourceServerId/URI and status VO。
 FLOW -> @Service("resourceServerServiceImpl") @Slf4j @RequiredArgsConstructor; management client must be platform SERVICE registration; source app/biz/env from resource; grant exact tenant/resource/version; existing DDC outbox unchanged
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no implicit grant, wrong realm403, atomic batch。
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no implicit grant, wrong realm403, atomic batch; outbox enqueue failure rolls back the fact; Redis delivery is retried from current committed MP state。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 resource create/status/grants 的正例与 no implicit grant, wrong realm403, atomic batch 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 resource create/status/grants 的正例与 no implicit grant, wrong realm403, atomic batch 负例。
 - After this file: resource create/status/grants 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 30 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/MpResourceServerStore.java`
@@ -7357,7 +7382,7 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missing app/resource invalid_target;
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 ResourceServerStore adapter 的正例与 missing app/resource invalid_target; tenant context never leaked 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 ResourceServerStore adapter 的正例与 missing app/resource invalid_target; tenant context never leaked 负例。
 - After this file: ResourceServerStore adapter 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/SigningKeyServiceImpl.java`
@@ -7381,7 +7406,7 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> wrong version409; late node not read
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 list/publish/activate/retire 的正例与 wrong version409; late node not ready503 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 list/publish/activate/retire 的正例与 wrong version409; late node not ready503 负例。
 - After this file: list/publish/activate/retire 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/controller/SigningKeyController.java`
@@ -7405,7 +7430,7 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> wrong realm/ACTIVE retire denied。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 API-031..034 的正例与 wrong realm/ACTIVE retire denied 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 API-031..034 的正例与 wrong realm/ACTIVE retire denied 负例。
 - After this file: API-031..034 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
 #### File 33 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantController.java`
@@ -7443,8 +7468,8 @@ List<ClientResourceGrantVO> list(@PathVariable @NotBlank String clientId,@Reques
 - Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/config/ResourceServerConfig.java及其引用链；修订Spec§8/10。
 - Dependencies and consumers: Step 9及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
 - Why now: 前序契约/类型已固定，按此文件依赖接入；本Step末统一编译与回归。
-- Contract/signature changes: 关闭资源/Client MP迁移的直接装配与投影依赖；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 关闭资源/Client MP迁移的直接装配与投影依赖。
+- Contract/signature changes: retain the existing Tianshu disabled destination/envelope and add separate Resource/CLIENT_CREDENTIALS Grant projection events on a dedicated component Outbox channel; no HTTP/API changes.
+- Input/output and state mapping: Resource event identity is resourceServerId+version; Grant event identity is realmKey+clientId+resourceServerId+grantType+version. Payloads contain only the exact identifiers/version required to reload current committed MP rows; no client secret, private key, raw grant snapshot or token.
 - Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
 - Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
@@ -7452,15 +7477,15 @@ List<ClientResourceGrantVO> list(@PathVariable @NotBlank String clientId,@Reques
 
 ```java
 replace old Entity/Jpa store parameters with OAuthResourceBO/OAuthClientBO/OAuthGrantBO and MpResourceServerStore;
-keep public resource payload resourceServerId,bizCode,appCode,env,status,version and existing destination;
+keep public resource payload resourceServerId,bizCode,appCode,env,status,version and existing Tianshu disable destination;
 managementClientId resolves only the mapped PLATFORM registration, never tenant same-name client;
-enqueueDisabled keeps idempotency key resourceServerId + ":disabled:" + version and current envelope;
-perform Redis projection only from committed fact; use existing durable outbox handler/replay path;
+enqueueDisabled keeps its idempotency key and destination; enqueue versioned resource/grant projection events in the same MP transaction;
+ResourceServerProjectionDeliveryHandler reloads current rows under the verified PLATFORM or client realm and alone writes Redis; duplicate/late events project current authority;
 resource/grant/source authorization guards remain; bootstrap creates no default all-tenant permission;
 
 ```
 
-- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: ResourceServerConfig达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
 #### File 35 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/ResourceServerProjectionService.java`
@@ -7484,10 +7509,11 @@ managementClientId resolves only the mapped PLATFORM registration, never tenant 
 enqueueDisabled keeps idempotency key resourceServerId + ":disabled:" + version and current envelope;
 perform Redis projection only from committed fact; use existing durable outbox handler/replay path;
 resource/grant/source authorization guards remain; bootstrap creates no default all-tenant permission;
+project one fact per method call with explicit BO parameters; do not wrap mutable BOs in records or add unused batch APIs;
 
 ```
 
-- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: ResourceServerProjectionService达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
 #### File 36 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/TransactionalOutboxResourceServerEventAdapter.java`
@@ -7514,7 +7540,7 @@ resource/grant/source authorization guards remain; bootstrap creates no default 
 
 ```
 
-- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TransactionalOutboxResourceServerEventAdapter达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
 #### File 37 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
@@ -7541,16 +7567,740 @@ resource/grant/source authorization guards remain; bootstrap creates no default 
 
 ```
 
-- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- Verification contribution: Step 10 的 `ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdpDevelopmentClientBootstrap达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
+#### File 38 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthClientService.java`
+
+- Purpose: 让Client管理用例显式接收Controller已解析的issuer realm。
+- Symbols: `list/create/rotateSecret/update/redirects`。
+- Repository evidence: 当前接口不含TrustedRealmBO，而Step 4的MP ClientRepository要求该边界参数；EVD-123/REQ-029。
+- Dependencies and consumers: OAuthClientController使用resolver输出调用本接口；MP repository继续只接TrustedRealmBO。
+- Why now: 只有service签名显式接收realm，Controller realm guard才能绑定到数据库分区。
+- Contract/signature changes: 所有读写方法新增`TrustedRealmBO`参数；operator仍由已验证principal传入；旧外部URL和DTO wire不变。
+- Input/output and state mapping: TrustedRealmBO为issuer registry中ACTIVE记录的精确投影。
+- Error and edge behavior: 不允许service从MDC、请求头或AuthorizationServerContext猜realm。
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> registry-resolved TrustedRealmBO from controller, existing command and operator.
+FLOW -> keep the use-case interface explicit; every repository call receives the same realm.
+FAIL -> no realm can be inferred from request ambient state.
+```
+
+- Verification contribution: same-realm client controller/service tests prove the selected realm reaches MP repositories.
+- After this file: Client use-case boundary no longer accepts ambiguous global operations.
+
+#### File 39 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/SigningKeyService.java`
+
+- Purpose: 让Signing Key用例显式接收issuer realm。
+- Symbols: `list/publish/activate/retire`。
+- Repository evidence: 当前接口不含realm参数；MP OAuthSigningKeyRepository及OAuthKeyCipherComponent都按TrustedRealmBO分区；EVD-124。
+- Dependencies and consumers: SigningKeyController passes a resolver result; SigningKeyServiceImpl uses it for key and realm repository calls.
+- Why now: keyring operations cannot select an issuer from a single global configured PEM value.
+- Contract/signature changes: list/publish/activate/retire新增TrustedRealmBO参数；management URL、request body/query和VO字段名不变。
+- Input/output and state mapping: exact realm registry key determines the MP tenant partition and key AAD.
+- Error and edge behavior: 跨realm请求先在Controller resolver拒绝，服务只持受信realm BO。
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> TrustedRealmBO, then existing publish/version arguments.
+FLOW -> all signing-key repository and cipher operations use this exact issuer realm.
+FAIL -> no global configured PEM kid substitutes for the target realm keyring.
+```
+
+- Verification contribution: SigningKeyServiceImplTest verifies distinct keyring calls across two trusted realms.
+- After this file: signing-key use-case operations require an explicit trusted issuer.
+
+#### File 40 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthManagementRealmResolver.java`
+
+- Purpose: 在Admin HTTP边界把显式管理意图转为可信issuer。
+- Symbols: `resolve(IdentityPrincipal,String)` and `platformRealm()`。
+- Repository evidence: current controllers have verified IdentityPrincipal and permission gate but no realm resolver; TenantIssuerService resolves an exact registered URI.
+- Dependencies and consumers: OAuthClientController, ClientResourceGrantController, SigningKeyController and ResourceServerController call it after the existing permission gate.
+- Why now: management routes run outside AuthorizationServerContext and cannot use resolveCurrentIssuer.
+- Contract/signature changes: omitted realm defaults only to the exact authenticated tenant; `tenant:<id>` must match principal; `platform` additionally requires configured management tenant and STRONG auth within five minutes.
+- Input/output and state mapping: output only comes from `TenantIssuerService.resolveExactIssuer` after issuer registry validation.
+- Error and edge behavior: malformed realm is 400; cross-tenant/platform eligibility is 403; unknown/inactive registry realm is not exposed as another tenant.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-CONFIG-001, MC-BEAN-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 7, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> verified IdentityPrincipal and optional realm query.
+FLOW -> validate canonical tenant id; call TenantIssuerService.resolveExactIssuer; use AuthenticationContext.satisfies(STRONG, five minutes, injected Clock) for platform.
+FAIL -> never derive identity or storage partition from a header, arbitrary issuer, or ambient MDC.
+```
+
+- Verification contribution: OAuthManagementRealmResolverTest covers default, matching/mismatching tenant, platform strong/fresh, weak/stale, and unknown issuer cases.
+- After this file: all management controllers can pass a registry-backed trusted realm rather than ambient request state.
+
+#### File 41 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthManagementRealmResolverTest.java`
+
+- Purpose: RED/锁定REQ-029管理realm边界。
+- Symbols: `defaultsToPrincipalTenant`, `rejectsCrossTenantSelection`, `requiresStrongFreshPlatformAuthentication`, `resolvesOnlyRegisteredIssuer`。
+- Repository evidence: no such resolver/test exists; current IdentityPrincipal carries tenantId and AuthenticationContext; TenantIssuerService validates the registered issuer.
+- Dependencies and consumers: synthetic IdentityPrincipal, fixed Clock, mocked TenantIssuerService; no application service or external store.
+- Why now: these failures must be fixed in the shared boundary before controller/service migration.
+- Contract/signature changes: tests must assert exact TrustedRealmBO input, not merely a route string.
+- Input/output and state mapping: fixed Clock, tenant A/B, configured management tenant, synthetic active/inactive issuer.
+- Error and edge behavior: cross-tenant and weak/stale platform fail before service/target query.
+- Standards impact: MC-TEST-001, MC-VALID-001, MC-CONFIG-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> fixed principal/Clock and mocked exact issuer registry.
+FLOW -> prove explicit realm-to-TrustedRealmBO mapping and guard order.
+FAIL -> any untrusted or stale realm selection is rejected without invoking a management service.
+```
+
+- Verification contribution: included in the Step 10 focused Maven command.
+- After this file: invalid tenant/platform realm choices are captured as behavior REDs.
+
+#### File 42 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ResourceServerController.java`
+
+- Purpose: 固定global Resource Server管理到已授权PLATFORM realm。
+- Symbols: `API Resource Server list/detail/create/status/batch`。
+- Repository evidence: current controller only checks Jianshen permission; global resource metadata must use the platform storage partition.
+- Dependencies and consumers: ResourceServerService receives a registry-backed PLATFORM realm from this controller.
+- Why now: Resource metadata is a global control-plane directory, unlike realm-owned Client Grants.
+- Contract/signature changes: add optional `realm` query with existing route/operationId; permission gate precedes resolver; PLATFORM realm is required.
+- Input/output and state mapping: only the configured management tenant with recent strong auth can produce the platform realm.
+- Error and edge behavior: tenant realm cannot list or mutate global Resource Server metadata.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 7, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> existing path/body/principal and optional realm.
+FLOW -> authorize, resolve exact platform TrustedRealmBO, pass it to ResourceServerService.
+FAIL -> tenant-selected storage partition never reaches global resource queries.
+```
+
+- Verification contribution: ResourceServerControllerTest asserts permission-before-service and tenant/platform route behavior.
+- After this file: resource metadata cannot be queried or changed through a tenant storage partition.
+
+#### File 43 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ResourceServerControllerTest.java`
+
+- Purpose: 锁定global resource administration的PLATFORM realm boundary。
+- Symbols: existing Resource Server endpoints.
+- Repository evidence: current controller test exists but does not carry realm.
+- Dependencies and consumers: MockMvc standalone controller, mocked resolver/service and identity principal fixtures.
+- Why now: update existing assertions before the controller starts requiring an explicit realm.
+- Contract/signature changes: keep status/body/operationIds; assert a tenant realm is rejected before service invocation and valid platform reaches service.
+- Input/output and state mapping: mocked principal with configured administrator tenant and fixed recent STRONG context.
+- Error and edge behavior: no target resource lookup on failed auth/realm guard.
+- Standards impact: MC-TEST-001, MC-VALID-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> MockMvc requests with tenant default, cross-tenant query, and eligible platform query.
+FLOW -> verify permission and resolver order, exact realm argument, and unchanged HTTP route/body.
+FAIL -> cross-realm requests return the established access-denied shape with zero service calls.
+```
+
+- Verification contribution: included in the Step 10 focused Maven command.
+- After this file: test fixtures assert the platform-only resource contract without opening a service.
+
+#### File 44 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/controller/SigningKeyControllerTest.java`
+
+- Purpose: 锁定Signing Key管理Controller realm传递和权限顺序。
+- Symbols: `list/publish/activate/retire`。
+- Repository evidence: no current SigningKeyControllerTest exists; controller exposes all four routes without realm selection.
+- Dependencies and consumers: MockMvc, mocked resolver, permission port and SigningKeyService.
+- Why now: capture exact realm propagation before controller method signatures change.
+- Contract/signature changes: assert optional realm query, unchanged operationIds/statuses, secret response no-store where applicable, and exact TrustedRealmBO service parameter.
+- Input/output and state mapping: mock public and tenant key realms; encrypted values are synthetic only.
+- Error and edge behavior: unauthorized/cross-tenant/weak platform checks stop before SigningKeyService; no private material in response.
+- Standards impact: MC-TEST-001, MC-VALID-001, MC-JSON-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 2, Rule 6, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> MockMvc requests for list/publish/activate/retire with verified principal and realm.
+FLOW -> assert existing URL/permissions and resolver-produced realm at service boundary.
+FAIL -> no target key lookup on invalid realm; response never serializes encryptedPrivateKey.
+```
+
+- Verification contribution: included in the Step 10 focused Maven command.
+- After this file: key management routes prove permission and realm checks precede target key access.
+
+#### File 45 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: 记录Step10源代码边界纠正与realm/key管理决策。
+- Symbols: EVD-123/124, REQ-029/030, DEC-119/120, TEST-118/119。
+- Repository evidence: controller/service realm缺少显式传递，legacy SigningKeyRuntime仍只有单global kid；本Step通过TDD验证更正后的MP边界。
+- Dependencies and consumers: effective accepted base Spec and current Review amendment are the design inputs for Step10 code.
+- Why now: an executable Step plan must match the current code and preserve the Review boundary.
+- Contract/signature changes: Spec仍保持Review；主Spec已接受的同realm权限与key rotation合同继续有效。
+- Input/output and state mapping: add only current source evidence and the precise service/Controller contract corrections.
+- Error and edge behavior: 本Spec不宣称PostgreSQL、Redis、多实例JWK或浏览器runtime已验证。
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001。
+- Literal rule enforcement: Rule 11。
+- Implementation pseudocode:
+
+```text
+INPUT -> Step 10 code evidence and completed contract tests.
+FLOW -> record only directly evidenced corrections and trace their validation.
+FAIL -> do not rewrite the accepted predecessor or mark the Review amendment Accepted.
+```
+
+- Verification contribution: strict Spec validator and Step10 trace review.
+- After this file: the accepted predecessor remains unchanged and the Review amendment traces the new implementation boundary.
+
+#### File 46 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: 使Step10路径、依赖、测试和Manual Checks与当前接受设计及源代码相符。
+- Symbols: Step10 files/commit path/trace row/validation command。
+- Repository evidence: current service interfaces cannot receive selected TrustedRealmBO and current key runtime is a single global legacy kid.
+- Dependencies and consumers: the effective Review amendment, all Step10 code File blocks, validation command and commit scope.
+- Why now: route the approved Plan execution through a path-complete, reviewable Step boundary.
+- Contract/signature changes: add exact resolver, interfaces, controller tests and documentation paths to this Step only; preserve the ordered Step boundary.
+- Input/output and state mapping: 68 declared paths correspond exactly to Step10 code and design corrections.
+- Error and edge behavior: any unready runtime/database/JWKS gate remains unverified until the named Manual Check is executed in the user's environment.
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001。
+- Literal rule enforcement: Rule 11。
+- Implementation pseudocode:
+
+```text
+INPUT -> effective Review Spec and current Step10 implementation evidence.
+FLOW -> update only Step10 paths and the existing command/file trace.
+FAIL -> no Step11 code starts until the 68-path Step10 commit is verified.
+```
+
+- Verification contribution: strict Plan validator and exact header/commit path parity.
+- After this file: no Step11 edit begins before Step10 tests and the single 68-path commit pass.
+
+#### File 47 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`
+
+- Purpose: 保持MP版本Client/Key/Resource service构造器依赖可装配。
+- Symbols: `createsOAuthClientServiceUsingItsProductionConstructor`, `createsSigningKeyServiceUsingItsProductionConstructor`, `createsResourceServerServiceWithGeneratedConverterBeanNames`, `createsResourceProjectionAdapterAndHandlerThroughNamedQualifiedBeans`, `createsOAuthManagementRealmResolverUsingItsProductionConstructor`。
+- Repository evidence: existing test registers legacy JPA repositories/runtime; Step10 production services move to OAuth MP repositories and realm-bound cipher.
+- Dependencies and consumers: register only the new production constructor's typed MP repositories, converter, key cipher, Clock and service collaborators; no Spring application startup.
+- Why now: constructor-boundary coverage must change with the constructor, not be deferred to final cleanup.
+- Contract/signature changes: test asserts `OAuthClientServiceImpl`, `SigningKeyServiceImpl`, `ResourceServerServiceImpl`, the Outbox adapter/handler, and realm resolver use resolvable qualified production constructors and do not require legacy OAuth JPA stores.
+- Input/output and state mapping: isolated AnnotationConfigApplicationContext with named repository/converter/outbox beans, fixed property sources and clocks; no application context/database/Redis service.
+- Error and edge behavior: missing/ambiguous required bean should fail the focused fixture.
+- Standards impact: MC-ARCH-001, MC-BEAN-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 4, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> exact MP repository, generated converter bean names, key cipher, realm resolver, transactional outbox and clock mock types.
+FLOW -> instantiate services/adapters/handler through their Lombok-generated production constructors only.
+FAIL -> no JPA Repository or single-global-kid runtime is needed by the new SAS keyring path.
+```
+
+- Verification contribution: included in the Step 10 focused Maven command.
+- After this file: service wiring regressions remain visible before Step11.
+
+#### File 48 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java`
+
+- Purpose: 保留Client管理VO已有的createdAt/updatedAt字段来源。
+- Symbols: `createdAt`, `updatedAt`。
+- Repository evidence: current BO omits the EgonModel audit timestamps exposed by OAuthClientVO; EVD-125.
+- Dependencies and consumers: OAuthClientConverter and OAuthClientViewConverter map the persisted Instants without permitting request updates.
+- Why now: the existing management response includes timestamps that a BO-only service cannot reconstruct.
+- Contract/signature changes: add read/view fields only; repository write still uses MP MetaObjectHandler fill.
+- Input/output and state mapping: PO audit timestamps map to immutable service output values.
+- Error and edge behavior: never accept client-provided timestamps or substitute local system time for persisted values.
+- Standards impact: MC-MODEL-001, MC-CONVERT-001, MC-TIME-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> data returned by OAuthClientRepository after a trusted realm lookup.
+FLOW -> carry createTime/updateTime as Instant in OAuthClientBO for read projections.
+FAIL -> no BO timestamp is used to override Mybatis Plus fill on writes.
+```
+
+- Verification contribution: OAuthRealmPersistenceContractTest checks PO→BO timestamp mapping and BO→PO omission.
+- After this file: Client management views can preserve persisted timestamps.
+
+#### File 49 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java`
+
+- Purpose: 映射Client审计时间但保持MP审计字段只读。
+- Symbols: `toTarget`, `toSource`。
+- Repository evidence: current generated converter does not map PO audit timestamps to the BO view boundary; EVD-125.
+- Dependencies and consumers: OAuthClientPO/BO mapping suite and service management view converter.
+- Why now: Step10 view fields rely on persisted timestamps and generated MapStruct mappings.
+- Contract/signature changes: PO→BO maps createdAt/updatedAt; BO→PO continues to ignore them.
+- Input/output and state mapping: `Instant` precision remains UTC/timestamptz(6).
+- Error and edge behavior: no timestamp is synthesized when source data is missing.
+- Standards impact: MC-CONVERT-001, MC-TIME-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> OAuthClientPO with MP createdAt/updateTime metadata.
+FLOW -> add explicit PO→BO mappings; keep ignoreByDefault and omit timestamp targets in toSource.
+OUTPUT -> createdAt/updatedAt reach Client views as persisted Instants.
+FAIL -> BO caller timestamps never override MP handler values.
+```
+
+- Verification contribution: OAuthRealmPersistenceContractTest generated mapping roundtrip assertions.
+- After this file: timestamps are available to the Client view without bypassing MP fill.
+
+#### File 50 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java`
+
+- Purpose: 保留Resource Server管理VO已有的createdAt/updatedAt字段来源。
+- Symbols: `createdAt`, `updatedAt`。
+- Repository evidence: current BO omits the resource metadata timestamps exposed by ResourceServerVO; EVD-125.
+- Dependencies and consumers: OAuthResourceConverter and ResourceServerViewConverter use persisted timestamps only.
+- Why now: preserving the old ResourceServer management shape requires the new MP projection to retain these Instants.
+- Contract/signature changes: add read/view fields only; repository write still uses MP fill.
+- Input/output and state mapping: PO audit instants are propagated unchanged as UTC values.
+- Error and edge behavior: no caller-supplied timestamp is accepted.
+- Standards impact: MC-MODEL-001, MC-CONVERT-001, MC-TIME-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> data returned by OAuthResourceRepository from the platform partition.
+FLOW -> carry persisted createdAt/updatedAt through the platform resource view.
+FAIL -> never replace persisted time with a service clock on read.
+```
+
+- Verification contribution: OAuthResourcePersistenceContractTest checks exact timestamp preservation.
+- After this file: Resource management DTO can retain existing timestamp fields.
+
+#### File 51 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/OAuthResourceConverter.java`
+
+- Purpose: 映射Resource持久化审计Instants到BO。
+- Symbols: `toTarget`, `toSource`。
+- Repository evidence: current converter maps business fields but omits EgonModel timestamps; EVD-125.
+- Dependencies and consumers: OAuthResourcePO/BO mapping contract and ResourceServerViewConverter.
+- Why now: the MP resource service must retain the accepted VO timestamp fields.
+- Contract/signature changes: add PO→BO createdAt/updatedAt only; omit both from BO→PO update mapping.
+- Input/output and state mapping: Instants remain UTC and keep database precision.
+- Error and edge behavior: time fill stays owned by the existing MP handler.
+- Standards impact: MC-CONVERT-001, MC-TIME-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> OAuthResourcePO carrying EgonModel audit Instants.
+FLOW -> explicitly map audit Instants for read projection only.
+OUTPUT -> ResourceServerVO receives persisted UTC values.
+FAIL -> BO-to-PO write mapping cannot set audit timestamps.
+```
+
+- Verification contribution: OAuthResourcePersistenceContractTest generated converter coverage.
+- After this file: Resource timestamps reach the view while MP fill remains authoritative.
+
+#### File 52 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSigningKeyBO.java`
+
+- Purpose: 保留SigningKey管理VO已有的createdAt/updatedAt字段。
+- Symbols: `createdAt`, `updatedAt`。
+- Repository evidence: current BO lacks the EgonModel timestamps exposed by SigningKeyVO; EVD-125.
+- Dependencies and consumers: OAuthSigningKeyConverter and SigningKeyViewConverter use database-backed metadata.
+- Why now: multi-issuer management must retain the established key metadata response contract.
+- Contract/signature changes: add read-only persisted time fields; do not alter status/version behavior.
+- Input/output and state mapping: expose UTC Instants only; private key ciphertext remains redacted.
+- Error and edge behavior: no caller value or decrypt operation changes audit times.
+- Standards impact: MC-MODEL-001, MC-CONVERT-001, MC-TIME-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> data returned by OAuthSigningKeyRepository under the selected trusted issuer.
+FLOW -> carry PO createTime/updateTime into signing-key view metadata.
+FAIL -> do not copy these fields back into PO on updates.
+```
+
+- Verification contribution: OAuthSigningKeyPersistenceContractTest checks timestamp mapping and redaction.
+- After this file: key view retains persisted create/update timestamps.
+
+#### File 53 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/converter/OAuthSigningKeyConverter.java`
+
+- Purpose: 将signing key审计时间只读映射到BO。
+- Symbols: `toTarget`, `toSource`。
+- Repository evidence: current generated converter maps key state/cipher fields but omits EgonModel timestamps; EVD-125.
+- Dependencies and consumers: OAuthSigningKeyRepository and SigningKeyViewConverter.
+- Why now: API key metadata fields must survive migration to the per-realm MP repository.
+- Contract/signature changes: PO→BO maps createdAt/updatedAt; BO→PO leaves both managed by fill.
+- Input/output and state mapping: exact persisted UTC Instants.
+- Error and edge behavior: private key ciphertext remains excluded from views and string forms.
+- Standards impact: MC-CONVERT-001, MC-TIME-001, MC-JSON-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 6, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> OAuthSigningKeyPO carrying MP-managed createTime/updateTime.
+FLOW -> explicitly map audit Instants only on the PO→BO projection.
+OUTPUT -> SigningKeyVO exposes persisted UTC timestamps and no ciphertext.
+FAIL -> BO-to-PO updates leave createdAt/updateTime to MP fill.
+```
+
+- Verification contribution: OAuthSigningKeyPersistenceContractTest generated mapping assertions.
+- After this file: key metadata projections retain timestamps without making them writable.
+
+#### File 54 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java`
+
+- Purpose: 验证Client persistence converter保留createdAt/updatedAt。
+- Symbols: existing `OAuthClientConverter` round-trip contract.
+- Repository evidence: test already verifies MapStruct generated PO→BO mapping; EVD-125 adds the omitted timestamp contract.
+- Dependencies and consumers: Step4 converter and Step10 client view/service.
+- Why now: prevent a wire-compatible view from being populated by synthesized timestamps.
+- Contract/signature changes: assert exact PO Instants in BO and ensure BO→PO ignores changed caller times.
+- Input/output and state mapping: synthetic microsecond Instants; no DB.
+- Error and edge behavior: tests must not execute a database or alter Step4 repository semantics.
+- Standards impact: MC-TEST-001, MC-TIME-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> PO created/updated Instants and BO with different caller Instants.
+FLOW -> run generated converter both directions.
+FAIL -> timestamp loss or BO-to-PO overwrite fails the test.
+```
+
+- Verification contribution: included in the Step10 focused suite.
+- After this file: client metadata time mappings are guarded.
+
+#### File 55 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthResourcePersistenceContractTest.java`
+
+- Purpose: 验证Resource PO/BO timestamp保留。
+- Symbols: existing generated `OAuthResourceConverter` tests.
+- Repository evidence: Step5 contract covers resource mapping and schema; the management BO previously omitted audit Instants.
+- Dependencies and consumers: Step5 mapping and Step10 ResourceServerViewConverter.
+- Why now: preserve the existing ResourceServerVO time fields after service migration.
+- Contract/signature changes: exact PO→BO Instant mapping and no BO→PO time override.
+- Input/output and state mapping: synthetic UTC Instants; no database.
+- Error and edge behavior: no timestamp assertions depend on application default Clock.
+- Standards impact: MC-TEST-001, MC-TIME-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> resource PO timestamp fixture and a BO with different timestamp values.
+FLOW -> assert PO→BO equality and BO→PO fill ownership.
+FAIL -> missing or writable audit timestamps fail the test.
+```
+
+- Verification contribution: included in the Step10 focused suite.
+- After this file: resource metadata time mapping is guarded.
+
+#### File 56 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthSigningKeyPersistenceContractTest.java`
+
+- Purpose: 验证SigningKey PO/BO timestamp保留。
+- Symbols: existing generated `OAuthSigningKeyConverter` tests.
+- Repository evidence: Step7 contract covers signing key encryption, JWK and mapping; the management BO previously omitted audit Instants.
+- Dependencies and consumers: Step7 converter and Step10 SigningKeyViewConverter.
+- Why now: preserve the existing key metadata response while changing the management service.
+- Contract/signature changes: exact PO→BO Instants and no BO→PO overwrite.
+- Input/output and state mapping: synthetic UTC Instants and encrypted key test fixture; no DB.
+- Error and edge behavior: test must not print private key material or start services.
+- Standards impact: MC-TEST-001, MC-TIME-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 6, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> key PO timestamps and different BO caller timestamps.
+FLOW -> assert read projection preserves exact persisted times and write mapping ignores them.
+FAIL -> time loss or private ciphertext exposure fails.
+```
+
+- Verification contribution: included in the Step10 focused suite.
+- After this file: key time fields remain metadata, not caller-controlled state.
+
+#### File 57 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthResourceRepository.java`
+
+- Purpose: 为既有global Resource collection补充可验证的bounded query合同。
+- Symbols: `listDirectory`。
+- Repository evidence: current repository exposes point/source queries but no collection query for ResourceServerController.
+- Dependencies and consumers: ResourceServerServiceImpl list uses the fixed PLATFORM realm and asks for 10001 rows to distinguish 0–10000 from overflow.
+- Why now: JPA findAll cannot be replaced by a safe explicit MP query without this port method.
+- Contract/signature changes: add `listDirectory(TrustedRealmBO platformRealm,int limit)`; max limit is 10001, partition is always explicit.
+- Input/output and state mapping: stable external resource identity order; deleted rows are absent.
+- Error and edge behavior: unsupported/out-of-range limit and wrong realm reject before SQL.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> validated PLATFORM TrustedRealmBO and bounded limit <= 10001.
+FLOW -> delegate to a named mapper query that orders by resourceServerId/id.
+OUTPUT -> active resources in that PLATFORM storage partition only.
+FAIL -> no implicit list() or unbounded all-tenant scan.
+```
+
+- Verification contribution: OAuthResourcePersistenceContractTest asserts the interface/query bound.
+- After this file: the management service can request a bounded directory set.
+
+#### File 58 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthResourceRepositoryImpl.java`
+
+- Purpose: 在trusted platform partition内实现Resource目录读取。
+- Symbols: `listDirectory`。
+- Repository evidence: current implementation already scopes all resource lookups with trusted partition and finally-restored MDC.
+- Dependencies and consumers: OAuthResourceMapper.selectDirectory, existing converter and MDC helpers.
+- Why now: expose the new bounded mapper query without leaking mapper/PO to ResourceServerServiceImpl.
+- Contract/signature changes: implement listDirectory using withTrustedStoragePartition; clamp/reject limits above 10001.
+- Input/output and state mapping: map ordered OAuthResourcePO rows to OAuthResourceBO.
+- Error and edge behavior: no tenant fallback, deleted row, or more than requested rows is accepted silently.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> valid PLATFORM partition and bounded integer query limit.
+FLOW -> run mapper under the existing finally-restored trusted partition context.
+OUTPUT -> immutable BO list preserving resourceServerId/id order.
+FAIL -> propagate SQL errors; do not return partial or default-tenant results.
+```
+
+- Verification contribution: ResourceServerServiceImplTest and mapper contract test.
+- After this file: the read port is backed by the scoped repository.
+
+#### File 59 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthResourceMapper.java`
+
+- Purpose: 声明typed MP bounded directory SQL contract。
+- Symbols: `selectDirectory`。
+- Repository evidence: existing mapper lacks a directory method; other methods already take explicit tenantId and bound collections.
+- Dependencies and consumers: OAuthResourceMapper.xml and OAuthResourceRepositoryImpl.
+- Why now: avoid generic unbounded selectList bypassing the existing explicit mapper style.
+- Contract/signature changes: add positive tenant id and `@Min(1) @Max(10001)` limit.
+- Input/output and state mapping: returns OAuthResourcePO rows in stable resourceServerId/id order.
+- Error and edge behavior: invalid limit rejected by query validation.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> tenantId from the internal MDC-bound repository and limit <= 10001.
+FLOW -> bind both parameters in named SQL; do not interpolate user strings.
+OUTPUT -> scoped rows with deterministic ordering.
+FAIL -> invalid query range rejected before execution.
+```
+
+- Verification contribution: OAuthResourcePersistenceContractTest parses and inspects the new mapper method.
+- After this file: mapper signature is compile-time aligned with its XML.
+
+#### File 60 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthResourceMapper.xml`
+
+- Purpose: 实现bounded Resource directory select。
+- Symbols: `OAuthResourceMapper.selectDirectory`。
+- Repository evidence: current XML includes active resource shape but has no ordered collection query.
+- Dependencies and consumers: mapper statement, platform-only repository partition and ResourceServerServiceImpl.
+- Why now: preserve collection API semantics while eliminating JPA `findAll`.
+- Contract/signature changes: where `tenant_id = #{tenantId}` and `deleted_at IS NULL`; `ORDER BY resource_server_id,id`; bind `LIMIT #{limit}`.
+- Input/output and state mapping: return at most 10001 active directory rows.
+- Error and edge behavior: never remove tenant/deleted predicates or silently truncate above the service's 10000-row contract.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```xml
+INPUT -> validated tenantId and bounded integer limit.
+FLOW -> select the existing resultMap with exact partition/deleted predicates and deterministic order.
+OUTPUT -> at most 10001 rows for explicit overflow detection.
+FAIL -> no unbounded collection or wildcard schema query.
+```
+
+- Verification contribution: OAuthResourcePersistenceContractTest parses XML and asserts partition/order/limit shape; no database is started.
+- After this file: bounded MP collection data is available to the existing management service.
+
+#### File 61 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthGrantRepository.java`
+
+- Purpose: 为API-045增加明确、有界的同realm Grant目录读取合同。
+- Symbols: limited `listByClient(trustedRealm,clientPk,limit)`。
+- Repository evidence: the current query has no limit while API-045 must detect a 65th result.
+- Dependencies and consumers: ResourceServerServiceImpl passes the client primary key resolved inside the same realm.
+- Why now: service-side truncation cannot prove that there are no excess rows.
+- Contract/signature changes: make the existing list method require a limit capped at 65; no production caller relies on an unbounded Grant collection.
+- Input/output and state mapping: return the active matching client grants in deterministic order.
+- Error and edge behavior: invalid limit fails before mapper access; a 65-row result becomes API overflow.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted realm, positive clientPk, limit between 1 and 65.
+FLOW -> delegate to a bounded named mapper query.
+OUTPUT -> same-realm Grant BOs for the 64/65 acceptance check.
+FAIL -> never query without tenant/client predicates.
+```
+
+- Verification contribution: OAuthResourcePersistenceContractTest checks interface and mapper contract.
+- After this file: the API service can request only the documented result bound.
+
+#### File 62 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthGrantRepositoryImpl.java`
+
+- Purpose: 在realm/user MDC scope内执行bounded Grant读取。
+- Symbols: limited `listByClient` overload.
+- Repository evidence: existing adapter binds the storage partition, but its mapper query returns an unbounded result.
+- Dependencies and consumers: OAuthGrantMapper limited statement and OAuthGrantConverter.
+- Why now: scope and limit belong at the database boundary.
+- Contract/signature changes: validate limit≤65 and map only the selected tenant/client rows to BOs.
+- Input/output and state mapping: retain stable Mapper order.
+- Error and edge behavior: SQL errors propagate; no partial list or other realm lookup.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> TrustedRealmBO, client primary key and bound maximum.
+FLOW -> execute under withTrustedStoragePartition and map each PO.
+OUTPUT -> ordered Grant BOs up to the requested maximum.
+FAIL -> out-of-range limits fail before SQL; dependency faults do not become empty results.
+```
+
+- Verification contribution: ResourceServerServiceImplTest proves the caller passes 65 to this method.
+- After this file: the Service no longer has to materialize every grant row.
+
+#### File 63 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthGrantMapper.java`
+
+- Purpose: 声明tenant/client/limit typed mapper参数。
+- Symbols: limited `listByClient` overload.
+- Repository evidence: current method has tenant and client predicates but no limit parameter.
+- Dependencies and consumers: OAuthGrantRepositoryImpl and OAuthGrantMapper.xml.
+- Why now: keep bounded filtering inside the SQL boundary.
+- Contract/signature changes: add validated `limit` with inclusive 1–65 range.
+- Input/output and state mapping: returns OAuthGrantPO rows ordered by resourceServerId/grantType/id.
+- Error and edge behavior: invalid limit is rejected by DB-shape validation.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> current storage tenantId, clientPk and limit <=65.
+FLOW -> bind all values in the named mapper method.
+OUTPUT -> deterministically ordered grant rows.
+FAIL -> no literal SQL interpolation or omitted tenant/client predicates.
+```
+
+- Verification contribution: XML mapper parser and static SQL shape assertions.
+- After this file: Mapper Java and XML contracts can be compared directly.
+
+#### File 64 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthGrantMapper.xml`
+
+- Purpose: 为API-045实现同realm bounded Grant SQL查询。
+- Symbols: limited `listByClient` select.
+- Repository evidence: current select returns all matching grants without LIMIT.
+- Dependencies and consumers: OAuthGrantMapper and ResourceServerServiceImpl.
+- Why now: the contract returns at most 64 but must detect row 65 without an unbounded scan.
+- Contract/signature changes: tenant/client/deleted predicates, stable resource/grant/id order and `LIMIT #{limit}`.
+- Input/output and state mapping: the service requests 65; an array above 64 is an explicit overflow error.
+- Error and edge behavior: DB errors do not become an empty list; SQL cannot read a different partition.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 11。
+- Implementation pseudocode:
+
+```xml
+INPUT -> validated tenantId/clientPk and limit <=65.
+FLOW -> select with exact tenant/client/active predicates and deterministic order.
+OUTPUT -> at most 65 rows.
+FAIL -> no unbounded query or silent truncation under 65.
+```
+
+- Verification contribution: OAuthResourcePersistenceContractTest parses the new select and verifies predicates/order/limit.
+- After this file: the repository can distinguish 64 valid grants from the overflow state.
+
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
-- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`。
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
 - Expected result: 先确认上述RED由缺失目标行为引起，GREEN时命名用例成功、模块编译成功、`git diff --check`零错误；不以不存在依赖/数据库/fixture而失败作为RED。
 - Failure returns to: Step 9 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
 - Completion criteria: 现有管理URL按realm管理Client/Grant/Key；secret仅bcrypt一次性显示；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
 - Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/ClientResourceGrantViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/converter/SigningKeyViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/ResourceServerViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/vo/OAuthClientVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/vo/CreatedOAuthClientVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/vo/RotatedClientSecretVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/vo/ClientResourceGrantVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/vo/ResourceServerVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/vo/SigningKeyVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/RotateClientSecretDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/OAuthValueDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/UpsertClientResourceGrantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/DeleteClientResourceGrantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/BatchClientResourceGrantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/dto/PublishSigningKeyDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/UpdateOAuthClientDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/ResourceServerService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/ResourceServerProjectionServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/TransactionalOutboxResourceServerEventAdapterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/MpResourceServerStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/SigningKeyServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/controller/SigningKeyController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/config/ResourceServerConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/ResourceServerProjectionService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/TransactionalOutboxResourceServerEventAdapter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`。
+#### File 65 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpAdminSecurityIT.java`
+
+- Purpose: 更新既有 RBAC3 管理安全集成测试，使 Resource Server 管理Controller通过显式realm resolver传递可信 PLATFORM realm。
+- Symbols: `resourceMutationRequiresDedicatedRbac3Permission`。
+- Repository evidence: 当前 `ResourceServerController` 构造器已新增 `OAuthManagementRealmResolver`，资源Service方法要求 `TrustedRealmBO`；本文件原验证仍调用旧全局签名。
+- Dependencies and consumers: Spring `@WebMvcTest`、现有认证过滤器、权限端口、Mock `OAuthManagementRealmResolver` 与 `ResourceServerService`。
+- Why now: 服务接口realm显式化影响现有安全边界集成测试，必须保持该测试可编译并验证RBAC授权调用顺序。
+- Contract/signature changes: Mock resolver在测试中返回受信 PLATFORM realm，断言控制器传相同realm、资源标识与版本命令；权限码仍为 `tianquan-shoubing:resource-server:status`。
+- Input/output and state mapping: 保留现有认证JWT test principal，通过Spring Security实际AuthenticationPrincipal绑定；只隔离resolver结果，不启动业务数据库或Redis。
+- Error and edge behavior: 未认证请求仍401，权限拒绝仍403，权限不满足时资源Service零调用。
+- Standards impact: MC-VALID-001, MC-BEAN-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> 现有已认证管理JWT与status mutation请求。
+FLOW -> Mock resolver返回TrustedRealmBO(PLATFORM)；断言权限port收到已认证IdentityPrincipal，资源服务收到该realm与原版本命令。
+FAIL -> 未认证或权限拒绝不得调用资源服务；生产resolver仍由其独立单元合同校验租户/强认证边界。
+```
+
+- Verification contribution: the focused command selects only `IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission` and proves the changed RBAC service signature/realm forwarding; module `test-compile` checks the full existing test source. The separate unauthenticated test in that WebMvc slice still expects 401 while the slice chain returns 403, so the Step makes no claim about that entrypoint contract.
+- After this file: the targeted RBAC3 security mutation test proves the trusted-realm service call; the full WebMvc slice's unrelated unauthenticated status assertion remains a separately tracked 401/403 contract gap.
+
+#### File 66 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/ResourceServerProjectionDeliveryHandler.java`
+
+- Purpose: 将Resource/CLIENT_CREDENTIALS Grant runtime Redis投影迁移到独立component Outbox消费边界。
+- Symbols: `ResourceServerProjectionDeliveryHandler`、`resource.server.project.v1`、`service.grant.project.v1`。
+- Repository evidence: `TransactionalOutboxResourceServerEventAdapter`只发Tianshu disabled-admission命令；ResourceServerServiceImpl现有直接projection在MP事务内；`DeliveryHandlerRegistry`按channel分派并在Outbox持久状态支持失败重试。
+- Dependencies and consumers: `OAuthResourceRepository`、`OAuthClientRepository`、`OAuthGrantRepository`、`OAuthManagementRealmResolver`、`ResourceServerProjectionService`、ObjectMapper；由ResourceServerConfig按named Bean装配。
+- Why now: MP事实和Projection事件同事务后，需要一个只在Outbox提交后执行的权威重载消费者。
+- Contract/signature changes: 独立 `identity-resource-projection` channel；固定两个destination；只接受schemaVersion=1；按可信PLATFORM或登记tenant realm重新读取MP当前Resource/Client/Grant，再调既有projection service；不信任事件snapshot或任意tenant。
+- Input/output and state mapping: Resource event以resourceServerId/version定位；Grant事件以realmKey/clientId/resourceServerId/type/version定位；低版本事件读取并投影最新行，高版本早到消息retry。
+- Error and edge behavior: 损坏envelope/未知destination/不可解析realm为permanent failure；Mapper/Redis暂时不可用为retryable failure；重复投递幂等，禁止旧版本覆盖新版本；Tianshu disabled handler保持独立。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-BEAN-001, MC-JSON-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 6, Rule 9, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> DeliveryContext from the component Outbox with exact channel, destination, schemaVersion and resource/grant key/version.
+FLOW -> resolve trusted partition from the server registry; load current MP Resource/Client/Grant; project only authoritative current status/scopes.
+FAIL -> malformed/unknown contracts fail permanently; dependency failures retry; never write Redis from event snapshots or inside the source MP transaction.
+```
+
+- Verification contribution: Step 10 focused `ResourceServerProjectionDeliveryHandlerTest` covers both destinations, realm isolation, replay/older versions, malformed events and retry classification.
+- After this file: Redis projection delivery is owned by a named Outbox consumer, while the existing DDC disable consumer is unchanged.
+
+#### File 67 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/ResourceServerProjectionDeliveryHandlerTest.java`
+
+- Purpose: 锁定Redis Resource/Grant投影仅能由组件Outbox在MP提交后交付的合同。
+- Symbols: `ResourceServerProjectionDeliveryHandlerTest`。
+- Repository evidence: no handler test exists; `DeliveryHandler` channel/destination contract and latest MP repository APIs are the exact execution boundary.
+- Dependencies and consumers: synthetic `DeliveryContext`, repository mocks, realm resolver mock and projection mock; no PostgreSQL/Redis/container.
+- Why now: prove version reload/idempotence and consumer failure classification before Step10 completion.
+- Contract/signature changes: exercise resource and CC grant events, two tenant partitions with a colliding clientId, old/duplicate versions, unknown schema/realm and downstream projection failure.
+- Input/output and state mapping: events use current Resource/Client/Grant repositories after trusted realm resolution; event ids are opaque synthetic values.
+- Error and edge behavior: stale event projects current MP version; malformed messages are permanent failures; transient repository/Redis faults remain retryable.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-JSON-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 6, Rule 9, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> synthetic Outbox DeliveryContext for each supported destination.
+FLOW -> assert exact resolver/repository partition, projection payload source and monotonic current version.
+FAIL -> unknown schema/destination is permanent; transient repository/projection exception is retryable; no Redis service is started.
+```
+
+- Verification contribution: included in Step 10 exact focused Maven command.
+- After this file: component DeliveryHandler replay and same-client-across-realm isolation have deterministic local contracts.
+
+#### File 68 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/SigningKeyServiceImplTest.java`
+
+- Purpose: 对新issuer-isolated signing-key service建立实际MP repository/realm/cipher边界测试。
+- Symbols: realm-bound `publish`、invalid keypair rejection、publication delay、activate version/trustVersion update and stale-version guards.
+- Repository evidence: existing test used the legacy global `SigningKeyRuntime` constructor and direct record accessors; Step 10 now injects per-realm `OAuthSigningKeyRepository`, `OAuthRealmRepository` and the existing key cipher.
+- Dependencies and consumers: synthetic 3072-bit RSA pairs, mocked MP repositories/cipher/MapStruct view converter and fixed Clock; no service/database.
+- Why now: prove the new keyring's AAD, realm, version and timing contract before Step 11's runtime propagation work.
+- Contract/signature changes: use the new DTO/BO/VO class accessors and assert no private component enters public JWK or stored plaintext.
+- Input/output and state mapping: exact selected `TrustedRealmBO`, kid, public JWK, envelope and expected version drive each operation.
+- Error and edge behavior: mismatched keypair, stale version and premature activation do not write; activation increments only the same realm activeKid/trustVersion.
+- Standards impact: MC-REUSE-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 3, Rule 6, Rule 10, Rule 11。
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted issuer, generated RSA pair and encrypted-private-key envelope.
+FLOW -> publish/activate with mocked repositories and a fixed 24-hour window.
+FAIL -> wrong pair, stale expected version or early activation throws and leaves MP repositories unchanged.
+```
+
+- Verification contribution: included in the Step 10 focused Maven command.
+- After this file: signing-key service tests match the issuer-bound production constructor and preserve exact version rules.
+
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/ClientResourceGrantViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/converter/SigningKeyViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/ResourceServerViewConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/vo/OAuthClientVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/vo/CreatedOAuthClientVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/vo/RotatedClientSecretVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/vo/ClientResourceGrantVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/vo/ResourceServerVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/vo/SigningKeyVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/RotateClientSecretDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/OAuthValueDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/UpsertClientResourceGrantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/DeleteClientResourceGrantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/BatchClientResourceGrantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/dto/PublishSigningKeyDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/CreateOAuthClientDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/UpdateOAuthClientDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthClientController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/ResourceServerService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/ResourceServerProjectionServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/TransactionalOutboxResourceServerEventAdapterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/MpResourceServerStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/SigningKeyServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/controller/SigningKeyController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/config/ResourceServerConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/ResourceServerProjectionService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/TransactionalOutboxResourceServerEventAdapter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthClientService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/SigningKeyService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthManagementRealmResolver.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthManagementRealmResolverTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ResourceServerController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ResourceServerControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/controller/SigningKeyControllerTest.java`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/bo/OAuthResourceBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/converter/OAuthResourceConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/OAuthSigningKeyBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/converter/OAuthSigningKeyConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthResourcePersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthSigningKeyPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthResourceRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthResourceRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthResourceMapper.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthResourceMapper.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/OAuthGrantRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repository/impl/OAuthGrantRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/dao/OAuthGrantMapper.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/resource/OAuthGrantMapper.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpAdminSecurityIT.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/ResourceServerProjectionDeliveryHandler.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/support/outbox/ResourceServerProjectionDeliveryHandlerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/SigningKeyServiceImplTest.java`
 - Commit: `feat(shoubing): scope oauth administration and rotate secrets`。
 
 ### Step 11 — 闭合撤销、审计、密钥轮换
@@ -10899,7 +11649,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | Step 7 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 持久化密钥、撤销与审计状态 | 精确用例先目标RED后GREEN；模块编译通过 | Step 7对应File | REQ-012, REQ-013, REQ-014, REQ-015, REQ-020, REQ-021；运行环境证据另列 |
 | Step 8 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 装配多issuer SAS仓储与协议发现 | 精确用例先目标RED后GREEN；模块编译通过 | Step 8对应File | REQ-001, REQ-002, REQ-004, REQ-013, REQ-016；运行环境证据另列 |
 | Step 9 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthOidcProtocolContractTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 实现授权码、PKCE和登录交互 | 精确用例先目标RED后GREEN；模块编译通过 | Step 9对应File | REQ-003, REQ-004, REQ-005, REQ-011；运行环境证据另列 |
-| Step 10 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 改造客户端、资源与密钥管理 | 精确用例先目标RED后GREEN；模块编译通过 | Step 10对应File | REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026；运行环境证据另列 |
+| Step 10 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthClientControllerTest,SigningKeyControllerTest,SigningKeyServiceImplTest,ClientResourceGrantControllerTest,ResourceServerControllerTest,ResourceServerServiceImplTest,ResourceServerProjectionServiceTest,ResourceServerProjectionDeliveryHandlerTest,TransactionalOutboxResourceServerEventAdapterTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest,OAuthManagementRealmResolverTest,SpringConstructorResolutionTest,IdpAdminSecurityIT#resourceMutationRequiresDedicatedRbac3Permission,OAuthRealmPersistenceContractTest,OAuthResourcePersistenceContractTest,OAuthSigningKeyPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 改造客户端、资源与密钥管理 | 精确用例先目标RED后GREEN；模块编译通过 | Step 10对应File | REQ-002, REQ-005, REQ-011, REQ-013, REQ-017, REQ-026, REQ-029, REQ-030, REQ-031；多实例传播证据另列 |
 | Step 11 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TokenRevocationServiceTest,IdentityAuthenticationTransactionContractTest,IdentityOutboxPublisherTest,IdentityAuditServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 闭合撤销、审计、密钥轮换 | 精确用例先目标RED后GREEN；模块编译通过 | Step 11对应File | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-020, REQ-021；运行环境证据另列 |
 | Step 12 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=MultiIssuerResourceServerTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 在资源服务器建立多issuer本地验签和租户上下文 | 精确用例先目标RED后GREEN；模块编译通过 | Step 12对应File | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024；运行环境证据另列 |
 | Step 13 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=IdpServiceOAuth2ClientTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 改造机器客户端缓存并装配WebClient | 精确用例先目标RED后GREEN；模块编译通过 | Step 13对应File | REQ-005, REQ-009, REQ-011, REQ-016；运行环境证据另列 |
@@ -10963,9 +11713,14 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | REQ-023-family | 修订Spec §4/EVD-112/DEC-109 | Step 2 | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java`; `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java`; Step 2 schema/manifest/profile paths | EgonColaDdlManifestFamilyTest RED/GREEN; combined Step 2 focused command | tianquan-oauth accepted; existing families retained; arbitrary rejected |
 | REQ-024 | 修订Spec §4/7–16 | Step 12, Step 14, Step 15, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
 | REQ-025 | 修订Spec §4/7–16 | Step 14, Step 15, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
-| REQ-026 | 修订Spec §4/7–16 | Step 10, Step 16, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
+| REQ-026 | 修订Spec §4/7–16 | Step 10, Step 16, Step 18 | §5对应全部路径 | TEST-106/122及相应Step命令 | API-045同realm有序[]/≤64；65th row明示503；无写副作用 |
 | REQ-027 | 修订Spec §4/7–16 | Step 1, Step 4, Step 5, Step 6, Step 7, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 文档与当前代码一致；所有persistence converter遵守BaseConverter<S,T>方向 |
 | REQ-028 | 修订Spec §4/8/10–11/15 | Step 6, Step 7 | §5对应cipher/config/converter paths | TEST-117 plus Step 6/7 crypto tests | AES-GCM ciphertext at rest; mounted KEK references and issuer/realm/purpose/record AAD |
+| REQ-029 | 修订Spec §4/DEC-119/121 | Step 10 | OAuthManagementRealmResolver, explicit realm interfaces/controllers, and timestamp-complete management views | TEST-118/120 and exact Step 10 Maven command | Management calls use registry-backed TrustedRealmBO; tenant mismatch/weak platform auth reject; existing timestamps are preserved |
+| REQ-030 | 修订Spec §4/DEC-120/121 | Step 10; Step 11 | OAuthSigningKeyService and issuer-bound MP keyring/cipher paths with read-only audit timestamps | TEST-119/120 plus Step 11/TEST-008 runtime gate | Key persistence/AAD is per issuer; deployment-wide propagation is not inferred from unit tests |
+| REQ-031 | 修订Spec §4/DEC-122 | Step 10 | OAuthResourceRepository.listDirectory, mapper interface/XML, service overflow check | TEST-121 and exact Step 10 Maven command | PLATFORM directory query is tenant/deleted scoped, ordered and capped at 10001 |
+| REQ-032 | 修订Spec §4/DEC-124 | Step 10 | TransactionalOutboxResourceServerEventAdapter, resource service and ResourceServerProjectionDeliveryHandler | TEST-123 and exact Step 10 focused Maven command | Resource/CC Grant Redis writes consume current committed MP state through a separate retryable component Outbox channel |
+| REQ-033 | 修订Spec §4/DEC-125 | Step 10 | OAuthClientServiceImpl direct-service and HTTP redirect validation | TEST-124 and exact Step 10 focused Maven command | HTTPS remains required outside local; only exact 127.0.0.1 HTTP redirect passes under the local profile |
 
 ## 11. Risks, Blockers, and User Decisions
 

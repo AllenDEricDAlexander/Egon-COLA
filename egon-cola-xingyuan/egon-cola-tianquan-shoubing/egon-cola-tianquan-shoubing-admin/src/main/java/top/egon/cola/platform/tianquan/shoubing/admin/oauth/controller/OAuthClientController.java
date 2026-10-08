@@ -4,7 +4,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonApiCatalog;
@@ -25,14 +30,17 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.UpdateOAu
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.CreatedOAuthClientVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.RotatedClientSecretVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthClientService;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 
 import java.util.List;
-import java.util.Objects;
 
-@RestController
+@RestController("oauthClientController")
+@RequiredArgsConstructor
+@Slf4j
 @RequestMapping("/api/v1/tianquan-shoubing/clients")
 @Tag(name = "oauth-clients", description = "OAuth客户端接口组")
 @EgonApiCatalog(
@@ -45,19 +53,15 @@ import java.util.Objects;
 
 public class OAuthClientController {
 
+    @NonNull
+    @Qualifier("OAuthClientServiceImpl")
     private final OAuthClientService clients;
+    @NonNull
+    @Qualifier("idpAdminAuthorizationPort")
     private final IdpAdminAuthorizationPort authorization;
-
-    public OAuthClientController(
-            OAuthClientService clients,
-            IdpAdminAuthorizationPort authorization
-    ) {
-        this.clients = Objects.requireNonNull(clients, "clients");
-        this.authorization = Objects.requireNonNull(
-                authorization,
-                "authorization"
-        );
-    }
+    @NonNull
+    @Qualifier("oauthManagementRealmResolver")
+    private final OAuthManagementRealmResolver realms;
 
     @GetMapping
     @Operation(
@@ -69,10 +73,11 @@ public class OAuthClientController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
     )
     public List<OAuthClientVO> list(
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:read");
-        return clients.list();
+        return clients.list(realms.resolve(principal, realm));
     }
 
     @PostMapping
@@ -87,12 +92,14 @@ public class OAuthClientController {
     )
     public CreatedOAuthClientVO create(
             @Valid @RequestBody CreateOAuthClientDTO request,
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             HttpServletResponse response
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:create");
+        TrustedRealmBO trustedRealm = realms.resolve(principal, realm);
         response.setHeader("Cache-Control", "no-store");
-        return clients.create(request, operator(principal));
+        return clients.create(trustedRealm, realms.platformRealm(), request, operator(principal));
     }
 
     @PostMapping("/{clientId}/secret-rotations")
@@ -107,12 +114,14 @@ public class OAuthClientController {
     public RotatedClientSecretVO rotateSecret(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody RotateClientSecretDTO request,
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             HttpServletResponse response
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:update");
+        TrustedRealmBO trustedRealm = realms.resolve(principal, realm);
         response.setHeader("Cache-Control", "no-store");
-        return clients.rotateSecret(clientId, request, operator(principal));
+        return clients.rotateSecret(trustedRealm, clientId, request, operator(principal));
     }
 
     @PatchMapping("/{clientId}")
@@ -127,10 +136,11 @@ public class OAuthClientController {
     public OAuthClientVO update(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody UpdateOAuthClientDTO request,
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:update");
-        return clients.update(clientId, request);
+        return clients.update(realms.resolve(principal, realm), clientId, request);
     }
 
     @PutMapping("/{clientId}/redirect-uris")
@@ -145,10 +155,11 @@ public class OAuthClientController {
     public OAuthClientVO putRedirect(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:update");
-        return clients.putRedirectUri(clientId, request.value());
+        return clients.putRedirectUri(realms.resolve(principal, realm), clientId, request.getValue());
     }
 
     @DeleteMapping("/{clientId}/redirect-uris")
@@ -163,10 +174,11 @@ public class OAuthClientController {
     public OAuthClientVO deleteRedirect(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:update");
-        return clients.deleteRedirectUri(clientId, request.value());
+        return clients.deleteRedirectUri(realms.resolve(principal, realm), clientId, request.getValue());
     }
 
     @PutMapping("/{clientId}/resource-uris")
@@ -181,10 +193,12 @@ public class OAuthClientController {
     public OAuthClientVO putResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:update");
-        return clients.putResourceUri(clientId, request.value());
+        TrustedRealmBO trustedRealm = realms.resolve(principal, realm);
+        return clients.putResourceUri(trustedRealm, realms.platformRealm(), clientId, request.getValue());
     }
 
     @DeleteMapping("/{clientId}/resource-uris")
@@ -199,10 +213,12 @@ public class OAuthClientController {
     public OAuthClientVO deleteResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
+            @RequestParam(value = "realm", required = false) String realm,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:oauth-client:update");
-        return clients.deleteResourceUri(clientId, request.value());
+        TrustedRealmBO trustedRealm = realms.resolve(principal, realm);
+        return clients.deleteResourceUri(trustedRealm, realms.platformRealm(), clientId, request.getValue());
     }
 
     private static String operator(IdentityPrincipal principal) {

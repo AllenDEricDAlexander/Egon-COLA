@@ -1,738 +1,592 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.CreateOAuthClientDTO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.RotateClientSecretDTO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.UpdateOAuthClientDTO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.pojo.IdentityClientEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.pojo.IdentityClientSecretEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.CreatedOAuthClientVO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthClientVO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.RotatedClientSecretVO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRedirectUriRepository;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRepository;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientSecretRepository;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthClientService;
-import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.pojo.IdentityResourceServerEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.resource.repo.IdentityClientResourceGrantRepository;
-import top.egon.cola.platform.tianquan.shoubing.admin.resource.repo.IdentityResourceServerRepository;
-import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEvent;
-import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEventPort;
-import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordHashPort;
-
+import java.net.URI;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.OAuthClientViewConverter;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.CreateOAuthClientDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.RotateClientSecretDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.UpdateOAuthClientDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.OAuthClientPurposeEnum;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.CreatedOAuthClientVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.RotatedClientSecretVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthGrantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthResourceBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthGrantRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthResourceRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthClientService;
+import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEvent;
+import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEventPort;
+import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthClient;
+import top.egon.cola.platform.tianquan.shoubing.core.resource.ClientResourceGrant;
+import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType;
+import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServerStatus;
 
-/**
- * OAuth Client、浏览器回调和 USER_DELEGATION 管理用例实现。
- *
- * <p>Management use-case implementation for OAuth Clients, browser redirects, and
- * USER_DELEGATION grants.</p>
- *
- * <p>PUBLIC Client 保留授权码 + PKCE 所需浏览器数据；机器 CONFIDENTIAL Client 同时维护
- * hash-only Secret 生命周期，Service Grant 仍由 Resource Server 管理域维护。</p>
- *
- * <p>PUBLIC Clients retain browser data required by authorization code plus PKCE. Machine
- * CONFIDENTIAL Clients manage a hash-only Secret lifecycle; Service Grants remain managed by the
- * Resource Server administration domain.</p>
- */
-@Service
+@Service("OAuthClientServiceImpl")
+@Slf4j
+@RequiredArgsConstructor
 public class OAuthClientServiceImpl implements OAuthClientService {
 
-    /** OAuth Client 主记录仓储；OAuth Client master-record repository. */
-    private final IdentityClientRepository clients;
+    private static final int BCrypt_COST = 12;
+    private static final int SECRET_BYTES = 32;
 
-    /** Client 回调地址仓储；Client redirect-URI repository. */
-    private final IdentityClientRedirectUriRepository redirects;
-
-    /** Resource Server 仓储；Resource Server repository. */
-    private final IdentityResourceServerRepository resources;
-
-    /** Client Resource Grant 仓储；Client Resource Grant repository. */
-    private final IdentityClientResourceGrantRepository grants;
-
-    /** Client Secret 仓储；Client Secret repository. */
-    private final IdentityClientSecretRepository secrets;
-
-    /** 全局 ID 生成器；global identifier generator. */
-
-    /** UTC 业务时钟；UTC business clock. */
-    private final Clock clock;
-
-    /** Secret Argon2id 哈希端口；Secret Argon2id hashing port. */
-    private final PasswordHashPort passwordHashes;
-
-    /** 身份安全审计事件端口；identity security-audit event port. */
+    @NonNull
+    @Qualifier("oAuthClientRepository")
+    private final OAuthClientRepository clients;
+    @NonNull
+    @Qualifier("oAuthResourceRepository")
+    private final OAuthResourceRepository resources;
+    @NonNull
+    @Qualifier("oAuthGrantRepository")
+    private final OAuthGrantRepository grants;
+    @NonNull
+    @Qualifier("OAuthClientViewConverterImpl")
+    private final OAuthClientViewConverter views;
+    @NonNull
+    @Qualifier("identityOutboxPublisher")
     private final IdentitySecurityEventPort securityEvents;
-
-    /** Secret CSPRNG；cryptographically secure random source. */
+    @NonNull
+    @Qualifier("idpSecureRandom")
     private final SecureRandom secureRandom;
+    @NonNull
+    @Qualifier("idpClock")
+    private final Clock clock;
+    @Value("${spring.profiles.active:}")
+    private final String activeProfiles;
+    private final BCryptPasswordEncoder secretEncoder = new BCryptPasswordEncoder(BCrypt_COST);
 
-    /**
-     * 创建生产 OAuth Client 管理服务。
-     *
-     * <p>Creates the production OAuth Client management service.</p>
-     *
-     * @param clients Client 主记录仓储；Client master-record repository
-     * @param redirects 回调地址仓储；redirect-URI repository
-     * @param resources Resource Server 仓储；Resource Server repository
-     * @param grants Client Resource Grant 仓储；Client Resource Grant repository
-     * @param secrets Client Secret 仓储；Client Secret repository
-     * @param passwordHashes Secret 哈希端口；Secret hashing port
-     * @param securityEvents 安全审计事件端口；security-audit event port
-     * @param secureRandom 密码学随机源；cryptographically secure random source
-     */
-    @Autowired
-    public OAuthClientServiceImpl(
-            IdentityClientRepository clients,
-            IdentityClientRedirectUriRepository redirects,
-            IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants,
-            IdentityClientSecretRepository secrets,
-            PasswordHashPort passwordHashes,
-            IdentitySecurityEventPort securityEvents,
-            SecureRandom secureRandom
-    ) {
-        this(
-                clients,
-                redirects,
-                resources,
-                grants,
-                secrets,
-                Clock.systemUTC(),
-                passwordHashes,
-                securityEvents,
-                secureRandom
-        );
-    }
-
-    /**
-     * 创建可注入时钟的 OAuth Client 管理服务。
-     *
-     * <p>Creates an OAuth Client management service with an injectable clock.</p>
-     *
-     * @param clients Client 主记录仓储；Client master-record repository
-     * @param redirects 回调地址仓储；redirect-URI repository
-     * @param resources Resource Server 仓储；Resource Server repository
-     * @param grants Client Resource Grant 仓储；Client Resource Grant repository
-     * @param secrets Client Secret 仓储；Client Secret repository
-     * @param clock UTC 业务时钟；UTC business clock
-     * @param passwordHashes Secret 哈希端口；Secret hashing port
-     * @param securityEvents 安全审计事件端口；security-audit event port
-     * @param secureRandom 密码学随机源；cryptographically secure random source
-     */
-    OAuthClientServiceImpl(
-            IdentityClientRepository clients,
-            IdentityClientRedirectUriRepository redirects,
-            IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants,
-            IdentityClientSecretRepository secrets,
-            Clock clock,
-            PasswordHashPort passwordHashes,
-            IdentitySecurityEventPort securityEvents,
-            SecureRandom secureRandom
-    ) {
-        this.clients = Objects.requireNonNull(clients, "clients");
-        this.redirects = Objects.requireNonNull(redirects, "redirects");
-        this.resources = Objects.requireNonNull(resources, "resources");
-        this.grants = Objects.requireNonNull(grants, "grants");
-        this.secrets = Objects.requireNonNull(secrets, "secrets");
-        this.clock = Objects.requireNonNull(clock, "clock");
-        this.passwordHashes = Objects.requireNonNull(
-                passwordHashes,
-                "passwordHashes"
-        );
-        this.securityEvents = Objects.requireNonNull(
-                securityEvents,
-                "securityEvents"
-        );
-        this.secureRandom = Objects.requireNonNull(secureRandom, "secureRandom");
-    }
-
-    /** {@inheritDoc} */
-    @Transactional(readOnly = true)
     @Override
-    public List<OAuthClientVO> list() {
-        return clients.findAll().stream()
-                .sorted(Comparator.comparing(IdentityClientEntity::getClientId))
-                .map(this::view)
+    @Transactional(readOnly = true)
+    public List<OAuthClientVO> list(TrustedRealmBO trustedRealm) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        return clients.findAllByRealm(realm).stream()
+                .sorted(Comparator.comparing(OAuthClientBO::getClientId))
+                .map(client -> view(client, realm))
                 .toList();
     }
 
-    /** {@inheritDoc} */
-    @Transactional
     @Override
-    public CreatedOAuthClientVO create(CreateOAuthClientDTO command) {
-        return create(command, "SYSTEM");
-    }
-
-    /** {@inheritDoc} */
     @Transactional
-    @Override
     public CreatedOAuthClientVO create(
+            TrustedRealmBO trustedRealm,
+            TrustedRealmBO platformRealm,
             CreateOAuthClientDTO command,
-            String operatorSub
-    ) {
-        Objects.requireNonNull(command, "command");
+            String operatorSub) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        TrustedRealmBO trustedPlatform = requirePlatformRealm(platformRealm);
+        CreateOAuthClientDTO input = Objects.requireNonNull(command, "command");
         String operator = operator(operatorSub);
-        if (clients.existsById(command.clientId())) {
-            throw new IllegalStateException("OAuth client already exists");
+        validateCreate(realm, input);
+        if (clients.findByClientId(realm, input.getClientId()).isPresent()) {
+            throw new IllegalStateException("OAUTH_CLIENT_ALREADY_EXISTS");
         }
-        if (command.clientType() == IdentityClientEntity.ClientType.PUBLIC
-                && command.appId() != null) {
-            throw new IllegalArgumentException(
-                    "public client must not register appId"
-            );
+        if (input.getAppId() != null && clients.findAllByRealm(realm).stream()
+                .anyMatch(existing -> input.getAppId().equals(existing.getAppId()))) {
+            throw new IllegalStateException("OAUTH_CLIENT_APP_ID_ALREADY_EXISTS");
         }
-        if (command.clientType() == IdentityClientEntity.ClientType.CONFIDENTIAL
-                && clients.findAll().stream().anyMatch(existing ->
-                existing.getClientType()
-                        == IdentityClientEntity.ClientType.CONFIDENTIAL
-                        && command.appId().equals(existing.getAppId()))) {
-            throw new IllegalStateException("OAuth appId already exists");
-        }
-        List<String> redirectValues = exactValues(
-                command.redirectUris(),
-                "redirectUris"
-        );
-        List<String> resourceValues = exactValues(
-                command.resourceUris(),
-                "resourceUris"
-        );
-        if (command.clientType() == IdentityClientEntity.ClientType.PUBLIC
-                && redirectValues.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "public client requires redirect URI"
-            );
-        }
-        if (command.clientType()
-                == IdentityClientEntity.ClientType.CONFIDENTIAL
-                && (!redirectValues.isEmpty() || !resourceValues.isEmpty())) {
-            throw new IllegalArgumentException(
-                    "machine confidential client must not register browser values"
-            );
-        }
+
+        List<String> redirectUris = exactRedirectUris(input.getRedirectUris());
+        List<String> resourceUris = exactUris(input.getResourceUris(), input.getPurpose() == OAuthClientPurposeEnum.USER);
+        List<String> allowedScopes = exactScopes(input.getAllowedScopes());
+        List<OAuthResourceBO> userResources = input.getPurpose() == OAuthClientPurposeEnum.USER
+                ? resolveActiveResources(trustedPlatform, resourceUris)
+                : List.of();
+
         Instant now = clock.instant();
-        IdentityClientEntity client;
-        if (command.clientType() == IdentityClientEntity.ClientType.PUBLIC) {
-            client = IdentityClientEntity.createPublic(
-                    command.clientId(),
-                    command.clientName(),
-                    command.accessTokenTtlSeconds(),
-                    command.refreshTokenTtlSeconds(),
-                    now
-            );
-        } else {
-            client = IdentityClientEntity.createConfidential(
-                    command.appId(),
-                    command.clientId(),
-                    command.clientName(),
-                    command.accessTokenTtlSeconds(),
-                    command.refreshTokenTtlSeconds(),
-                    now
-            );
+        ClientSecretMaterialVO secret = input.getClientType() == OAuthClient.ClientType.CONFIDENTIAL
+                ? generateSecret()
+                : null;
+        OAuthClientBO created = OAuthClientBO.builder()
+                .version(0L)
+                .clientId(exact(input.getClientId(), "clientId"))
+                .appId(input.getAppId())
+                .clientName(requiredText(input.getClientName(), "clientName", 200))
+                .clientType(input.getClientType())
+                .purpose(input.getPurpose())
+                .status(OAuthClient.Status.ACTIVE)
+                .secretHash(secret == null ? null : secret.hash())
+                .secretHint(secret == null ? null : secret.hint())
+                .credentialVersion(secret == null ? 0L : 1L)
+                .redirectUris(redirectUris)
+                .resourceUris(resourceUris)
+                .allowedScopes(allowedScopes)
+                .accessTtlSeconds(input.getAccessTokenTtlSeconds())
+                .refreshTtlSeconds(input.getRefreshTokenTtlSeconds())
+                .build();
+        OAuthClientBO saved = clients.save(realm, created, 0L);
+        if (!userResources.isEmpty()) {
+            for (OAuthResourceBO resource : userResources) {
+                saveUserDelegationGrant(realm, saved, resource);
+            }
         }
-        client = clients.save(client);
-        String clientId = client.getClientId();
-        redirectValues.forEach(value -> redirects.save(
-                IdentityClientRedirectUriEntity.create(
-                        SnowflakeIdGenerator.nextId(),
-                        clientId,
-                        value,
-                        now
-                )
-        ));
-        resourceValues.forEach(value -> saveUserGrant(
-                clientId,
-                resource(value),
-                now
-        ));
-        if (client.getClientType() == IdentityClientEntity.ClientType.PUBLIC) {
-            securityEvents.append(new IdentitySecurityEvent(
-                    "IDENTITY_OAUTH_CLIENT_CREATED",
-                    operator,
-                    "CLIENT_CREATED:" + client.getClientId(),
-                    "ADMIN_API",
-                    now
-            ));
-            return new CreatedOAuthClientVO(
-                    client.getClientId(),
-                    client.getAppId(),
-                    client.getClientName(),
-                    client.getClientType().name(),
-                    client.getStatus().name(),
-                    null,
-                    null,
-                    client.getVersion(),
-                    client.getCreatedAt()
-            );
-        }
-        CreatedOAuthClientVO created = createSecret(client, now);
-        securityEvents.append(new IdentitySecurityEvent(
-                "IDENTITY_OAUTH_CLIENT_CREATED",
-                operator,
-                "CLIENT_CREATED:" + client.getClientId(),
-                "ADMIN_API",
-                now
-        ));
-        return created;
+        appendAudit("IDENTITY_OAUTH_CLIENT_CREATED", operator, "CLIENT_CREATED:" + saved.getClientId(), now);
+
+        return views.toCreatedTarget(saved, realm.getIssuer(), secret == null ? null : secret.plaintext());
     }
 
-    /**
-     * 轮换 Confidential Client 的 active Secret。
-     *
-     * <p>Rotates the active Secret for a Confidential Client.</p>
-     */
-    @Transactional
     @Override
-    public RotatedClientSecretVO rotateSecret(
-            String clientId,
-            RotateClientSecretDTO command
-    ) {
-        return rotateSecret(clientId, command, "SYSTEM");
-    }
-
-    /** {@inheritDoc} */
     @Transactional
-    @Override
     public RotatedClientSecretVO rotateSecret(
+            TrustedRealmBO trustedRealm,
             String clientId,
             RotateClientSecretDTO command,
-            String operatorSub
-    ) {
-        Objects.requireNonNull(command, "command");
+            String operatorSub) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        String exactClientId = exact(clientId, "clientId");
+        RotateClientSecretDTO input = Objects.requireNonNull(command, "command");
         String operator = operator(operatorSub);
-        if (command.expectedVersion() < 0L) {
-            throw new IllegalArgumentException("expectedVersion must not be negative");
+        OAuthClientBO client = clients.findByClientIdForUpdate(realm, exactClientId)
+                .orElseThrow(() -> new IllegalArgumentException("OAUTH_CLIENT_NOT_FOUND"));
+        if (client.getClientType() != OAuthClient.ClientType.CONFIDENTIAL
+                || client.getStatus() != OAuthClient.Status.ACTIVE) {
+            throw new IllegalStateException("OAUTH_CLIENT_SECRET_ROTATION_NOT_ALLOWED");
         }
-        IdentityClientEntity client = clients.findByClientIdForUpdate(
-                        exact(clientId, "clientId")
-                )
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "OAuth client was not found"
-                ));
-        if (client.getClientType()
-                != IdentityClientEntity.ClientType.CONFIDENTIAL) {
-            throw new IllegalArgumentException(
-                    "secret rotation requires a confidential OAuth Client"
-            );
+        if (client.getVersion() != input.getExpectedVersion()) {
+            throw new OptimisticLockingFailureException("OAUTH_CLIENT_VERSION_CONFLICT");
         }
-        if (client.getStatus() != IdentityClientEntity.Status.ACTIVE) {
-            throw new IllegalStateException(
-                    "disabled OAuth client cannot rotate its secret"
-            );
-        }
-        if (client.getVersion() != command.expectedVersion()) {
-            throw new IllegalStateException("stale OAuth client version");
-        }
-        IdentityClientSecretEntity active = secrets
-                .findActiveByClientIdForUpdate(client.getClientId())
-                .orElse(null);
+        ClientSecretMaterialVO secret = generateSecret();
+        long nextVersion = Math.addExact(client.getVersion(), 1L);
+        OAuthClientBO changed = copy(client)
+                .version(nextVersion)
+                .credentialVersion(Math.addExact(client.getCredentialVersion(), 1L))
+                .secretHash(secret.hash())
+                .secretHint(secret.hint())
+                .updatedAt(clock.instant())
+                .build();
+        OAuthClientBO saved = clients.save(realm, changed, client.getVersion());
         Instant now = clock.instant();
-        byte[] randomBytes = new byte[32];
-        char[] rawSecret = null;
-        try {
-            secureRandom.nextBytes(randomBytes);
-            String plaintext = Base64.getUrlEncoder()
-                    .withoutPadding()
-                    .encodeToString(randomBytes);
-            rawSecret = plaintext.toCharArray();
-            String secretHash = passwordHashes.encode(rawSecret);
-            String secretHint = plaintext.substring(plaintext.length() - 4);
-            if (active != null) {
-                active.revoke(now);
-                secrets.save(active);
-                secrets.flush();
+        appendAudit("IDENTITY_OAUTH_CLIENT_SECRET_ROTATED", operator,
+                "SECRET_ROTATED:" + saved.getClientId(), now);
+        return views.toRotatedTarget(saved, realm.getIssuer(), secret.plaintext(), now);
+    }
+
+    @Override
+    @Transactional
+    public OAuthClientVO update(TrustedRealmBO trustedRealm, String clientId, UpdateOAuthClientDTO command) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        UpdateOAuthClientDTO input = Objects.requireNonNull(command, "command");
+        OAuthClientBO client = lockClient(realm, clientId);
+        if (client.getVersion() != input.getExpectedVersion()) {
+            throw new OptimisticLockingFailureException("OAUTH_CLIENT_VERSION_CONFLICT");
+        }
+        if (input.getAccessTokenTtlSeconds() < 300 || input.getAccessTokenTtlSeconds() > 600
+                || input.getRefreshTokenTtlSeconds() < 0 || input.getRefreshTokenTtlSeconds() > 604_800) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_TTL_INVALID");
+        }
+        validateRefreshTtl(client, input.getRefreshTokenTtlSeconds());
+        if (input.getAllowedScopes() != null && input.getAllowedScopes().isEmpty()) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_SCOPES_EMPTY");
+        }
+        List<String> scopes = input.getAllowedScopes() == null
+                ? client.getAllowedScopes()
+                : exactScopes(input.getAllowedScopes());
+        OAuthClientBO changed = copy(client)
+                .version(Math.addExact(client.getVersion(), 1L))
+                .clientName(requiredText(input.getClientName(), "clientName", 200))
+                .status(Objects.requireNonNull(input.getStatus(), "status"))
+                .accessTtlSeconds(input.getAccessTokenTtlSeconds())
+                .refreshTtlSeconds(input.getRefreshTokenTtlSeconds())
+                .allowedScopes(scopes)
+                .updatedAt(clock.instant())
+                .build();
+        return view(clients.save(realm, changed, client.getVersion()), realm);
+    }
+
+    private static void validateRefreshTtl(OAuthClientBO client, int refreshTtlSeconds) {
+        if (client.getPurpose() == OAuthClientPurposeEnum.USER
+                && client.getClientType() == OAuthClient.ClientType.CONFIDENTIAL) {
+            if (refreshTtlSeconds < 3_600 || refreshTtlSeconds > 604_800) {
+                throw new IllegalArgumentException("OAUTH_USER_CLIENT_REFRESH_TTL_INVALID");
             }
-            client.rotateSecret(command.expectedVersion(), now);
-            clients.save(client);
-            secrets.save(IdentityClientSecretEntity.create(
-                    String.valueOf(SnowflakeIdGenerator.nextId()),
-                    client.getClientId(),
-                    secretHash,
-                    secretHint,
-                    now
-            ));
-            secrets.flush();
-            RotatedClientSecretVO rotated = new RotatedClientSecretVO(
-                    client.getClientId(),
-                    client.getAppId(),
-                    plaintext,
-                    secretHint,
-                    client.getVersion(),
-                    now
-            );
-            securityEvents.append(new IdentitySecurityEvent(
-                    "IDENTITY_OAUTH_CLIENT_SECRET_ROTATED",
-                    operator,
-                    "SECRET_ROTATED:" + client.getClientId(),
-                    "ADMIN_API",
-                    now
-            ));
-            return rotated;
-        } finally {
-            Arrays.fill(randomBytes, (byte) 0);
-            if (rawSecret != null) {
-                Arrays.fill(rawSecret, '\0');
-            }
+            return;
+        }
+        if (refreshTtlSeconds != 0) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_REFRESH_TTL_INVALID");
         }
     }
 
-    /**
-     * 生成并保存一个 Confidential Client 的初始 Secret。
-     *
-     * <p>Generates and persists the initial Secret for a Confidential Client.</p>
-     */
-    private CreatedOAuthClientVO createSecret(
-            IdentityClientEntity client,
-            Instant now
-    ) {
-        byte[] randomBytes = new byte[32];
-        char[] rawSecret = null;
-        try {
-            secureRandom.nextBytes(randomBytes);
-            String plaintext = Base64.getUrlEncoder()
-                    .withoutPadding()
-                    .encodeToString(randomBytes);
-            rawSecret = plaintext.toCharArray();
-            String secretHash = passwordHashes.encode(rawSecret);
-            String secretHint = plaintext.substring(plaintext.length() - 4);
-            secrets.save(IdentityClientSecretEntity.create(
-                    String.valueOf(SnowflakeIdGenerator.nextId()),
-                    client.getClientId(),
-                    secretHash,
-                    secretHint,
-                    now
-            ));
-            secrets.flush();
-            return new CreatedOAuthClientVO(
-                    client.getClientId(),
-                    client.getAppId(),
-                    client.getClientName(),
-                    client.getClientType().name(),
-                    client.getStatus().name(),
-                    plaintext,
-                    secretHint,
-                    client.getVersion(),
-                    client.getCreatedAt()
-            );
-        } finally {
-            Arrays.fill(randomBytes, (byte) 0);
-            if (rawSecret != null) {
-                Arrays.fill(rawSecret, '\0');
-            }
+    @Override
+    @Transactional
+    public OAuthClientVO putRedirectUri(TrustedRealmBO trustedRealm, String clientId, String redirectUri) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        OAuthClientBO client = lockUserClient(realm, clientId);
+        List<String> redirects = new ArrayList<>(client.getRedirectUris());
+        String value = exactRedirectUri(redirectUri);
+        if (!redirects.contains(value)) {
+            redirects.add(value);
         }
+        return saveClient(realm, client, copy(client).redirectUris(sorted(redirects)).build());
     }
 
-    /** {@inheritDoc} */
-    @Transactional
     @Override
-    public OAuthClientVO update(
-            String clientId,
-            UpdateOAuthClientDTO command
-    ) {
-        Objects.requireNonNull(command, "command");
-        IdentityClientEntity client = client(clientId);
-        client.update(
-                command.clientName(),
-                command.status(),
-                command.accessTokenTtlSeconds(),
-                command.refreshTokenTtlSeconds(),
-                command.expectedVersion(),
-                clock.instant()
-        );
-        clients.save(client);
-        return view(client);
-    }
-
-    /** {@inheritDoc} */
     @Transactional
-    @Override
-    public OAuthClientVO putRedirectUri(String clientId, String redirectUri) {
-        IdentityClientEntity client = client(clientId);
-        requirePublic(client);
-        if (!redirects.existsByClientIdAndRedirectUri(
-                client.getClientId(),
-                redirectUri
-        )) {
-            redirects.save(IdentityClientRedirectUriEntity.create(
-                    SnowflakeIdGenerator.nextId(),
-                    client.getClientId(),
-                    redirectUri,
-                    clock.instant()
-            ));
+    public OAuthClientVO deleteRedirectUri(TrustedRealmBO trustedRealm, String clientId, String redirectUri) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        OAuthClientBO client = lockUserClient(realm, clientId);
+        List<String> redirects = new ArrayList<>(client.getRedirectUris());
+        redirects.remove(exactRedirectUri(redirectUri));
+        if (redirects.isEmpty()) {
+            throw new IllegalArgumentException("OAUTH_USER_CLIENT_REDIRECT_URI_REQUIRED");
         }
-        return view(client);
+        return saveClient(realm, client, copy(client).redirectUris(sorted(redirects)).build());
     }
 
-    /** {@inheritDoc} */
-    @Transactional
     @Override
-    public OAuthClientVO deleteRedirectUri(
-            String clientId,
-            String redirectUri
-    ) {
-        IdentityClientEntity client = client(clientId);
-        requirePublic(client);
-        redirects.deleteByClientIdAndRedirectUri(
-                client.getClientId(),
-                exact(redirectUri, "redirectUri")
-        );
-        return view(client);
-    }
-
-    /** {@inheritDoc} */
     @Transactional
-    @Override
     public OAuthClientVO putResourceUri(
+            TrustedRealmBO trustedRealm,
+            TrustedRealmBO platformRealm,
             String clientId,
-            String resourceUri
-    ) {
-        IdentityClientEntity client = client(clientId);
-        requirePublic(client);
-        IdentityResourceServerEntity resource = resource(
-                exact(resourceUri, "resourceUri"));
-        if (!grants.existsByClientIdAndResourceServerIdAndGrantType(
-                client.getClientId(),
-                resource.getResourceServerId(),
-                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION
-        )) {
-            saveUserGrant(client.getClientId(), resource, clock.instant());
+            String resourceUri) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        OAuthClientBO client = lockUserClient(realm, clientId);
+        String exactUri = exactHttpsUri(resourceUri, "resourceUri");
+        OAuthResourceBO resource = activeResource(platformRealm, exactUri);
+        List<String> resourceUris = new ArrayList<>(client.getResourceUris());
+        if (!resourceUris.contains(exactUri)) {
+            resourceUris.add(exactUri);
         }
-        return view(client);
+        OAuthClientBO saved = clients.save(realm, copy(client)
+                .version(Math.addExact(client.getVersion(), 1L))
+                .resourceUris(sorted(resourceUris))
+                .updatedAt(clock.instant())
+                .build(), client.getVersion());
+        saveUserDelegationGrant(realm, saved, resource);
+        return view(saved, realm);
     }
 
-    /** {@inheritDoc} */
-    @Transactional
     @Override
+    @Transactional
     public OAuthClientVO deleteResourceUri(
+            TrustedRealmBO trustedRealm,
+            TrustedRealmBO platformRealm,
             String clientId,
-            String resourceUri
-    ) {
-        IdentityClientEntity client = client(clientId);
-        requirePublic(client);
-        IdentityResourceServerEntity resource = resource(
-                exact(resourceUri, "resourceUri")
-        );
-        grants.deleteByClientIdAndResourceServerIdAndGrantType(
-                client.getClientId(),
-                resource.getResourceServerId(),
-                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION
-        );
-        return view(client);
+            String resourceUri) {
+        TrustedRealmBO realm = requireRealm(trustedRealm);
+        OAuthClientBO client = lockUserClient(realm, clientId);
+        String exactUri = exactHttpsUri(resourceUri, "resourceUri");
+        OAuthResourceBO resource = activeResource(platformRealm, exactUri);
+        List<String> resourceUris = new ArrayList<>(client.getResourceUris());
+        resourceUris.remove(exactUri);
+        OAuthClientBO saved = clients.save(realm, copy(client)
+                .version(Math.addExact(client.getVersion(), 1L))
+                .resourceUris(sorted(resourceUris))
+                .updatedAt(clock.instant())
+                .build(), client.getVersion());
+        grants.findGrantForUpdate(realm, saved.getId(), resource.getResourceServerId(), ResourceGrantType.USER_DELEGATION)
+                .ifPresent(grant -> grants.save(realm, copyGrant(grant)
+                        .version(Math.addExact(grant.getVersion(), 1L))
+                        .status(ClientResourceGrant.Status.DISABLED)
+                        .resourceVersion(resource.getVersion())
+                        .build(), grant.getVersion()));
+        return view(saved, realm);
     }
 
-    /**
-     * 查询 Client 的回调与 ACTIVE USER_DELEGATION Resource 视图。
-     *
-     * <p>Builds a Client view with redirects and ACTIVE USER_DELEGATION Resources.</p>
-     *
-     * @param client Client 持久化对象；Client persistence object
-     * @return Client 管理视图；Client management view
-     */
-    private OAuthClientVO view(IdentityClientEntity client) {
-        return view(
-                client,
-                redirects.findByClientId(client.getClientId()).stream()
-                        .map(IdentityClientRedirectUriEntity::getRedirectUri)
-                        .sorted()
-                        .toList(),
-                grants.findByClientIdAndGrantTypeAndStatus(
-                                client.getClientId(),
-                                IdentityClientResourceGrantEntity.GrantType
-                                        .USER_DELEGATION,
-                                IdentityClientResourceGrantEntity.Status.ACTIVE
-                        ).stream()
-                        .map(IdentityClientResourceGrantEntity
-                                ::getResourceServerId)
-                        .map(this::resourceById)
-                        .map(IdentityResourceServerEntity::getResourceUri)
-                        .sorted()
-                        .toList()
-        );
+    private OAuthClientVO saveClient(TrustedRealmBO realm, OAuthClientBO current, OAuthClientBO proposed) {
+        OAuthClientBO changed = copy(proposed)
+                .version(Math.addExact(current.getVersion(), 1L))
+                .updatedAt(clock.instant())
+                .build();
+        return view(clients.save(realm, changed, current.getVersion()), realm);
     }
 
-    /**
-     * 组装不可变 Client 管理视图。
-     *
-     * <p>Builds an immutable Client management view.</p>
-     *
-     * @param client Client 持久化对象；Client persistence object
-     * @param redirectUris 精确回调地址；exact redirect URIs
-     * @param resourceUris USER_DELEGATION Resource URI；USER_DELEGATION Resource URIs
-     * @return Client 管理视图；Client management view
-     */
-    private OAuthClientVO view(
-            IdentityClientEntity client,
-            List<String> redirectUris,
-            List<String> resourceUris
-    ) {
-        IdentityClientSecretEntity activeSecret = client.getClientType()
-                == IdentityClientEntity.ClientType.CONFIDENTIAL
-                ? secrets.findActiveByClientId(client.getClientId())
-                .orElse(null)
-                : null;
-        return new OAuthClientVO(
-                client.getClientId(),
-                client.getClientName(),
-                client.getClientType().name(),
-                client.getStatus().name(),
-                client.isPkceRequired(),
-                client.getAccessTokenTtlSeconds(),
-                client.getRefreshTokenTtlSeconds(),
-                List.copyOf(redirectUris),
-                List.copyOf(resourceUris),
-                client.getVersion(),
-                client.getCreatedAt(),
-                client.getUpdatedAt(),
-                client.getAppId(),
-                activeSecret == null ? null : activeSecret.getSecretHint(),
-                activeSecret == null ? null : activeSecret.getStatus().name()
-        );
+    private OAuthClientBO lockUserClient(TrustedRealmBO realm, String clientId) {
+        OAuthClientBO client = lockClient(realm, clientId);
+        if (client.getPurpose() != OAuthClientPurposeEnum.USER) {
+            throw new IllegalStateException("OAUTH_USER_CLIENT_REQUIRED");
+        }
+        return client;
     }
 
-    /**
-     * 查询必需存在的 OAuth Client。
-     *
-     * <p>Finds a required OAuth Client.</p>
-     *
-     * @param clientId Client 标识；Client identifier
-     * @return Client 持久化对象；Client persistence object
-     */
-    private IdentityClientEntity client(String clientId) {
-        return clients.findById(exact(clientId, "clientId"))
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "OAuth client was not found"
-                ));
+    private OAuthClientBO lockClient(TrustedRealmBO realm, String clientId) {
+        return clients.findByClientIdForUpdate(realm, exact(clientId, "clientId"))
+                .orElseThrow(() -> new IllegalArgumentException("OAUTH_CLIENT_NOT_FOUND"));
     }
 
-    /**
-     * 限制浏览器回调和 USER_DELEGATION 管理动作只作用于 Public Client。
-     *
-     * <p>Restricts browser redirects and USER_DELEGATION management to Public Clients.</p>
-     *
-     * @param client OAuth Client 持久化对象；OAuth Client persistence object
-     */
-    private static void requirePublic(IdentityClientEntity client) {
-        if (client.getClientType()
-                != IdentityClientEntity.ClientType.PUBLIC) {
-            throw new IllegalStateException(
-                    "operation requires a public OAuth Client"
-            );
+    private OAuthClientVO view(OAuthClientBO client, TrustedRealmBO realm) {
+        return views.toTarget(client, realm.getIssuer());
+    }
+
+    private void saveUserDelegationGrant(TrustedRealmBO realm, OAuthClientBO client, OAuthResourceBO resource) {
+        OAuthGrantBO current = grants.findGrantForUpdate(
+                realm, client.getId(), resource.getResourceServerId(), ResourceGrantType.USER_DELEGATION).orElse(null);
+        if (current == null) {
+            grants.save(realm, OAuthGrantBO.builder()
+                    .version(0L)
+                    .clientPk(client.getId())
+                    .resourceServerId(resource.getResourceServerId())
+                    .grantType(ResourceGrantType.USER_DELEGATION)
+                    .allowedScopes(List.of())
+                    .status(ClientResourceGrant.Status.ACTIVE)
+                    .resourceVersion(resource.getVersion())
+                    .build(), 0L);
+        } else if (current.getStatus() != ClientResourceGrant.Status.ACTIVE
+                || !Objects.equals(current.getResourceVersion(), resource.getVersion())) {
+            grants.save(realm, copyGrant(current)
+                    .version(Math.addExact(current.getVersion(), 1L))
+                    .status(ClientResourceGrant.Status.ACTIVE)
+                    .resourceVersion(resource.getVersion())
+                    .build(), current.getVersion());
         }
     }
 
-    /**
-     * 按精确 URI 查询 Resource Server。
-     *
-     * <p>Finds a Resource Server by exact URI.</p>
-     *
-     * @param resourceUri Resource URI；Resource URI
-     * @return Resource Server 持久化对象；Resource Server persistence object
-     */
-    private IdentityResourceServerEntity resource(String resourceUri) {
-        return resources.findByResourceUri(exact(resourceUri, "resourceUri"))
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Resource Server was not found"
-                ));
+    private List<OAuthResourceBO> resolveActiveResources(TrustedRealmBO platformRealm, List<String> resourceUris) {
+        return resourceUris.stream().map(uri -> activeResource(platformRealm, uri)).toList();
     }
 
-    /**
-     * 按稳定标识查询 Grant 引用的 Resource Server。
-     *
-     * <p>Finds the Resource Server referenced by a grant by stable identifier.</p>
-     *
-     * @param resourceServerId Resource Server 标识；Resource Server identifier
-     * @return Resource Server 持久化对象；Resource Server persistence object
-     */
-    private IdentityResourceServerEntity resourceById(
-            String resourceServerId
-    ) {
-        return resources.findByResourceServerId(resourceServerId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Resource Grant references a missing Resource Server"
-                ));
+    private OAuthResourceBO activeResource(TrustedRealmBO platformRealm, String resourceUri) {
+        TrustedRealmBO trustedPlatform = requirePlatformRealm(platformRealm);
+        OAuthResourceBO resource = resources.findByResourceUri(trustedPlatform, URI.create(resourceUri))
+                .orElseThrow(() -> new IllegalArgumentException("OAUTH_RESOURCE_NOT_FOUND"));
+        if (resource.getStatus() != ResourceServerStatus.ACTIVE) {
+            throw new IllegalStateException("OAUTH_RESOURCE_NOT_ACTIVE");
+        }
+        return resource;
     }
 
-    /**
-     * 创建 Public Client 到 Resource 的 USER_DELEGATION Grant。
-     *
-     * <p>Creates a USER_DELEGATION grant from a Public Client to a Resource.</p>
-     *
-     * @param clientId Client 标识；Client identifier
-     * @param resource Resource Server；Resource Server
-     * @param now 创建时间；creation instant
-     */
-    private void saveUserGrant(
-            String clientId,
-            IdentityResourceServerEntity resource,
-            Instant now
-    ) {
-        grants.save(IdentityClientResourceGrantEntity.userDelegation(
-                SnowflakeIdGenerator.nextId(),
-                clientId,
-                resource.getResourceServerId(),
-                now
-        ));
+    private void validateCreate(TrustedRealmBO realm, CreateOAuthClientDTO input) {
+        Objects.requireNonNull(input.getClientType(), "clientType");
+        Objects.requireNonNull(input.getPurpose(), "purpose");
+        if (input.getClientId() == null || !input.getClientId().matches("[A-Za-z0-9._-]{1,128}")) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_ID_INVALID");
+        }
+        if (input.getClientName() == null || input.getClientName().isBlank() || input.getClientName().length() > 200) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_NAME_INVALID");
+        }
+        if (input.getAccessTokenTtlSeconds() < 300 || input.getAccessTokenTtlSeconds() > 600
+                || input.getRefreshTokenTtlSeconds() < 0 || input.getRefreshTokenTtlSeconds() > 604_800) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_TTL_INVALID");
+        }
+        if (realm.getRealmType() == top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum.PLATFORM
+                && input.getPurpose() != OAuthClientPurposeEnum.SERVICE) {
+            throw new IllegalArgumentException("OAUTH_PLATFORM_CLIENT_MUST_BE_SERVICE");
+        }
+        if (input.getClientType() == OAuthClient.ClientType.PUBLIC) {
+            if (input.getPurpose() != OAuthClientPurposeEnum.USER || input.getAppId() != null
+                    || input.getRefreshTokenTtlSeconds() != 0) {
+                throw new IllegalArgumentException("OAUTH_PUBLIC_CLIENT_FIELDS_INVALID");
+            }
+        } else if (input.getAppId() == null || input.getAppId().isBlank()) {
+            throw new IllegalArgumentException("OAUTH_CONFIDENTIAL_CLIENT_APP_ID_REQUIRED");
+        } else if (!input.getAppId().matches("[a-z][a-z0-9-]{2,127}")) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_APP_ID_INVALID");
+        }
+        if (input.getPurpose() == OAuthClientPurposeEnum.SERVICE
+                && input.getAllowedScopes() != null
+                && input.getAllowedScopes().stream().anyMatch(scope -> scope == null
+                        || !scope.matches("[A-Za-z0-9._:-]{1,128}"))) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_SCOPE_INVALID");
+        }
+        if (input.getPurpose() == OAuthClientPurposeEnum.USER) {
+            if (input.getRedirectUris() == null || input.getRedirectUris().isEmpty()
+                    || input.getResourceUris() == null || input.getResourceUris().isEmpty()
+                    || input.getAllowedScopes() == null || input.getAllowedScopes().isEmpty()) {
+                throw new IllegalArgumentException("OAUTH_USER_CLIENT_GRANT_FIELDS_REQUIRED");
+            }
+            if (input.getClientType() == OAuthClient.ClientType.CONFIDENTIAL
+                    && (input.getRefreshTokenTtlSeconds() < 3600
+                            || input.getRefreshTokenTtlSeconds() > 604800)) {
+                throw new IllegalArgumentException("OAUTH_USER_CLIENT_REFRESH_TTL_INVALID");
+            }
+        } else if (input.getClientType() != OAuthClient.ClientType.CONFIDENTIAL
+                || input.getRedirectUris() == null || !input.getRedirectUris().isEmpty()
+                || input.getResourceUris() == null || !input.getResourceUris().isEmpty()
+                || input.getRefreshTokenTtlSeconds() != 0) {
+            throw new IllegalArgumentException("OAUTH_SERVICE_CLIENT_FIELDS_INVALID");
+        }
     }
 
-    /**
-     * 校验并保留输入顺序的精确文本集合。
-     *
-     * <p>Validates an exact text collection while retaining input order.</p>
-     *
-     * @param values 原始值；raw values
-     * @param field 字段名；field name
-     * @return 去重后的不可变值；distinct immutable values
-     */
-    private static List<String> exactValues(
-            List<String> values,
-            String field
-    ) {
-        Objects.requireNonNull(values, field);
-        LinkedHashSet<String> result = new LinkedHashSet<>();
-        values.forEach(value -> result.add(exact(value, field)));
-        return List.copyOf(result);
+    private ClientSecretMaterialVO generateSecret() {
+        byte[] bytes = new byte[SECRET_BYTES];
+        secureRandom.nextBytes(bytes);
+        String plaintext = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        java.util.Arrays.fill(bytes, (byte) 0);
+        return new ClientSecretMaterialVO(
+                plaintext, secretEncoder.encode(plaintext), plaintext.substring(plaintext.length() - 4));
     }
 
-    /**
-     * 校验不带首尾空白的必填文本。
-     *
-     * <p>Validates required text without surrounding whitespace.</p>
-     *
-     * @param value 待校验值；value to validate
-     * @param field 字段名；field name
-     * @return 已校验值；validated value
-     */
-    private static String exact(String value, String field) {
-        if (value == null || value.isBlank() || !value.equals(value.trim())) {
-            throw new IllegalArgumentException(field + " is required");
+    private void appendAudit(String eventType, String operator, String target, Instant occurredAt) {
+        securityEvents.append(new IdentitySecurityEvent(eventType, operator, target, "ADMIN_API", occurredAt));
+    }
+
+    private static OAuthClientBO.OAuthClientBOBuilder copy(OAuthClientBO value) {
+        return OAuthClientBO.builder()
+                .id(value.getId())
+                .version(value.getVersion())
+                .clientId(value.getClientId())
+                .appId(value.getAppId())
+                .clientName(value.getClientName())
+                .clientType(value.getClientType())
+                .purpose(value.getPurpose())
+                .status(value.getStatus())
+                .secretHash(value.getSecretHash())
+                .secretHint(value.getSecretHint())
+                .credentialVersion(value.getCredentialVersion())
+                .redirectUris(value.getRedirectUris())
+                .resourceUris(value.getResourceUris())
+                .allowedScopes(value.getAllowedScopes())
+                .accessTtlSeconds(value.getAccessTtlSeconds())
+                .refreshTtlSeconds(value.getRefreshTtlSeconds())
+                .createdAt(value.getCreatedAt())
+                .updatedAt(value.getUpdatedAt());
+    }
+
+    private static OAuthGrantBO.OAuthGrantBOBuilder copyGrant(OAuthGrantBO value) {
+        return OAuthGrantBO.builder()
+                .id(value.getId())
+                .version(value.getVersion())
+                .clientPk(value.getClientPk())
+                .resourceServerId(value.getResourceServerId())
+                .grantType(value.getGrantType())
+                .allowedScopes(value.getAllowedScopes())
+                .status(value.getStatus())
+                .resourceVersion(value.getResourceVersion());
+    }
+
+    private static TrustedRealmBO requireRealm(TrustedRealmBO realm) {
+        TrustedRealmBO value = Objects.requireNonNull(realm, "trustedRealm");
+        value.validateTrustedPartition();
+        return value;
+    }
+
+    private static TrustedRealmBO requirePlatformRealm(TrustedRealmBO realm) {
+        TrustedRealmBO value = requireRealm(realm);
+        if (value.getRealmType() != top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum.PLATFORM) {
+            throw new IllegalArgumentException("OAUTH_PLATFORM_REALM_REQUIRED");
         }
         return value;
     }
 
-    /**
-     * 校验审计操作者 Subject，避免事件端口收到无法持久化的值。
-     *
-     * <p>Validates the audit operator subject before publishing an event.</p>
-     */
+    private static List<String> exactUris(List<String> values, boolean required) {
+        List<String> result = exactValues(values, "resourceUris", 64, 2048).stream()
+                .map(value -> exactHttpsUri(value, "resourceUri"))
+                .sorted()
+                .toList();
+        if (required && result.isEmpty()) {
+            throw new IllegalArgumentException("OAUTH_RESOURCE_URI_REQUIRED");
+        }
+        return result;
+    }
+
+    private List<String> exactRedirectUris(List<String> values) {
+        return exactValues(values, "redirectUris", 16, 2048).stream()
+                .map(this::exactRedirectUri)
+                .toList();
+    }
+
+    private String exactRedirectUri(String value) {
+        String exact = requiredText(value, "redirectUri", 2048);
+        try {
+            URI uri = URI.create(exact);
+            boolean secureHttps = "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null;
+            boolean localLoopback = isLocalProfile()
+                    && "http".equalsIgnoreCase(uri.getScheme())
+                    && "127.0.0.1".equals(uri.getHost())
+                    && uri.getPort() > 0 && uri.getPort() <= 65_535;
+            if ((!secureHttps && !localLoopback) || uri.getUserInfo() != null || uri.getQuery() != null
+                    || uri.getFragment() != null || exact.contains("*")
+                    || !uri.normalize().toASCIIString().equals(uri.toASCIIString())) {
+                throw new IllegalArgumentException("OAUTH_REDIRECT_URI_INVALID");
+            }
+            return uri.toASCIIString();
+        } catch (IllegalArgumentException failure) {
+            throw new IllegalArgumentException("OAUTH_REDIRECT_URI_INVALID", failure);
+        }
+    }
+
+    private boolean isLocalProfile() {
+        return activeProfiles != null && java.util.Arrays.stream(activeProfiles.split("[,;]"))
+                .map(String::trim)
+                .anyMatch("local"::equals);
+    }
+
+    private static List<String> exactScopes(List<String> values) {
+        List<String> scopes = exactValues(values, "allowedScopes", 64, 128);
+        if (scopes.stream().anyMatch(scope -> !scope.matches("[A-Za-z0-9._:-]{1,128}"))) {
+            throw new IllegalArgumentException("OAUTH_CLIENT_SCOPE_INVALID");
+        }
+        return scopes;
+    }
+
+    private static List<String> exactValues(List<String> values, String field, int maximum, int maxLength) {
+        Objects.requireNonNull(values, field);
+        if (values.size() > maximum) {
+            throw new IllegalArgumentException(field + " exceeds its maximum size");
+        }
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        for (String value : values) {
+            String exact = exact(value, field);
+            if (exact.length() > maxLength || !unique.add(exact)) {
+                throw new IllegalArgumentException(field + " contains invalid or duplicate values");
+            }
+        }
+        return unique.stream().sorted().toList();
+    }
+
+    private static String exactHttpsUri(String value, String field) {
+        String exact = exact(value, field);
+        try {
+            URI uri = URI.create(exact);
+            URI normalized = uri.normalize();
+            if (!uri.isAbsolute() || !"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null
+                    || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null
+                    || !uri.toASCIIString().equals(normalized.toASCIIString())) {
+                throw new IllegalArgumentException(field + " is not canonical HTTPS URI");
+            }
+            return uri.toASCIIString();
+        } catch (IllegalArgumentException failure) {
+            throw new IllegalArgumentException(field + " is invalid", failure);
+        }
+    }
+
+    private static String requiredText(String value, String field, int maximum) {
+        String exact = exact(value, field);
+        if (exact.length() > maximum) {
+            throw new IllegalArgumentException(field + " is too long");
+        }
+        return exact;
+    }
+
+    private static String exact(String value, String field) {
+        if (value == null || value.isBlank() || !value.equals(value.trim())) {
+            throw new IllegalArgumentException(field + " is invalid");
+        }
+        return value;
+    }
+
+    private static List<String> sorted(List<String> values) {
+        return values.stream().sorted().toList();
+    }
+
     private static String operator(String value) {
-        String validated = exact(value, "operatorSub");
-        if (!validated.matches("[A-Za-z0-9._~-]{1,64}")) {
+        String exact = requiredText(value, "operatorSub", 64);
+        if (!exact.matches("[A-Za-z0-9._~-]{1,64}")) {
             throw new IllegalArgumentException("operatorSub has invalid format");
         }
-        return validated;
+        return exact;
+    }
+
+    private record ClientSecretMaterialVO(String plaintext, String hash, String hint) {
     }
 }

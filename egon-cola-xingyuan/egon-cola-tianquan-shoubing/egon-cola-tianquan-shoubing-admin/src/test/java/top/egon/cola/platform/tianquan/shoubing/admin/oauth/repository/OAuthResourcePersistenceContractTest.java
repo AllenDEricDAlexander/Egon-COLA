@@ -123,13 +123,31 @@ class OAuthResourcePersistenceContractTest {
                 List.of("selectByResourceServerId", "selectByResourceServerIdForUpdate",
                         "selectByResourceUri", "selectBySource", "selectByManagementClientPk",
                         "selectByBizCodeAndEnvironmentAndAppCodeIn", "selectActiveById",
-                        "selectActiveByIds"));
+                        "selectActiveByIds", "selectDirectory"));
         assertMapperContract(
                 "mapper/resource/OAuthGrantMapper.xml",
                 "oauth_grant",
                 "top.egon.cola.platform.tianquan.shoubing.admin.resource.dao.OAuthGrantMapper",
                 List.of("selectGrant", "selectGrantForUpdate", "listByClient",
                         "selectActiveById", "selectActiveByIds"));
+    }
+
+    @Test
+    void resourceDirectoryQueryIsPlatformScopedOrderedAndBoundedForOverflowDetection() throws Exception {
+        String xml = Files.readString(repositoryRoot().resolve(
+                ADMIN_PREFIX + "resources/mapper/resource/OAuthResourceMapper.xml"));
+        int statementStart = xml.indexOf("<select id=\"selectDirectory\"");
+        assertTrue(statementStart >= 0, "Missing bounded resource directory mapper");
+        String statement = xml.substring(statementStart, xml.indexOf("</select>", statementStart));
+        assertTrue(statement.contains("tenant_id = #{tenantId}"));
+        assertTrue(statement.contains("deleted_at IS NULL"));
+        assertTrue(statement.contains("ORDER BY resource_server_id ASC, id ASC"));
+        assertTrue(statement.contains("LIMIT #{limit}"));
+        assertTrue(java.util.Arrays.stream(OAuthResourceMapper.class.getMethods())
+                .anyMatch(method -> method.getName().equals("selectDirectory")));
+        assertTrue(java.util.Arrays.stream(top.egon.cola.platform.tianquan.shoubing.admin.resource.repository
+                        .OAuthResourceRepository.class.getMethods())
+                .anyMatch(method -> method.getName().equals("listDirectory")));
     }
 
     @Test

@@ -31,6 +31,7 @@ import org.mapstruct.factory.Mappers;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 import org.slf4j.MDC;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.converter.OAuthSigningKeyConverter;
 import org.springframework.beans.factory.annotation.AnnotatedGenericBeanDefinition;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
@@ -56,6 +57,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTy
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -140,6 +142,30 @@ class OAuthSigningKeyPersistenceContractTest {
         assertFalse(mapper.writeValueAsString(audit).contains("a".repeat(64)));
         assertFalse(mapper.writeValueAsString(audit).contains("schemaVersion"));
         assertFalse(mapper.writeValueAsString(audit).contains("tenant-private-ref"));
+    }
+
+    @Test
+    void signingKeyConverterPreservesPersistedTimestampsButIgnoresCallerTimes() {
+        OAuthSigningKeyConverter converter = Mappers.getMapper(OAuthSigningKeyConverter.class);
+        OAuthSigningKeyPO source = new OAuthSigningKeyPO()
+                .setKid("tenant-1001-k1")
+                .setAlgorithm("RS256")
+                .setPublicJwk(JsonNodeFactory.instance.objectNode().put("kty", "RSA"))
+                .setPrivateKeyCiphertext("ENC:v1:test-kek-v1:synthetic-nonce:synthetic-ciphertext")
+                .setStatus(OAuthKeyStatusEnum.PUBLISHED)
+                .setPublishedAt(Instant.parse("2026-10-01T00:00:00Z"));
+        source.setCreateTime(Instant.parse("2026-10-01T01:02:03.123456Z"));
+        source.setUpdateTime(Instant.parse("2026-10-02T04:05:06.654321Z"));
+
+        OAuthSigningKeyBO mapped = converter.toTarget(source);
+
+        assertEquals(source.getCreateTime(), mapped.getCreatedAt());
+        assertEquals(source.getUpdateTime(), mapped.getUpdatedAt());
+        mapped.setCreatedAt(Instant.parse("2026-10-03T00:00:00Z"))
+                .setUpdatedAt(Instant.parse("2026-10-04T00:00:00Z"));
+        OAuthSigningKeyPO persisted = converter.toSource(mapped);
+        assertNull(persisted.getCreateTime());
+        assertNull(persisted.getUpdateTime());
     }
 
     @Test

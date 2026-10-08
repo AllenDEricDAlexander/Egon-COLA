@@ -19,6 +19,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.OAuthCl
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthClient;
 
 import java.util.List;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -74,4 +75,6 @@ public class OAuthClientBO {
     @Min(0)
     @Max(604800)
     private Integer refreshTtlSeconds;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

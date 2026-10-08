@@ -1,39 +1,47 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-/**
- * Resource Server 管理视图。
- *
- * <p>Resource Server administration view.</p>
- *
- * @param resourceServerId 稳定标识；stable identifier
- * @param resourceUri Resource URI；Resource URI
- * @param bizCode 业务域；business domain
- * @param appCode 应用；application
- * @param environment 环境；environment
- * @param displayName 展示名称；display name
- * @param managementClientId 管理 Client；management Client
- * @param rbacApplicationCode Tianquan-Jianshen 应用；Tianquan-Jianshen application
- * @param entryPermissionCode USER 入口权限；USER entry permission
- * @param status Resource Server 状态；Resource Server status
- * @param version 乐观锁和投影版本；optimistic-lock and projection version
- * @param createdAt 创建时间；creation instant
- * @param updatedAt 最后更新时间；last update instant
- */
-public record ResourceServerVO(
-        String resourceServerId,
-        String resourceUri,
-        String bizCode,
-        String appCode,
-        String environment,
-        String displayName,
-        String managementClientId,
-        String rbacApplicationCode,
-        String entryPermissionCode,
-        String status,
-        long version,
-        Instant createdAt,
-        Instant updatedAt
-) {
+/** Resource Server administration view. */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ResourceServerVO {
+
+    @NotBlank @Size(max = 128)
+    private String resourceServerId;
+    @NotBlank @Size(max = 2048)
+    private String resourceUri;
+    @NotBlank @Size(max = 128)
+    private String bizCode;
+    @NotBlank @Size(max = 128)
+    private String appCode;
+    @NotBlank @Size(max = 128)
+    private String environment;
+    @NotBlank @Size(max = 200)
+    private String displayName;
+    @NotBlank @Size(max = 128)
+    private String managementClientId;
+    @NotBlank @Size(max = 128)
+    private String rbacApplicationCode;
+    @NotBlank @Size(max = 256)
+    private String entryPermissionCode;
+    @NotBlank @Size(max = 16)
+    private String status;
+    @PositiveOrZero
+    private long version;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

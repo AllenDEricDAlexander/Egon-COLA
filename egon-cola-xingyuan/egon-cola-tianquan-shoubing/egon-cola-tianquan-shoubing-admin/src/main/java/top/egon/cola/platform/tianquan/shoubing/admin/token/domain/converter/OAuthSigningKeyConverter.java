@@ -25,6 +25,8 @@ public interface OAuthSigningKeyConverter extends BaseConverter<OAuthSigningKeyP
     @Mapping(target = "lastIssuedAt", source = "lastIssuedAt")
     @Mapping(target = "verifyUntil", source = "verifyUntil")
     @Mapping(target = "retiredAt", source = "retiredAt")
+    @Mapping(target = "createdAt", source = "createTime")
+    @Mapping(target = "updatedAt", source = "updateTime")
     OAuthSigningKeyBO toTarget(OAuthSigningKeyPO source);
 
     @Override

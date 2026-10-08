@@ -7,11 +7,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientFactory;
-import top.egon.cola.platform.tianquan.shoubing.admin.resource.repo.IdentityClientResourceGrantRepository;
-import top.egon.cola.platform.tianquan.shoubing.admin.resource.repo.IdentityResourceServerRepository;
-import top.egon.cola.platform.tianquan.shoubing.admin.resource.repo.JpaResourceServerStore;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthGrantRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthResourceRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.MpResourceServerStore;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.service.ResourceServerProjectionService;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.support.outbox.DdcResourceServerLifecycleDeliveryHandler;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.support.outbox.ResourceServerProjectionDeliveryHandler;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.support.outbox.TransactionalOutboxResourceServerEventAdapter;
 import top.egon.cola.platform.tianquan.shoubing.core.port.ResourceServerStore;
 
@@ -37,11 +41,13 @@ public class ResourceServerConfig {
      */
     @Bean
     ResourceServerStore resourceServerStore(
-            IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants,
-            ObjectMapper objectMapper
+            @Qualifier("oAuthResourceRepository") OAuthResourceRepository resources,
+            @Qualifier("oAuthGrantRepository") OAuthGrantRepository grants,
+            @Qualifier("oAuthClientRepository") OAuthClientRepository clients,
+            @Qualifier("tenantIssuerService") TenantIssuerService tenantIssuerService,
+            @Qualifier("oauthManagementRealmResolver") OAuthManagementRealmResolver realmResolver
     ) {
-        return new JpaResourceServerStore(resources, grants, objectMapper);
+        return new MpResourceServerStore(resources, grants, clients, tenantIssuerService, realmResolver);
     }
 
     /**
@@ -56,7 +62,7 @@ public class ResourceServerConfig {
     @Bean
     ResourceServerProjectionService resourceServerProjectionService(
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
-            ObjectMapper objectMapper
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper
     ) {
         return new ResourceServerProjectionService(redisson, objectMapper);
     }
@@ -71,7 +77,7 @@ public class ResourceServerConfig {
      */
     @Bean
     TransactionalOutboxResourceServerEventAdapter resourceServerEventAdapter(
-            TransactionalOutbox outbox,
+            @Qualifier("transactionalOutbox") TransactionalOutbox outbox,
             @Qualifier("idpClock") Clock clock) {
         return new TransactionalOutboxResourceServerEventAdapter(
                 outbox,
@@ -90,8 +96,8 @@ public class ResourceServerConfig {
     @Bean
     DdcResourceServerLifecycleDeliveryHandler
             ddcResourceServerLifecycleDeliveryHandler(
-                    DdcRpcClientFactory factory,
-                    ObjectMapper objectMapper) {
+                    @Qualifier("ddcRpcClientFactory") DdcRpcClientFactory factory,
+                    @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper) {
         return new DdcResourceServerLifecycleDeliveryHandler(
                 request -> {
                     try (var handle = factory.managementClient()) {
@@ -102,6 +108,19 @@ public class ResourceServerConfig {
                 },
                 objectMapper
         );
+    }
+
+    /** Creates the post-commit, authoritative Resource/Grant Redis projection consumer. */
+    @Bean
+    ResourceServerProjectionDeliveryHandler resourceServerProjectionDeliveryHandler(
+            @Qualifier("oAuthResourceRepository") OAuthResourceRepository resources,
+            @Qualifier("oAuthClientRepository") OAuthClientRepository clients,
+            @Qualifier("oAuthGrantRepository") OAuthGrantRepository grants,
+            @Qualifier("oauthManagementRealmResolver") OAuthManagementRealmResolver realms,
+            @Qualifier("resourceServerProjectionService") ResourceServerProjectionService projections,
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper) {
+        return new ResourceServerProjectionDeliveryHandler(resources, clients, grants, realms, projections,
+                objectMapper);
     }
 
 }

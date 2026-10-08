@@ -2,6 +2,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.token.service;
 
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.dto.PublishSigningKeyDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.vo.SigningKeyVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 
 import java.util.List;
 
@@ -12,11 +13,11 @@ import java.util.List;
  */
 public interface SigningKeyService {
 
-    List<SigningKeyVO> list();
+    List<SigningKeyVO> list(TrustedRealmBO trustedRealm);
 
-    SigningKeyVO publish(PublishSigningKeyDTO command);
+    SigningKeyVO publish(TrustedRealmBO trustedRealm, PublishSigningKeyDTO command);
 
-    SigningKeyVO activate(String kid, long expectedVersion);
+    SigningKeyVO activate(TrustedRealmBO trustedRealm, String kid, long expectedVersion);
 
-    SigningKeyVO retire(String kid, long expectedVersion);
+    SigningKeyVO retire(TrustedRealmBO trustedRealm, String kid, long expectedVersion);
 }

@@ -3,64 +3,95 @@ package top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType;
 
-/**
- * 对明确应用集合增删 Client Resource Grant 的输入。
- *
- * <p>Input for adding or deleting Client Resource Grants for explicit applications.</p>
- *
- * @param bizCode 业务域；business domain
- * @param environment 环境；environment
- * @param appCodes 明确应用集合；explicit application codes
- * @param action Grant 动作；Grant action
- * @param grantType 授权类型；grant type
- * @param tenantId 服务授权租户；service-grant tenant
- * @param allowedScopes 服务 Scope；service scopes
- * @param expectedResourceVersions 各 Resource 期望版本；expected Resource versions
- * @param expectedGrantVersions 各已有 Grant 期望版本；expected existing Grant versions
- */
-public record BatchClientResourceGrantDTO(
-        @NotBlank String bizCode,
-        @NotBlank String environment,
-        @NotEmpty List<@NotBlank String> appCodes,
-        @NotNull Action action,
-        @NotNull ResourceGrantType grantType,
-        String tenantId,
-        @NotNull Set<String> allowedScopes,
-        @NotNull Map<String, Long> expectedResourceVersions,
-        @NotNull Map<String, Long> expectedGrantVersions
-) {
+/** Input for adding or deleting Client Resource Grants for explicit applications. */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Accessors(chain = true)
+public class BatchClientResourceGrantDTO {
 
-    /**
-     * 复制所有集合，保证批量请求不可变。
-     *
-     * <p>Copies all collections to keep the batch request immutable.</p>
-     */
-    public BatchClientResourceGrantDTO {
-        appCodes = appCodes == null ? null : List.copyOf(appCodes);
-        allowedScopes = allowedScopes == null ? null : Set.copyOf(allowedScopes);
-        expectedResourceVersions = expectedResourceVersions == null
-                ? null : Map.copyOf(expectedResourceVersions);
-        expectedGrantVersions = expectedGrantVersions == null
-                ? null : Map.copyOf(expectedGrantVersions);
+    @NotBlank
+    private String bizCode;
+    @NotBlank
+    private String environment;
+    @NotEmpty
+    private List<@NotBlank String> appCodes;
+    @NotNull
+    private Action action;
+    @NotNull
+    private ResourceGrantType grantType;
+    private String tenantId;
+    @NotNull
+    private Set<String> allowedScopes;
+    @NotNull
+    private Map<String, Long> expectedResourceVersions;
+    @NotNull
+    private Map<String, Long> expectedGrantVersions;
+
+    /** Builds an input with defensive copies of its collections. */
+    @Builder
+    public static BatchClientResourceGrantDTO of(String bizCode, String environment, List<String> appCodes,
+            Action action, ResourceGrantType grantType, String tenantId, Set<String> allowedScopes,
+            Map<String, Long> expectedResourceVersions, Map<String, Long> expectedGrantVersions) {
+        return new BatchClientResourceGrantDTO(bizCode, environment,
+                appCodes == null ? null : List.copyOf(appCodes), action, grantType, tenantId,
+                allowedScopes == null ? null : Set.copyOf(allowedScopes),
+                expectedResourceVersions == null ? null : Map.copyOf(expectedResourceVersions),
+                expectedGrantVersions == null ? null : Map.copyOf(expectedGrantVersions));
     }
 
-    /**
-     * Grant 批量动作。
-     *
-     * <p>Grant batch action.</p>
-     */
+    public List<String> getAppCodes() {
+        return appCodes == null ? null : List.copyOf(appCodes);
+    }
+
+    public BatchClientResourceGrantDTO setAppCodes(List<String> values) {
+        this.appCodes = values == null ? null : List.copyOf(values);
+        return this;
+    }
+
+    public Set<String> getAllowedScopes() {
+        return allowedScopes == null ? null : Set.copyOf(allowedScopes);
+    }
+
+    public BatchClientResourceGrantDTO setAllowedScopes(Set<String> values) {
+        this.allowedScopes = values == null ? null : Set.copyOf(values);
+        return this;
+    }
+
+    public Map<String, Long> getExpectedResourceVersions() {
+        return expectedResourceVersions == null ? null : Map.copyOf(expectedResourceVersions);
+    }
+
+    public BatchClientResourceGrantDTO setExpectedResourceVersions(Map<String, Long> values) {
+        this.expectedResourceVersions = values == null ? null : Map.copyOf(values);
+        return this;
+    }
+
+    public Map<String, Long> getExpectedGrantVersions() {
+        return expectedGrantVersions == null ? null : Map.copyOf(expectedGrantVersions);
+    }
+
+    public BatchClientResourceGrantDTO setExpectedGrantVersions(Map<String, Long> values) {
+        this.expectedGrantVersions = values == null ? null : Map.copyOf(values);
+        return this;
+    }
+
+    /** Grant batch action. */
     public enum Action {
-
-        /** 新建或更新逐应用 Grant；create or update per-application Grants. */
+        /** Create or update per-application Grants. */
         UPSERT,
-
-        /** 删除逐应用 Grant；delete per-application Grants. */
+        /** Delete per-application Grants. */
         DELETE
     }
 }

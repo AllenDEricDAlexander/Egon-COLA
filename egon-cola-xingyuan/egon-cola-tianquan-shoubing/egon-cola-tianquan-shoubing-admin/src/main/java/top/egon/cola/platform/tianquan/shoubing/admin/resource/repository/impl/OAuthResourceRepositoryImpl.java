@@ -63,6 +63,18 @@ public class OAuthResourceRepositoryImpl extends EgonColaRepository<OAuthResourc
 
     @Override
     @Transactional(readOnly = true)
+    public List<OAuthResourceBO> listDirectory(TrustedRealmBO platformRealm, int limit) {
+        if (limit < 1 || limit > 10_001) {
+            throw new IllegalArgumentException("OAUTH_RESOURCE_DIRECTORY_LIMIT_INVALID");
+        }
+        return withPlatformStoragePartition(platformRealm, tenantId -> baseMapper
+                .selectDirectory(tenantId, limit).stream()
+                .map(converter::toTarget)
+                .toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<OAuthResourceBO> findByResourceServerId(
             @NotNull @Valid TrustedRealmBO platformRealm,
             @NotBlank @Size(max = 128) String resourceServerId) {

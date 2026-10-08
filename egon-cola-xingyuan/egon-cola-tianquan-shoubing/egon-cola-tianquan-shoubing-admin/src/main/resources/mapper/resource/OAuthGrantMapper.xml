@@ -46,8 +46,8 @@
         SELECT <include refid="Columns"/>
         FROM oauth_grant
         WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk} AND deleted_at IS NULL
-        ORDER BY resource_server_id ASC, grant_type ASC
-        LIMIT 501
+        ORDER BY resource_server_id ASC, grant_type ASC, id ASC
+        LIMIT #{limit}
     </select>
 
     <select id="selectActiveById" resultMap="OAuthGrantPOResultMap">

@@ -45,7 +45,6 @@ public class OAuthGrantRepositoryImpl extends EgonColaRepository<OAuthGrantMappe
         implements OAuthGrantRepository {
 
     private static final String SERVICE_ACTOR = "service:tianquan-shoubing";
-    private static final int MAX_CLIENT_GRANTS = 500;
 
     @Getter
     @Qualifier("OAuthGrantMapper")
@@ -92,14 +91,16 @@ public class OAuthGrantRepositoryImpl extends EgonColaRepository<OAuthGrantMappe
     @Transactional(readOnly = true)
     public List<OAuthGrantBO> listByClient(
             @NotNull @Valid TrustedRealmBO trustedRealm,
-            @Positive Long clientPk) {
+            @Positive Long clientPk,
+            @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(65) int limit) {
         Long client = requiredClientPk(clientPk);
+        if (limit < 1 || limit > 65) {
+            throw new IllegalArgumentException("OAUTH_GRANT_LIST_LIMIT_INVALID");
+        }
         return withTrustedStoragePartition(trustedRealm, tenantId -> {
-            List<OAuthGrantPO> values = baseMapper.listByClient(tenantId, client);
-            if (values.size() > MAX_CLIENT_GRANTS) {
-                throw new IllegalStateException("OAUTH_GRANT_CLIENT_LIMIT_EXCEEDED");
-            }
-            return values.stream().map(converter::toTarget).toList();
+            return baseMapper.listByClient(tenantId, client, limit).stream()
+                    .map(converter::toTarget)
+                    .toList();
         });
     }
 

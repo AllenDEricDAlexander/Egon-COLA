@@ -32,6 +32,8 @@ public interface OAuthClientConverter extends BaseConverter<OAuthClientPO, OAuth
     @Mapping(target = "allowedScopes", source = "allowedScopes", qualifiedByName = "copyStrings")
     @Mapping(target = "accessTtlSeconds", source = "accessTtlSeconds")
     @Mapping(target = "refreshTtlSeconds", source = "refreshTtlSeconds")
+    @Mapping(target = "createdAt", source = "createTime")
+    @Mapping(target = "updatedAt", source = "updateTime")
     OAuthClientBO toTarget(OAuthClientPO source);
 
     @Override

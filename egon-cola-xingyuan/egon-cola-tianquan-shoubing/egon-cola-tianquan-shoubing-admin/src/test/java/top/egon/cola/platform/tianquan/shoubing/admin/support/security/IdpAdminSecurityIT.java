@@ -3,24 +3,32 @@ package top.egon.cola.platform.tianquan.shoubing.admin.support.security;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.FilterType;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.controller.IdentityUserController;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.CreatedIdentityUserVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.IdentityUserVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.service.IdentityUserService;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.controller.ResourceServerController;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.service.ResourceServerService;
 import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 
 import java.time.Instant;
+import java.net.URI;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,7 +39,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({IdentityUserController.class, ResourceServerController.class})
+@WebMvcTest(value = {IdentityUserController.class, ResourceServerController.class}, excludeFilters =
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = TenantLoginAuthenticationFilter.class))
 @Import(IdpSecurityConfig.class)
 class IdpAdminSecurityIT {
 
@@ -45,10 +54,28 @@ class IdpAdminSecurityIT {
     private IdentityUserService users;
 
     @MockitoBean
+    @org.springframework.beans.factory.annotation.Qualifier("resourceServerServiceImpl")
     private ResourceServerService resources;
 
     @MockitoBean
+    @org.springframework.beans.factory.annotation.Qualifier("idpAdminAuthorizationPort")
     private IdpAdminAuthorizationPort authorization;
+
+    @MockitoBean
+    @org.springframework.beans.factory.annotation.Qualifier("oauthManagementRealmResolver")
+    private OAuthManagementRealmResolver realms;
+
+    @org.junit.jupiter.api.BeforeEach
+    void resolveTheGlobalResourceDirectoryToThePlatformRealm() {
+        when(realms.resolve(any(IdentityPrincipal.class), nullable(String.class))).thenReturn(
+                TrustedRealmBO.builder()
+                        .issuer(URI.create("https://idp.example.test/platform"))
+                        .realmKey("platform")
+                        .realmType(RealmTypeEnum.PLATFORM)
+                        .storagePartitionId(1L)
+                        .trustVersion(1L)
+                        .build());
+    }
 
     @Test
     void rejectsUnauthenticatedAdminCalls() throws Exception {
@@ -95,7 +122,7 @@ class IdpAdminSecurityIT {
                 any(IdentityPrincipal.class),
                 eq("tianquan-shoubing:resource-server:status")
         );
-        verify(resources).enable(eq("permission-tianquan-shoubing-prod"), any());
+        verify(resources).enable(any(TrustedRealmBO.class), eq("permission-tianquan-shoubing-prod"), any());
     }
 
     @Test

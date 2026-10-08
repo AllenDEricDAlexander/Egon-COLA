@@ -14,6 +14,7 @@ import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServerStat
 
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -58,4 +59,6 @@ public class OAuthResourceBO {
     private ResourceServerStatus status;
     @NotNull
     private Duration admissionTicketTtl;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

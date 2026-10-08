@@ -33,6 +33,8 @@ public interface OAuthResourceConverter extends BaseConverter<OAuthResourcePO, O
     @Mapping(target = "status", source = "status", qualifiedByName = "resourceStatusFromStorage")
     @Mapping(target = "admissionTicketTtl", source = "admissionTicketTtlSeconds",
             qualifiedByName = "ticketTtlFromStorage")
+    @Mapping(target = "createdAt", source = "createTime")
+    @Mapping(target = "updatedAt", source = "updateTime")
     OAuthResourceBO toTarget(OAuthResourcePO source);
 
     @Override
