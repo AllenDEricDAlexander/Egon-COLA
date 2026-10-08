@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.resource.dao.OAuthResourceMapper">
+    <resultMap id="OAuthResourcePOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.po.OAuthResourcePO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="version" column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="resourceServerId" column="resource_server_id"/>
+        <result property="resourceUri" column="resource_uri"/>
+        <result property="bizCode" column="biz_code"/>
+        <result property="appCode" column="app_code"/>
+        <result property="environment" column="environment"/>
+        <result property="displayName" column="display_name"/>
+        <result property="managementClientId" column="management_client_id"/>
+        <result property="managementClientPk" column="management_client_pk"/>
+        <result property="rbacApplicationCode" column="rbac_application_code"/>
+        <result property="entryPermissionCode" column="entry_permission_code"/>
+        <result property="status" column="status"/>
+        <result property="admissionTicketTtlSeconds" column="admission_ticket_ttl_seconds"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        resource_server_id, resource_uri, biz_code, app_code, environment, display_name,
+        management_client_id, management_client_pk, rbac_application_code, entry_permission_code,
+        status, admission_ticket_ttl_seconds
+    </sql>
+
+    <select id="selectByResourceServerId" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND resource_server_id = #{resourceServerId}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByResourceServerIdForUpdate" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND resource_server_id = #{resourceServerId}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="selectByResourceUri" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND resource_uri = #{resourceUri} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectBySource" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND app_code = #{appCode}
+          AND environment = #{environment} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByManagementClientPk" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND management_client_pk = #{managementClientPk}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByBizCodeAndEnvironmentAndAppCodeIn" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND environment = #{environment}
+          AND deleted_at IS NULL
+          AND app_code IN
+          <foreach collection="appCodes" item="appCode" open="(" separator="," close=")">
+              #{appCode}
+          </foreach>
+        ORDER BY app_code ASC, resource_server_id ASC
+        FOR UPDATE
+    </select>
+
+    <select id="selectActiveById" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthResourcePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_resource
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <update id="updateExpectedVersion">
+        UPDATE oauth_resource
+        SET display_name = #{po.displayName},
+            rbac_application_code = #{po.rbacApplicationCode},
+            entry_permission_code = #{po.entryPermissionCode},
+            status = #{po.status},
+            admission_ticket_ttl_seconds = #{po.admissionTicketTtlSeconds},
+            version = #{po.version},
+            update_user_id = #{po.updateUserId},
+            update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{po.id}
+          AND resource_server_id = #{po.resourceServerId}
+          AND resource_uri = #{po.resourceUri}
+          AND biz_code = #{po.bizCode}
+          AND app_code = #{po.appCode}
+          AND environment = #{po.environment}
+          AND management_client_id = #{po.managementClientId}
+          AND management_client_pk = #{po.managementClientPk}
+          AND version = #{expectedVersion}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_resource
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+            version = version + 1,
+            update_user_id = #{po.updateUserId},
+            update_time = #{po.updateTime}
+        WHERE tenant_id = #{po.tenantId} AND id = #{po.id}
+          AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+</mapper>

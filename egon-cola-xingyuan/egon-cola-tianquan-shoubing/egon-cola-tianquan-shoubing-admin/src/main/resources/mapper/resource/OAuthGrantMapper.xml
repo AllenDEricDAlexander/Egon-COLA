@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.resource.dao.OAuthGrantMapper">
+    <resultMap id="OAuthGrantPOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.po.OAuthGrantPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="version" column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="clientPk" column="client_pk"/>
+        <result property="resourceServerId" column="resource_server_id"/>
+        <result property="grantType" column="grant_type"/>
+        <result property="allowedScopes" column="allowed_scopes"
+                typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler"/>
+        <result property="status" column="status"/>
+        <result property="resourceVersion" column="resource_version"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        client_pk, resource_server_id, grant_type, allowed_scopes, status, resource_version
+    </sql>
+
+    <select id="selectGrant" resultMap="OAuthGrantPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_grant
+        WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk}
+          AND resource_server_id = #{resourceServerId} AND grant_type = #{grantType}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectGrantForUpdate" resultMap="OAuthGrantPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_grant
+        WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk}
+          AND resource_server_id = #{resourceServerId} AND grant_type = #{grantType}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="listByClient" resultMap="OAuthGrantPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_grant
+        WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk} AND deleted_at IS NULL
+        ORDER BY resource_server_id ASC, grant_type ASC
+        LIMIT 501
+    </select>
+
+    <select id="selectActiveById" resultMap="OAuthGrantPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_grant
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthGrantPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_grant
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <update id="updateExpectedVersion">
+        UPDATE oauth_grant
+        SET allowed_scopes = #{po.allowedScopes,
+                typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler},
+            status = #{po.status},
+            resource_version = #{po.resourceVersion},
+            version = #{po.version},
+            update_user_id = #{po.updateUserId},
+            update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{po.id}
+          AND client_pk = #{po.clientPk}
+          AND resource_server_id = #{po.resourceServerId}
+          AND grant_type = #{po.grantType}
+          AND version = #{expectedVersion}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_grant
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+            version = version + 1,
+            update_user_id = #{po.updateUserId},
+            update_time = #{po.updateTime}
+        WHERE tenant_id = #{po.tenantId} AND id = #{po.id}
+          AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+</mapper>

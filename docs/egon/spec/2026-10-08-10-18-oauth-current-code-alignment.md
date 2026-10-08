@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 已批准认证目录迁移、单库事务与Outbox、全局身份和业务租户边界、历史导入、现有Tianshu多租户消费者 |
 | Created | `2026-10-08 10:18 Asia/Shanghai` |
-| Updated | `2026-10-08 11:22 Asia/Shanghai` |
+| Updated | `2026-10-08 13:49 Asia/Shanghai` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | 授柄认证持久化/Outbox与历史迁移；原OAuth/OIDC、SCG、Starter及消费者计划的最新源码对齐 |
@@ -58,7 +58,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | EVD-117 | Static repository | OAuthConfig.idpClock是@Primary Clock；MP common clock用@ConditionalOnMissingBean(Clock.class)；新MP repositories及Outbox store按egonColaMybatisPlusClock名称注入 | Shoubing业务Clock会使Common默认bean退让，但新MP写路径仍需要该具名bean | OAuthPersistenceConfiguration导出同一idpClock实例的MP具名别名 | bean装配代码检查；未启动Spring上下文 |
 | EVD-118 | Static repository | egon-cola-xingyuan/egon-cola-tianshu/pom.xml管理MapStruct 1.6.3和Lombok绑定处理器；Shoubing parent/admin POM没有MapStruct依赖或processor路径 | Shoubing新四个@Mapper接口可以编译但不会生成实现，IdentityEntityMappingTest运行时ClassNotFound | 在Shoubing parent/admin显式复用仓库已有版本和processor配置 | Maven focused suite；不新增库种类/版本 |
 | EVD-119 | Static repository | 新oauth_client.redirect_uris/resource_uris/allowed_scopes三列为JSONB数组；现有Shoubing tenant handler只接受JsonNode对象，其他common可见handler用Object | OAuthClientPO采用typed List<String>，当前无可安全绑定PG jsonb数组的handler | 为client数组增加专用List<String> TypeHandler并用JDBC Types.OTHER | Mock PreparedStatement契约，无PG执行 |
-| EVD-120 | Static repository | common-core BaseConverter<S,T> exposes T toTarget(S source) and S toSource(T target); Step 3 IdentityUserConverter uses BaseConverter<IdentityUserPO,IdentityUser> | accepted OAuth table and Step4 Plan reverse source/target generic arguments | amend only OAuthRealmConverter/OAuthClientConverter to BaseConverter<PO,BO> | API/compiler contract source and generated mapping test |
+| EVD-120 | Static repository | common-core BaseConverter<S,T> exposes T toTarget(S source) and S toSource(T target); Step 3 IdentityUserConverter uses BaseConverter<IdentityUserPO,IdentityUser> | accepted OAuth table and Step4/5 Plan reverse source/target generic arguments | require every new OAuth persistence converter to use BaseConverter<PO,BO> | API/compiler contract source and generated mapping tests for realm/client/resource/grant |
 | EVD-121 | Accepted base Spec §11.2.1/2 and Step 2 V20261008_001 | oauth_realm.trust_version and oauth_client.credential_version are security-relevant monotonic versions | repositories must reject a decreasing value even if row version matches | static table contract plus mocked repository guard |
 
 ### 2.4 Evidence and current-chain map
@@ -104,7 +104,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | REQ-024 | 保留Tianshu两层信任 | Must | PLATFORM注册验证及HMAC tenant绑定均通过；错/缺AI header拒绝；body/header不能给业务SQL选tenant | EVD-107/108 |
 | REQ-025 | 保留玉衡实际数据面与流式行为 | Must | 新SCG→biz/mcp/LLM路由，SSE增量/取消、Bearer验证、管理端口约束回归 | EVD-109 |
 | REQ-026 | 补齐现有Grant读合同 | Must | API-045同realm有序≤64条，空[]，65条报503；0写入；UI缓存含realm且处理错误 | EVD-106/Grant提案 |
-| REQ-027 | 文档与依赖方向同步最新基线 | Must | Starter无admin依赖；旧错误前提明确被替换；Spec/Plan验证通过且OAuth converters遵守BaseConverter<S,T>方向 | 本次原请求/EVD-120 |
+| REQ-027 | 文档与依赖方向同步最新基线 | Must | Starter无admin依赖；旧错误前提明确被替换；Spec/Plan验证通过且OAuth persistence converters遵守BaseConverter<S,T>方向 | 本次原请求/EVD-120 |
 
 ### 4.1 Scenario matrix
 
@@ -163,7 +163,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | DEC-114 | OAuthPersistenceConfiguration导出名为egonColaMybatisPlusClock的别名，返回同一个idpClock bean | OAuthConfig的@Primary Clock抑制Common默认Clock bean；MP repository与Outbox需具名Clock | EVD-117/TEST-110 | REQ-023 |
 | DEC-115 | Shoubing parent集中管理已有MapStruct 1.6.3/Lombok binding版本，admin显式配置API与annotation processor | 四个@Mapper只有接口且当前admin未处理；已存在Tianshu/Yuheng同版本配置 | EVD-118/TEST-111 | REQ-020/027 |
 | DEC-116 | OAuthClientPO的redirect/resource/scope集合使用typed List<String>与专用Types.OTHER handler | 普通String/Jackson raw Object绑定JSONB数组会丢PG类型或绕过字段类型约束 | EVD-119/TEST-112 | REQ-023 |
-| DEC-117 | 只修正OAuthRealmConverter/OAuthClientConverter的BaseConverter泛型方向为PO源、BO目标 | BaseConverter<S,T>的实际方法签名与Step 3已验证惯例明确第一项为source；不改变数据库或wire contract | EVD-120/TEST-113 | REQ-023/027 |
+| DEC-117 | 所有本Plan新增OAuth持久化converter统一使用BaseConverter<PO,BO>，包括resource/grant | BaseConverter<S,T>的实际方法签名与Step 3已验证惯例明确第一项为source；不改变数据库或wire contract | EVD-120/TEST-113 | REQ-023/027 |
 
 ### 5.4 Open major decisions
 
@@ -894,7 +894,7 @@ API-045页面完全沿用Grant提案§12及主Spec§12：queryKey包含realm/cli
 | TEST-110 | Unit/contract | Named MP Clock alias | idpClock为Primary；常规MP clock按Clock type退让；repository/Outbox使用具名Clock | egonColaMybatisPlusClock alias返回原idpClock实例，不产生独立Clock | 配置源码合同，无Spring运行上下文 | IdentityMpPersistenceContractTest | REQ-023 |
 | TEST-111 | Unit | Generated identity/tenant converters | PO/domain fixture values with sensitive password hash | MapStruct implementations are present and round-trip identity, version, flags, settings and statuses | focused Maven compilation/test; no database | IdentityEntityMappingTest | REQ-020 |
 | TEST-112 | Unit/contract | oauth_client JSONB string arrays | empty/non-empty string list, wrong root or non-string element | TypeHandler binds compact JSON using Types.OTHER and restores the typed list | mocked PreparedStatement/ResultSet; no database | OAuthRealmPersistenceContractTest | REQ-023 |
-| TEST-113 | Unit/contract | OAuth persistence converter generic direction | PO and BO fixtures for realm/client | BaseConverter source is PO and target is BO; generated converter implementations preserve mapped identity/security fields | MapStruct generated mapping test; no database | OAuthRealmPersistenceContractTest | REQ-023/027 |
+| TEST-113 | Unit/contract | OAuth persistence converter generic direction | PO/BO fixtures for realm, client, resource, and grant | Every BaseConverter source is PO and target is BO; generated converters preserve mapped identity/security fields | MapStruct generated mapping tests in OAuthRealmPersistenceContractTest and OAuthResourcePersistenceContractTest; no database | Both focused suites | REQ-023/027 |
 | TEST-114 | Unit/contract | Trusted realm persistence MDC scope | TENANT partition=1001, PLATFORM partition=P, prior MDC actor, absent actor, mapper exception | Mapper sees only TrustedRealmBO.storagePartitionId and trusted/fallback actor; both MDC values restore after success/failure | mapper mocks; no database | OAuthRealmPersistenceContractTest | REQ-023/024 |
 | TEST-115 | Unit/contract | Realm/client version monotonicity | matching expected row version, lower trustVersion or credentialVersion | exact stale expectedVersion and security-version regression fail before UPDATE; no row is changed | mocked mappers; no database | OAuthRealmPersistenceContractTest | REQ-023 |
 
@@ -954,7 +954,7 @@ SCG/玉衡清理伪造身份头的列表保持显式；保留`X-Egon-Tianshu-Ten
 | REQ-025 | UC-103 | §7/15 | Yuheng Netty数据面 | SSE/MCP/LLM | TEST-105 | 增量/取消/身份回归 |
 | REQ-005 | UC-103 | 主Spec§4及本修订§9 | 最小授权范围 | API-045 | TEST-106 | Grant展示不扩权 |
 | REQ-026 | UC-103 | §8/9/12 | 原Grant写接口/VO | API-045 | TEST-106 | 查询/缓存/OpenAPI闭合 |
-| REQ-027 | UC-102 | §5/6/8/20 | 已接受wire设计与BaseConverter实际API | 修订文档与Step 4 converter | TEST-113及静态validator | source-target方向正确且依赖方向明确 |
+| REQ-027 | UC-102 | §5/6/8/20 | 已接受wire设计与BaseConverter实际API | 修订文档与Step 4/5 persistence converters | TEST-113及静态validator | source-target方向正确且依赖方向明确 |
 
 ## 20. Review and Acceptance
 
