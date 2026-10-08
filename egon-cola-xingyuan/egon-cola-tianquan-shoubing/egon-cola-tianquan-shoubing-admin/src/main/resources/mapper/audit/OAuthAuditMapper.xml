@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.audit.dao.OAuthAuditMapper">
+    <resultMap id="OAuthAuditPOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.po.OAuthAuditPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="version" column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="eventId" column="event_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="subjectRef" column="subject_ref"/>
+        <result property="clientRef" column="client_ref"/>
+        <result property="tokenRef" column="token_ref"/>
+        <result property="resourceRef" column="resource_ref"/>
+        <result property="result" column="result"/>
+        <result property="reasonCode" column="reason_code"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="occurredAt" column="occurred_at"/>
+        <result property="payload" column="payload" jdbcType="OTHER"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="auditKind" column="audit_kind"/>
+        <result property="publicId" column="public_id"/>
+        <result property="actorSub" column="actor_sub"/>
+        <result property="targetSub" column="target_sub"/>
+        <result property="identityTenantId" column="identity_tenant_id"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        event_id, event_type, subject_ref, client_ref, token_ref, resource_ref, result, reason_code,
+        trace_id, occurred_at, payload, audit_kind, public_id, actor_sub, target_sub, identity_tenant_id
+    </sql>
+
+    <select id="selectByEventId" resultMap="OAuthAuditPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND event_id = #{eventId} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByEventIdForUpdate" resultMap="OAuthAuditPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND event_id = #{eventId} AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="selectByOccurredAt" resultMap="OAuthAuditPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND audit_kind = 'OAUTH' AND deleted_at IS NULL
+          AND occurred_at &gt;= #{fromInclusive} AND occurred_at &lt; #{toExclusive}
+        <if test="afterOccurredAt != null">
+          AND (occurred_at &lt; #{afterOccurredAt}
+               OR (occurred_at = #{afterOccurredAt} AND id &lt; #{afterId}))
+        </if>
+        ORDER BY occurred_at DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectExpired" resultMap="OAuthAuditPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND occurred_at &lt;= #{cutoff}
+          AND id &gt; #{afterId} AND deleted_at IS NULL
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectIdentityPage" resultMap="OAuthAuditPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND audit_kind = 'IDENTITY' AND deleted_at IS NULL
+        <if test="actorSub != null">AND actor_sub = #{actorSub}</if>
+        <if test="eventType != null">AND event_type = #{eventType}</if>
+        <if test="result != null">AND result = #{result}</if>
+        <if test="traceId != null">AND trace_id = #{traceId}</if>
+        <if test="from != null">AND occurred_at &gt;= #{from}</if>
+        <if test="to != null">AND occurred_at &lt; #{to}</if>
+        ORDER BY occurred_at DESC, public_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countIdentityPage" resultType="long">
+        SELECT COUNT(*)
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND audit_kind = 'IDENTITY' AND deleted_at IS NULL
+        <if test="actorSub != null">AND actor_sub = #{actorSub}</if>
+        <if test="eventType != null">AND event_type = #{eventType}</if>
+        <if test="result != null">AND result = #{result}</if>
+        <if test="traceId != null">AND trace_id = #{traceId}</if>
+        <if test="from != null">AND occurred_at &gt;= #{from}</if>
+        <if test="to != null">AND occurred_at &lt; #{to}</if>
+    </select>
+
+    <select id="selectActiveById" resultMap="OAuthAuditPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthAuditPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_audit
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_audit
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id}
+          AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+</mapper>

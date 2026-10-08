@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.token.dao.OAuthRevocationMapper">
+    <resultMap id="OAuthRevocationPOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.token.domain.po.OAuthRevocationPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="version" column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="targetType" column="target_type"/>
+        <result property="targetKey" column="target_key"/>
+        <result property="reasonCode" column="reason_code"/>
+        <result property="revokedAt" column="revoked_at"/>
+        <result property="expiresAt" column="expires_at"/>
+        <result property="revision" column="revision"/>
+        <result property="projectionStatus" column="projection_status"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        target_type, target_key, reason_code, revoked_at, expires_at, revision, projection_status
+    </sql>
+
+    <select id="selectByTarget" resultMap="OAuthRevocationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_revocation
+        WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByTargetForUpdate" resultMap="OAuthRevocationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_revocation
+        WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="selectByProjectionStatus" resultMap="OAuthRevocationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_revocation
+        WHERE tenant_id = #{tenantId} AND projection_status = #{projectionStatus}
+          AND deleted_at IS NULL
+          AND (revision &gt; #{afterRevision} OR (revision = #{afterRevision} AND id &gt; #{afterId}))
+        ORDER BY revision ASC, id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectExpired" resultMap="OAuthRevocationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_revocation
+        WHERE tenant_id = #{tenantId} AND expires_at IS NOT NULL AND expires_at &lt;= #{cutoff}
+          AND id &gt; #{afterId} AND deleted_at IS NULL
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectActiveById" resultMap="OAuthRevocationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_revocation
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthRevocationPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_revocation
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <update id="updateExpectedVersion">
+        UPDATE oauth_revocation
+        SET expires_at = #{po.expiresAt}, revision = #{po.revision},
+            projection_status = #{po.projectionStatus}, version = #{po.version},
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id} AND target_type = #{po.targetType}
+          AND target_key = #{po.targetKey} AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_revocation
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id}
+          AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+</mapper>

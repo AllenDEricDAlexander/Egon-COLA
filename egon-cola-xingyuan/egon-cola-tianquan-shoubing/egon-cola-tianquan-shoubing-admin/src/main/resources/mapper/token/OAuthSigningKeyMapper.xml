@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.token.dao.OAuthSigningKeyMapper">
+    <resultMap id="OAuthSigningKeyPOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.token.domain.po.OAuthSigningKeyPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="version" column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="kid" column="kid"/>
+        <result property="algorithm" column="algorithm"/>
+        <result property="publicJwk" column="public_jwk" jdbcType="OTHER"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="privateKeyCiphertext" column="private_key_ciphertext"/>
+        <result property="status" column="status"/>
+        <result property="publishedAt" column="published_at"/>
+        <result property="activatedAt" column="activated_at"/>
+        <result property="lastIssuedAt" column="last_issued_at"/>
+        <result property="verifyUntil" column="verify_until"/>
+        <result property="retiredAt" column="retired_at"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        kid, algorithm, public_jwk, private_key_ciphertext, status, published_at, activated_at,
+        last_issued_at, verify_until, retired_at
+    </sql>
+
+    <select id="selectByKid" resultMap="OAuthSigningKeyPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_signing_key
+        WHERE tenant_id = #{tenantId} AND kid = #{kid} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByKidForUpdate" resultMap="OAuthSigningKeyPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_signing_key
+        WHERE tenant_id = #{tenantId} AND kid = #{kid} AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="selectByStatuses" resultMap="OAuthSigningKeyPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_signing_key
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+          AND status IN
+          <foreach collection="statuses" item="status" open="(" separator="," close=")">
+              #{status}
+          </foreach>
+          AND id &gt; #{afterId}
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectActiveById" resultMap="OAuthSigningKeyPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_signing_key
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthSigningKeyPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_signing_key
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <update id="updateExpectedVersion">
+        UPDATE oauth_signing_key
+        SET status = #{po.status}, activated_at = #{po.activatedAt}, last_issued_at = #{po.lastIssuedAt},
+            verify_until = #{po.verifyUntil}, retired_at = #{po.retiredAt}, version = #{po.version},
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id} AND kid = #{po.kid}
+          AND algorithm = #{po.algorithm} AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_signing_key
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id}
+          AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+</mapper>

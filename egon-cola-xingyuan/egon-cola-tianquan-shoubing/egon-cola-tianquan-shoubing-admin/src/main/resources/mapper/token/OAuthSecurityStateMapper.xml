@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.token.dao.OAuthSecurityStateMapper">
+    <resultMap id="OAuthSecurityStatePOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.token.domain.po.OAuthSecurityStatePO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="version" column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="targetType" column="target_type"/>
+        <result property="targetKey" column="target_key"/>
+        <result property="generation" column="generation"/>
+        <result property="enabled" column="enabled"/>
+        <result property="revision" column="revision"/>
+        <result property="reasonCode" column="reason_code"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        target_type, target_key, generation, enabled, revision, reason_code
+    </sql>
+
+    <select id="selectByTarget" resultMap="OAuthSecurityStatePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_security_state
+        WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByTargetForUpdate" resultMap="OAuthSecurityStatePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_security_state
+        WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
+          AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="selectByRevisionAfter" resultMap="OAuthSecurityStatePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_security_state
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+          AND (revision &gt; #{afterRevision} OR (revision = #{afterRevision} AND id &gt; #{afterId}))
+        ORDER BY revision ASC, id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectActiveById" resultMap="OAuthSecurityStatePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_security_state
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthSecurityStatePOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_security_state
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <update id="updateExpectedVersion">
+        UPDATE oauth_security_state
+        SET generation = #{po.generation}, enabled = #{po.enabled}, revision = #{po.revision},
+            reason_code = #{po.reasonCode}, version = #{po.version},
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id} AND target_type = #{po.targetType}
+          AND target_key = #{po.targetKey} AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_security_state
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
+            update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{po.id}
+          AND version = #{expectedVersion} AND deleted_at IS NULL
+    </update>
+</mapper>
