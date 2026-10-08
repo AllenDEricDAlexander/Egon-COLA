@@ -9,10 +9,16 @@ import top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardin
 import top.egon.cola.component.outbox.migration.OutboxLogicalDataSourceFactory;
 import top.egon.cola.component.outbox.migration.OutboxManagedDdlInitializer;
 
+import java.time.Clock;
 import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 public class OAuthPersistenceConfiguration {
+
+    @Bean("egonColaMybatisPlusClock")
+    public Clock egonColaMybatisPlusClock(@Qualifier("idpClock") Clock idpClock) {
+        return idpClock;
+    }
 
     @Bean("egonColaShardingLogicalDataSourceFactory")
     public LogicalDataSourceFactory egonColaShardingLogicalDataSourceFactory(

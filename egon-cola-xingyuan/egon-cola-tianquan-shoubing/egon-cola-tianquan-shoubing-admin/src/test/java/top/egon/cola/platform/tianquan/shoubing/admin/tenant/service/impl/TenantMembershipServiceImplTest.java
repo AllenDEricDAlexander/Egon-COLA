@@ -5,8 +5,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantMembershipRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembershipService;
@@ -41,7 +41,7 @@ class TenantMembershipServiceImplTest {
     private final IdentityTenantMembershipRepository memberships =
             mock(IdentityTenantMembershipRepository.class);
     private final IdentityUserDirectory users = mock(IdentityUserDirectory.class);
-    private final IdentityTenantEntity tenant = IdentityTenantEntity.create(
+    private final IdentityTenantBO tenant = IdentityTenantBO.create(
             "10001",
             "acme",
             "Acme",
@@ -72,19 +72,19 @@ class TenantMembershipServiceImplTest {
         );
         when(tenants.findById("10001")).thenReturn(Optional.of(tenant));
         when(users.list()).thenReturn(List.of(user));
-        when(memberships.save(any(IdentityTenantMembershipEntity.class)))
+        when(memberships.save(any(IdentityTenantMembershipBO.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
     void upsertsMembershipAndResolvesEffectiveStatusFromAllThreeAuthorities() {
-        when(memberships.findByTenantIdAndIdentitySub("10001", "user-1"))
+        when(memberships.findByTenantIdAndIdentitySubForUpdate("10001", "user-1"))
                 .thenReturn(Optional.empty());
         TenantMembershipService.MembershipView created = service.upsert(
                 new TenantMembershipService.UpsertMembershipCommand(
                         "10001",
                         "user-1",
-                        IdentityTenantMembershipEntity.Status.ACTIVE,
+                        IdentityTenantMembershipBO.Status.ACTIVE,
                         null,
                         "operator-2"
                 )
@@ -92,17 +92,18 @@ class TenantMembershipServiceImplTest {
 
         assertThat(created.identitySub()).isEqualTo("user-1");
         assertThat(created.status()).isEqualTo(
-                IdentityTenantMembershipEntity.Status.ACTIVE
+                IdentityTenantMembershipBO.Status.ACTIVE
         );
         assertThat(created.version()).isZero();
-        verify(memberships).save(any(IdentityTenantMembershipEntity.class));
+        verify(memberships).save(any(IdentityTenantMembershipBO.class));
+        verify(memberships).findByTenantIdAndIdentitySubForUpdate("10001", "user-1");
 
-        IdentityTenantMembershipEntity membership =
-                IdentityTenantMembershipEntity.create(
+        IdentityTenantMembershipBO membership =
+                IdentityTenantMembershipBO.create(
                         "membership-1",
                         "10001",
                         "user-1",
-                        IdentityTenantMembershipEntity.Status.ACTIVE,
+                        IdentityTenantMembershipBO.Status.ACTIVE,
                         "operator-2",
                         NOW
                 );
@@ -112,13 +113,13 @@ class TenantMembershipServiceImplTest {
         TenantMembershipService.TenantMembershipProfile profile =
                 service.resolve("user-1", "10001");
         assertThat(profile.tenantStatus()).isEqualTo(
-                IdentityTenantEntity.Status.INITIALIZING
+                IdentityTenantBO.Status.INITIALIZING
         );
         assertThat(profile.identityStatus()).isEqualTo(
                 IdentityUserStatus.ACTIVE
         );
         assertThat(profile.membershipStatus()).isEqualTo(
-                IdentityTenantMembershipEntity.Status.ACTIVE
+                IdentityTenantMembershipBO.Status.ACTIVE
         );
         assertThat(profile.effectiveStatus()).isEqualTo(
                 TenantMembershipPort.MembershipStatus.DISABLED
@@ -127,7 +128,7 @@ class TenantMembershipServiceImplTest {
         tenant.update(
                 "Acme",
                 "{}",
-                IdentityTenantEntity.Status.ACTIVE,
+                IdentityTenantBO.Status.ACTIVE,
                 0L,
                 "operator-3",
                 NOW
@@ -146,7 +147,7 @@ class TenantMembershipServiceImplTest {
                 new TenantMembershipService.UpsertMembershipCommand(
                         "10001",
                         "missing",
-                        IdentityTenantMembershipEntity.Status.ACTIVE,
+                        IdentityTenantMembershipBO.Status.ACTIVE,
                         null,
                         "operator-2"
                 )
@@ -156,7 +157,7 @@ class TenantMembershipServiceImplTest {
         tenant.update(
                 "Acme",
                 "{}",
-                IdentityTenantEntity.Status.ACTIVE,
+                IdentityTenantBO.Status.ACTIVE,
                 0L,
                 "operator-3",
                 NOW
@@ -164,7 +165,7 @@ class TenantMembershipServiceImplTest {
         tenant.update(
                 "Acme",
                 "{}",
-                IdentityTenantEntity.Status.CLOSED,
+                IdentityTenantBO.Status.CLOSED,
                 1L,
                 "operator-3",
                 NOW
@@ -175,7 +176,7 @@ class TenantMembershipServiceImplTest {
                 new TenantMembershipService.UpsertMembershipCommand(
                         "10001",
                         "user-1",
-                        IdentityTenantMembershipEntity.Status.ACTIVE,
+                        IdentityTenantMembershipBO.Status.ACTIVE,
                         null,
                         "operator-2"
                 )

@@ -28,8 +28,8 @@ import top.egon.cola.platform.tianquan.shoubing.admin.support.security.IdpAdminA
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.dto.CreateTenantDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.dto.UpdateTenantDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.dto.UpsertTenantMembershipDTO;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.vo.TenantMembershipVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.vo.TenantVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembershipService;
@@ -91,7 +91,7 @@ public class TenantController {
             @RequestParam(defaultValue = "20")
             @Min(1) @Max(100) int size,
             @RequestParam(required = false) String query,
-            @RequestParam(required = false) IdentityTenantEntity.Status status,
+            @RequestParam(required = false) IdentityTenantBO.Status status,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:tenant:read");
@@ -176,7 +176,7 @@ public class TenantController {
             @Min(1) @Max(100) int size,
             @RequestParam(required = false) String query,
             @RequestParam(required = false)
-            IdentityTenantMembershipEntity.Status status,
+            IdentityTenantMembershipBO.Status status,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "tianquan-shoubing:tenant:read");

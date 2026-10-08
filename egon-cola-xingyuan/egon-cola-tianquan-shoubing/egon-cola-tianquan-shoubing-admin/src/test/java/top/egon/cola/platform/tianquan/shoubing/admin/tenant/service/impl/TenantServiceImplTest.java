@@ -4,7 +4,8 @@ import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityDirectoryContext;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantService;
 import java.time.Clock;
@@ -16,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,12 +34,15 @@ class TenantServiceImplTest {
 
     private final IdentityTenantRepository tenants =
             mock(IdentityTenantRepository.class);
+    private final IdentityDirectoryContext directoryContext =
+            new IdentityDirectoryContext(9_001L, "tenantId");
     private TenantServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new TenantServiceImpl(
                 tenants,
+                directoryContext,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
@@ -44,7 +50,7 @@ class TenantServiceImplTest {
     @Test
     void createsDecimalInitializingTenantAndNormalizesSettings() {
         when(tenants.existsByTenantCodeIgnoreCase("acme")).thenReturn(false);
-        when(tenants.save(any(IdentityTenantEntity.class)))
+        when(tenants.save(any(IdentityTenantBO.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         TenantService.TenantView created = service.create(
@@ -61,15 +67,15 @@ class TenantServiceImplTest {
         assertThat(created.tenantCode()).isEqualTo("acme");
         assertThat(created.tenantName()).isEqualTo("Acme");
         assertThat(created.status())
-                .isEqualTo(IdentityTenantEntity.Status.INITIALIZING);
+                .isEqualTo(IdentityTenantBO.Status.INITIALIZING);
         assertThat(created.version()).isZero();
         assertThat(created.settings()).isEqualTo("{\"region\":\"cn\"}");
-        verify(tenants).save(any(IdentityTenantEntity.class));
+        verify(tenants).save(any(IdentityTenantBO.class));
     }
 
     @Test
     void updatesOnlyOncePerExpectedVersionAndEnforcesClosedTerminalState() {
-        IdentityTenantEntity tenant = IdentityTenantEntity.create(
+        IdentityTenantBO tenant = IdentityTenantBO.create(
                 "10001",
                 "acme",
                 "Acme",
@@ -79,7 +85,7 @@ class TenantServiceImplTest {
         );
         when(tenants.findByIdForUpdate("10001"))
                 .thenReturn(Optional.of(tenant));
-        when(tenants.save(any(IdentityTenantEntity.class)))
+        when(tenants.save(any(IdentityTenantBO.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         TenantService.TenantView active = service.update(
@@ -88,12 +94,12 @@ class TenantServiceImplTest {
                         0L,
                         null,
                         null,
-                        IdentityTenantEntity.Status.ACTIVE,
+                        IdentityTenantBO.Status.ACTIVE,
                         "operator-2"
                 )
         );
         assertThat(active.status()).isEqualTo(
-                IdentityTenantEntity.Status.ACTIVE
+                IdentityTenantBO.Status.ACTIVE
         );
         assertThat(active.version()).isEqualTo(1L);
 
@@ -103,7 +109,7 @@ class TenantServiceImplTest {
                         0L,
                         null,
                         null,
-                        IdentityTenantEntity.Status.SUSPENDED,
+                        IdentityTenantBO.Status.SUSPENDED,
                         "operator-3"
                 )
         )).isInstanceOf(IllegalStateException.class)
@@ -112,7 +118,7 @@ class TenantServiceImplTest {
         tenant.update(
                 "Acme",
                 "{}",
-                IdentityTenantEntity.Status.CLOSED,
+                IdentityTenantBO.Status.CLOSED,
                 1L,
                 "operator-4",
                 NOW
@@ -120,12 +126,28 @@ class TenantServiceImplTest {
         assertThatThrownBy(() -> tenant.update(
                 "Acme",
                 "{}",
-                IdentityTenantEntity.Status.ACTIVE,
+                IdentityTenantBO.Status.ACTIVE,
                 2L,
                 "operator-5",
                 NOW
         )).isInstanceOf(IllegalStateException.class)
                 .hasMessage("closed tenant cannot change status");
+    }
+
+    @Test
+    void refusesToAllocateTheReservedPlatformPartitionAsABusinessTenant() {
+        when(tenants.existsByTenantCodeIgnoreCase("acme")).thenReturn(false);
+        try (var ids = mockStatic(SnowflakeIdGenerator.class)) {
+            ids.when(SnowflakeIdGenerator::nextLongId).thenReturn(9_001L);
+
+            assertThatThrownBy(() -> service.create(
+                    new TenantService.CreateTenantCommand(
+                            "acme", "Acme", "{}", "operator-1"
+                    )
+            )).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("tenant id is reserved for platform storage");
+        }
+        verify(tenants, never()).save(any(IdentityTenantBO.class));
     }
 
     @Test

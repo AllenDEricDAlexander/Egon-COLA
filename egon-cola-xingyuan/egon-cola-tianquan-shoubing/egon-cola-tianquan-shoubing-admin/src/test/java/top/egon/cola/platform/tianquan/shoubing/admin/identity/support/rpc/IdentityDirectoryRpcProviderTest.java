@@ -10,8 +10,8 @@ import top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1.BatchGetId
 import top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1.GetTenantMembershipRequest;
 import top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1.GetTenantMembershipResponse;
 import top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1.TenantMembershipProfile;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
 
 import java.util.List;
@@ -89,9 +89,9 @@ class IdentityDirectoryRpcProviderTest {
                         "10001",
                         "Acme",
                         "Mario",
-                        IdentityTenantEntity.Status.ACTIVE,
+                        IdentityTenantBO.Status.ACTIVE,
                         IdentityUserStatus.ACTIVE,
-                        IdentityTenantMembershipEntity.Status.ACTIVE,
+                        IdentityTenantMembershipBO.Status.ACTIVE,
                         TenantMembershipPort.MembershipStatus.ACTIVE,
                         4L,
                         java.time.Instant.parse("2026-08-22T02:00:00Z")

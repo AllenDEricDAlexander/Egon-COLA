@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
 
 /** Versioned patch for an Tianquan-Shoubing-owned tenant catalog row. */
 public record UpdateTenantDTO(
@@ -15,6 +15,6 @@ public record UpdateTenantDTO(
         String tenantName,
         JsonNode settings,
         @NotNull
-        IdentityTenantEntity.Status status
+        IdentityTenantBO.Status status
 ) {
 }

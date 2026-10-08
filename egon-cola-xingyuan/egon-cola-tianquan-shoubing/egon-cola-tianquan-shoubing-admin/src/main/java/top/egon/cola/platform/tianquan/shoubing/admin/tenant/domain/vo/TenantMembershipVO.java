@@ -1,7 +1,7 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 
 import java.time.Instant;
 
@@ -11,7 +11,7 @@ public record TenantMembershipVO(
         String tenantId,
         String identitySub,
         String displayName,
-        IdentityTenantMembershipEntity.Status status,
+        IdentityTenantMembershipBO.Status status,
         long version,
         Instant updatedAt
 ) {

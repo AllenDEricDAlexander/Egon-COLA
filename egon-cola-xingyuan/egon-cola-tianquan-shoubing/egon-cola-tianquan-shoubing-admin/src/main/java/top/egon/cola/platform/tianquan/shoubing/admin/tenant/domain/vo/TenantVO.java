@@ -2,7 +2,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
 
 import java.time.Instant;
 
@@ -12,7 +12,7 @@ public record TenantVO(
         String tenantId,
         String tenantCode,
         String tenantName,
-        IdentityTenantEntity.Status status,
+        IdentityTenantBO.Status status,
         JsonNode settings,
         long version,
         Instant createdAt,

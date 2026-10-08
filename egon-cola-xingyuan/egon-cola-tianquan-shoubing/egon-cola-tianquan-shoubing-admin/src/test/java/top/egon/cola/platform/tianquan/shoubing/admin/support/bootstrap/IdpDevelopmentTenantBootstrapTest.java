@@ -3,8 +3,8 @@ package top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembershipService;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantService;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUser;
@@ -44,7 +44,7 @@ class IdpDevelopmentTenantBootstrapTest {
         when(tenants.create(any())).thenAnswer(invocation -> {
             TenantService.CreateTenantCommand command = invocation.getArgument(0);
             TenantService.TenantView tenant = tenant(Integer.toString(1001 + stored.size()),
-                    command.tenantCode(), IdentityTenantEntity.Status.INITIALIZING);
+                    command.tenantCode(), IdentityTenantBO.Status.INITIALIZING);
             stored.add(tenant);
             return tenant;
         });
@@ -53,15 +53,15 @@ class IdpDevelopmentTenantBootstrapTest {
         assertThat(bootstrap.resolveTenantIds(Set.of("1002"))).containsExactly("1002");
         verify(tenants, times(2)).create(any());
         verify(tenants, times(2)).update(anyString(), argThat(command ->
-                command.status() == IdentityTenantEntity.Status.ACTIVE && command.expectedVersion() == 0));
+                command.status() == IdentityTenantBO.Status.ACTIVE && command.expectedVersion() == 0));
         verifyNoInteractions(memberships, users);
     }
 
     @Test
     void preservesExistingTenantStateAndRejectsUnknownGrantTargets() {
         when(tenants.list()).thenReturn(List.of(
-                tenant("1001", "default", IdentityTenantEntity.Status.SUSPENDED),
-                tenant("1002", "tenant-b", IdentityTenantEntity.Status.ACTIVE)));
+                tenant("1001", "default", IdentityTenantBO.Status.SUSPENDED),
+                tenant("1002", "tenant-b", IdentityTenantBO.Status.ACTIVE)));
 
         assertThat(bootstrap.resolveTenantIds(Set.of("default"))).containsExactly("1001");
         assertThatThrownBy(() -> bootstrap.resolveTenantIds(Set.of("unknown")))
@@ -76,19 +76,19 @@ class IdpDevelopmentTenantBootstrapTest {
                 "9001", "alice", "alice", "Alice", IdentityUserStatus.ACTIVE,
                 0, null, null, 0L)));
         when(tenants.list()).thenReturn(List.of(
-                tenant("1001", "default", IdentityTenantEntity.Status.ACTIVE),
-                tenant("1002", "tenant-b", IdentityTenantEntity.Status.ACTIVE),
-                tenant("1003", "unrelated", IdentityTenantEntity.Status.ACTIVE)));
+                tenant("1001", "default", IdentityTenantBO.Status.ACTIVE),
+                tenant("1002", "tenant-b", IdentityTenantBO.Status.ACTIVE),
+                tenant("1003", "unrelated", IdentityTenantBO.Status.ACTIVE)));
         when(memberships.listByIdentity("9001")).thenReturn(List.of(
                 new TenantMembershipService.TenantMembershipProfile("9001", "1001", "Default",
-                        "Alice", IdentityTenantEntity.Status.ACTIVE, IdentityUserStatus.ACTIVE,
-                        IdentityTenantMembershipEntity.Status.DISABLED, null, 2, Instant.EPOCH)));
+                        "Alice", IdentityTenantBO.Status.ACTIVE, IdentityUserStatus.ACTIVE,
+                        IdentityTenantMembershipBO.Status.DISABLED, null, 2, Instant.EPOCH)));
 
         bootstrap.initializeAdministratorMemberships();
 
         verify(memberships).upsert(argThat(command -> command.tenantId().equals("1002")
                 && command.identitySub().equals("9001") && command.expectedVersion() == null
-                && command.status() == IdentityTenantMembershipEntity.Status.ACTIVE));
+                && command.status() == IdentityTenantMembershipBO.Status.ACTIVE));
         verify(memberships, times(1)).upsert(any());
     }
 
@@ -106,7 +106,7 @@ class IdpDevelopmentTenantBootstrapTest {
         assertThat(condition.matchIfMissing()).isFalse();
     }
 
-    private TenantService.TenantView tenant(String id, String code, IdentityTenantEntity.Status status) {
+    private TenantService.TenantView tenant(String id, String code, IdentityTenantBO.Status status) {
         return new TenantService.TenantView(id, code, code, status, "{}", 0, Instant.EPOCH, Instant.EPOCH);
     }
 }

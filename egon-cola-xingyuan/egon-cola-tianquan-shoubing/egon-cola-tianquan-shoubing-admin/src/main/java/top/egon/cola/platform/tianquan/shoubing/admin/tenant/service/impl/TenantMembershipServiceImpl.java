@@ -4,8 +4,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantMembershipRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembershipService;
@@ -30,8 +30,7 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
             IdentityTenantRepository tenants,
             IdentityTenantMembershipRepository memberships,
             IdentityUserDirectory users,
-            Clock clock
-    ) {
+            Clock clock) {
         this.tenants = Objects.requireNonNull(tenants, "tenants");
         this.memberships = Objects.requireNonNull(memberships, "memberships");
         this.users = Objects.requireNonNull(users, "users");
@@ -41,9 +40,9 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
     @Override
     @Transactional(readOnly = true)
     public List<MembershipView> listByTenant(String tenantId) {
-        IdentityTenantEntity tenant = findTenant(tenantId);
+        IdentityTenantBO tenant = findTenant(tenantId);
         return memberships.findByTenantIdOrderByUpdatedAtDescIdentitySubAsc(
-                        tenant.getId()
+                        tenant.getIdentityTenantId()
                 ).stream()
                 .map(this::view)
                 .toList();
@@ -53,14 +52,9 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
     @Transactional(readOnly = true)
     public List<TenantMembershipProfile> listByIdentity(String identitySub) {
         IdentityUser user = findUser(identitySub);
-        return memberships.findByIdentitySubOrderByUpdatedAtDescTenantIdAsc(
-                        user.id()
-                ).stream()
+        return memberships.findByIdentitySubOrderByUpdatedAtDescTenantIdAsc(user.id()).stream()
                 .map(membership -> profile(
-                        findTenant(membership.getTenantId()),
-                        user,
-                        membership
-                ))
+                        findTenant(membership.getIdentityTenantId()), user, membership))
                 .toList();
     }
 
@@ -68,36 +62,29 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
     @Transactional
     public MembershipView upsert(UpsertMembershipCommand command) {
         Objects.requireNonNull(command, "command");
-        IdentityTenantEntity tenant = findTenant(command.tenantId());
+        IdentityTenantBO tenant = findTenant(command.tenantId());
         IdentityUser user = findUser(command.identitySub());
-        IdentityTenantMembershipEntity.Status status = Objects.requireNonNull(
-                command.status(),
-                "status"
-        );
-        if (status == IdentityTenantMembershipEntity.Status.ACTIVE
-                && tenant.getStatus() == IdentityTenantEntity.Status.CLOSED) {
-            throw new IllegalStateException(
-                    "closed tenant cannot activate membership"
-            );
+        IdentityTenantMembershipBO.Status status = Objects.requireNonNull(
+                command.status(), "status");
+        if (status == IdentityTenantMembershipBO.Status.ACTIVE
+                && tenant.getStatus() == IdentityTenantBO.Status.CLOSED) {
+            throw new IllegalStateException("closed tenant cannot activate membership");
         }
-        IdentityTenantMembershipEntity membership = memberships
-                .findByTenantIdAndIdentitySub(tenant.getId(), user.id())
+        IdentityTenantMembershipBO membership = memberships
+                .findByTenantIdAndIdentitySubForUpdate(
+                        tenant.getIdentityTenantId(), user.id())
                 .orElse(null);
         if (membership == null) {
             if (command.expectedVersion() != null) {
-                throw new IllegalStateException(
-                        "membership version conflict"
-                );
+                throw new IllegalStateException("membership version conflict");
             }
             long numericId = SnowflakeIdGenerator.nextLongId();
             if (numericId <= 0L) {
-                throw new IllegalStateException(
-                        "membership id generator returned invalid value"
-                );
+                throw new IllegalStateException("membership id generator returned invalid value");
             }
-            membership = IdentityTenantMembershipEntity.create(
+            membership = IdentityTenantMembershipBO.create(
                     Long.toString(numericId),
-                    tenant.getId(),
+                    tenant.getIdentityTenantId(),
                     user.id(),
                     status,
                     command.operatorSub(),
@@ -106,45 +93,31 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
             return view(memberships.save(membership));
         }
         if (command.expectedVersion() == null) {
-            throw new IllegalStateException(
-                    "membership expectedVersion is required"
-            );
+            throw new IllegalStateException("membership expectedVersion is required");
         }
         if (membership.getStatus() == status
                 && membership.getVersion() == command.expectedVersion()) {
             return view(membership);
         }
-        membership.update(
-                status,
-                command.expectedVersion(),
-                command.operatorSub(),
-                clock.instant()
-        );
+        membership.update(status, command.expectedVersion(), command.operatorSub(), clock.instant());
         return view(memberships.save(membership));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public TenantMembershipProfile resolve(
-            String identitySub,
-            String tenantId
-    ) {
+    public TenantMembershipProfile resolve(String identitySub, String tenantId) {
         IdentityUser user = findUser(identitySub);
-        IdentityTenantEntity tenant = findTenant(tenantId);
-        IdentityTenantMembershipEntity membership = memberships
-                .findByTenantIdAndIdentitySub(tenant.getId(), user.id())
-                .orElseThrow(() -> new IllegalStateException(
-                        "membership not found"
-                ));
+        IdentityTenantBO tenant = findTenant(tenantId);
+        IdentityTenantMembershipBO membership = memberships
+                .findByTenantIdAndIdentitySub(tenant.getIdentityTenantId(), user.id())
+                .orElseThrow(() -> new IllegalStateException("membership not found"));
         return profile(tenant, user, membership);
     }
 
-    private IdentityTenantEntity findTenant(String tenantId) {
+    private IdentityTenantBO findTenant(String tenantId) {
         String value = required(tenantId, "tenantId");
         return tenants.findById(value)
-                .orElseThrow(() -> new IllegalStateException(
-                        "tenant not found"
-                ));
+                .orElseThrow(() -> new IllegalStateException("tenant not found"));
     }
 
     private IdentityUser findUser(String identitySub) {
@@ -152,15 +125,13 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
         return users.list().stream()
                 .filter(user -> user.id().equals(value))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "identity user not found"
-                ));
+                .orElseThrow(() -> new IllegalStateException("identity user not found"));
     }
 
-    private MembershipView view(IdentityTenantMembershipEntity membership) {
+    private MembershipView view(IdentityTenantMembershipBO membership) {
         IdentityUser user = findUser(membership.getIdentitySub());
         return new MembershipView(
-                membership.getTenantId(),
+                membership.getIdentityTenantId(),
                 membership.getIdentitySub(),
                 user.displayName(),
                 membership.getStatus(),
@@ -170,24 +141,21 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
     }
 
     private TenantMembershipProfile profile(
-            IdentityTenantEntity tenant,
+            IdentityTenantBO tenant,
             IdentityUser user,
-            IdentityTenantMembershipEntity membership
-    ) {
-        boolean active = tenant.getStatus() == IdentityTenantEntity.Status.ACTIVE
+            IdentityTenantMembershipBO membership) {
+        boolean active = tenant.getStatus() == IdentityTenantBO.Status.ACTIVE
                 && user.status() == IdentityUserStatus.ACTIVE
-                && membership.getStatus()
-                == IdentityTenantMembershipEntity.Status.ACTIVE;
+                && membership.getStatus() == IdentityTenantMembershipBO.Status.ACTIVE;
         return new TenantMembershipProfile(
                 user.id(),
-                tenant.getId(),
+                tenant.getIdentityTenantId(),
                 tenant.getTenantName(),
                 user.displayName(),
                 tenant.getStatus(),
                 user.status(),
                 membership.getStatus(),
-                active
-                        ? TenantMembershipPort.MembershipStatus.ACTIVE
+                active ? TenantMembershipPort.MembershipStatus.ACTIVE
                         : TenantMembershipPort.MembershipStatus.DISABLED,
                 membership.getVersion(),
                 membership.getUpdatedAt()

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.identity.dao.IdentityUserDAO">
+    <resultMap id="IdentityUserPOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.po.IdentityUserPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="identitySub" column="identity_sub"/>
+        <result property="username" column="username"/>
+        <result property="usernameNormalized" column="username_normalized"/>
+        <result property="displayName" column="display_name"/>
+        <result property="status" column="status"/>
+        <result property="failedLoginCount" column="failed_login_count"/>
+        <result property="lockedUntil" column="locked_until"/>
+        <result property="lastLoginAt" column="last_login_at"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        identity_sub, username, username_normalized, display_name, status, failed_login_count, locked_until, last_login_at
+    </sql>
+
+    <select id="selectActiveById" resultMap="IdentityUserPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_identity_user
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="IdentityUserPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_identity_user
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY username_normalized, identity_sub
+    </select>
+    <select id="selectByExternalKey" resultMap="IdentityUserPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_identity_user
+        WHERE tenant_id = #{directoryPartitionId} AND identity_sub = #{identitySub} AND deleted_at IS NULL
+    </select>
+    <select id="selectByNormalizedUsername" resultMap="IdentityUserPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_identity_user
+        WHERE tenant_id = #{directoryPartitionId} AND username_normalized = #{normalizedUsername} AND deleted_at IS NULL
+    </select>
+    <select id="selectForUpdate" resultMap="IdentityUserPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_identity_user
+        WHERE tenant_id = #{directoryPartitionId} AND identity_sub = #{identitySub} AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+    <select id="selectDirectory" resultMap="IdentityUserPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_identity_user
+        WHERE tenant_id = #{directoryPartitionId} AND deleted_at IS NULL
+        ORDER BY username_normalized, identity_sub
+    </select>
+    <update id="updateExpectedVersion">
+        UPDATE oauth_identity_user
+        SET username = #{po.username},
+            display_name = #{po.displayName},
+            status = #{po.status},
+            failed_login_count = #{po.failedLoginCount},
+            locked_until = #{po.lockedUntil},
+            last_login_at = #{po.lastLoginAt},
+            version = #{po.version},
+            update_user_id = #{po.updateUserId},
+            update_time = #{po.updateTime}
+        WHERE tenant_id = #{directoryPartitionId}
+          AND id = #{po.id}
+          AND identity_sub = #{po.identitySub}
+          AND version = #{expectedVersion}
+          AND deleted_at IS NULL
+    </update>
+    <update id="deleteVersionedById">
+        UPDATE oauth_identity_user
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+            version = version + 1,
+            update_user_id = #{et.updateUserId},
+            update_time = #{et.updateTime}
+        WHERE tenant_id = #{et.tenantId} AND id = #{et.id}
+          AND version = #{et.version} AND deleted_at IS NULL
+    </update>
+</mapper>

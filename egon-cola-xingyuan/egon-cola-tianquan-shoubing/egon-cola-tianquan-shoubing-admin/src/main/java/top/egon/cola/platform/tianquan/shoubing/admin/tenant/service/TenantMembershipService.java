@@ -1,7 +1,7 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service;
 
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
 
@@ -23,7 +23,7 @@ public interface TenantMembershipService {
     record UpsertMembershipCommand(
             String tenantId,
             String identitySub,
-            IdentityTenantMembershipEntity.Status status,
+            IdentityTenantMembershipBO.Status status,
             Long expectedVersion,
             String operatorSub
     ) {
@@ -34,7 +34,7 @@ public interface TenantMembershipService {
             String tenantId,
             String identitySub,
             String displayName,
-            IdentityTenantMembershipEntity.Status status,
+            IdentityTenantMembershipBO.Status status,
             long version,
             Instant updatedAt
     ) {
@@ -46,9 +46,9 @@ public interface TenantMembershipService {
             String tenantId,
             String tenantDisplayName,
             String identityDisplayName,
-            IdentityTenantEntity.Status tenantStatus,
+            IdentityTenantBO.Status tenantStatus,
             IdentityUserStatus identityStatus,
-            IdentityTenantMembershipEntity.Status membershipStatus,
+            IdentityTenantMembershipBO.Status membershipStatus,
             TenantMembershipPort.MembershipStatus effectiveStatus,
             long membershipVersion,
             Instant membershipUpdatedAt

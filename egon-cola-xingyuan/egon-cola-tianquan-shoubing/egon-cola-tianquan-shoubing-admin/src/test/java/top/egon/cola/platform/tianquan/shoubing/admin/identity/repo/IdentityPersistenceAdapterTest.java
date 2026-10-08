@@ -1,101 +1,97 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.identity.repo;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.test.context.ContextConfiguration;
-import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.pojo.IdentityCredentialEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.pojo.IdentityUserEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.repository.IdentityCredentialRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.repository.IdentityUserRepository;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUser;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.PasswordCredential;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@DataJpaTest(properties = {
-        "spring.flyway.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.datasource.url=jdbc:h2:mem:tianquan-shoubing-persistence;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
-})
-@ContextConfiguration(classes = IdentityPersistenceAdapterTest.TestApplication.class)
-@Import(IdentityPersistenceAdapter.class)
+@ExtendWith(MockitoExtension.class)
 class IdentityPersistenceAdapterTest {
 
-    private static final Instant NOW =
-            Instant.parse("2026-08-02T00:00:00Z");
+    private static final Instant NOW = Instant.parse("2026-08-02T00:00:00Z");
 
-    private final IdentityPersistenceAdapter adapter;
+    @Mock
+    private IdentityUserRepository users;
+    @Mock
+    private IdentityCredentialRepository credentials;
 
-    @Autowired
-    IdentityPersistenceAdapterTest(IdentityPersistenceAdapter adapter) {
-        this.adapter = adapter;
+    private IdentityPersistenceAdapter adapter;
+
+    @BeforeEach
+    void setUp() {
+        adapter = new IdentityPersistenceAdapter(users, credentials);
     }
 
     @Test
-    void persistsAndFindsGlobalUserAndCredential() {
+    void delegatesCorePortOperationsAndPreservesExternalIdentityKeys() {
         IdentityUser user = user(0L);
-        adapter.save(user, 0L);
-        adapter.save(credential(0L), 0L);
+        PasswordCredential credential = credential(0L);
+        when(users.findByIdentitySub("1001")).thenReturn(Optional.of(user));
+        when(users.findByNormalizedUsername("alice")).thenReturn(Optional.of(user));
+        when(credentials.findByIdentitySub("1001")).thenReturn(Optional.of(credential));
+        when(users.save(user, 0L)).thenReturn(user);
+        when(credentials.save(credential, 0L)).thenReturn(credential);
 
-        assertEquals(user, adapter.findById("1001").orElseThrow());
-        assertEquals(user, adapter.findByNormalizedUsername("alice")
-                .orElseThrow());
-        assertEquals(credential(0L), adapter.findActive("1001")
-                .orElseThrow());
+        assertEquals(user, adapter.findById(" 1001 ").orElseThrow());
+        assertEquals(user, adapter.findByNormalizedUsername(" alice ").orElseThrow());
+        assertEquals(credential, adapter.findActive("1001").orElseThrow());
+        assertEquals(user, adapter.save(user, 0L));
+        assertEquals(credential, adapter.save(credential, 0L));
+
+        verify(users).findByIdentitySub("1001");
+        verify(users).findByNormalizedUsername("alice");
+        verify(users).save(user, 0L);
+        verify(credentials).findByIdentitySub("1001");
+        verify(credentials).save(credential, 0L);
     }
 
     @Test
-    void rejectsStaleExpectedVersion() {
-        adapter.save(user(0L), 0L);
-        adapter.save(user(1L), 0L);
-
-        OptimisticLockingFailureException exception = assertThrows(
-                OptimisticLockingFailureException.class,
-                () -> adapter.save(user(2L), 0L)
+    void hidesRevokedCredentialAndPreservesOptimisticFailure() {
+        PasswordCredential revoked = new PasswordCredential(
+                "1001", "{argon2}encoded", NOW, false,
+                PasswordCredential.Status.REVOKED, 1L
         );
-        assertTrue(exception.getMessage().contains("1001"));
+        when(credentials.findByIdentitySub("1001")).thenReturn(Optional.of(revoked));
+        assertTrue(adapter.findActive("1001").isEmpty());
+
+        IdentityUser stale = user(2L);
+        when(users.save(stale, 0L)).thenThrow(
+                new OptimisticLockingFailureException("identity 1001 version conflict")
+        );
+        OptimisticLockingFailureException failure = assertThrows(
+                OptimisticLockingFailureException.class,
+                () -> adapter.save(stale, 0L)
+        );
+        assertTrue(failure.getMessage().contains("1001"));
     }
 
     private IdentityUser user(long version) {
         return new IdentityUser(
-                "1001",
-                "Alice",
-                "alice",
-                "Alice",
-                IdentityUserStatus.ACTIVE,
-                0,
-                null,
-                null,
-                version
+                "1001", "Alice", "alice", "Alice",
+                IdentityUserStatus.ACTIVE, 0, null, null, version
         );
     }
 
     private PasswordCredential credential(long version) {
         return new PasswordCredential(
-                "1001",
-                "{argon2}encoded",
-                NOW,
-                false,
-                PasswordCredential.Status.ACTIVE,
-                version
+                "1001", "{argon2}encoded", NOW, false,
+                PasswordCredential.Status.ACTIVE, version
         );
-    }
-
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
-    @EntityScan(basePackageClasses = {
-            IdentityUserEntity.class,
-            IdentityCredentialEntity.class
-    })
-    static class TestApplication {
     }
 }

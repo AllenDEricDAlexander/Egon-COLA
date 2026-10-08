@@ -52,6 +52,11 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | EVD-111 | Static repository | SC/pom.xml；主Spec§10.1/VerifiedJwtBO | core目前仅JDK生产类型；Starter不能引用admin里的OAuthSecurityVersionBO | 共享安全版本放core/contract；补显式受管依赖 | 不新建contract模块 |
 | EVD-112 | Static repository | egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java:18–21；同模块src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java | 构造器只接受light/light-open/service/service-open/web/web-open/component-outbox/tianshu；tianquan-oauth会抛IllegalArgumentException | 当前runner不能加载计划要求的应用family | 当前源代码与组件合同测试 |
 | EVD-113 | Accepted base Spec §11.0/§16.2；V1–V6及现有JPA source | 后续受控导入仍须从13张既有public表读取；通配会暴露/混淆已删除表 | 保留13个精确legacy source节点，明确只读、不计入新15表、拒绝public.* | 原接受设计与当前迁移源 |
+| EVD-114 | Static repository | MP/.../business/EgonColaTenantIdProvider.java、EgonColaMdcUserIdProvider.java；EgonColaMybatisPlusProperties | tenant provider只读tenant MDC key；audit user provider在user MDC缺失时拒绝；Shoubing无P source | REQUIRED部署P及内部tenant/user MDC scope；保留可信actor，匿名认证用固定service actor | 源码/配置键检查；未取真实部署值 |
+| EVD-115 | Static repository | core/identity/PasswordCredential.java | Java record默认toString包含passwordHash和identitySub | 覆盖toString仅保留非敏感状态；不引入Jackson/MP到core | 当前JDK-only源码 |
+| EVD-116 | Static repository | MP common starter；IdentityTenantEntity.settings目前使用Hibernate JSON映射 | 当前MP组件未提供给String/JsonNode的PostgreSQL jsonb handler | 为tenant settings增加基于JDBC OTHER的局部JsonNode handler并校验object根 | 当前依赖/源代码检查；未连接PG |
+| EVD-117 | Static repository | OAuthConfig.idpClock是@Primary Clock；MP common clock用@ConditionalOnMissingBean(Clock.class)；新MP repositories及Outbox store按egonColaMybatisPlusClock名称注入 | Shoubing业务Clock会使Common默认bean退让，但新MP写路径仍需要该具名bean | OAuthPersistenceConfiguration导出同一idpClock实例的MP具名别名 | bean装配代码检查；未启动Spring上下文 |
+| EVD-118 | Static repository | egon-cola-xingyuan/egon-cola-tianshu/pom.xml管理MapStruct 1.6.3和Lombok绑定处理器；Shoubing parent/admin POM没有MapStruct依赖或processor路径 | Shoubing新四个@Mapper接口可以编译但不会生成实现，IdentityEntityMappingTest运行时ClassNotFound | 在Shoubing parent/admin显式复用仓库已有版本和processor配置 | Maven focused suite；不新增库种类/版本 |
 
 ### 2.4 Evidence and current-chain map
 
@@ -75,7 +80,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 
 | Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract | Required Spec treatment | Chapter(s) |
 | --- | --- | --- | --- | --- | --- |
-| 授柄认证存储/直接审计事件依赖 | Affected | EVD-101–105/110/113 | 四目录表迁移、统一事务、历史字段、组件Outbox装配与legacy source路由 | 完整事务/列/迁移设计 | §7, §8, §10, §11, §13, §14, §15, §16 |
+| 授柄认证存储/直接审计事件依赖 | Affected | EVD-101–105/110/113–117 | 四目录表迁移、统一事务、历史字段、组件Outbox装配与legacy source路由 | 完整事务/列/迁移设计 | §7, §8, §10, §11, §13, §14, §15, §16 |
 | Grant列表/API文档/页面 | Affected | EVD-106 | 原提案API-045并入；页面realm缓存一致 | 复用已写完整合同 | §8, §9, §12, §14 |
 | 共享契约/Consumer适配 | Affected | EVD-107–109/111/112 | 纠正模块依赖、header处理、manifest family及最新回归边界 | 精确字段/路径/校验 | §7, §8, §10, §14, §15, §16 |
 | 其余OAuth44接口/十表 | Context-only | 主Spec§9/11、授柄当前旧源码 | 既有已接受业务设计继续有效 | 引用，不重写协议 | §9, §11 |
@@ -89,10 +94,10 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 
 | ID | Atomic requirement | Priority | Observable acceptance criteria | Source |
 | --- | --- | --- | --- | --- |
-| REQ-020 | 认证四种目录事实统一MP | Must | 相同subject、Argon2 hash、锁定/版本/成员状态保留；新认证运行链无JPA写 | 用户MP选择 |
+| REQ-020 | 认证四种目录事实统一MP | Must | 相同subject、Argon2 hash、锁定/版本/成员状态保留；新认证运行链无JPA写；四目录固定required P、tenant/user scope finally恢复，hash不出JSON/toString；四个BaseConverter映射由现有MapStruct版本正常生成并通过往返断言 | EVD-103/104/114/115/118 |
 | REQ-021 | 认证写与组件Outbox同库同事务 | Must | 同DataSource/SqlSessionFactory/DataSourceTransactionManager；enqueue失败全部回滚；Redis失败不误报撤销成功 | EVD-101/102 |
 | REQ-022 | 导入保留历史与可恢复性 | Must | 逐字段含version/create/update对账、孤儿/冲突0；停写栅栏；无旧Flyway修改或自动启动导入 | 用户数据约束/EVD-105 |
-| REQ-023 | MP装配及manifest family遵当前真实API | Must | NATIVE/LOCAL精确路由15个业务表、13个只读legacy源、2个组件技术表；不使用public.*；组件DDL初始化、DB-shape分组校验、显式导入及tianquan-oauth family正/负例均有测试；任意未注册family仍拒绝 | EVD-102/105/112/113 |
+| REQ-023 | MP装配及manifest family遵当前真实API | Must | NATIVE/LOCAL精确路由15个业务表、13个只读legacy源、2个组件技术表；不使用public.*；组件DDL初始化、DB-shape分组校验、PostgreSQL jsonb object绑定、显式导入及tianquan-oauth family正/负例均有测试；任意未注册family仍拒绝；具名MP Clock与idpClock为同一实例 | EVD-102/105/112/113/116/117 |
 | REQ-024 | 保留Tianshu两层信任 | Must | PLATFORM注册验证及HMAC tenant绑定均通过；错/缺AI header拒绝；body/header不能给业务SQL选tenant | EVD-107/108 |
 | REQ-025 | 保留玉衡实际数据面与流式行为 | Must | 新SCG→biz/mcp/LLM路由，SSE增量/取消、Bearer验证、管理端口约束回归 | EVD-109 |
 | REQ-026 | 补齐现有Grant读合同 | Must | API-045同realm有序≤64条，空[]，65条报503；0写入；UI缓存含realm且处理错误 | EVD-106/Grant提案 |
@@ -133,7 +138,7 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | ID | Inference | Repository evidence | Why locally reversible | Impact if wrong |
 | --- | --- | --- | --- | --- |
 | ASM-101 | 新四表使用oauth_identity_前缀以区别只读legacy源 | 目标已有tianquan_oauth schema且未创建 | 当前仅设计命名，不改外部URL/标识 | 执行前若目标已存在需重新选新版本，不能覆盖 |
-| ASM-102 | 目录物理分区复用已批准platform storagePartitionId=P | 原全局user/tenant目录，平台分区已保留正Long | 内部存储布局，无额外租户/新表 | 必须保证P不与任何业务tenant重合；冲突阻止启动 |
+| ASM-102 | 目录物理分区复用同一platform storagePartitionId=P | 原全局user/tenant目录，平台分区属于可信内部身份 | 内部存储布局，无外部租户语义 | P必须为稳定正Long并与业务tenant不重合；PLATFORM realm与四目录共用 |
 
 ### 5.3 Resolved decisions and exact amendments
 
@@ -149,6 +154,11 @@ OAuth/OIDC主体设计尚未实施，当前授柄仍是JPA/Flyway与自研令牌
 | DEC-108 | 原REQ-019仅Spec扩大为文档Spec+Plan；其他禁运行/generator约束保留 | 用户2026-10-08 | 本轮执行边界 | REQ-027 |
 | DEC-109 | 注册准确的tianquan-oauth manifest family，保留未知family拒绝 | 用户已批准组件合同修正 | EVD-112/TEST-107 | REQ-023 |
 | DEC-110 | 沿用接受主Spec的13个精确public legacy route，供只读迁移与回退；不新增wildcard，也不把source计入目标表 | 保留原接受兼容/迁移约束 | EVD-113/TEST-108 | REQ-022/023 |
+| DEC-111 | P经required deployment property稳定注入，四目录tenant/user MDC scope与PLATFORM realm初始化共用同一值；缺失/非正值fail-fast | MP TenantLine读取tenant MDC、fill要求user MDC；没有trusted scope不能写全局目录 | EVD-114；保留已验证actor，否则用固定service actor；不从request/JWT推导 | REQ-020/023 |
+| DEC-112 | 保留PasswordCredential不变核心数据字段，但覆盖record toString防止hash/subject误日志 | core目前无脱敏toString；不新增序列化依赖 | EVD-115 | REQ-020 |
+| DEC-113 | IdentityTenantPO.settings使用JsonNode与本模块Types.OTHER handler，保持PostgreSQL jsonb object语义 | 普通String binding可能退化为JSON字符串/driver类型不匹配 | EVD-116/TEST-109 | REQ-020/023 |
+| DEC-114 | OAuthPersistenceConfiguration导出名为egonColaMybatisPlusClock的别名，返回同一个idpClock bean | OAuthConfig的@Primary Clock抑制Common默认Clock bean；MP repository与Outbox需具名Clock | EVD-117/TEST-110 | REQ-023 |
+| DEC-115 | Shoubing parent集中管理已有MapStruct 1.6.3/Lombok binding版本，admin显式配置API与annotation processor | 四个@Mapper只有接口且当前admin未处理；已存在Tianshu/Yuheng同版本配置 | EVD-118/TEST-111 | REQ-020/027 |
 
 ### 5.4 Open major decisions
 
@@ -170,6 +180,7 @@ None。技术方向已有用户选择；本修订的整体Review待用户审核�
 | 技术投递 | Spring Statemachine | 单Outbox starter | 技术claim/retry/CAS现成 | 无OAuth业务状态机需求 | 不增business adapter或依赖 |
 | 共享BO/Events | JDK类型+现有Lombok/Jakarta Validation | 不向core引入Boot starter | parent已有同版本库；core当前只JDK | 新class注解需显式compile依赖 | core复用Lombok(provided)、jakarta.validation-api受管版本；不引入新库种类/新module |
 | 密钥加密 | JDK AES/GCM | None | CommonCrypto只有Digest/Hmac/Codec | 无现成AES | 保留原OAuthKeyCipherComponent/JCA设计 |
+| 类型映射 | MapStruct 1.6.3 | Tianshu已有API/processor配置 | Shoubing admin缺少processor | @Mapper接口没有生成实现 | 复用已使用版本及Lombok binding，限定Shoubing admin |
 
 ### 6.2 User-mandated Java rule compliance
 
@@ -256,9 +267,11 @@ flowchart TD
 
 统一认证运行目标只装配MP写链，不通过两个TM或REQUIRES_NEW拆开业务与Outbox。`OAuthPersistenceConfiguration`提供唯一业务transactionManager（DataSourceTransactionManager），DataSource与MP/Outbox对象身份一致。`OAuthPersistenceConfiguration#egonColaShardingLogicalDataSourceFactory`先运行应用15表manifest，再委派`OutboxLogicalDataSourceFactory#create`使组件initializer完成DDL/readiness后创建logical DS；若先验证到缺组件schema则按组件标准预置schema再执行，不能吞掉初始化失败。应用DDL使用OAuthManagedDdlComponent内部SchemaScopedDataSource包装同一physical pool：借连接时记录原schema并setSchema(tianquan_oauth)，close时先恢复再归还，异常也关闭且传播，禁止unwrap泄漏。EgonColaPostgreDdlRunner先检查current_schema再SET LOCAL search_path，不能直接传默认public连接；组件Outbox已有自己的私有包装，两者各自作用域而不另建池。应用manifest只管tianquan_oauth，ddl_history由其physical schema runner使用、不注册同名逻辑业务表节点；组件manifest仍来自依赖jar且classpath只一份。
 
+OAuthConfig.idpClock由Shoubing以@Primary提供，Common的egonColaMybatisPlusClock因@ConditionalOnMissingBean(Clock.class)不再生成；MP repository及Outbox仍按该具名bean注入。OAuthPersistenceConfiguration因此把同一个idpClock实例以egonColaMybatisPlusClock名称暴露，合同测试核对别名回传原实例，避免第二个时间源。
+
 `IdentityPersistenceAdapter`继续实现IdentityUserStore/PasswordCredentialStore；通过四个现有EgonColaRepository实现访问DAO，保留旧方法返回类型及expectedVersion规则：create仅old=0/new=0；update必须new=old+1且SQL旧version匹配，0行抛原OptimisticLockingFailureException。`IdentityUserDirectory`实现改MP，list继续按normalizedUsername、外部subject排序。tenant/membership原生命周期守卫迁至BO，Controller和Service不再依赖JPA Entity枚举；wire枚举值保持原值。
 
-可信目录上下文只在授柄内部Adapter/Repository入口设P，并finally恢复；它不覆盖已验证principal上的identity tenant或对外JWT claim。user/credential/tenant/membership目录操作彼此同P；涉及多个OAuth realm撤销时在同库事务中按P目录→realm键升序→client→authorization→token锁顺序操作，不能把不同MDC分区的操作并发派发到异步线程。
+可信目录上下文只在授柄内部Adapter/Repository入口设P，并finally恢复；P来自required配置`egon.tianquan-shoubing.identity-directory.platform-storage-partition-id`，由部署环境提供稳定正Long（按common ID来源分配并保留的platform partition），缺失/非正值fail-fast；Step 8的PLATFORM realm必须复用该值。应用不从已验证principal、请求、JWT或当前业务MDC选择P，也不允许P用于业务tenant。上下文读取MP实际配置的tenant MDC key与audit user MDC key，保存并恢复两者；已有user actor保持原值，缺失时临时使用固定`service:tianquan-shoubing` actor供未认证登录状态写入。异常/嵌套路径必须恢复进入前的两个值。user/credential/tenant/membership目录操作彼此同P；涉及多个OAuth realm撤销时在同库事务中按P目录→realm键升序→client→authorization→token锁顺序操作，不能把不同MDC分区的操作并发派发到异步线程。
 
 ```mermaid
 sequenceDiagram
@@ -307,11 +320,15 @@ Outbox技术状态严格复用PENDING→PROCESSING→SUCCEEDED / RETRY_WAIT / DE
 
 | Operation | Exact path / symbol | Responsibility | Requirements |
 | --- | --- | --- | --- |
+| MODIFY | egon-cola-xingyuan/egon-cola-tianquan-shoubing/pom.xml；egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml | 管理仓库已有MapStruct/Lombok binding版本；为admin显式配置API与annotation processor | REQ-020/027 |
 | CREATE | SJ/identity/domain/po/IdentityUserPO.java、IdentityCredentialPO.java；identity/domain/converter/IdentityUserConverter.java、IdentityCredentialConverter.java；identity/dao/IdentityUserDAO.java、IdentityCredentialDAO.java；SA/src/main/resources/mapper/identity/IdentityUserDAO.xml、IdentityCredentialDAO.xml | user/credential字段与SQL；Converter继承BaseConverter | REQ-020 |
 | CREATE | SJ/identity/repository/IdentityUserRepository.java、IdentityCredentialRepository.java；identity/repo/MpIdentityUserDirectory.java | EgonColaRepository与旧目录port实现 | REQ-020 |
 | MODIFY / DELETE | SJ/identity/repo/IdentityPersistenceAdapter.java；删除JpaIdentityUserDirectory.java和两个旧Identity Entity | 旧port→MP；删除仅在引用迁完后 | REQ-020 |
-| CREATE | SJ/tenant/domain/po/IdentityTenantPO.java、IdentityTenantMembershipPO.java；domain/bo/IdentityTenantBO.java、IdentityTenantMembershipBO.java；domain/converter/IdentityTenantConverter.java、IdentityTenantMembershipConverter.java；dao/IdentityTenantDAO.java、IdentityTenantMembershipDAO.java；SA/src/main/resources/mapper/tenant/同名DAO.xml | 从旧Entity保留状态守卫、外部ID与版本语义 | REQ-020 |
+| CREATE | SJ/identity/repo/IdentityDirectoryContext.java | 配置提供P；按MP tenant/user MDC key建立嵌套scope，保留actor或使用service fallback并finally恢复 | REQ-020/023 |
+| MODIFY | SC/identity/PasswordCredential.java | 自定义record toString屏蔽passwordHash/subject，不引入core依赖 | REQ-020 |
+| CREATE | SJ/tenant/domain/po/IdentityTenantPO.java、IdentityTenantMembershipPO.java；domain/bo/IdentityTenantBO.java、IdentityTenantMembershipBO.java；domain/converter/IdentityTenantConverter.java、IdentityTenantMembershipConverter.java；dao/IdentityTenantDAO.java、IdentityTenantMembershipDAO.java、IdentityTenantSettingsJsonbTypeHandler.java；SA/src/main/resources/mapper/tenant/同名DAO.xml | 从旧Entity保留状态守卫、外部ID与版本语义；settings由JsonNode/Types.OTHER映射jsonb | REQ-020/023 |
 | MODIFY | SJ/tenant/repo/IdentityTenantRepository.java、IdentityTenantMembershipRepository.java；service/impl/TenantServiceImpl.java、TenantMembershipServiceImpl.java；controller/TenantController.java | repo改为EgonColaRepository实现；Entity到BO调用替换、HTTP形状保持 | REQ-020 |
+| MODIFY | SA/src/main/resources/application.yml、application-local.yml | REQUIRED `egon.tianquan-shoubing.identity-directory.platform-storage-partition-id`；与PLATFORM realm共用、无默认值 | REQ-020/023 |
 | MODIFY | SJ/support/runtime/IdpPlatformConfiguration.java；identity/service/impl/IdentityUserServiceImpl.java、IdentityUserStateServiceImpl.java；audit/service/impl/IdentityAuditServiceImpl.java；support/outbox/service/IdentityOutboxPublisher.java | 具名MP装配、统一TM、审计兼容、提交后投影 | REQ-020/021 |
 | CREATE | SJ/audit/domain/converter/IdentityAuditViewConverter.java；oauth/domain/dto/IdentityMigrationRowDTO.java；oauth/dao/IdentityMigrationDAO.java；SA/src/main/resources/mapper/oauth/IdentityMigrationDAO.xml | 旧audit DTO projection与显式历史导入 | REQ-022 |
 | MODIFY | 原计划OAuthAuditPO/BO/Converter/Mapper/XML/Repository；OAuthMigrationServiceImpl；OAuthManagedDdlComponent；OAuthPersistenceConfiguration；oauth-sharding-native.yml、db/egon-mp/repository-manifest.json与单新SQL | 五列审计扩充、15表、组件factory委派、导入与装配 | REQ-021/022/023 |
@@ -502,7 +519,7 @@ HTTP 200；`application/json`，`Cache-Control: no-store`。裸数组0–64项�
 
 ### 11.0 Common rules and topology
 
-目标15张认证业务表都在`tianquan_oauth`，SINGLE/NATIVE精确节点绑定一个`oauth_primary`；组件自有`egon_outbox.egon_cola_outbox_message`与`egon_outbox.ddl_history`由组件manifest管理。为了兼容已接受的迁移/回退源，再精确路由13张既有`public`表（identity_user、identity_user_credential、identity_tenant、identity_tenant_membership、identity_client、identity_client_secret、identity_client_redirect_uri、identity_client_resource_grant、identity_signing_key、identity_resource_server、identity_audit_log、identity_outbox_event、egon_cola_outbox_message）；这些只作为受控legacy source，不计入15张目标表，禁止`public.*`。三组节点共用一个物理PRIMARY与LOCAL事务；不能误算新表或复制组件DDL。原OAuth十张未改表和oauth_audit原列以主Spec§11为基线。
+目标15张认证业务表都在`tianquan_oauth`，SINGLE/NATIVE精确节点绑定一个`oauth_primary`；组件自有`egon_outbox.egon_cola_outbox_message`与`egon_outbox.ddl_history`由组件manifest管理。四目录`tenant_id=P`的P为上述required stable deployment configuration；所有目录操作必须在内部MDC scope绑定P。为了兼容已接受的迁移/回退源，再精确路由13张既有`public`表（identity_user、identity_user_credential、identity_tenant、identity_tenant_membership、identity_client、identity_client_secret、identity_client_redirect_uri、identity_client_resource_grant、identity_signing_key、identity_resource_server、identity_audit_log、identity_outbox_event、egon_cola_outbox_message）；这些只作为受控legacy source，不计入15张目标表，禁止`public.*`。三组节点共用一个物理PRIMARY与LOCAL事务；不能误算新表或复制组件DDL。原OAuth十张未改表和oauth_audit原列以主Spec§11为基线。
 
 一个新应用SQL版本定为`db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql`，manifest family沿原计划，SHA-256由实际落盘文件计算，不能写虚构hash。原计划V20260922_001未实施，不创建旧计划脚本再追加第二版本。当前组件版本`20260924_001`、family=`component-outbox`由jar提供；若实施前组件版本改变须复核真实manifest，不复制/改写已发布hash。旧Flyway V1–V6完全不变。
 
@@ -639,7 +656,7 @@ identitySub+PASSWORD读取ACTIVE；expectedVersion守卫保存。全部WHERE ten
 | tenant_code | varchar(64) | varchar(64) | No | none | 源保留或Service赋值 | 下节UK/CHECK；无隐式级联 | 原lowercase code，正则^[a-z][a-z0-9-]{2,63}$ | identity_tenant.tenant_code → IdentityTenantPO.tenant_code | 合成值见TEST-103 fixture |
 | tenant_name | varchar(200) | varchar(200) | No | none | 源保留或Service赋值 | 下节UK/CHECK；无隐式级联 | 原tenantName | identity_tenant.tenant_name → IdentityTenantPO.tenant_name | 合成值见TEST-103 fixture |
 | status | varchar(32) | varchar(32) | No | INITIALIZING | 源保留或Service赋值 | 下节UK/CHECK；无隐式级联 | INITIALIZING/ACTIVE/SUSPENDED/CLOSED | identity_tenant.status → IdentityTenantPO.status | 合成值见TEST-103 fixture |
-| settings | jsonb | jsonb | No | {} | 源保留或Service赋值 | 下节UK/CHECK；无隐式级联 | 原对象，≤65536 UTF-8字节及DB大小约束 | identity_tenant.settings → IdentityTenantPO.settings | 合成值见TEST-103 fixture |
+| settings | jsonb | jsonb | No | {} | 源保留或Service赋值 | 下节UK/CHECK；无隐式级联 | 原对象，≤65536 UTF-8字节及DB大小约束 | identity_tenant.settings → IdentityTenantPO.settings (JsonNode, IdentityTenantSettingsJsonbTypeHandler) | 合成值见TEST-103 fixture |
 
 ##### Keys, relationships, and constraints
 
@@ -856,7 +873,7 @@ API-045页面完全沿用Grant提案§12及主Spec§12：queryKey包含realm/cli
 
 | ID | Level | Target | Inputs/scenarios | Assertions | Fixture/environment | Owner/symbol | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| TEST-101 | Unit/contract + PG gate | identity/tenant MP迁移 | 双租户、同username、旧锁定/版本、部分Update/Delete、P伪造 | ports/DTO兼容、SQL隔离、0行版本冲突、上下文恢复、秘密不泄漏 | 合成数据；PG用户环境 | IdentityMpPersistenceContractTest / 现有服务测试 | REQ-020/023 |
+| TEST-101 | Unit/contract + PG gate | identity/tenant MP迁移 | 双租户、同username、旧锁定/版本、部分Update/Delete、P伪造 | ports/DTO兼容、SQL隔离、0行版本冲突、MDC嵌套恢复、密码hash/subject不出toString或JSON | 合成数据；PG用户环境 | IdentityMpPersistenceContractTest / 现有服务测试 | REQ-020/023 |
 | TEST-102 | Context + PG/Redis gate | 同事务/DDL/Outbox | 故意JpaTM、错DS、错factory、enqueue失败、Redis失败、重复event | 启动拒错；业务+审计+消息同提交或回滚；Redis未确认不得成功 | Spring真实配置；PG连接门禁用户运行 | IdentityAuthenticationTransactionContractTest / OAuthManagedSchemaContractTest | REQ-021/023 |
 | TEST-103 | Unit + PG migration gate | 导入/旧历史 | version=7、历史timestamp、非numeric subject、孤儿、payload超限、重复批次、unknown commit | 字段相等/checkpoint/hash守卫；新PK不污染外部ID；旧SQL hash不变 | 固定快照fixture；用户受控停写环境 | IdentityMigrationContractTest / OAuthMigrationServiceTest | REQ-022 |
 | TEST-104 | Security-chain/RPC contract | Tianshu边界 | TENANT A/B、错/缺AI header、PLATFORM注册token、缺HMAC/错namespace | 真实filter顺序、Rbac3UserDetails、registry与HMAC各自拒绝；线程清理 | 当前Tianshu测试，不起服务 | DdcTenantIsolationTest / IdpJwtDdcRegistrationCredentialVerifierTest / DdcRpcClientInterceptorFactoryTest | REQ-024 |
@@ -864,6 +881,9 @@ API-045页面完全沿用Grant提案§12及主Spec§12：queryKey包含realm/cli
 | TEST-106 | MockMvc/DAO/Vitest/OAS | API-045 | []、64、65、403、404、503、切realm | 原VO字段、no-store、只读SQL、稳定顺序、页面缓存、OpenAPI operationId | MockMvc/前端fixtures | ClientResourceGrantControllerTest / ClientResourceGrantPage.test.tsx | REQ-026 |
 | TEST-107 | Unit/contract | MP DDL manifest family | Existing families; tianquan-oauth; arbitrary unknown | 新family被接受，既有family仍接受，未知family继续IllegalArgumentException | 纯构造器测试，无数据库 | EgonColaDdlManifestFamilyTest | REQ-023 |
 | TEST-108 | Unit/contract | NATIVE physical source map | 15 target + 13 exact public legacy + 2 component nodes | 精确route存在；public.*、旧V2已删除表不出现 | YAML parse/static route assertions，无数据库 | OAuthManagedSchemaContractTest.nativeRoutesCoverBusinessTechnicalAndExactLegacyTables | REQ-022/023 |
+| TEST-109 | Unit/contract | Identity tenant settings jsonb | valid JSON object, scalar/null/invalid text, UTF-8 size | Pg handler uses JDBC OTHER and round-trips an object without double-encoding | mocked PreparedStatement + pure mapper, no database | IdentityMpPersistenceContractTest | REQ-020/023 |
+| TEST-110 | Unit/contract | Named MP Clock alias | idpClock为Primary；常规MP clock按Clock type退让；repository/Outbox使用具名Clock | egonColaMybatisPlusClock alias返回原idpClock实例，不产生独立Clock | 配置源码合同，无Spring运行上下文 | IdentityMpPersistenceContractTest | REQ-023 |
+| TEST-111 | Unit | Generated identity/tenant converters | PO/domain fixture values with sensitive password hash | MapStruct implementations are present and round-trip identity, version, flags, settings and statuses | focused Maven compilation/test; no database | IdentityEntityMappingTest | REQ-020 |
 
 原TEST-001–014等主Spec安全矩阵继续执行；本次只静态设计，不报告这些未来测试已通过。真PG/Redis/HMAC/TLS和浏览器/E2E由用户启动环境后验收；H2或mock不能证明物理同事务/SQL执行计划。
 
@@ -873,7 +893,7 @@ Tianshu `/platform` token只用于注册控制面，仍验证aud、scope、sourc
 
 SCG/玉衡清理伪造身份头的列表保持显式；保留`X-Egon-Tianshu-Tenant`原值作为意图断言，不把它当身份，也不自动重写成JWT tenant。原Bearer只经专用已验证carrier转发，不能让Identity mapper从未验证header构造USER。Yuheng管理Spring端口原deny-all/health例外保持；数据请求走真实Netty端口，LLM/SSE/MCP的背压、取消、流式超时继续受原测试保护。
 
-新增/修订配置在base/local同构：MP mode=SHARDING，config-style=NATIVE，transaction-default-type=LOCAL，单PRIMARY；Outbox的egon.cola.component.transactional-outbox.storage.mp前缀下，sql-session-factory-bean-name=sqlSessionFactory、manifest-resource=db/egon-outbox-mp/manifest.json、auto-initialize-ddl=true（预执行DDL时false且只读验证）、migration-mode=false、migration-lock-timeout=30s；egon.cola.component.transactional-outbox.state-machine.business.enabled=false；tenant ignore-list仅加入egon_cola_outbox_message（不放行目录/OAuth表）；directory partition复用现有platform-storage-partition-id。实现以源码属性真实前缀和类型逐键生成，不保留旧不存在的JDBC store配置。切流目标移除JPA/Flyway自动运行配置，保留旧migration资源只读；不启动时自动读旧库/导入。
+新增/修订配置在base/local同构：required `egon.tianquan-shoubing.identity-directory.platform-storage-partition-id=${EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID}`且无默认值；P来自运维保留的正Long、不得与任何业务tenant重合，并供PLATFORM realm复用；目录上下文还要按MP属性恢复tenant MDC与audit user MDC，缺actor时使用固定service actor；MP mode=SHARDING，config-style=NATIVE，transaction-default-type=LOCAL，单PRIMARY；Outbox的egon.cola.component.transactional-outbox.storage.mp前缀下，sql-session-factory-bean-name=sqlSessionFactory、manifest-resource=db/egon-outbox-mp/manifest.json、auto-initialize-ddl=true（预执行DDL时false且只读验证）、migration-mode=false、migration-lock-timeout=30s；egon.cola.component.transactional-outbox.state-machine.business.enabled=false；tenant ignore-list仅加入egon_cola_outbox_message（不放行目录/OAuth表）；directory partition复用现有platform-storage-partition-id。实现以源码属性真实前缀和类型逐键生成，不保留旧不存在的JDBC store配置。切流目标移除JPA/Flyway自动运行配置，保留旧migration资源只读；不启动时自动读旧库/导入。
 
 源代码配置存在本地敏感值，本修订不复制值；secret/key/密码hash不进入日志、报告、页面、git。导入报告只记录count、external ID受控映射、SHA-256指纹与冲突类别，原始password_hash仅内存/目标字段必要流转。延迟、投影pending、Outbox DEAD/lease、迁移checkpoint指标复用已有监控；不重复添加独立dispatcher。
 
@@ -913,10 +933,10 @@ SCG/玉衡清理伪造身份头的列表保持显式；保留`X-Egon-Tianshu-Ten
 
 | Requirement | Use cases | Design | Preserved context | Interfaces/pages | Tests | Acceptance evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| REQ-020 | UC-101/102 | §7/8/10/11/16 | 原身份API/core ports | 原登录/tenant页 | TEST-101/103 | 字段、状态、外部ID保留 |
+| REQ-020 | UC-101/102 | §7/8/10/11/16 | 原身份API/core ports | 原登录/tenant页 | TEST-101/103/111 | 字段、状态、外部ID保留 |
 | REQ-021 | UC-101 | §7/11/13/15 | 原撤销成功语义 | 原命令 | TEST-102 | 同库回滚/投影确认 |
 | REQ-022 | UC-102 | §10/11/16 | 旧Flyway与数据 | 离线迁移 | TEST-103 | 对账与checkpoint |
-| REQ-023 | UC-101/102 | §6/7/10/11 | 当前组件拓扑/校验、family allowlist及精确legacy sources | 内部装配 | TEST-101/102/107/108 | 无过时API/错误TM；family/路由边界受支持 |
+| REQ-023 | UC-101/102 | §6/7/10/11 | 当前组件拓扑/校验、family allowlist及精确legacy sources | 内部装配 | TEST-101/102/107–110 | 无过时API/错误TM；family/路由边界受支持 |
 | REQ-024 | UC-103 | §7/15/16 | DdcTenantRegistry/HMAC | 原Tianshu入口 | TEST-104 | 多层负例均拒绝 |
 | REQ-025 | UC-103 | §7/15 | Yuheng Netty数据面 | SSE/MCP/LLM | TEST-105 | 增量/取消/身份回归 |
 | REQ-005 | UC-103 | 主Spec§4及本修订§9 | 最小授权范围 | API-045 | TEST-106 | Grant展示不扩权 |

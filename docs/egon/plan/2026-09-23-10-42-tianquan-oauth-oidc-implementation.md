@@ -201,7 +201,8 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 MODIFY egon-cola-xingyuan/pom.xml  # Step 1
 MODIFY egon-cola-xingyuan/egon-cola-yuheng/pom.xml  # Step 1
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/pom.xml  # Step 1
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml  # Step 1,18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml  # Step 1,3,18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/pom.xml  # Step 3
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/pom.xml  # Step 1
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/lombok.config  # Step 1
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/GatewayEdgeApplication.java  # Step 1
@@ -210,16 +211,17 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java  # Step 2
-MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2
-MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2,3
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/oauth-sharding-native.yml  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedDdlComponent.java  # Step 2
-CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java  # Step 2
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml  # Step 2
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml  # Step 2
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java  # Step 2,3
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml  # Step 2,3
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml  # Step 2,3
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityMpPersistenceContractTest.java  # Step 3
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityDirectoryContext.java  # Step 3
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapterTest.java  # Step 3
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityEntityMappingTest.java  # Step 3
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantServiceImplTest.java  # Step 3
@@ -228,6 +230,8 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/LocalTenantMembershipPortTest.java  # Step 3
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProviderTest.java  # Step 3
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrapTest.java  # Step 3
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan/shoubing/core/identity/PasswordCredential.java  # Step 3
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantSettingsJsonbTypeHandler.java  # Step 3
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantBO.java  # Step 3
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantMembershipBO.java  # Step 3
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityUserPO.java  # Step 3
@@ -264,7 +268,6 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java  # Step 3
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrap.java  # Step 3
 DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/JpaIdentityUserDirectory.java  # Step 3
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java  # Step 3,11,18
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/TrustedRealmBO.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/RealmTypeEnum.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/OAuthClientPurposeEnum.java  # Step 4
@@ -549,7 +552,8 @@ DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | MODIFY | `egon-cola-xingyuan/pom.xml` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 由已批准的Cloud BOM管理SCG版本。 | Step 1 | REQ-001,REQ-010,REQ-011,REQ-018,REQ-027 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/pom.xml` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 纳入现有玉衡reactor但独立部署。 | Step 1 | REQ-001,REQ-010,REQ-011,REQ-018,REQ-027 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/pom.xml` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | SCG/WebFlux/OAuth2 Client/Resource Server/Session Redis的独立可执行模块。 | Step 1 | REQ-001,REQ-010,REQ-011,REQ-018,REQ-027 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 为后续协议和持久化提供已批准类型。 | Step 1, Step 18 | REQ-001,REQ-006,REQ-010,REQ-011,REQ-012,REQ-017,REQ-018,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml` | Step 1创建协议依赖；Step 3补MapStruct API/processor | POM依赖与编译处理器配置 | 复用仓库现有MapStruct 1.6.3及Lombok绑定处理器。 | Step 1, Step 3, Step 18 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/pom.xml` | 当前父POM；修订Spec §6/8 | MapStruct版本属性 | 与Tianshu现有版本保持一致并管理Lombok binding版本。 | Step 3 | REQ-020,REQ-027 | 对应Step精确命令/原回归 | REQ-001,REQ-006,REQ-010,REQ-011,REQ-012,REQ-017,REQ-018,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/pom.xml` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 以现有spring-security-oauth2-client为基础增加WebFlux入口所需Boot管理依赖。 | Step 1 | REQ-001,REQ-010,REQ-011,REQ-018,REQ-027 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/lombok.config` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 新edge业务Bean的构造参数保留Qualifier。 | Step 1 | REQ-001,REQ-010,REQ-011,REQ-018,REQ-027 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/GatewayEdgeApplication.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 仅新edge进程启动类。 | Step 1 | REQ-001,REQ-010,REQ-011,REQ-018,REQ-027 | 对应Step精确命令/原回归 |
@@ -560,7 +564,7 @@ DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 绑定唯一新SQL字节哈希。 | Step 2 | REQ-002,REQ-008,REQ-014,REQ-017,REQ-018,REQ-021,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/oauth-sharding-native.yml` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 明确15个tianquan_oauth节点、13个精确public legacy只读源节点与egon_outbox组件两节点；不含public.*。 | Step 2 | REQ-002,REQ-008,REQ-014,REQ-017,REQ-018,REQ-021,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedDdlComponent.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 独立执行应用manifest初始化后再组合组件Outbox factory。 | Step 2 | REQ-002,REQ-008,REQ-014,REQ-017,REQ-018,REQ-021,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 在逻辑DS创建前调用EgonColaPostgreDdlRunner。 | Step 2 | REQ-002,REQ-008,REQ-014,REQ-017,REQ-018,REQ-021,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java` | Step 2新文件；Step 3更新同源MP具名Clock alias | 逐File符号与完成态 | 在逻辑DS创建前调用EgonColaPostgreDdlRunner并把MP Clock限定符绑定到idpClock实例。 | Step 2, Step 3 | REQ-002,REQ-008,REQ-014,REQ-017,REQ-018,REQ-021,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 增加Spec §15.5完整叶子结构并禁旧Flyway自动执行。 | Step 2 | REQ-002,REQ-008,REQ-014,REQ-017,REQ-018,REQ-021,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 同步base全部新增键并允许local值不同。 | Step 2 | REQ-002,REQ-008,REQ-014,REQ-017,REQ-018,REQ-021,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityMpPersistenceContractTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 锁定四目录port/MP历史字段与租户安全合同。 | Step 3 | REQ-007,REQ-008,REQ-017,REQ-018,REQ-020,REQ-023 | 对应Step精确命令/原回归 |
@@ -608,7 +612,7 @@ DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 闭合IdentityDirectoryRpcProvider.java的Entity→BO编译与行为依赖。 | Step 3 | REQ-007,REQ-008,REQ-017,REQ-018,REQ-020,REQ-023 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrap.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 闭合IdpDevelopmentTenantBootstrap.java的Entity→BO编译与行为依赖。 | Step 3 | REQ-007,REQ-008,REQ-017,REQ-018,REQ-020,REQ-023 | 对应Step精确命令/原回归 |
 | DELETE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/JpaIdentityUserDirectory.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 删除已被MpIdentityUserDirectory替代的唯一JPA目录Bean。 | Step 3 | REQ-007,REQ-008,REQ-017,REQ-018,REQ-020,REQ-023 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有身份port依赖绑定为MP实现。 | Step 3, Step 11, Step 18 | REQ-001,REQ-006,REQ-007,REQ-008,REQ-010,REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-021,REQ-022,REQ-023,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有身份port依赖绑定为MP实现。 | Step 11, Step 18 | REQ-001,REQ-006,REQ-007,REQ-008,REQ-010,REQ-012,REQ-013,REQ-014,REQ-015,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-021,REQ-022,REQ-023,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/TrustedRealmBO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `TrustedRealmBO` 在主Spec中的字段/消费依赖。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/RealmTypeEnum.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `RealmTypeEnum` 在主Spec中的字段/消费依赖。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/OAuthClientPurposeEnum.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthClientPurposeEnum` 在主Spec中的字段/消费依赖。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
@@ -1486,10 +1490,10 @@ RESULT -> strict Plan validator confirms the amended Step 2 is self-consistent a
 - Requirements: REQ-007, REQ-008, REQ-017, REQ-018, REQ-020, REQ-023
 - Dependencies: Step 2
 - Baseline state: 十五表DDL与同库拓扑已定义；目录仍为JPA源码，OAuth审计/统一publisher将在Step 7/11完成。
-- Observable outcome: core身份ports和tenant服务使用MP，外部ID、密码/锁定/成员状态及所有调用者兼容。
+- Observable outcome: core身份ports和tenant服务使用MP，四目录固定required P，内部MDC scope在异常/嵌套后恢复；认证MP与Outbox按名注入同一个idpClock实例；外部ID、密码/锁定/成员状态及所有调用者兼容。
 - End state: 上述目录单元/Mapper契约GREEN；JPA残余Java仅等待Step 18退役，整条认证运行链尚不可投产。
-- Test-first gate: Required — 先保留/新增四目录合同用例，因现有JPA依赖或目标MP行为缺失RED；签名前置只用于编译，不将环境异常当RED。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001
+- Test-first gate: Required — 先新增四目录/tenant P、jsonb对象绑定和MP具名Clock别名合同用例，验证新PO/mapper/Types.OTHER handler、trusted tenant/user MDC恢复、同实例Clock别名与MapStruct实现生成目标RED；现有JPA回归断言必须保留，签名前置只用于编译，不将环境异常当RED。
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
@@ -1517,9 +1521,29 @@ RESULT -> strict Plan validator confirms the amended Step 2 is self-consistent a
 }
 @Test void preserves_password_and_tenant_contracts() {
   assert ACTIVE/LOCKED/DISABLED, failedLoginCount, lockedUntil, mustChangePassword unchanged;
-  assert hash roundtrip equals original Argon2 string and JSON/toString excludes it;
+  assert hash roundtrip equals original Argon2 string; PO JSON/toString and core PasswordCredential.toString omit hash and subject;
   assert CLOSED cannot re-open and CLOSED membership cannot activate;
   assert update/delete partial PO uses matching group, not unconditional Persisted;
+}
+@Test void trustedDirectoryScopeRestoresMdcAfterSuccessAndFailure() {
+  assert the fixed positive P is bound only inside the internal scope;
+  assert previous tenant/user MDC values restore after nested, success and exception paths; preserve an authenticated user actor and use fixed service actor only when userId is absent;
+}
+@Test void platformPartitionIsRequiredAndSharedByBothProfiles() {
+  assert base/local have the same environment placeholder with no default;
+  assert absent/non-positive P fails closed and no request/JWT value selects P;
+}
+@Test void allFourDirectoryMappersUseTrustedPartitionAndActiveRows() {
+  assert each mapper has explicit tenant_id=P and deleted_at IS NULL predicates;
+  assert version guarded updates, external key mapping, and no JPA EntityManager in IdentityPersistenceAdapter;
+}
+@Test void tenantSettingsUseJsonbObjectBinding() {
+  verify IdentityTenantSettingsJsonbTypeHandler sets JSON text with JDBC Types.OTHER;
+  assert parsed settings root is object, valid object round-trips, invalid/scalar values fail;
+}
+@Test void mpNamedClockAliasUsesTheIdpClockInstance() {
+  assert OAuthPersistenceConfiguration exposes egonColaMybatisPlusClock from @Qualifier("idpClock");
+  assert the bean method returns that same Clock instance;
 }
 ```
 
@@ -1726,7 +1750,105 @@ assert failure does not persist a partial change;
 - Verification contribution: Step 3 的 `IdpDevelopmentTenantBootstrapTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdpDevelopmentTenantBootstrapTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantBO.java`
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityDirectoryContext.java`
+
+- Purpose: 为全局目录访问建立内部、嵌套安全的固定P租户MDC作用域。
+- Symbols: `withPlatformDirectoryPartition`, `directoryPartitionId`。
+- Repository evidence: EgonColaTenantIdProvider只从配置MDC key读取Long；现有Shoubing源码无可信P来源或恢复helper。
+- Dependencies and consumers: 应用required配置P、既有tenant/user MDC property keys；四个目录Repository/Adapter只在本地调用该scope。
+- Why now: MP的TenantLine/写守卫从tenant MDC读取分区，MetaObjectHandler要求user MDC audit actor；直接调用会缺失或错误继承请求上下文。
+- Contract/signature changes: 加入可信P scope；不暴露HTTP/RPC setter，不接受调用方自带P；PLATFORM realm后续使用同一配置。
+- Input/output and state mapping: required property `egon.tianquan-shoubing.identity-directory.platform-storage-partition-id`；按MP tenant MDC key绑定Long P，按audit user MDC key保留可信actor或使用固定service actor fallback。
+- Error and edge behavior: P缺失/非正数或MDC keys相同则启动失败；Supplier异常透传，finally分别恢复/移除tenant与user MDC，不抹除其他key。
+- Standards impact: MC-VALID-001, MC-BEAN-001, MC-LOG-001, MC-CONFIG-001, MC-PATTERN-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 10；无入站身份推导、使用现有Qualifier配置并保持try/finally作用域。
+- Implementation pseudocode:
+
+```java
+INPUT -> required positive Long P plus the configured EgonColaMybatisPlusProperties.tenantId.mdcKey;
+FLOW -> capture tenant/user MDC; bind fixed P; preserve a trusted current userId or set `service:tianquan-shoubing` only when absent; execute the synchronous directory call; in finally restore each prior value or remove its key;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> reject missing/non-positive P or identical MDC keys at bean construction; propagate data failure after restoring prior context;
+RESULT -> TenantLine/ModelValidation see P and MetaObjectHandler sees a trusted actor only inside scope; outer request context is restored.
+```
+
+- Verification contribution: `IdentityMpPersistenceContractTest` proves nested scope, success/exception restoration and required P validation; no database required.
+- After this file: trusted P context is reusable by all four directory persistence paths; no caller selects the partition.
+
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java`
+
+- Purpose: 让本模块MP repository与组件Outbox使用同一Shoubing业务时钟。
+- Symbols: `OAuthPersistenceConfiguration.egonColaMybatisPlusClock`。
+- Repository evidence: Step 2已创建该配置；`OAuthConfig.idpClock()`是`@Primary`，Common MP clock按`Clock.class`缺失条件退让；MP repository及Outbox store通过`egonColaMybatisPlusClock`限定符注入。
+- Dependencies and consumers: `@Qualifier("idpClock") Clock`；IdentityUser/credential repository、MP自动填充器与Outbox组件。
+- Why now: `idpClock`存在时Common默认bean不会创建，但具名MP Clock仍为实际注入合同；本变更在第一次MP目录写路径之前闭合该bean。
+- Contract/signature changes: 新增具名Clock bean；不改变已有业务bean、不创建独立Clock、不改变DataSource或transactionManager。
+- Input/output and state mapping: 方法接收并原样返回唯一`idpClock`实例。
+- Error and edge behavior: 启动时由Spring具名依赖校验；不得在别名中再次调用`Clock.systemUTC()`。
+- Standards impact: MC-BEAN-001, MC-TIME-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 4, Rule 10；复用受控业务Clock并保持`@Qualifier`依赖清晰，不新增时间工具或第二时间源。
+- Implementation pseudocode:
+
+```java
+@Bean("egonColaMybatisPlusClock")
+public Clock egonColaMybatisPlusClock(@Qualifier("idpClock") Clock idpClock) {
+    return idpClock;
+}
+```
+
+- Verification contribution: `IdentityMpPersistenceContractTest.mpNamedClockAliasUsesTheIdpClockInstance`核对bean名称、限定符与直接返回；Step 3 focused Maven命令编译该方法。
+- After this file: MP具名Clock路径与`idpClock`共享单一实例，下一文件可注入MP Repository且不产生第二时钟。
+
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/pom.xml`
+
+- Purpose: 管理Shoubing模块采用的MapStruct处理器版本。
+- Symbols: `mapstruct.version`，`lombok.mapstruct.binding.version`。
+- Repository evidence: 当前Shoubing父POM无版本属性；Tianshu父POM使用MapStruct 1.6.3与Lombok MapStruct binding 0.2.0。
+- Dependencies and consumers: Shoubing admin POM的MapStruct API和annotationProcessorPaths。
+- Why now: converter接口必须生成可供现有测试与Spring组件扫描使用的实现；版本统一避免重复散落。
+- Contract/signature changes: 仅新增属性`mapstruct.version=1.6.3`与`lombok.mapstruct.binding.version=0.2.0`；不改其他模块。
+- Input/output and state mapping: 为同父模块的admin构建提供已存在仓库版本。
+- Error and edge behavior: 版本不可解析时compile停止；不得退化到缺少实现的空接口。
+- Standards impact: MC-DEP-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 11；复用仓库已使用的版本，依赖只落在消费转换器的模块。
+- Implementation pseudocode:
+
+```xml
+<properties>
+    <mapstruct.version>1.6.3</mapstruct.version>
+    <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
+</properties>
+```
+
+- Verification contribution: Maven model解析及Step 3 focused suite。
+- After this file: admin可从Shoubing parent解析同版本MapStruct处理器与binding依赖。
+
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`
+
+- Purpose: 显式启用Shoubing四个@Mapper接口的MapStruct实现生成。
+- Symbols: admin依赖`org.mapstruct:mapstruct`与maven-compiler-plugin的annotationProcessorPaths。
+- Repository evidence: 同步Tianshu admin已采用的processor结构；Shoubing parent现新增对应已存在版本属性。
+- Dependencies and consumers: 四个identity/tenant converter；Boot configuration processor、Lombok、Lombok MapStruct binding及MapStruct processor。
+- Why now: 接口有@Mapper注解但admin当前未配置processor，导致IdentityEntityMappingTest运行时ClassNotFound。
+- Contract/signature changes: 增加模块内直接MapStruct API依赖与编译期processor；不扩散到Shoubing core/starter。
+- Input/output and state mapping: 编译期生成四个ConverterImpl，维持现有BaseConverter和字段映射。
+- Error and edge behavior: MapStruct报告unmapped target时构建失败；不回退到反射或通用Bean复制。
+- Standards impact: MC-DEP-001, MC-CONVERT-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 11；按现有MapStruct/BaseConverter风格配置必要处理器，不增加新的运行期抽象。
+- Implementation pseudocode:
+
+```text
+dependency: org.mapstruct:mapstruct:${mapstruct.version}
+annotationProcessorPaths:
+  - org.springframework.boot:spring-boot-configuration-processor:${spring.boot.version}
+  - org.projectlombok:lombok:${lombok.version}
+  - org.projectlombok:lombok-mapstruct-binding:${lombok.mapstruct.binding.version}
+  - org.mapstruct:mapstruct-processor:${mapstruct.version}
+```
+
+- Verification contribution: Step 3 Maven focused command must execute IdentityEntityMappingTest and confirm converter generation/round trip.
+- After this file: four concrete Mapper implementations are available to repositories and existing converter tests.
+
+#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantBO.java`
 
 - Purpose: 从IdentityTenantEntity迁移业务状态与外部键。
 - Symbols: `IdentityTenantBO`，以下伪代码所列方法与字段。
@@ -1756,7 +1878,7 @@ class IdentityTenantBO {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantBO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantMembershipBO.java`
+#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantMembershipBO.java`
 
 - Purpose: 从IdentityTenantMembershipEntity迁移业务状态与外部键。
 - Symbols: `IdentityTenantMembershipBO`，以下伪代码所列方法与字段。
@@ -1786,7 +1908,7 @@ class IdentityTenantMembershipBO {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantMembershipBO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityUserPO.java`
+#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityUserPO.java`
 
 - Purpose: 映射修订§11的oauth_identity_user全部业务列。
 - Symbols: `IdentityUserPO`，以下伪代码所列方法与字段。
@@ -1813,7 +1935,7 @@ class IdentityUserPO extends EgonModel<IdentityUserPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityUserPO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityUserConverter.java`
+#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityUserConverter.java`
 
 - Purpose: 显式PO与IdentityUser转换并保留外部ID。
 - Symbols: `IdentityUserConverter`，以下伪代码所列方法与字段。
@@ -1840,7 +1962,7 @@ interface IdentityUserConverter extends BaseConverter<IdentityUser, IdentityUser
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityUserConverter达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityUserDAO.java`
+#### File 18 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityUserDAO.java`
 
 - Purpose: 声明当前MP DAO具名查询和版本守卫。
 - Symbols: `IdentityUserDAO`，以下伪代码所列方法与字段。
@@ -1868,7 +1990,7 @@ interface IdentityUserDAO extends EgonColaMapper<IdentityUserPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityUserDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityUserDAO.xml`
+#### File 19 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityUserDAO.xml`
 
 - Purpose: 将identity_sub查询固定在可信目录分区。
 - Symbols: `IdentityUserDAO`，以下伪代码所列方法与字段。
@@ -1897,7 +2019,7 @@ interface IdentityUserDAO extends EgonColaMapper<IdentityUserPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityUserDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityUserRepository.java`
+#### File 20 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityUserRepository.java`
 
 - Purpose: 复用EgonColaRepository并保持原业务查询语义。
 - Symbols: `IdentityUserRepository`，以下伪代码所列方法与字段。
@@ -1929,7 +2051,7 @@ class IdentityUserRepository extends EgonColaRepository<IdentityUserDAO,Identity
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityUserRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityCredentialPO.java`
+#### File 21 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityCredentialPO.java`
 
 - Purpose: 映射修订§11的oauth_identity_credential全部业务列。
 - Symbols: `IdentityCredentialPO`，以下伪代码所列方法与字段。
@@ -1956,7 +2078,30 @@ class IdentityCredentialPO extends EgonModel<IdentityCredentialPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityCredentialPO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 18 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityCredentialConverter.java`
+#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan/shoubing/core/identity/PasswordCredential.java`
+
+- Purpose: 防止JDK record默认toString泄漏Argon2 passwordHash或外部subject。
+- Symbols: `PasswordCredential.toString`。
+- Repository evidence: 当前record自动toString包含所有组件；该值对象在登录/审计链中传递。
+- Dependencies and consumers: 保留现有record构造器、字段、业务方法；无新增core依赖。
+- Why now: PO遮蔽无法阻止日志误打印core credential对象。
+- Contract/signature changes: 仅toString输出改为非敏感字段；equals/hashCode、记录组件与业务行为不变。
+- Input/output and state mapping: `passwordHash`与`identitySub`在输出固定为`<redacted>`或完全省略。
+- Error and edge behavior: 不抛异常、不改状态；禁止输出原hash和subject。
+- Standards impact: MC-LOG-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 3, Rule 6；保留core JDK-only边界，不新增Jackson。
+- Implementation pseudocode:
+
+```java
+@Override public String toString() {
+  return "PasswordCredential[passwordHash=<redacted>, identitySub=<redacted>, ...]";
+}
+```
+
+- Verification contribution: `IdentityMpPersistenceContractTest.passwordValueObjectRedactsHashAndSubjectFromToString`。
+- After this file: record logs cannot include the secret hash or external subject.
+
+#### File 23 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityCredentialConverter.java`
 
 - Purpose: 显式PO与PasswordCredential转换并保留外部ID。
 - Symbols: `IdentityCredentialConverter`，以下伪代码所列方法与字段。
@@ -1983,7 +2128,7 @@ interface IdentityCredentialConverter extends BaseConverter<PasswordCredential, 
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityCredentialConverter达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 19 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityCredentialDAO.java`
+#### File 24 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityCredentialDAO.java`
 
 - Purpose: 声明当前MP DAO具名查询和版本守卫。
 - Symbols: `IdentityCredentialDAO`，以下伪代码所列方法与字段。
@@ -2011,7 +2156,7 @@ interface IdentityCredentialDAO extends EgonColaMapper<IdentityCredentialPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityCredentialDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 20 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityCredentialDAO.xml`
+#### File 25 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityCredentialDAO.xml`
 
 - Purpose: 将identity_sub AND credential_type=PASSWORD查询固定在可信目录分区。
 - Symbols: `IdentityCredentialDAO`，以下伪代码所列方法与字段。
@@ -2040,7 +2185,7 @@ interface IdentityCredentialDAO extends EgonColaMapper<IdentityCredentialPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityCredentialDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 21 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityCredentialRepository.java`
+#### File 26 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityCredentialRepository.java`
 
 - Purpose: 复用EgonColaRepository并保持原业务查询语义。
 - Symbols: `IdentityCredentialRepository`，以下伪代码所列方法与字段。
@@ -2072,7 +2217,32 @@ class IdentityCredentialRepository extends EgonColaRepository<IdentityCredential
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityCredentialRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 22 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantPO.java`
+#### File 27 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantSettingsJsonbTypeHandler.java`
+
+- Purpose: 将tenant settings的JSON对象安全绑定到PostgreSQL jsonb，避免普通String/VARCHAR语义。
+- Symbols: `IdentityTenantSettingsJsonbTypeHandler`。
+- Repository evidence: accepted schema将settings列定义为JSONB object；现有Shoubing源用Hibernate JSON；当前MP common无此专用handler。
+- Dependencies and consumers: 仅复用现有Jackson、MyBatis与JDK JDBC；由IdentityTenantPO字段声明使用。
+- Why now: PO/mapper insert与update必须在一个新schema中保留JSON object根类型。
+- Contract/signature changes: `BaseTypeHandler<JsonNode>`；写时`PreparedStatement.setObject(..., Types.OTHER)`，读回JsonNode并验证root object。
+- Input/output and state mapping: PO JsonNode ↔ PostgreSQL jsonb；domain settings String由Converter解析/序列化。
+- Error and edge behavior: null按MyBatis/JDBC约定处理；非法JSON、非object或超过65536 UTF-8 bytes以明确SQLException/IllegalArgumentException失败，不截断。
+- Standards impact: MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-VALID-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 6, Rule 11；仅补现存MP不存在的PG jsonb适配点，不改全局StringTypeHandler。
+- Implementation pseudocode:
+
+```java
+class IdentityTenantSettingsJsonbTypeHandler extends BaseTypeHandler<JsonNode> {
+  setNonNullParameter(ps, index, node, jdbcType) -> ps.setObject(index, node.toString(), Types.OTHER);
+  getNullableResult(...) -> parse with Jackson; require JSON object and <= 65536 UTF-8 bytes;
+  ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> throw a safe SQL exception; never coerce an invalid value into a string scalar;
+}
+```
+
+- Verification contribution: `IdentityMpPersistenceContractTest.tenantSettingsUseJsonbObjectBinding` verifies Types.OTHER binding, object-root roundtrip and invalid-value rejection with mocked PreparedStatement; no PostgreSQL runtime.
+- After this file: settings retains JSONB object semantics through the MP mapper.
+
+#### File 28 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantPO.java`
 
 - Purpose: 映射修订§11的oauth_identity_tenant全部业务列。
 - Symbols: `IdentityTenantPO`，以下伪代码所列方法与字段。
@@ -2099,7 +2269,7 @@ class IdentityTenantPO extends EgonModel<IdentityTenantPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantPO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 23 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantConverter.java`
+#### File 29 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantConverter.java`
 
 - Purpose: 显式PO与IdentityTenantBO转换并保留外部ID。
 - Symbols: `IdentityTenantConverter`，以下伪代码所列方法与字段。
@@ -2126,7 +2296,7 @@ interface IdentityTenantConverter extends BaseConverter<IdentityTenantBO, Identi
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantConverter达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 24 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantDAO.java`
+#### File 30 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantDAO.java`
 
 - Purpose: 声明当前MP DAO具名查询和版本守卫。
 - Symbols: `IdentityTenantDAO`，以下伪代码所列方法与字段。
@@ -2154,7 +2324,7 @@ interface IdentityTenantDAO extends EgonColaMapper<IdentityTenantPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 25 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantDAO.xml`
+#### File 31 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantDAO.xml`
 
 - Purpose: 将identity_tenant_id查询固定在可信目录分区。
 - Symbols: `IdentityTenantDAO`，以下伪代码所列方法与字段。
@@ -2183,7 +2353,7 @@ interface IdentityTenantDAO extends EgonColaMapper<IdentityTenantPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantRepository.java`
+#### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantRepository.java`
 
 - Purpose: 复用EgonColaRepository并保持原业务查询语义。
 - Symbols: `IdentityTenantRepository`，以下伪代码所列方法与字段。
@@ -2215,7 +2385,7 @@ class IdentityTenantRepository extends EgonColaRepository<IdentityTenantDAO,Iden
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 27 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantMembershipPO.java`
+#### File 33 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantMembershipPO.java`
 
 - Purpose: 映射修订§11的oauth_identity_membership全部业务列。
 - Symbols: `IdentityTenantMembershipPO`，以下伪代码所列方法与字段。
@@ -2242,7 +2412,7 @@ class IdentityTenantMembershipPO extends EgonModel<IdentityTenantMembershipPO> {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantMembershipPO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 28 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantMembershipConverter.java`
+#### File 34 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantMembershipConverter.java`
 
 - Purpose: 显式PO与IdentityTenantMembershipBO转换并保留外部ID。
 - Symbols: `IdentityTenantMembershipConverter`，以下伪代码所列方法与字段。
@@ -2269,7 +2439,7 @@ interface IdentityTenantMembershipConverter extends BaseConverter<IdentityTenant
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantMembershipConverter达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 29 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantMembershipDAO.java`
+#### File 35 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantMembershipDAO.java`
 
 - Purpose: 声明当前MP DAO具名查询和版本守卫。
 - Symbols: `IdentityTenantMembershipDAO`，以下伪代码所列方法与字段。
@@ -2297,7 +2467,7 @@ interface IdentityTenantMembershipDAO extends EgonColaMapper<IdentityTenantMembe
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantMembershipDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 30 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantMembershipDAO.xml`
+#### File 36 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantMembershipDAO.xml`
 
 - Purpose: 将identity_tenant_id AND identity_sub查询固定在可信目录分区。
 - Symbols: `IdentityTenantMembershipDAO`，以下伪代码所列方法与字段。
@@ -2326,7 +2496,7 @@ interface IdentityTenantMembershipDAO extends EgonColaMapper<IdentityTenantMembe
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantMembershipDAO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantMembershipRepository.java`
+#### File 37 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantMembershipRepository.java`
 
 - Purpose: 复用EgonColaRepository并保持原业务查询语义。
 - Symbols: `IdentityTenantMembershipRepository`，以下伪代码所列方法与字段。
@@ -2358,7 +2528,7 @@ class IdentityTenantMembershipRepository extends EgonColaRepository<IdentityTena
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantMembershipRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapter.java`
+#### File 38 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapter.java`
 
 - Purpose: 保留IdentityUserStore/PasswordCredentialStore公开方法并转MP。
 - Symbols: `IdentityPersistenceAdapter`，以下伪代码所列方法与字段。
@@ -2389,7 +2559,7 @@ class IdentityPersistenceAdapter implements IdentityUserStore, PasswordCredentia
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityPersistenceAdapter达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 33 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/MpIdentityUserDirectory.java`
+#### File 39 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/MpIdentityUserDirectory.java`
 
 - Purpose: 替换全局用户目录实现且保持排序。
 - Symbols: `MpIdentityUserDirectory`，以下伪代码所列方法与字段。
@@ -2414,7 +2584,7 @@ class MpIdentityUserDirectory implements IdentityUserDirectory {
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: MpIdentityUserDirectory达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 34 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpdateTenantDTO.java`
+#### File 40 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpdateTenantDTO.java`
 
 - Purpose: 闭合UpdateTenantDTO.java的Entity→BO编译与行为依赖。
 - Symbols: `UpdateTenantDTO`，以下伪代码所列方法与字段。
@@ -2441,7 +2611,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: UpdateTenantDTO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 35 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpsertTenantMembershipDTO.java`
+#### File 41 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpsertTenantMembershipDTO.java`
 
 - Purpose: 闭合UpsertTenantMembershipDTO.java的Entity→BO编译与行为依赖。
 - Symbols: `UpsertTenantMembershipDTO`，以下伪代码所列方法与字段。
@@ -2468,7 +2638,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: UpsertTenantMembershipDTO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 36 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantVO.java`
+#### File 42 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantVO.java`
 
 - Purpose: 闭合TenantVO.java的Entity→BO编译与行为依赖。
 - Symbols: `TenantVO`，以下伪代码所列方法与字段。
@@ -2495,7 +2665,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TenantVO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 37 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantMembershipVO.java`
+#### File 43 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantMembershipVO.java`
 
 - Purpose: 闭合TenantMembershipVO.java的Entity→BO编译与行为依赖。
 - Symbols: `TenantMembershipVO`，以下伪代码所列方法与字段。
@@ -2522,7 +2692,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TenantMembershipVO达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 38 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantService.java`
+#### File 44 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantService.java`
 
 - Purpose: 闭合TenantService.java的Entity→BO编译与行为依赖。
 - Symbols: `TenantService`，以下伪代码所列方法与字段。
@@ -2549,7 +2719,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TenantService达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 39 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantMembershipService.java`
+#### File 45 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantMembershipService.java`
 
 - Purpose: 闭合TenantMembershipService.java的Entity→BO编译与行为依赖。
 - Symbols: `TenantMembershipService`，以下伪代码所列方法与字段。
@@ -2576,7 +2746,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TenantMembershipService达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 40 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantServiceImpl.java`
+#### File 46 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantServiceImpl.java`
 
 - Purpose: 闭合TenantServiceImpl.java的Entity→BO编译与行为依赖。
 - Symbols: `TenantServiceImpl`，以下伪代码所列方法与字段。
@@ -2603,7 +2773,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TenantServiceImpl达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 41 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantMembershipServiceImpl.java`
+#### File 47 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantMembershipServiceImpl.java`
 
 - Purpose: 闭合TenantMembershipServiceImpl.java的Entity→BO编译与行为依赖。
 - Symbols: `TenantMembershipServiceImpl`，以下伪代码所列方法与字段。
@@ -2630,7 +2800,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TenantMembershipServiceImpl达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 42 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/controller/TenantController.java`
+#### File 48 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/controller/TenantController.java`
 
 - Purpose: 闭合TenantController.java的Entity→BO编译与行为依赖。
 - Symbols: `TenantController`，以下伪代码所列方法与字段。
@@ -2657,7 +2827,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: TenantController达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 43 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java`
+#### File 49 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java`
 
 - Purpose: 闭合IdentityDirectoryRpcProvider.java的Entity→BO编译与行为依赖。
 - Symbols: `IdentityDirectoryRpcProvider`，以下伪代码所列方法与字段。
@@ -2684,7 +2854,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityDirectoryRpcProvider达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 44 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrap.java`
+#### File 50 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrap.java`
 
 - Purpose: 闭合IdpDevelopmentTenantBootstrap.java的Entity→BO编译与行为依赖。
 - Symbols: `IdpDevelopmentTenantBootstrap`，以下伪代码所列方法与字段。
@@ -2711,7 +2881,7 @@ Controller/RPC/bootstrap: preserve current permission, source and tenant binding
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdpDevelopmentTenantBootstrap达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 45 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/JpaIdentityUserDirectory.java`
+#### File 51 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/JpaIdentityUserDirectory.java`
 
 - Purpose: 删除已被MpIdentityUserDirectory替代的唯一JPA目录Bean。
 - Symbols: `JpaIdentityUserDirectory`，以下伪代码所列方法与字段。
@@ -2734,30 +2904,100 @@ assert only mpIdentityUserDirectory implements active directory binding;
 - Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: JpaIdentityUserDirectory达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 46 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`
+#### File 52 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
 
-- Purpose: 把现有身份port依赖绑定为MP实现。
-- Symbols: `IdpPlatformConfiguration`，以下伪代码所列方法与字段。
-- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java及其引用链；修订Spec§8/10。
-- Dependencies and consumers: Step 2及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
-- Why now: 前序契约/类型已固定，按此文件依赖接入；本Step末统一编译与回归。
-- Contract/signature changes: 把现有身份port依赖绑定为MP实现；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 把现有身份port依赖绑定为MP实现。
-- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
-- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Purpose: 在base profile声明稳定、受保护的目录/PLATFORM分区P配置。
+- Symbols: `egon.tianquan-shoubing.identity-directory.platform-storage-partition-id`。
+- Repository evidence: 现有application.yml无P配置；新增身份表固定P且TenantLine从MDC读取当前分区。
+- Dependencies and consumers: File 10 IdentityDirectoryContext与Step 3 directory repositories；后续PLATFORM realm初始化复用同一P。
+- Why now: MP运行前须有明确可信分区，不能从请求、JWT或业务租户上下文推导。
+- Contract/signature changes: 增加required environment placeholder，无默认值；不改变公共HTTP/RPC字段。
+- Input/output and state mapping: 与application-local.yml同键；运维配置稳定正Long，由common ID来源分配并留存。
+- Error and edge behavior: 缺失/非正Long启动失败；发现与业务tenant占用冲突须阻断切流。
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 7；保留既有secret placeholder，不把P写入日志或token。
 - Implementation pseudocode:
 
-```java
-@Bean 原IdentityFacade/PasswordCredentialStore/IdentityUserDirectory装配名保持;
-inject identityPersistenceAdapter, mpIdentityUserDirectory and changed tenant repositories;
-remove construction of JpaIdentityUserDirectory;
-// IdentityOutboxPublisher仍由Step 11接入统一审计/组件Outbox，本中间构建禁止投产。
+```yaml
+INPUT -> EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID from protected deployment configuration;
+FLOW -> bind as egon.tianquan-shoubing.identity-directory.platform-storage-partition-id with no fallback; preserve every existing datasource/Redis/OAuth setting;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> reject absent, non-numeric or non-positive P at context construction;
+RESULT -> a stable internal P is shared by four directories and later PLATFORM realm initialization.
 ```
 
-- Verification contribution: Step 3 的 `IdentityMpPersistenceContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
-- After this file: IdpPlatformConfiguration达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
+- Verification contribution: compare the exact config key tree with local profile and assert the placeholder/property path without printing its value.
+- After this file: base profile has an explicit stable partition source, not a request-derived tenant.
 
+#### File 53 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+
+- Purpose: 与base profile同键注入本地受保护P来源。
+- Symbols: `egon.tianquan-shoubing.identity-directory.platform-storage-partition-id`。
+- Repository evidence: 当前local profile覆盖连接值但必须保持新增P属性树与base一致。
+- Dependencies and consumers: File 10 context bean与File 48 application.yml。
+- Why now: profile切换不得改变目录隔离语义或形成无P fallback。
+- Contract/signature changes: 只增加同名required environment placeholder；不添加本地默认P。
+- Input/output and state mapping: 值由本机受保护环境配置提供，与PLATFORM realm使用同一值。
+- Error and edge behavior: 缺失/非法值fail-fast；不得退回当前请求tenant或技术tenant 0。
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 7；不复制任何secret明文，不更改其他local key。
+- Implementation pseudocode:
+
+```yaml
+FLOW -> mirror the exact required P key and environment placeholder from application.yml;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> leave no local numeric fallback;
+RESULT -> base/local key-parity and fail-fast tests agree.
+```
+
+- Verification contribution: Step focused profile-key contract test.
+- After this file: local profile cannot silently change P source or tenant semantics.
+
+#### File 54 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: 记录P的可信来源、required配置和MDC作用域证据，闭合原Spec未给出当前源码值来源的问题。
+- Symbols: `EVD-114`, `ASM-103`, `DEC-111`, `REQ-020`, `REQ-023`, `TEST-101`。
+- Repository evidence: TenantIdProvider只读配置MDC key；当前Shoubing没有P binding，Step 3会增加显式来源。
+- Dependencies and consumers: Step 3 context/config/tests及后续PLATFORM realm初始化。
+- Why now: 让安全分区来源与实现一致并阻止业务请求选择目录tenant_id。
+- Contract/signature changes: 不增wire API；P是稳定必填部署值并用于Platform realm。
+- Input/output and state mapping: 记录配置key、正数限制、业务tenant去重和finally恢复。
+- Error and edge behavior: Review状态保持；真实部署P/业务ID占用状况仍待运行验收。
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 7, Rule 11；不披露配置值或个人数据。
+- Implementation pseudocode:
+
+```text
+INPUT -> verified current provider/config evidence and Step 3 contract test;
+FLOW -> add evidence/assumption/decision, exact config property, context source path, route to §11/§15 and REQ/TEST trace;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> retain Review and list missing deployment evidence;
+RESULT -> Spec defines one stable trusted P source and no request-derived fallback.
+```
+
+- Verification contribution: strict Spec validator plus line-by-line affected requirement and source-evidence audit.
+- After this file: the effective Review Spec describes the implemented internal tenant authority.
+
+#### File 55 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: 将P配置和MDC scope纳入Step 3有序文件、路径提交范围和测试门禁。
+- Symbols: Step 3 test-first gate, File order, configuration key tree, commit scope.
+- Repository evidence: 原Step 3遗漏现有MP provider的唯一上下文入口和P值来源。
+- Dependencies and consumers: effective Review Spec amendment, Step 3 code and profile tests.
+- Why now: implementation must not advance with an unspecified tenant partition.
+- Contract/signature changes: one required config key and one internal scope helper; no user-facing API.
+- Input/output and state mapping: P is shared with later PLATFORM realm and directory records.
+- Error and edge behavior: keep Plan Review; don't begin Step 4 before all Step 3 gates pass.
+- Standards impact: MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 7, Rule 9, Rule 11; same MDC key and restoration semantics.
+- Implementation pseudocode:
+
+```text
+INPUT -> repository evidence, user-authorized execution, and exact P-source design;
+FLOW -> add File 10 context, base/local config files, test behavior, docs and updated Commit paths;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> strict validator failure blocks implementation/commit;
+RESULT -> Step 3 remains ordered, reviewable, and limited to the explicit file set.
+```
+
+- Verification contribution: strict Plan validator, path-set comparison and exact focused command.
+- After this file: Step 3 scope has no implicit P source and remains compatible with one-commit-per-Step.
 
 - Validation working directory: /Users/mario/SelfProject/Egon-COLA
 - Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=IdentityMpPersistenceContractTest,IdentityPersistenceAdapterTest,TenantServiceImplTest,TenantMembershipServiceImplTest,IdentityDirectoryRpcProviderTest,IdpDevelopmentTenantBootstrapTest,TenantControllerTest,LocalTenantMembershipPortTest,IdentityEntityMappingTest -Dsurefire.failIfNoSpecifiedTests=false test`；`git diff --check`。
@@ -2765,9 +3005,8 @@ remove construction of JpaIdentityUserDirectory;
 - Failure returns to: 对应DAO/Converter/调用者File；若原生命周期需要改变返回Spec审核。
 - Completion criteria: port、DTO/VO/RPC与版本/密码/成员回归一致，diff只本Step列出路径。
 - Rollback: 仅回退本Step代码；此时未迁移真实数据。投产之后按修订§16而非直接回旧JPA库。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityMpPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityEntityMappingTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantMembershipServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/controller/TenantControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/LocalTenantMembershipPortTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantMembershipBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityUserPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityUserConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityUserDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityUserDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityUserRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityCredentialPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityCredentialConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityCredentialDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityCredentialDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityCredentialRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantMembershipPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantMembershipConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantMembershipDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantMembershipDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantMembershipRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/MpIdentityUserDirectory.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpdateTenantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpsertTenantMembershipDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantMembershipVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantMembershipService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantMembershipServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/controller/TenantController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrap.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/JpaIdentityUserDirectory.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityMpPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityEntityMappingTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantMembershipServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/controller/TenantControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/LocalTenantMembershipPortTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/bo/IdentityTenantMembershipBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityUserPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityUserConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityUserDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityUserDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityUserRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/po/IdentityCredentialPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/converter/IdentityCredentialConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/dao/IdentityCredentialDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/identity/IdentityCredentialDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repository/IdentityCredentialRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantSettingsJsonbTypeHandler.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/po/IdentityTenantMembershipPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/converter/IdentityTenantMembershipConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/dao/IdentityTenantMembershipDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/tenant/IdentityTenantMembershipDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/repo/IdentityTenantMembershipRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/MpIdentityUserDirectory.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpdateTenantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/dto/UpsertTenantMembershipDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/vo/TenantMembershipVO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/TenantMembershipService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/service/impl/TenantMembershipServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/controller/TenantController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/bootstrap/IdpDevelopmentTenantBootstrap.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/JpaIdentityUserDirectory.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityDirectoryContext.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan/shoubing/core/identity/PasswordCredential.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/pom.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
 - Commit: `refactor(shoubing): move identity directory persistence to MP`
-
 ### Step 4 — 持久化issuer与客户端注册
 
 - Requirements: REQ-002, REQ-005, REQ-011, REQ-018

@@ -1,6 +1,6 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service;
 
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,7 +30,7 @@ public interface TenantService {
             long expectedVersion,
             String tenantName,
             String settings,
-            IdentityTenantEntity.Status status,
+            IdentityTenantBO.Status status,
             String operatorSub
     ) {
     }
@@ -40,7 +40,7 @@ public interface TenantService {
             String tenantId,
             String tenantCode,
             String tenantName,
-            IdentityTenantEntity.Status status,
+            IdentityTenantBO.Status status,
             String settings,
             long version,
             Instant createdAt,

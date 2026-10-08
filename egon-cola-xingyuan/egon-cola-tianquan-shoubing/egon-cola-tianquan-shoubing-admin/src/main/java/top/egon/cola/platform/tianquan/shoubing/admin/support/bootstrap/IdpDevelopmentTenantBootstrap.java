@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembershipService;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantService;
 import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStore;
@@ -41,7 +41,7 @@ public class IdpDevelopmentTenantBootstrap {
             TenantService.TenantView tenant = tenants.create(new TenantService.CreateTenantCommand(
                     code, "default".equals(code) ? "默认测试租户" : "测试租户 B", "{}", ACTOR));
             tenants.update(tenant.tenantId(), new TenantService.UpdateTenantCommand(
-                    tenant.version(), null, null, IdentityTenantEntity.Status.ACTIVE, ACTOR));
+                    tenant.version(), null, null, IdentityTenantBO.Status.ACTIVE, ACTOR));
         }
         List<TenantService.TenantView> available = tenants.list();
         Set<String> resolved = new LinkedHashSet<>();
@@ -67,7 +67,7 @@ public class IdpDevelopmentTenantBootstrap {
             for (TenantService.TenantView tenant : tenants.list()) {
                 if (TENANT_CODES.contains(tenant.tenantCode()) && !existing.contains(tenant.tenantId())) {
                     memberships.upsert(new TenantMembershipService.UpsertMembershipCommand(
-                            tenant.tenantId(), user.id(), IdentityTenantMembershipEntity.Status.ACTIVE,
+                            tenant.tenantId(), user.id(), IdentityTenantMembershipBO.Status.ACTIVE,
                             null, ACTOR));
                 }
             }

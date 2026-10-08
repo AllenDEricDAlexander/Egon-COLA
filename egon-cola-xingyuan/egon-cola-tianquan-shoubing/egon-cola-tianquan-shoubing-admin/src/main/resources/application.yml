@@ -101,6 +101,8 @@ egon.cola.platform:
 
 egon:
   tianquan-shoubing:
+    identity-directory:
+      platform-storage-partition-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID}
     identity-state-key-prefix: "identity:v1:user:"
     oauth:
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}

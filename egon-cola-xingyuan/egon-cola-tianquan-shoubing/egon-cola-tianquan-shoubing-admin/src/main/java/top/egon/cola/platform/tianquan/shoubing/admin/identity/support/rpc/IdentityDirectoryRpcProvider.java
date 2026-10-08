@@ -2,8 +2,8 @@ package top.egon.cola.platform.tianquan.shoubing.admin.identity.support.rpc;
 
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembershipService;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUser;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
@@ -166,7 +166,7 @@ public final class IdentityDirectoryRpcProvider
                 || "membership not found".equals(message);
     }
 
-    private static TenantStatus tenantStatus(IdentityTenantEntity.Status status) {
+    private static TenantStatus tenantStatus(IdentityTenantBO.Status status) {
         return switch (Objects.requireNonNull(status, "tenantStatus")) {
             case INITIALIZING -> TenantStatus.TENANT_STATUS_INITIALIZING;
             case ACTIVE -> TenantStatus.TENANT_STATUS_ACTIVE;
@@ -184,7 +184,7 @@ public final class IdentityDirectoryRpcProvider
     }
 
     private static MembershipStatus membershipStatus(
-            IdentityTenantMembershipEntity.Status status
+            IdentityTenantMembershipBO.Status status
     ) {
         return switch (Objects.requireNonNull(status, "membershipStatus")) {
             case ACTIVE -> MembershipStatus.MEMBERSHIP_STATUS_ACTIVE;

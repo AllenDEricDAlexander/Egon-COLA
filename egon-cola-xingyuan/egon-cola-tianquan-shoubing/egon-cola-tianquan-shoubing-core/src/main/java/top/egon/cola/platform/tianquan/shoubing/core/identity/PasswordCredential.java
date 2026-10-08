@@ -66,6 +66,12 @@ public record PasswordCredential(
         );
     }
 
+    @Override
+    public String toString() {
+        return "PasswordCredential[identitySub=<redacted>, passwordHash=<redacted>, status="
+                + status + ", version=" + version + ']';
+    }
+
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");

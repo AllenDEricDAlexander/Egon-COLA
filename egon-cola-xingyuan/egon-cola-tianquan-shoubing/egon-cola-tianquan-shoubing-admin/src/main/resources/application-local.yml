@@ -27,6 +27,8 @@ egon.cola.platform:
 
 egon:
   tianquan-shoubing:
+    identity-directory:
+      platform-storage-partition-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID}
     development-bootstrap:
       enabled: ${TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_ENABLED:false}
       key-directory: ${TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets}

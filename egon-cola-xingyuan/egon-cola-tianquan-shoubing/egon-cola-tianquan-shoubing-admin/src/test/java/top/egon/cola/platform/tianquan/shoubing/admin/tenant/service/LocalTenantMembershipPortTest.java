@@ -1,8 +1,8 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
 
@@ -31,13 +31,13 @@ class LocalTenantMembershipPortTest {
                         "user-1",
                         "10001",
                         TenantMembershipPort.MembershipStatus.ACTIVE,
-                        IdentityTenantMembershipEntity.Status.ACTIVE
+                        IdentityTenantMembershipBO.Status.ACTIVE
                 ),
                 profile(
                         "user-1",
                         "10002",
                         TenantMembershipPort.MembershipStatus.DISABLED,
-                        IdentityTenantMembershipEntity.Status.DISABLED
+                        IdentityTenantMembershipBO.Status.DISABLED
                 )
         ));
 
@@ -57,7 +57,7 @@ class LocalTenantMembershipPortTest {
                 "user-1",
                 "10001",
                 TenantMembershipPort.MembershipStatus.DISABLED,
-                IdentityTenantMembershipEntity.Status.ACTIVE
+                IdentityTenantMembershipBO.Status.ACTIVE
         ));
         when(memberships.resolve("user-1", "missing"))
                 .thenThrow(new IllegalStateException("membership not found"));
@@ -81,14 +81,14 @@ class LocalTenantMembershipPortTest {
             String identitySub,
             String tenantId,
             TenantMembershipPort.MembershipStatus effectiveStatus,
-            IdentityTenantMembershipEntity.Status membershipStatus
+            IdentityTenantMembershipBO.Status membershipStatus
     ) {
         return new TenantMembershipService.TenantMembershipProfile(
                 identitySub,
                 tenantId,
                 "Acme",
                 "Mario",
-                IdentityTenantEntity.Status.ACTIVE,
+                IdentityTenantBO.Status.ACTIVE,
                 IdentityUserStatus.ACTIVE,
                 membershipStatus,
                 effectiveStatus,

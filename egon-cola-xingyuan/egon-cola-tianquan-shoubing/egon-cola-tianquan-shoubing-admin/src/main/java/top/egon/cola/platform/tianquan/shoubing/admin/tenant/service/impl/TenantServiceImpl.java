@@ -3,7 +3,8 @@ package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.impl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityDirectoryContext;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantService;
 
@@ -17,13 +18,15 @@ import java.util.Objects;
 public class TenantServiceImpl implements TenantService {
 
     private final IdentityTenantRepository tenants;
+    private final IdentityDirectoryContext directoryContext;
     private final Clock clock;
 
     public TenantServiceImpl(
             IdentityTenantRepository tenants,
-            Clock clock
-    ) {
+            IdentityDirectoryContext directoryContext,
+            Clock clock) {
         this.tenants = Objects.requireNonNull(tenants, "tenants");
+        this.directoryContext = Objects.requireNonNull(directoryContext, "directoryContext");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -53,7 +56,10 @@ public class TenantServiceImpl implements TenantService {
         if (numericId <= 0L) {
             throw new IllegalStateException("tenant id generator returned invalid value");
         }
-        IdentityTenantEntity tenant = IdentityTenantEntity.create(
+        if (numericId == directoryContext.directoryPartitionId()) {
+            throw new IllegalStateException("tenant id is reserved for platform storage");
+        }
+        IdentityTenantBO tenant = IdentityTenantBO.create(
                 Long.toString(numericId),
                 tenantCode,
                 command.tenantName(),
@@ -66,25 +72,14 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     @Transactional
-    public TenantView update(
-            String tenantId,
-            UpdateTenantCommand command
-    ) {
+    public TenantView update(String tenantId, UpdateTenantCommand command) {
         Objects.requireNonNull(command, "command");
-        IdentityTenantEntity tenant = tenants.findByIdForUpdate(
-                        required(tenantId, "tenantId")
-                )
-                .orElseThrow(() -> new IllegalStateException(
-                        "tenant not found"
-                ));
-        IdentityTenantEntity.Status status = Objects.requireNonNull(
-                command.status(),
-                "status"
-        );
+        IdentityTenantBO tenant = tenants.findByIdForUpdate(required(tenantId, "tenantId"))
+                .orElseThrow(() -> new IllegalStateException("tenant not found"));
         tenant.update(
                 command.tenantName(),
                 command.settings(),
-                status,
+                Objects.requireNonNull(command.status(), "status"),
                 command.expectedVersion(),
                 command.operatorSub(),
                 clock.instant()
@@ -92,16 +87,14 @@ public class TenantServiceImpl implements TenantService {
         return view(tenants.save(tenant));
     }
 
-    private IdentityTenantEntity find(String tenantId) {
+    private IdentityTenantBO find(String tenantId) {
         return tenants.findById(required(tenantId, "tenantId"))
-                .orElseThrow(() -> new IllegalStateException(
-                        "tenant not found"
-                ));
+                .orElseThrow(() -> new IllegalStateException("tenant not found"));
     }
 
-    private TenantView view(IdentityTenantEntity tenant) {
+    private TenantView view(IdentityTenantBO tenant) {
         return new TenantView(
-                tenant.getId(),
+                tenant.getIdentityTenantId(),
                 tenant.getTenantCode(),
                 tenant.getTenantName(),
                 tenant.getStatus(),
@@ -113,9 +106,7 @@ public class TenantServiceImpl implements TenantService {
     }
 
     private static String normalizeCode(String value) {
-        return value == null
-                ? null
-                : value.trim().toLowerCase(Locale.ROOT);
+        return value == null ? null : value.trim().toLowerCase(Locale.ROOT);
     }
 
     private static String required(String value, String field) {

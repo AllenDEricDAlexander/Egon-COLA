@@ -9,8 +9,8 @@ import org.springframework.security.web.method.annotation.AuthenticationPrincipa
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.security.IdpAdminAuthorizationPort;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
-import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.bo.IdentityTenantMembershipBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembershipService;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantService;
 
@@ -61,8 +61,8 @@ class TenantControllerTest {
     @Test
     void listsTenantsWithReadPermissionAndStablePageShape() throws Exception {
         when(tenants.list()).thenReturn(List.of(
-                tenant("10001", "acme", "Acme", IdentityTenantEntity.Status.ACTIVE),
-                tenant("10002", "beta", "Beta", IdentityTenantEntity.Status.SUSPENDED)
+                tenant("10001", "acme", "Acme", IdentityTenantBO.Status.ACTIVE),
+                tenant("10002", "beta", "Beta", IdentityTenantBO.Status.SUSPENDED)
         ));
 
         mockMvc.perform(get("/api/v1/tianquan-shoubing/tenants")
@@ -89,7 +89,7 @@ class TenantControllerTest {
                         "10001",
                         "acme",
                         "Acme",
-                        IdentityTenantEntity.Status.INITIALIZING
+                        IdentityTenantBO.Status.INITIALIZING
                 ));
 
         mockMvc.perform(post("/api/v1/tianquan-shoubing/tenants")
@@ -121,7 +121,7 @@ class TenantControllerTest {
                         "10001",
                         "acme",
                         "Acme China",
-                        IdentityTenantEntity.Status.ACTIVE
+                        IdentityTenantBO.Status.ACTIVE
                 ));
 
         mockMvc.perform(patch("/api/v1/tianquan-shoubing/tenants/{tenantId}", "10001")
@@ -150,7 +150,7 @@ class TenantControllerTest {
                 membership(
                         "10001",
                         "user-1",
-                        IdentityTenantMembershipEntity.Status.ACTIVE,
+                        IdentityTenantMembershipBO.Status.ACTIVE,
                         0L
                 )
         ));
@@ -159,7 +159,7 @@ class TenantControllerTest {
         ))).thenReturn(membership(
                 "10001",
                 "user-1",
-                IdentityTenantMembershipEntity.Status.ACTIVE,
+                IdentityTenantMembershipBO.Status.ACTIVE,
                 0L
         ));
 
@@ -197,7 +197,7 @@ class TenantControllerTest {
             String id,
             String code,
             String name,
-            IdentityTenantEntity.Status status
+            IdentityTenantBO.Status status
     ) {
         return new TenantService.TenantView(
                 id,
@@ -214,7 +214,7 @@ class TenantControllerTest {
     private static TenantMembershipService.MembershipView membership(
             String tenantId,
             String identitySub,
-            IdentityTenantMembershipEntity.Status status,
+            IdentityTenantMembershipBO.Status status,
             long version
     ) {
         return new TenantMembershipService.MembershipView(

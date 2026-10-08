@@ -16,6 +16,11 @@
     <name>egon-cola-tianquan-shoubing</name>
     <description>Tianquan-Shoubing identity platform for Egon COLA.</description>
 
+    <properties>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
+    </properties>
+
     <modules>
         <module>egon-cola-tianquan-shoubing-core</module>
         <module>egon-cola-tianquan-shoubing-rpc-contract</module>
