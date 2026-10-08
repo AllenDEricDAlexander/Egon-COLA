@@ -27,7 +27,7 @@ type AuthContextValue = {
   loading: boolean
   error?: string
   registerUnsavedChangesGuard: (guard: UnsavedChangesGuard) => () => void
-  login: (tenantId: string, username: string, password: string) => Promise<void>
+  login: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -117,25 +117,23 @@ export function AuthProvider({children}: {children: ReactNode}) {
     })
   }, [beginSession, loadBootstrap, runSessionTransition])
 
-  const login = useCallback(async (selectedTenantId: string, username: string, password: string) => {
+  const login = useCallback(async () => {
     await runSessionTransition(async () => {
       const generation = beginSession()
       setError(undefined)
       setLoading(true)
       try {
-        await gatewayAuth.login({tenantId: selectedTenantId, username, password})
-        await loadBootstrap(generation)
+        gatewayAuth.login()
       } catch (failure) {
         if (isCurrentDdcSession(generation)) {
           setBootstrap(undefined)
           setError(failure instanceof Error ? failure.message : '统一身份登录失败')
         }
-        throw failure
       } finally {
         if (isCurrentDdcSession(generation)) setLoading(false)
       }
     })
-  }, [beginSession, loadBootstrap, runSessionTransition])
+  }, [beginSession, runSessionTransition])
 
   const logout = useCallback(async () => {
     await runSessionTransition(async () => {
@@ -143,12 +141,14 @@ export function AuthProvider({children}: {children: ReactNode}) {
       setError(undefined)
       setLoading(true)
       try {
-        await gatewayAuth.logout()
+        const result = await gatewayAuth.logout()
+        if (isCurrentDdcSession(generation) && result.remoteState !== 'CONFIRMED') {
+          setError('本地已退出，远端令牌撤销待恢复')
+        }
       } catch (failure) {
         if (isCurrentDdcSession(generation)) {
           setError(failure instanceof Error ? failure.message : '统一身份退出失败')
         }
-        throw failure
       } finally {
         if (isCurrentDdcSession(generation)) setLoading(false)
       }

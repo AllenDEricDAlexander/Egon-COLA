@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
@@ -30,6 +31,8 @@ import org.springframework.security.oauth2.client.web.DefaultReactiveOAuth2Autho
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.oauth2.client.web.server.DefaultServerOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint;
 import org.springframework.security.web.server.authentication.RedirectServerAuthenticationEntryPoint;
@@ -44,8 +47,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.session.CookieWebSessionIdResolver;
 import org.springframework.web.server.session.WebSessionIdResolver;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 import org.springframework.security.web.server.DefaultServerRedirectStrategy;
 import org.springframework.security.web.server.ServerRedirectStrategy;
@@ -202,9 +207,7 @@ public class EdgeSecurityConfiguration {
             @Qualifier("edgeCsrfTokenRepository")
             ServerCsrfTokenRepository csrfTokens,
             @Qualifier("edgeClock") Clock clock) {
-        DefaultServerOAuth2AuthorizationRequestResolver requestResolver =
-                new DefaultServerOAuth2AuthorizationRequestResolver(registrations);
-        requestResolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+        ServerOAuth2AuthorizationRequestResolver requestResolver = authorizationRequestResolver(registrations);
 
         ServerRedirectStrategy redirectStrategy = new DefaultServerRedirectStrategy();
         ((DefaultServerRedirectStrategy) redirectStrategy).setHttpStatus(HttpStatus.SEE_OTHER);
@@ -229,6 +232,7 @@ public class EdgeSecurityConfiguration {
 
         return http
                 .securityContextRepository(new WebSessionServerSecurityContextRepository())
+                .addFilterAt(stepUpIntentFilter(), SecurityWebFiltersOrder.FIRST)
                 .requestCache(cache -> cache.requestCache(NoOpServerRequestCache.getInstance()))
                 .authorizeExchange(authorize -> authorize
                         .pathMatchers("/bff/csrf", "/actuator/health").permitAll()
@@ -252,6 +256,65 @@ public class EdgeSecurityConfiguration {
                         .authorizedClientRepository(authorizedClients))
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
                 .build();
+    }
+
+    private ServerOAuth2AuthorizationRequestResolver authorizationRequestResolver(
+            ReactiveClientRegistrationRepository registrations) {
+        DefaultServerOAuth2AuthorizationRequestResolver delegate =
+                new DefaultServerOAuth2AuthorizationRequestResolver(registrations);
+        delegate.setAuthorizationRequestCustomizer(
+                OAuth2AuthorizationRequestCustomizers.withPkce());
+        return new ServerOAuth2AuthorizationRequestResolver() {
+            @Override
+            public Mono<OAuth2AuthorizationRequest> resolve(ServerWebExchange exchange) {
+                return resolve(exchange, null);
+            }
+
+            @Override
+            public Mono<OAuth2AuthorizationRequest> resolve(
+                    ServerWebExchange exchange,
+                    String registrationId) {
+                List<String> stepUpValues = exchange.getRequest()
+                        .getQueryParams()
+                        .get("stepUp");
+                boolean stepUp = stepUpValues != null
+                        && stepUpValues.size() == 1
+                        && "true".equals(stepUpValues.getFirst());
+                Mono<OAuth2AuthorizationRequest> resolved = registrationId == null
+                        ? delegate.resolve(exchange)
+                        : delegate.resolve(exchange, registrationId);
+                return resolved.map(request -> stepUp
+                        ? withStepUpAuthentication(request)
+                        : request);
+            }
+
+            private OAuth2AuthorizationRequest withStepUpAuthentication(
+                    OAuth2AuthorizationRequest request) {
+                String authorizationUri = UriComponentsBuilder
+                        .fromUriString(request.getAuthorizationRequestUri())
+                        .queryParam("prompt", "login")
+                        .queryParam("max_age", "0")
+                        .build(true)
+                        .toUriString();
+                return OAuth2AuthorizationRequest.from(request)
+                        .authorizationRequestUri(authorizationUri)
+                        .build();
+            }
+        };
+    }
+
+    private WebFilter stepUpIntentFilter() {
+        return (exchange, chain) -> {
+            if (!exchange.getRequest().getPath().value().startsWith("/oauth2/authorization/")) {
+                return chain.filter(exchange);
+            }
+            List<String> values = exchange.getRequest().getQueryParams().get("stepUp");
+            if (values == null || (values.size() == 1 && "true".equals(values.getFirst()))) {
+                return chain.filter(exchange);
+            }
+            exchange.getResponse().setStatusCode(HttpStatus.BAD_REQUEST);
+            return exchange.getResponse().setComplete();
+        };
     }
 
     @Bean(name = "edgeOpenAPI")

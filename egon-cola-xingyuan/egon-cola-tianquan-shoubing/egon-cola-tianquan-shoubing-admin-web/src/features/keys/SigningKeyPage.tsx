@@ -1,7 +1,8 @@
-import {Button, Card, Form, Input, message, Modal, Space, Table, Tag, Typography} from 'antd'
+import {Button, Card, Form, Input, message, Modal, Select, Space, Table, Tag, Typography} from 'antd'
 import {CheckCircleOutlined, PlusOutlined, ReloadOutlined, StopOutlined} from '@ant-design/icons'
 import {useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {useSearchParams} from 'react-router-dom'
 import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/xingyuan-admin-web-shared'
 import type {SigningKeyVO} from '../../api/types'
@@ -16,18 +17,32 @@ export const SigningKeyPage = () => {
     const auth = useAuth()
     const queryClient = useQueryClient()
     const {has} = usePermission(auth.bootstrap?.permissions ?? [])
+    const [searchParams, setSearchParams] = useSearchParams()
+    const tenantRealm = auth.bootstrap?.user.tenantId
+        ? `tenant:${auth.bootstrap.user.tenantId}`
+        : undefined
+    const canSelectPlatform = auth.bootstrap?.permissions.includes('system:platform:admin') ?? false
+    const realm = searchParams.get('realm') === 'platform' && canSelectPlatform
+        ? 'platform'
+        : tenantRealm
     const [publishOpen, setPublishOpen] = useState(false)
     const [form] = Form.useForm()
     const [messageApi, contextHolder] = message.useMessage()
+    const withRealm = (path: string): string => {
+        if (!realm) throw new Error('认证Realm不可用')
+        return path + (path.includes('?') ? '&' : '?')
+            + new URLSearchParams({realm}).toString()
+    }
 
     const keysQuery = useQuery({
-        queryKey: ['tianquan-shoubing', 'signing-keys'],
-        queryFn: () => httpClient.request<SigningKeyVO[]>('/api/v1/tianquan-shoubing/signing-keys'),
+        queryKey: ['tianquan-shoubing', 'signing-keys', realm],
+        enabled: Boolean(realm),
+        queryFn: () => httpClient.request<SigningKeyVO[]>(withRealm('/api/v1/tianquan-shoubing/signing-keys')),
     })
 
     const publishMutation = useMutation({
         mutationFn: (v: { kid: string; encryptedPrivateKey: string; publicJwk: string }) =>
-            httpClient.request<SigningKeyVO>('/api/v1/tianquan-shoubing/signing-keys', {
+            httpClient.request<SigningKeyVO>(withRealm('/api/v1/tianquan-shoubing/signing-keys'), {
                 method: 'POST',
                 body: JSON.stringify(v),
             }),
@@ -45,7 +60,7 @@ export const SigningKeyPage = () => {
     const activateMutation = useMutation({
         mutationFn: ({kid, version}: { kid: string; version: number }) =>
             httpClient.request<SigningKeyVO>(
-                `/api/v1/tianquan-shoubing/signing-keys/${encodeURIComponent(kid)}/activate?expectedVersion=${version}`,
+                withRealm(`/api/v1/tianquan-shoubing/signing-keys/${encodeURIComponent(kid)}/activate?expectedVersion=${version}`),
                 {method: 'POST'},
             ),
         onSuccess: async () => {
@@ -60,7 +75,7 @@ export const SigningKeyPage = () => {
     const retireMutation = useMutation({
         mutationFn: ({kid, version}: { kid: string; version: number }) =>
             httpClient.request<SigningKeyVO>(
-                `/api/v1/tianquan-shoubing/signing-keys/${encodeURIComponent(kid)}/retire?expectedVersion=${version}`,
+                withRealm(`/api/v1/tianquan-shoubing/signing-keys/${encodeURIComponent(kid)}/retire?expectedVersion=${version}`),
                 {method: 'POST'},
             ),
         onSuccess: async () => {
@@ -79,9 +94,21 @@ export const SigningKeyPage = () => {
               title="签名密钥"
               extra={
                   <Space>
-                      <Button icon={<ReloadOutlined/>} onClick={() => {
-                          void keysQuery.refetch()
-                      }}>刷新</Button>
+                  <Button icon={<ReloadOutlined/>} onClick={() => {
+                      void keysQuery.refetch()
+                  }}>刷新</Button>
+                  {tenantRealm && canSelectPlatform && (
+                      <Select
+                          value={realm}
+                          aria-label="Issuer Realm"
+                          options={[
+                              {label: `当前租户 (${tenantRealm})`, value: tenantRealm},
+                              {label: '平台管理 (platform)', value: 'platform'},
+                          ]}
+                          onChange={(value: string) => setSearchParams({realm: value})}
+                          style={{width: 240}}
+                      />
+                  )}
                       {has('tianquan-shoubing:signing-key:publish') && (
                           <Button type="primary" icon={<PlusOutlined/>}
                                   onClick={() => setPublishOpen(true)}>预发布密钥</Button>
@@ -106,6 +133,7 @@ export const SigningKeyPage = () => {
                       dataSource={keysQuery.data ?? []}
                       columns={[
                           {title: 'KID', dataIndex: 'kid', ellipsis: true},
+                          {title: 'Issuer', dataIndex: 'issuer', ellipsis: true},
                           {title: '算法', dataIndex: 'algorithm'},
                           {
                               title: '状态',

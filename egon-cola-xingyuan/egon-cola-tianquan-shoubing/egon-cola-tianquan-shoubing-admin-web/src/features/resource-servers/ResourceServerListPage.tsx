@@ -35,6 +35,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const PAGE_SIZE = 20
+const PLATFORM_REALM_QUERY = '?realm=platform'
 
 type ResourceServerFilterForm = Pick<IdentityListFilter, 'query' | 'status'>
 
@@ -84,15 +85,17 @@ export const ResourceServerListPage = () => {
     const requestQuery = buildResourceServerQuery(submitted, searchParams.has('page') || searchParams.has('size'))
 
     const rsQuery = useQuery({
-        queryKey: ['tianquan-shoubing', 'resource-servers', requestQuery],
+        queryKey: ['tianquan-shoubing', 'resource-servers', 'platform', requestQuery],
         queryFn: () => httpClient
-            .request<ResourceServerVO[] | ResourceServerPageVO>(`/api/v1/tianquan-shoubing/resource-servers${requestQuery ? `?${requestQuery}` : ''}`)
+            .request<ResourceServerVO[] | ResourceServerPageVO>(
+                `/api/v1/tianquan-shoubing/resource-servers${requestQuery ? `?${requestQuery}&realm=platform` : PLATFORM_REALM_QUERY}`,
+            )
             .then(normalizePage),
     })
 
     const createMutation = useMutation({
         mutationFn: (v: CreateResourceServerDTO) =>
-            httpClient.request<ResourceServerVO>('/api/v1/tianquan-shoubing/resource-servers', {
+            httpClient.request<ResourceServerVO>('/api/v1/tianquan-shoubing/resource-servers' + PLATFORM_REALM_QUERY, {
                 method: 'POST',
                 body: JSON.stringify(v),
             }),
@@ -110,7 +113,7 @@ export const ResourceServerListPage = () => {
     const enableMutation = useMutation({
         mutationFn: ({id, version}: { id: string; version: number }) =>
             httpClient.request<ResourceServerVO>(
-                `/api/v1/tianquan-shoubing/resource-servers/${encodeURIComponent(id)}/enable`,
+                `/api/v1/tianquan-shoubing/resource-servers/${encodeURIComponent(id)}/enable${PLATFORM_REALM_QUERY}`,
                 {method: 'POST', body: JSON.stringify({expectedVersion: version})},
             ),
         onSuccess: async (result) => {
@@ -128,7 +131,7 @@ export const ResourceServerListPage = () => {
     const disableMutation = useMutation({
         mutationFn: ({id, version}: { id: string; version: number }) =>
             httpClient.request<ResourceServerVO>(
-                `/api/v1/tianquan-shoubing/resource-servers/${encodeURIComponent(id)}/disable`,
+                `/api/v1/tianquan-shoubing/resource-servers/${encodeURIComponent(id)}/disable${PLATFORM_REALM_QUERY}`,
                 {method: 'POST', body: JSON.stringify({expectedVersion: version})},
             ),
         onSuccess: async (result) => {
@@ -147,7 +150,7 @@ export const ResourceServerListPage = () => {
         mutationFn: ({action, rows}: {action: BatchResourceServerActionDTO['action']; rows: readonly ResourceServerVO[]}) => {
             const first = rows[0]
             if (!first) throw new Error('请选择 Resource Server')
-            return httpClient.request('/api/v1/tianquan-shoubing/resource-servers/actions/batch', {
+            return httpClient.request('/api/v1/tianquan-shoubing/resource-servers/actions/batch' + PLATFORM_REALM_QUERY, {
                 method: 'POST',
                 body: JSON.stringify({
                     bizCode: first.bizCode,

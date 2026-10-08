@@ -1,34 +1,29 @@
-import {Button, Card, Form, Input, Typography} from 'antd'
+import {Alert, Button, Card, Typography} from 'antd'
+import {useState} from 'react'
 import {gatewayAuth} from './gatewayAuth'
 
-export const LoginPage = ({onSuccess}: { readonly onSuccess: () => Promise<void> | void }) => {
+export const LoginPage = ({notice}: {readonly notice?: string}) => {
+  const [error, setError] = useState<string>()
+  const login = () => {
+    setError(undefined)
+    try {
+      gatewayAuth.login()
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : '统一身份登录失败')
+    }
+  }
+
   return (
     <main className="tianquan-jianshen-auth-page">
       <Card title="Tianquan-Jianshen 权限平台" className="tianquan-jianshen-login-card">
         <Typography.Paragraph type="secondary">
-            通过 Yuheng 统一身份入口登录。浏览器只使用 HttpOnly Cookie，Tianquan-Jianshen 只负责授权。
+          跳转到统一身份平台完成 OIDC 登录；鉴神只使用经验证的 RBAC 授权上下文。
         </Typography.Paragraph>
-        <Form
-          layout="vertical"
-          initialValues={{ tenantId: import.meta.env.VITE_DEFAULT_TENANT_ID ?? 'default' }}
-          onFinish={async (values: { tenantId: string; username: string; password: string }) => {
-              await gatewayAuth.login(values)
-              await onSuccess()
-          }}
-        >
-          <Form.Item name="tenantId" label="租户 ID" rules={[{ required: true }]}>
-            <Input autoComplete="organization" />
-          </Form.Item>
-            <Form.Item name="username" label="用户名" rules={[{required: true}]}>
-                <Input autoComplete="username"/>
-            </Form.Item>
-            <Form.Item name="password" label="密码" rules={[{required: true}]}>
-                <Input.Password autoComplete="current-password"/>
-          </Form.Item>
-          <Button type="primary" htmlType="submit" block>
-            使用统一身份登录
-          </Button>
-        </Form>
+        {notice && <Alert type="warning" showIcon message={notice} style={{marginBottom: 16}} />}
+        {error && <Alert type="error" showIcon message={error} style={{marginBottom: 16}} />}
+        <Button type="primary" block onClick={login}>
+          使用统一身份登录
+        </Button>
       </Card>
     </main>
   )

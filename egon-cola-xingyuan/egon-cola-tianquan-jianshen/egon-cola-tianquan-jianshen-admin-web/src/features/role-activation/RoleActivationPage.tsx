@@ -1,12 +1,19 @@
 import {useActiveRoles, usePermission, useRbac3Authorization} from '@egon-cola/tianquan-jianshen-react-sdk'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
-import {Alert, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography} from 'antd'
-import {useMemo, useState} from 'react'
+import {Alert, Button, Card, Descriptions, Modal, Space, Tag, Typography} from 'antd'
+import {useCallback, useEffect, useMemo, useState} from 'react'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
 import {PageState} from '@egon-cola/xingyuan-admin-web-shared'
 import {findDsdConflict, RoleActivationSelector} from './RoleActivationSelector'
 import {roleActivationApi} from './roleActivation.api'
 import {gatewayAuth} from '../auth/gatewayAuth'
+
+const STEP_UP_INTENT_KEY = 'egon.tianquan-jianshen.role-activation.step-up'
+
+interface RoleActivationRequest {
+    readonly roleIds: readonly string[]
+    readonly expectedAuthVersion: number
+}
 
 export const RoleActivationPage = () => {
     const authorization = useRbac3Authorization()
@@ -32,11 +39,7 @@ export const RoleActivationPage = () => {
   )
   const [selectionOverride, setSelectionOverride] = useState<readonly string[] | null>(null)
   const [submitError, setSubmitError] = useState<unknown>(null)
-  const [stepUpRequest, setStepUpRequest] = useState<{
-    readonly roleIds: readonly string[]
-      readonly expectedAuthVersion: number
-  } | null>(null)
-  const [stepUpCredential, setStepUpCredential] = useState('')
+  const [stepUpRequest, setStepUpRequest] = useState<RoleActivationRequest | null>(null)
   const [stepUpError, setStepUpError] = useState<unknown>(null)
   const [stepUpSubmitting, setStepUpSubmitting] = useState(false)
   const selectedRoleIds = selectionOverride ?? currentIds
@@ -59,7 +62,6 @@ export const RoleActivationPage = () => {
     } catch (error) {
       if (isStepUpRequired(error)) {
         setStepUpRequest(request)
-        setStepUpCredential('')
         setStepUpError(null)
         return
       }
@@ -67,31 +69,54 @@ export const RoleActivationPage = () => {
       setSubmitError(error)
     }
   }
-  const confirmStepUp = async () => {
-    if (stepUpRequest === null || stepUpCredential.length === 0) return
-    setStepUpSubmitting(true)
-    setStepUpError(null)
+  const resumeStepUpIntent = useCallback(async (request: RoleActivationRequest) => {
+    if (!current.data || request.expectedAuthVersion !== current.data.authVersion) {
+      setSubmitError(new Error('授权版本已变化，请重新选择角色'))
+      return
+    }
+    setSubmitError(null)
     try {
-        await gatewayAuth.stepUp(stepUpCredential)
-      await replaceActiveRoles(stepUpRequest)
-      setStepUpRequest(null)
-      setStepUpCredential('')
+      await replaceActiveRoles(request)
       setSelectionOverride(null)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['tianquan-jianshen', 'active-roles'] }),
         queryClient.invalidateQueries({ queryKey: ['tianquan-jianshen', 'activation-candidates'] }),
       ])
     } catch (error) {
-      setStepUpCredential('')
+      setSubmitError(error)
+    }
+  }, [current.data, queryClient, replaceActiveRoles])
+
+  useEffect(() => {
+    if (!current.data) return
+    const serialized = window.sessionStorage.getItem(STEP_UP_INTENT_KEY)
+    if (serialized === null) return
+    window.sessionStorage.removeItem(STEP_UP_INTENT_KEY)
+    const request = readRoleActivationRequest(serialized)
+    if (request === null) {
+      setSubmitError(new Error('强认证返回状态无效，请重新选择角色'))
+      return
+    }
+    void resumeStepUpIntent(request)
+  }, [current.data, resumeStepUpIntent])
+
+  const confirmStepUp = () => {
+    if (stepUpRequest === null) return
+    setStepUpSubmitting(true)
+    setStepUpError(null)
+    try {
+      window.sessionStorage.setItem(STEP_UP_INTENT_KEY, JSON.stringify(stepUpRequest))
+      gatewayAuth.stepUp()
+      setStepUpSubmitting(false)
+    } catch (error) {
+      window.sessionStorage.removeItem(STEP_UP_INTENT_KEY)
       setStepUpError(error)
-    } finally {
       setStepUpSubmitting(false)
     }
   }
   const cancelStepUp = () => {
     if (stepUpSubmitting) return
     setStepUpRequest(null)
-    setStepUpCredential('')
     setStepUpError(null)
   }
   return (
@@ -153,7 +178,7 @@ export const RoleActivationPage = () => {
             key="confirm"
             type="primary"
             loading={stepUpSubmitting}
-            disabled={stepUpCredential.length === 0}
+            disabled={stepUpSubmitting}
             onClick={() => void confirmStepUp()}
           >
             确认强认证并激活
@@ -161,7 +186,7 @@ export const RoleActivationPage = () => {
         ]}
       >
         <Typography.Paragraph type="secondary">
-            所选角色包含高风险或关键权限。请重新输入当前密码，Yuheng 会更新当前用户的短期 Access Token，然后继续激活原角色集合。
+          所选角色包含高风险或关键权限。继续后将跳转到统一身份平台重新认证，返回后会按当前授权版本重试本次角色集合。
         </Typography.Paragraph>
         {stepUpError !== null && (
           <Alert
@@ -172,14 +197,6 @@ export const RoleActivationPage = () => {
             style={{ marginBottom: 16 }}
           />
         )}
-        <Input.Password
-          aria-label="Current Password"
-          autoComplete="current-password"
-          value={stepUpCredential}
-          disabled={stepUpSubmitting}
-          onChange={(event) => setStepUpCredential(event.target.value)}
-          onPressEnter={() => void confirmStepUp()}
-        />
       </Modal>
     </>
   )
@@ -189,3 +206,24 @@ const isStepUpRequired = (error: unknown): boolean => typeof error === 'object'
   && error !== null
   && 'code' in error
   && error.code === 'STEP_UP_REQUIRED'
+
+const readRoleActivationRequest = (serialized: string): RoleActivationRequest | null => {
+  try {
+    const value: unknown = JSON.parse(serialized)
+    if (typeof value !== 'object' || value === null || !('roleIds' in value)
+      || !Array.isArray(value.roleIds)
+      || !value.roleIds.every((roleId) => typeof roleId === 'string')
+      || !('expectedAuthVersion' in value)
+      || typeof value.expectedAuthVersion !== 'number'
+      || !Number.isInteger(value.expectedAuthVersion)
+      || value.expectedAuthVersion < 0) {
+      return null
+    }
+    return {
+      roleIds: value.roleIds,
+      expectedAuthVersion: value.expectedAuthVersion,
+    }
+  } catch {
+    return null
+  }
+}

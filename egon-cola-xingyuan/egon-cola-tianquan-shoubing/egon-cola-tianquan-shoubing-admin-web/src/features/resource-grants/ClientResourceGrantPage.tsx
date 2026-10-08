@@ -16,8 +16,8 @@ import {
     Typography,
 } from 'antd'
 import {ArrowLeftOutlined, DeleteOutlined, LinkOutlined, ReloadOutlined} from '@ant-design/icons'
-import {useMemo, useState} from 'react'
-import {useNavigate, useParams} from 'react-router-dom'
+import {useEffect, useMemo, useState} from 'react'
+import {useNavigate, useParams, useSearchParams} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/xingyuan-admin-web-shared'
@@ -71,27 +71,53 @@ export const ClientResourceGrantPage = () => {
     const {clientId} = useParams<{ clientId: string }>()
     const auth = useAuth()
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const queryClient = useQueryClient()
     const {has} = usePermission(auth.bootstrap?.permissions ?? [])
+    const tenantRealm = auth.bootstrap?.user.tenantId
+        ? `tenant:${auth.bootstrap.user.tenantId}`
+        : undefined
+    const canSelectPlatform = auth.bootstrap?.permissions.includes('system:platform:admin') ?? false
+    const realm = searchParams.get('realm') === 'platform' && canSelectPlatform
+        ? 'platform'
+        : tenantRealm
     const [upsertOpen, setUpsertOpen] = useState(false)
     const [selectedRs, setSelectedRs] = useState<ResourceServerVO | null>(null)
     const [selectedResourceServerIds, setSelectedResourceServerIds] = useState<string[]>([])
     const [form] = Form.useForm<GrantFormValues>()
     const [messageApi, contextHolder] = message.useMessage()
 
+    const realmQuery = (value: string): string => `?${new URLSearchParams({realm: value}).toString()}`
+    const withRealm = (path: string): string => {
+        if (!realm) throw new Error('认证Realm不可用')
+        return path + realmQuery(realm)
+    }
+
+    useEffect(() => {
+        setSelectedResourceServerIds([])
+        setSelectedRs(null)
+        setUpsertOpen(false)
+        form.resetFields()
+    }, [form, realm])
+
     const encodedClientId = clientId ? encodeURIComponent(clientId) : ''
     const rsQuery = useQuery({
-        queryKey: ['tianquan-shoubing', 'resource-servers'],
+        queryKey: ['tianquan-shoubing', 'resource-servers', 'platform'],
+        enabled: Boolean(realm),
         queryFn: () => httpClient
-            .request<ResourceServerVO[] | ResourceServerPageVO>('/api/v1/tianquan-shoubing/resource-servers')
+            .request<ResourceServerVO[] | ResourceServerPageVO>(
+                '/api/v1/tianquan-shoubing/resource-servers' + realmQuery('platform'),
+            )
             .then(normalizePage),
     })
     const grantQuery = useQuery({
-        queryKey: ['tianquan-shoubing', 'grants', clientId],
-        enabled: Boolean(clientId),
+        queryKey: ['tianquan-shoubing', 'grants', realm, clientId],
+        enabled: Boolean(clientId && realm),
         retry: false,
         queryFn: () => httpClient
-            .request<GrantReadResponse>(`/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources`)
+            .request<GrantReadResponse>(
+                `/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources` + realmQuery(realm ?? ''),
+            )
             .then(normalizePage),
     })
 
@@ -127,15 +153,15 @@ export const ClientResourceGrantPage = () => {
 
     const invalidateGrantQueries = async () => {
         await Promise.all([
-            queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'resource-servers']}),
-            queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'grants', clientId]}),
+            queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'resource-servers', 'platform']}),
+            queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'grants', realm, clientId]}),
         ])
     }
 
     const upsertMutation = useMutation({
         mutationFn: ({rsId, data}: {rsId: string; data: UpsertClientResourceGrantDTO}) =>
             httpClient.request<ClientResourceGrantVO>(
-                `/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources/${encodeURIComponent(rsId)}`,
+                withRealm(`/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources/${encodeURIComponent(rsId)}`),
                 {method: 'PUT', body: JSON.stringify(data)},
             ),
         onSuccess: async () => {
@@ -158,7 +184,7 @@ export const ClientResourceGrantPage = () => {
                 expectedGrantVersion: grant.version,
             }
             return httpClient.request<void>(
-                `/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources/${encodeURIComponent(resourceServer.resourceServerId)}`,
+                withRealm(`/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources/${encodeURIComponent(resourceServer.resourceServerId)}`),
                 {method: 'DELETE', body: JSON.stringify(data)},
             )
         },
@@ -196,7 +222,7 @@ export const ClientResourceGrantPage = () => {
                 ])),
             }
             return httpClient.request<ClientResourceGrantVO[]>(
-                `/api/v1/tianquan-shoubing/clients/${encodedClientId}/resource-grants/actions/batch`,
+                withRealm(`/api/v1/tianquan-shoubing/clients/${encodedClientId}/resource-grants/actions/batch`),
                 {method: 'POST', body: JSON.stringify(data)},
             )
         },
@@ -212,7 +238,7 @@ export const ClientResourceGrantPage = () => {
 
     if (!clientId) {
         return <Result status="error" title="缺少 clientId 参数"
-                       extra={<Button onClick={() => navigate('/clients')}>返回客户端列表</Button>}/>
+                       extra={<Button onClick={() => navigate('/clients' + (realm ? realmQuery(realm) : ''))}>返回客户端列表</Button>}/>
     }
 
     const openUpsert = (resourceServer: ResourceServerVO) => {
@@ -238,7 +264,7 @@ export const ClientResourceGrantPage = () => {
             <Card
                 title={
                     <Space>
-                        <Button icon={<ArrowLeftOutlined/>} onClick={() => navigate('/clients')} type="text"/>
+                        <Button icon={<ArrowLeftOutlined/>} onClick={() => navigate('/clients' + (realm ? realmQuery(realm) : ''))} type="text"/>
                         <span>Client：<Typography.Text code>{clientId}</Typography.Text> 的 Resource Grant</span>
                     </Space>
                 }
@@ -255,8 +281,8 @@ export const ClientResourceGrantPage = () => {
                     <Alert
                         type="warning"
                         showIcon
-                        title="Grant 读取接口待补齐"
-                        description="当前后端已提供 Grant 保存、删除与批量变更接口；读取接口返回 404 时不将其误判为空授权。"
+                        title="Client 或 Grant 不存在"
+                        description="当前Realm没有这个Client的授权记录；读取错误不会被当作空授权。"
                         style={{marginBottom: 16}}
                     />
                 )}

@@ -8,13 +8,14 @@ directly.
 
 ## Authentication
 
-The console signs in through the platform unified identity (Tianquan-Shoubing) via
-`createGatewayAuthClient` from `@egon-cola/xingyuan-admin-web-shared`. The login form
-submits a tenant ID, username and password to the CSRF-protected `/oauth2/login`
-endpoint, and the session lives in `HttpOnly` cookies the browser never reads.
+The console signs in through the platform unified identity using
+`createGatewayAuthClient` from `@egon-cola/xingyuan-admin-web-shared`. Login navigates to the
+configured Edge OIDC registration (`/oauth2/authorization/edge-ui`). Edge keeps OAuth tokens
+server-side and gives the browser an HttpOnly session cookie; the browser never submits a
+tenant ID, username or password and never stores AT/RT.
 
-The console therefore holds no access token and sends no `Authorization` header; every
-call relies on cookie credentials. Identity and permissions come from
+The console therefore holds no access token and sends no `Authorization` header; API calls
+use the Edge session and its BFF token relay. Identity and permissions come from
 `GET /api/v1/tianshu/auth/bootstrap`, and the console is authorized only when the
 response grants `TIANSHU_READ`. A 401 clears the local bootstrap state and returns to
 the login page.
@@ -29,11 +30,10 @@ npm run lint
 npm run build
 ```
 
-`npm run dev` binds `http://127.0.0.1:18152` (`strictPort`) and proxies both `/oauth2`
-and `/api` to the gateway that fronts Tianshu Admin, by default
-`http://127.0.0.1:18180`. Override the two upstreams independently with
-`TIANSHU_AUTH_PROXY` and `TIANSHU_ADMIN_PROXY`; `npm run preview` reuses the same proxy
-table.
+`npm run dev` binds `http://127.0.0.1:18152` (`strictPort`) and proxies `/oauth2`, `/bff`, and
+`/login/oauth2` to the Edge gateway, and `/api` to the gateway that fronts Tianshu Admin. Override the
+upstreams independently with `TIANSHU_AUTH_PROXY` and `TIANSHU_ADMIN_PROXY`; configure the
+auth proxy to the Edge instance. `npm run preview` reuses the same proxy table.
 
 The registry page sends an exact four-part scope on its first request. Set its
 build-time defaults when the local scope differs from `default / default-app /
@@ -47,15 +47,9 @@ VITE_TIANSHU_ADMIN_DEFAULT_NAMESPACE=default \
 npm run dev
 ```
 
-Run `npm run e2e` only with a reachable Tianshu Admin: Playwright builds the console and
-serves `npm run preview` on `http://127.0.0.1:4173`, so the scenario traffic reaches Admin
-through the preview proxy table above. The command is not a substitute for the Tianshu
-live Maven suite.
-
-> Known gap: `e2e/tianshu-admin.spec.ts` still drives a removed "paste an admin token"
-> form through `TIANSHU_E2E_TOKEN`, so it skips unless that variable is set and then
-> fails against the current login form. The spec needs a source-side fix; see the
-> Yuheng Admin Web Playwright suite for the cookie-login pattern to copy.
+`npm run e2e` builds the console and serves `npm run preview` on `http://127.0.0.1:4173`.
+The current auth scenario mocks the OIDC entry and does not prove a live Edge, authorization
+server, Redis session or Tianshu Admin runtime.
 
 ## Runtime configuration
 

@@ -38,7 +38,7 @@ function SessionProbe() {
     null,
     createElement('span', { 'data-testid': 'tenant' }, requestContext().tenantId ?? ''),
     createElement('span', { 'data-testid': 'generation' }, String(requestContext().sessionGeneration)),
-    createElement('button', { onClick: () => void auth.login('2002', 'operator', 'password') }, 'switch-tenant'),
+    createElement('button', { onClick: () => void auth.login() }, 'start-login'),
     createElement('button', { onClick: () => void auth.logout() }, 'logout'),
   )
 }
@@ -57,7 +57,7 @@ function GuardedSessionProbe({guard}: {guard: () => Promise<boolean>}) {
       onClick: () => guardedAuth.registerUnsavedChangesGuard(guard),
     }, 'register-guard'),
     createElement('button', {
-      onClick: () => void auth.login('2002', 'operator', 'password'),
+      onClick: () => void auth.login(),
     }, 'guarded-login'),
     createElement('button', { onClick: () => void auth.logout() }, 'guarded-logout'),
   )
@@ -80,10 +80,10 @@ describe('AuthContext tenant session isolation', () => {
     unmount()
   })
 
-  it('clears old query data and advances the session when switching tenants', async () => {
+  it('clears local tenant state before OIDC navigation and trusts the returned bootstrap', async () => {
     const bootstraps = [bootstrap('1001'), bootstrap('2002')]
     vi.spyOn(gatewayAuth, 'bootstrap').mockImplementation(async () => bootstraps.shift() as AuthorizationBootstrap)
-    vi.spyOn(gatewayAuth, 'login').mockResolvedValue(undefined as never)
+    const login = vi.spyOn(gatewayAuth, 'login').mockImplementation(() => {})
 
     const { queryClient, unmount } = renderWithQueryClient(
       createElement(AuthProvider, null, createElement(SessionProbe)),
@@ -102,14 +102,20 @@ describe('AuthContext tenant session isolation', () => {
     }).catch(() => undefined)
     await waitFor(() => expect(pendingSignal).toBeDefined())
 
-    fireEvent.click(screen.getByText('switch-tenant'))
+    fireEvent.click(screen.getByText('start-login'))
 
-    await waitFor(() => expect(requestContext().tenantId).toBe('2002'))
+    await waitFor(() => expect(requestContext().tenantId).toBeUndefined())
     expect(requestContext().sessionGeneration).toBeGreaterThan(firstGeneration)
     expect(pendingSignal?.aborted).toBe(true)
     expect(queryClient.getQueryData(oldTenantQueryKey)).toBeUndefined()
+    expect(login).toHaveBeenCalledWith()
     await pendingQuery
     unmount()
+
+    renderWithQueryClient(
+      createElement(AuthProvider, null, createElement(SessionProbe)),
+    )
+    await waitFor(() => expect(requestContext().tenantId).toBe('2002'))
   })
 
   it('rebootstraps on tenant mismatch without replaying the request', async () => {
@@ -143,7 +149,7 @@ describe('AuthContext tenant session isolation', () => {
 
   it('clears tenant query state and advances generation on logout', async () => {
     vi.spyOn(gatewayAuth, 'bootstrap').mockResolvedValue(bootstrap('1001'))
-    vi.spyOn(gatewayAuth, 'logout').mockResolvedValue(undefined as never)
+    vi.spyOn(gatewayAuth, 'logout').mockResolvedValue({remoteState: 'CONFIRMED'})
     const {queryClient, unmount} = renderWithQueryClient(
       createElement(AuthProvider, null, createElement(SessionProbe)),
     )
@@ -163,8 +169,8 @@ describe('AuthContext tenant session isolation', () => {
 
   it('keeps tenant session and query data when an unsaved-change guard declines login and logout', async () => {
     vi.spyOn(gatewayAuth, 'bootstrap').mockResolvedValue(bootstrap('1001'))
-    const login = vi.spyOn(gatewayAuth, 'login').mockResolvedValue(undefined as never)
-    const logout = vi.spyOn(gatewayAuth, 'logout').mockResolvedValue(undefined as never)
+    const login = vi.spyOn(gatewayAuth, 'login').mockImplementation(() => {})
+    const logout = vi.spyOn(gatewayAuth, 'logout').mockResolvedValue({remoteState: 'CONFIRMED'})
     const guard = vi.fn().mockResolvedValue(false)
     const {queryClient, unmount} = renderWithQueryClient(
       createElement(AuthProvider, null, createElement(GuardedSessionProbe, {guard})),
@@ -195,7 +201,7 @@ describe('AuthContext tenant session isolation', () => {
 
   it('clears session once after a dirty guard approves logout', async () => {
     vi.spyOn(gatewayAuth, 'bootstrap').mockResolvedValue(bootstrap('1001'))
-    const logout = vi.spyOn(gatewayAuth, 'logout').mockResolvedValue(undefined as never)
+    const logout = vi.spyOn(gatewayAuth, 'logout').mockResolvedValue({remoteState: 'CONFIRMED'})
     const guard = vi.fn().mockResolvedValue(true)
     const {queryClient, unmount} = renderWithQueryClient(
       createElement(AuthProvider, null, createElement(GuardedSessionProbe, {guard})),

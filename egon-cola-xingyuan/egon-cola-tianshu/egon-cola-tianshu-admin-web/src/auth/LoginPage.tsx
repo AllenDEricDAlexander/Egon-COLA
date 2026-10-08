@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, Typography } from 'antd'
+import { Alert, Button, Card, Typography } from 'antd'
 import { useAuth } from './AuthContext'
 
 export default function LoginPage() {
@@ -8,27 +8,12 @@ export default function LoginPage() {
       <Card>
         <Typography.Title level={4}>Tianshu 管理端</Typography.Title>
         <Typography.Paragraph type="secondary">
-          使用统一身份平台登录；页面不接收、不持久化任何手工 Token。
+          跳转到统一身份平台完成 OIDC 登录；浏览器只持有 Edge 的 HttpOnly 会话 Cookie。
         </Typography.Paragraph>
-        <Form
-          layout="vertical"
-          initialValues={{ tenantId: import.meta.env.VITE_DEFAULT_TENANT_ID ?? 'default' }}
-          onFinish={(values: { tenantId: string; username: string; password: string }) =>
-              void auth.login(values.tenantId, values.username, values.password)}
-        >
-          <Form.Item name="tenantId" label="租户 ID" rules={[{ required: true }]}>
-            <Input autoComplete="organization" />
-          </Form.Item>
-            <Form.Item name="username" label="用户名" rules={[{required: true}]}>
-                <Input autoComplete="username"/>
-            </Form.Item>
-            <Form.Item name="password" label="密码" rules={[{required: true}]}>
-                <Input.Password autoComplete="current-password"/>
-          </Form.Item>
-          <Button type="primary" block htmlType="submit" loading={auth.loading}>
-            使用统一身份登录
-          </Button>
-        </Form>
+        {auth.error && <Alert type="warning" showIcon message={auth.error} />}
+        <Button type="primary" block loading={auth.loading} onClick={() => void auth.login()}>
+          使用统一身份登录
+        </Button>
       </Card>
     </div>
   )

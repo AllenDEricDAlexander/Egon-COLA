@@ -53,10 +53,10 @@ const renderPage = () => {
 beforeEach(() => {
   state.permissions = ['tianquan-shoubing:resource-server:read', 'tianquan-shoubing:resource-server:status']
   state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-    if (path === '/api/v1/tianquan-shoubing/resource-servers?page=0&size=20' && !options) {
+    if (path === '/api/v1/tianquan-shoubing/resource-servers?page=0&size=20&realm=platform' && !options) {
       return Promise.resolve({ content: [resourceServer], page: 0, size: 20, totalElements: 21, totalPages: 2 })
     }
-    if (path === `/api/v1/tianquan-shoubing/resource-servers/${resourceServer.resourceServerId}/disable`) {
+    if (path === `/api/v1/tianquan-shoubing/resource-servers/${resourceServer.resourceServerId}/disable?realm=platform`) {
       return Promise.reject(new Error('版本冲突'))
     }
     return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -71,6 +71,9 @@ describe('Resource Server administration', () => {
 
     expect(await screen.findByText('Orders API')).toBeInTheDocument()
     expect(screen.getByText('共 21 条')).toBeInTheDocument()
+    expect(state.request).toHaveBeenCalledWith(
+      '/api/v1/tianquan-shoubing/resource-servers?page=0&size=20&realm=platform',
+    )
     fireEvent.click(screen.getByRole('button', { name: /查看详情/ }))
     expect(await screen.findByRole('dialog')).toHaveTextContent('orders-api')
   })

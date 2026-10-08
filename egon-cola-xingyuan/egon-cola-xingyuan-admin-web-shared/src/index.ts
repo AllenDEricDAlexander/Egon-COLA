@@ -13,8 +13,10 @@ export {
     type GatewayAuthClient,
     type GatewayAuthErrorCode,
     type GatewayAuthClientOptions,
-    type GatewayLoginRequest,
-    type GatewayLoginResult,
+    type GatewayCsrfResult,
+    type GatewayLogoutRemoteState,
+    type GatewayLogoutResult,
+    type GatewaySessionResult,
 } from './auth/gatewayAuthClient'
 
 // i18n

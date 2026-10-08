@@ -1,8 +1,8 @@
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
-import {fireEvent, render, screen, waitFor, within} from '@testing-library/react'
+import {fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {MemoryRouter} from 'react-router-dom'
 import {AdminThemeProvider, I18nProvider, initI18n} from '@egon-cola/xingyuan-admin-web-shared'
-import {beforeAll, beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest'
 import {PortalLayout} from './PortalLayout'
 import {PortalRouter} from './router'
 
@@ -11,10 +11,12 @@ vi.mock('../auth/portalAuth', () => ({portalAuth: auth}))
 
 beforeAll(async () => {await initI18n({lng: 'zh-CN', resources: {'zh-CN': {}}})})
 beforeEach(() => {
-  auth.userInfo.mockReset().mockResolvedValue(null)
-  auth.login.mockReset().mockRejectedValue(new Error('invalid credentials'))
-  auth.logout.mockReset().mockRejectedValue(new Error('temporarily unavailable'))
+  window.sessionStorage.clear()
+  auth.userInfo.mockReset().mockResolvedValue({authenticated: false})
+  auth.login.mockReset()
+  auth.logout.mockReset().mockResolvedValue({remoteState: 'CONFIRMED'})
 })
+afterEach(() => window.sessionStorage.clear())
 
 const renderPortal = (router = false) => render(
   <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
@@ -25,7 +27,7 @@ const renderPortal = (router = false) => render(
 )
 
 describe('Portal shell', () => {
-  it('offers Yuheng login in the host header and keeps the content frameless', async () => {
+  it('offers passwordless OIDC login in the host header and keeps content frameless', async () => {
     renderPortal()
     await screen.findByText('登录')
     expect(screen.getByRole('img', {name: 'Egon COLA Xingyuan'})).toHaveAttribute('src', '/favicon.png')
@@ -33,25 +35,33 @@ describe('Portal shell', () => {
     expect(screen.getByText('平台内容').closest('.ant-layout-content')).toHaveStyle({padding: '0px'})
     fireEvent.click(screen.getByRole('button', {name: /用户菜单|User Menu/}))
     fireEvent.click(await screen.findByRole('menuitem', {name: /登录/}))
-    const modal = await screen.findByRole('dialog', {name: '登录 Egon COLA Xingyuan'})
-    fireEvent.change(within(modal).getByLabelText('租户 ID'), {target: {value: '123'}})
-    fireEvent.change(within(modal).getByLabelText('用户名'), {target: {value: 'alice'}})
-    fireEvent.change(within(modal).getByLabelText('密码'), {target: {value: 'example-password'}})
-    fireEvent.click(within(modal).getByRole('button', {name: /登\s*录/}))
-    await waitFor(() => expect(auth.login).toHaveBeenCalledWith({
-      tenantId: '123', username: 'alice', password: 'example-password',
-    }))
-    expect(await screen.findByText('登录失败，请检查租户和账号信息后重试')).toBeInTheDocument()
+    expect(auth.login).toHaveBeenCalledWith()
+    expect(screen.queryByRole('dialog', {name: '登录 Egon COLA Xingyuan'})).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('租户 ID')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('用户名')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('密码')).not.toBeInTheDocument()
   })
 
-  it('shows the authenticated subject and provides logout without passing credentials to children', async () => {
-    auth.userInfo.mockResolvedValue({sub: '42', tid: '123'})
-    renderPortal()
+  it('shows the verified BFF identity and persists only the logout outcome across reload', async () => {
+    auth.userInfo.mockResolvedValue({
+      authenticated: true,
+      tenantId: '123',
+      subject: '42',
+      displayName: 'Alice',
+    })
+    auth.logout.mockResolvedValue({remoteState: 'PENDING'})
+    const first = renderPortal()
     await screen.findByText('42')
     fireEvent.click(screen.getByRole('button', {name: /用户菜单|User Menu/}))
     fireEvent.click(await screen.findByRole('menuitem', {name: /退出登录/}))
     await waitFor(() => expect(auth.logout).toHaveBeenCalledOnce())
-    expect(await screen.findByText('退出登录失败，请重试')).toBeInTheDocument()
+    await waitFor(() => expect(window.sessionStorage.getItem('egon.portal.logout.remote-state'))
+      .toBe('PENDING'))
+    first.unmount()
+
+    auth.userInfo.mockResolvedValue({authenticated: false})
+    renderPortal()
+    expect(await screen.findByText('本地已退出，远端令牌撤销待恢复。')).toBeInTheDocument()
   })
 
   it('opens a child xingyuan directly instead of the introduction dashboard', async () => {

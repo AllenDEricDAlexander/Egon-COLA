@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test'
 
-test('contract fixture: an unauthenticated bootstrap shows the Yuheng login form', async ({page}) => {
+test('contract fixture: unauthenticated authorization shows the OIDC login entry', async ({page}) => {
     let bootstrapCount = 0
     await page.route('**/api/v1/auth/about', async (route) => {
         bootstrapCount += 1
@@ -12,6 +12,7 @@ test('contract fixture: an unauthenticated bootstrap shows the Yuheng login form
         })
   })
   await page.goto('/')
-    await expect(page.getByLabel('租户 ID')).toBeVisible()
+    await expect(page.getByRole('button', {name: '使用统一身份登录'})).toBeVisible()
+    await expect(page.getByRole('textbox')).toHaveCount(0)
     expect(bootstrapCount).toBe(1)
 })

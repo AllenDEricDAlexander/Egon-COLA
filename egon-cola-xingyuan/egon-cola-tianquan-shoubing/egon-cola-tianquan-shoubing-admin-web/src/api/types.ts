@@ -126,11 +126,14 @@ export interface UpsertTenantMembershipDTO {
 }
 
 // ─── OAuth Clients ───────────────────────────────────────────────
+export type OAuthClientPurpose = 'USER' | 'SERVICE'
+
 export interface OAuthClientVO {
   readonly appId?: string
   readonly clientId: string
   readonly clientName: string
   readonly clientType: string
+  readonly purpose: OAuthClientPurpose
   readonly status: string
   readonly secretHint?: string
   readonly secretStatus?: string
@@ -139,9 +142,11 @@ export interface OAuthClientVO {
   readonly refreshTokenTtlSeconds: number
   readonly redirectUris: readonly string[]
   readonly resourceUris: readonly string[]
+  readonly allowedScopes: readonly string[]
   readonly version: number
     readonly createdAt: string
     readonly updatedAt: string
+  readonly issuer: string
 }
 
 export type OAuthClientPageVO = IdentityPage<OAuthClientVO>
@@ -151,10 +156,12 @@ export interface CreateOAuthClientDTO {
     clientId: string
     clientName: string
     clientType?: string
+    purpose: OAuthClientPurpose
     accessTokenTtlSeconds: number
     refreshTokenTtlSeconds: number
     redirectUris: string[]
     resourceUris: string[]
+    allowedScopes: string[]
 }
 
 export interface UpdateOAuthClientDTO {
@@ -163,6 +170,7 @@ export interface UpdateOAuthClientDTO {
     accessTokenTtlSeconds: number
     refreshTokenTtlSeconds: number
     expectedVersion: number
+    allowedScopes?: string[]
 }
 
 export interface OAuthValueDTO {
@@ -174,11 +182,13 @@ export interface CreatedOAuthClientVO {
     readonly appId?: string | null
     readonly clientName: string
     readonly clientType: string
+    readonly purpose: OAuthClientPurpose
     readonly status: string
     readonly clientSecret?: string | null
     readonly secretHint?: string | null
     readonly version: number
     readonly createdAt: string
+    readonly issuer: string
 }
 
 export interface RotatedClientSecretVO {
@@ -188,6 +198,7 @@ export interface RotatedClientSecretVO {
     readonly secretHint: string
     readonly version: number
     readonly rotatedAt: string
+    readonly issuer: string
 }
 
 export interface RotateClientSecretDTO {
@@ -218,6 +229,7 @@ export interface IdentityListFilter {
     readonly size: number
     readonly query?: string
     readonly status?: string
+    readonly realm?: string
 }
 
 export interface CreateResourceServerDTO {
@@ -294,9 +306,10 @@ export interface SigningKeyVO {
   readonly runtimeServing: boolean
   readonly activatedAt?: string
   readonly retiredAt?: string
-  readonly version: number
+    readonly version: number
     readonly createdAt: string
     readonly updatedAt: string
+    readonly issuer: string
 }
 
 export interface PublishSigningKeyDTO {

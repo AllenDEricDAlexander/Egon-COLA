@@ -30,21 +30,15 @@ describe('LoginPage', () => {
     vi.unstubAllGlobals()
   })
 
-    it('uses the Yuheng cookie login flow and never renders a token input', async () => {
+  it('starts OIDC login without tenant, username, password, or token inputs', async () => {
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
 
     expect(screen.queryByPlaceholderText(/Token/)).not.toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('租户 ID'), {
-      target: { value: 'tenant-a' },
-    })
-        fireEvent.change(screen.getByLabelText('用户名'), {
-            target: {value: 'admin'},
-        })
-        fireEvent.change(screen.getByLabelText('密码'), {
-            target: {value: 'secret'},
-        })
-        fireEvent.click(screen.getByRole('button', {name: /使用统一身份登录/}))
+    expect(screen.queryByLabelText('租户 ID')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('用户名')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('密码')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', {name: /使用统一身份登录/}))
 
-        await waitFor(() => expect(auth.login).toHaveBeenCalledWith('tenant-a', 'admin', 'secret'))
+    await waitFor(() => expect(auth.login).toHaveBeenCalledWith())
   })
 })

@@ -14,7 +14,15 @@ export default defineConfig({
     proxy: {
       '/oauth2': {
         target: process.env.TIANQUAN_JIANSHEN_AUTH_PROXY ?? 'http://127.0.0.1:18180',
-        changeOrigin: true,
+        changeOrigin: false,
+      },
+      '/bff': {
+        target: process.env.TIANQUAN_JIANSHEN_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: false,
+      },
+      '/login/oauth2': {
+        target: process.env.TIANQUAN_JIANSHEN_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: false,
       },
       '/api': {
         target: process.env.TIANQUAN_JIANSHEN_ADMIN_PROXY ?? 'http://127.0.0.1:18180',

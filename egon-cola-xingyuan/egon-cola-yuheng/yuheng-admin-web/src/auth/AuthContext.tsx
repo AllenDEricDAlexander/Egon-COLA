@@ -14,11 +14,11 @@ export {gatewayAuth, httpClient}
 
 type AuthState = {
   loading: boolean
-    authorization?: AuthorizationBootstrap
+  authorization?: AuthorizationBootstrap
   error?: string
-    login: (tenantId: string, username: string, password: string) => Promise<void>
+  login: () => void
   logout: () => Promise<void>
-    refreshAuthorization: () => Promise<void>
+  refreshAuthorization: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
@@ -33,27 +33,28 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         setAuthorization(value)
   }, [])
 
-    const login = useCallback(async (
-        tenantId: string,
-        username: string,
-        password: string,
-    ) => {
-        setLoading(true)
-        setError(undefined)
-        try {
-            await gatewayAuth.login({tenantId, username, password})
-            await refreshAuthorization()
-        } catch (failure) {
-            setError(failure instanceof Error ? failure.message : '登录失败')
-            throw failure
-        } finally {
-            setLoading(false)
-        }
-    }, [refreshAuthorization])
+  const login = useCallback(() => {
+    setLoading(true)
+    setError(undefined)
+    try {
+      gatewayAuth.login()
+    } catch (failure) {
+      setLoading(false)
+      setError(failure instanceof Error ? failure.message : '登录失败')
+    }
+  }, [])
 
-    const logout = useCallback(async () => {
-        await gatewayAuth.logout()
-        setAuthorization(undefined)
+  const logout = useCallback(async () => {
+    try {
+      const result = await gatewayAuth.logout()
+      setError(result.remoteState === 'CONFIRMED'
+        ? undefined
+        : '本地已退出，远端令牌撤销待恢复')
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : '统一身份退出失败')
+    } finally {
+      setAuthorization(undefined)
+    }
   }, [])
 
   useEffect(() => {

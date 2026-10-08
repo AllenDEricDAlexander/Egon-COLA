@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 10:42 Asia/Shanghai` |
-| Updated | `2026-10-09 00:40 Asia/Shanghai` |
+| Updated | `2026-10-09 05:48 Asia/Shanghai` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | 授柄SAS/认证MP与受管DDL、SCG、Starter、玉衡/鉴神/天枢准入、五端认证前端、切流 |
@@ -168,7 +168,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | 改造机器客户端缓存并装配WebClient | REQ-005, REQ-009, REQ-011, REQ-016 | Required — 当前manager/cache无法按可信issuer/client/version完整分区且没有安全WebClient过滤器，先RED后GREEN。 | Step 12 | 双层缓存完整隔离、bounded renewal与同origin Bearer filter完成，无client_credentials RT和不安全重放。 | Step 14 | Step 13 |
 | 建立SCG OAuth2登录和服务端会话 | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042 | Required — 先确认session encryption/durable authenticated multi-client logout+CSRF/OpenAPI/Gateway route-binding/refresh single-flight/exact held-token session-state的行为RED；按24个有序文件GREEN。 | Step 13 | encrypted issuer-bound session; API-015 current exact token validity; logout requires BFF session+CSRF; scope-protected opt-in OpenAPI; distributed refresh lock; durable logout intents; correct static routes and compile-time Lombok wiring. | Step 15 | Step 14 |
 | 保留玉衡、鉴神与天枢准入链 | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025 | Required — USER refresh-cookie、`SCOPE_*`桥接及Jianshen嵌套tenant恢复先通过目标行为RED；实现后按11个有序文件GREEN，同时保留Tianshu registry/header/HMAC与SERVICE准入合同。 | Step 14 | 失效USER Bearer不再刷新RT；已验证scope与独立RBAC快照同时进入最终认证；嵌套Jianshen tenant scope恢复，外层ThreadLocal与请求属性清理；平台SERVICE和Tianshu registry/HMAC边界保持。 | Step 16 | Step 15 |
-| 迁移共享认证客户端与五个前端消费者 | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026 | Required — gatewayAuthClient旧密码POST与AT/RT Cookie契约使新BFF test RED；共享客户端与各消费者更新后GREEN。 | Step 15 | Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token。 | Step 17 | Step 16 |
+| 迁移共享认证客户端与五个前端消费者 | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026, REQ-043 | Required — 共享Client、Edge OIDC step-up resolver和React认证/角色回归先RED，再按49个路径GREEN；受影响package typecheck/test通过。 | Step 15 | Portal/四Admin只走配置OIDC registration与BFF session/CSRF/logout；无密码/AT/RT浏览器处理；高风险角色使用max_age=0重认证并只重试一次。 | Step 17 | Step 16 |
 | 提供受控数据导入、切流及本地验证入口 | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023 | Required — 迁移测试先对旧JPA/旧登录路径RED；新增Service/脚本/运行手册后静态与单元GREEN，真实导入由用户操作者运行。 | Step 15 | 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收。 | Step 18 | Step 17 |
 | 退役旧协议并校验全域回归 | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027 | Required — old token/login controllers still registered produce non410 RED；retirement filter/config GREEN。 | Step 16, Step 17；均GREEN并提交后 | 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出。 | 发布验收 | Step 18 |
 
@@ -544,13 +544,14 @@ MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAu
 MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx  # Step 16
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx  # Step 16
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx  # Step 16
@@ -560,6 +561,34 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx  # Step 16
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java  # Step 16
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 16
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts  # Step 16
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts  # Step 16
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java  # Step 17
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/OAuthMigrationCommand.java  # Step 17
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/result/OAuthMigrationReportResult.java  # Step 17
@@ -951,13 +980,14 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx` | Shoubing OIDC login page has no direct input-contract test | Assert no tenant/credential/token inputs and a no-argument OIDC login call | Passwordless login remains directly protected | Step 16 | REQ-010,REQ-017,REQ-043 | Shoubing login test and package typecheck |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 把现有前端登录消费者迁到BFF，保留业务页面。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx` | Existing test still expects the retired tenant/password form | Assert OIDC entry has no tenant, username, password or token inputs and invokes no-argument login | No browser credentials are submitted | Step 16 | REQ-010,REQ-017,REQ-043 | Yuheng login/layout tests and package typecheck |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 主Spec §12的授柄管理页面realm/密钥/资源身份联动。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 主Spec §12的授柄管理页面realm/密钥/资源身份联动。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 主Spec §12的授柄管理页面realm/密钥/资源身份联动。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
@@ -967,6 +997,19 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 主Spec §12的授柄管理页面realm/密钥/资源身份联动。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 主Spec §12的授柄管理页面realm/密钥/资源身份联动。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 主Spec §12的授柄管理页面realm/密钥/资源身份联动。 | Step 16 | REQ-003,REQ-004,REQ-010,REQ-017,REQ-026 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java` | Edge default resolver lacks step-up contract coverage | Assert exact stepUp flag adds fixed prompt=login/max_age=0 | Configured issuer and PKCE remain unchanged | Step 16 | REQ-010,REQ-017,REQ-043 | Edge/shared/frontend contract suites |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx` | Jianshen shell test misses localized credential fields | Assert passwordless OIDC entry and logout outcome | No credential form remains | Step 16 | REQ-010,REQ-017,REQ-043 | Edge/shared/frontend contract suites |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx` | Role activation tests cover ordinary replacement only | RED same-tab role intent and expectedAuthVersion retry after reauthentication | No password/token in storage | Step 16 | REQ-010,REQ-017,REQ-043 | Edge/shared/frontend contract suites |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx` | PortalLayout still collects tenant/user/password | Replace credential Modal with OIDC entry and recheck BFF session after logout | No credential Modal | Step 16 | REQ-010,REQ-017,REQ-043 | Edge/shared/frontend contract suites |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx` | Jianshen LoginPage still collects credentials | Use configured shared OIDC redirect | No password post | Step 16 | REQ-010,REQ-017,REQ-043 | Edge/shared/frontend contract suites |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx` | RoleActivationPage still calls stepUp(password) | Use OIDC step-up and one resumed role intent | No password prompt | Step 16 | REQ-010,REQ-017,REQ-043 | Edge/shared/frontend contract suites |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` | Edge resolver ignores the step-up intent | Decorate existing resolver with fixed prompt=login/max_age=0 | No arbitrary issuer/prompt forwarding | Step 16 | REQ-010,REQ-017,REQ-043 | Edge/shared/frontend contract suites |
+| MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | Current-code Spec review amendment | Add source-backed frontend passwordless and OIDC step-up requirements, tests and traceability | Status remains Review; accepted base Spec unchanged | Step 16 | REQ-043 | Spec/Plan strict validation |
+| MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | Approved implementation Plan | Add missing direct consumers and Edge step-up support to the exact Step16 allowlist | 49 numbered paths/header/commit/inventory match | Step 16 | REQ-043 | Plan/Spec strict validation |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts` | Shared package re-exports the retired credential-bearing login request/result types | Export only token-free BFF session/logout types and the configured OIDC navigation client | Public shared API no longer advertises password submission | Step 16 | REQ-010,REQ-017,REQ-043 | shared package typecheck/test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts` | Existing Tianshu session test assumes login accepts tenant/user/password and immediately bootstraps caller-selected tenant | Assert local cache clear and OIDC redirect; after a fresh bootstrap only the verified BFF tenant is installed; logout result is confirmed/pending | Tenant always comes from server bootstrap | Step 16 | REQ-010,REQ-017,REQ-043 | Tianshu AuthContext.test and package typecheck |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx` | PortalLayout test expects credential modal and old sub/tid user info | Assert OIDC menu redirect, BFF session identity shape, and pending logout state after reload | Host UI has no password form or child auth cache after local logout | Step 16 | REQ-010,REQ-017,REQ-043 | Portal package test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx` | Tianshu LoginPage test expects tenant/user/password controls | Assert a single OIDC action and no tenant/password/token inputs | Storage tenant comes only from verified bootstrap | Step 16 | REQ-010,REQ-017,REQ-043 | Tianshu package test |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | RED旧Client归属/非数字tenant处理。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/OAuthMigrationCommand.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthMigrationCommand` 在主Spec中的字段/消费依赖。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/result/OAuthMigrationReportResult.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthMigrationReportResult` 在主Spec中的字段/消费依赖。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
@@ -976,6 +1019,21 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/IdentityMigrationDAO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 为五种导入写提供参数化XML入口，绕开正常insertFill而不关全局fill。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/IdentityMigrationDAO.xml` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 显式列写历史值，禁止MP save/upsert覆盖历史。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 先剖析/对账后批次写。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md` | Shared README still documents retired password/CSRF login | Document configured Edge OIDC navigation, BFF session/CSRF/logout, and no token persistence | Published behavior description matches the shared client | Step 16 | REQ-043 | Documentation review and diff check |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md` | Yuheng README describes the retired tenant/password cookie API | Document Edge OIDC/BFF login and session behavior | No browser credential submission is documented | Step 16 | REQ-043 | Documentation review and diff check |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md` | Chinese Yuheng README describes the retired tenant/password cookie API | Document Edge OIDC/BFF login and session behavior | Chinese usage contract matches current code | Step 16 | REQ-043 | Documentation review and diff check |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md` | Tianshu README describes the retired tenant/password login form | Document Edge OIDC/BFF login and session behavior | No browser credential submission is documented | Step 16 | REQ-043 | Documentation review and diff check |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md` | Chinese Tianshu README describes the retired tenant/password login form | Document Edge OIDC/BFF login and session behavior | Chinese usage contract matches current code | Step 16 | REQ-043 | Documentation review and diff check |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts` | Yuheng E2E fixtures still call legacy password endpoints | Mock configured OIDC navigation and BFF CSRF/logout state | No browser password body is required | Step 16 | REQ-043 | Playwright source review; browser test not run |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts` | MCP E2E logout fixture still listens to `/oauth2/logout` | Mock BFF CSRF/logout endpoints | Fixture matches current logout transport | Step 16 | REQ-043 | Playwright source review; browser test not run |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts` | Jianshen E2E test submits tenant/user/password to `/oauth2/login` | Assert passwordless navigation to configured registration | No credential or role/token payload is posted | Step 16 | REQ-043 | Playwright source review; browser test not run |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts` | Authorization recovery E2E expects a tenant/password login form | Assert OIDC login action after 401 | No credential form is rendered | Step 16 | REQ-043 | Playwright source review; browser test not run |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts` | Tianshu E2E is skipped behind a pasted admin token and asserts removed form | Replace token fixture with mocked OIDC entry smoke | Login contract needs no local token value | Step 16 | REQ-043 | Playwright source review; browser test not run |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts` | Portal Vite proxy sends auth paths but not the BFF or authorization callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream | API/manifest proxies stay unchanged | Step 16 | REQ-043 | Portal package typecheck and static proxy review |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts` | Shoubing Vite proxy sends auth paths but not the BFF or authorization callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream | Admin API proxy stays unchanged | Step 16 | REQ-043 | Shoubing package typecheck and static proxy review |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts` | Tianshu Vite dev/preview proxies send auth entry but not BFF or callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream in both modes | Admin API proxy stays unchanged | Step 16 | REQ-043 | Tianshu package typecheck and static proxy review |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts` | Jianshen Vite proxy sends auth paths but not the BFF or authorization callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream | Jianshen API proxy stays unchanged | Step 16 | REQ-043 | Jianshen package typecheck and static proxy review |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts` | Yuheng Vite proxy sends auth paths but not the BFF or authorization callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream | Yuheng API proxy stays unchanged | Step 16 | REQ-043 | Yuheng package typecheck and static proxy review |
 | MODIFY | `scripts/unified-xingyuan/prepare-local-stack.sh` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 准备TLS/新入口/独立server paths。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | MODIFY | `scripts/unified-xingyuan/test-direct-run-contract.sh` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 静态和受控环境契约验收。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | MODIFY | `scripts/unified-xingyuan/test-live-frontend-login.sh` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 用户启动的浏览器/HTTP E2E核对。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
@@ -11554,14 +11612,14 @@ RESULT -> Step15 implementation Plan; Review.
 - Commit: `feat(xingyuan): integrate edge identity with gateway rbac and tianshu`。
 ### Step 16 — 迁移共享认证客户端与五个前端消费者
 
-- Requirements: REQ-003, REQ-004, REQ-010, REQ-017, REQ-026
+- Requirements: REQ-003, REQ-004, REQ-010, REQ-017, REQ-026, REQ-043
 - Dependencies: Step 15
 - Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在gatewayAuthClient.test所列新行为。
 - Observable outcome: Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token。
 - End state: Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token；后续Step的Consumer尚未切流，不声明完整生产验收。
-- Test-first gate: Required — gatewayAuthClient旧密码POST与AT/RT Cookie契约使新BFF test RED；共享客户端与各消费者更新后GREEN。
-- Manual Checks: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-JSON-001, MC-CONFIG-001
-- Literal Rules: Rule 6, Rule 7, Rule 11
+- Test-first gate: Required — first change File 1 plus Files 20–22 and confirm RED for the shared BFF client, Edge step-up resolver, passwordless shell and role-intent continuation; then implement callers and resolver.
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
+- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
 #### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`
@@ -11604,7 +11662,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```typescript
 INPUT -> tenantId/subject/displayName来自BFF session；无浏览器AT/RT。
-FLOW -> createGatewayAuthClient: login→window.location to /oauth2/authorization/{registrationId}?returnTo=safePath; logout POST /bff/logout with X-CSRF-TOKEN; userInfo→GET /bff/session; bootstrap unchanged; never parse AT/RT
+FLOW -> createGatewayAuthClient: login→/oauth2/authorization/{registrationId}; stepUp→same registration with stepUp=true; userInfo→GET /bff/session; logout→GET /bff/csrf then POST /bff/logout with returned header; bootstrap unchanged; never submit password or parse/store AT/RT
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> network/timeout保留可重试态，不无限302。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -11732,31 +11790,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`；此文件负责 LoginPage 的正例与 network/timeout保留可重试态，不无限302 负例。
 - After this file: LoginPage 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts`
-
-- Purpose: 把现有前端登录消费者迁到BFF，保留业务页面。
-- Symbols: `gatewayAuth`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 把现有前端登录消费者迁到BFF，保留业务页面在此位置后才可接消费者。
-- Contract/signature changes: gatewayAuth；把现有前端登录消费者迁到BFF，保留业务页面。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: tenantId/subject/displayName来自BFF session；无浏览器AT/RT。
-- Error and edge behavior: network/timeout保留可重试态，不无限302。
-- Standards impact: MC-SCOPE-001, MC-TEST-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 7, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
-- Implementation pseudocode:
-
-```typescript
-INPUT -> tenantId/subject/displayName来自BFF session；无浏览器AT/RT。
-FLOW -> on mount GET /bff/session; authenticated→existing bootstrap; 401→login link, 403→forbidden, 503→retry panel; tenant change clears current authorization cache and starts new redirect; logout clears UI while remote pending shown; no form password posted to /oauth2/login
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> network/timeout保留可重试态，不无限302。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
-```
-
-- Verification contribution: 本Step `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`；此文件负责 gatewayAuth 的正例与 network/timeout保留可重试态，不无限302 负例。
-- After this file: gatewayAuth 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
-
-#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`
 
 - Purpose: 把现有前端登录消费者迁到BFF，保留业务页面。
 - Symbols: `AuthenticationShell`。
@@ -11780,7 +11814,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`；此文件负责 AuthenticationShell 的正例与 network/timeout保留可重试态，不无限302 负例。
 - After this file: AuthenticationShell 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`
 
 - Purpose: 把现有前端登录消费者迁到BFF，保留业务页面。
 - Symbols: `AuthContext`。
@@ -11804,7 +11838,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`；此文件负责 AuthContext 的正例与 network/timeout保留可重试态，不无限302 负例。
 - After this file: AuthContext 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`
 
 - Purpose: 把现有前端登录消费者迁到BFF，保留业务页面。
 - Symbols: `LoginPage`。
@@ -11828,7 +11862,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`；此文件负责 LoginPage 的正例与 network/timeout保留可重试态，不无限302 负例。
 - After this file: LoginPage 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `OAuthClientVO/CreateOAuthClientDTO/SigningKeyVO/GrantVO`。
@@ -11852,7 +11886,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `OAuthClientVO/CreateOAuthClientDTO/SigningKeyVO/GrantVO`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `realmClientAndOneTimeSecret`。
@@ -11876,7 +11910,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `realmClientAndOneTimeSecret`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `clientsQuery/create/update/rotate`。
@@ -11900,7 +11934,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `clientsQuery/create/update/rotate`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `scopedGrantWriteAndQuery`。
@@ -11925,7 +11959,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `scopedGrantWriteAndQuery`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `grantQuery/upsert/delete/batch`。
@@ -11950,7 +11984,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `grantQuery/upsert/delete/batch`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`
+#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `realmKeyRotationStates`。
@@ -11974,7 +12008,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `realmKeyRotationStates`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `keyList/publish/activate/retire`。
@@ -11998,7 +12032,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `keyList/publish/activate/retire`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `platformManagementClientBinding`。
@@ -12022,7 +12056,7 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `platformManagementClientBinding`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
-#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`
 
 - Purpose: 主Spec §12的授柄管理页面realm/密钥/资源身份联动。
 - Symbols: `resourceList/create/disable`。
@@ -12046,15 +12080,764 @@ FAIL -> 401进入登录、403显示拒绝、404提示当前Client不存在、503
 - Verification contribution: Step 16的Admin页面Vitest对realm/状态/安全的断言；缺失GET按修订Review状态单独阻塞。
 - After this file: `resourceList/create/disable`已具明确页面/测试合同；后续文件连起来完成本Step，未授权不能据此声称接口已获批。
 
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`
+
+- Purpose: Lock Edge authorization resolver normal login and step-up behavior.
+- Symbols: EdgeLoginContractTest actual WebFlux authorization redirect
+- Repository evidence: EdgeSecurityConfiguration delegates to default registration resolver with PKCE but currently ignores step-up intent
+- Dependencies and consumers: Existing shared OIDC BFF, Edge registration and frontend auth providers; no new dependency.
+- Why now: This direct caller or server contract is required to retire the password/step-up endpoint without leaving a runtime caller.
+- Contract/signature changes: Normal request keeps issuer/client/state/PKCE; only stepUp=true adds fixed prompt=login and max_age=0
+- Input/output and state mapping: Synthetic ClientRegistration and in-memory WebTestClient; no external AS/Redis
+- Error and edge behavior: Malformed flags reject; caller cannot choose issuer or prompt values
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-TEST-001, MC-SCOPE-001
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 7, Rule 9, Rule 11; no credential, token or arbitrary issuer enters the browser contract.
+- Design pattern consideration: Decorator around Spring Security’s stable resolver adds one fixed reauth variation; a parallel resolver would duplicate PKCE/state logic.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Synthetic ClientRegistration and in-memory WebTestClient; no external AS/Redis
+FLOW -> RED normal login without step-up params and reauth with only fixed prompt/max_age; preserve registration and PKCE.
+OUTPUT -> EdgeLoginContractTest actual WebFlux authorization redirect follows the reviewed current-code BFF contract.
+FAIL -> Malformed flags reject; caller cannot choose issuer or prompt values
+```
+
+- Verification contribution: EdgeLoginContractTest through actual security chains; no Edge server or AS.
+- After this file: The OIDC reauth URI is locked before Edge config changes.
+
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx`
+
+- Purpose: Lock Jianshen shell to passwordless OIDC entry and explicit logout outcome.
+- Symbols: AuthenticationShell.test no credential controls and BFF logout status
+- Repository evidence: The shell renders local LoginPage and invokes shared auth client
+- Dependencies and consumers: Existing shared OIDC BFF, Edge registration and frontend auth providers; no new dependency.
+- Why now: This direct caller or server contract is required to retire the password/step-up endpoint without leaving a runtime caller.
+- Contract/signature changes: No username/password/token control; one sign-in action uses configured registration; pending logout clears local auth and is reported
+- Input/output and state mapping: Mock Rbac3Client and navigation; no external service
+- Error and edge behavior: 401/403/503 remain separate; error text never exposes response bodies
+- Standards impact: MC-ARCH-001, MC-TEST-001, MC-SCOPE-001
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11; no credential, token or arbitrary issuer enters the browser contract.
+- Design pattern consideration: Reuse existing shell and auth client; no second provider/state layer.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Mock Rbac3Client and navigation; no external service
+FLOW -> RED missing passwordless and logout-state assertions.
+OUTPUT -> AuthenticationShell.test no credential controls and BFF logout status follows the reviewed current-code BFF contract.
+FAIL -> 401/403/503 remain separate; error text never exposes response bodies
+```
+
+- Verification contribution: Jianshen scoped Vitest suite.
+- After this file: Jianshen UI no longer advertises credential login.
+
+#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`
+
+- Purpose: Lock high-risk role reauth and a bounded role-intent continuation.
+- Symbols: RoleActivationPage.test same-tab intent, expectedAuthVersion and one return retry
+- Repository evidence: The page currently posts a password and retries in one mounted instance
+- Dependencies and consumers: Existing shared OIDC BFF, Edge registration and frontend auth providers; no new dependency.
+- Why now: This direct caller or server contract is required to retire the password/step-up endpoint without leaving a runtime caller.
+- Contract/signature changes: Only role IDs and expectedAuthVersion survive in sessionStorage; return retries the same role set once and clears it
+- Input/output and state mapping: Mock RBAC client and React Testing Library
+- Error and edge behavior: Stale/malformed intent is discarded; repeated STEP_UP_REQUIRED never loops
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-JSON-001, MC-TEST-001, MC-SCOPE-001
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 6, Rule 7, Rule 11; no credential, token or arbitrary issuer enters the browser contract.
+- Design pattern consideration: Keep existing role replacement and expectedAuthVersion CAS; sessionStorage is a one-shot continuation, not auth storage.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Mock RBAC client and React Testing Library
+FLOW -> RED pending intent across remount and post-return retry with no password control.
+OUTPUT -> RoleActivationPage.test same-tab intent, expectedAuthVersion and one return retry follows the reviewed current-code BFF contract.
+FAIL -> Stale/malformed intent is discarded; repeated STEP_UP_REQUIRED never loops
+```
+
+- Verification contribution: RoleActivationPage.test.tsx; no browser/identity server.
+- After this file: Role continuation is locked before UI changes.
+
+#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx`
+
+- Purpose: Replace Portal credentials with configured OIDC entry and verified BFF identity.
+- Symbols: PortalLayout menu sign-in, BFF user info, logout status
+- Repository evidence: PortalLayout currently presents tenant/user/password and calls portalAuth.login(values)
+- Dependencies and consumers: Existing shared OIDC BFF, Edge registration and frontend auth providers; no new dependency.
+- Why now: This direct caller or server contract is required to retire the password/step-up endpoint without leaving a runtime caller.
+- Contract/signature changes: Sign-in navigates to OIDC; identity comes from /bff/session; child UI reloads after local logout
+- Input/output and state mapping: Existing Portal layout, shared client and React Query
+- Error and edge behavior: Network failure is retryable; PENDING/UNKNOWN logout cannot leave child auth cache active
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11; no credential, token or arbitrary issuer enters the browser contract.
+- Design pattern consideration: Reuse Portal shell and query lifecycle; no new auth abstraction.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Existing Portal layout, shared client and React Query
+FLOW -> Replace credential Modal with OIDC navigation and token-free session identity.
+OUTPUT -> PortalLayout menu sign-in, BFF user info, logout status follows the reviewed current-code BFF contract.
+FAIL -> Network failure is retryable; PENDING/UNKNOWN logout cannot leave child auth cache active
+```
+
+- Verification contribution: Portal typecheck and tests; no browser.
+- After this file: Portal no longer owns or posts credentials.
+
+#### File 24 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx`
+
+- Purpose: Replace Jianshen local credential form with the configured OIDC entry.
+- Symbols: LoginPage same-origin OIDC action
+- Repository evidence: The page collects tenant/user/password while Jianshen only consumes its RBAC bootstrap
+- Dependencies and consumers: Existing shared OIDC BFF, Edge registration and frontend auth providers; no new dependency.
+- Why now: This direct caller or server contract is required to retire the password/step-up endpoint without leaving a runtime caller.
+- Contract/signature changes: One action redirects to the configured registration; no credential or caller-selected tenant is sent
+- Input/output and state mapping: Existing gatewayAuth wrapper and RBAC provider
+- Error and edge behavior: Unauthenticated and retryable states remain distinct
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11; no credential, token or arbitrary issuer enters the browser contract.
+- Design pattern consideration: Keep existing LoginPage/shell composition; no local credential strategy.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Existing gatewayAuth wrapper and RBAC provider
+FLOW -> Remove fields and invoke configured OIDC navigation.
+OUTPUT -> LoginPage same-origin OIDC action follows the reviewed current-code BFF contract.
+FAIL -> Unauthenticated and retryable states remain distinct
+```
+
+- Verification contribution: AuthenticationShell.test.tsx and Jianshen package typecheck.
+- After this file: Jianshen login no longer asks for credentials.
+
+#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx`
+
+- Purpose: Replace password step-up with OIDC and restore one version-bound role intent.
+- Symbols: RoleActivationPage step-up modal, sessionStorage continuation and retry
+- Repository evidence: The page posts a password to the legacy endpoint and retries in memory
+- Dependencies and consumers: Existing shared OIDC BFF, Edge registration and frontend auth providers; no new dependency.
+- Why now: This direct caller or server contract is required to retire the password/step-up endpoint without leaving a runtime caller.
+- Contract/signature changes: Reauth has no password input; selected role IDs and authVersion are a one-shot same-tab continuation
+- Input/output and state mapping: Existing RBAC client, role API and shared gatewayAuth
+- Error and edge behavior: Malformed/stale state is discarded; no retry loop; no token/password storage
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 6, Rule 7, Rule 11; no credential, token or arbitrary issuer enters the browser contract.
+- Design pattern consideration: Keep existing CAS command; a small same-tab continuation handles full-page OAuth redirect.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Existing RBAC client, role API and shared gatewayAuth
+FLOW -> Persist typed request, call stepUp(), validate and consume once after OIDC return.
+OUTPUT -> RoleActivationPage step-up modal, sessionStorage continuation and retry follows the reviewed current-code BFF contract.
+FAIL -> Malformed/stale state is discarded; no retry loop; no token/password storage
+```
+
+- Verification contribution: RoleActivationPage.test.tsx and Jianshen package typecheck.
+- After this file: Role activation uses real OIDC reauthentication.
+
+#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`
+
+- Purpose: Extend Edge registered OIDC request path for fixed step-up parameters.
+- Symbols: EdgeSecurityConfiguration browser authorization resolver
+- Repository evidence: The default resolver creates PKCE/state but ignores stepUp=true
+- Dependencies and consumers: Existing shared OIDC BFF, Edge registration and frontend auth providers; no new dependency.
+- Why now: This direct caller or server contract is required to retire the password/step-up endpoint without leaving a runtime caller.
+- Contract/signature changes: Accept only exact stepUp=true and add fixed prompt=login/max_age=0 to the configured registration
+- Input/output and state mapping: Existing ClientRegistration repository and Edge browser chain
+- Error and edge behavior: No arbitrary issuer, prompt or max_age reaches AS
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-BEAN-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001
+- Literal rule enforcement: Rule 2, Rule 4, Rule 7, Rule 9, Rule 11; no credential, token or arbitrary issuer enters the browser contract.
+- Design pattern consideration: Use a Decorator around existing Spring resolver; avoid parallel OAuth request construction.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Existing ClientRegistration repository and Edge browser chain
+FLOW -> Delegate registration/state/PKCE; rebuild only final URI for exact reauth flag.
+OUTPUT -> EdgeSecurityConfiguration browser authorization resolver follows the reviewed current-code BFF contract.
+FAIL -> No arbitrary issuer, prompt or max_age reaches AS
+```
+
+- Verification contribution: EdgeLoginContractTest and exact Edge Maven test; no AS/Redis/server.
+- After this file: BFF step-up no longer depends on password POST.
+
+#### File 27 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: Record the current-source contract gap between shared frontend auth and the Edge OIDC BFF.
+- Symbols: EVD-155/156, DEC-151/152, TEST-147/148/149, REQ-043.
+- Repository evidence: Portal and Jianshen still present password entry; RoleActivationPage calls the retired password step-up; the Edge resolver currently has PKCE but no fixed step-up mapping.
+- Dependencies and consumers: This Review amendment and the Step16 frontend/Edge callers; the accepted base Spec remains unchanged.
+- Why now: The approved base Spec already requires passwordless OIDC and real step-up; this amendment makes the current implementation boundary and tests explicit before changes.
+- Contract/signature changes: Add REQ-043 and the Edge/shared/React contract rows; keep this document in Review.
+- Input/output and state mapping: No new public credential/token fields; request uses only the configured registration and a one-shot role intent.
+- Error and edge behavior: BFF logout remote state remains explicit; invalid step-up intent and stale role version fail closed.
+- Standards impact: MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11.
+- Design pattern consideration: This documentation adds no runtime abstraction; it records the existing Spring resolver decorator choice.
+- Implementation pseudocode:
+
+```text
+INPUT -> current Edge/controller/frontend source and accepted base Spec
+FLOW -> record EVD/DEC/TEST/REQ references for the passwordless BFF and step-up behavior
+OUTPUT -> Review Spec accurately scopes the Step16 implementation
+FAIL -> no approval status is inferred; no accepted base contract is rewritten
+```
+
+- Verification contribution: strict Spec validator, source path and API contract cross-check.
+- After this file: reviewer can trace the exact current-code amendment.
+
+#### File 28 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: Keep the implementation Plan executable and path-exact after the source audit found omitted direct consumers.
+- Symbols: Step16 49-path ordered list, test-first gate, verification commands and commit allowlist.
+- Repository evidence: Existing Plan omitted PortalLayout, Jianshen LoginPage/RoleActivationPage, Edge authorization resolver and its test.
+- Dependencies and consumers: Effective Review Spec, shared client, four Admins, Portal and Edge BFF.
+- Why now: These files are direct callers or the server extension required to remove the legacy password/step-up flow without leaving a broken consumer.
+- Contract/signature changes: Add the omitted files and their tests to Step16; do not change later Steps or accepted API definitions.
+- Input/output and state mapping: Same configured OIDC registration, BFF session/CSRF/logout, bounded reauthentication and same-tab role intent.
+- Error and edge behavior: Keep auth errors redacted, ensure status UI and no open registration/prompt parameter.
+- Standards impact: MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11.
+- Design pattern consideration: No runtime pattern is added by this plan edit; the Edge code uses the existing resolver decorator.
+- Implementation pseudocode:
+
+```text
+INPUT -> Step16 source inventory and accepted Spec
+FLOW -> add exact direct consumer and Edge resolver file blocks, tests, validation commands, and commit paths
+OUTPUT -> 29 file headers, inventory rows and commit paths agree
+FAIL -> strict Plan validator blocks code if any path or requirement is untraceable
+```
+
+- Verification contribution: strict Plan validator and exact 29-path parity script.
+- After this file: code implementation remains within this reviewed Step16 boundary.
+
+#### File 29 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`
+
+- Purpose: Remove the retired credential-bearing login types from the shared package API.
+- Symbols: public auth exports from index.ts.
+- Repository evidence: index.ts currently exports GatewayLoginRequest and GatewayLoginResult even though the new login path is an OIDC redirect and identity is read from the BFF session.
+- Dependencies and consumers: Only the existing shared auth client exports; no dependency.
+- Why now: Frontend consumers must not retain a public TypeScript contract that represents password submission.
+- Contract/signature changes: Replace obsolete credential request/result exports with GatewaySessionResult and GatewayLogoutResult; keep GatewayAuthClient and GatewayAuthError exports.
+- Input/output and state mapping: Export token-free BFF identity/CSRF/logout types and the OIDC client options.
+- Error and edge behavior: No password or token type is exposed by the package barrel.
+- Standards impact: MC-NAME-001, MC-MODEL-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 1, Rule 3, Rule 6, Rule 11.
+- Design pattern consideration: No new pattern; preserve the existing public barrel and update only the direct auth contract.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Existing gatewayAuthClient exports
+FLOW -> Remove credential request/result types; export token-free session/logout result types
+OUTPUT -> Consumers can type BFF results without importing credential carriers
+FAIL -> No legacy username/password API type remains in the shared barrel
+```
+
+- Verification contribution: Shared package typecheck and auth client tests.
+- After this file: Shared package API matches its OIDC/BFF implementation.
+
+#### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`
+
+- Purpose: Keep tenant-session isolation tests faithful to the passwordless OIDC redirect.
+- Symbols: AuthContext tenant session isolation, unsaved-change guard and BFF logout result.
+- Repository evidence: The current tests pass tenantId/username/password into login and expect it to bootstrap a caller-selected tenant; logout mocks return undefined.
+- Dependencies and consumers: Existing Tianshu AuthProvider, request-context generation, React Query cancellation and gatewayAuth client.
+- Why now: After OIDC redirect the browser reloads; only a fresh verified bootstrap may set the tenant and storage context.
+- Contract/signature changes: Login is a no-credential navigation; the unsaved guard must run before it; the next mounted provider derives tenant only from BFF-authenticated bootstrap; logout resolves confirmed/pending remote state and clears local query data.
+- Input/output and state mapping: Test old bootstrap tenant, redirect, unmount/reload, then accept only the next server bootstrap tenant.
+- Error and edge behavior: A declined guard preserves the current session/cache and never navigates; remote pending still clears local tenant state.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001.
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11.
+- Design pattern consideration: Reuse the current provider/session-generation lifecycle; no new state container.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> Existing server bootstrap fixtures and query cache state
+FLOW -> Mock gatewayAuth.login; assert no tenant argument, clear local generation, unmount as navigation; mount after return with another verified bootstrap and assert that tenant is the only installed context
+OUTPUT -> Tianshu request tenant always comes from the authenticated bootstrap
+FAIL -> Declined unsaved-change guard preserves state and prevents redirect
+```
+
+- Verification contribution: Tianshu AuthContext.test.tsx and package typecheck/test.
+- After this file: Tianshu login tests no longer depend on browser-submitted credentials or tenant selection.
+
+#### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx`
+
+- Purpose: Keep the Portal host test aligned to the BFF session and OIDC menu.
+- Symbols: PortalLayout passwordless login and remote logout persistence.
+- Repository evidence: Existing test expects a credential modal, tenant/user/password values, and the old sub/tid user view.
+- Dependencies and consumers: PortalLayout, shared gatewayAuthClient, React Query, and existing Vitest/JSDOM setup.
+- Why now: The host is a direct browser consumer and owns child app state across logout.
+- Contract/signature changes: Login menu navigates to configured OIDC; user identity is the token-free BFF session; pending remote logout persists only the remote state for the reload notice.
+- Input/output and state mapping: Auth fixture is authenticated/tenantId/subject/displayName; logout fixture returns PENDING.
+- Error and edge behavior: No credential modal or local token field; child content reloads after local logout.
+- Standards impact: MC-ARCH-001, MC-JSON-001, MC-TEST-001, MC-SCOPE-001.
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11.
+- Design pattern consideration: Reuse the existing Portal layout and query hook; no new auth state manager.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> BFF session fixture and pending logout outcome
+FLOW -> Assert menu sign-in has no fields; after logout, remount and show only remote state notice
+OUTPUT -> Portal test enforces passwordless OIDC and verified user fields
+FAIL -> A legacy password modal or stale child state makes the test fail
+```
+
+- Verification contribution: PortalLayout.test.tsx and Portal package typecheck.
+- After this file: Portal's changed UI and BFF response mapping are locked.
+
+#### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx`
+
+- Purpose: Keep the Tianshu login UI test aligned to the configured Edge registration.
+- Symbols: LoginPage passwordless OIDC action.
+- Repository evidence: Existing test expects tenant, username and password fields and calls login with caller-selected identity data.
+- Dependencies and consumers: Tianshu AuthContext; the server bootstrap remains the source of verified tenant identity.
+- Why now: The login page is a direct auth consumer; tenant selection cannot choose a trusted issuer or storage tenant.
+- Contract/signature changes: The page renders one OIDC action with no tenant, username, password or token field.
+- Input/output and state mapping: Successful browser return mounts AuthProvider, which reloads the authenticated Tianshu bootstrap.
+- Error and edge behavior: Redacted auth/logout errors remain visible; no arbitrary tenant is sent.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-JSON-001, MC-TEST-001, MC-SCOPE-001.
+- Literal rule enforcement: Rule 2, Rule 6, Rule 7, Rule 11.
+- Design pattern consideration: Keep the existing AuthContext; no login strategy hierarchy is needed.
+- Implementation pseudocode:
+
+```typescript
+INPUT -> LoginPage and a mocked auth context
+FLOW -> Assert no tenant/username/password/token controls; click the OIDC action
+OUTPUT -> login() is invoked with no credential or tenant payload
+FAIL -> Caller-supplied tenant or credential form remains a test failure
+```
+
+- Verification contribution: LoginPage.test.tsx and Tianshu AuthContext.test.ts.
+- After this file: Tianshu login UI aligns with the verified-bootstrap tenant boundary.
+
+#### File 33 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx`
+
+- Purpose: 保持Yuheng登录页的密码less OIDC交互有直接回归保护。
+- Symbols: `LoginPage`。
+- Repository evidence: 当前测试存在但仍查找租户、用户名和密码输入；对应页面已迁移到Edge OIDC入口。
+- Dependencies and consumers: Yuheng Admin LoginPage与共享GatewayAuthClient；验证现有React Testing Library/Vitest使用方式。
+- Why now: Page behavior changed in this Step; update its existing consumer test before the Step is committed.
+- Contract/signature changes: 只更新页面行为测试；login调用不携带tenant、username、password或token。
+- Input/output and state mapping: 未认证用户点击统一身份登录按钮；客户端调用无参数login并进行同源OIDC导航。
+- Error and edge behavior: 租户/凭据/token输入仍出现或login携带参数都使回归失败。
+- Standards impact: MC-TEST-001, MC-SCOPE-001；复用现有测试工具和文件边界。
+- Literal rule enforcement: Rule 7, Rule 11；无环境配置或模块边界变化。
+- Design pattern consideration: N/A；单一组件交互测试不需要模式。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> unauthenticated Yuheng LoginPage
+FLOW -> Assert no tenant, username, password, access-token or refresh-token inputs; click the OIDC login button
+OUTPUT -> no-argument login is invoked once
+FAIL -> credential controls or a credential-bearing login call fail the test
+```
+
+- Verification contribution: Yuheng `LoginPage.test.tsx`, `AdminLayout.test.tsx` and package typecheck.
+- After this file: Existing Yuheng login regression follows the passwordless OIDC contract.
+#### File 34 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx`
+
+- Purpose: 为Shoubing的无凭据统一身份登录入口保留组件级回归。
+- Symbols: `CentralLoginPage`。
+- Repository evidence: 现有AuthContext测试覆盖bootstrap；CentralLoginPage已改为单一OIDC操作且不接受用户输入。
+- Dependencies and consumers: Shoubing AuthProvider与既有React Testing Library/Vitest配置。
+- Why now: 此Step移除了原租户/账号/密码登录表单；现有认证测试应直接保护该可见入口。
+- Contract/signature changes: 只更新测试；`login()`无凭据参数，租户身份仍由后端bootstrap决定。
+- Input/output and state mapping: 未认证页面展示OIDC按钮；点击后调用no-argument login并由客户端发起注册入口导航。
+- Error and edge behavior: 租户、用户名、密码、Access Token或Refresh Token输入出现即失败。
+- Standards impact: MC-TEST-001, MC-SCOPE-001；复用当前测试组件与既有模块。
+- Literal rule enforcement: Rule 7, Rule 11；无配置或模块边界变化。
+- Design pattern consideration: N/A；单一登录页交互无需额外模式。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> unauthenticated Shoubing CentralLoginPage
+FLOW -> Assert no tenant, username, password or token controls; click the OIDC button
+OUTPUT -> no-argument login is invoked once
+FAIL -> credential controls or credential-bearing login calls fail the test
+```
+
+- Verification contribution: Shoubing `AuthContext.test.tsx` plus package typecheck and the scoped client/grant/key/resource page suite.
+- After this file: The Shoubing login screen is covered by the same passwordless OIDC contract as the other consumers.
+
+#### File 35 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `共享前端Auth README`。
+- Repository evidence: A README describes retired cookie/password login。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: AuthClient login/session/logout contract；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Record Edge registration navigation, BFF session/CSRF/logout, and no token persistence。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Documentation only。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 36 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Yuheng Admin README`。
+- Repository evidence: The README documents the retired password endpoint and tenant prefill。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: Yuheng authentication and local proxy instructions；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Describe Edge OIDC entry, BFF logout and auth proxy target。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Documentation only。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 37 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Yuheng Admin Chinese README`。
+- Repository evidence: The Chinese README documents the retired password endpoint and tenant prefill。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: Yuheng authentication and local proxy instructions；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Describe Edge OIDC entry, BFF logout and auth proxy target。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Documentation only。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 38 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Tianshu Admin README`。
+- Repository evidence: The README documents the retired password form。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: Tianshu authentication and local proxy instructions；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Describe Edge OIDC entry, BFF session and auth proxy target。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Documentation only。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 39 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Tianshu Admin Chinese README`。
+- Repository evidence: The Chinese README documents the retired password form and stale test gap。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: Tianshu authentication and local proxy instructions；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Describe Edge OIDC entry, BFF session and auth proxy target。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Documentation only。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 40 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Yuheng Playwright auth fixture`。
+- Repository evidence: The fixture still submits tenant/user/password and calls legacy endpoints。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: OIDC entry, bootstrap, CSRF logout and login state；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Mock Edge OIDC navigation and the BFF CSRF/logout state。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Browser test not executed。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 41 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Yuheng MCP Playwright logout fixture`。
+- Repository evidence: The fixture calls `/oauth2/logout`。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: BFF logout contract；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Mock `/bff/csrf` and `/bff/logout`。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Browser test not executed。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 42 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Jianshen Playwright auth fixture`。
+- Repository evidence: The fixture posts username/password to the retired endpoint。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: Fixed OIDC registration entry；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Assert OIDC entry navigation with no credential payload。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Browser test not executed。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 43 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Jianshen Playwright unauthenticated fixture`。
+- Repository evidence: The fixture expects a tenant ID field。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: Passwordless login view after 401；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Assert the OIDC button and absence of text inputs。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Browser test not executed。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+#### File 44 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts`
+
+- Purpose: 保持前端认证文档与Playwright入口fixture和已迁移的OIDC/BFF代码一致。
+- Symbols: `Tianshu Playwright auth fixture`。
+- Repository evidence: The fixture is skipped unless a pasted access token is supplied。
+- Dependencies and consumers: 复用Step16共享GatewayAuthClient、Edge OIDC registration和现有package测试工具。
+- Why now: 本Step替换浏览器登录与退出契约后，直接使用旧路由或旧页面的说明/fixture必须同步。
+- Contract/signature changes: Passwordless OIDC login entry；不引入新API、依赖或存储状态。
+- Input/output and state mapping: Mock the OIDC registration route and assert no credential/token inputs。
+- Error and edge behavior: 测试fixture不接受tenant/username/password/token；无法证明真实身份提供方或Redis行为。
+- Standards impact: MC-SCOPE-001, MC-TEST-001；只修改认证相关文档或E2E fixture。
+- Literal rule enforcement: Rule 7, Rule 11；无配置Schema或项目模块边界变化。
+- Design pattern consideration: N/A；仅对齐既有OIDC/BFF边界。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> documented authentication behavior or Playwright auth fixture
+FLOW -> describe/mock configured `/oauth2/authorization/edge-ui`, `/bff/csrf`, `/bff/logout`, and BFF-backed bootstrap where needed
+OUTPUT -> no fixture or operator instruction posts a browser password or stores AT/RT
+FAIL -> any legacy password endpoint or token-paste UI reference remains a review failure
+```
+
+- Verification contribution: Static review and `git diff --check`; Browser test not executed。
+- After this file: Existing user guidance and E2E source fixture follow the Step16 auth contract.
+
+
+#### File 45 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts`
+
+- Purpose: 确保本地Vite/preview模式把OIDC入口、BFF session端点和OIDC callback交给同一Edge auth upstream。
+- Symbols: `server.proxy`。
+- Repository evidence: 当前Vite配置代理`/oauth2`，但`/bff/*`和`/login/oauth2/code/*`会落入前端SPA fallback。
+- Dependencies and consumers: 复用已有Portal auth proxy环境变量；现有manifest/API代理维持原目标。
+- Why now: 新OIDC导航需要Edge callback，BFF logout/session还需要相同的cookie origin。
+- Contract/signature changes: 仅增加`/bff`和`/login/oauth2`路径规则，复用`/oauth2`的配置Edge upstream，并设置`changeOrigin: false`保留原始Host供`{baseUrl}`回调使用。
+- Input/output and state mapping: `/oauth2/authorization/{registrationId}`、`/bff/*`与`/login/oauth2/code/*`进入Edge并保留前端Host，使OIDC回调返回原前端origin；业务API继续走原`/api`规则。
+- Error and edge behavior: `VITE_YUHENG_ORIGIN`显式设置时直接请求该Edge origin；空值时同源Vite/preview路由必须完成OIDC回调和BFF请求。
+- Standards impact: MC-ARCH-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001；只增加既有auth upstream的路径映射。
+- Literal rule enforcement: Rule 7, Rule 11；同一路径集合在本地dev/preview中一致，模块边界不变。
+- Design pattern consideration: N/A；Vite现有代理映射直接扩展，不需要新helper或proxy abstraction。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> existing OAuth2 auth proxy target and API proxy target
+FLOW -> map /oauth2, /bff, and /login/oauth2 to the auth target with changeOrigin=false in every applicable dev/preview proxy table
+OUTPUT -> OIDC start, BFF session/logout and callback reach Edge; existing /api target remains
+FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTML, or BFF requests reaching Admin direct is a proxy review failure
+```
+
+- Verification contribution: Portal TypeScript package check and static assertion that all auth proxy paths target the shared auth upstream with changeOrigin=false; no Vite server or browser is started.
+- After this file: The Portal development proxy follows the Edge OIDC/BFF route contract.
+
+#### File 46 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts`
+
+- Purpose: 确保本地Vite/preview模式把OIDC入口、BFF session端点和OIDC callback交给同一Edge auth upstream。
+- Symbols: `server.proxy`。
+- Repository evidence: 当前Vite配置代理`/oauth2`，但`/bff/*`和`/login/oauth2/code/*`会落入前端SPA fallback。
+- Dependencies and consumers: 复用已有Shoubing auth proxy环境变量；现有Admin API代理维持原目标。
+- Why now: 新OIDC导航需要Edge callback，BFF logout/session还需要相同的cookie origin。
+- Contract/signature changes: 仅增加`/bff`和`/login/oauth2`路径规则，复用`/oauth2`的配置Edge upstream，并设置`changeOrigin: false`保留原始Host供`{baseUrl}`回调使用。
+- Input/output and state mapping: `/oauth2/authorization/{registrationId}`、`/bff/*`与`/login/oauth2/code/*`进入Edge并保留前端Host，使OIDC回调返回原前端origin；业务API继续走原`/api`规则。
+- Error and edge behavior: `VITE_YUHENG_ORIGIN`显式设置时直接请求该Edge origin；空值时同源Vite/preview路由必须完成OIDC回调和BFF请求。
+- Standards impact: MC-ARCH-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001；只增加既有auth upstream的路径映射。
+- Literal rule enforcement: Rule 7, Rule 11；同一路径集合在本地dev/preview中一致，模块边界不变。
+- Design pattern consideration: N/A；Vite现有代理映射直接扩展，不需要新helper或proxy abstraction。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> existing OAuth2 auth proxy target and API proxy target
+FLOW -> map /oauth2, /bff, and /login/oauth2 to the auth target with changeOrigin=false in every applicable dev/preview proxy table
+OUTPUT -> OIDC start, BFF session/logout and callback reach Edge; existing /api target remains
+FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTML, or BFF requests reaching Admin direct is a proxy review failure
+```
+
+- Verification contribution: Shoubing TypeScript package check and static assertion that all auth proxy paths target the shared auth upstream with changeOrigin=false; no Vite server or browser is started.
+- After this file: The Shoubing development proxy follows the Edge OIDC/BFF route contract.
+
+#### File 47 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts`
+
+- Purpose: 确保本地Vite/preview模式把OIDC入口、BFF session端点和OIDC callback交给同一Edge auth upstream。
+- Symbols: `server.proxy` and preview.proxy。
+- Repository evidence: 当前Vite配置代理`/oauth2`，但`/bff/*`和`/login/oauth2/code/*`会落入前端SPA fallback。
+- Dependencies and consumers: 复用已有Tianshu auth proxy环境变量；现有Admin API代理维持原目标。
+- Why now: 新OIDC导航需要Edge callback，BFF logout/session还需要相同的cookie origin。
+- Contract/signature changes: 仅增加`/bff`和`/login/oauth2`路径规则，复用`/oauth2`的配置Edge upstream，并设置`changeOrigin: false`保留原始Host供`{baseUrl}`回调使用。
+- Input/output and state mapping: `/oauth2/authorization/{registrationId}`、`/bff/*`与`/login/oauth2/code/*`进入Edge并保留前端Host，使OIDC回调返回原前端origin；业务API继续走原`/api`规则。
+- Error and edge behavior: `VITE_YUHENG_ORIGIN`显式设置时直接请求该Edge origin；空值时同源Vite/preview路由必须完成OIDC回调和BFF请求。
+- Standards impact: MC-ARCH-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001；只增加既有auth upstream的路径映射。
+- Literal rule enforcement: Rule 7, Rule 11；同一路径集合在本地dev/preview中一致，模块边界不变。
+- Design pattern consideration: N/A；Vite现有代理映射直接扩展，不需要新helper或proxy abstraction。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> existing OAuth2 auth proxy target and API proxy target
+FLOW -> map /oauth2, /bff, and /login/oauth2 to the auth target with changeOrigin=false in every applicable dev/preview proxy table
+OUTPUT -> OIDC start, BFF session/logout and callback reach Edge; existing /api target remains
+FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTML, or BFF requests reaching Admin direct is a proxy review failure
+```
+
+- Verification contribution: Tianshu TypeScript package check and static assertion that all auth proxy paths target the shared auth upstream with changeOrigin=false; no Vite server or browser is started.
+- After this file: The Tianshu development proxy follows the Edge OIDC/BFF route contract.
+
+#### File 48 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts`
+
+- Purpose: 确保本地Vite/preview模式把OIDC入口、BFF session端点和OIDC callback交给同一Edge auth upstream。
+- Symbols: `server.proxy`。
+- Repository evidence: 当前Vite配置代理`/oauth2`，但`/bff/*`和`/login/oauth2/code/*`会落入前端SPA fallback。
+- Dependencies and consumers: 复用已有Jianshen auth proxy环境变量；现有Jianshen API代理维持原目标。
+- Why now: 新OIDC导航需要Edge callback，BFF logout/session还需要相同的cookie origin。
+- Contract/signature changes: 仅增加`/bff`和`/login/oauth2`路径规则，复用`/oauth2`的配置Edge upstream，并设置`changeOrigin: false`保留原始Host供`{baseUrl}`回调使用。
+- Input/output and state mapping: `/oauth2/authorization/{registrationId}`、`/bff/*`与`/login/oauth2/code/*`进入Edge并保留前端Host，使OIDC回调返回原前端origin；业务API继续走原`/api`规则。
+- Error and edge behavior: `VITE_YUHENG_ORIGIN`显式设置时直接请求该Edge origin；空值时同源Vite/preview路由必须完成OIDC回调和BFF请求。
+- Standards impact: MC-ARCH-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001；只增加既有auth upstream的路径映射。
+- Literal rule enforcement: Rule 7, Rule 11；同一路径集合在本地dev/preview中一致，模块边界不变。
+- Design pattern consideration: N/A；Vite现有代理映射直接扩展，不需要新helper或proxy abstraction。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> existing OAuth2 auth proxy target and API proxy target
+FLOW -> map /oauth2, /bff, and /login/oauth2 to the auth target with changeOrigin=false in every applicable dev/preview proxy table
+OUTPUT -> OIDC start, BFF session/logout and callback reach Edge; existing /api target remains
+FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTML, or BFF requests reaching Admin direct is a proxy review failure
+```
+
+- Verification contribution: Jianshen TypeScript package check and static assertion that all auth proxy paths target the shared auth upstream with changeOrigin=false; no Vite server or browser is started.
+- After this file: The Jianshen development proxy follows the Edge OIDC/BFF route contract.
+
+#### File 49 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts`
+
+- Purpose: 确保本地Vite/preview模式把OIDC入口、BFF session端点和OIDC callback交给同一Edge auth upstream。
+- Symbols: `server.proxy`。
+- Repository evidence: 当前Vite配置代理`/oauth2`，但`/bff/*`和`/login/oauth2/code/*`会落入前端SPA fallback。
+- Dependencies and consumers: 复用已有Yuheng auth proxy环境变量；现有Yuheng API代理维持原目标。
+- Why now: 新OIDC导航需要Edge callback，BFF logout/session还需要相同的cookie origin。
+- Contract/signature changes: 仅增加`/bff`和`/login/oauth2`路径规则，复用`/oauth2`的配置Edge upstream，并设置`changeOrigin: false`保留原始Host供`{baseUrl}`回调使用。
+- Input/output and state mapping: `/oauth2/authorization/{registrationId}`、`/bff/*`与`/login/oauth2/code/*`进入Edge并保留前端Host，使OIDC回调返回原前端origin；业务API继续走原`/api`规则。
+- Error and edge behavior: `VITE_YUHENG_ORIGIN`显式设置时直接请求该Edge origin；空值时同源Vite/preview路由必须完成OIDC回调和BFF请求。
+- Standards impact: MC-ARCH-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001；只增加既有auth upstream的路径映射。
+- Literal rule enforcement: Rule 7, Rule 11；同一路径集合在本地dev/preview中一致，模块边界不变。
+- Design pattern consideration: N/A；Vite现有代理映射直接扩展，不需要新helper或proxy abstraction。
+- Implementation pseudocode:
+
+```typescript
+INPUT -> existing OAuth2 auth proxy target and API proxy target
+FLOW -> map /oauth2, /bff, and /login/oauth2 to the auth target with changeOrigin=false in every applicable dev/preview proxy table
+OUTPUT -> OIDC start, BFF session/logout and callback reach Edge; existing /api target remains
+FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTML, or BFF requests reaching Admin direct is a proxy review failure
+```
+
+- Verification contribution: Yuheng TypeScript package check and static assertion that all auth proxy paths target the shared auth upstream with changeOrigin=false; no Vite server or browser is started.
+- After this file: The Yuheng development proxy follows the Edge OIDC/BFF route contract.
+
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
-- Verification command: `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`。
+- Verification command: See §8 Step16 validation matrix for the exact Edge Maven contract test, shared auth package test/typecheck, Portal/four Admin package typechecks/tests, and scoped Jianshen/Shoubing React tests.
 - Expected result: 先确认上述RED由缺失目标行为引起，GREEN时命名用例成功、模块编译成功、`git diff --check`零错误；不以不存在依赖/数据库/fixture而失败作为RED。
 - Failure returns to: Step 15 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
 - Completion criteria: Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
 - Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`。
-- Commit: `feat(xingyuan-web): move admin login to oidc bff`。
-
+- Commit paths: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts`。
+- Commit: `feat(xingyuan): migrate admin auth to oidc bff`。
 ### Step 17 — 提供受控数据导入、切流及本地验证入口
 
 - Requirements: REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023
@@ -13404,7 +14187,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | Step 13 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=IdpServiceOAuth2ClientTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 改造机器客户端缓存并装配WebClient | 精确用例先目标RED后GREEN；模块编译通过 | Step 13对应File | REQ-005, REQ-009, REQ-011, REQ-016；运行环境证据另列 |
 | Step 14 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 建立SCG OAuth2登录和服务端会话 | 目标行为先RED后GREEN；Edge module compile、profile/OpenAPI/Gateway-prefix/path gates pass | Step 14对应24 Files | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042；Redis/AS runtime另由用户验收 |
 | Step 15 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 保留玉衡、鉴神与天枢准入链 | Cookie refresh、SCOPE bridge、nested context行为先RED后GREEN；Starter/Tianshu现有验证合同与模块编译通过 | Step 15对应File | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025；真实Redis/AS/HMAC运行证据另列 |
-| Step 16 | /Users/mario/SelfProject/Egon-COLA | `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`。 | 迁移共享认证客户端与五个前端消费者 | 精确用例先目标RED后GREEN；模块编译通过 | Step 16对应File | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026；运行环境证据另列 |
+| Step 16 | /Users/mario/SelfProject/Egon-COLA | Edge `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; shared auth and Portal/four Admin package typecheck/test scripts from §8; targeted Jianshen step-up/shell, Shoubing auth/client/grant/key/resource page tests, Yuheng login/layout tests, and updated OIDC/BFF E2E fixture sources | 迁移共享认证客户端与五个前端消费者及OIDC step-up | RED/GREEN and all affected package checks pass; no app/browser/AS/Redis runtime | Step 16对应47 Files | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026, REQ-043；运行环境证据另列 |
 | Step 17 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；`python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`仅脚本语法补充。 | 提供受控数据导入、切流及本地验证入口 | 精确用例先目标RED后GREEN；模块编译通过 | Step 17对应File | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023；运行环境证据另列 |
 | Step 18 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test`；其余受影响consumer门禁按§8。必须无JPA生产引用、无漏迁fixture；不启动应用。 | 退役旧协议并校验全域回归 | 精确用例先目标RED后GREEN；模块编译通过 | Step 18对应File | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027；运行环境证据另列 |
 
@@ -13479,6 +14262,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | REQ-040 | 修订Spec §4/DEC-148/EVD-152 | Step 14 | provided Lombok API and module-local qualifier-copy configuration | EdgeLoginContractTest and exact reactor compile | application compiles with the parent-managed Lombok version and exports no Lombok runtime dependency |
 | REQ-041 | 修订Spec §4/DEC-149/EVD-153 | Step 14 | decorated TokenRelay ReactiveOAuth2AuthorizedClientManager; encrypted repository write inside distributed per-session/client lock | EdgeLoginContractTest TEST-145 | concurrent same-identity calls refresh once and the follower reloads rotated state; lock timeout never retries a consumed RT |
 | REQ-042 | 修订Spec §4/DEC-150/EVD-154 | Step 14 | API-015 matches held token value/JWT issuer/subject to client registration and checks tenant/audience/shared generation | EdgeLoginContractTest TEST-146 | token/issuer/subject/tenant/audience/expiry/revoked mismatch 401; Redis unavailable 503; never refreshes while returning session view |
+| REQ-043 | Current-code amendment §1/§3/§5.3 | Step 16 | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` ; `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`; `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts` | TEST-147/148/149 and all affected package typecheck/test scripts | Passwordless OIDC/BFF login/logout, fixed-registration step-up, one version-bound role-intent retry, no token/password persistence |
 
 ## 11. Risks, Blockers, and User Decisions
 

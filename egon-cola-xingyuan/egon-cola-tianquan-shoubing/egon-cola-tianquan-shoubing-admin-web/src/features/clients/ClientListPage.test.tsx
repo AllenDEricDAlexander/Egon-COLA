@@ -13,7 +13,7 @@ vi.mock('../../auth/AuthContext', () => ({
     useAuth: () => ({
         loading: false,
         bootstrap: {
-            user: {id: 'admin-1', identitySub: 'admin-sub', tenantId: 'default', status: 'ACTIVE'},
+            user: {id: 'admin-1', identitySub: 'admin-sub', tenantId: '1001', status: 'ACTIVE'},
             activeRoleContexts: [],
             permissions: state.permissions,
             apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
@@ -28,12 +28,15 @@ const client = {
     clientId: 'order-service-prod',
     clientName: 'Order Service',
     clientType: 'CONFIDENTIAL',
+    purpose: 'SERVICE',
     status: 'ACTIVE',
     pkceRequired: false,
     accessTokenTtlSeconds: 900,
     refreshTokenTtlSeconds: 0,
     redirectUris: [],
     resourceUris: ['https://api.example.com/orders'],
+    allowedScopes: ['service:authorization:decide'],
+    issuer: 'https://auth.example/tenants/1001',
     secretHint: '••••6789',
     secretStatus: 'ACTIVE',
     version: 3,
@@ -59,26 +62,28 @@ beforeEach(() => {
         'tianquan-shoubing:oauth-client:create',
         'tianquan-shoubing:oauth-client:update',
         'tianquan-shoubing:resource-server:grant',
+        'system:platform:admin',
     ]
     state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-        if (path === '/api/v1/tianquan-shoubing/clients?page=0&size=20' && !options) {
+        if (path.startsWith('/api/v1/tianquan-shoubing/clients?') && !options) {
             return Promise.resolve({content: [client], page: 0, size: 20, totalElements: 1, totalPages: 1})
         }
-        if (path === '/api/v1/tianquan-shoubing/clients' && !options) return Promise.resolve([client])
-        if (path === '/api/v1/tianquan-shoubing/clients' && options?.method === 'POST') {
+        if (path === '/api/v1/tianquan-shoubing/clients?realm=tenant%3A1001' && options?.method === 'POST') {
             return Promise.resolve({
                 clientId: client.clientId,
                 appId: client.appId,
                 clientName: client.clientName,
                 clientType: client.clientType,
+                purpose: client.purpose,
                 status: client.status,
                 clientSecret: 'one-time-secret-1',
                 secretHint: '••••cret-1',
                 version: 1,
                 createdAt: '2026-08-22T01:00:00Z',
+                issuer: client.issuer,
             })
         }
-        if (path === `/api/v1/tianquan-shoubing/clients/${client.clientId}/secret-rotations`) {
+        if (path === `/api/v1/tianquan-shoubing/clients/${client.clientId}/secret-rotations?realm=tenant%3A1001`) {
             return Promise.resolve({
                 clientId: client.clientId,
                 appId: client.appId,
@@ -86,9 +91,10 @@ beforeEach(() => {
                 secretHint: '••••cret-2',
                 version: 4,
                 rotatedAt: '2026-08-22T02:00:00Z',
+                issuer: client.issuer,
             })
         }
-        if (path === `/api/v1/tianquan-shoubing/clients/${client.clientId}` && options?.method === 'PATCH') {
+        if (path === `/api/v1/tianquan-shoubing/clients/${client.clientId}?realm=tenant%3A1001` && options?.method === 'PATCH') {
             return Promise.resolve({...client, clientName: 'Order Service Updated', version: 4})
         }
         return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -106,7 +112,7 @@ describe('OAuth client secret administration', () => {
         renderPage('/clients?page=0&size=20')
         await waitFor(() => expect(screen.getByText('Order Service')).toBeInTheDocument())
         expect(screen.getByText('共 1 条')).toBeInTheDocument()
-        expect(state.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/clients?page=0&size=20')
+        expect(state.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/clients?page=0&size=20&realm=tenant%3A1001')
 
         fireEvent.click(screen.getByText('Order Service'))
         expect(screen.getByRole('dialog')).toHaveTextContent('order-service-prod')
@@ -121,13 +127,46 @@ describe('OAuth client secret administration', () => {
         fireEvent.click(screen.getByText('Order Service'))
         fireEvent.click(screen.getByRole('button', {name: /编辑/}))
         fireEvent.change(screen.getByLabelText('名称'), {target: {value: 'Order Service Updated'}})
+        fireEvent.change(screen.getByLabelText('Allowed Scopes（逗号分隔）'), {
+            target: {value: 'orders:read, orders:write'},
+        })
         fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
 
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            `/api/v1/tianquan-shoubing/clients/${client.clientId}`,
-            expect.objectContaining({method: 'PATCH'}),
+            `/api/v1/tianquan-shoubing/clients/${client.clientId}?realm=tenant%3A1001`,
+            expect.objectContaining({
+                method: 'PATCH',
+                body: expect.stringContaining('"allowedScopes":["orders:read","orders:write"]'),
+            }),
         ))
         expect(invalidateQueries).toHaveBeenCalledWith(expect.objectContaining({queryKey: ['tianquan-shoubing', 'clients']}))
+    })
+
+    it('uses the selected platform realm for an authorized operator and displays the issuer', async () => {
+        renderPage()
+        await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+            '/api/v1/tianquan-shoubing/clients?realm=tenant%3A1001',
+        ))
+
+        fireEvent.mouseDown(screen.getByRole('combobox', {name: 'Issuer Realm'}))
+        fireEvent.click(screen.getByText('平台管理 (platform)'))
+        fireEvent.click(screen.getByRole('button', {name: /查\s*询/}))
+
+        await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+            '/api/v1/tianquan-shoubing/clients?page=0&size=20&realm=platform',
+        ))
+        fireEvent.click(screen.getByText('Order Service'))
+        expect(screen.getAllByText(client.issuer).length).toBeGreaterThan(0)
+    })
+
+    it('does not honor a platform realm in the URL without platform permission', async () => {
+        state.permissions = ['tianquan-shoubing:oauth-client:read']
+        renderPage('/clients?realm=platform')
+
+        await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+            '/api/v1/tianquan-shoubing/clients?realm=tenant%3A1001',
+        ))
+        expect(state.request).not.toHaveBeenCalledWith('/api/v1/tianquan-shoubing/clients?realm=platform')
     })
 
     it('shows App ID and one-time create credentials without persisting the secret', async () => {
@@ -141,9 +180,23 @@ describe('OAuth client secret administration', () => {
         fireEvent.change(screen.getByPlaceholderText('展示名称'), {target: {value: 'Order Service'}})
         fireEvent.mouseDown(screen.getByRole('combobox', {name: '类型'}))
         fireEvent.click(screen.getByText('CONFIDENTIAL (机器客户端)'))
+        fireEvent.mouseDown(screen.getByRole('combobox', {name: '客户端用途'}))
+        fireEvent.click(screen.getByText('SERVICE (服务调用)'))
+        fireEvent.change(screen.getByPlaceholderText('orders:read, orders:write'), {
+            target: {value: 'service:authorization:decide'},
+        })
         fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
 
         await waitFor(() => expect(screen.getByText('one-time-secret-1')).toBeInTheDocument())
+        expect(state.request).toHaveBeenCalledWith(
+            '/api/v1/tianquan-shoubing/clients?realm=tenant%3A1001',
+            expect.objectContaining({
+                method: 'POST',
+                body: expect.stringContaining('"purpose":"SERVICE"'),
+            }),
+        )
+        expect(JSON.parse(String(state.request.mock.calls.find((call) => call[1]?.method === 'POST')?.[1]?.body)))
+            .toMatchObject({allowedScopes: ['service:authorization:decide']})
         expect(screen.getAllByText('order-service').length).toBeGreaterThan(0)
         expect(screen.getAllByText('order-service-prod').length).toBeGreaterThan(0)
         expect(localStorage.length).toBe(0)
@@ -162,7 +215,7 @@ describe('OAuth client secret administration', () => {
 
         await waitFor(() => expect(screen.getByText('one-time-secret-2')).toBeInTheDocument())
         expect(state.request).toHaveBeenCalledWith(
-            `/api/v1/tianquan-shoubing/clients/${client.clientId}/secret-rotations`,
+            `/api/v1/tianquan-shoubing/clients/${client.clientId}/secret-rotations?realm=tenant%3A1001`,
             expect.objectContaining({
                 method: 'POST',
                 body: JSON.stringify({expectedVersion: client.version}),

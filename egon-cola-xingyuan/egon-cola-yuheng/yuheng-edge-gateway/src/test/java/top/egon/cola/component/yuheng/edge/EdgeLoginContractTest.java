@@ -39,6 +39,7 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebSession;
 import org.springframework.web.server.WebHandler;
 import org.springframework.web.server.adapter.WebHttpHandlerBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.server.reactive.HttpHandler;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.redisson.api.RMapCache;
@@ -708,6 +709,35 @@ class EdgeLoginContractTest {
                 .exchange()
                 .expectStatus().isNoContent()
                 .expectHeader().doesNotExist("Location");
+
+        URI normalAuthorization = client.get().uri("/oauth2/authorization/tenant-a")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .returnResult(Void.class)
+                .getResponseHeaders()
+                .getLocation();
+        var normalQuery = UriComponentsBuilder.fromUri(normalAuthorization)
+                .build()
+                .getQueryParams();
+        assertThat(normalQuery.getFirst("prompt")).isNull();
+        assertThat(normalQuery.getFirst("max_age")).isNull();
+
+        URI stepUpAuthorization = client.get()
+                .uri("/oauth2/authorization/tenant-a?stepUp=true")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .returnResult(Void.class)
+                .getResponseHeaders()
+                .getLocation();
+        var stepUpQuery = UriComponentsBuilder.fromUri(stepUpAuthorization)
+                .build()
+                .getQueryParams();
+        assertThat(stepUpQuery.getFirst("prompt")).isEqualTo("login");
+        assertThat(stepUpQuery.getFirst("max_age")).isEqualTo("0");
+
+        client.get().uri("/oauth2/authorization/tenant-a?stepUp=trusted-input")
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     @Test

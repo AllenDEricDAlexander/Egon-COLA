@@ -57,27 +57,15 @@ describe('yuheng admin login', () => {
     )
     expect(await screen.findByText(expected!)).toBeInTheDocument()
   })
-    it('uses the Yuheng cookie login flow and never renders token inputs', async () => {
+  it('starts passwordless OIDC login and never renders tenant, credential or token inputs', async () => {
     const { LoginPage } = await import('./LoginPage')
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
 
+    expect(screen.queryByLabelText(/租户 ID|用户名|密码/)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Access Token/)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Refresh Token/)).not.toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('租户 ID'), {
-      target: { value: 'tenant-a' },
-    })
-        fireEvent.change(screen.getByLabelText('用户名'), {
-            target: {value: 'admin'},
-        })
-        fireEvent.change(screen.getByLabelText('密码'), {
-            target: {value: 'secret'},
-        })
-        fireEvent.click(screen.getByRole('button', {name: /登\s*录/}))
+    fireEvent.click(screen.getByRole('button', {name: '使用统一身份登录'}))
 
-    await waitFor(() => expect(auth.login).toHaveBeenCalledWith(
-      'tenant-a',
-        'admin',
-        'secret',
-    ))
+    await waitFor(() => expect(auth.login).toHaveBeenCalledOnce())
   })
 })

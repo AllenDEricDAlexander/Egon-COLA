@@ -1,4 +1,4 @@
-import {createGatewayAuthClient} from '@egon-cola/xingyuan-admin-web-shared'
+import {createGatewayAuthClient, type GatewaySessionResult} from '@egon-cola/xingyuan-admin-web-shared'
 
 // Authentication stays on Yuheng; the Portal never reads or passes tokens to children.
 export const portalAuth = createGatewayAuthClient({
@@ -6,7 +6,4 @@ export const portalAuth = createGatewayAuthClient({
   fetch: (...args) => globalThis.fetch(...args),
 })
 
-export interface PortalIdentity {
-  readonly sub: string
-  readonly tid: string
-}
+export type PortalIdentity = GatewaySessionResult

@@ -26,7 +26,15 @@ export default defineConfig({
     proxy: {
       '/oauth2': {
         target: process.env.PORTAL_AUTH_PROXY ?? 'http://127.0.0.1:18180',
-        changeOrigin: true,
+        changeOrigin: false,
+      },
+      '/bff': {
+        target: process.env.PORTAL_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: false,
+      },
+      '/login/oauth2': {
+        target: process.env.PORTAL_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: false,
       },
       '/api': {
         target: process.env.PORTAL_API_PROXY ?? 'http://127.0.0.1:18100',

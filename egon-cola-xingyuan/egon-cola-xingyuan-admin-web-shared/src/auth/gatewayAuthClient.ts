@@ -1,18 +1,26 @@
 export interface GatewayAuthClientOptions {
     readonly baseUrl?: string
     readonly fetch?: typeof globalThis.fetch
+    readonly registrationId?: string
+    readonly navigate?: (url: string) => void
 }
 
-export interface GatewayLoginRequest {
+export interface GatewaySessionResult {
+    readonly authenticated: boolean
     readonly tenantId: string
-    readonly username: string
-    readonly password: string
+    readonly subject: string
+    readonly displayName: string
 }
 
-export interface GatewayLoginResult {
-    readonly identitySub: string
-    readonly displayName: string
-    readonly mustChangePassword: boolean
+export interface GatewayCsrfResult {
+    readonly headerName: string
+    readonly token: string
+}
+
+export type GatewayLogoutRemoteState = 'CONFIRMED' | 'PENDING' | 'UNKNOWN'
+
+export interface GatewayLogoutResult {
+    readonly remoteState: GatewayLogoutRemoteState
 }
 
 export type GatewayAuthErrorCode =
@@ -41,17 +49,13 @@ export class GatewayAuthError extends Error {
     }
 }
 
-/**
- * Browser authentication transport for the public Yuheng identity routes.
- * USER access and refresh tokens stay in HttpOnly cookies; this client never
- * reads, stores, parses, or returns either token.
- */
+/** Browser authentication uses the Edge OIDC entry and keeps tokens server-side. */
 export interface GatewayAuthClient {
-    login(request: GatewayLoginRequest): Promise<GatewayLoginResult>
+    login(): void
 
-    logout(): Promise<void>
+    logout(): Promise<GatewayLogoutResult>
 
-    stepUp(password: string): Promise<void>
+    stepUp(): void
 
     userInfo<T>(): Promise<T>
 
@@ -63,13 +67,16 @@ export const createGatewayAuthClient = (
 ): GatewayAuthClient => {
     const baseUrl = normalizeBaseUrl(options.baseUrl ?? '')
     const fetcher = options.fetch ?? globalThis.fetch.bind(globalThis)
+    const registrationId = configuredRegistrationId(options.registrationId ?? 'edge-ui')
+    const navigate = options.navigate ?? ((url: string) => window.location.assign(url))
+    const authorizationPath = '/oauth2/authorization/' + encodeURIComponent(registrationId)
 
     const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
         const headers = new Headers(init.headers)
         headers.set('Accept', 'application/json')
         let response: Response
         try {
-            response = await fetcher(`${baseUrl}${path}`, {
+            response = await fetcher(baseUrl + path, {
                 ...init,
                 credentials: 'include',
                 headers,
@@ -82,12 +89,7 @@ export const createGatewayAuthClient = (
             )
         }
         if (!response.ok) {
-            throw new GatewayAuthError(
-                'HTTP_ERROR',
-                path,
-                `Yuheng authentication request failed (${response.status})`,
-                response.status,
-            )
+            throw httpError(path, response.status)
         }
         if (response.status === 204) return undefined as T
         let payload: unknown
@@ -105,81 +107,60 @@ export const createGatewayAuthClient = (
         return payload as T
     }
 
-    const csrf = async (): Promise<string> => {
-        const path = '/oauth2/login/csrf'
-        let response: Response
-        try {
-            response = await fetcher(`${baseUrl}${path}`, {
-                credentials: 'include',
-                headers: {Accept: 'application/json'},
-            })
-        } catch {
-            throw new GatewayAuthError(
-                'NETWORK_OR_TIMEOUT',
-                path,
-                'Yuheng authentication service is unreachable',
-            )
-        }
-        if (!response.ok) {
+    const csrf = async (): Promise<GatewayCsrfResult> => {
+        const path = '/bff/csrf'
+        const result = await request<unknown>(path)
+        if (!isCsrfResult(result) || result.headerName !== 'X-CSRF-TOKEN') {
             throw new GatewayAuthError(
                 'CSRF_FAILED',
                 path,
-                `Yuheng login security challenge failed (${response.status})`,
-                response.status,
+                'Yuheng logout security challenge is invalid',
             )
         }
-        let body: { token?: string }
-        try {
-            body = await response.json() as { token?: string }
-        } catch {
-            throw new GatewayAuthError(
-                'INVALID_RESPONSE',
-                path,
-                'Yuheng login CSRF response is invalid',
-                response.status,
-            )
-        }
-        if (!body.token) {
-            throw new GatewayAuthError(
-                'CSRF_FAILED',
-                path,
-                'Yuheng login CSRF response is invalid',
-                response.status,
-            )
-        }
-        return body.token
+        return result
     }
 
     return {
-        login: async (credentials) => {
-            const csrfToken = await csrf()
-            return request<GatewayLoginResult>('/oauth2/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Tianquan-Shoubing-CSRF': csrfToken,
-                },
-                body: JSON.stringify({
-                    tenantId: required(credentials.tenantId, 'tenantId'),
-                    username: required(credentials.username, 'username'),
-                    password: required(credentials.password, 'password'),
-                }),
-            })
-        },
+        login: () => navigate(baseUrl + authorizationPath),
 
         logout: async () => {
-            await request<void>('/oauth2/logout', {method: 'POST'})
+            const csrfToken = await csrf()
+            let response: Response
+            try {
+                response = await fetcher(baseUrl + '/bff/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        Accept: 'application/json',
+                        [csrfToken.headerName]: csrfToken.token,
+                    },
+                })
+            } catch {
+                throw new GatewayAuthError(
+                    'NETWORK_OR_TIMEOUT',
+                    '/bff/logout',
+                    'Yuheng authentication service is unreachable',
+                )
+            }
+            if (response.status === 204) return {remoteState: 'CONFIRMED'}
+            if (response.status === 503) {
+                const payload: unknown = await response.json().catch(() => undefined)
+                if (isLogoutFailure(payload)) {
+                    return {remoteState: payload.remoteState}
+                }
+            }
+            if (!response.ok) throw httpError('/bff/logout', response.status)
+            throw new GatewayAuthError(
+                'INVALID_RESPONSE',
+                '/bff/logout',
+                'Yuheng logout response is invalid',
+                response.status,
+            )
         },
 
-        stepUp: async (password) => {
-            await request<void>('/oauth2/step-up', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({password: required(password, 'password')}),
-            })
-        },
+        stepUp: () => navigate(baseUrl + authorizationPath + '?stepUp=true'),
 
-        userInfo: <T>() => request<T>('/oauth2/userinfo'),
+        userInfo: <T>() => request<T>('/bff/session'),
 
         bootstrap: <T>(path = '/api/v1/auth/bootstrap') => request<T>(path),
     }
@@ -191,15 +172,48 @@ const isEnvelope = (value: unknown): value is { data: unknown; success: boolean 
     && 'success' in value
     && 'data' in value
 
+const isCsrfResult = (value: unknown): value is GatewayCsrfResult =>
+    typeof value === 'object'
+    && value !== null
+    && 'headerName' in value
+    && typeof value.headerName === 'string'
+    && 'token' in value
+    && typeof value.token === 'string'
+    && value.token.length > 0
+
+const isLogoutFailure = (
+    value: unknown,
+): value is { code: 'REMOTE_REVOCATION_PENDING'; localLoggedOut: true; remoteState: 'PENDING' | 'UNKNOWN' } =>
+    typeof value === 'object'
+    && value !== null
+    && 'code' in value
+    && value.code === 'REMOTE_REVOCATION_PENDING'
+    && 'localLoggedOut' in value
+    && value.localLoggedOut === true
+    && 'remoteState' in value
+    && (value.remoteState === 'PENDING' || value.remoteState === 'UNKNOWN')
+
+const httpError = (path: string, status: number): GatewayAuthError =>
+    new GatewayAuthError(
+        'HTTP_ERROR',
+        path,
+        'Yuheng authentication request failed (' + status + ')',
+        status,
+    )
+
 const normalizeBaseUrl = (value: string): string => {
     const trimmed = value.trim()
     return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed
 }
 
-const required = (value: string, name: string): string => {
-    const normalized = value.trim()
-    if (!normalized) {
-        throw new GatewayAuthError('INVALID_INPUT', '/oauth2/login', `${name} is required`)
+const configuredRegistrationId = (value: string): string => {
+    const registrationId = value.trim()
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(registrationId)) {
+        throw new GatewayAuthError(
+            'INVALID_INPUT',
+            '/oauth2/authorization',
+            'OAuth registration is invalid',
+        )
     }
-    return normalized
+    return registrationId
 }

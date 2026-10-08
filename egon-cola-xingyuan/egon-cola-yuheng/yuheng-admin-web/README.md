@@ -8,23 +8,20 @@ directly.
 
 ## Authentication
 
-The console holds no credential. `src/auth/AuthContext.tsx` builds its auth client with
-`createGatewayAuthClient` from `@egon-cola/xingyuan-admin-web-shared`, so login is the
-Tianquan-Shoubing cookie/CSRF flow: `GET /oauth2/login/csrf` for the challenge, then
-`POST /oauth2/login` with that token echoed in `X-Tianquan-Shoubing-CSRF` and a
-`{tenantId, username, password}` body. Tianquan-Shoubing answers with HttpOnly USER
-Access/Refresh cookies, and the browser replays them on every later call because the HTTP
-client uses `credentials: 'include'`. There is no `localStorage` or `sessionStorage` token
-bundle, no “persist login” switch, and no Authorization Code or PKCE redirect.
+The console holds no credential or token. `src/auth/AuthContext.tsx` builds its auth client
+with `createGatewayAuthClient` from `@egon-cola/xingyuan-admin-web-shared`; login navigates to
+the configured Edge OIDC registration (`/oauth2/authorization/edge-ui`). Edge keeps OAuth
+tokens server-side and gives the browser an HttpOnly session cookie. The browser reads the
+Edge BFF session, uses its CSRF response for logout, and sends later API calls through the
+Edge session. It never submits a tenant, username or password and never stores AT/RT.
 
 The actor and capabilities come from `GET /api/v1/auth/bootstrap`
 (`GatewayAuthBootstrapController`, which itself requires the `yuheng:read` permission). The
-provider calls it on mount, after each successful login, and again through
-`refreshAuthorization()`. `CapabilityProvider` turns the returned `permissions` list into the
-capability set, and `hasCapability` also accepts the `*` wildcard. Logout calls
-`POST /oauth2/logout` and clears in-memory state only. `RequireAuth` redirects to `/login`
-when bootstrap fails, and `RequireCapability` renders 403 from the same list. The Admin Web
-never sends an actor identity header.
+provider calls it on mount and through `refreshAuthorization()`. `CapabilityProvider` turns
+the returned `permissions` list into the capability set, and `hasCapability` also accepts the
+`*` wildcard. Logout clears local authorization state and calls the Edge BFF with its CSRF
+header. `RequireAuth` redirects to `/login` when bootstrap fails, and `RequireCapability`
+renders 403 from the same list. The Admin Web never sends an actor identity header.
 
 ## Development
 
@@ -36,23 +33,22 @@ npm run lint
 npm run build
 ```
 
-`npm run dev` binds `127.0.0.1:18141` with `strictPort` and proxies both `/oauth2` and `/api`
-to the Yuheng public entry, `http://127.0.0.1:18180` by default. Override the two upstreams
-independently with `YUHENG_AUTH_PROXY` and `YUHENG_ADMIN_PROXY`. Login therefore travels the
-same route production uses: the Engine data plane accepts the USER cookie (or a bearer for
-non-browser clients) and Yuheng Admin then verifies the signed token and applies the
-Tianquan-Jianshen decision.
+`npm run dev` binds `127.0.0.1:18141` with `strictPort` and proxies `/oauth2`, `/bff`, and the
+`/login/oauth2` callback to the Edge public entry, and `/api` to the Yuheng Admin entry. Override
+the upstreams with
+`YUHENG_AUTH_PROXY` and `YUHENG_ADMIN_PROXY`; configure the auth proxy to the Edge instance.
+Yuheng Admin still verifies the signed token and applies the Tianquan-Jianshen decision.
 
 `npm run e2e` runs Playwright against `http://127.0.0.1:4173`, starting
-`npm run dev -- --host 127.0.0.1 --port 4173` when nothing is listening. The scenarios cover
-the HTTP/RPC and MCP control planes and need a reachable Yuheng Admin plus its topology. The
-command is not a substitute for the Yuheng live Maven suite.
+`npm run dev -- --host 127.0.0.1 --port 4173` when nothing is listening. Its fixtures mock
+the OIDC entry and Admin responses, so they check browser wiring and do not prove a live Edge,
+authorization server, Redis session or Yuheng topology.
 
 ## Runtime configuration
 
 `VITE_YUHENG_ORIGIN` is the only origin the bundle reads, and an empty value keeps requests on
 the current origin — which is why both the dev proxy and the container proxy work without a
-rebuild. `VITE_DEFAULT_TENANT_ID` merely prefills the tenant field of the login form.
+rebuild. The login flow does not take a tenant identifier from the browser.
 
 In the image, `static-server.mjs` serves `/app/dist`, answers `/healthz`, and reverse-proxies
 `/api/*` to `YUHENG_ADMIN_API_BASE_URL` (default `http://yuheng-admin:18080`). An `http:`

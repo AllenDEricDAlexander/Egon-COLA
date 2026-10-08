@@ -144,7 +144,8 @@ const authorization = {
 
 const authenticate = async (page: Page) => {
     await page.route('**/api/v1/auth/bootstrap', (route) => json(route, authorization))
-    await page.route('**/oauth2/logout', (route) => json(route, {}))
+    await page.route('**/bff/csrf', (route) => json(route, {headerName: 'X-CSRF-TOKEN', token: 'csrf-fixture'}))
+    await page.route('**/bff/logout', (route) => route.fulfill({status: 204}))
   await page.route('**/api/v1/yuheng/admin/scopes', (route) => json(route, [{
     ...scope,
     bindingId: 'scope-mcp-e2e',

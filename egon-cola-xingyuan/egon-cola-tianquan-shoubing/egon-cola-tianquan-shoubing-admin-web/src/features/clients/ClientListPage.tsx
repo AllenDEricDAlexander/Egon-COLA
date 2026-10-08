@@ -18,7 +18,7 @@ import {
     Typography,
 } from 'antd'
 import {CopyOutlined, DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined, ReloadOutlined} from '@ant-design/icons'
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import {useNavigate, useSearchParams} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {httpClient, useAuth} from '../../auth/AuthContext'
@@ -28,6 +28,7 @@ import type {
     CreateOAuthClientDTO,
     CreatedOAuthClientVO,
     IdentityListFilter,
+    OAuthClientPurpose,
     OAuthClientPageVO,
     OAuthClientVO,
     RotatedClientSecretVO,
@@ -42,7 +43,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const PAGE_SIZE = 20
 
-type ClientFilterForm = Pick<IdentityListFilter, 'query' | 'status'>
+type ClientFilterForm = Pick<IdentityListFilter, 'query' | 'status' | 'realm'>
 
 const readClientFilter = (searchParams: URLSearchParams): IdentityListFilter => {
     const pageValue = Number.parseInt(searchParams.get('page') ?? '0', 10)
@@ -53,6 +54,7 @@ const readClientFilter = (searchParams: URLSearchParams): IdentityListFilter => 
         size: Number.isInteger(sizeValue) && sizeValue > 0 ? sizeValue : PAGE_SIZE,
         query: searchParams.get('query')?.trim() || undefined,
         status: searchParams.get('status') || undefined,
+        realm: searchParams.get('realm')?.trim() || undefined,
     }
 }
 
@@ -64,14 +66,34 @@ const buildClientQuery = (filter: IdentityListFilter, includePaging: boolean): s
     }
     if (filter.query) query.set('query', filter.query)
     if (filter.status) query.set('status', filter.status)
+    if (filter.realm) query.set('realm', filter.realm)
     return query.toString()
 }
 
-const toClientSearchParams = ({page, size, query, status}: IdentityListFilter): URLSearchParams => {
+const toClientSearchParams = ({page, size, query, status, realm}: IdentityListFilter): URLSearchParams => {
     const searchParams = new URLSearchParams({page: String(page), size: String(size)})
     if (query?.trim()) searchParams.set('query', query.trim())
     if (status) searchParams.set('status', status)
+    if (realm) searchParams.set('realm', realm)
     return searchParams
+}
+
+const withRealm = (path: string, realm?: string): string => {
+    if (!realm) throw new Error('认证Realm不可用')
+    return path + (path.includes('?') ? '&' : '?')
+        + new URLSearchParams({realm}).toString()
+}
+
+const parseScopes = (value: unknown): string[] => {
+    if (typeof value !== 'string' || value.trim() === '') return []
+    return [...new Set(value.split(/[\s,]+/).map((scope) => scope.trim()).filter(Boolean))]
+}
+
+const validateAllowedScopes = async (_rule: unknown, value: unknown): Promise<void> => {
+    const scopes = parseScopes(value)
+    if (scopes.length > 64 || scopes.some((scope) => !/^[A-Za-z0-9._:-]{1,128}$/.test(scope))) {
+        throw new Error('Scope 必须符合格式且最多 64 项')
+    }
 }
 
 export const ClientListPage = () => {
@@ -80,6 +102,14 @@ export const ClientListPage = () => {
     const navigate = useNavigate()
   const { has } = usePermission(auth.bootstrap?.permissions ?? [])
     const [searchParams, setSearchParams] = useSearchParams()
+    const tenantRealm = auth.bootstrap?.user.tenantId
+        ? `tenant:${auth.bootstrap.user.tenantId}`
+        : undefined
+    const canSelectPlatform = auth.bootstrap?.permissions.includes('system:platform:admin') ?? false
+    const requestedRealm = searchParams.get('realm')
+    const realm = requestedRealm === 'platform' && canSelectPlatform
+        ? 'platform'
+        : tenantRealm
     const [createOpen, setCreateOpen] = useState(false)
     const [detailClient, setDetailClient] = useState<OAuthClientVO | null>(null)
     const [editOpen, setEditOpen] = useState(false)
@@ -92,10 +122,19 @@ export const ClientListPage = () => {
     const [filterForm] = Form.useForm<ClientFilterForm>()
   const [messageApi, contextHolder] = message.useMessage()
     const submitted = readClientFilter(searchParams)
-    const requestQuery = buildClientQuery(submitted, searchParams.has('page') || searchParams.has('size'))
+    const requestQuery = buildClientQuery({...submitted, realm}, searchParams.has('page') || searchParams.has('size'))
+
+    useEffect(() => {
+        setDetailClient(null)
+        setOneTimeCredentials(null)
+        setEditOpen(false)
+        setRotateOpen(false)
+        setAddUriType(null)
+    }, [realm])
 
   const clientsQuery = useQuery({
-    queryKey: ['tianquan-shoubing', 'clients', requestQuery],
+    queryKey: ['tianquan-shoubing', 'clients', realm, requestQuery],
+      enabled: Boolean(realm),
       queryFn: () => httpClient
           .request<OAuthClientVO[] | OAuthClientPageVO>(`/api/v1/tianquan-shoubing/clients${requestQuery ? `?${requestQuery}` : ''}`)
           .then(normalizePage),
@@ -103,7 +142,7 @@ export const ClientListPage = () => {
 
   const createMutation = useMutation({
       mutationFn: (v: CreateOAuthClientDTO) =>
-      httpClient.request<CreatedOAuthClientVO>('/api/v1/tianquan-shoubing/clients', {
+      httpClient.request<CreatedOAuthClientVO>(withRealm('/api/v1/tianquan-shoubing/clients', realm), {
         method: 'POST',
               body: JSON.stringify(v),
       }),
@@ -126,7 +165,7 @@ export const ClientListPage = () => {
     const rotateMutation = useMutation({
         mutationFn: (client: OAuthClientVO) =>
             httpClient.request<RotatedClientSecretVO>(
-                `/api/v1/tianquan-shoubing/clients/${encodeURIComponent(client.clientId)}/secret-rotations`,
+                withRealm(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(client.clientId)}/secret-rotations`, realm),
                 {
                     method: 'POST',
                     body: JSON.stringify({expectedVersion: client.version}),
@@ -154,7 +193,7 @@ export const ClientListPage = () => {
 
     const updateMutation = useMutation({
         mutationFn: ({clientId, data}: { clientId: string; data: UpdateOAuthClientDTO }) =>
-            httpClient.request<OAuthClientVO>(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}`, {
+            httpClient.request<OAuthClientVO>(withRealm(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}`, realm), {
                 method: 'PATCH',
                 body: JSON.stringify(data),
             }),
@@ -172,7 +211,7 @@ export const ClientListPage = () => {
     const addUriMutation = useMutation({
         mutationFn: ({clientId, type, value}: { clientId: string; type: 'redirect' | 'resource'; value: string }) => {
             const suffix = type === 'redirect' ? 'redirect-uris' : 'resource-uris'
-            return httpClient.request<OAuthClientVO>(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}/${suffix}`, {
+            return httpClient.request<OAuthClientVO>(withRealm(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}/${suffix}`, realm), {
                 method: 'PUT',
                 body: JSON.stringify({value}),
             })
@@ -192,7 +231,7 @@ export const ClientListPage = () => {
     const deleteUriMutation = useMutation({
         mutationFn: ({clientId, type, value}: { clientId: string; type: 'redirect' | 'resource'; value: string }) => {
             const suffix = type === 'redirect' ? 'redirect-uris' : 'resource-uris'
-            return httpClient.request<OAuthClientVO>(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}/${suffix}`, {
+            return httpClient.request<OAuthClientVO>(withRealm(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}/${suffix}`, realm), {
                 method: 'DELETE',
                 body: JSON.stringify({value}),
             })
@@ -214,6 +253,7 @@ export const ClientListPage = () => {
             status: detailClient.status,
             accessTokenTtlSeconds: detailClient.accessTokenTtlSeconds,
             refreshTokenTtlSeconds: detailClient.refreshTokenTtlSeconds,
+            allowedScopes: detailClient.allowedScopes.join(', '),
         })
         setEditOpen(true)
     }
@@ -245,13 +285,16 @@ export const ClientListPage = () => {
           <Form<ClientFilterForm>
               form={filterForm}
               layout="inline"
-              initialValues={{query: submitted.query, status: submitted.status}}
+              initialValues={{query: submitted.query, status: submitted.status, realm}}
               onFinish={(values) => {
                   setSearchParams(toClientSearchParams({
                       page: 0,
                       size: PAGE_SIZE,
                       query: values.query,
                       status: values.status,
+                      realm: values.realm === 'platform' && canSelectPlatform
+                          ? 'platform'
+                          : tenantRealm,
                   }))
               }}
               style={{marginBottom: 16}}
@@ -267,13 +310,22 @@ export const ClientListPage = () => {
                       style={{width: 160}}
                   />
               </Form.Item>
+              <Form.Item name="realm" label="Issuer Realm">
+                  <Select
+                      options={[
+                          ...(tenantRealm ? [{label: `当前租户 (${tenantRealm})`, value: tenantRealm}] : []),
+                          ...(canSelectPlatform ? [{label: '平台管理 (platform)', value: 'platform'}] : []),
+                      ]}
+                      style={{width: 240}}
+                  />
+              </Form.Item>
               <Form.Item>
                   <Space>
                       <Button type="primary" htmlType="submit">查询</Button>
-                      <Button onClick={() => {
-                          filterForm.resetFields()
-                          setSearchParams(toClientSearchParams({page: 0, size: PAGE_SIZE}))
-                      }}>重置</Button>
+                          <Button onClick={() => {
+                              filterForm.resetFields()
+                              setSearchParams(toClientSearchParams({page: 0, size: PAGE_SIZE, realm}))
+                          }}>重置</Button>
                   </Space>
               </Form.Item>
           </Form>
@@ -295,7 +347,7 @@ export const ClientListPage = () => {
                       total: clientsQuery.data?.totalElements ?? 0,
                       showTotal: (total) => `共 ${total} 条`,
                       onChange: (page, size) => {
-                          setSearchParams(toClientSearchParams({...submitted, page: page - 1, size}))
+                          setSearchParams(toClientSearchParams({...submitted, page: page - 1, size, realm}))
                       },
                   }}
                   onRow={(row) => ({onClick: () => setDetailClient(row), style: {cursor: 'pointer'}})}
@@ -304,6 +356,8 @@ export const ClientListPage = () => {
                       {title: 'Client ID', dataIndex: 'clientId', ellipsis: true},
                       {title: '名称', dataIndex: 'clientName'},
                       {title: '类型', dataIndex: 'clientType'},
+                      {title: '用途', dataIndex: 'purpose'},
+                      {title: 'Issuer', dataIndex: 'issuer', ellipsis: true},
                       {
                           title: '状态',
                           dataIndex: 'status',
@@ -312,7 +366,7 @@ export const ClientListPage = () => {
                       {title: 'Secret Hint', dataIndex: 'secretHint', render: (v?: string) => v ?? '—'},
                       {title: 'PKCE', dataIndex: 'pkceRequired', width: 70, render: (v: boolean) => v ? 'S256' : '—'},
                       {title: '回调地址', dataIndex: 'redirectUris', render: (v: string[]) => `${v.length} 个`},
-                      {title: 'Resource URI', dataIndex: 'resourceUris', render: (v: string[]) => `${v.length} 个`},
+                      {title: 'Resource URI', dataIndex: 'resourceUris', render: (v: readonly string[]) => `${v.length} 个`},
                   ]}
               />
         </PageState>
@@ -333,8 +387,8 @@ export const ClientListPage = () => {
                 detailClient && (
                     <Space>
                         {has('tianquan-shoubing:resource-server:grant') && (
-                            <Button
-                                onClick={() => navigate(`/clients/${encodeURIComponent(detailClient.clientId)}/resource-grants`)}>
+                                <Button
+                                onClick={() => navigate(`/clients/${encodeURIComponent(detailClient.clientId)}/resource-grants?realm=${encodeURIComponent(realm ?? '')}`)}>
                                 <LinkOutlined/> Resource Grant
                             </Button>
                         )}
@@ -357,6 +411,9 @@ export const ClientListPage = () => {
                         <Descriptions.Item label="App ID">{detailClient.appId ?? '—'}</Descriptions.Item>
                         <Descriptions.Item label="名称">{detailClient.clientName}</Descriptions.Item>
                         <Descriptions.Item label="类型">{detailClient.clientType}</Descriptions.Item>
+                        <Descriptions.Item label="用途">{detailClient.purpose}</Descriptions.Item>
+                        <Descriptions.Item label="Issuer">{detailClient.issuer}</Descriptions.Item>
+                        <Descriptions.Item label="Allowed Scopes">{detailClient.allowedScopes.join(', ') || '—'}</Descriptions.Item>
                         <Descriptions.Item label="状态">
                             <Tag color={STATUS_COLORS[detailClient.status]}>{detailClient.status}</Tag>
                         </Descriptions.Item>
@@ -472,10 +529,12 @@ export const ClientListPage = () => {
                         clientId: v.clientId as string,
                         clientName: v.clientName as string,
                         clientType: (v.clientType as string) || 'PUBLIC',
+                        purpose: (v.purpose as OAuthClientPurpose) || 'USER',
                         accessTokenTtlSeconds: (v.accessTokenTtlSeconds as number) || 900,
                         refreshTokenTtlSeconds: (v.refreshTokenTtlSeconds as number) || 604800,
                         redirectUris: v.redirectUri ? [v.redirectUri as string] : [],
                         resourceUris: v.resourceUri ? [v.resourceUri as string] : [],
+                        allowedScopes: parseScopes(v.allowedScopes),
                     })
                 })
             }}
@@ -508,13 +567,23 @@ export const ClientListPage = () => {
                         {label: 'CONFIDENTIAL (机器客户端)', value: 'CONFIDENTIAL'},
                     ]}/>
                 </Form.Item>
+                <Form.Item name="purpose" label="客户端用途" initialValue="USER" rules={[{required: true}]}>
+                    <Select options={[
+                        {label: 'USER (用户委托)', value: 'USER'},
+                        {label: 'SERVICE (服务调用)', value: 'SERVICE'},
+                    ]}/>
+                </Form.Item>
                 <Form.Item name="accessTokenTtlSeconds" label="Access Token TTL (秒)" initialValue={900}>
                     <InputNumber min={1} style={{width: '100%'}}/>
                 </Form.Item>
                 <Form.Item name="refreshTokenTtlSeconds" label="Refresh Token TTL (秒)" initialValue={604800}>
                     <InputNumber min={1} style={{width: '100%'}}/>
                 </Form.Item>
-                <Form.Item name="redirectUri" label="回调地址 (redirect_uri)">
+                <Form.Item name="allowedScopes" label="Allowed Scopes（逗号分隔）" initialValue=""
+                    rules={[{validator: validateAllowedScopes}]}>
+                    <Input.TextArea rows={2} placeholder="orders:read, orders:write" maxLength={8192}/>
+                </Form.Item>
+              <Form.Item name="redirectUri" label="回调地址 (redirect_uri)">
                     <Input placeholder="https://app.example.com/callback"/>
                 </Form.Item>
                 <Form.Item name="resourceUri" label="Resource URI">
@@ -598,6 +667,7 @@ export const ClientListPage = () => {
                               accessTokenTtlSeconds: v.accessTokenTtlSeconds,
                               refreshTokenTtlSeconds: v.refreshTokenTtlSeconds,
                               expectedVersion: detailClient.version,
+                              allowedScopes: parseScopes(v.allowedScopes),
                           },
                       })
                   }
@@ -621,6 +691,9 @@ export const ClientListPage = () => {
               </Form.Item>
               <Form.Item name="refreshTokenTtlSeconds" label="Refresh Token TTL (秒)" rules={[{required: true}]}>
                   <InputNumber min={1} style={{width: '100%'}}/>
+              </Form.Item>
+              <Form.Item name="allowedScopes" label="Allowed Scopes（逗号分隔）" rules={[{validator: validateAllowedScopes}]}>
+                  <Input.TextArea rows={2}/>
               </Form.Item>
           </Form>
       </Modal>

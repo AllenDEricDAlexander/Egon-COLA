@@ -16,11 +16,8 @@ export {gatewayAuth, httpClient}
 interface AuthContextValue {
   readonly loading: boolean
   readonly bootstrap?: AuthorizationBootstrap
-    readonly login: (
-        tenantId: string,
-        username: string,
-        password: string,
-    ) => Promise<void>
+  readonly error?: string
+  readonly login: () => void
   readonly logout: () => Promise<void>
 }
 
@@ -29,23 +26,29 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [loading, setLoading] = useState(true)
   const [bootstrap, setBootstrap] = useState<AuthorizationBootstrap>()
+  const [error, setError] = useState<string>()
 
-    const login = useCallback(async (
-        tenantId: string,
-        username: string,
-        password: string,
-    ) => {
-        setLoading(true)
-        await gatewayAuth.login({tenantId, username, password})
-        setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>(
-            '/api/v1/tianquan-shoubing/auth/bootstrap',
-        ))
-        setLoading(false)
+  const login = useCallback(() => {
+    setError(undefined)
+    setLoading(true)
+    try {
+      gatewayAuth.login()
+    } catch (failure) {
+      setLoading(false)
+      setError(failure instanceof Error ? failure.message : '统一身份登录失败')
+    }
   }, [])
 
   const logout = useCallback(async () => {
-      await gatewayAuth.logout()
-    setBootstrap(undefined)
+    try {
+      const result = await gatewayAuth.logout()
+      setBootstrap(undefined)
+      setError(result.remoteState === 'CONFIRMED'
+        ? undefined
+        : '本地已退出，远端令牌撤销待恢复')
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : '统一身份退出失败')
+    }
   }, [])
 
   useEffect(() => {
@@ -66,8 +69,8 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [])
 
   const value = useMemo(
-    () => ({ loading, bootstrap, login, logout }),
-    [loading, bootstrap, login, logout],
+    () => ({ loading, bootstrap, error, login, logout }),
+    [loading, bootstrap, error, login, logout],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

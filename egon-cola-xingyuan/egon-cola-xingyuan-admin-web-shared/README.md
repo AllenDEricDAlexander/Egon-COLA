@@ -8,10 +8,9 @@ Tianquan-Jianshen）以及 `egon-cola-xingyuan-admin-portal` 微前端宿主共�
 - **Layout**：`EnterpriseLayout` / `EnterpriseHeader` / `EnterpriseFooter` 及完整 TypeScript 类型。平台通过 config 传入平台名、Logo、导航菜单、用户信息与全局操作区，Header 自动按当前路由高亮（最长前缀匹配），窄屏自动切换抽屉导航，Layout 保证最小高度与贴底 Footer。
 - **Theme**：`AdminThemeProvider`、`designTokens`、`injectTokens`。
 - **API**：`createHttpClient`、`ApiError`、`classifyApiError`。
-- **Auth**：`createGatewayAuthClient` 与 `GatewayAuthError`。它封装平台统一身份的
-  Cookie/CSRF 浏览器登录（`GET /oauth2/login/csrf` + `POST /oauth2/login`，携带
-  `X-Tianquan-Shoubing-CSRF`）和 `bootstrap(path?)` 授权引导读取，默认路径
-  `/api/v1/auth/bootstrap`。会话保存在 `HttpOnly` Cookie 中，包内不实现 Token 存储，
+- **Auth**：`createGatewayAuthClient` 与 `GatewayAuthError`。它只导航到配置的 Edge OIDC
+  registration，并读取 `/bff/session`、`/bff/csrf`、`/bff/logout` 和 `bootstrap(path?)`
+  授权引导（默认 `/api/v1/auth/bootstrap`）。浏览器只持 Edge 的 `HttpOnly` 会话 Cookie；包内不接收凭据、不读写 AT/RT，
   也没有 `createOAuthClient` / `createTokenStore` / `decodeTokenPayload` 之类的导出。
 - **i18n**：`initI18n`、`I18nProvider`、`useT`、`changeLanguage`、`currentLanguage`。
 - **Components / Hooks**：`PageHeader`、`PageState`、`PageTemplate`、

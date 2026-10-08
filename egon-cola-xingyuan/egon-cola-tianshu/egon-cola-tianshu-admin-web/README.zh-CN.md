@@ -7,12 +7,13 @@ Tianshu Admin Web 是 Egon COLA 动态配置中心的独立管理控制台。它
 
 ## 认证
 
-控制台通过 `@egon-cola/xingyuan-admin-web-shared` 的 `createGatewayAuthClient` 走平台
-统一身份（Tianquan-Shoubing）登录：登录页提交租户 ID、用户名和密码，经 CSRF 保护的
-`/oauth2/login` 完成认证，会话保存在浏览器不读取的 `HttpOnly` Cookie 中。
+控制台通过 `@egon-cola/xingyuan-admin-web-shared` 的 `createGatewayAuthClient` 走平台统一
+身份登录；登录跳转到配置的 Edge OIDC registration（`/oauth2/authorization/edge-ui`）。Edge 在
+服务端保管 OAuth Token，并给浏览器 `HttpOnly` 会话 Cookie；浏览器不会提交租户、用户名或密码，
+也不会保存 AT/RT。
 
-因此控制台不持有 Access Token，也不发送 `Authorization` 头，所有请求依赖 Cookie 凭据。
-身份与权限来自 `GET /api/v1/tianshu/auth/bootstrap`，只有响应授予 `TIANSHU_READ` 时
+因此控制台不持有 Access Token，也不发送 `Authorization` 头；API 请求通过 Edge 会话与 BFF Token
+Relay。身份与权限来自 `GET /api/v1/tianshu/auth/bootstrap`，只有响应授予 `TIANSHU_READ` 时
 控制台才算已授权。收到 401 时清空本地 bootstrap 状态并回到登录页。
 
 ## 开发
@@ -25,9 +26,9 @@ npm run lint
 npm run build
 ```
 
-`npm run dev` 绑定 `http://127.0.0.1:18152`（`strictPort`），并把 `/oauth2` 和 `/api`
-一并代理到 Tianshu Admin 前的网关，默认 `http://127.0.0.1:18180`。两个上游可分别用
-`TIANSHU_AUTH_PROXY` 和 `TIANSHU_ADMIN_PROXY` 覆盖；`npm run preview` 复用同一张代理表。
+`npm run dev` 绑定 `http://127.0.0.1:18152`（`strictPort`），把 `/oauth2`、`/bff` 和 `/login/oauth2`
+OIDC 回调代理到 Edge 网关，并把 `/api` 代理到 Tianshu Admin 前的网关。上游可分别用 `TIANSHU_AUTH_PROXY` 和
+`TIANSHU_ADMIN_PROXY` 覆盖；认证上游应指向 Edge。`npm run preview` 复用同一张代理表。
 
 注册中心首次请求会携带完整四级作用域。本地作用域不是
 `default / default-app / dev / default` 时，可设置以下构建时默认值：
@@ -40,14 +41,8 @@ VITE_TIANSHU_ADMIN_DEFAULT_NAMESPACE=default \
 npm run dev
 ```
 
-`npm run e2e` 需要存在可达的 Tianshu Admin：Playwright 会先构建控制台，再用
-`npm run preview` 在 `http://127.0.0.1:4173` 提供服务，场景流量经上面的 preview 代理表
-到达 Admin。该命令不能替代 Tianshu 的 Maven 测试套件。
-
-> 已知缺陷：`e2e/tianshu-admin.spec.ts` 仍在填写早已移除的“粘贴 admin token”表单，并
-> 依赖 `TIANSHU_E2E_TOKEN`；未设置该变量时整条用例被跳过，设置后也会在当前登录页上
-> 失败。该 spec 需要源码侧修复，可参照 Yuheng Admin Web 的 Playwright 用例改写为
-> Cookie 登录。
+`npm run e2e` 会先构建控制台，再用 `npm run preview` 在 `http://127.0.0.1:4173` 提供服务。
+当前认证用例mock OIDC入口，不证明真实Edge、授权服务器、Redis会话或Tianshu Admin运行状态。
 
 ## 运行时配置
 

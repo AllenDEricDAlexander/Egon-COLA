@@ -1,12 +1,20 @@
-import {type Rbac3Client, Rbac3Provider} from '@egon-cola/tianquan-jianshen-react-sdk'
+import {type Rbac3Client, Rbac3Provider, Rbac3RequestError} from '@egon-cola/tianquan-jianshen-react-sdk'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {fireEvent, render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it, vi} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
+import {gatewayAuth} from '../auth/gatewayAuth'
 import {RoleActivationPage} from './RoleActivationPage'
 
+const STEP_UP_INTENT_KEY = 'egon.tianquan-jianshen.role-activation.step-up'
+
 describe('role activation page', () => {
+  afterEach(() => {
+    window.sessionStorage.clear()
+    vi.restoreAllMocks()
+  })
+
     it('submits a complete role set with the current authorization version', async () => {
         const replaceActiveRoles = vi.fn<Rbac3Client['replaceActiveRoles']>(async () => ({
       activeRoles: [{ applicationCode: 'orders', rootRoleIds: ['11', '12'] }],
@@ -25,6 +33,48 @@ describe('role activation page', () => {
     await waitFor(() => expect(replaceActiveRoles).toHaveBeenCalledWith({
         roleIds: ['11', '12'], expectedAuthVersion: 2,
     }))
+  })
+
+  it('uses OIDC step-up without a password and resumes one same-version role intent', async () => {
+    const stepUpRequired = new Rbac3RequestError({
+      status: 401,
+      code: 'STEP_UP_REQUIRED',
+      message: 'strong authentication required',
+      retryable: false,
+    })
+    const replaceActiveRoles = vi.fn<Rbac3Client['replaceActiveRoles']>()
+      .mockRejectedValueOnce(stepUpRequired)
+      .mockResolvedValueOnce({
+        activeRoles: [{applicationCode: 'orders', rootRoleIds: ['11']}],
+        changed: true,
+        authVersion: 3,
+        policyVersion: 3,
+        activationRequired: false,
+        snapshotChecksum: 'sum',
+      })
+    const stepUp = vi.spyOn(gatewayAuth, 'stepUp').mockImplementation(() => {})
+    const first = render(<RoleActivationPage />, {wrapper: wrapper(replaceActiveRoles)})
+
+    await waitFor(() => expect(screen.getByText('订单管理员')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', {name: '激活所选角色'}))
+    await waitFor(() => expect(screen.getByText('关键角色需要强认证')).toBeInTheDocument())
+
+    expect(screen.queryByLabelText('Current Password')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', {name: '确认强认证并激活'}))
+
+    await waitFor(() => expect(stepUp).toHaveBeenCalledWith())
+    expect(JSON.parse(window.sessionStorage.getItem(STEP_UP_INTENT_KEY) ?? 'null'))
+      .toEqual({roleIds: ['11'], expectedAuthVersion: 2})
+    first.unmount()
+
+    render(<RoleActivationPage />, {wrapper: wrapper(replaceActiveRoles)})
+
+    await waitFor(() => expect(replaceActiveRoles).toHaveBeenCalledTimes(2))
+    expect(replaceActiveRoles).toHaveBeenLastCalledWith({
+      roleIds: ['11'],
+      expectedAuthVersion: 2,
+    })
+    expect(window.sessionStorage.getItem(STEP_UP_INTENT_KEY)).toBeNull()
   })
 })
 

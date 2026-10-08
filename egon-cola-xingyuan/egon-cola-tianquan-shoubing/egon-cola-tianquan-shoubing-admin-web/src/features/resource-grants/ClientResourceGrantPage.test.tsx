@@ -14,7 +14,7 @@ vi.mock('../../auth/AuthContext', () => ({
   useAuth: () => ({
     loading: false,
     bootstrap: {
-      user: { id: 'admin-1', identitySub: 'admin-sub', tenantId: 'default', status: 'ACTIVE' },
+      user: { id: 'admin-1', identitySub: 'admin-sub', tenantId: '1001', status: 'ACTIVE' },
       activeRoleContexts: [],
       permissions: state.permissions,
       apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
@@ -54,7 +54,7 @@ const renderPage = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/clients/client-1/resource-grants']}>
+      <MemoryRouter initialEntries={['/clients/client-1/resource-grants?realm=tenant%3A1001']}>
         <Routes>
           <Route path="/clients/:clientId/resource-grants" element={<ClientResourceGrantPage />} />
         </Routes>
@@ -67,18 +67,18 @@ beforeEach(() => {
   state.permissions = ['tianquan-shoubing:resource-server:grant']
   state.grantsAvailable = false
   state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-    if (path === '/api/v1/tianquan-shoubing/resource-servers' && !options) return Promise.resolve([resourceServer])
-    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources' && !options) {
+    if (path === '/api/v1/tianquan-shoubing/resource-servers?realm=platform' && !options) return Promise.resolve([resourceServer])
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources?realm=tenant%3A1001' && !options) {
       if (state.grantsAvailable) return Promise.resolve([grant])
       return Promise.reject(Object.assign(new Error('Grant query is not available'), { status: 404 }))
     }
-    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api' && options?.method === 'PUT') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api?realm=tenant%3A1001' && options?.method === 'PUT') {
       return Promise.resolve(grant)
     }
-    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api' && options?.method === 'DELETE') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api?realm=tenant%3A1001' && options?.method === 'DELETE') {
       return Promise.resolve(undefined)
     }
-    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resource-grants/actions/batch' && options?.method === 'POST') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resource-grants/actions/batch?realm=tenant%3A1001' && options?.method === 'POST') {
       return Promise.resolve([grant])
     }
     return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -88,12 +88,23 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Client Resource Grant administration', () => {
-  it('shows an unavailable read capability instead of a false empty grant table', async () => {
+  it('keeps a missing client response distinct from an empty grant list', async () => {
     renderPage()
 
     expect(await screen.findByText('Orders API')).toBeInTheDocument()
-    expect(await screen.findByText(/Grant 读取接口待补齐/)).toBeInTheDocument()
+    expect(await screen.findByText(/Client 或 Grant 不存在/)).toBeInTheDocument()
     expect(screen.queryByText('暂无 Resource Server')).not.toBeInTheDocument()
+  })
+
+  it('reads existing grants with the verified tenant realm', async () => {
+    state.grantsAvailable = true
+    renderPage()
+
+    expect(await screen.findByText('Orders API')).toBeInTheDocument()
+    expect(await screen.findByText(/orders:read/)).toBeInTheDocument()
+    expect(state.request).toHaveBeenCalledWith(
+      '/api/v1/tianquan-shoubing/clients/client-1/resources?realm=tenant%3A1001',
+    )
   })
 
   it('uses the existing PUT grant path and sends only the command fields', async () => {
@@ -104,7 +115,7 @@ describe('Client Resource Grant administration', () => {
     fireEvent.click(screen.getByRole('button', { name: /确定|OK/ }))
 
     await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api',
+      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api?realm=tenant%3A1001',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({
@@ -119,9 +130,9 @@ describe('Client Resource Grant administration', () => {
   it('uses the existing DELETE grant path and retains the row after a conflict', async () => {
     state.grantsAvailable = true
     state.request.mockImplementation((path: string, options?: RequestInit) => {
-      if (path === '/api/v1/tianquan-shoubing/resource-servers' && !options) return Promise.resolve([resourceServer])
-      if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources' && !options) return Promise.resolve([grant])
-      if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api' && options?.method === 'DELETE') {
+      if (path === '/api/v1/tianquan-shoubing/resource-servers?realm=platform' && !options) return Promise.resolve([resourceServer])
+      if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources?realm=tenant%3A1001' && !options) return Promise.resolve([grant])
+      if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api?realm=tenant%3A1001' && options?.method === 'DELETE') {
         return Promise.reject(Object.assign(new Error('版本冲突'), {status: 409}))
       }
       return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -134,7 +145,7 @@ describe('Client Resource Grant administration', () => {
     fireEvent.click(screen.getByRole('button', {name: '确认删除'}))
 
     await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api',
+      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api?realm=tenant%3A1001',
       expect.objectContaining({
         method: 'DELETE',
         body: JSON.stringify({
@@ -161,7 +172,7 @@ describe('Client Resource Grant administration', () => {
     fireEvent.click(screen.getByRole('button', {name: '确认批量删除'}))
 
     await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-      '/api/v1/tianquan-shoubing/clients/client-1/resource-grants/actions/batch',
+      '/api/v1/tianquan-shoubing/clients/client-1/resource-grants/actions/batch?realm=tenant%3A1001',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({

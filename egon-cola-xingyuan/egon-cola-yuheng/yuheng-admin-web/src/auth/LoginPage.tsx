@@ -1,12 +1,6 @@
-import {Alert, Button, Card, Form, Input, Typography} from 'antd'
+import {Alert, Button, Card, Typography} from 'antd'
 import {Navigate, useLocation} from 'react-router-dom'
 import {useAuth} from './AuthContext'
-
-interface LoginForm {
-  readonly tenantId: string
-    readonly username: string
-    readonly password: string
-}
 
 export const LoginPage = () => {
   const auth = useAuth()
@@ -23,27 +17,12 @@ export const LoginPage = () => {
       <Card className="login-card">
         <Typography.Title level={2}>Yuheng Admin</Typography.Title>
         <Typography.Paragraph type="secondary">
-            通过 Yuheng 的公开身份接口登录；USER AT/RT 仅由 Tianquan-Shoubing 写入 HttpOnly Cookie。
+          跳转到统一身份平台完成 OIDC 登录；浏览器只持有 Edge 的 HttpOnly 会话 Cookie。
         </Typography.Paragraph>
-        {auth.error && <Alert type="error" showIcon title={auth.error} />}
-        <Form<LoginForm>
-          layout="vertical"
-          initialValues={{ tenantId: import.meta.env.VITE_DEFAULT_TENANT_ID ?? 'default' }}
-          onFinish={(values) => void auth.login(values.tenantId, values.username, values.password)}
-        >
-          <Form.Item name="tenantId" label="租户 ID" rules={[{ required: true }]}>
-            <Input autoComplete="organization" />
-          </Form.Item>
-            <Form.Item name="username" label="用户名" rules={[{required: true}]}>
-                <Input autoComplete="username"/>
-            </Form.Item>
-            <Form.Item name="password" label="密码" rules={[{required: true}]}>
-                <Input.Password autoComplete="current-password"/>
-            </Form.Item>
-          <Button block type="primary" htmlType="submit" loading={auth.loading}>
-              登录
-          </Button>
-        </Form>
+        {auth.error && <Alert type="warning" showIcon title={auth.error} />}
+        <Button block type="primary" loading={auth.loading} onClick={auth.login}>
+          使用统一身份登录
+        </Button>
       </Card>
     </main>
   )

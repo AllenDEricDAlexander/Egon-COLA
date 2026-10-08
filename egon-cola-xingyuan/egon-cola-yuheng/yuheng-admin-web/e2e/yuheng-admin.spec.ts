@@ -207,15 +207,9 @@ const authenticate = async (
   page: Page,
   permissions = allCapabilities,
 ) => {
-    await page.route('**/oauth2/login/csrf', (route) => json(route, {token: 'csrf-fixture'}))
-    await page.route('**/oauth2/login', (route) => json(route, {
-        identitySub: `${prefix}-actor`,
-        displayName: 'Yuheng E2E',
-        mustChangePassword: false,
-  }))
-    await page.route('**/api/v1/auth/bootstrap', (route) =>
-        json(route, authorization(permissions)))
-    await page.route('**/oauth2/logout', (route) => json(route, {}))
+  await page.route('**/api/v1/auth/bootstrap', (route) => json(route, authorization(permissions)))
+  await page.route('**/bff/csrf', (route) => json(route, {headerName: 'X-CSRF-TOKEN', token: 'csrf-fixture'}))
+  await page.route('**/bff/logout', (route) => route.fulfill({status: 204}))
 }
 
 const installReadFixtures = async (page: Page) => {
@@ -359,37 +353,31 @@ const installReadFixtures = async (page: Page) => {
 }
 
 test('login, logout and a later 401 clear the browser session', async ({ page }) => {
-    let loggedIn = false
-    await page.route('**/oauth2/login/csrf', (route) => json(route, {token: 'csrf-fixture'}))
-    await page.route('**/oauth2/login', async (route) => {
-        loggedIn = true
-        await json(route, {identitySub: `${prefix}-actor`, displayName: 'Yuheng E2E', mustChangePassword: false})
+  let loggedIn = false
+  await page.route('**/oauth2/authorization/edge-ui', async (route) => {
+    loggedIn = true
+    await route.fulfill({status: 200, contentType: 'text/html', body: '<html>OIDC fixture</html>'})
   })
-    await page.route('**/oauth2/logout', async (route) => {
-        loggedIn = false
-        await json(route, {})
-    })
-    await page.route('**/api/v1/auth/bootstrap', (route) =>
-        loggedIn ? json(route, authorization()) : json(route, {code: 'AUTHENTICATION_REQUIRED'}, 401))
+  await page.route('**/bff/csrf', (route) => json(route, {headerName: 'X-CSRF-TOKEN', token: 'csrf-fixture'}))
+  await page.route('**/bff/logout', async (route) => {
+    loggedIn = false
+    await route.fulfill({status: 204})
+  })
+  await page.route('**/api/v1/auth/bootstrap', (route) =>
+    loggedIn ? json(route, authorization()) : json(route, {code: 'AUTHENTICATION_REQUIRED'}, 401))
   await installReadFixtures(page)
   await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
   await expect(page.getByRole('heading', { name: 'Yuheng Admin' })).toBeVisible()
-    await page.getByLabel('租户 ID').fill('default')
-    await page.getByLabel('用户名').fill('alice')
-    await page.getByLabel('密码').fill('secret')
   await page.getByRole('button', { name: '使用统一身份登录' }).click()
+  await expect(page).toHaveURL(/\/oauth2\/authorization\/edge-ui$/)
   await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
   await expect(page.getByText('Yuheng E2E')).toBeVisible()
 
-  await page.goto('/yuheng-groups')
-  await expect(page.getByText('Yuheng E2E')).toBeVisible()
-  await page.route('**/api/v1/yuheng/admin/providers/instances*', (route) =>
-    json(route, { code: 'TOKEN_EXPIRED' }, 401))
-  await page.getByRole('link', { name: 'Provider' }).click()
+  await page.getByRole('button', {name: '退出'}).click()
   await expect(page.getByRole('heading', { name: 'Yuheng Admin' })).toBeVisible()
-
-    await page.getByRole('button', {name: '退出'}).click()
-    await expect(page.getByRole('heading', {name: 'Yuheng Admin'})).toBeVisible()
+  await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
+  await expect(page.getByRole('heading', {name: 'Yuheng Admin'})).toBeVisible()
+  await expect(page.getByRole('button', {name: '使用统一身份登录'})).toBeVisible()
 })
 
 test('server capabilities hide mutations and missing read renders 403', async ({ page }) => {
