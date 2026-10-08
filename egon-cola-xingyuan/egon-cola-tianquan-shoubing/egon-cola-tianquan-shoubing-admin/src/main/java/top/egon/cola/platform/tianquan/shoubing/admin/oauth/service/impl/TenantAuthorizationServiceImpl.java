@@ -1,0 +1,344 @@
+package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.crypto.digest.Digests;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasAuthorizationConverter;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasRegisteredClientConverter;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthAuthorizationRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenMetadataBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthTokenRepository;
+
+@Service("tenantAuthorizationService")
+@Slf4j
+@RequiredArgsConstructor
+@Validated
+public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationService {
+
+    private static final int TOKEN_QUERY_BATCH_SIZE = 500;
+
+    @Qualifier("tenantIssuerService")
+    private final TenantIssuerService tenantIssuerService;
+    @Qualifier("oAuthAuthorizationRepository")
+    private final OAuthAuthorizationRepository authorizationRepository;
+    @Qualifier("oAuthTokenRepository")
+    private final OAuthTokenRepository tokenRepository;
+    @Qualifier("oAuthClientRepository")
+    private final OAuthClientRepository clientRepository;
+    @Qualifier("SasAuthorizationConverterImpl")
+    private final SasAuthorizationConverter authorizationConverter;
+    @Qualifier("SasRegisteredClientConverterImpl")
+    private final SasRegisteredClientConverter clientConverter;
+    @Qualifier("jacksonObjectMapper")
+    private final ObjectMapper objectMapper;
+    @Qualifier("egonColaMybatisPlusClock")
+    private final Clock clock;
+
+    @Override
+    @Transactional
+    public void save(@NotNull OAuth2Authorization source) {
+        OAuth2Authorization authorization = Objects.requireNonNull(source, "authorization");
+        TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
+        Long authorizationId = parseOptionalPositiveId(authorization.getId());
+        OAuthAuthorizationBO current = authorizationId == null
+                ? null
+                : authorizationRepository.findByIdForUpdate(trustedRealm, authorizationId).orElse(null);
+        if (authorizationId != null && current == null) {
+            throw new IllegalStateException("OAUTH_AUTHORIZATION_NOT_FOUND");
+        }
+
+        OAuthClientBO client = loadClient(trustedRealm, authorization.getRegisteredClientId());
+        RegisteredClient registeredClient = clientConverter.toTarget(client);
+        if (!registeredClient.getAuthorizationGrantTypes().contains(authorization.getAuthorizationGrantType())
+                || !client.getAllowedScopes().containsAll(authorization.getAuthorizedScopes())) {
+            throw new IllegalArgumentException("OAUTH_AUTHORIZATION_CLIENT_POLICY_MISMATCH");
+        }
+
+        OAuthAuthorizationBO value = authorizationConverter.toSource(authorization, current, objectMapper);
+        List<OAuthTokenBO> tokenSnapshot = value.getTokens() == null
+                ? List.of() : new ArrayList<>(value.getTokens());
+        value.setClientPk(client.getId());
+        value.setTokens(null);
+        long expectedVersion = current == null ? 0L : current.getVersion();
+        if (current != null) {
+            value.setId(current.getId());
+            value.setVersion(Math.addExact(current.getVersion(), 1L));
+            value.setAttributes(current.getAttributes());
+            value.setAbsoluteExpiresAt(current.getAbsoluteExpiresAt());
+        } else {
+            value.setId(null);
+            value.setVersion(0L);
+        }
+
+        OAuthAuthorizationBO saved = authorizationRepository.save(trustedRealm, value, expectedVersion);
+        saveTokenSnapshot(trustedRealm, saved.getId(), tokenSnapshot);
+        invalidateTokensMissingFromSnapshot(trustedRealm, saved.getId(), tokenSnapshot);
+    }
+
+    @Override
+    @Transactional
+    public void remove(@NotNull OAuth2Authorization source) {
+        OAuth2Authorization authorization = Objects.requireNonNull(source, "authorization");
+        TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
+        Long id = parseOptionalPositiveId(authorization.getId());
+        if (id == null) {
+            return;
+        }
+        OAuthAuthorizationBO current = authorizationRepository.findByIdForUpdate(trustedRealm, id).orElse(null);
+        if (current != null) {
+            authorizationRepository.deleteVersionedById(trustedRealm, id, current.getVersion());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OAuth2Authorization findById(@NotBlank String id) {
+        if (id == null || !id.matches("[1-9][0-9]{0,18}")) {
+            return null;
+        }
+        Long authorizationId = parseOptionalPositiveId(id);
+        if (authorizationId == null) {
+            return null;
+        }
+        TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
+        OAuthAuthorizationBO authorization = authorizationRepository.findById(trustedRealm, authorizationId)
+                .filter(value -> !"EXPIRED".equals(value.getStatus()))
+                .orElse(null);
+        if (authorization == null) {
+            return null;
+        }
+        RegisteredClient client = clientConverter.toTarget(loadClient(trustedRealm,
+                Long.toString(authorization.getClientPk())));
+        authorization.setTokens(loadCurrentTokens(trustedRealm, authorization.getId()));
+        return authorizationConverter.toTarget(authorization, client, objectMapper);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OAuth2Authorization findByToken(String token, OAuth2TokenType tokenType) {
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+        TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
+        String digest = Digests.sha256Hex(token);
+        OAuthTokenBO tokenRecord = tokenRepository.findByTokenDigest(trustedRealm, digest).orElse(null);
+        if (tokenRecord == null || tokenRecord.getTokenValue() == null
+                || !sameToken(token, tokenRecord.getTokenValue())
+                || tokenRecord.getMetadata() == null || tokenRecord.getMetadata().isInvalidated()) {
+            return null;
+        }
+        OAuthTokenTypeEnum requestedType = toTokenType(tokenType);
+        if (tokenType != null && (requestedType == null || tokenRecord.getTokenType() != requestedType)) {
+            return null;
+        }
+        OAuthAuthorizationBO authorization = authorizationRepository.findById(trustedRealm,
+                        tokenRecord.getAuthorizationPk())
+                .filter(value -> "ACTIVE".equals(value.getStatus()))
+                .orElse(null);
+        if (authorization == null) {
+            return null;
+        }
+        List<OAuthTokenBO> tokens = loadCurrentTokens(trustedRealm, authorization.getId());
+        tokens.removeIf(value -> value.getTokenType() == tokenRecord.getTokenType());
+        tokens.add(tokenRecord);
+        if (tokens.size() > 4) {
+            throw new IllegalStateException("OAUTH_AUTHORIZATION_TOKEN_COUNT_INVALID");
+        }
+        authorization.setTokens(tokens);
+        RegisteredClient client = clientConverter.toTarget(loadClient(trustedRealm,
+                Long.toString(authorization.getClientPk())));
+        return authorizationConverter.toTarget(authorization, client, objectMapper);
+    }
+
+    private OAuthClientBO loadClient(TrustedRealmBO trustedRealm, String clientId) {
+        Long clientPk = parseOptionalPositiveId(clientId);
+        if (clientPk == null) {
+            throw new IllegalArgumentException("OAUTH_AUTHORIZATION_CLIENT_ID_INVALID");
+        }
+        return clientRepository.findById(trustedRealm, clientPk)
+                .filter(value -> value.getStatus() != null && "ACTIVE".equals(value.getStatus().name()))
+                .orElseThrow(() -> new IllegalStateException("OAUTH_AUTHORIZATION_CLIENT_NOT_FOUND"));
+    }
+
+    private List<OAuthTokenBO> loadCurrentTokens(TrustedRealmBO trustedRealm, long authorizationId) {
+        Map<OAuthTokenTypeEnum, OAuthTokenBO> latest = new EnumMap<>(OAuthTokenTypeEnum.class);
+        for (OAuthTokenTypeEnum type : OAuthTokenTypeEnum.values()) {
+            long afterId = 0L;
+            while (true) {
+                List<OAuthTokenBO> batch = tokenRepository.findByAuthorization(
+                        trustedRealm, authorizationId, type, afterId, TOKEN_QUERY_BATCH_SIZE);
+                if (batch.isEmpty()) {
+                    break;
+                }
+                for (OAuthTokenBO token : batch) {
+                    OAuthTokenBO prior = latest.get(type);
+                    if (prior == null || tokenComparator().compare(token, prior) > 0) {
+                        latest.put(type, token);
+                    }
+                    if (token.getId() != null && token.getId() > afterId) {
+                        afterId = token.getId();
+                    }
+                }
+                if (batch.size() < TOKEN_QUERY_BATCH_SIZE) {
+                    break;
+                }
+            }
+        }
+        List<OAuthTokenBO> tokens = new ArrayList<>(latest.values());
+        tokens.sort(Comparator.comparing(OAuthTokenBO::getTokenType));
+        return tokens;
+    }
+
+    private void saveTokenSnapshot(
+            TrustedRealmBO trustedRealm,
+            long authorizationId,
+            List<OAuthTokenBO> tokens) {
+        if (tokens == null || tokens.size() > 4) {
+            throw new IllegalArgumentException("OAUTH_AUTHORIZATION_TOKEN_COUNT_INVALID");
+        }
+        Set<OAuthTokenTypeEnum> types = new HashSet<>();
+        Set<String> digests = new HashSet<>();
+        for (OAuthTokenBO token : tokens) {
+            if (token.getTokenType() == null || !types.add(token.getTokenType())
+                    || token.getTokenValue() == null || token.getTokenValue().isBlank()) {
+                throw new IllegalArgumentException("OAUTH_AUTHORIZATION_TOKEN_SNAPSHOT_INVALID");
+            }
+            String digest = Digests.sha256Hex(token.getTokenValue());
+            if (!digests.add(digest)) {
+                throw new IllegalArgumentException("OAUTH_AUTHORIZATION_TOKEN_DUPLICATE");
+            }
+            token.setTokenDigest(digest);
+            token.setAuthorizationPk(authorizationId);
+            OAuthTokenBO current = tokenRepository.findByTokenDigestForUpdate(trustedRealm, digest).orElse(null);
+            long expectedVersion = 0L;
+            if (current != null) {
+                if (!Objects.equals(current.getAuthorizationPk(), authorizationId)
+                        || current.getTokenType() != token.getTokenType()) {
+                    throw new IllegalStateException("OAUTH_AUTHORIZATION_TOKEN_IDENTITY_MISMATCH");
+                }
+                expectedVersion = current.getVersion();
+                token.setId(current.getId());
+                token.setVersion(Math.addExact(current.getVersion(), 1L));
+            } else {
+                token.setId(null);
+                token.setVersion(0L);
+            }
+            if (token.getMetadata().isCodeConsumed()) {
+                token.setConsumedAt(clock.instant());
+            }
+            if (token.getMetadata().isInvalidated() && token.getTokenType() != OAuthTokenTypeEnum.CODE) {
+                token.setRevokedAt(clock.instant());
+            }
+            tokenRepository.save(trustedRealm, token, expectedVersion);
+        }
+    }
+
+    private void invalidateTokensMissingFromSnapshot(
+            TrustedRealmBO trustedRealm,
+            long authorizationId,
+            List<OAuthTokenBO> tokens) {
+        Set<String> incomingDigests = tokens.stream()
+                .map(OAuthTokenBO::getTokenValue)
+                .filter(Objects::nonNull)
+                .map(Digests::sha256Hex)
+                .collect(java.util.stream.Collectors.toSet());
+        for (OAuthTokenTypeEnum type : OAuthTokenTypeEnum.values()) {
+            long afterId = 0L;
+            while (true) {
+                List<OAuthTokenBO> batch = tokenRepository.findByAuthorization(
+                        trustedRealm, authorizationId, type, afterId, TOKEN_QUERY_BATCH_SIZE);
+                if (batch.isEmpty()) {
+                    break;
+                }
+                for (OAuthTokenBO existing : batch) {
+                    if (existing.getId() != null && existing.getId() > afterId) {
+                        afterId = existing.getId();
+                    }
+                    if (incomingDigests.contains(existing.getTokenDigest())
+                            || existing.getMetadata() == null || existing.getMetadata().isInvalidated()) {
+                        continue;
+                    }
+                    existing.getMetadata().setInvalidated(true);
+                    if (type == OAuthTokenTypeEnum.CODE) {
+                        existing.getMetadata().setCodeConsumed(true);
+                        existing.setConsumedAt(clock.instant());
+                    } else {
+                        existing.setRevokedAt(clock.instant());
+                    }
+                    existing.setVersion(Math.addExact(existing.getVersion(), 1L));
+                    tokenRepository.save(trustedRealm, existing, existing.getVersion() - 1L);
+                }
+                if (batch.size() < TOKEN_QUERY_BATCH_SIZE) {
+                    break;
+                }
+            }
+        }
+    }
+
+    private static OAuthTokenTypeEnum toTokenType(OAuth2TokenType tokenType) {
+        if (tokenType == null) {
+            return null;
+        }
+        return switch (tokenType.getValue()) {
+            case "access_token" -> OAuthTokenTypeEnum.ACCESS;
+            case "refresh_token" -> OAuthTokenTypeEnum.REFRESH;
+            case "code", "authorization_code" -> OAuthTokenTypeEnum.CODE;
+            case "id_token" -> OAuthTokenTypeEnum.ID;
+            default -> null;
+        };
+    }
+
+    private static Comparator<OAuthTokenBO> tokenComparator() {
+        return Comparator.comparing(OAuthTokenBO::getIssuedAt, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(OAuthTokenBO::getId, Comparator.nullsFirst(Comparator.naturalOrder()));
+    }
+
+    private static boolean sameToken(String left, String right) {
+        return MessageDigest.isEqual(left.getBytes(StandardCharsets.UTF_8), right.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Long parseOptionalPositiveId(String id) {
+        if (id == null) {
+            return null;
+        }
+        if (!id.matches("[1-9][0-9]{0,18}")) {
+            throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ID_INVALID");
+        }
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException failure) {
+            return null;
+        }
+    }
+}

@@ -213,7 +213,7 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java  # Step 2
 MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2,3,4,5,6
-MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3,4,5,6
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3,4,5,6,8
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/oauth-sharding-native.yml  # Step 2
@@ -377,6 +377,8 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java  # Step 8
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java  # Step 8,9
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java  # Step 8
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml  # Step 8
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml  # Step 8
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthOidcProtocolContractTest.java  # Step 9
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/ConsumeOAuthTokenCommand.java  # Step 9
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java  # Step 9,18
@@ -5613,13 +5615,14 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Observable outcome: SAS多issuer精确registry、JWK与protocol discovery逐租户独立。
 - End state: SAS多issuer精确registry、JWK与protocol discovery逐租户独立；后续Step的Consumer尚未切流，不声明完整生产验收。
 - Test-first gate: Required — 两issuer测试先因SPI/多路径缺失RED，再补真实SAS装配GREEN。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
+- Plan clarification: Accepted base Spec §15.5 requires `egon.tianquan-shoubing.oauth.public-origin`; repository lock inspection found this exact key absent from both profiles. Step 8 adds required `${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}` references in base/local and preserves the legacy `oauth.issuer` value for its remaining consumers. SAS `AuthorizationServerSettings` remains request-resolved for multitenancy and never binds a fixed issuer. The pinned SAS 1.5.8 `RegisteredClientRepository` contract also requires `findById(String)`, while current `OAuthClientRepository` only exposes client-id lookup. Source inspection confirmed `OAuthClientMapper` lacks an active-by-id query (the equivalent query exists only for authorization/consent). Step 8 adds the tenant-scoped Repository method, Mapper method, and XML query before the SAS adapter, with no schema or public HTTP/API change.
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`
 
-- Purpose: RED A/B同clientId/kid互相拒绝。
+- Purpose: RED A/B同clientId/kid互相拒绝并固定多issuer公共Origin配置。
 - Symbols: `isolatesSameClientAndKidAcrossIssuers`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 7 与本Step此前文件；输出供 SAS多issuer精确registry、JWK与protocol discovery逐租户独立及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
@@ -5633,7 +5636,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> same clientId≠same secret/issuer state。
-FLOW -> MockMvc discovery/JWKS/token endpoints with tenant1001/1002 + platform; assert mismatch credential/kid/error; unknown issuer no DNS
+FLOW -> compare the required public-origin placeholder in base/local YAML without printing its value; MockMvc discovery/JWKS/token endpoints with tenant1001/1002 + platform; assert mismatch credential/kid/error; unknown issuer no DNS
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no SAS Bean/route yields RED。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -5672,7 +5675,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Repository evidence: 当前不存在；主Spec §8.4/§10.2 命名此对象/字段；现有相邻业务包提供放置证据。
 - Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §8.4/§10.2，不产生新HTTP路由。
 - Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: BaseConverter<OAuthAuthorizationBO,OAuth2Authorization>; token children max4, decrypt attributes through approved cipher。
+- Contract/signature changes: BaseConverter<OAuthAuthorizationBO,OAuth2Authorization>; consume the typed/decrypted attributes returned by OAuthAuthorizationRepository, map token children up to four, and use the configured ObjectMapper for claims; do not decrypt a second time.
 - Input/output and state mapping: 精确字段由主Spec §8.4/§10.2 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -5681,7 +5684,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 
 ```java
 INPUT -> 仅接受主Spec §8.4/§10.2 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> BaseConverter<OAuthAuthorizationBO,OAuth2Authorization>; token children max4, decrypt attributes through approved cipher。
+FLOW -> BaseConverter<OAuthAuthorizationBO,OAuth2Authorization>; typed attributes already passed through the realm-bound persistence converter, token children are capped at four, and token claim maps use the configured ObjectMapper.
 OUTPUT -> SasAuthorizationConverter 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
@@ -5716,11 +5719,11 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 #### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`
 
 - Purpose: 业务分层的registry只读接口。
-- Symbols: `resolveExactIssuer(URI)`。
+- Symbols: `resolveExactIssuer(URI)`, `resolveCurrentIssuer()`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
 - Dependencies and consumers: 输入依赖 Step 7 与本Step此前文件；输出供 SAS多issuer精确registry、JWK与protocol discovery逐租户独立及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； 业务分层的registry只读接口在此位置后才可接消费者。
-- Contract/signature changes: resolveExactIssuer(URI)；业务分层的registry只读接口。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Contract/signature changes: add exact public `TrustedRealmBO resolveExactIssuer(URI issuer)` and a default `resolveCurrentIssuer()` that reads the SAS request-scoped issuer context and delegates to the exact resolver; this is an internal adapter convenience, not a new HTTP contract.
 - Input/output and state mapping: URL normalized first under configured public origin; then realm storage partition。
 - Error and edge behavior: suffix/prefix spoof deny without outbound lookup。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
@@ -5742,7 +5745,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Purpose: exact issuer registry Adapter。
 - Symbols: `tenantIssuerService`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 7 与本Step此前文件；输出供 SAS多issuer精确registry、JWK与protocol discovery逐租户独立及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Dependencies and consumers: 输入依赖 Step 7 与本Step此前文件；输出供 SAS多issuer精确registry、JWK与protocol discovery逐租户独立及后一Step使用；解析器从受管 `oauthPublicOrigin` 和 `IdentityDirectoryContext` 获取origin与PLATFORM分区，不从请求/legacy issuer推导。
 - Why now: 前一文件建立本文件需要的字段或调用契约； exact issuer registry Adapter在此位置后才可接消费者。
 - Contract/signature changes: tenantIssuerService；exact issuer registry Adapter。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: PLATFORM has null business tenant and unique storage partition。
@@ -5753,7 +5756,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> PLATFORM has null business tenant and unique storage partition。
-FLOW -> @Service("tenantIssuerService") @Slf4j @RequiredArgsConstructor; @Qualifier("oauthRealmRepository") final; parse strict https and decimal tenant; exact equals stored issuer; cache bounded by trustVersion; return TrustedRealmBO
+FLOW -> @Service("tenantIssuerService") @Slf4j @RequiredArgsConstructor; @Qualifier exact final dependencies `oauthRealmRepository`, `identityDirectoryContext`, `oauthPublicOrigin`; require normalized HTTPS origin equality; parse only exact `/tenants/{positiveLong}` or `/platform`; read exact issuer in the derived trusted partition; ACTIVE only; version-aware bounded cache; return persisted TrustedRealmBO
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> unknown/disabled→404; no endsWith; cache evict on state。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -5761,7 +5764,103 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 tenantIssuerService 的正例与 unknown/disabled→404; no endsWith; cache evict on state 负例。
 - After this file: tenantIssuerService 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/TenantRegisteredClientRepository.java`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java`
+
+- Purpose: expose the existing active-by-id Mapper query through the tenant-scoped OAuth client Repository contract required by SAS.
+- Symbols: `findById(TrustedRealmBO, Long)`。
+- Repository evidence: `OAuthClientMapper.selectActiveById` already exists and is used by the repository implementation; the interface currently offers only client-id lookup and its Mapper has no client-by-id query.
+- Dependencies and consumers: `TenantRegisteredClientRepository.findById` and `TenantAuthorizationServiceImpl` use this contract after resolving the exact current issuer.
+- Why now: SAS's pinned `RegisteredClientRepository` requires both `findById` and `findByClientId`; the adapter must not bypass the existing repository ACL to query the Mapper directly.
+- Contract/signature changes: add `Optional<OAuthClientBO> findById(@NotNull @Valid TrustedRealmBO trustedRealm, @Positive Long id)`; no externally visible route or wire contract changes.
+- Input/output and state mapping: return only the active client whose internal id and trusted storage partition match the supplied realm; preserve current Optional semantics.
+- Error and edge behavior: missing/inactive/client-from-other-partition returns empty; invalid trusted realm or id is rejected before Mapper access.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001; preserve the Service→Repository→Mapper boundary and existing tenant predicates.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 11; use the established typed BO contract, boundary validation, and existing three-layer profile.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted realm plus positive internal client id from SAS findById(String).
+FLOW -> validate the trusted partition, run the existing active-by-id repository query inside its scoped MDC helper, then map the result to OAuthClientBO.
+OUTPUT -> Optional.empty only when no active client exists in this issuer; do not reveal or query another tenant's same id.
+FAIL -> reject invalid id/context before DAO and preserve the existing repository's version, tenant, and exception behavior.
+```
+
+- Verification contribution: `TenantIssuerIsolationTest` resolves the same internal id under two issuer contexts and asserts that the appropriate tenant client is returned; invalid/unknown context must not call the DAO.
+- After this file: the typed Repository contract exists; the next file implements it using the already-present Mapper operation, with no SQL change.
+
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthClientRepositoryImpl.java`
+
+- Purpose: implement the tenant-scoped active-by-id lookup with the existing MP ACL.
+- Symbols: `OAuthClientRepositoryImpl.findById`。
+- Repository evidence: the implementation already owns `OAuthClientMapper`, `OAuthClientConverter`, trusted-partition restoration, and calls `selectActiveById` for versioned writes.
+- Dependencies and consumers: satisfies the newly declared interface operation; SAS RegisteredClient and Authorization adapters consume it.
+- Why now: complete the public Repository contract before creating the SAS adapter; the adapter must not inject the Mapper directly.
+- Contract/signature changes: implement the new `findById(TrustedRealmBO, Long)` method and use the tenant-scoped Mapper select and the existing converter.
+- Input/output and state mapping: execute under `withTrustedStoragePartition`, use `selectActiveById(tenantId,id)`, and return `Optional.ofNullable(...).map(converter::toTarget)`.
+- Error and edge behavior: missing rows return empty; malformed realm/id fails before SQL; the current caller MDC values are restored in `finally` by the existing helper.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001; reuse the repository's current query and tenant restoration behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 11; preserve semantic naming, validated handoffs, named bean dependencies, and the existing three-layer boundary.
+- Implementation pseudocode:
+
+```java
+INPUT -> (@NotNull @Valid TrustedRealmBO trustedRealm, @Positive Long id).
+FLOW -> Objects.requireNonNull(id); return withTrustedStoragePartition(trustedRealm, tenantId -> Optional.ofNullable(baseMapper.selectActiveById(tenantId,id)).map(converter::toTarget)).
+OUTPUT -> return only the active OAuthClientBO in the trusted issuer's storage partition.
+FAIL -> propagate invalid-context and Mapper failures; do not fall back to a global id lookup or cross-tenant query.
+```
+
+- Verification contribution: `TenantIssuerIsolationTest` asserts active and missing id behavior for two trusted realms with the same client id and no cross-partition DAO lookup.
+- After this file: both SAS registered-client lookup operations can use the typed MP Repository contract; no persistence schema or Mapper file changes.
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthClientMapper.java`
+
+- Purpose: add the active client-by-internal-id query contract required by `OAuthClientRepository.findById`.
+- Symbols: `selectActiveById(Long tenantId, Long id)`。
+- Repository evidence: existing Mapper has exact client-id and tenant-directory queries; the equivalent active-by-id signature exists on OAuth authorization/consent mappers but is absent here.
+- Dependencies and consumers: only `OAuthClientRepositoryImpl` calls this query after installing the trusted storage partition.
+- Why now: a SAS RegisteredClient id is the internal numeric client PK; client-id lookup cannot satisfy `RegisteredClientRepository.findById` safely.
+- Contract/signature changes: add validated query parameters for positive tenant id and positive internal id; no new SQL shape outside this table.
+- Input/output and state mapping: return the existing `OAuthClientPO` result shape for one active client in the explicit tenant partition.
+- Error and edge behavior: empty row maps to Optional.empty in Repository; invalid parameters fail before SQL.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-SCOPE-001; retain named Mapper, query validation group, and current package ownership.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 11; use typed semantic inputs, query validation, and the established three-layer boundary.
+- Implementation pseudocode:
+
+```java
+INPUT -> @NotNull @Positive tenantId and @NotNull @Positive internal client id.
+FLOW -> add selectActiveById parameters with @Param names matching the XML and Query validation-group constraints.
+OUTPUT -> one OAuthClientPO for the exact tenant and active row, or null when absent.
+FAIL -> reject invalid ids/tenant before SQL; do not add a global lookup, wildcard tenant, or bulk query.
+```
+
+- Verification contribution: `TenantIssuerIsolationTest` and the module compile verify Mapper signature/XML binding and tenant-scoped Repository access.
+- After this file: the Java Mapper contract matches the following XML statement; no existing Mapper operation is renamed.
+
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthClientMapper.xml`
+
+- Purpose: implement the named active-by-id query using the current OAuthClient result map and soft-delete predicate.
+- Symbols: `selectActiveById`。
+- Repository evidence: the XML already defines `OAuthClientPOResultMap` and `Columns`, plus active lookups by external client id.
+- Dependencies and consumers: implements `OAuthClientMapper.selectActiveById`; no new schema, index, or database migration.
+- Why now: complete the client id lookup contract before the SAS adapter uses internal ids.
+- Contract/signature changes: add a `select` binding tenantId/id and return `OAuthClientPOResultMap`.
+- Input/output and state mapping: predicate is `tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL`.
+- Error and edge behavior: missing/deleted/cross-tenant rows return no result; no lock is taken for this read-only operation.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001; use the existing result map and exact tenant/deleted predicates.
+- Literal rule enforcement: Rule 2, Rule 11; validate the mapper boundary and keep the existing SQL ownership.
+- Implementation pseudocode:
+
+```xml
+INPUT -> tenantId and internal client id are already positive and query-validated by OAuthClientMapper.
+FLOW -> SELECT <include refid="Columns"/> FROM oauth_client WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL.
+OUTPUT -> map the single row through OAuthClientPOResultMap; inactive deleted rows are not visible.
+FAIL -> return no row for another tenant, absent id, or deleted row; do not broaden the predicate.
+```
+
+- Verification contribution: focused Step 8 test and mapper XML parsing confirm the exact result map, parameter names, and isolation predicates.
+- After this file: the Repository implementation can safely delegate by internal id under the trusted partition.
+
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/TenantRegisteredClientRepository.java`
 
 - Purpose: perissuer RegisteredClientRepository SPI。
 - Symbols: `tenantRegisteredClientRepository`。
@@ -5785,7 +5884,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 tenantRegisteredClientRepository 的正例与 no context/unknown issuer fails before DAO 负例。
 - After this file: tenantRegisteredClientRepository 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`
+#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`
 
 - Purpose: SAS OAuth2AuthorizationService SPI。
 - Symbols: `tenantAuthorizationService`。
@@ -5809,7 +5908,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 tenantAuthorizationService 的正例与 cross-issuer token lookup none; duplicate code invalid_grant 负例。
 - After this file: tenantAuthorizationService 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java`
+#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java`
 
 - Purpose: SAS Consent SPI。
 - Symbols: `tenantConsentService`。
@@ -5817,7 +5916,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Dependencies and consumers: 输入依赖 Step 7 与本Step此前文件；输出供 SAS多issuer精确registry、JWK与protocol discovery逐租户独立及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； SAS Consent SPI在此位置后才可接消费者。
 - Contract/signature changes: tenantConsentService；SAS Consent SPI。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: approved scopes only, no RBAC role copied。
+- Input/output and state mapping: persist only approved `SCOPE_*` authorities, never RBAC roles; set `grantedAt` from the injected Clock for each explicit consent event.
 - Error and edge behavior: missing/other tenant denies。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
@@ -5825,7 +5924,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> approved scopes only, no RBAC role copied。
-FLOW -> findById/save/remove scoped tenant+client+subject; scope increase requires new grant approval, no migrated consent
+FLOW -> findById/save/remove scoped tenant+client+subject; validate every `SCOPE_*` authority against the active client scope ceiling; save a new UTC grantedAt event time; scope increase still requires grant approval
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missing/other tenant denies。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -5833,7 +5932,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 tenantConsentService 的正例与 missing/other tenant denies 负例。
 - After this file: tenantConsentService 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java`
+#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java`
 
 - Purpose: active private signer + all allowed public verification keys。
 - Symbols: `tenantJwkSourceComponent`。
@@ -5857,7 +5956,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 tenantJwkSourceComponent 的正例与 missing/compromised key fails signing/readiness 负例。
 - After this file: tenantJwkSourceComponent 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
+#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
 
 - Purpose: SAS+OIDC Filter ordering。
 - Symbols: `authorizationServerSettings/SAS SecurityFilterChain`。
@@ -5865,7 +5964,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Dependencies and consumers: 输入依赖 Step 7 与本Step此前文件；输出供 SAS多issuer精确registry、JWK与protocol discovery逐租户独立及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； SAS+OIDC Filter ordering在此位置后才可接消费者。
 - Contract/signature changes: authorizationServerSettings/SAS SecurityFilterChain；SAS+OIDC Filter ordering。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: metadata issuer/jwks_uri/claims from same registry。
+- Input/output and state mapping: metadata issuer/jwks_uri/claims from same registry; public OIDC discovery/JWKS use `Cache-Control: public, max-age=60`, all other SAS endpoints use no-store.
 - Error and edge behavior: no root discovery guessed tenant; no OAuth HTTP controller duplicates。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 2, Rule 4, Rule 7, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
@@ -5873,15 +5972,15 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> metadata issuer/jwks_uri/claims from same registry。
-FLOW -> @Bean names; AuthorizationServerSettings.multipleIssuersAllowed(true); .oidc(); registeredClient/authorization/consent/JWKSource Beans; JWT header active kid+typ; protocol filter before management RS; exact issuer registry
+FLOW -> register required `oauthPublicOrigin` from the validated public-origin URI; AuthorizationServerSettings.multipleIssuersAllowed(true) without `.issuer(...)`; `.oidc()`; registeredClient/authorization/consent/JWKSource Beans; validated issuer context before SAS endpoint filters; public discovery/JWKS cache max-age 60 and other SAS paths no-store; exact issuer registry
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no root discovery guessed tenant; no OAuth HTTP controller duplicates。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 authorizationServerSettings/SAS SecurityFilterChain 的正例与 no root discovery guessed tenant; no OAuth HTTP controller duplicates 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 authorizationServerSettings、MockMvc discovery/JWKS/token route and per-issuer cache headers positive cases, plus root/unknown issuer rejection and no duplicate HTTP controller negative cases。
 - After this file: authorizationServerSettings/SAS SecurityFilterChain 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
+#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
 
 - Purpose: document true SAS Filter endpoints。
 - Symbols: `openapi customizer`。
@@ -5890,7 +5989,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Why now: 前一文件建立本文件需要的字段或调用契约； document true SAS Filter endpoints在此位置后才可接消费者。
 - Contract/signature changes: openapi customizer；document true SAS Filter endpoints。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: protocol JSON OAuth errors not Egon wrapper。
-- Error and edge behavior: generated /v3/api-docs matches discovery。
+- Error and edge behavior: absent or duplicate OAS path/operationId, non-public security metadata, or mismatch between generated /v3/api-docs and the SAS discovery route fails the contract test.
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 4, Rule 6, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
 - Implementation pseudocode:
@@ -5902,8 +6001,78 @@ ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> generated /v3/api-docs matches disco
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 openapi customizer 的正例与 generated /v3/api-docs matches discovery 负例。
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OpenAPI customizer schema与MockMvc /v3/api-docs实际生成路径一致的正例，以及缺path/operationId/security配置漂移的负例。
 - After this file: openapi customizer 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+
+
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
+
+- Purpose: 补齐 accepted base Spec §15.5 的 required 多issuer public origin key。
+- Symbols: `egon.tianquan-shoubing.oauth.public-origin`。
+- Repository evidence: Step 8 lock inspection: `application.yml` 当前缺少该精确key；旧 `oauth.issuer` 仍被 legacy TokenConfig/OAuthMetadataController 使用。
+- Dependencies and consumers: TenantIssuerServiceImpl 与 AuthorizationServerConfiguration 验证外部协议origin。
+- Why now: 请求Host和旧单issuer `issuer` 都不能替代受管的多issuer public origin。
+- Contract/signature changes: 新增无默认值的 `${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}`，不更改legacy issuer。
+- Input/output and state mapping: 每个已注册tenant/platform issuer都派生于此 HTTPS origin。
+- Error and edge behavior: 缺失、非HTTPS、带userinfo/query/fragment或带path的origin fail-fast。
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 7, Rule 11；base/local新增同一required key且不写secret。
+- Implementation pseudocode:
+
+```yaml
+FLOW -> add `egon.tianquan-shoubing.oauth.public-origin=${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}`; preserve all legacy issuer and other config keys;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no default origin or request-derived Host fallback;
+RESULT -> startup-bound HTTPS root origin for exact tenant/platform issuer validation.
+```
+
+- Verification contribution: TenantIssuerIsolationTest compares normalized config key paths and validates that the placeholder is present without printing its value.
+- After this file: base profile exposes the accepted public-origin key without changing legacy issuer semantics.
+
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+
+- Purpose: 保持local profile与base profile的required public-origin key parity。
+- Symbols: `egon.tianquan-shoubing.oauth.public-origin`。
+- Repository evidence: Step 8 lock inspection: `application-local.yml` 当前缺少该精确key。
+- Dependencies and consumers: TenantIssuerServiceImpl 与 AuthorizationServerConfiguration 使用同一配置结构。
+- Why now: local环境不能绕过base profile的可信origin/HTTPS约束。
+- Contract/signature changes: 新增同一无默认值 `${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}` placeholder；保留local legacy issuer值。
+- Input/output and state mapping: local值必须是可公开访问且HTTPS的origin root。
+- Error and edge behavior: 缺失或非法值fail-fast；禁止回退到HTTP issuer。
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 7, Rule 11；新增key与base完全同构。
+- Implementation pseudocode:
+
+```yaml
+FLOW -> mirror the exact `egon.tianquan-shoubing.oauth.public-origin` placeholder from application.yml with no default;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missing/invalid local public-origin fails context construction;
+RESULT -> base and local profiles share one required origin contract.
+```
+
+- Verification contribution: TenantIssuerIsolationTest compares normalized key paths and asserts the same placeholder in both profiles.
+- After this file: local profile cannot silently use the old single-issuer setting as a multi-issuer origin.
+
+#### File 19 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: 记录Step 8从当前配置与accepted Spec §15.5核实出的required public-origin闭合。
+- Symbols: Step 8 clarified config boundary, ordered files, MC-CONFIG-001, and exact commit paths.
+- Repository evidence: Step 8 lock inspection found both profiles lack `egon.tianquan-shoubing.oauth.public-origin`; accepted base Spec already requires it.
+- Dependencies and consumers: Application config, TenantIssuerServiceImpl, AuthorizationServerConfiguration, and TenantIssuerIsolationTest use the same origin.
+- Why now: The exact Step commit must include every config path needed for the accepted multitenant issuer contract.
+- Contract/signature changes: Add two profile paths while preserving legacy `oauth.issuer` unchanged; no new HTTP/API contract or dependency.
+- Input/output and state mapping: Public origin is a deployment URI; tenant/platform issuer suffixes are derived only after exact registry resolution.
+- Error and edge behavior: no default origin or request-header fallback.
+- Standards impact: MC-SCOPE-001, MC-CONFIG-001, MC-TEST-001.
+- Literal rule enforcement: Rule 7, Rule 11.
+- Implementation pseudocode:
+
+```text
+FLOW -> keep Step 8 file order and commit boundary synchronized with accepted Spec and current source evidence;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> strict Plan validator must pass before implementation begins;
+RESULT -> the Plan identifies the full config/test/service commit boundary.
+```
+
+- Verification contribution: `validate_plan.py --strict`; Step 8 file-path comparison against git status.
+- After this file: Step 8 remains one independently verifiable commit and future Steps consume the public-origin placeholder.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
 - Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TenantIssuerIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。
@@ -5911,7 +6080,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Failure returns to: Step 7 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
 - Completion criteria: SAS多issuer精确registry、JWK与protocol discovery逐租户独立；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
 - Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasRegisteredClientConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasConsentConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantIssuerServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/TenantRegisteredClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasRegisteredClientConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasConsentConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/TenantIssuerService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantIssuerServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthClientRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthClientMapper.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthClientMapper.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/TenantRegisteredClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
 - Commit: `feat(shoubing): add multitenant authorization-server protocol`。
 
 ### Step 9 — 实现授权码、PKCE和登录交互

@@ -38,6 +38,12 @@
         refresh_ttl_seconds
     </sql>
 
+    <select id="selectActiveById" resultMap="OAuthClientPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_client
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
     <select id="selectByClientId" resultMap="OAuthClientPOResultMap">
         SELECT <include refid="Columns"/>
         FROM oauth_client

@@ -106,6 +106,7 @@ egon:
     identity-state-key-prefix: "identity:v1:user:"
     oauth:
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+      public-origin: ${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}
       login-uri: ${TIANQUAN_SHOUBING_OAUTH_LOGIN_URI}
       allowed-origins: ${TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS:}
       refresh-cookie-secure: ${TIANQUAN_SHOUBING_REFRESH_COOKIE_SECURE:true}

@@ -20,6 +20,13 @@ import java.util.List;
 public interface OAuthClientMapper extends EgonColaMapper<OAuthClientPO> {
 
     @Validated(EgonColaModelValidationGroups.Query.class)
+    OAuthClientPO selectActiveById(
+            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
+            @Param("id") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
+            @Positive(groups = EgonColaModelValidationGroups.Query.class) Long id);
+
+    @Validated(EgonColaModelValidationGroups.Query.class)
     OAuthClientPO selectByClientId(
             @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class)
             @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
