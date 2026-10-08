@@ -90,6 +90,14 @@ egon.cola.platform:
       resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI}
       revocation:
         epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
+      audit:
+        stream: egon:oauth:audit:v1
+        spool-directory: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_DIRECTORY}
+        spool-max-bytes: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+        hmac-key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_HMAC_KEY_FILE}
+        consumer-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_CONSUMER_DELAY:1000}
+        replay-initial-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_REPLAY_INITIAL_DELAY:5000}
+        replay-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_REPLAY_DELAY:5000}
     jianshen:
       enabled: ${UNIFIED_IDENTITY_ENABLED:true}
       register-filter: false
@@ -103,6 +111,7 @@ egon.cola.platform:
 
 egon:
   tianquan-shoubing:
+    clock-skew: ${EGON_TIANQUAN_SHOUBING_CLOCK_SKEW:30s}
     identity-directory:
       platform-storage-partition-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID}
     identity-state-key-prefix: "identity:v1:user:"
@@ -121,6 +130,10 @@ egon:
       key-encryption:
         key-id: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_ID}
         key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_FILE}
+      key-rotation:
+        period: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEY_ROTATION_PERIOD:90d}
+        prepublish: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEY_PREPUBLISH:24h}
+        schedule: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEY_ROTATION_SCHEDULE:0 0 2 * * *}
   cola:
     component:
       id:

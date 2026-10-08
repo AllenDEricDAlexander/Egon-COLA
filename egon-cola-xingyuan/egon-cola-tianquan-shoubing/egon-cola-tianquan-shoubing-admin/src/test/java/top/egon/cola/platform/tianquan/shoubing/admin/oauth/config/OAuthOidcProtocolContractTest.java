@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -27,14 +29,21 @@ import org.redisson.api.StreamMessageId;
 import org.redisson.api.stream.StreamAddArgs;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationCode;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2TokenRevocationAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2TokenRevocationAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.outbox.api.OutboxMessage;
@@ -62,7 +71,9 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClie
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthConsentRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthTokenIssueServiceImpl;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TransactionalOAuthRevocationAuthenticationProvider;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthGrantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthGrantBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthTokenRepository;
@@ -78,8 +89,15 @@ import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServer;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServerStatus;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthSecurityStateBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthRevocationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthSecurityTargetEnum;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.config.OAuthRevocationProperties;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthRevocationRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthSecurityStateRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.command.RevokeOAuthTokenCommand;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.support.outbox.OAuthSecurityDeliveryHandler;
+import top.egon.cola.platform.tianquan.shoubing.core.audit.OAuthSecurityChangedEvent;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -112,18 +130,169 @@ class OAuthOidcProtocolContractTest {
     }
 
     @Test
+    void decoratesThePinnedSasRevocationProvider() {
+        OAuth2AuthorizationService authorizationService = mock(OAuth2AuthorizationService.class);
+        TokenRevocationService revocationService = mock(TokenRevocationService.class);
+        TenantIssuerService issuerService = mock(TenantIssuerService.class);
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        List<AuthenticationProvider> providers = new ArrayList<>(List.of(
+                new OAuth2TokenRevocationAuthenticationProvider(authorizationService)));
+
+        AuthorizationServerConfiguration.configureRevocationProviders(providers,
+                authorizationService, revocationService, issuerService, transactionManager);
+
+        assertTrue(providers.get(0) instanceof TransactionalOAuthRevocationAuthenticationProvider);
+        assertTrue(providers.get(0).supports(OAuth2TokenRevocationAuthenticationToken.class));
+    }
+
+    @Test
+    void standardSasClientChecksAndDurableRevocationShareOneTransaction() {
+        OAuth2AuthorizationService authorizations = mock(OAuth2AuthorizationService.class);
+        TokenRevocationService revocations = mock(TokenRevocationService.class);
+        TenantIssuerService issuers = mock(TenantIssuerService.class);
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        TransactionStatus status = mock(TransactionStatus.class);
+        when(status.isNewTransaction()).thenReturn(true);
+        when(transactionManager.getTransaction(any())).thenReturn(status);
+        TrustedRealmBO realm = TrustedRealmBO.builder()
+                .issuer(URI.create("https://idp.example/tenants/1001"))
+                .realmKey("tenant:1001")
+                .realmType(RealmTypeEnum.TENANT)
+                .storagePartitionId(1001L)
+                .businessTenantId(1001L)
+                .trustVersion(0L)
+                .build();
+        when(issuers.resolveCurrentIssuer()).thenReturn(realm);
+        RegisteredClient client = RegisteredClient.withId("501")
+                .clientId("orders-app")
+                .clientSecret("secret")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .build();
+        OAuth2ClientAuthenticationToken clientAuthentication = new OAuth2ClientAuthenticationToken(
+                client, ClientAuthenticationMethod.CLIENT_SECRET_BASIC, "secret");
+        String rawToken = "opaque-token-value";
+        OAuth2Authorization authorization = OAuth2Authorization.withRegisteredClient(client)
+                .principalName("orders-app")
+                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                .token(new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, rawToken,
+                        NOW.minusSeconds(1), NOW.plusSeconds(600)))
+                .build();
+        when(authorizations.findByToken(rawToken, null)).thenReturn(authorization);
+        List<AuthenticationProvider> providers = new ArrayList<>(List.of(
+                new OAuth2TokenRevocationAuthenticationProvider(authorizations)));
+        AuthorizationServerConfiguration.configureRevocationProviders(
+                providers, authorizations, revocations, issuers, transactionManager);
+        OAuth2TokenRevocationAuthenticationToken request = new OAuth2TokenRevocationAuthenticationToken(
+                rawToken, clientAuthentication, "access_token");
+
+        var result = providers.get(0).authenticate(request);
+
+        assertTrue(result.isAuthenticated());
+        verify(authorizations).save(any(OAuth2Authorization.class));
+        var command = ArgumentCaptor.forClass(RevokeOAuthTokenCommand.class);
+        verify(revocations).revoke(eq(realm), command.capture());
+        assertEquals(Digests.sha256Hex(rawToken), command.getValue().getTokenDigest());
+        assertEquals(501L, command.getValue().getClientPk());
+        assertEquals("RFC7009_REVOKE", command.getValue().getReasonCode());
+        verify(transactionManager).commit(status);
+    }
+
+    @Test
+    void securityOutboxReloadsTrustedRealmAndMarksRevocationApplied() throws Exception {
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        TenantIssuerService issuers = mock(TenantIssuerService.class);
+        OAuthSecurityProjectionComponent projection = mock(OAuthSecurityProjectionComponent.class);
+        OAuthRevocationRepository revocations = mock(OAuthRevocationRepository.class);
+        TrustedRealmBO realm = trustedTenant();
+        OAuthRevocationBO pending = OAuthRevocationBO.builder()
+                .id(701L).version(4L).targetType(OAuthSecurityTargetEnum.JTI).targetKey("123456")
+                .reasonCode("ADMIN_REVOKE").revokedAt(NOW).expiresAt(NOW.plusSeconds(300))
+                .revision(8L).projectionStatus("PENDING").build();
+        when(issuers.resolveExactIssuer(realm.getIssuer())).thenReturn(realm);
+        when(revocations.findByTarget(realm, OAuthSecurityTargetEnum.JTI, "123456"))
+                .thenReturn(Optional.of(pending));
+        when(revocations.save(eq(realm), any(OAuthRevocationBO.class), eq(4L)))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+        OAuthSecurityDeliveryHandler handler = new OAuthSecurityDeliveryHandler(
+                mapper, issuers, projection, revocations);
+        String eventId = "security-event-1";
+        String payload = mapper.writeValueAsString(Map.of(
+                "eventId", eventId,
+                "schemaVersion", 1,
+                "issuer", realm.getIssuer().toASCIIString(),
+                "realmKey", realm.getRealmKey(),
+                "revision", 8L,
+                "targetType", "JTI",
+                "targetKey", "123456",
+                "expiresAt", NOW.plusSeconds(300).toString(),
+                "reasonCode", "ADMIN_REVOKE",
+                "occurredAt", NOW.toString()));
+        DeliveryContext context = new DeliveryContext(
+                eventId, OAuthSecurityDeliveryHandler.CHANNEL, OAuthSecurityDeliveryHandler.DESTINATION,
+                payload, "application/json", "1", Map.of(), null, 1, 5, NOW);
+
+        DeliveryResult result = handler.deliver(context);
+
+        assertEquals(DeliveryResult.Kind.SUCCESS, result.kind());
+        verify(projection).applyProjection(eq(realm), any(OAuthSecurityChangedEvent.class));
+        ArgumentCaptor<OAuthRevocationBO> saved = ArgumentCaptor.forClass(OAuthRevocationBO.class);
+        verify(revocations).save(eq(realm), saved.capture(), eq(4L));
+        assertEquals("APPLIED", saved.getValue().getProjectionStatus());
+        assertEquals(5L, saved.getValue().getVersion());
+    }
+
+    @Test
+    void securityOutboxRejectsUnlistedSecretFields() throws Exception {
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        TenantIssuerService issuers = mock(TenantIssuerService.class);
+        OAuthSecurityProjectionComponent projection = mock(OAuthSecurityProjectionComponent.class);
+        OAuthRevocationRepository revocations = mock(OAuthRevocationRepository.class);
+        OAuthSecurityDeliveryHandler handler = new OAuthSecurityDeliveryHandler(
+                mapper, issuers, projection, revocations);
+        Map<String, Object> fields = new java.util.LinkedHashMap<>(Map.of(
+                "eventId", "security-event-2",
+                "schemaVersion", 1,
+                "issuer", "https://idp.example.test/tenants/1001",
+                "realmKey", "tenant:1001",
+                "revision", 9L,
+                "targetType", "JTI",
+                "targetKey", "123457",
+                "reasonCode", "ADMIN_REVOKE",
+                "occurredAt", NOW.toString()));
+        fields.put("token", "must-not-be-persisted");
+        DeliveryContext context = new DeliveryContext(
+                "security-event-2", OAuthSecurityDeliveryHandler.CHANNEL,
+                OAuthSecurityDeliveryHandler.DESTINATION, mapper.writeValueAsString(fields),
+                "application/json", "1", Map.of(), null, 1, 5, NOW);
+
+        assertEquals(DeliveryResult.Kind.PERMANENT_FAILURE, handler.deliver(context).kind());
+        org.mockito.Mockito.verifyNoInteractions(projection, revocations, issuers);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void readsOneSameSlotSecuritySnapshotAndFailsWhenTheReadyFenceIsMissing() {
         RedissonClient redisson = mock(RedissonClient.class);
         RScript script = mock(RScript.class);
         doReturn(script).when(redisson).getScript(StringCodec.INSTANCE);
         OAuthSecurityStateRepository states = mock(OAuthSecurityStateRepository.class);
+        OAuthRevocationRepository revocations = mock(OAuthRevocationRepository.class);
+        OAuthTokenRepository tokenRecords = mock(OAuthTokenRepository.class);
+        OAuthAuthorizationRepository authorizations = mock(OAuthAuthorizationRepository.class);
+        OAuthClientRepository clients = mock(OAuthClientRepository.class);
+        OAuthRealmRepository realms = mock(OAuthRealmRepository.class);
+        OAuthManagementRealmResolver realmResolver = mock(OAuthManagementRealmResolver.class);
+        OAuthRevocationProperties revocationProperties = OAuthRevocationProperties.builder()
+                .primaryEndpoint(URI.create("rediss://redis.example:6379"))
+                .epoch("epoch-1")
+                .build();
         TrustedRealmBO trustedRealm = trustedTenant();
-        when(states.findByTargetForUpdate(eq(trustedRealm), eq(OAuthSecurityTargetEnum.REALM), eq("self")))
+        when(states.findByTarget(eq(trustedRealm), eq(OAuthSecurityTargetEnum.REALM), eq("self")))
                 .thenReturn(Optional.of(securityState(OAuthSecurityTargetEnum.REALM, "self", 1L, 4L)));
-        when(states.findByTargetForUpdate(eq(trustedRealm), eq(OAuthSecurityTargetEnum.CLIENT), eq("501")))
+        when(states.findByTarget(eq(trustedRealm), eq(OAuthSecurityTargetEnum.CLIENT), eq("501")))
                 .thenReturn(Optional.of(securityState(OAuthSecurityTargetEnum.CLIENT, "501", 2L, 4L)));
-        when(states.findByTargetForUpdate(eq(trustedRealm), eq(OAuthSecurityTargetEnum.SUBJECT), eq("subject-1")))
+        when(states.findByTarget(eq(trustedRealm), eq(OAuthSecurityTargetEnum.SUBJECT), eq("subject-1")))
                 .thenReturn(Optional.of(securityState(OAuthSecurityTargetEnum.SUBJECT, "subject-1", 3L, 4L)));
         List<Object> observedKeys = new ArrayList<>();
         org.mockito.Mockito.doAnswer(invocation -> {
@@ -133,7 +302,10 @@ class OAuthOidcProtocolContractTest {
         }).when(script).<List<Object>>eval(
                 eq(RScript.Mode.READ_ONLY), org.mockito.ArgumentMatchers.anyString(),
                 eq(RScript.ReturnType.MULTI), org.mockito.ArgumentMatchers.anyList());
-        OAuthSecurityProjectionComponent projection = new OAuthSecurityProjectionComponent(redisson, states, "epoch-1");
+        OAuthSecurityProjectionComponent projection = new OAuthSecurityProjectionComponent(
+                redisson, states, revocations, tokenRecords, authorizations, clients, realms, realmResolver,
+                revocationProperties,
+                Clock.fixed(Instant.parse("2026-10-08T12:00:00Z"), ZoneOffset.UTC));
 
         var snapshot = projection.snapshotForAuthorization(trustedRealm, 501L, "USER", "subject-1");
 

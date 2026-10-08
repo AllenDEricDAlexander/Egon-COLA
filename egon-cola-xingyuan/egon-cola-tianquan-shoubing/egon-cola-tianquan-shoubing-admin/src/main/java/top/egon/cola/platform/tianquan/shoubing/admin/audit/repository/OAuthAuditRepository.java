@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
@@ -47,5 +48,10 @@ public interface OAuthAuditRepository {
     OAuthAuditBO save(
             @NotNull @Valid TrustedRealmBO trustedRealm,
             @NotNull @Valid OAuthAuditBO audit,
+            @PositiveOrZero long expectedVersion);
+
+    boolean deleteVersionedById(
+            @NotNull @Valid TrustedRealmBO trustedRealm,
+            @NotNull @Positive Long id,
             @PositiveOrZero long expectedVersion);
 }

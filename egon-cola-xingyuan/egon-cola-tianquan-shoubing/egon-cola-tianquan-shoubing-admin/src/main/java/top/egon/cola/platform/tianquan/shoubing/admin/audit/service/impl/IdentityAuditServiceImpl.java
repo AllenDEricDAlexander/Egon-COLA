@@ -1,90 +1,45 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.audit.service.impl;
 
-import jakarta.persistence.criteria.Predicate;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import java.util.Objects;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.converter.IdentityAuditViewConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.dto.IdentityAuditQueryDTO;
-import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.pojo.IdentityAuditLogEntity;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.vo.IdentityAuditPageVO;
-import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.vo.IdentityAuditVO;
-import top.egon.cola.platform.tianquan.shoubing.admin.audit.repo.IdentityAuditLogRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.audit.repository.OAuthAuditRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.service.IdentityAuditService;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
 
-import java.util.Objects;
-import java.util.ArrayList;
-import java.util.List;
-
-@Service
+@Service("identityAuditServiceImpl")
+@RequiredArgsConstructor
+@Slf4j
 public class IdentityAuditServiceImpl implements IdentityAuditService {
 
     private static final int MAXIMUM_PAGE_SIZE = 200;
 
-    private final IdentityAuditLogRepository audits;
-
-    public IdentityAuditServiceImpl(IdentityAuditLogRepository audits) {
-        this.audits = Objects.requireNonNull(audits, "audits");
-    }
+    @Qualifier("oAuthAuditRepository")
+    private final OAuthAuditRepository audits;
+    @Qualifier("identityAuditViewConverterImpl")
+    private final IdentityAuditViewConverter views;
+    @Qualifier("oauthManagementRealmResolver")
+    private final OAuthManagementRealmResolver realmResolver;
 
     @Override
     @Transactional(readOnly = true)
     public IdentityAuditPageVO list(IdentityAuditQueryDTO query) {
-        Objects.requireNonNull(query, "query");
-        if (query.page() < 0
-                || query.size() < 1
-                || query.size() > MAXIMUM_PAGE_SIZE) {
+        IdentityAuditQueryDTO input = Objects.requireNonNull(query, "query");
+        if (input.page() < 0 || input.size() < 1 || input.size() > MAXIMUM_PAGE_SIZE) {
             throw new IllegalArgumentException("invalid audit page request");
         }
-        Specification<IdentityAuditLogEntity> filters = (root, criteria, builder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            if (query.actorSub() != null) {
-                predicates.add(builder.equal(root.get("actorSub"), query.actorSub()));
-            }
-            if (query.eventType() != null) {
-                predicates.add(builder.equal(root.get("eventType"), query.eventType()));
-            }
-            if (query.result() != null) {
-                predicates.add(builder.equal(root.get("result"), query.result()));
-            }
-            if (query.traceId() != null) {
-                predicates.add(builder.equal(root.get("traceId"), query.traceId()));
-            }
-            if (query.from() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("occurredAt"), query.from()));
-            }
-            if (query.to() != null) {
-                predicates.add(builder.lessThan(root.get("occurredAt"), query.to()));
-            }
-            return builder.and(predicates.toArray(Predicate[]::new));
-        };
-        Page<IdentityAuditLogEntity> result = audits.findAll(filters, PageRequest.of(
-                query.page(),
-                query.size(),
-                Sort.by(Sort.Direction.DESC, "occurredAt", "id")
-        ));
+        TrustedRealmBO platformRealm = realmResolver.platformRealm();
+        long total = audits.countIdentityPage(platformRealm, input);
+        var rows = audits.findIdentityPage(platformRealm, input);
+        int totalPages = total == 0L ? 0 : Math.toIntExact((total + input.size() - 1L) / input.size());
         return new IdentityAuditPageVO(
-                result.getContent().stream()
-                        .map(IdentityAuditServiceImpl::view)
-                        .toList(),
-                query.page(),
-                query.size(),
-                result.getTotalElements(),
-                result.getTotalPages()
-        );
-    }
-
-    private static IdentityAuditVO view(IdentityAuditLogEntity entity) {
-        return new IdentityAuditVO(
-                entity.getId(),
-                entity.getEventType(),
-                entity.getActorSub(),
-                entity.getTargetSub(),
-                entity.getResult(),
-                entity.getReason(),
-                entity.getOccurredAt()
-        );
+                views.toTargetList(rows), input.page(), input.size(), total, totalPages);
     }
 }

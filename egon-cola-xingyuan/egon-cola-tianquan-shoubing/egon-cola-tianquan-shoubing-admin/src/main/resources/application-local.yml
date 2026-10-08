@@ -20,6 +20,14 @@ egon.cola.platform:
       jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
       revocation:
         epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
+      audit:
+        stream: egon:oauth:audit:v1
+        spool-directory: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_DIRECTORY}
+        spool-max-bytes: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+        hmac-key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_HMAC_KEY_FILE}
+        consumer-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_CONSUMER_DELAY:1000}
+        replay-initial-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_REPLAY_INITIAL_DELAY:5000}
+        replay-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_REPLAY_DELAY:5000}
     jianshen:
       runtime:
         redis-address: ${TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
@@ -29,6 +37,7 @@ egon.cola.platform:
 
 egon:
   tianquan-shoubing:
+    clock-skew: ${EGON_TIANQUAN_SHOUBING_CLOCK_SKEW:30s}
     identity-directory:
       platform-storage-partition-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID}
     development-bootstrap:
@@ -46,6 +55,10 @@ egon:
       key-encryption:
         key-id: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_ID}
         key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_FILE}
+      key-rotation:
+        period: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEY_ROTATION_PERIOD:90d}
+        prepublish: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEY_PREPUBLISH:24h}
+        schedule: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEY_ROTATION_SCHEDULE:0 0 2 * * *}
   cola:
     component:
       mybatis-plus:

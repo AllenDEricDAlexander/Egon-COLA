@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -65,6 +66,8 @@ public class OAuthAuditRepositoryImpl extends EgonColaRepository<OAuthAuditMappe
     private final EgonColaMybatisPlusProperties properties;
     @Qualifier("OAuthAuditConverterImpl")
     private final OAuthAuditConverter converter;
+    @Qualifier("egonColaMybatisPlusClock")
+    private final Clock clock;
 
     @Override
     @Transactional(readOnly = true)
@@ -108,6 +111,25 @@ public class OAuthAuditRepositoryImpl extends EgonColaRepository<OAuthAuditMappe
                 .selectExpired(tenantId, cutoff, afterId, limit).stream()
                 .map(converter::toTarget)
                 .toList());
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteVersionedById(
+            @NotNull @Valid TrustedRealmBO trustedRealm,
+            @NotNull @Positive Long id,
+            @PositiveOrZero long expectedVersion) {
+        Objects.requireNonNull(id, "id");
+        return withTrustedStoragePartition(trustedRealm, tenantId -> {
+            OAuthAuditPO current = baseMapper.selectActiveById(tenantId, id);
+            if (current == null) {
+                return false;
+            }
+            String userKey = properties.getAudit().getUserIdMdcKey();
+            current.setUpdateUserId(Objects.requireNonNull(MDC.get(userKey), "trustedAuditActor"));
+            current.setUpdateTime(clock.instant().truncatedTo(ChronoUnit.MICROS));
+            return baseMapper.deleteVersionedById(tenantId, current, expectedVersion) == 1;
+        });
     }
 
     @Override

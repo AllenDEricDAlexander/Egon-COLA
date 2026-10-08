@@ -7,6 +7,9 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RStream;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.StreamMessageId;
@@ -19,24 +22,23 @@ import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 
 @Component("oauthAuditOutboxDeliveryHandler")
+@RequiredArgsConstructor
+@Slf4j
 public final class OAuthAuditOutboxDeliveryHandler implements DeliveryHandler {
 
     public static final String CHANNEL = "oauth-audit";
     public static final String DESTINATION = "oauth.audit.token-issued.v1";
+    public static final String IDENTITY_DESTINATION = "oauth.audit.identity.v1";
     public static final String STREAM = "egon:oauth:audit:v1";
     private static final java.util.Set<String> ALLOWED_FIELDS = java.util.Set.of(
             "eventId", "schemaVersion", "issuer", "resource", "subjectRef", "clientRef",
-            "result", "reasonCode", "occurredAt");
+            "result", "reasonCode", "occurredAt", "auditKind", "eventType", "actorSub", "targetSub",
+            "identityTenantId", "traceId", "sourceBucket");
 
+    @Qualifier("rbac3RuntimeRedissonClient")
     private final RedissonClient redisson;
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
-
-    public OAuthAuditOutboxDeliveryHandler(
-            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
-            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper) {
-        this.redisson = Objects.requireNonNull(redisson, "redisson");
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
-    }
 
     @Override
     public String channel() {
@@ -45,7 +47,7 @@ public final class OAuthAuditOutboxDeliveryHandler implements DeliveryHandler {
 
     @Override
     public void validateDestination(String destination) {
-        if (!DESTINATION.equals(destination)) {
+        if (!DESTINATION.equals(destination) && !IDENTITY_DESTINATION.equals(destination)) {
             throw new IllegalArgumentException("OAUTH_AUDIT_OUTBOX_DESTINATION_UNSUPPORTED");
         }
     }
@@ -71,7 +73,7 @@ public final class OAuthAuditOutboxDeliveryHandler implements DeliveryHandler {
         }
     }
 
-    private static Map<String, String> streamFields(DeliveryContext context, JsonNode event) {
+    static Map<String, String> streamFields(DeliveryContext context, JsonNode event) {
         if (event == null || !event.isObject()) {
             throw new IllegalArgumentException("OAUTH_AUDIT_EVENT_OBJECT_REQUIRED");
         }
@@ -83,37 +85,92 @@ public final class OAuthAuditOutboxDeliveryHandler implements DeliveryHandler {
         String eventId = text(event, "eventId");
         String schemaVersion = text(event, "schemaVersion");
         URI issuer = URI.create(text(event, "issuer"));
-        String resource = text(event, "resource");
-        String clientRef = text(event, "clientRef");
         String result = text(event, "result");
         String reasonCode = text(event, "reasonCode");
         String occurredAt = text(event, "occurredAt");
+        String auditKind = optionalText(event, "auditKind");
+        if (auditKind == null) {
+            auditKind = "OAUTH";
+        }
+        String eventType = optionalText(event, "eventType");
+        if (eventType == null) {
+            eventType = reasonCode;
+        }
         if (!Objects.equals(context.messageId(), eventId) || !"1".equals(schemaVersion)
                 || !issuer.isAbsolute() || !"https".equalsIgnoreCase(issuer.getScheme())
                 || issuer.getHost() == null || issuer.getUserInfo() != null
                 || issuer.getQuery() != null || issuer.getFragment() != null
-                || resource.length() > 2048 || clientRef.length() != 64
-                || !clientRef.matches("[0-9a-f]{64}")
-                || !"SUCCESS".equals(result) || reasonCode.isBlank() || occurredAt.isBlank()) {
+                || !eventType.matches("[A-Za-z0-9._~:-]{1,128}")
+                || reasonCode.isBlank() || occurredAt.isBlank()) {
             throw new IllegalArgumentException("OAUTH_AUDIT_EVENT_INVALID");
         }
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("eventId", eventId);
         fields.put("schemaVersion", schemaVersion);
         fields.put("issuer", issuer.toASCIIString());
-        fields.put("resource", resource);
-        String subjectRef = optionalText(event, "subjectRef");
-        if (subjectRef != null) {
-            if (!subjectRef.matches("[0-9a-f]{64}")) {
-                throw new IllegalArgumentException("OAUTH_AUDIT_SUBJECT_REF_INVALID");
+        fields.put("auditKind", auditKind);
+        fields.put("eventType", eventType);
+        if ("OAUTH".equals(auditKind)) {
+            String resource = text(event, "resource");
+            String clientRef = optionalText(event, "clientRef");
+            if (!Objects.equals(context.destination(), DESTINATION)
+                    || resource.length() > 2048
+                    || clientRef != null && !clientRef.matches("[0-9a-f]{64}")
+                    || !"SUCCESS".equals(result)) {
+                throw new IllegalArgumentException("OAUTH_AUDIT_EVENT_INVALID");
             }
-            fields.put("subjectRef", subjectRef);
+            fields.put("resource", resource);
+            if (clientRef != null) {
+                fields.put("clientRef", clientRef);
+            }
+            String subjectRef = optionalText(event, "subjectRef");
+            if (subjectRef != null) {
+                if (!subjectRef.matches("[0-9a-f]{64}")) {
+                    throw new IllegalArgumentException("OAUTH_AUDIT_SUBJECT_REF_INVALID");
+                }
+                fields.put("subjectRef", subjectRef);
+            }
+        } else if ("IDENTITY".equals(auditKind)) {
+            String actorSub = safeIdentitySubject(text(event, "actorSub"));
+            String targetSub = safeIdentitySubject(text(event, "targetSub"));
+            String sourceBucket = text(event, "sourceBucket");
+            if (!Objects.equals(context.destination(), IDENTITY_DESTINATION)
+                    || !Set.of("SUCCESS", "FAILURE").contains(result)
+                    || sourceBucket.length() > 128
+                    || !sourceBucket.matches("[A-Za-z0-9._~:-]{1,128}")) {
+                throw new IllegalArgumentException("IDENTITY_AUDIT_EVENT_INVALID");
+            }
+            fields.put("actorSub", actorSub);
+            fields.put("targetSub", targetSub);
+            fields.put("sourceBucket", sourceBucket);
+            String identityTenantId = optionalText(event, "identityTenantId");
+            if (identityTenantId != null) {
+                if (!identityTenantId.matches("[A-Za-z0-9._~-]{1,64}")) {
+                    throw new IllegalArgumentException("IDENTITY_AUDIT_TENANT_INVALID");
+                }
+                fields.put("identityTenantId", identityTenantId);
+            }
+            String traceId = optionalText(event, "traceId");
+            if (traceId != null) {
+                if (!traceId.matches("[A-Za-z0-9._~-]{1,128}")) {
+                    throw new IllegalArgumentException("IDENTITY_AUDIT_TRACE_INVALID");
+                }
+                fields.put("traceId", traceId);
+            }
+        } else {
+            throw new IllegalArgumentException("OAUTH_AUDIT_KIND_INVALID");
         }
-        fields.put("clientRef", clientRef);
         fields.put("result", result);
         fields.put("reasonCode", reasonCode);
         fields.put("occurredAt", occurredAt);
         return fields;
+    }
+
+    private static String safeIdentitySubject(String value) {
+        if (value.length() > 64 || !value.matches("[A-Za-z0-9._~-]{1,64}")) {
+            throw new IllegalArgumentException("IDENTITY_AUDIT_SUBJECT_INVALID");
+        }
+        return value;
     }
 
     private static String text(JsonNode event, String name) {

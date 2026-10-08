@@ -10,10 +10,13 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ClientCredentialsOAuth2AuthorizedClientProvider;
@@ -44,6 +47,8 @@ import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityOAuthClien
 import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityResourceServerStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityOAuthClientStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityResourceServerStateReader;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -64,11 +69,30 @@ import java.util.List;
 @EnableConfigurationProperties({
         IdpStarterProperties.class
 })
+@Import(IdpStarterAutoConfiguration.OAuthAuditConfiguration.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.tianquan.shoubing",
         name = "enabled",
         havingValue = "true")
 public class IdpStarterAutoConfiguration {
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.tianquan.shoubing.audit",
+            name = {"spool-directory", "hmac-key-file"})
+    @EnableConfigurationProperties(OAuthAuditProperties.class)
+    public static class OAuthAuditConfiguration {
+
+        @Bean
+        @ConditionalOnBean({RedissonClient.class, ObjectMapper.class})
+        @ConditionalOnMissingBean(TokenUsageAuditComponent.class)
+        public TokenUsageAuditComponent tokenUsageAuditComponent(
+                @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
+                @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
+                @Qualifier("oauthAuditProperties") OAuthAuditProperties properties) {
+            return new TokenUsageAuditComponent(redisson, objectMapper, properties);
+        }
+    }
 
     /**
      * 创建 Tianquan-Shoubing Starter 自动配置实例。

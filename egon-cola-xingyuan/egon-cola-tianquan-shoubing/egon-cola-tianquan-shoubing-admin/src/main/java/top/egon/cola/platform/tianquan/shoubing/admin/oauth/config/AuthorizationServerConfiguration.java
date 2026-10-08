@@ -41,6 +41,7 @@ import org.springframework.security.oauth2.server.authorization.authentication.O
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientCredentialsAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2RefreshTokenAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2TokenRevocationAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2ErrorAuthenticationFailureHandler;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
@@ -84,7 +85,9 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIs
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TransactionalOAuthAuthenticationProvider;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TransactionalOAuthRevocationAuthenticationProvider;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
 
 @Configuration(proxyBeanMethods = false)
 public class AuthorizationServerConfiguration {
@@ -171,6 +174,7 @@ public class AuthorizationServerConfiguration {
             ObjectProvider<OAuth2TokenGenerator<? extends OAuth2Token>> tokenGenerators,
             ObjectProvider<PlatformTransactionManager> transactionManagers,
             ObjectProvider<TenantLoginAuthenticationFilter> loginFilters,
+            ObjectProvider<TokenRevocationService> tokenRevocationServices,
             @Qualifier("oauthLoginCsrfTokenRepository") CsrfTokenRepository csrfTokenRepository) throws Exception {
         OAuth2AuthorizationServerConfigurer authorizationServer =
                 OAuth2AuthorizationServerConfigurer.authorizationServer();
@@ -197,6 +201,12 @@ public class AuthorizationServerConfiguration {
                         .tokenEndpoint(endpoint -> {
                             endpoint.authenticationProviders(providers -> configureTokenProviders(
                                     providers, tokenIssueServices, transactionManagers, tenantIssuerService));
+                            endpoint.errorResponseHandler(tokenEndpointFailureHandler());
+                        })
+                        .tokenRevocationEndpoint(endpoint -> {
+                            endpoint.authenticationProviders(providers -> configureRevocationProviders(
+                                    providers, authorizationService, tokenRevocationServices.getIfAvailable(),
+                                    tenantIssuerService, transactionManagers.getIfAvailable()));
                             endpoint.errorResponseHandler(tokenEndpointFailureHandler());
                         })
                         .oidc(Customizer.withDefaults()))
@@ -271,6 +281,33 @@ public class AuthorizationServerConfiguration {
                         provider, transactionTemplate, issueService,
                         tenantIssuerService, grantTransaction));
             }
+        }
+    }
+
+    static void configureRevocationProviders(
+            List<AuthenticationProvider> providers,
+            OAuth2AuthorizationService authorizationService,
+            TokenRevocationService revocationService,
+            TenantIssuerService tenantIssuerService,
+            PlatformTransactionManager transactionManager) {
+        Objects.requireNonNull(providers, "providers");
+        Objects.requireNonNull(authorizationService, "authorizationService");
+        Objects.requireNonNull(revocationService, "revocationService");
+        Objects.requireNonNull(tenantIssuerService, "tenantIssuerService");
+        Objects.requireNonNull(transactionManager, "transactionManager");
+        boolean found = false;
+        for (int index = 0; index < providers.size(); index++) {
+            AuthenticationProvider provider = providers.get(index);
+            if (provider instanceof OAuth2TokenRevocationAuthenticationProvider) {
+                providers.set(index, new TransactionalOAuthRevocationAuthenticationProvider(
+                        authorizationService, revocationService, tenantIssuerService, transactionManager));
+                found = true;
+            } else if (provider instanceof TransactionalOAuthRevocationAuthenticationProvider) {
+                found = true;
+            }
+        }
+        if (!found) {
+            throw new IllegalStateException("OAUTH_SAS_REVOCATION_PROVIDER_MISSING");
         }
     }
 

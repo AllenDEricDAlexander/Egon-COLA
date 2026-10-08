@@ -31,11 +31,14 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.CreatedOAu
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.RotatedClientSecretVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthGrantBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthResourceBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthGrantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthResourceRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthClientService;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.command.OAuthClientRevokeCommand;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEvent;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEventPort;
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthClient;
@@ -55,6 +58,9 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     @Qualifier("oAuthClientRepository")
     private final OAuthClientRepository clients;
     @NonNull
+    @Qualifier("oAuthRealmRepository")
+    private final OAuthRealmRepository realms;
+    @NonNull
     @Qualifier("oAuthResourceRepository")
     private final OAuthResourceRepository resources;
     @NonNull
@@ -66,6 +72,9 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     @NonNull
     @Qualifier("identityOutboxPublisher")
     private final IdentitySecurityEventPort securityEvents;
+    @NonNull
+    @Qualifier("tokenRevocationService")
+    private final TokenRevocationService tokenRevocationService;
     @NonNull
     @Qualifier("idpSecureRandom")
     private final SecureRandom secureRandom;
@@ -95,6 +104,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             String operatorSub) {
         TrustedRealmBO realm = requireRealm(trustedRealm);
         TrustedRealmBO trustedPlatform = requirePlatformRealm(platformRealm);
+        lockRealm(realm);
         CreateOAuthClientDTO input = Objects.requireNonNull(command, "command");
         String operator = operator(operatorSub);
         validateCreate(realm, input);
@@ -135,6 +145,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 .refreshTtlSeconds(input.getRefreshTokenTtlSeconds())
                 .build();
         OAuthClientBO saved = clients.save(realm, created, 0L);
+        tokenRevocationService.revokeClient(realm, clientRevokeCommand(saved, "CLIENT_CREATED"));
         if (!userResources.isEmpty()) {
             for (OAuthResourceBO resource : userResources) {
                 saveUserDelegationGrant(realm, saved, resource);
@@ -153,6 +164,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             RotateClientSecretDTO command,
             String operatorSub) {
         TrustedRealmBO realm = requireRealm(trustedRealm);
+        lockRealm(realm);
         String exactClientId = exact(clientId, "clientId");
         RotateClientSecretDTO input = Objects.requireNonNull(command, "command");
         String operator = operator(operatorSub);
@@ -175,6 +187,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 .updatedAt(clock.instant())
                 .build();
         OAuthClientBO saved = clients.save(realm, changed, client.getVersion());
+        tokenRevocationService.revokeClient(realm, clientRevokeCommand(saved, "CLIENT_SECRET_ROTATED"));
         Instant now = clock.instant();
         appendAudit("IDENTITY_OAUTH_CLIENT_SECRET_ROTATED", operator,
                 "SECRET_ROTATED:" + saved.getClientId(), now);
@@ -185,6 +198,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     @Transactional
     public OAuthClientVO update(TrustedRealmBO trustedRealm, String clientId, UpdateOAuthClientDTO command) {
         TrustedRealmBO realm = requireRealm(trustedRealm);
+        lockRealm(realm);
         UpdateOAuthClientDTO input = Objects.requireNonNull(command, "command");
         OAuthClientBO client = lockClient(realm, clientId);
         if (client.getVersion() != input.getExpectedVersion()) {
@@ -210,7 +224,9 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 .allowedScopes(scopes)
                 .updatedAt(clock.instant())
                 .build();
-        return view(clients.save(realm, changed, client.getVersion()), realm);
+        OAuthClientBO saved = clients.save(realm, changed, client.getVersion());
+        recordSecurityChange(realm, client, saved, "CLIENT_CONFIGURATION_CHANGED");
+        return view(saved, realm);
     }
 
     private static void validateRefreshTtl(OAuthClientBO client, int refreshTtlSeconds) {
@@ -230,6 +246,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     @Transactional
     public OAuthClientVO putRedirectUri(TrustedRealmBO trustedRealm, String clientId, String redirectUri) {
         TrustedRealmBO realm = requireRealm(trustedRealm);
+        lockRealm(realm);
         OAuthClientBO client = lockUserClient(realm, clientId);
         List<String> redirects = new ArrayList<>(client.getRedirectUris());
         String value = exactRedirectUri(redirectUri);
@@ -243,6 +260,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     @Transactional
     public OAuthClientVO deleteRedirectUri(TrustedRealmBO trustedRealm, String clientId, String redirectUri) {
         TrustedRealmBO realm = requireRealm(trustedRealm);
+        lockRealm(realm);
         OAuthClientBO client = lockUserClient(realm, clientId);
         List<String> redirects = new ArrayList<>(client.getRedirectUris());
         redirects.remove(exactRedirectUri(redirectUri));
@@ -260,6 +278,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             String clientId,
             String resourceUri) {
         TrustedRealmBO realm = requireRealm(trustedRealm);
+        lockRealm(realm);
         OAuthClientBO client = lockUserClient(realm, clientId);
         String exactUri = exactHttpsUri(resourceUri, "resourceUri");
         OAuthResourceBO resource = activeResource(platformRealm, exactUri);
@@ -272,6 +291,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 .resourceUris(sorted(resourceUris))
                 .updatedAt(clock.instant())
                 .build(), client.getVersion());
+        recordSecurityChange(realm, client, saved, "CLIENT_RESOURCE_CHANGED");
         saveUserDelegationGrant(realm, saved, resource);
         return view(saved, realm);
     }
@@ -284,6 +304,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             String clientId,
             String resourceUri) {
         TrustedRealmBO realm = requireRealm(trustedRealm);
+        lockRealm(realm);
         OAuthClientBO client = lockUserClient(realm, clientId);
         String exactUri = exactHttpsUri(resourceUri, "resourceUri");
         OAuthResourceBO resource = activeResource(platformRealm, exactUri);
@@ -294,6 +315,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 .resourceUris(sorted(resourceUris))
                 .updatedAt(clock.instant())
                 .build(), client.getVersion());
+        recordSecurityChange(realm, client, saved, "CLIENT_RESOURCE_CHANGED");
         grants.findGrantForUpdate(realm, saved.getId(), resource.getResourceServerId(), ResourceGrantType.USER_DELEGATION)
                 .ifPresent(grant -> grants.save(realm, copyGrant(grant)
                         .version(Math.addExact(grant.getVersion(), 1L))
@@ -308,7 +330,36 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 .version(Math.addExact(current.getVersion(), 1L))
                 .updatedAt(clock.instant())
                 .build();
-        return view(clients.save(realm, changed, current.getVersion()), realm);
+        OAuthClientBO saved = clients.save(realm, changed, current.getVersion());
+        recordSecurityChange(realm, current, saved, "CLIENT_REDIRECT_CHANGED");
+        return view(saved, realm);
+    }
+
+    private void recordSecurityChange(
+            TrustedRealmBO realm,
+            OAuthClientBO previous,
+            OAuthClientBO current,
+            String reasonCode) {
+        if (securityMaterialChanged(previous, current)) {
+            tokenRevocationService.revokeClient(realm, clientRevokeCommand(current, reasonCode));
+        }
+    }
+
+    private static boolean securityMaterialChanged(OAuthClientBO previous, OAuthClientBO current) {
+        return previous.getStatus() != current.getStatus()
+                || !Objects.equals(previous.getCredentialVersion(), current.getCredentialVersion())
+                || !Objects.equals(previous.getRedirectUris(), current.getRedirectUris())
+                || !Objects.equals(previous.getResourceUris(), current.getResourceUris())
+                || !Objects.equals(previous.getAllowedScopes(), current.getAllowedScopes())
+                || !Objects.equals(previous.getAccessTtlSeconds(), current.getAccessTtlSeconds())
+                || !Objects.equals(previous.getRefreshTtlSeconds(), current.getRefreshTtlSeconds());
+    }
+
+    private static OAuthClientRevokeCommand clientRevokeCommand(OAuthClientBO client, String reasonCode) {
+        if (client.getId() == null || client.getId() <= 0L) {
+            throw new IllegalStateException("OAUTH_CLIENT_SECURITY_ID_INVALID");
+        }
+        return OAuthClientRevokeCommand.builder().clientPk(client.getId()).reasonCode(reasonCode).build();
     }
 
     private OAuthClientBO lockUserClient(TrustedRealmBO realm, String clientId) {
@@ -322,6 +373,12 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     private OAuthClientBO lockClient(TrustedRealmBO realm, String clientId) {
         return clients.findByClientIdForUpdate(realm, exact(clientId, "clientId"))
                 .orElseThrow(() -> new IllegalArgumentException("OAUTH_CLIENT_NOT_FOUND"));
+    }
+
+    private void lockRealm(TrustedRealmBO realm) {
+        realms.findByRealmKeyForUpdate(realm)
+                .filter(value -> "ACTIVE".equals(value.getStatus()))
+                .orElseThrow(() -> new IllegalStateException("OAUTH_CLIENT_REALM_NOT_ACTIVE"));
     }
 
     private OAuthClientVO view(OAuthClientBO client, TrustedRealmBO realm) {

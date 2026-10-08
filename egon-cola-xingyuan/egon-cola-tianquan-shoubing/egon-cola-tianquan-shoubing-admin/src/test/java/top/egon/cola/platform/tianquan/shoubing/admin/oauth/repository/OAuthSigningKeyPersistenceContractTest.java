@@ -61,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class OAuthSigningKeyPersistenceContractTest {
 
@@ -310,6 +311,34 @@ class OAuthSigningKeyPersistenceContractTest {
     }
 
     @Test
+    void retentionRepositoriesExposeVersionGuardedDeletePorts() {
+        assertThatCode(() -> Class.forName(
+                "top.egon.cola.platform.tianquan.shoubing.admin.audit.repository.OAuthAuditRepository")
+                .getMethod("deleteVersionedById", TrustedRealmBO.class, Long.class, long.class))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> Class.forName(
+                "top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthRevocationRepository")
+                .getMethod("deleteVersionedById", TrustedRealmBO.class, Long.class, long.class))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void expiredRevocationRetentionQueryOnlyReturnsAppliedRows() throws IOException {
+        Path mapperPath = repositoryRoot().resolve(ADMIN_PREFIX
+                + "resources/mapper/token/OAuthRevocationMapper.xml");
+        String xml = Files.readString(mapperPath).toLowerCase();
+
+        assertTrue(xml.contains("projection_status = 'applied'"));
+        assertTrue(xml.contains("expires_at is not null"));
+        assertTrue(xml.contains("expires_at &lt;= #{cutoff}"));
+        assertTrue(xml.contains("id &gt; #{afterid}"));
+        assertTrue(xml.contains("deleted_at is null"));
+        assertTrue(xml.contains("order by id asc"));
+        assertTrue(xml.contains("limit #{limit}"));
+        assertFalse(xml.contains("${"));
+    }
+
+    @Test
     void scopedRepositoriesRestoreTenantAndActorMdcAfterSuccessAndFailure() throws Exception {
         assertScopedRepositoryMdc(
                 "top.egon.cola.platform.tianquan.shoubing.admin.token.repository.impl.OAuthSigningKeyRepositoryImpl",
@@ -468,9 +497,8 @@ class OAuthSigningKeyPersistenceContractTest {
         Class<?> converterType = Class.forName(
                 "top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.converter.OAuthAuditConverter");
         Object mapper = Mockito.mock(mapperType, Answers.RETURNS_DEFAULTS);
-        Object repository = repositoryType.getConstructor(mapperType, EgonColaMybatisPlusProperties.class,
-                        converterType)
-                .newInstance(mapper, scopedProperties(), mock(converterType));
+        Object repository = createAuditRepository(
+                repositoryType, mapperType, mapper, scopedProperties(), converterType, mock(converterType));
         OAuthAuditBO audit = OAuthAuditBO.builder()
                 .eventId("event-1")
                 .eventType("TOKEN_ISSUED")
@@ -571,8 +599,7 @@ class OAuthSigningKeyPersistenceContractTest {
         Class<?> repositoryType = Class.forName(repositoryName);
         Object repository;
         if (repositoryName.endsWith("OAuthAuditRepositoryImpl")) {
-            repository = repositoryType.getConstructor(mapperType, EgonColaMybatisPlusProperties.class,
-                    converterType).newInstance(mapper, properties, converter);
+            repository = createAuditRepository(repositoryType, mapperType, mapper, properties, converterType, converter);
         } else {
             EgonColaUserIdProvider userIdProvider = Mockito.mock(EgonColaUserIdProvider.class);
             repository = repositoryType.getConstructor(mapperType, EgonColaMybatisPlusProperties.class,
@@ -609,6 +636,23 @@ class OAuthSigningKeyPersistenceContractTest {
         } finally {
             restoreMdc(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, previousTenant);
             restoreMdc("userId", previousUser);
+        }
+    }
+
+    private static Object createAuditRepository(
+            Class<?> repositoryType,
+            Class<?> mapperType,
+            Object mapper,
+            EgonColaMybatisPlusProperties properties,
+            Class<?> converterType,
+            Object converter) throws Exception {
+        try {
+            return repositoryType.getConstructor(mapperType, EgonColaMybatisPlusProperties.class,
+                            converterType, Clock.class)
+                    .newInstance(mapper, properties, converter, Clock.systemUTC());
+        } catch (NoSuchMethodException targetClockConstructorNotImplementedYet) {
+            return repositoryType.getConstructor(mapperType, EgonColaMybatisPlusProperties.class, converterType)
+                    .newInstance(mapper, properties, converter);
         }
     }
 

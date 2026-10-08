@@ -1,69 +1,43 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.support.runtime;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseRole;
 import top.egon.cola.component.tianshu.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.tianshu.model.instance.DdcRuntimeState;
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationRuntime;
-import top.egon.cola.platform.tianquan.shoubing.admin.audit.repo.IdentityAuditLogRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap.IdpBootstrapRunner;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap.IdpDevelopmentTenantBootstrap;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap.IdpBootstrapService;
-import top.egon.cola.platform.tianquan.shoubing.admin.support.outbox.service.IdentityOutboxPublisher;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.service.IdentityUserStateService;
-import top.egon.cola.platform.tianquan.shoubing.admin.support.outbox.repo.IdentityOutboxEventRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.Rs256TokenService;
-import top.egon.cola.platform.tianquan.shoubing.core.port.RefreshTokenStore;
-
-import java.time.Clock;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthSecurityProjectionComponent;
+import top.egon.cola.component.outbox.store.OutboxStore;
 import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
+@EnableScheduling
 public class IdpPlatformConfiguration {
-
-    @Bean
-    IdentityOutboxPublisher identityOutboxPublisher(
-            IdentityOutboxEventRepository outbox,
-            IdentityAuditLogRepository audits,
-            RefreshTokenStore refreshTokens,
-            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
-            ObjectMapper objectMapper,
-            @Qualifier("idpClock") Clock idpClock,
-            @Value("${egon.tianquan-shoubing.identity-state-key-prefix:identity:v1:user:}")
-            String stateKeyPrefix
-    ) {
-        return new IdentityOutboxPublisher(
-                outbox,
-                audits,
-                refreshTokens,
-                redisson,
-                objectMapper,
-                SnowflakeIdGenerator::nextId,
-                stateKeyPrefix,
-                idpClock
-        );
-    }
 
     @Bean
     ApplicationRunner idpBootstrapApplicationRunner(
             IdpBootstrapService bootstrap,
             IdentityUserStateService stateService,
+            OAuthSecurityProjectionComponent securityProjection,
             ObjectProvider<IdpDevelopmentTenantBootstrap> developmentTenants
     ) {
         IdpBootstrapRunner runner = new IdpBootstrapRunner(bootstrap);
         return (ApplicationArguments arguments) -> {
+            securityProjection.recoverRegisteredRealms();
             runner.run(
                     arguments.getSourceArgs(),
                     Map.copyOf(System.getenv())
@@ -76,7 +50,7 @@ public class IdpPlatformConfiguration {
     @Bean
     IdpRuntimeReadiness idpRuntimeReadiness(
             ObjectProvider<DdcRuntimeCoordinator> coordinators,
-            IdentityOutboxEventRepository outbox,
+            @Qualifier("outboxStore") OutboxStore outbox,
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             Rs256TokenService tokenService
     ) {

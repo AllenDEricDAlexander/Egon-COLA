@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.time.Clock;
@@ -116,6 +117,24 @@ public class OAuthRevocationRepositoryImpl extends EgonColaRepository<OAuthRevoc
                 .selectExpired(tenantId, cutoff, afterId, limit).stream()
                 .map(converter::toTarget)
                 .toList());
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteVersionedById(
+            @NotNull @Valid TrustedRealmBO trustedRealm,
+            @NotNull @Positive Long id,
+            @PositiveOrZero long expectedVersion) {
+        Objects.requireNonNull(id, "id");
+        return withTrustedStoragePartition(trustedRealm, tenantId -> {
+            OAuthRevocationPO current = baseMapper.selectActiveById(tenantId, id);
+            if (current == null) {
+                return false;
+            }
+            current.setUpdateUserId(userIdProvider.currentUserId());
+            current.setUpdateTime(clock.instant().truncatedTo(ChronoUnit.MICROS));
+            return baseMapper.deleteVersionedById(tenantId, current, expectedVersion) == 1;
+        });
     }
 
     @Override

@@ -3,6 +3,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.identity.service.impl;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.dto.CreateIdentityUserDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.dto.UpdateIdentityUserDTO;
@@ -10,12 +11,13 @@ import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.Created
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.IdentityUserVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.ResetPasswordVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.command.OAuthSubjectRevokeCommand;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityUserState;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEvent;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUser;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.PasswordCredential;
-import top.egon.cola.platform.tianquan.shoubing.core.identity.UsernameNormalizer;
 import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordCredentialStore;
@@ -28,14 +30,37 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class IdentityUserServiceImplTest {
+
+    @Test
+    void identityServiceWiresTheSharedRevocationService() {
+        assertThatCode(() -> Class.forName(
+                "top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.TokenRevocationServiceImpl"))
+                .doesNotThrowAnyException();
+        assertThat(java.util.Arrays.stream(IdentityUserServiceImpl.class.getDeclaredFields())
+                .map(java.lang.reflect.Field::getName))
+                .contains("revocations");
+    }
+
+    @Test
+    void requiredArgsConstructorCarriesQualifiersForEveryInjectedServicePort() {
+        var constructor = IdentityUserServiceImpl.class.getDeclaredConstructors()[0];
+        assertThat(Arrays.stream(constructor.getParameterAnnotations())
+                .allMatch(annotations -> Arrays.stream(annotations)
+                        .anyMatch(Qualifier.class::isInstance))).isTrue();
+    }
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -47,6 +72,7 @@ class IdentityUserServiceImplTest {
 
     private final FakePersistence persistence = new FakePersistence();
     private final FakeState state = new FakeState();
+    private final TokenRevocationService revocations = mock(TokenRevocationService.class);
     private final FakeRefreshTokens refreshTokens = new FakeRefreshTokens();
     private final List<IdentitySecurityEvent> events = new ArrayList<>();
     private IdentityUserServiceImpl service;
@@ -60,10 +86,9 @@ class IdentityUserServiceImplTest {
                 new FakePasswordHash(),
                 state,
                 events::add,
+                revocations,
                 refreshTokens,
-                new UsernameNormalizer(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                () -> "TempPassword12345"
+                Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
 
@@ -79,7 +104,7 @@ class IdentityUserServiceImplTest {
         String subject = created.subject();
         assertThat(subject).matches("\\d+");
         assertThat(Long.parseLong(subject)).isPositive();
-        assertThat(created.oneTimePassword()).isEqualTo("TempPassword12345");
+        assertThat(created.oneTimePassword()).matches("T9a[A-Za-z0-9_-]{24}");
         assertThat(persistence.users.get(subject).normalizedUsername())
                 .isEqualTo("alice");
         assertThat(persistence.credentials.get(subject).mustChangePassword())
@@ -88,6 +113,8 @@ class IdentityUserServiceImplTest {
                 .containsExactly(subject);
         assertThat(events).extracting(IdentitySecurityEvent::eventType)
                 .containsExactly("IDENTITY_USER_CREATED");
+        verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
+                && command.getReasonCode().equals("USER_CREATED")));
     }
 
     @Test
@@ -109,13 +136,19 @@ class IdentityUserServiceImplTest {
                 service.resetPassword(subject);
 
         assertThat(disabled.version()).isEqualTo(1L);
-        assertThat(reset.oneTimePassword()).isEqualTo("TempPassword12345");
+        assertThat(reset.oneTimePassword()).matches("T9a[A-Za-z0-9_-]{24}");
         assertThat(persistence.users.get(subject).version())
                 .isEqualTo(2L);
         assertThat(persistence.credentials.get(subject).mustChangePassword())
                 .isTrue();
         assertThat(refreshTokens.revocations)
                 .containsExactly(subject + ":USER_DISABLED", subject + ":PASSWORD_RESET");
+        verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
+                && command.getReasonCode().equals("USER_CREATED")));
+        verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
+                && command.getReasonCode().equals("USER_DISABLED")));
+        verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
+                && command.getReasonCode().equals("PASSWORD_RESET")));
     }
 
     private static final class FakePersistence

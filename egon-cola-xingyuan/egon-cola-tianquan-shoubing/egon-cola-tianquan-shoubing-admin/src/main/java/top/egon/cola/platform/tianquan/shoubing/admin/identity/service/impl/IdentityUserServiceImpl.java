@@ -1,6 +1,8 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.identity.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -11,6 +13,8 @@ import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.Identit
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.ResetPasswordVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.service.IdentityUserService;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.command.OAuthSubjectRevokeCommand;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityUserState;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEvent;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEventPort;
@@ -34,76 +38,31 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-@Service
+@Service("identityUserServiceImpl")
+@RequiredArgsConstructor
+@Slf4j
 public class IdentityUserServiceImpl implements IdentityUserService {
 
+    @Qualifier("identityPersistenceAdapter")
     private final IdentityUserStore users;
+    @Qualifier("identityPersistenceAdapter")
     private final PasswordCredentialStore credentials;
+    @Qualifier("mpIdentityUserDirectory")
     private final IdentityUserDirectory directory;
+    @Qualifier("springPasswordHashAdapter")
     private final PasswordHashPort passwordHashes;
+    @Qualifier("identityOutboxPublisher")
     private final IdentityUserStatePort states;
+    @Qualifier("identityOutboxPublisher")
     private final IdentitySecurityEventPort securityEvents;
+    @Qualifier("tokenRevocationService")
+    private final TokenRevocationService revocations;
+    @Qualifier("refreshTokenStore")
     private final RefreshTokenStore refreshTokens;
-    private final UsernameNormalizer normalizer;
+    private final UsernameNormalizer normalizer = new UsernameNormalizer();
+    @Qualifier("idpClock")
     private final Clock clock;
-    private final Supplier<String> temporaryPasswords;
-
-    @Autowired
-    public IdentityUserServiceImpl(
-            IdentityUserStore users,
-            PasswordCredentialStore credentials,
-            IdentityUserDirectory directory,
-            PasswordHashPort passwordHashes,
-            IdentityUserStatePort states,
-            IdentitySecurityEventPort securityEvents,
-            RefreshTokenStore refreshTokens
-    ) {
-        this(
-                users,
-                credentials,
-                directory,
-                passwordHashes,
-                states,
-                securityEvents,
-                refreshTokens,
-                new UsernameNormalizer(),
-                Clock.systemUTC(),
-                secureTemporaryPasswordGenerator()
-        );
-    }
-
-    IdentityUserServiceImpl(
-            IdentityUserStore users,
-            PasswordCredentialStore credentials,
-            IdentityUserDirectory directory,
-            PasswordHashPort passwordHashes,
-            IdentityUserStatePort states,
-            IdentitySecurityEventPort securityEvents,
-            RefreshTokenStore refreshTokens,
-            UsernameNormalizer normalizer,
-            Clock clock,
-            Supplier<String> temporaryPasswords
-    ) {
-        this.users = Objects.requireNonNull(users, "users");
-        this.credentials = Objects.requireNonNull(credentials, "credentials");
-        this.directory = Objects.requireNonNull(directory, "directory");
-        this.passwordHashes = Objects.requireNonNull(
-                passwordHashes,
-                "passwordHashes"
-        );
-        this.states = Objects.requireNonNull(states, "states");
-        this.securityEvents = Objects.requireNonNull(
-                securityEvents,
-                "securityEvents"
-        );
-        this.refreshTokens = Objects.requireNonNull(refreshTokens, "refreshTokens");
-        this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
-        this.clock = Objects.requireNonNull(clock, "clock");
-        this.temporaryPasswords = Objects.requireNonNull(
-                temporaryPasswords,
-                "temporaryPasswords"
-        );
-    }
+    private final Supplier<String> temporaryPasswords = secureTemporaryPasswordGenerator();
 
     @Transactional(readOnly = true)
     @Override
@@ -151,6 +110,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         } finally {
             Arrays.fill(rawPassword, '\0');
         }
+        revocations.revokeSubject(new OAuthSubjectRevokeCommand(subject, "USER_CREATED"));
         publish(user, "IDENTITY_USER_CREATED", "USER_CREATED", now);
         return new CreatedIdentityUserVO(
                 subject,
@@ -176,23 +136,24 @@ public class IdentityUserServiceImpl implements IdentityUserService {
                 command.status(),
                 "status"
         );
-        boolean revoke = current.status() != status
-                && status == IdentityUserStatus.DISABLED;
+        boolean securityStateChanged = current.status() != status;
+        boolean revoke = securityStateChanged && status == IdentityUserStatus.DISABLED;
         IdentityUser updated = current.administrativelyUpdated(
                 command.displayName(),
                 status,
                 revoke
         );
         users.save(updated, current.version());
-        if (revoke) {
-            refreshTokens.revokeSubject(
-                    updated.id(), "USER_DISABLED", clock.instant());
-            publish(
-                    updated,
-                    "IDENTITY_USER_DISABLED",
-                    "USER_DISABLED",
-                    clock.instant()
-            );
+        if (securityStateChanged) {
+            Instant now = clock.instant();
+            String reason = status == IdentityUserStatus.DISABLED ? "USER_DISABLED" : "USER_ENABLED";
+            if (revoke) {
+                refreshTokens.revokeSubject(updated.id(), reason, now);
+            }
+            revocations.revokeSubject(
+                    new OAuthSubjectRevokeCommand(updated.id(), reason));
+            publish(updated, status == IdentityUserStatus.DISABLED
+                    ? "IDENTITY_USER_DISABLED" : "IDENTITY_USER_ENABLED", reason, now);
         } else {
             states.publish(state(updated, clock.instant()));
         }
@@ -220,6 +181,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         }
         IdentityUser revoked = current.revokeSecurityState();
         users.save(revoked, current.version());
+        revocations.revokeSubject(new OAuthSubjectRevokeCommand(revoked.id(), "PASSWORD_RESET"));
         refreshTokens.revokeSubject(revoked.id(), "PASSWORD_RESET", now);
         publish(
                 revoked,
@@ -240,6 +202,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         IdentityUser current = user(identitySub);
         IdentityUser revoked = current.revokeSecurityState();
         users.save(revoked, current.version());
+        revocations.revokeSubject(new OAuthSubjectRevokeCommand(revoked.id(), "ADMIN_REVOKE_ALL"));
         refreshTokens.revokeSubject(
                 revoked.id(), "ADMIN_REVOKE_ALL", clock.instant());
         publish(

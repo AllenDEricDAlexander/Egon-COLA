@@ -11,8 +11,10 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.OAuthClientViewConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.CreateOAuthClientDTO;
@@ -24,10 +26,13 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.CreatedOAu
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.RotatedClientSecretVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthGrantBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthResourceBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthGrantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthResourceRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.command.OAuthClientRevokeCommand;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEventPort;
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthClient;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ClientResourceGrant;
@@ -41,19 +46,23 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
 
 class OAuthClientServiceImplTest {
 
     private static final Instant NOW = Instant.parse("2026-10-08T00:00:00Z");
     private final OAuthClientRepository clients = mock(OAuthClientRepository.class);
+    private final OAuthRealmRepository realms = mock(OAuthRealmRepository.class);
     private final OAuthResourceRepository resources = mock(OAuthResourceRepository.class);
     private final OAuthGrantRepository grants = mock(OAuthGrantRepository.class);
     private final OAuthClientViewConverter views = mock(OAuthClientViewConverter.class);
     private final IdentitySecurityEventPort events = mock(IdentitySecurityEventPort.class);
+    private final TokenRevocationService revocations = mock(TokenRevocationService.class);
     private final TrustedRealmBO tenantA = tenant(1001L);
     private final TrustedRealmBO tenantB = tenant(1002L);
     private final TrustedRealmBO platform = platform();
@@ -61,7 +70,10 @@ class OAuthClientServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new OAuthClientServiceImpl(clients, resources, grants, views, events,
+        when(realms.findByRealmKeyForUpdate(tenantA)).thenReturn(Optional.of(realmRow(tenantA)));
+        when(realms.findByRealmKeyForUpdate(tenantB)).thenReturn(Optional.of(realmRow(tenantB)));
+        when(realms.findByRealmKeyForUpdate(platform)).thenReturn(Optional.of(realmRow(platform)));
+        service = new OAuthClientServiceImpl(clients, realms, resources, grants, views, events, revocations,
                 new SecureRandom(), Clock.fixed(NOW, ZoneOffset.UTC), "test");
         when(views.toCreatedTarget(any(OAuthClientBO.class), any(URI.class), nullable(String.class)))
                 .thenAnswer(invocation -> {
@@ -106,6 +118,8 @@ class OAuthClientServiceImplTest {
         assertThat(created.getClientSecret()).isNull();
         assertThat(created.getIssuer()).isEqualTo(tenantA.getIssuer().toASCIIString());
         verify(clients).save(eq(tenantA), any(OAuthClientBO.class), eq(0L));
+        verify(revocations).revokeClient(eq(tenantA), argThat(command -> command.getClientPk() == 501L
+                && command.getReasonCode().equals("CLIENT_CREATED")));
         verify(grants).save(eq(tenantA), any(OAuthGrantBO.class), eq(0L));
         verify(clients, never()).findByClientId(tenantB, "orders-web");
     }
@@ -130,6 +144,8 @@ class OAuthClientServiceImplTest {
         assertThat(stored.getSecretHash()).startsWith("$2");
         assertThat(new BCryptPasswordEncoder(12).matches(created.getClientSecret(), stored.getSecretHash())).isTrue();
         assertThat(stored.getSecretHint()).isEqualTo(created.getClientSecret().substring(39));
+        verify(revocations).revokeClient(eq(platform), argThat(command -> command.getClientPk() == 601L
+                && command.getReasonCode().equals("CLIENT_CREATED")));
     }
 
     @Test
@@ -147,6 +163,11 @@ class OAuthClientServiceImplTest {
         assertThat(captor.getValue().getCredentialVersion()).isEqualTo(4L);
         assertThat(new BCryptPasswordEncoder(12).matches(rotated.getClientSecret(), captor.getValue().getSecretHash()))
                 .isTrue();
+        verify(revocations).revokeClient(eq(tenantA), argThat(command -> command.getClientPk() == 40L
+                && command.getReasonCode().equals("CLIENT_SECRET_ROTATED")));
+        InOrder lockOrder = inOrder(realms, clients);
+        lockOrder.verify(realms).findByRealmKeyForUpdate(tenantA);
+        lockOrder.verify(clients).findByClientIdForUpdate(tenantA, "orders-service");
         verify(clients, never()).findByClientIdForUpdate(eq(tenantB), eq("orders-service"));
     }
 
@@ -189,6 +210,7 @@ class OAuthClientServiceImplTest {
         var captor = org.mockito.ArgumentCaptor.forClass(OAuthClientBO.class);
         verify(clients).save(eq(tenantA), captor.capture(), eq(2L));
         assertThat(captor.getValue().getAllowedScopes()).containsExactly("openid", "profile");
+        verify(revocations, never()).revokeClient(eq(tenantA), any(OAuthClientRevokeCommand.class));
     }
 
     @Test
@@ -213,7 +235,8 @@ class OAuthClientServiceImplTest {
                 .thenReturn(OAuthClientVO.builder().clientId("orders-web").issuer(tenantA.getIssuer().toASCIIString())
                         .build());
 
-        OAuthClientServiceImpl localService = new OAuthClientServiceImpl(clients, resources, grants, views, events,
+        OAuthClientServiceImpl localService = new OAuthClientServiceImpl(
+                clients, realms, resources, grants, views, events, revocations,
                 new SecureRandom(), Clock.fixed(NOW, ZoneOffset.UTC), "local");
         OAuthClientVO updated = localService.putRedirectUri(
                 tenantA, "orders-web", "http://127.0.0.1:18121/oauth/callback");
@@ -353,5 +376,19 @@ class OAuthClientServiceImplTest {
         return TrustedRealmBO.builder().issuer(URI.create("https://auth.example/platform"))
                 .realmKey("platform").realmType(RealmTypeEnum.PLATFORM)
                 .storagePartitionId(9001L).businessTenantId(null).trustVersion(0L).build();
+    }
+
+    private static OAuthRealmBO realmRow(TrustedRealmBO realm) {
+        return OAuthRealmBO.builder()
+                .id(realm.getStoragePartitionId())
+                .version(0L)
+                .issuer(realm.getIssuer())
+                .realmKey(realm.getRealmKey())
+                .realmType(realm.getRealmType())
+                .businessTenantId(realm.getBusinessTenantId())
+                .storagePartitionId(realm.getStoragePartitionId())
+                .status("ACTIVE")
+                .trustVersion(realm.getTrustVersion())
+                .build();
     }
 }

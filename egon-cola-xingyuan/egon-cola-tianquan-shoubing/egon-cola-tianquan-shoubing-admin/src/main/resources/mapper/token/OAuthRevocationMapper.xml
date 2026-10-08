@@ -54,6 +54,7 @@
         SELECT <include refid="Columns"/>
         FROM oauth_revocation
         WHERE tenant_id = #{tenantId} AND expires_at IS NOT NULL AND expires_at &lt;= #{cutoff}
+          AND projection_status = 'APPLIED'
           AND id &gt; #{afterId} AND deleted_at IS NULL
         ORDER BY id ASC
         LIMIT #{limit}
