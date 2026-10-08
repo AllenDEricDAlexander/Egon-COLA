@@ -10,6 +10,9 @@ spring:
       password: ${TIANQUAN_SHOUBING_REDIS_PASSWORD:HomeLab666}
       database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
 
+  flyway:
+    enabled: false
+
 egon.cola.platform:
   tianquan:
     shoubing:
@@ -35,6 +38,45 @@ egon:
       refresh-cookie-secure: false
   cola:
     component:
+      mybatis-plus:
+        ddl:
+          enabled: true
+          lock-timeout: 30s
+          statement-timeout: 300s
+          topology-ready-timeout: 60s
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: NATIVE
+          native-rules-resource: classpath:oauth-sharding-native.yml
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: oauth_primary
+              logical-name: oauth_primary
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: ${spring.datasource.url}
+              username: ${spring.datasource.username}
+              password: ${spring.datasource.password}
+          tables: {}
+        tenant-id:
+          ignored-tables:
+            - egon_cola_outbox_message
+      transactional-outbox:
+        enabled: true
+        node-id: ${TIANQUAN_SHOUBING_INSTANCE_ID:tianquan-shoubing-local-1}
+        storage:
+          data-source-bean-name: dataSource
+          transaction-manager-bean-name: transactionManager
+          mp:
+            sql-session-factory-bean-name: sqlSessionFactory
+            migration-mode: false
+            auto-initialize-ddl: true
+            migration-lock-timeout: 30s
+            manifest-resource: db/egon-outbox-mp/manifest.json
+        state-machine:
+          business:
+            enabled: false
       rpc:
         tls:
           development-plaintext: ${TIANQUAN_SHOUBING_RPC_DEVELOPMENT_PLAINTEXT:true}

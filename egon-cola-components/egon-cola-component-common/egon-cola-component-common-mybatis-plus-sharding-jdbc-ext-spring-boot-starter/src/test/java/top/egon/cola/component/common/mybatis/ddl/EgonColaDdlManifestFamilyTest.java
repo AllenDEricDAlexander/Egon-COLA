@@ -25,6 +25,12 @@ class EgonColaDdlManifestFamilyTest {
             "a".repeat(64)
     );
 
+    private static final ScriptBO TIANQUAN_OAUTH_SCRIPT = new ScriptBO(
+            "20261008_001",
+            "db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql",
+            "b".repeat(64)
+    );
+
     @Test
     void acceptsTheExactComponentOutboxFamily() {
         EgonColaDdlManifestBO manifest = new EgonColaDdlManifestBO(
@@ -42,6 +48,17 @@ class EgonColaDdlManifestFamilyTest {
             assertThat(new EgonColaDdlManifestBO(family, List.of(COMPONENT_OUTBOX_SCRIPT)).family())
                     .isEqualTo(family);
         }
+    }
+
+    @Test
+    void acceptsTheExactTianquanOAuthFamily() {
+        EgonColaDdlManifestBO manifest = new EgonColaDdlManifestBO(
+                "tianquan-oauth",
+                List.of(TIANQUAN_OAUTH_SCRIPT)
+        );
+
+        assertThat(manifest.family()).isEqualTo("tianquan-oauth");
+        assertThat(manifest.scripts()).containsExactly(TIANQUAN_OAUTH_SCRIPT);
     }
 
     @Test

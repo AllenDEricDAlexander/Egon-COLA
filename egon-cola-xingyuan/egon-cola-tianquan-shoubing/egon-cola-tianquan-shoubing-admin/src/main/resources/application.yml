@@ -23,7 +23,7 @@ spring:
       database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
       timeout: ${TIANQUAN_SHOUBING_REDIS_TIMEOUT:2s}
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration
   jpa:
     open-in-view: false
@@ -137,9 +137,45 @@ egon:
           certificate-chain-path: ${TIANQUAN_SHOUBING_RPC_CERTIFICATE_CHAIN_PATH:}
           private-key-path: ${TIANQUAN_SHOUBING_RPC_PRIVATE_KEY_PATH:}
           trust-certificate-collection-path: ${TIANQUAN_SHOUBING_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      mybatis-plus:
+        ddl:
+          enabled: true
+          lock-timeout: 30s
+          statement-timeout: 300s
+          topology-ready-timeout: 60s
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: NATIVE
+          native-rules-resource: classpath:oauth-sharding-native.yml
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: oauth_primary
+              logical-name: oauth_primary
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: ${spring.datasource.url}
+              username: ${spring.datasource.username}
+              password: ${spring.datasource.password}
+          tables: {}
+        tenant-id:
+          ignored-tables:
+            - egon_cola_outbox_message
       transactional-outbox:
         enabled: true
         node-id: ${TIANQUAN_SHOUBING_INSTANCE_ID:tianquan-shoubing-local-1}
+        storage:
+          data-source-bean-name: dataSource
+          transaction-manager-bean-name: transactionManager
+          mp:
+            sql-session-factory-bean-name: sqlSessionFactory
+            migration-mode: false
+            auto-initialize-ddl: true
+            migration-lock-timeout: 30s
+            manifest-resource: db/egon-outbox-mp/manifest.json
+        state-machine:
+          business:
+            enabled: false
       tianshu:
         tenant-id: ${TIANSHU_TENANT_ID:}
         enabled: ${TIANQUAN_SHOUBING_TIANSHU_ENABLED:false}

@@ -1,0 +1,39 @@
+databaseName: egon
+rules:
+  - !SINGLE
+    tables:
+      - oauth_primary.tianquan_oauth.oauth_identity_user
+      - oauth_primary.tianquan_oauth.oauth_identity_credential
+      - oauth_primary.tianquan_oauth.oauth_identity_tenant
+      - oauth_primary.tianquan_oauth.oauth_identity_membership
+      - oauth_primary.tianquan_oauth.oauth_realm
+      - oauth_primary.tianquan_oauth.oauth_client
+      - oauth_primary.tianquan_oauth.oauth_grant
+      - oauth_primary.tianquan_oauth.oauth_authorization
+      - oauth_primary.tianquan_oauth.oauth_token
+      - oauth_primary.tianquan_oauth.oauth_consent
+      - oauth_primary.tianquan_oauth.oauth_signing_key
+      - oauth_primary.tianquan_oauth.oauth_security_state
+      - oauth_primary.tianquan_oauth.oauth_revocation
+      - oauth_primary.tianquan_oauth.oauth_audit
+      - oauth_primary.tianquan_oauth.oauth_resource
+      - oauth_primary.public.identity_user
+      - oauth_primary.public.identity_user_credential
+      - oauth_primary.public.identity_tenant
+      - oauth_primary.public.identity_tenant_membership
+      - oauth_primary.public.identity_client
+      - oauth_primary.public.identity_client_secret
+      - oauth_primary.public.identity_client_redirect_uri
+      - oauth_primary.public.identity_client_resource_grant
+      - oauth_primary.public.identity_signing_key
+      - oauth_primary.public.identity_resource_server
+      - oauth_primary.public.identity_audit_log
+      - oauth_primary.public.identity_outbox_event
+      - oauth_primary.public.egon_cola_outbox_message
+      - oauth_primary.egon_outbox.egon_cola_outbox_message
+      - oauth_primary.egon_outbox.ddl_history
+transaction:
+  defaultType: LOCAL
+props:
+  sql-show: false
+  check-table-metadata-enabled: true

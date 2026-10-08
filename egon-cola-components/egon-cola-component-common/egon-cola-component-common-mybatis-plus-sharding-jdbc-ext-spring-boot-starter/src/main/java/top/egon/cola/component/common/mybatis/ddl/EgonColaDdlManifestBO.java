@@ -16,8 +16,8 @@ import java.util.Set;
 public record EgonColaDdlManifestBO(@NotBlank String family, @NotEmpty List<@NotNull @Valid ScriptBO> scripts) {
 
     public EgonColaDdlManifestBO {
-        if (!Set.of("light", "light-open", "service", "service-open", "web", "web-open", "component-outbox", "tianshu")
-                .contains(family) || scripts == null || scripts.isEmpty()) {
+        if (!Set.of("light", "light-open", "service", "service-open", "web", "web-open", "component-outbox", "tianshu",
+                "tianquan-oauth").contains(family) || scripts == null || scripts.isEmpty()) {
             throw new IllegalArgumentException("DDL manifest requires a supported family and scripts");
         }
         scripts = List.copyOf(scripts);
