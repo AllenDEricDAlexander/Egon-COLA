@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 10:42 Asia/Shanghai` |
-| Updated | `2026-10-08 11:26 Asia/Shanghai` |
+| Updated | `2026-10-08 13:28 Asia/Shanghai` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | 授柄SAS/认证MP与受管DDL、SCG、Starter、玉衡/鉴神/天枢准入、五端认证前端、切流 |
@@ -23,9 +23,9 @@
 
 ## 1. Summary
 
-本Plan按18个逻辑Step实施有效设计；新增Step 3迁移用户/密码/租户/成员目录到MP，并修订当前Outbox装配、直接审计事件依赖、历史导入与消费者验证。主SpecOAuth/OIDC、独立SCG、PLATFORM隔离、即时撤销和强制重新登录继续有效。API-045现在纳入Step 10/16，不再让已有Grant页面缺失GET。
+本Plan按18个逻辑Step实施有效设计；新增Step 3迁移用户/密码/租户/成员目录到MP，并修订当前Outbox装配、直接审计事件依赖、历史导入与消费者验证。主Spec OAuth/OIDC、独立SCG、PLATFORM隔离、即时撤销和强制重新登录继续有效。API-045现在纳入Step 10/16，不再让已有Grant页面缺失GET。
 
-当前状态Review，供用户审核；不是Ready。本轮只修改文档，不实施、不运行服务/数据库/浏览器、不提交。主Spec已接受，用户已选择统一MP，但本次新增详细设计和Plan仍待整体审核。每Step在未来获准实施时先RED/GREEN并独立验证，最多一个聚焦commit，然后进入下一Step；任何中间可编译状态都不代表可上线。
+用户已明确授权按本Plan与当前修订Spec继续执行。Step 1–3已独立验证并提交；当前执行Step 4。修订Spec保持Review状态，不以执行授权冒充整体Spec接受。每个Step先RED/GREEN，按本Step精确路径验证后单独提交，再进入下一Step；未真实运行数据库/服务的能力不宣称生产验收。
 
 ## 2. Target Spec and Effective Design
 
@@ -75,11 +75,11 @@
 | REQ-020 | 修订§4 | 用户/密码/tenant/membership统一MP；外部ID/状态/密码算法不变 | 修订TEST-101及其验收条件 | Step 3; Step 7; Step 11; Step 17; Step 18 |
 | REQ-021 | 修订§4 | 同DataSourceTransactionManager提交事实、审计与组件Outbox；Redis确认成功边界不变 | 修订TEST-102及其验收条件 | Step 2; Step 7; Step 11; Step 18 |
 | REQ-022 | 修订§4 | 历史version/time/ID显式导入；全局目录停写切换与可恢复对账 | TEST-103导入fixture；TEST-108只读legacy source route | Step 2; Step 17; Step 18 |
-| REQ-023 | 修订§4 | 当前MP校验/DDL/factory/技术StateMachine及family allowlist真实API | TEST-107 family正向/未知拒绝、TEST-108 NATIVE exact route set、Step 2 combined schema/manifest gate | Step 2; Step 3; Step 17 |
+| REQ-023 | 修订§4 | 当前MP校验/DDL/factory/技术StateMachine及family allowlist真实API | TEST-107 family正向/未知拒绝、TEST-108 NATIVE exact route set、TEST-112–115 Step 4 typed JSONB/converter/realm/version gates | Step 2; Step 3; Step 4; Step 17 |
 | REQ-024 | 修订§4 | Tianshu PLATFORM注册及HMAC/registry/AI意图header均保留 | 修订TEST-104及其验收条件 | Step 12; Step 14; Step 15; Step 18 |
 | REQ-025 | 修订§4 | SCG/Yuheng真实Netty数据面与SSE/MCP/LLM行为不退化 | 修订TEST-105及其验收条件 | Step 14; Step 15; Step 18 |
 | REQ-026 | 修订§4 | API-045有界只读Grant列表和realm UI缓存/文档合同 | 修订TEST-106及其验收条件 | Step 10; Step 16; Step 18 |
-| REQ-027 | 修订§4 | 文档基线、共享契约模块依赖与最新源码一致 | 修订TEST-101及其验收条件 | Step 1; Step 6; Step 18 |
+| REQ-027 | 修订§4 | 文档基线、共享契约模块依赖与最新源码一致 | 修订TEST-101及其验收条件；Step 4 converter遵守BaseConverter<S,T>方向 | Step 1; Step 4; Step 6; Step 18 |
 
 ## 4. Implementation Strategy and Dependency Order
 
@@ -211,8 +211,8 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java  # Step 2
 MODIFY egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java  # Step 2
-MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2,3
-MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 2,3,4
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 2,3,4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261008_001__initialize_oauth_tenant_schema.sql  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json  # Step 2
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/oauth-sharding-native.yml  # Step 2
@@ -274,6 +274,7 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmRepository.java  # Step 4
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthStringListJsonbTypeHandler.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthClientPO.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java  # Step 4
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java  # Step 4
@@ -619,6 +620,9 @@ DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | EgonModel承载本表完整列。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | Service计算与PO分界。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmRepository.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | Service-facing typed contract。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthStringListJsonbTypeHandler.java` | 当前缺少强类型List<String> PostgreSQL JSONB数组处理器；EVD-119/DEC-116 | set/get均使用JDBC Types.OTHER并拒绝非文本数组项 | OAuthClient List<String>与JSONB数组之间的明确绑定。 | Step 4 | REQ-023 | OAuthRealmPersistenceContractTest与Step 4 focused test |
+| MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | 本次执行中修订 | 同步当前代码事实、EVD-119–121、DEC-116/117与TEST-112–115。 | Step 4 | REQ-023,REQ-027 | strict Spec/Plan validation and focused Step 4 test |
+| MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | 本次执行中修订 | 把本Step的有序路径、命令、验收和最新源码证据闭合。 | Step 4 | REQ-023,REQ-027 | strict Spec/Plan validation and focused Step 4 test |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthClientPO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | EgonModel承载本表完整列。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | Service计算与PO分界。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | Service-facing typed contract。 | Step 4 | REQ-002,REQ-005,REQ-011,REQ-018 | 对应Step精确命令/原回归 |
@@ -3009,17 +3013,65 @@ RESULT -> Step 3 remains ordered, reviewable, and limited to the explicit file s
 - Commit: `refactor(shoubing): move identity directory persistence to MP`
 ### Step 4 — 持久化issuer与客户端注册
 
-- Requirements: REQ-002, REQ-005, REQ-011, REQ-018
+- Requirements: REQ-002, REQ-005, REQ-011, REQ-018, REQ-023, REQ-027
 - Dependencies: Step 3
 - Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在OAuthRealmPO所列新行为。
 - Observable outcome: 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写。
 - End state: 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写；后续Step的Consumer尚未切流，不声明完整生产验收。
 - Test-first gate: Required — 必需PO/BO/Repository签名先让test编译；测试在Mapper/Impl装配前因缺Bean或缺具名SQL按目标RED，随后GREEN。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001
-- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
+- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/TrustedRealmBO.java`
+#### File 1 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: 记录OAuth JSONB list handler、BaseConverter方向、trusted realm storage scope和版本单调性的真实证据。
+- Symbols: `EVD-119–121, DEC-116/117, TEST-112–115, REQ-023/027`。
+- Repository evidence: 当前执行工作树的步骤3后源码与本次EVD/DEC/TEST修正；不得改动前序已提交行为。
+- Dependencies and consumers: 依赖Step 3的当前实现与本Step契约测试；供后续Step及Plan审阅使用。
+- Why now: 当前代码证据必须先固定，随后实现/测试才能按实际接口核对。
+- Contract/signature changes: 仅同步本次确认的Step 4持久化合同；不新增HTTP行为或数据库列。
+- Input/output and state mapping: 文档记录对应的Repo路径、symbol、REQ和TEST；不写运行数据。
+- Error and edge behavior: 保持Spec/Plan Review语义与实际证据边界；未真实验证不声称生产通过。
+- Standards impact: MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 11；只记录当前已核实的项目契约，不扩大代码范围。
+- Implementation pseudocode:
+
+```text
+INPUT -> Step 4 source tree and focused contract tests;
+FLOW -> record PostgreSQL JSONB string-array binding through Types.OTHER; source BaseConverter<PO,BO>; trusted storage partition/actor MDC restore; reject trustVersion and credentialVersion regressions;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> preserve exact review status and report the evidence gap;
+RESULT -> the Spec/Plan stays aligned with the current implementation and exact Step 4 acceptance.
+```
+
+- Verification contribution: 本Step strict Spec/Plan validation与focused contract test。
+- After this file: 文档事实与本Step实现范围闭合，可由后续文件引用。
+
+#### File 2 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: 让Step 4的file order、测试命令、要求追溯和提交边界反映本次有效Spec修订。
+- Symbols: `Step 4 file order, REQ-023/027 trace, commit paths`。
+- Repository evidence: 当前执行工作树的步骤3后源码与本次EVD/DEC/TEST修正；不得改动前序已提交行为。
+- Dependencies and consumers: 依赖Step 3的当前实现与本Step契约测试；供后续Step及Plan审阅使用。
+- Why now: 当前代码证据必须先固定，随后实现/测试才能按实际接口核对。
+- Contract/signature changes: 仅同步本次确认的Step 4持久化合同；不新增HTTP行为或数据库列。
+- Input/output and state mapping: 文档记录对应的Repo路径、symbol、REQ和TEST；不写运行数据。
+- Error and edge behavior: 保持Spec/Plan Review语义与实际证据边界；未真实验证不声称生产通过。
+- Standards impact: MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 11；只记录当前已核实的项目契约，不扩大代码范围。
+- Implementation pseudocode:
+
+```text
+INPUT -> Step 4 source tree and focused contract tests;
+FLOW -> place Spec/Plan amendments first, the typed list handler before OAuthClientPO, the contract test before implementations, then preserve dependency order and exact path-limited commit;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> preserve exact review status and report the evidence gap;
+RESULT -> the Spec/Plan stays aligned with the current implementation and exact Step 4 acceptance.
+```
+
+- Verification contribution: 本Step strict Spec/Plan validation与focused contract test。
+- After this file: 文档事实与本Step实现范围闭合，可由后续文件引用。
+
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/TrustedRealmBO.java`
 
 - Purpose: 关闭 `TrustedRealmBO` 在主Spec中的字段/消费依赖。
 - Symbols: `TrustedRealmBO`。
@@ -3043,7 +3095,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 4 的focus测试对 `TrustedRealmBO` 的字段、装配、负例及不泄密断言。
 - After this file: `TrustedRealmBO` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/RealmTypeEnum.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/RealmTypeEnum.java`
 
 - Purpose: 关闭 `RealmTypeEnum` 在主Spec中的字段/消费依赖。
 - Symbols: `RealmTypeEnum`。
@@ -3067,7 +3119,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 4 的focus测试对 `RealmTypeEnum` 的字段、装配、负例及不泄密断言。
 - After this file: `RealmTypeEnum` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/OAuthClientPurposeEnum.java`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/OAuthClientPurposeEnum.java`
 
 - Purpose: 关闭 `OAuthClientPurposeEnum` 在主Spec中的字段/消费依赖。
 - Symbols: `OAuthClientPurposeEnum`。
@@ -3091,7 +3143,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 4 的focus测试对 `OAuthClientPurposeEnum` 的字段、装配、负例及不泄密断言。
 - After this file: `OAuthClientPurposeEnum` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`
 
 - Purpose: EgonModel承载本表完整列。
 - Symbols: `OAuthRealmPO`。
@@ -3115,7 +3167,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmPO 的正例与 UNIQUE/NULL/tenant违反时映射typed conflict；不可向HTTP返回PO 负例。
 - After this file: OAuthRealmPO 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`
+#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`
 
 - Purpose: Service计算与PO分界。
 - Symbols: `OAuthRealmBO`。
@@ -3139,7 +3191,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmBO 的正例与 missing/invalid enum, scope or date rejected before Mapper 负例。
 - After this file: OAuthRealmBO 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmRepository.java`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmRepository.java`
 
 - Purpose: Service-facing typed contract。
 - Symbols: `OAuthRealmRepository`。
@@ -3163,7 +3215,31 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmRepository 的正例与 0 affected row → typed conflict; no bypass tenant 负例。
 - After this file: OAuthRealmRepository 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthClientPO.java`
+#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthStringListJsonbTypeHandler.java`
+
+- Purpose: 为oauth_client三个JSONB文本数组提供强类型读写处理器。
+- Symbols: `OAuthStringListJsonbTypeHandler extends BaseTypeHandler<List<String>>`。
+- Repository evidence: EVD-119确认object handler不适用于JSON数组；PostgreSQL JSONB数组列已有真实DDL。
+- Dependencies and consumers: Step 2的oauth_client.redirect_uris/resource_uris/allowed_scopes列；由OAuthClientPO逐列声明使用。
+- Why now: Handler必须先于OAuthClientPO声明，使其MP/MyBatis映射只能使用强类型数组。
+- Contract/signature changes: List<String> encode/decode；非空项须非blank且trim稳定；JDBC使用Types.OTHER。
+- Input/output and state mapping: Java List<String> → JSON文本数组 → PostgreSQL jsonb；读取返回不可变List。
+- Error and edge behavior: JSON损坏、非数组、非字符串项或非法值转为携带稳定错误码的SQLException；不回退到Object/VARCHAR。
+- Standards impact: MC-REUSE-001, MC-JSON-001, MC-TEST-001。
+- Literal rule enforcement: Rule 2, Rule 5, Rule 10, Rule 11；复用MyBatis/Jackson与当前数据库合同，不新增依赖或泛型逃逸。
+- Implementation pseudocode:
+
+```java
+INPUT -> non-null List<String> with trimmed nonblank elements;
+FLOW -> ObjectMapper serializes as a JSON array; PreparedStatement.setObject(index, json, Types.OTHER); read all result variants and require a textual JSON array;
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> malformed JSON, scalar/object root, non-text array item or invalid string raises SQLException;
+RESULT -> typed immutable List<String> round-trips through PostgreSQL JSONB semantics.
+```
+
+- Verification contribution: OAuthRealmPersistenceContractTest verifies Types.OTHER, array round-trip and malformed/non-text rejection.
+- After this file: OAuthClientPO can bind all three JSONB arrays without raw Object handling.
+
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthClientPO.java`
 
 - Purpose: EgonModel承载本表完整列。
 - Symbols: `OAuthClientPO`。
@@ -3187,7 +3263,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthClientPO 的正例与 UNIQUE/NULL/tenant违反时映射typed conflict；不可向HTTP返回PO 负例。
 - After this file: OAuthClientPO 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java`
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java`
 
 - Purpose: Service计算与PO分界。
 - Symbols: `OAuthClientBO`。
@@ -3211,7 +3287,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthClientBO 的正例与 missing/invalid enum, scope or date rejected before Mapper 负例。
 - After this file: OAuthClientBO 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java`
+#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java`
 
 - Purpose: Service-facing typed contract。
 - Symbols: `OAuthClientRepository`。
@@ -3235,7 +3311,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthClientRepository 的正例与 0 affected row → typed conflict; no bypass tenant 负例。
 - After this file: OAuthClientRepository 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java`
+#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java`
 
 - Purpose: RED证明这组映射/查询/跨租户错误。
 - Symbols: `OAuthRealmPersistenceContractTest`。
@@ -3251,7 +3327,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> fixed tenant=1001/1002; timestamps Instant/UTC; SQL actual node tianquan_oauth。
-FLOW -> @Test for OAuthRealm/OAuthClient: assert same external client/resource key in different trusted tenants does not cross; query includes tenant and deleted_at IS NULL; concurrent expectedVersion loser fails; secret/ciphertext absent from VO
+FLOW -> parse both XML mappers with MyBatis XMLMapperBuilder and assert tenant/active/expectedVersion predicates; assert BaseConverter<PO,BO> generated round-trips; verify List<String> handler binds Types.OTHER and rejects malformed/non-text arrays; verify TrustedRealmBO storage partition and actor MDC restore after success/failure; matching expectedVersion with lower trustVersion or credentialVersion fails before update; keep fixed tenant=1001/1002 cross-tenant reads isolated and secret/ciphertext absent from VO
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no implementation Bean/Mapper yet → focused contract RED，不能因fixture fail。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -3259,7 +3335,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmPersistenceContractTest 的正例与 no implementation Bean/Mapper yet → focused contract RED，不能因fixture fail 负例。
 - After this file: OAuthRealmPersistenceContractTest 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthRealmConverter.java`
+#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthRealmConverter.java`
 
 - Purpose: PO↔BO双向MapStruct转换。
 - Symbols: `OAuthRealmConverter`。
@@ -3275,7 +3351,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> OAuthRealmPO business fields from §11 → OAuthRealmBO; unknown enum拒绝，null按列约束。
-FLOW -> @Mapper(componentModel="spring") interface OAuthRealmConverter extends BaseConverter<OAuthRealmBO,OAuthRealmPO>; @Mapping inherited tenant/audit fill ignored on insert; enum code explicit; secret excluded from toString/VO; mapping date Instant/UTC
+FLOW -> @Mapper(componentModel="spring") interface OAuthRealmConverter extends BaseConverter<OAuthRealmPO,OAuthRealmBO>; @Mapping inherited tenant/audit fill ignored on insert; enum code explicit; secret excluded from toString/VO; mapping date Instant/UTC
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> generated implementation/constructor must compile; no BeanUtils/json copy。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -3283,7 +3359,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmConverter 的正例与 generated implementation/constructor must compile; no BeanUtils/json copy 负例。
 - After this file: OAuthRealmConverter 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthRealmMapper.java`
+#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthRealmMapper.java`
 
 - Purpose: MP Mapper具名SQL接口。
 - Symbols: `OAuthRealmMapper`。
@@ -3307,7 +3383,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmMapper 的正例与 no LambdaQueryChain/Wrapper; missing tenant failclosed 负例。
 - After this file: OAuthRealmMapper 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthRealmMapper.xml`
+#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthRealmMapper.xml`
 
 - Purpose: 具名PostgreSQL谓词/锁。
 - Symbols: `OAuthRealmMapper SQL`。
@@ -3331,7 +3407,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmMapper SQL 的正例与 tenant range forbidden, 0 rows conflict, no cross-group write 负例。
 - After this file: OAuthRealmMapper SQL 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthRealmRepositoryImpl.java`
+#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthRealmRepositoryImpl.java`
 
 - Purpose: MP repository ACL。
 - Symbols: `OAuthRealmRepositoryImpl`。
@@ -3355,7 +3431,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthRealmRepositoryImpl 的正例与 UnsupportedOperationException for generic unscoped query; errors mapped without sensitive values 负例。
 - After this file: OAuthRealmRepositoryImpl 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java`
+#### File 18 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java`
 
 - Purpose: PO↔BO双向MapStruct转换。
 - Symbols: `OAuthClientConverter`。
@@ -3371,7 +3447,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> OAuthClientPO business fields from §11 → OAuthClientBO; unknown enum拒绝，null按列约束。
-FLOW -> @Mapper(componentModel="spring") interface OAuthClientConverter extends BaseConverter<OAuthClientBO,OAuthClientPO>; @Mapping inherited tenant/audit fill ignored on insert; enum code explicit; secret excluded from toString/VO; mapping date Instant/UTC
+FLOW -> @Mapper(componentModel="spring") interface OAuthClientConverter extends BaseConverter<OAuthClientPO,OAuthClientBO>; @Mapping inherited tenant/audit fill ignored on insert; enum code explicit; secret excluded from toString/VO; mapping date Instant/UTC
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> generated implementation/constructor must compile; no BeanUtils/json copy。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -3379,7 +3455,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthClientConverter 的正例与 generated implementation/constructor must compile; no BeanUtils/json copy 负例。
 - After this file: OAuthClientConverter 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthClientMapper.java`
+#### File 19 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthClientMapper.java`
 
 - Purpose: MP Mapper具名SQL接口。
 - Symbols: `OAuthClientMapper`。
@@ -3403,7 +3479,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthClientMapper 的正例与 no LambdaQueryChain/Wrapper; missing tenant failclosed 负例。
 - After this file: OAuthClientMapper 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthClientMapper.xml`
+#### File 20 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthClientMapper.xml`
 
 - Purpose: 具名PostgreSQL谓词/锁。
 - Symbols: `OAuthClientMapper SQL`。
@@ -3427,7 +3503,7 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthRealmPersistenceContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 OAuthClientMapper SQL 的正例与 tenant range forbidden, 0 rows conflict, no cross-group write 负例。
 - After this file: OAuthClientMapper SQL 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 18 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthClientRepositoryImpl.java`
+#### File 21 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthClientRepositoryImpl.java`
 
 - Purpose: MP repository ACL。
 - Symbols: `OAuthClientRepositoryImpl`。
@@ -3457,9 +3533,9 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Failure returns to: Step 2 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
 - Completion criteria: 这组认证事实的Repository/Mapper能按同realm/tenant/active/version读写；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
 - Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/TrustedRealmBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/RealmTypeEnum.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/OAuthClientPurposeEnum.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthClientPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthRealmConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthRealmMapper.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthRealmMapper.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthRealmRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthClientMapper.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthClientMapper.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthClientRepositoryImpl.java`。
-- Commit: `feat(shoubing): persist oauthrealm/oauthclient state`。
 
+- Commit paths: `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/TrustedRealmBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/RealmTypeEnum.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/enums/OAuthClientPurposeEnum.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthRealmPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthRealmBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthStringListJsonbTypeHandler.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/po/OAuthClientPO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthClientBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthRealmPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthRealmConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthRealmMapper.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthRealmMapper.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthRealmRepositoryImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthClientConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/OAuthClientMapper.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/OAuthClientMapper.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/impl/OAuthClientRepositoryImpl.java`
+- Commit: `feat(shoubing): persist oauthrealm/oauthclient state`。
 ### Step 5 — 持久化资源目录与最小授权
 
 - Requirements: REQ-005, REQ-008, REQ-016, REQ-017
@@ -10268,12 +10344,12 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | REQ-020 | 修订Spec §4/7–16 | Step 3, Step 7, Step 11, Step 17, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
 | REQ-021 | 修订Spec §4/7–16 | Step 2, Step 7, Step 11, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
 | REQ-022 | 修订Spec §4/7–16 | Step 2, Step 17, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
-| REQ-023 | 修订Spec §4/7–16 | Step 2, Step 3, Step 17 | §5对应全部路径 | TEST-107/108与相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
+| REQ-023 | 修订Spec §4/7–16 | Step 2, Step 3, Step 4, Step 17 | §5对应全部路径 | TEST-107/108/112/113/114/115与相应Step命令 | JSONB array binding、PO→BO转换方向、trusted partition scope恢复、版本单调性及受控运行证据 |
 | REQ-023-family | 修订Spec §4/EVD-112/DEC-109 | Step 2 | `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/test/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestFamilyTest.java`; `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/src/main/java/top/egon/cola/component/common/mybatis/ddl/EgonColaDdlManifestBO.java`; Step 2 schema/manifest/profile paths | EgonColaDdlManifestFamilyTest RED/GREEN; combined Step 2 focused command | tianquan-oauth accepted; existing families retained; arbitrary rejected |
 | REQ-024 | 修订Spec §4/7–16 | Step 12, Step 14, Step 15, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
 | REQ-025 | 修订Spec §4/7–16 | Step 14, Step 15, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
 | REQ-026 | 修订Spec §4/7–16 | Step 10, Step 16, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
-| REQ-027 | 修订Spec §4/7–16 | Step 1, Step 6, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 字段/事务/兼容断言与受控运行证据 |
+| REQ-027 | 修订Spec §4/7–16 | Step 1, Step 4, Step 6, Step 18 | §5对应全部路径 | 修订TEST及相应Step命令 | 文档与当前代码一致；converter遵守BaseConverter<S,T>方向 |
 
 ## 11. Risks, Blockers, and User Decisions
 

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthClientMapper">
+    <resultMap id="OAuthClientPOResultMap" type="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.po.OAuthClientPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="clientId" column="client_id"/>
+        <result property="appId" column="app_id"/>
+        <result property="clientName" column="client_name"/>
+        <result property="clientType" column="client_type"/>
+        <result property="purpose" column="purpose"
+                typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+        <result property="status" column="status"/>
+        <result property="secretHash" column="secret_hash"/>
+        <result property="secretHint" column="secret_hint"/>
+        <result property="credentialVersion" column="credential_version"/>
+        <result property="redirectUris" column="redirect_uris"
+                typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler"/>
+        <result property="resourceUris" column="resource_uris"
+                typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler"/>
+        <result property="allowedScopes" column="allowed_scopes"
+                typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler"/>
+        <result property="accessTtlSeconds" column="access_ttl_seconds"/>
+        <result property="refreshTtlSeconds" column="refresh_ttl_seconds"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+        client_id, app_id, client_name, client_type, purpose, status, secret_hash, secret_hint,
+        credential_version, redirect_uris, resource_uris, allowed_scopes, access_ttl_seconds,
+        refresh_ttl_seconds
+    </sql>
+
+    <select id="selectByClientId" resultMap="OAuthClientPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_client
+        WHERE tenant_id = #{tenantId} AND client_id = #{clientId} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectByClientIdForUpdate" resultMap="OAuthClientPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_client
+        WHERE tenant_id = #{tenantId} AND client_id = #{clientId} AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <select id="selectDirectory" resultMap="OAuthClientPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM oauth_client
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+        ORDER BY client_id ASC
+    </select>
+
+    <update id="updateExpectedVersion">
+        UPDATE oauth_client
+        SET client_name = #{po.clientName},
+            status = #{po.status},
+            secret_hash = #{po.secretHash},
+            secret_hint = #{po.secretHint},
+            credential_version = #{po.credentialVersion},
+            redirect_uris = #{po.redirectUris, typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler},
+            resource_uris = #{po.resourceUris, typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler},
+            allowed_scopes = #{po.allowedScopes, typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler},
+            access_ttl_seconds = #{po.accessTtlSeconds},
+            refresh_ttl_seconds = #{po.refreshTtlSeconds},
+            version = #{po.version},
+            update_user_id = #{po.updateUserId},
+            update_time = #{po.updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{po.id}
+          AND client_id = #{po.clientId}
+          AND version = #{expectedVersion}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE oauth_client
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+            version = version + 1,
+            update_user_id = #{et.updateUserId},
+            update_time = #{et.updateTime}
+        WHERE tenant_id = #{et.tenantId} AND id = #{et.id}
+          AND version = #{et.version} AND deleted_at IS NULL
+    </update>
+</mapper>
