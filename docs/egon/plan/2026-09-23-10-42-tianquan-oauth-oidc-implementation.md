@@ -77,7 +77,7 @@
 | REQ-022 | 修订§4 | 历史version/time/ID显式导入；全局目录停写切换与可恢复对账 | TEST-103导入fixture；TEST-108只读legacy source route | Step 2; Step 17; Step 18 |
 | REQ-023 | 修订§4 | 当前MP校验/DDL/factory/技术StateMachine及family allowlist真实API | TEST-107 family正向/未知拒绝、TEST-108 NATIVE exact route set、TEST-112–115 Step 4 typed JSONB/converter/realm/version gates；TEST-113 PO→BO converters and JSONB array reuse through Step 6 | Step 2; Step 3; Step 4; Step 5; Step 6; Step 17 |
 | REQ-024 | 修订§4 | Tianshu PLATFORM注册及HMAC/registry/AI意图header均保留 | 修订TEST-104及其验收条件 | Step 12; Step 14; Step 15; Step 18 |
-| REQ-025 | 修订§4 | SCG/Yuheng真实Netty数据面与SSE/MCP/LLM行为不退化 | 修订TEST-105及其验收条件 | Step 14; Step 15; Step 18 |
+| REQ-025 | 修订§4/EVD-151 | SCG/Yuheng真实Netty数据面与SSE/MCP/LLM行为不退化，route property使用当前GatewayProperties.PREFIX | TEST-105/143及其验收条件 | Step 14; Step 15; Step 18 |
 | REQ-026 | 修订§4/DEC-123 | API-045同realm有界只读Grant列表和realm UI缓存/文档合同；SQL限读65行供overflow检测 | TEST-106/122及相应Step命令 | Step 10; Step 16; Step 18 |
 | REQ-027 | 修订§4 | 文档基线、共享契约模块依赖与最新源码一致 | 修订TEST-101及其验收条件；所有新persistence converters遵守BaseConverter<S,T>方向 | Step 1; Step 4; Step 5; Step 6; Step 18 |
 | REQ-028 | 修订§4/8/10–11/15 | authorization/token payload encryption uses mounted KEK and realm-bound AES-GCM | TEST-117 envelope, AAD, schema and profile-key negative tests | Step 6; Step 7 |
@@ -88,6 +88,13 @@
 | REQ-033 | 修订§4/DEC-125 | Client redirects require canonical HTTPS in all environments except an exact IPv4 loopback HTTP callback while `local` profile is active; direct service entry must enforce the same boundary | TEST-124; no browser | Step 10 |
 | REQ-035 | 修订Spec EVD-131/132/DEC-127/128及main Spec JOB-002 | 审计/撤销只通过tenant/id/version守卫软删；审计180d；撤销过期+30s、APPLIED且Outbox活动backlog为零；软删记录提供durable resume state；迟到审计Stream不复活旧行 | TEST-126与Step11 focused suite；无真实PG | Step 11 |
 | REQ-034 | 修订§4/DEC-126/129/EVD-130/133 | SAS撤销、Client/identity世代、初始化缺失generation、Outbox审计与安全Redis配置一致 | TEST-125及Step11 focused suite；真实PG/Redis由用户运行 | Step 11 |
+| REQ-036 | 修订Spec EVD-147/148/150及DEC-143/144/146 | 加密BFF session和issuer/tenant/client/subject分区 | TEST-140/141；真实Redis由用户运行 | Step 14 |
+| REQ-037 | 修订Spec EVD-149/DEC-145和API-017 | authenticated BFF session+CSRF、durable multi-client logout intent、same-issuer refresh-token revoke与consumer-group recovery | TEST-142；真实Redis/AS由用户运行 | Step 14 |
+| REQ-038 | 修订Spec EVD-150/DEC-146 | 三个真实BFF controller paths有准确WebFlux OAS annotation/group合同；opt-in默认关闭、启用仍要求scope | TEST-141；不打开浏览器 | Step 14 |
+| REQ-039 | 修订Spec EVD-151/DEC-147 | 使用GatewayProperties.PREFIX绑定Edge static routes并保留TokenRelay范围 | TEST-143；不启动Gateway | Step 14 |
+| REQ-040 | 修订Spec EVD-152/DEC-148 | Edge使用受管Lombok compile API、显式Bean名、构造器注入和Qualifier copy规则 | TEST-144；Lombok仅provided | Step 14 |
+| REQ-041 | 修订Spec EVD-153/DEC-149 | TokenRelay使用分布式同身份刷新锁，旋转授权客户端密文落库后再释放 | TEST-145；真实Redis/AS由用户运行 | Step 14 |
+| REQ-042 | 修订Spec EVD-154/DEC-150 | API-015验证被持有token本身及当前issuer/tenant/subject/audience/共享安全世代 | TEST-146；真实Redis/AS由用户运行 | Step 14 |
 
 ## 4. Implementation Strategy and Dependency Order
 
@@ -116,7 +123,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | Step 11 | Step 10 | None，逐Step完成并提交 | 其他未完成Step写域 | 成功撤销后新鉴权拒绝；Redis故障503；审计持久可恢复。 |
 | Step 12 | Step 11 | None，逐Step完成并提交 | 其他未完成Step写域 | 所有受保护资源请求本地RS256后共享撤销检查，Servlet ThreadLocal/MDC最终清理。 |
 | Step 13 | Step 12 | None，逐Step完成并提交 | 其他未完成Step写域 | 出站调用按issuer/client/credentialVersion/aud/tenant/scope隔离本地与授权store；有界临期重获及具名WebClient安全重试；无client_credentials RT。 |
-| Step 14 | Step 13 | None，逐Step完成并提交 | 其他未完成Step写域 | 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer。 |
+| Step 14 | Step 13 | None，逐Step完成并提交 | 其他未完成Step写域 | encrypted issuer/tenant/client/subject session state; API-015 verifies the exact held token and current shared security state; logout requires authenticated session+CSRF; multi-client durable logout; scope-protected opt-in OpenAPI group; pinned GatewayProperties route prefix; cross-instance refresh lock; existing biz/mcp routes retained. |
 | Step 15 | Step 14 | None，逐Step完成并提交 | 其他未完成Step写域 | 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入。 |
 | Step 16 | Step 15 | None，逐Step完成并提交 | 其他未完成Step写域 | Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token。 |
 | Step 17 | Step 15 | None，逐Step完成并提交 | 其他未完成Step写域 | 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收。 |
@@ -159,7 +166,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | 闭合撤销、审计、密钥轮换 | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-020, REQ-021 | Required — 初始无共享状态/恢复handler，RED由新用例而非容器启动失败；单元先GREEN，真实Redis/PG在用户运行门禁。 | Step 10 | 成功撤销后新鉴权拒绝；Redis故障503；审计持久可恢复。 | Step 12 | Step 11 |
 | 在资源服务器建立多issuer本地验签和租户上下文 | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024 | Required — 新多issuer/tenant/Redis故障测试RED；创建resolver/Bridge之后GREEN。 | Step 11 | 所有受保护资源请求本地RS256后共享撤销检查，Servlet ThreadLocal/MDC最终清理。 | Step 13 | Step 12 |
 | 改造机器客户端缓存并装配WebClient | REQ-005, REQ-009, REQ-011, REQ-016 | Required — 当前manager/cache无法按可信issuer/client/version完整分区且没有安全WebClient过滤器，先RED后GREEN。 | Step 12 | 双层缓存完整隔离、bounded renewal与同origin Bearer filter完成，无client_credentials RT和不安全重放。 | Step 14 | Step 13 |
-| 建立SCG OAuth2登录和服务端会话 | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025 | Required — 尚无SCG登录/CSRF/TokenRelay，WebTestClient RED；实现具名链后GREEN。 | Step 13 | 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer。 | Step 15 | Step 14 |
+| 建立SCG OAuth2登录和服务端会话 | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042 | Required — 先确认session encryption/durable authenticated multi-client logout+CSRF/OpenAPI/Gateway route-binding/refresh single-flight/exact held-token session-state的行为RED；按24个有序文件GREEN。 | Step 13 | encrypted issuer-bound session; API-015 current exact token validity; logout requires BFF session+CSRF; scope-protected opt-in OpenAPI; distributed refresh lock; durable logout intents; correct static routes and compile-time Lombok wiring. | Step 15 | Step 14 |
 | 保留玉衡、鉴神与天枢准入链 | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025 | Required — old cookie/provider/PLATFORM acceptance routes fail new fixturesRED，再接入新principal和范围校验GREEN。 | Step 14 | 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入。 | Step 16 | Step 15 |
 | 迁移共享认证客户端与五个前端消费者 | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026 | Required — gatewayAuthClient旧密码POST与AT/RT Cookie契约使新BFF test RED；共享客户端与各消费者更新后GREEN。 | Step 15 | Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token。 | Step 17 | Step 16 |
 | 提供受控数据导入、切流及本地验证入口 | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023 | Required — 迁移测试先对旧JPA/旧登录路径RED；新增Service/脚本/运行手册后静态与单元GREEN，真实导入由用户操作者运行。 | Step 15 | 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收。 | Step 18 | Step 17 |
@@ -498,14 +505,25 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports  # Step 13
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterAutoConfiguration.java  # Step 13
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterAutoConfigurationTest.java  # Step 13
-MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 13
-MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 13
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 13,14
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 13,14
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/pom.xml  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeSessionResult.java  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeCsrfResult.java  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeLogoutFailureResult.java  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java  # Step 14
-CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientServiceImpl.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeTokenCipher.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisSerializer.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisConfiguration.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientRepository.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSingleFlightAuthorizedClientManager.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutRevocationIntent.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutIntentStore.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/RedissonEdgeLogoutIntentStore.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeOAuthTokenRevocationClient.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutService.java  # Step 14
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeLogoutRevocationWorker.java  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java  # Step 14
 CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java  # Step 14
@@ -890,17 +908,30 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterAutoConfigurationTest.java` | current manager/facade context contract | named facade and conditional named WebClient bean | optional client dependencies do not break non-client contexts. | Step 13 | REQ-009,REQ-011 | IdpStarterAutoConfigurationTest |
 | MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | Review Spec; EVD-145/146, DEC-141/142, TEST-138/139 | exact registered identity derivation, cache ownership and safe WebClient filter decisions | current-code corrections remain Review-only, no new endpoint/dependency. | Step 13 | REQ-005,REQ-009,REQ-011,REQ-016 | strict Spec validation |
 | MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | current 4-file Step13 block lacks identity resolution, autoconfiguration and exact safe-retry gate | nine sequential file blocks and exact commit boundary | executable Step matches approved §7.3.3 behavior and current Starter module. | Step 13 | REQ-005,REQ-009,REQ-011,REQ-016 | strict Plan/path parity |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | RED新edge尚无oauth2Login/BFF。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeSessionResult.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `EdgeSessionResult` 在主Spec中的字段/消费依赖。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeCsrfResult.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `EdgeCsrfResult` 在主Spec中的字段/消费依赖。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeLogoutFailureResult.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `EdgeLogoutFailureResult` 在主Spec中的字段/消费依赖。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | typed validated origin/upstream/return paths。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 会话绑定issuer/tenant/client的AuthorizedClient。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 清除伪造身份头仅写非权威追踪头。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | BFF会话REST协议。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | code+S256+strict BFF session。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 全配置base结构。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 本地HTTPS测试值。 | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/pom.xml` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | Boot Redis driver, provided managed Lombok, and existing Yuheng OpenAPI WebFlux adapter | Boot Redis driver, provided managed Lombok, and existing Yuheng OpenAPI WebFlux adapter; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | BFF session, encryption, logout and OpenAPI RED/GREEN contract | BFF session, encryption, logout and OpenAPI RED/GREEN contract; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeSessionResult.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | API-015 token-free identity view | API-015 token-free identity view; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeCsrfResult.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | API-016 no-store CSRF view | API-016 no-store CSRF view; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeLogoutFailureResult.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | API-017 PENDING/UNKNOWN failure view | API-017 PENDING/UNKNOWN failure view; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | validated BFF endpoint, key, session and queue configuration | validated BFF endpoint, key, session and queue configuration; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeTokenCipher.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | AES-256-GCM session and intent cipher | AES-256-GCM session and intent cipher; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisSerializer.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | encrypted Spring Session Redis serializer | encrypted Spring Session Redis serializer; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisConfiguration.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | Lettuce connection factory and named session serializer | Lettuce connection factory and named session serializer; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientRepository.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | issuer/tenant/client/subject keyed ServerOAuth2AuthorizedClientRepository | issuer/tenant/client/subject keyed ServerOAuth2AuthorizedClientRepository; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSingleFlightAuthorizedClientManager.java` | Pinned Gateway TokenRelay reactive manager plus accepted single-use RT rotation contract; EVD-153 | Decorator with bounded Redisson reactive lock over complete session/client identity | Concurrent refreshes serialize and persist encrypted rotated state before release. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest TEST-145 and exact Edge reactor compile |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutRevocationIntent.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | redacted encrypted-intent payload | redacted encrypted-intent payload; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutIntentStore.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | durable bounded Stream port | durable bounded Stream port; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/RedissonEdgeLogoutIntentStore.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | atomic enqueue and consumer-group retry adapter | atomic enqueue and consumer-group retry adapter; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeOAuthTokenRevocationClient.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | same-issuer client_secret_basic revocation caller | same-issuer client_secret_basic revocation caller; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutService.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | persist-before-invalidate logout orchestration | persist-before-invalidate logout orchestration; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeLogoutRevocationWorker.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | scheduled stale-claim retries | scheduled stale-claim retries; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | spoof-header removal preserving Tianshu tenant intent | spoof-header removal preserving Tianshu tenant intent; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | real API-015/016/017 controller | real API-015/016/017 controller; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | S256 login, session fixation, CSRF and no-redirect API chains | S256 login, session fixation, CSRF and no-redirect API chains; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | required production Edge profile | required production Edge profile; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | matching local profile schema | matching local profile schema; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | source evidence and REQ/DEC/TEST alignment | source evidence and REQ/DEC/TEST alignment; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
+| MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | Current Edge empty-module or pinned dependency evidence; effective Review Spec EVD-147–154 | exact Step 14 executable file boundary | exact Step 14 executable file boundary; exact paths and exposed contracts remain bounded to Step 14. | Step 14 | REQ-003,REQ-004,REQ-006,REQ-010,REQ-011,REQ-012,REQ-024,REQ-025,REQ-036,REQ-037,REQ-038,REQ-039,REQ-040,REQ-041,REQ-042 | EdgeLoginContractTest and strict Spec/Plan validation |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | RED旧网关仍自动刷新USER Cookie。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 玉衡身份Provider使用Starter多issuer验证。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 新入口交SCG。 | Step 15 | REQ-001,REQ-005,REQ-006,REQ-007,REQ-010,REQ-016,REQ-024,REQ-025 | 对应Step精确命令/原回归 |
@@ -10598,290 +10629,626 @@ FAIL -> any undeclared path or validator error blocks staging.
 
 ### Step 14 — 建立SCG OAuth2登录和服务端会话
 
-- Requirements: REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025
+- Requirements: REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042
 - Dependencies: Step 13
-- Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在stateNonceTenantHeadersSession所列新行为。
-- Observable outcome: 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer。
-- End state: 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer；后续Step的Consumer尚未切流，不声明完整生产验收。
-- Test-first gate: Required — 尚无SCG登录/CSRF/TokenRelay，WebTestClient RED；实现具名链后GREEN。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
+- Baseline state: Edge模块只有POM、lombok.config与GatewayEdgeApplication；API-015未读取共享撤销状态；API-017虽要求authenticated session+CSRF与持久退出意图，但原Step缺store/worker，当前链初稿曾permit anonymous logout；OpenAPI route group未绑定；Spring Session Redis缺当前版本Lettuce driver及密文serializer，Refresh Token Relay没有跨实例single-flight。
+- Observable outcome: 浏览器只有opaque Secure/HttpOnly/SameSite=Lax cookie；issuer/tenant/client/subject隔离的AuthorizedClient密文存储与OIDC session密文均server-side；TokenRelay refresh在同binding/client下跨实例串行，提交旋转token后才释放lock；API-015验证held JWT token/issuer/subject/audience并检查共享security snapshot，不触发refresh；logout只允许authenticated OAuth2 session+CSRF，原子持久化session全部密文intent后再清Session，所有远端2xx才204；依赖失败明确503/PENDING或503/UNKNOWN；`edge-bff` WebFlux OpenAPI group默认关闭，启用后由现有starter的scope chain保护。
+- End state: SCG标准code+S256登录、会话固定防护、CSRF与受控Token Relay就绪；refresh token rotation跨实例单飞；current session view反映与held token相同的已验证JWT及共享Redis世代状态；logout retry可跨实例和进程恢复；Yuheng biz/mcp动态路由、SSE/MCP/LLM取消/背压及管理端口边界保持原状。真实Redis/AS/TLS与浏览器验收留给用户运行。
+- Test-first gate: Required — POM wiring后先运行EdgeLoginContractTest；预期行为RED必须无编译/fixture/依赖错误，再按文件顺序实现。
+- Design choice: Framework ServerOAuth2AuthorizedClientRepository adapter binds the complete trusted issuer tuple to Spring WebSession; an encrypted Redis Stream adapter owns durable logout retries. AES-GCM protects Spring Session and pending tokens; the existing OAuth2 client and Security APIs remain the extension points.
+- Pattern rationale: 两个Adapter分别隔离Spring Security client repository、Spring Session serialization及Redisson Stream协议；算法与存储仅有一个受批准实现，增加Strategy/Factory层不会解决变化点。Lombok仅作为当前managed annotation API的provided依赖。
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/pom.xml`
 
-- Purpose: RED新edge尚无oauth2Login/BFF。
-- Symbols: `stateNonceTenantHeadersSession`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 本Step的编译前置/RED契约先锁定； RED新edge尚无oauth2Login/BFF在此位置后才可接消费者。
-- Contract/signature changes: stateNonceTenantHeadersSession；RED新edge尚无oauth2Login/BFF。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: synthetic issuer & issuer-bound registration。
-- Error and edge behavior: security chain lacks BFF behavior RED。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 11, Rule 2, Rule 4；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
-- 本轮修订的强制实现细节: 对齐当前消费者：只清理列举的伪造身份头，保留X-Egon-Tianshu-Tenant原意图值，缺/错header由当前DdcTenantContextFilter拒绝；验证后principal保持Rbac3UserDetails，identityTenant经DdcTenantRegistry映射storageTenant。PLATFORM注册aud/scope/source guard与RPC credentialId+signedTenantId HMAC同时成立，token不替代HMAC。Yuheng Netty数据面LLM/SSE/MCP保持原路由/取消/背压，管理Spring端口deny-all不变。
+- Purpose: Wire the WebFlux edge to the current Boot Redis driver, the existing Yuheng WebFlux OpenAPI adapter and the repository-managed compile-time Lombok API.
+- Symbols: `spring-boot-starter-data-redis`, `yuheng-starter-openapi-webflux`, and `lombok` with provided scope.
+- Repository evidence: Current Edge module contains no BFF implementation; API-015–017 are accepted contracts.
+- Dependencies and consumers: Depends only on File 1 test dependencies; every following Step 14 production file must satisfy this contract.
+- Why now: Test-first RED records the missing capability before implementation.
+- Contract/signature changes: No Lettuce/Jedis is reachable through Redisson's excluded transitive driver set; reuse managed Boot/Yuheng artifacts and `${lombok.version}` without version overrides; keep Lombok provided.
+- Input/output and state mapping: Synthetic issuer/client registration; temporary POSIX AES key file; mock WebSession, Redisson Stream and WebClient ExchangeFunction.
+- Error and edge behavior: Expected RED is a missing behavior assertion; a compile, dependency, fixture or environment failure is invalid evidence.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> synthetic issuer & issuer-bound registration。
-FLOW -> WebTestClient mock SAS authorize/token, hostile X-Tenant headers, wrong state/nonce/issuer, static routes to biz/mcp; assert no access_token in browser, no XHR302, 503 Redis down
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> security chain lacks BFF behavior RED。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Synthetic issuer/client registration; temporary POSIX AES key file; mock WebSession, Redisson Stream and WebClient ExchangeFunction.
+FLOW -> No Lettuce/Jedis is reachable through Redisson's excluded transitive driver set; reuse managed Boot and Yuheng artifacts without version overrides.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Expected RED is a missing behavior assertion; a compile, dependency, fixture or environment failure is invalid evidence.
+RESULT -> spring-boot-starter-data-redis and yuheng-starter-openapi-webflux; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 stateNonceTenantHeadersSession 的正例与 security chain lacks BFF behavior RED 负例。
-- After this file: stateNonceTenantHeadersSession 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: spring-boot-starter-data-redis and yuheng-starter-openapi-webflux is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeSessionResult.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`
 
-- Purpose: 关闭 `EdgeSessionResult` 在主Spec中的字段/消费依赖。
-- Symbols: `EdgeSessionResult`。
-- Repository evidence: 当前不存在；主Spec §9.2 API-015–017 命名此对象/字段；现有相邻业务包提供放置证据。
-- Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §9.2 API-015–017，不产生新HTTP路由。
-- Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: authenticated/tenantId/subject/displayName, no AT/RT; class Lombok/Builder, Jackson exact。
-- Input/output and state mapping: 精确字段由主Spec §9.2 API-015–017 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
-- Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
-- Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11；class按POJO语义命名，边界注解验证，跨层转换只用既有BaseConverter，Jackson和java.time字段明确。
+- Purpose: Lock down missing Edge behavior before implementation with reflection-based contracts plus an in-memory WebTestClient bound to the actual security chains; no runtime server is started.
+- Symbols: `EdgeLoginContractTest`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Use WebTestClient over real in-memory SecurityWebFilterChains, parsed base/local configuration, OpenAPI annotation inspection, temporary owner-only KEK files and mocked Redisson/WebClient boundaries; no Redis, AS, browser or runtime service.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> 仅接受主Spec §9.2 API-015–017 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> authenticated/tenantId/subject/displayName, no AT/RT; class Lombok/Builder, Jackson exact。
-OUTPUT -> EdgeSessionResult 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
-FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Use WebTestClient/configuration fakes, temporary owner-only KEK files and mocked Redisson/WebClient boundaries; no Redis, AS, browser or runtime service.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> EdgeLoginContractTest; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: Step 14 的focus测试对 `EdgeSessionResult` 的字段、装配、负例及不泄密断言。
-- After this file: `EdgeSessionResult` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: EdgeLoginContractTest is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeCsrfResult.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeSessionResult.java`
 
-- Purpose: 关闭 `EdgeCsrfResult` 在主Spec中的字段/消费依赖。
-- Symbols: `EdgeCsrfResult`。
-- Repository evidence: 当前不存在；主Spec §9.2 API-015–017 命名此对象/字段；现有相邻业务包提供放置证据。
-- Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §9.2 API-015–017，不产生新HTTP路由。
-- Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: headerName=X-CSRF-TOKEN/token; sensitive toString exclusion, no-store。
-- Input/output and state mapping: 精确字段由主Spec §9.2 API-015–017 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
-- Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
-- Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11；class按POJO语义命名，边界注解验证，跨层转换只用既有BaseConverter，Jackson和java.time字段明确。
+- Purpose: Expose only the authenticated session identity and selected trusted tenant.
+- Symbols: `EdgeSessionResult(authenticated, tenantId, subject, displayName)`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Tenant comes from the verified issuer-bound registration; no token, registration secret or authorization state is serialized.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> 仅接受主Spec §9.2 API-015–017 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> headerName=X-CSRF-TOKEN/token; sensitive toString exclusion, no-store。
-OUTPUT -> EdgeCsrfResult 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
-FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Tenant comes from the verified issuer-bound registration; no token, registration secret or authorization state is serialized.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> EdgeSessionResult(authenticated, tenantId, subject, displayName); expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: Step 14 的focus测试对 `EdgeCsrfResult` 的字段、装配、负例及不泄密断言。
-- After this file: `EdgeCsrfResult` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: EdgeSessionResult(authenticated, tenantId, subject, displayName) is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeLogoutFailureResult.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeCsrfResult.java`
 
-- Purpose: 关闭 `EdgeLogoutFailureResult` 在主Spec中的字段/消费依赖。
-- Symbols: `EdgeLogoutFailureResult`。
-- Repository evidence: 当前不存在；主Spec §9.2 API-015–017 命名此对象/字段；现有相邻业务包提供放置证据。
-- Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §9.2 API-015–017，不产生新HTTP路由。
-- Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: code/message/localLoggedOut/remoteState PENDING/UNKNOWN, only 503 JSON, 204 has no body。
-- Input/output and state mapping: 精确字段由主Spec §9.2 API-015–017 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
-- Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
-- Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11；class按POJO语义命名，边界注解验证，跨层转换只用既有BaseConverter，Jackson和java.time字段明确。
+- Purpose: Return the current CSRF header name and token without caching.
+- Symbols: `EdgeCsrfResult`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: No session/OAuth token is included; controller applies no-store.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> 仅接受主Spec §9.2 API-015–017 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> code/message/localLoggedOut/remoteState PENDING/UNKNOWN, only 503 JSON, 204 has no body。
-OUTPUT -> EdgeLogoutFailureResult 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
-FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> No session/OAuth token is included; controller applies no-store.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> EdgeCsrfResult; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: Step 14 的focus测试对 `EdgeLogoutFailureResult` 的字段、装配、负例及不泄密断言。
-- After this file: `EdgeLogoutFailureResult` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: EdgeCsrfResult is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeLogoutFailureResult.java`
 
-- Purpose: typed validated origin/upstream/return paths。
-- Symbols: `edgeOAuthProperties`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； typed validated origin/upstream/return paths在此位置后才可接消费者。
-- Contract/signature changes: edgeOAuthProperties；typed validated origin/upstream/return paths。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: base/local same key tree, no hardcoded prod host。
-- Error and edge behavior: invalid TLS/origin refuses app startup。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 7, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Represent the documented logout failure state without returning token material.
+- Symbols: `EdgeLogoutFailureResult(code, message, localLoggedOut, remoteState)`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: PENDING means a durable intent exists; UNKNOWN means durable persistence failed; both report localLoggedOut=true.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> base/local same key tree, no hardcoded prod host。
-FLOW -> @ConfigurationProperties("egon.yuheng.edge") @Validated class Lombok; HTTPS URIs, distinct biz/mcp/AS, session absolute8h, exact return path allowlist; deny unknown key
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> invalid TLS/origin refuses app startup。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> PENDING means a durable intent exists; UNKNOWN means durable persistence failed; both report localLoggedOut=true.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> EdgeLogoutFailureResult(code, message, localLoggedOut, remoteState); expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 edgeOAuthProperties 的正例与 invalid TLS/origin refuses app startup 负例。
-- After this file: edgeOAuthProperties 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: EdgeLogoutFailureResult(code, message, localLoggedOut, remoteState) is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientServiceImpl.java`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`
 
-- Purpose: 会话绑定issuer/tenant/client的AuthorizedClient。
-- Symbols: `edgeAuthorizedClientService`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 会话绑定issuer/tenant/client的AuthorizedClient在此位置后才可接消费者。
-- Contract/signature changes: edgeAuthorizedClientService；会话绑定issuer/tenant/client的AuthorizedClient。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: Cookie only session ID; no default in-memory TokenRelay repository。
-- Error and edge behavior: missing/conflicting realm→401; failed refresh no old RT reuse。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Bind required issuer/upstream/session/key/logout properties and validate their security invariants.
+- Symbols: `EdgeOAuthProperties`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Validate pathless HTTPS origins, loopback-only local Redis, restricted AES key id and mounted key reference, return-path boundaries, bounded logout/refresh wait settings and queue capacity; never bind plaintext token secrets.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> Cookie only session ID; no default in-memory TokenRelay repository。
-FLOW -> @Service("edgeAuthorizedClientService") @Slf4j @RequiredArgsConstructor; final @Qualifier manager/sessionRepo/properties; save refresh token server-side encrypted Redis Session, CAS rotation, new tenant triggers auth, no browser token; 30m idle/8h absolute
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missing/conflicting realm→401; failed refresh no old RT reuse。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Validate pathless HTTPS origins, loopback-only local Redis, restricted AES key id and mounted key reference, return-path boundaries, bounded logout/refresh wait settings and queue capacity; never bind plaintext token secrets.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> EdgeOAuthProperties; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 edgeAuthorizedClientService 的正例与 missing/conflicting realm→401; failed refresh no old RT reuse 负例。
-- After this file: edgeAuthorizedClientService 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: EdgeOAuthProperties is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`
+#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeTokenCipher.java`
 
-- Purpose: 清除伪造身份头仅写非权威追踪头。
-- Symbols: `trustedIdentityHeaderFilter`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 清除伪造身份头仅写非权威追踪头在此位置后才可接消费者。
-- Contract/signature changes: trustedIdentityHeaderFilter；清除伪造身份头仅写非权威追踪头。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: Reactor Context only，no ThreadLocal across event-loop。
-- Error and edge behavior: disagreeing header and token denied at resource server。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
-- 本轮修订的强制实现细节: 对齐当前消费者：只清理列举的伪造身份头，保留X-Egon-Tianshu-Tenant原意图值，缺/错header由当前DdcTenantContextFilter拒绝；验证后principal保持Rbac3UserDetails，identityTenant经DdcTenantRegistry映射storageTenant。PLATFORM注册aud/scope/source guard与RPC credentialId+signedTenantId HMAC同时成立，token不替代HMAC。Yuheng Netty数据面LLM/SSE/MCP保持原路由/取消/背压，管理Spring端口deny-all不变。
+- Purpose: Provide the Edge session/intent AES-256-GCM envelope and context binding.
+- Symbols: `encrypt/decrypt, initializeKey`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Use 32-byte owner-only mounted key, nonsecret keyId, fresh 96-bit nonce, 128-bit tag and length-prefixed AAD; require canonical unpadded Base64url envelope fields and fail closed on missing/wrong key, bad tag, context mismatch or malformed/noncanonical envelope.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> Reactor Context only，no ThreadLocal across event-loop。
-FLOW -> GlobalFilter strips all inbound identity headers; after verified JwtPrincipal writes X-Egon-Tenant-Id/User-Id/Scopes bounded CRLF-free; retain original Bearer; downstream still checks token
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> disagreeing header and token denied at resource server。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Use 32-byte owner-only mounted key, nonsecret keyId, fresh 96-bit nonce, 128-bit tag and length-prefixed AAD; require canonical unpadded Base64url envelope fields and fail closed on missing/wrong key, bad tag, context mismatch or malformed/noncanonical envelope.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> encrypt/decrypt, initializeKey; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 trustedIdentityHeaderFilter 的正例与 disagreeing header and token denied at resource server 负例。
-- After this file: trustedIdentityHeaderFilter 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: encrypt/decrypt, initializeKey is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisSerializer.java`
 
-- Purpose: BFF会话REST协议。
-- Symbols: `bff/session,csrf,logout`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； BFF会话REST协议在此位置后才可接消费者。
-- Contract/signature changes: bff/session,csrf,logout；BFF会话REST协议。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: auth/tenant from session-bound AuthorizedClient。
-- Error and edge behavior: no session401; remote fail localLoggedOut=true。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 6, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Encrypt every Spring Session Redis attribute, including OIDC identity and authorized-client tokens.
+- Symbols: `RedisSerializer<Object>`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Wrap the existing JDK serializer in EdgeTokenCipher under a versioned session purpose; reject corrupt ciphertext; never log serialization bytes or key.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> auth/tenant from session-bound AuthorizedClient。
-FLOW -> @RestController("edgeSessionController") @Slf4j @RequiredArgsConstructor; GET session returns EdgeSessionResult no token; GET csrf no-store; POST logout CSRF, invalidate local session, call revoke family; 204 only after ACK, 503 pending on remote fail
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no session401; remote fail localLoggedOut=true。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Wrap the existing JDK serializer in EdgeTokenCipher under a versioned session purpose; reject corrupt ciphertext; never log serialization bytes or key.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> RedisSerializer<Object>; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 bff/session,csrf,logout 的正例与 no session401; remote fail localLoggedOut=true 负例。
-- After this file: bff/session,csrf,logout 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: RedisSerializer<Object> is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`
+#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisConfiguration.java`
 
-- Purpose: code+S256+strict BFF session。
-- Symbols: `SecurityWebFilterChain/oauth2Login routes`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； code+S256+strict BFF session在此位置后才可接消费者。
-- Contract/signature changes: SecurityWebFilterChain/oauth2Login routes；code+S256+strict BFF session。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: first-party BFF vs third-party Bearer separate matcher。
-- Error and edge behavior: unknown registration/redirect open redirect denied。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 7, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Provide a Spring Data Redis 3.5-compatible Lettuce factory and the named Spring Session serializer.
+- Symbols: `edgeSessionRedisConnectionFactory, springSessionDefaultRedisSerializer`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Parse the trusted primary endpoint, match its host/port/TLS exactly to Shoubing's configured Redisson primary client, require rediss off loopback, and let Redisson's fallback factory back off.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
 ```java
-INPUT -> first-party BFF vs third-party Bearer separate matcher。
-FLOW -> @Configuration; @Bean named reactive chains; oauth2Login registration exact issuer; state/nonce/verifier session; Spring Session Redis, CSRF for mutations; TokenRelay to biz/mcp only; static AS route; API 401 JSON not HTML302
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> unknown registration/redirect open redirect denied。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Parse the trusted primary endpoint, match its host/port/TLS exactly to Shoubing's configured Redisson primary client, require rediss off loopback, and let Redisson's fallback factory back off.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> edgeSessionRedisConnectionFactory, springSessionDefaultRedisSerializer; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 SecurityWebFilterChain/oauth2Login routes 的正例与 unknown registration/redirect open redirect denied 负例。
-- After this file: SecurityWebFilterChain/oauth2Login routes 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: edgeSessionRedisConnectionFactory, springSessionDefaultRedisSerializer is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml`
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientRepository.java`
 
-- Purpose: 全配置base结构。
-- Symbols: `session/oauth/upstream/TLS keys`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 全配置base结构在此位置后才可接消费者。
-- Contract/signature changes: session/oauth/upstream/TLS keys；全配置base结构。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: no plaintext secret; Spring OAuth provider issuer at bootstrap。
-- Error and edge behavior: unresolved placeholders fail validated properties。
-- Standards impact: MC-SCOPE-001, MC-TEST-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 7, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Adapt OAuth2AuthorizedClient state to a random WebSession binding and encrypted Redis map with a complete trusted issuer partition.
+- Symbols: `ServerOAuth2AuthorizedClientRepository`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Store a random binding id in the encrypted WebSession; persist every AuthorizedClient as a separate AES-GCM RMapCache entry keyed by binding id plus exact issuer/tenant/client/registration/subject; enforce configured max count and idle/absolute TTL; refuse unknown registration; anonymous load does not create a session; support loadAll/removeAll for full-session logout.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
 - Implementation pseudocode:
 
-```yaml
-INPUT -> no plaintext secret; Spring OAuth provider issuer at bootstrap。
-FLOW -> spring.session.redis.namespace=egon:bff:session:v2; edge security config from §15.5; HTTPS, no default unrestricted redirect
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> unresolved placeholders fail validated properties。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Store a random binding id in the encrypted WebSession; key encrypted RMapCache fields by binding id plus exact issuer/tenant/client/registration/subject; save the ciphertext before returning to the OAuth2 manager; refuse unknown registration; anonymous load does not create a session.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> ServerOAuth2AuthorizedClientRepository; expose no raw token, client secret or KEK.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 session/oauth/upstream/TLS keys 的正例与 unresolved placeholders fail validated properties 负例。
-- After this file: session/oauth/upstream/TLS keys 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: the encrypted session-bound RMapCache repository is available to the refresh manager and session controller; persistence completes before the reactive manager returns.
 
-#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml`
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSingleFlightAuthorizedClientManager.java`
 
-- Purpose: 本地HTTPS测试值。
-- Symbols: `identical profile key set`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 13 与本Step此前文件；输出供 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 本地HTTPS测试值在此位置后才可接消费者。
-- Contract/signature changes: identical profile key set；本地HTTPS测试值。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: different values allowed, missing keys fail static key parity。
-- Error and edge behavior: cannot quietly enable plaintext for local。
-- Standards impact: MC-SCOPE-001, MC-TEST-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 7, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Decorate the reactive OAuth2 client manager so a rotating refresh token is never concurrently consumed by two Edge instances.
+- Symbols: `EdgeSingleFlightAuthorizedClientManager.authorize(OAuth2AuthorizeRequest)`.
+- Repository evidence: Pinned Gateway TokenRelay calls `ReactiveOAuth2AuthorizedClientManager`; API-015–017 and main Spec §7.3.4 require cross-instance single-flight for BFF refresh rotation.
+- Dependencies and consumers: File 10 supplies the stable session binding and File 6 supplies bounded wait/lease/token-timeout properties; EdgeSecurityConfiguration injects this decorator as the manager used by TokenRelay.
+- Why now: The BFF AuthorizedClient must be stored in encrypted Redis before the lock releases, so the repository and lock manager are ordered before security-chain wiring.
+- Contract/signature changes: Resolve the exact exchange from OAuth2AuthorizeRequest or ServerWebExchangeContextFilter; hash session binding, issuer, tenant, client, registration and subject into the Redisson lock key; acquire with bounded wait/lease, call the default manager so it reloads the current encrypted entry, and release only after the repository write completes.
+- Input/output and state mapping: TokenRelay principal plus exact ClientRegistration; no client secret/token values in the lock key or logs.
+- Error and edge behavior: Missing session/exchange, identity mismatch, lock timeout or provider timeout fails closed as temporarily unavailable; unlock runs after success, cancellation or error; old refresh token is never replayed after a failed refresh.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-CONFIG-001, MC-LOG-001, MC-BEAN-001, MC-PATTERN-001, MC-TEST-001; preserve the existing Gateway TokenRelay boundary.
+- Literal rule enforcement: Rule 2, Rule 4, Rule 7, Rule 9 and Rule 11; use one Decorator around the pinned manager, not a strategy registry.
+- Design pattern consideration: The Decorator serializes one existing manager call by a known session/client identity across instances; a local synchronized map would not coordinate replicas and a larger strategy hierarchy adds no supported variation.
 - Implementation pseudocode:
 
-```yaml
-INPUT -> different values allowed, missing keys fail static key parity。
-FLOW -> same YAML leaf structure as application.yml; local certificate mounted and Redis test namespace
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> cannot quietly enable plaintext for local。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```java
+INPUT -> OAuth2AuthorizeRequest and the active Reactor ServerWebExchange context.
+FLOW -> compute hashed session+issuer+tenant+client+registration+subject lock key; bounded RedissonReactiveClient lock; delegate.authorize reloads current RMapCache value and persists encrypted rotation before completion; unlock in async cleanup on every terminal signal.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missing exchange, identity mismatch, failed lock acquisition or token endpoint timeout returns unavailable without sending the old refresh token.
+RESULT -> TokenRelay receives only the latest persisted authorized client; no credential bytes enter the lock name.
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 identical profile key set 的正例与 cannot quietly enable plaintext for local 负例。
-- After this file: identical profile key set 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; TEST-145 uses two concurrent manager calls and mocked Redisson locks.
+- After this file: TokenRelay has cross-instance refresh serialization before File 21 Gateway wiring.
 
-- Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
-- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。
-- Expected result: 先确认上述RED由缺失目标行为引起，GREEN时命名用例成功、模块编译成功、`git diff --check`零错误；不以不存在依赖/数据库/fixture而失败作为RED。
-- Failure returns to: Step 13 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
-- Completion criteria: 浏览器仅持HttpOnly opaque会话、SCG代码换token、玉衡路由原样转发Bearer；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
-- Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeSessionResult.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeCsrfResult.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeLogoutFailureResult.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientServiceImpl.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml`。
-- Commit: `feat(yuheng): add oauth2 bff edge`。
+#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutRevocationIntent.java`
+
+- Purpose: Define the bounded typed intent payload for one session-held AuthorizedClient registration's refresh-token revocation.
+- Symbols: `EdgeLogoutRevocationIntent`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Carry a validated tenant or PLATFORM slot plus registration/issuer/client/token-type/time and the refresh token only in memory until the enclosing batch is AES-GCM encrypted; override toString to redact the token; never persist client secret.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Carry a validated tenant or PLATFORM slot plus registration/issuer/client/token-type/time and the RT only in memory; the batch store AES-GCM encrypts the complete payload before Stream write; override toString to redact RT; never persist client secret.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> EdgeLogoutRevocationIntent; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: EdgeLogoutRevocationIntent is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 13 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutIntentStore.java`
+
+- Purpose: Provide the minimal durable intent queue boundary used by HTTP logout and retry processing.
+- Symbols: `enqueueAll(List<EdgeLogoutRevocationIntent>), pollNewAndClaimStale, acknowledge`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Atomically enqueue the entire session batch only when max-pending permits; ACK and remove each message only after confirmed remote revocation; expose no raw token API.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Atomically enqueue the entire session batch only when max-pending permits; ACK and remove each message only after confirmed remote revocation; expose no raw token API.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> enqueueAll(List<EdgeLogoutRevocationIntent>), pollNewAndClaimStale, acknowledge; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: enqueueAll(List<EdgeLogoutRevocationIntent>), pollNewAndClaimStale, acknowledge is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/RedissonEdgeLogoutIntentStore.java`
+
+- Purpose: Implement durable Redis Stream enqueue and consumer-group recovery using the existing Redisson client.
+- Symbols: `RedissonEdgeLogoutIntentStore`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Atomically check max-pending and XADD encrypted payload; create consumer group with MKSTREAM; read new messages and claim stale PEL entries; XACK/XDEL only on success.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Atomically check max-pending and XADD encrypted payload; create consumer group with MKSTREAM; read new messages and claim stale PEL entries; XACK/XDEL only on success.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> RedissonEdgeLogoutIntentStore; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: RedissonEdgeLogoutIntentStore is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeOAuthTokenRevocationClient.java`
+
+- Purpose: Call only the exact issuer's discovered revocation endpoint using its registered confidential client.
+- Symbols: `revoke(EdgeLogoutRevocationIntent)`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Validate issuer/tenant/registration/client match, endpoint same-origin, client_secret_basic and bounded timeout; no redirects; token values exist only in request memory and are never logged.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Validate issuer/tenant/registration/client match, endpoint same-origin, client_secret_basic and bounded timeout; no redirects; token values exist only in request memory and are never logged.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> revoke(EdgeLogoutRevocationIntent); expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: revoke(EdgeLogoutRevocationIntent) is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutService.java`
+
+- Purpose: Coordinate durable enqueue, local WebSession invalidation and one bounded synchronous remote revocation attempt.
+- Symbols: `logout, processIntent`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Persist before clearing session; 204 only after remote 2xx; durable pending returns 503/PENDING; enqueue failure still invalidates the session and returns 503/UNKNOWN.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Persist before clearing session; 204 only after remote 2xx; durable pending returns 503/PENDING; enqueue failure still invalidates the session and returns 503/UNKNOWN.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> logout, processIntent; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: logout, processIntent is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeLogoutRevocationWorker.java`
+
+- Purpose: Retry failed Stream entries across instance restart without dropping unconfirmed work.
+- Symbols: `scheduled retry / stale claim processing`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Use configured bounded poll and idle claim; retry idempotent revocation; leave unresolved messages pending; ACK/XDEL only after same-issuer 2xx.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Use configured bounded poll and idle claim; retry idempotent revocation; leave unresolved messages pending; ACK/XDEL only after same-issuer 2xx.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> scheduled retry / stale claim processing; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: scheduled retry / stale claim processing is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 18 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`
+
+- Purpose: Remove only the documented external identity spoofing headers while preserving the Tianshu tenant intent assertion.
+- Symbols: `TrustedIdentityHeaderFilter`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Preserve X-Egon-Tianshu-Tenant verbatim; never derive SQL tenant from a header; relay the original verified Bearer only through configured biz/mcp routes.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Preserve X-Egon-Tianshu-Tenant verbatim; never derive SQL tenant from a header; relay the original verified Bearer only through configured biz/mcp routes.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> TrustedIdentityHeaderFilter; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: TrustedIdentityHeaderFilter is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 19 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java`
+
+- Purpose: Implement the real API-015/016/017 endpoints and exact response/no-store behavior.
+- Symbols: `GET /bff/session, GET /bff/csrf, POST /bff/logout, edgeAccessTokenVerifier, edgeRevocationCheck`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: API-015 loads the encrypted AuthorizedClient without refresh, uses typed function adapters for local token verification and shared Redis status, and requires the exact held token value, JWT subject, JWT `iss`, ClientRegistration issuer and trusted issuer to agree after canonicalization, plus tenant and Resource audience; API-016 returns no-store CSRF; API-017 rejects missing/non-OAuth2 authentication and atomically persists all session intents before removing session-bound clients, invalidating the session and revoking each RT; output exact documented 200/204/401/503 results and operation metadata.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> API-015 locally validates signature/time, requires JWT token/subject/iss to match the held client, exact registration and trusted issuer plus tenant/audience, then reads shared revocation state without refresh; typed Function adapters keep the WebFlux controller boundary testable; API-017 requires authenticated OAuth2 plus CSRF and performs atomic encrypted batch enqueue before session invalidation, ACKing each Stream message only after same-issuer 2xx.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Invalid/expired/revoked session returns 401; shared Redis outage returns 503; unavailable remote revocation returns PENDING or UNKNOWN without restoring local session or revealing tokens.
+RESULT -> GET /bff/session, GET /bff/csrf, POST /bff/logout; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: GET /bff/session, GET /bff/csrf, POST /bff/logout is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 20 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`
+
+- Purpose: Assemble trusted issuer/JWKS verification, shared revocation reader, TokenRelay refresh decorator, issuer-bound oauth2Login, S256 flow, secure opaque session cookie, CSRF, API no-redirect paths and scheduled recovery.
+- Symbols: `SecurityWebFilterChain, reactive OAuth2AuthorizedClientManager, TenantIssuerAuthenticationManagerComponent, ReactiveOAuthRevocationReader, edgeAccessTokenVerifier, edgeRevocationCheck, CookieWebSessionIdResolver`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Bind IdpStarterProperties from the trusted issuer/JWKS map, construct only its local verifier and shared reactive revocation reader (leave the Starter's Servlet resource-server auto-configuration disabled), then expose each through an explicitly qualified typed Function adapter for the WebFlux controller; wire EdgeSingleFlightAuthorizedClientManager into Gateway TokenRelay; rotate session ID after login; require an OAuth2 BFF session and CSRF on logout; API without a Bearer or BFF session returns 401 JSON; session view is 401 when token invalid/revoked and 503 when shared state is unavailable; TokenRelay remains limited to existing biz/MCP routes; browser mutations require CSRF.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Rotate the session ID after login; keep OAuth state and authorized clients server-side; API without a Bearer returns 401 JSON; TokenRelay remains limited to existing biz/mcp routes; browser mutations require CSRF.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> SecurityWebFilterChain, OAuth2Login success handler, CookieWebSessionIdResolver; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: SecurityWebFilterChain, OAuth2Login success handler, CookieWebSessionIdResolver is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 21 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml`
+
+- Purpose: Bind required Edge session/OAuth/TLS/Redis/logout-key configuration and default-off scoped `edge-bff` OpenAPI publication.
+- Symbols: `base properties`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: No plaintext secret/key, no HTTP or redis URI for non-loopback host, exact matched Redis primary, namespaced BFF session/stream; keep Springdoc and starter governance off by default behind the same `EGON_YUHENG_EDGE_OPENAPI_ENABLED` switch, configure exact BFF paths in `edge-bff`, and require operator metadata before enabling.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> No plaintext secret/key, no HTTP or redis URI for non-loopback host, exact matched Redis primary, namespaced BFF session/stream; the `edge-bff` group only becomes available when explicitly enabled and remains protected by the OpenAPI read scope chain.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> base properties; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: base properties is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 22 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml`
+
+- Purpose: Provide the same configuration leaf schema for local TLS and exact loopback Redis.
+- Symbols: `local profile`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Keep Redis limited to 127.0.0.1 with TLS/certificate mounted as configured; preserve required mounted key references; keep the same opt-in `edge-bff` OpenAPI group and no-DDC publication policy; do not introduce plaintext token/client secrets.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Keep Redis limited to 127.0.0.1 with TLS/certificate mounted as configured; preserve required mounted key references; do not introduce plaintext token/client secrets.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> local profile; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: local profile is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 23 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: Record Edge driver/session/logout/OpenAPI/route/refresh/API-015 evidence, REQ-036–042 and their existing decision/test IDs with Review status.
+- Symbols: `current-code amendment`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Trace session encryption, authenticated+CSRF durable logout retry, default-off scope-protected `edge-bff` docs group, supported Redis driver, pinned route prefix, provided Lombok compile API, cross-instance refresh lock and exact held-token/current-session revocation gate to paths and tests.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Trace session encryption, durable logout retry, supported Redis driver and OpenAPI ownership to exact paths and gates.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> current-code amendment; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: current-code amendment is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+
+#### File 24 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: Replace the original 11-file Step 14 with the source-grounded 24-path executable boundary, including pinned Gateway route binding, authenticated+CSRF durable multi-client logout, default-off scoped OpenAPI grouping, and distributed refresh serialization.
+- Symbols: `Step 14 ordered files, gates, tests and exact commit paths`.
+- Repository evidence: See source-grounded evidence and design in the effective current-code alignment Spec; preserve the existing WebFlux/SCG module boundary.
+- Dependencies and consumers: Consumes the preceding Edge types/configuration and is consumed by later Step 14 controller/security wiring; does not alter Yuheng biz or MCP gateway.
+- Why now: This file closes a named interface or security invariant in the already ordered Edge flow.
+- Contract/signature changes: Keep the effective Spec and overall Review state; do not modify unrelated Steps.
+- Input/output and state mapping: Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+- Error and edge behavior: Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-CONFIG-001; retain module-local qualifiers, exact issuer boundaries, no token serialization and no unrelated route behavior.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: use the framework ServerOAuth2AuthorizedClientRepository and a small Redisson Stream adapter as Adapters across Spring Security/session and Redis protocol boundaries; a Strategy hierarchy is unnecessary because the endpoint and storage algorithms are fixed by the accepted contract.
+- Implementation pseudocode:
+
+```java
+INPUT -> Values flow only from validated Edge properties, exact Spring ClientRegistration, verified OAuth2 Authentication and server-side WebSession.
+FLOW -> Keep the effective Spec and overall Review state; do not modify unrelated Steps.
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> Unknown issuer/client, mismatched endpoint/tenant, missing key, bad ciphertext/CSRF, queue-full or unavailable revocation fails closed without restoring local session or revealing tokens.
+RESULT -> Step 14 ordered files, gates, tests and exact commit paths; expose no raw token, client secret or KEK.
+```
+
+- Verification contribution: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; this file is verified with the Edge contract suite and reactor compilation.
+- After this file: Step 14 ordered files, gates, tests and exact commit paths is available to its next declared consumer; the Step is complete only when the full contract suite, profile parity, OpenAPI and path gates pass.
+- Validation working directory: /Users/mario/SelfProject/Egon-COLA.
+- Verification command: mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test.
+- Expected result: 先用缺失行为断言取得有效RED；GREEN时EdgeLoginContractTest通过、专属Edge reactor编译成功、git diff --check零错误；YAML base/local新增叶子键与secret schema相同；API-015/016/017在生成OpenAPI恰各一条，204无content；Step paths与Commit paths精确同集。
+- Failure returns to: Step 13的client/security依赖；若需改变受理协议、Cookie/CSRF语义或OAuth revocation语义回主Spec及本Review amendment。
+- Completion criteria: 本Step 24个文件所有Manual Checks有通过证据；RED是行为性；没有因测试简化删除断言；Redis、authorization client、intent key与profile config均无token明文；未经用户启动，不声称真实Redis、AS、TLS、浏览器、SSE多实例通过。
+- Rollback: 提交前只恢复本Step精确24路径；提交后修复安全行为须保持本地logout先行及已确认远端撤销事实，不能恢复session、重放旧refresh token或丢弃pending intent。
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeSessionResult.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeCsrfResult.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/domain/EdgeLogoutFailureResult.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeTokenCipher.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisSerializer.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSessionRedisConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientRepository.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSingleFlightAuthorizedClientManager.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutRevocationIntent.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutIntentStore.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/RedissonEdgeLogoutIntentStore.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeOAuthTokenRevocationClient.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutService.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeLogoutRevocationWorker.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
+- Commit: feat(yuheng): add oauth2 bff edge。
+
 
 ### Step 15 — 保留玉衡、鉴神与天枢准入链
 
@@ -12927,7 +13294,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | Step 11 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=TokenRevocationServiceTest,OAuthSecurityProjectionComponentTest,OAuthSigningKeyRotationServiceImplTest,TokenUsageAuditComponentTest,OAuthAuditConsumerTest,OAuthAuditOutboxDeliveryHandlerTest,OAuthRetentionServiceTest,OAuthSigningKeyPersistenceContractTest,IdentityAuthenticationTransactionContractTest,IdentityOutboxPublisherTest,IdentityAuditServiceImplTest,OAuthClientServiceImplTest,OAuthOidcProtocolContractTest,IdentityUserServiceImplTest,IdpHttpExceptionHandlerTest,OAuthManagedSchemaContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 闭合撤销、审计、密钥轮换与保留 | 精确用例先目标RED后GREEN；模块编译通过 | Step 11对应File | REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-020, REQ-021, REQ-034, REQ-035；运行环境证据另列 |
 | Step 12 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=MultiIssuerResourceServerTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 在资源服务器建立多issuer本地验签和租户上下文 | 精确用例先目标RED后GREEN；模块编译通过 | Step 12对应File | REQ-002, REQ-006, REQ-007, REQ-008, REQ-012, REQ-016, REQ-024；运行环境证据另列 |
 | Step 13 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am -Dtest=IdpServiceOAuth2ClientTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 改造机器客户端缓存并装配WebClient | 精确用例先目标RED后GREEN；模块编译通过 | Step 13对应File | REQ-005, REQ-009, REQ-011, REQ-016；运行环境证据另列 |
-| Step 14 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 建立SCG OAuth2登录和服务端会话 | 精确用例先目标RED后GREEN；模块编译通过 | Step 14对应File | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025；运行环境证据另列 |
+| Step 14 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 建立SCG OAuth2登录和服务端会话 | 目标行为先RED后GREEN；Edge module compile、profile/OpenAPI/Gateway-prefix/path gates pass | Step 14对应24 Files | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042；Redis/AS runtime另由用户验收 |
 | Step 15 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 保留玉衡、鉴神与天枢准入链 | 精确用例先目标RED后GREEN；模块编译通过 | Step 15对应File | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025；运行环境证据另列 |
 | Step 16 | /Users/mario/SelfProject/Egon-COLA | `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/clients/ClientListPage.test.tsx src/features/resource-grants/ClientResourceGrantPage.test.tsx src/features/keys/SigningKeyPage.test.tsx src/features/resource-servers/ResourceServerListPage.test.tsx`。 | 迁移共享认证客户端与五个前端消费者 | 精确用例先目标RED后GREEN；模块编译通过 | Step 16对应File | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026；运行环境证据另列 |
 | Step 17 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；`python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`仅脚本语法补充。 | 提供受控数据导入、切流及本地验证入口 | 精确用例先目标RED后GREEN；模块编译通过 | Step 17对应File | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023；运行环境证据另列 |
@@ -12997,6 +13364,13 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | REQ-033 | 修订Spec §4/DEC-125 | Step 10 | OAuthClientServiceImpl direct-service and HTTP redirect validation | TEST-124 and exact Step 10 focused Maven command | HTTPS remains required outside local; only exact 127.0.0.1 HTTP redirect passes under the local profile |
 | REQ-034 | 修订Spec §4/DEC-126/EVD-130 | Step 11 | SAS revoke decorator, TokenRevocationService, security projection, audit/rotation and matched profiles | TEST-125 and exact Step 11 focused Maven command | same-transaction durable facts; success follows visible Redis revision; live infrastructure recovery remains user-run |
 | REQ-035 | 修订Spec §4/DEC-127/EVD-131 | Step 11 | OAuthAudit/OAuthRevocation repositories expose guarded soft delete; retention uses accepted cutoffs; aged audit Stream events cannot recreate retained rows | TEST-126 and OAuthSigningKeyPersistenceContractTest / OAuthAuditConsumerTest | only expired APPLIED revocations and retained audit rows soft-delete; late events past cutoff ACK without persistence; key tombstones remain |
+| REQ-036 | 修订Spec §4/DEC-143/144/EVD-147/148 | Step 14 | Edge OAuth2 authorized-client partition, AES-GCM Redis session, current-version Lettuce factory and matched Redisson endpoint | EdgeLoginContractTest | only opaque browser cookie; no plaintext session/token data in Redis serializer; issuer/tenant/client/subject entries remain separated |
+| REQ-037 | 修订Spec §4/DEC-145/EVD-149 | Step 14 | authenticated OAuth2 BFF session+CSRF, encrypted bounded logout Stream, same-issuer remote client and retry worker | EdgeLoginContractTest | anonymous/CSRF-invalid rejected; 204 only after remote 2xx; durable pending is PENDING; failed intent write is UNKNOWN after local logout; ACK/XDEL follows success |
+| REQ-038 | 修订Spec §4/DEC-146/EVD-150 | Step 14 | existing WebFlux OpenAPI starter, default-off `edge-bff` group, and actual BFF Controller routes | EdgeLoginContractTest | exact API-015/016/017 operation/security metadata; no response content for 204; disabled by default and scope-protected when enabled; no token field |
+| REQ-039 | 修订Spec §4/DEC-147/EVD-151 | Step 14 | GatewayProperties.PREFIX static auth/biz/MCP routes in both Edge profiles | EdgeLoginContractTest | Gateway 4.3.5 binds all route definitions under spring.cloud.gateway.server.webflux; TokenRelay remains limited to biz/MCP |
+| REQ-040 | 修订Spec §4/DEC-148/EVD-152 | Step 14 | provided Lombok API and module-local qualifier-copy configuration | EdgeLoginContractTest and exact reactor compile | application compiles with the parent-managed Lombok version and exports no Lombok runtime dependency |
+| REQ-041 | 修订Spec §4/DEC-149/EVD-153 | Step 14 | decorated TokenRelay ReactiveOAuth2AuthorizedClientManager; encrypted repository write inside distributed per-session/client lock | EdgeLoginContractTest TEST-145 | concurrent same-identity calls refresh once and the follower reloads rotated state; lock timeout never retries a consumed RT |
+| REQ-042 | 修订Spec §4/DEC-150/EVD-154 | Step 14 | API-015 matches held token value/JWT issuer/subject to client registration and checks tenant/audience/shared generation | EdgeLoginContractTest TEST-146 | token/issuer/subject/tenant/audience/expiry/revoked mismatch 401; Redis unavailable 503; never refreshes while returning session view |
 
 ## 11. Risks, Blockers, and User Decisions
 

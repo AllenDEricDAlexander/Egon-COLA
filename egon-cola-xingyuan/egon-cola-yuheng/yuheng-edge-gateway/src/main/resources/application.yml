@@ -1,0 +1,141 @@
+server:
+  port: ${EGON_YUHENG_EDGE_PORT:8443}
+  ssl:
+    enabled: true
+    key-store: ${EGON_YUHENG_EDGE_TLS_KEYSTORE}
+    key-store-password: ${EGON_YUHENG_EDGE_TLS_KEYSTORE_PASSWORD}
+    key-store-type: PKCS12
+
+spring:
+  application:
+    name: yuheng-edge-gateway
+  session:
+    timeout: 30m
+    redis:
+      namespace: egon:bff:session:v2
+      flush-mode: on-save
+  data:
+    redis:
+      url: ${EGON_TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
+      username: ${EGON_TIANQUAN_SHOUBING_REDIS_USERNAME}
+      password: ${EGON_TIANQUAN_SHOUBING_REDIS_PASSWORD}
+      timeout: 500ms
+  security:
+    oauth2:
+      client:
+        registration:
+          edge-ui:
+            provider: edge-issuer
+            client-id: ${EGON_YUHENG_EDGE_OIDC_CLIENT_ID}
+            client-secret: ${EGON_YUHENG_EDGE_OIDC_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - offline_access
+        provider:
+          edge-issuer:
+            issuer-uri: ${EGON_YUHENG_EDGE_OIDC_ISSUER}
+            user-name-attribute: sub
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            response-timeout: 5s
+          routes:
+            - id: authorization-server
+              uri: ${egon.yuheng.edge.upstreams.authorization-server}
+              predicates:
+                - Path=/tenants/**,/platform/**
+            - id: yuheng-biz
+              uri: ${egon.yuheng.edge.upstreams.biz-gateway}
+              predicates:
+                - Path=/api/**
+              filters:
+                - TokenRelay
+            - id: yuheng-mcp
+              uri: ${egon.yuheng.edge.upstreams.mcp-gateway}
+              predicates:
+                - Path=/mcp/**
+              filters:
+                - TokenRelay
+
+egon:
+  yuheng:
+    edge:
+      public-origin: ${EGON_YUHENG_EDGE_PUBLIC_ORIGIN}
+      default-registration-id: edge-ui
+      allowed-return-paths:
+        - /
+      upstreams:
+        authorization-server: ${EGON_YUHENG_EDGE_AUTHORIZATION_SERVER}
+        biz-gateway: ${EGON_YUHENG_EDGE_BIZ_GATEWAY}
+        mcp-gateway: ${EGON_YUHENG_EDGE_MCP_GATEWAY}
+      session:
+        idle-timeout: 30m
+        absolute-timeout: 8h
+        max-authorized-clients: 100
+        encryption:
+          key-id: ${EGON_YUHENG_EDGE_SESSION_KEY_ID}
+          key-file: ${EGON_YUHENG_EDGE_SESSION_KEY_FILE}
+      refresh:
+        lock-wait: 5s
+        lock-lease: 15s
+        token-timeout: 5s
+      logout:
+        stream: egon:bff:logout-revocation:v1
+        consumer-group: bff-revocation-v1
+        max-pending: 10000
+        poll-interval: 5s
+        claim-idle: 30s
+        timeout: 5s
+  cola:
+    component:
+      yuheng:
+        openapi:
+          enabled: ${EGON_YUHENG_EDGE_OPENAPI_ENABLED:false}
+          publish-to-ddc: false
+          published-groups:
+            - edge-bff
+          biz-code: ${EGON_YUHENG_EDGE_OPENAPI_BIZ_CODE:}
+          application-code: yuheng-edge-gateway
+          resource-uri: ${EGON_YUHENG_EDGE_OPENAPI_RESOURCE_URI:}
+          artifact-version: ${EGON_YUHENG_EDGE_OPENAPI_ARTIFACT_VERSION:}
+          build-id: ${EGON_YUHENG_EDGE_OPENAPI_BUILD_ID:}
+    platform:
+      tianquan:
+        shoubing:
+          enabled: false
+          resource-server-id: ${EGON_YUHENG_EDGE_RESOURCE_SERVER_ID}
+          resource-uri: ${EGON_YUHENG_EDGE_RESOURCE_URI}
+          platform-audience: platform
+          clock-skew: 30s
+          resource-state-key-prefix: "identity:resource-server:"
+          oauth-client-state-key-prefix: "identity:oauth-client:"
+          trusted-issuers:
+            edge-ui:
+              issuer: ${EGON_YUHENG_EDGE_OIDC_ISSUER}
+              jwks-uri: ${EGON_YUHENG_EDGE_JWKS_URI}
+              realm-key: ${EGON_YUHENG_EDGE_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${EGON_YUHENG_EDGE_TENANT_ID}
+              status: ACTIVE
+              trust-version: 1
+          revocation:
+            primary-endpoint: ${EGON_TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
+            mode: STRICT_SHARED
+            timeout: 500ms
+            epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
+
+springdoc:
+  api-docs:
+    enabled: ${EGON_YUHENG_EDGE_OPENAPI_ENABLED:false}
+    version: OPENAPI_3_1
+  group-configs:
+    - group: edge-bff
+      paths-to-match:
+        - /bff/**
