@@ -272,16 +272,8 @@ public class IdpGatewayAdapterProperties {
         required(issuer, "issuer");
         required(jwkSetUri, "jwkSetUri");
         required(platformAudience, "platformAudience");
-        required(tianquanShoubingRefreshUri, "tianquanShoubingRefreshUri");
         required(accessTokenCookieName, "accessTokenCookieName");
         required(refreshTokenCookieName, "refreshTokenCookieName");
-        resource(refreshStatusResourceUri, "refreshStatusResourceUri");
-        if (refreshStatusScopes == null || refreshStatusScopes.isEmpty()) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.tianquan.shoubing.yuheng.refreshStatusScopes is required");
-        }
-        refreshStatusScopes.forEach(scope -> required(
-                scope, "refreshStatusScopes"));
         required(resourceStateKeyPrefix, "resourceStateKeyPrefix");
         required(resourceScopeKeyPrefix, "resourceScopeKeyPrefix");
         required(resourceUriKeyPrefix, "resourceUriKeyPrefix");

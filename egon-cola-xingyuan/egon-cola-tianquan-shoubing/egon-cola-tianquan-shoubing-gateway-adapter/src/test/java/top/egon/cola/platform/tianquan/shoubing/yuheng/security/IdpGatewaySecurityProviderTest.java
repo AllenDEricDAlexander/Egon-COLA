@@ -44,7 +44,7 @@ class IdpGatewaySecurityProviderTest {
     private static final Instant NOW = Instant.parse("2026-08-02T08:00:00Z");
 
     @Test
-    void extractsCookieOrBearerAndRemovesCookiesAndSpoofableHeaders() {
+    void extractsExplicitBearerAndRemovesCookiesAndSpoofableHeaders() {
         var extractor = new IdpUserCookieCredentialExtractor(
                 new IdpReservedHeaderSanitizer(),
                 "__Host-egon_user_at",
@@ -67,7 +67,7 @@ class IdpGatewaySecurityProviderTest {
     }
 
     @Test
-    void rejectsConflictingCookieAndBearer() {
+    void ignoresRetiredCookieWhenExplicitBearerIsPresent() {
         var extractor = new IdpUserCookieCredentialExtractor(
                 new IdpReservedHeaderSanitizer(),
                 "__Host-egon_user_at", Set.of());
@@ -75,7 +75,32 @@ class IdpGatewaySecurityProviderTest {
                                 "Cookie", List.of("__Host-egon_user_at=cookie-token"),
                                 "Authorization", List.of("Bearer another-token"))),
                         context(GatewayPrincipal.anonymous()), policy())))
-                .assertNext(result -> assertThat(result.valid()).isFalse())
+                .assertNext(result -> {
+                    assertThat(result.valid()).isTrue();
+                    assertThat(result.credentials()).singleElement()
+                            .extracting(GatewayCredential::tokenReference).isEqualTo("another-token");
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void cookieOnlyCannotAuthenticateAndExplicitBearerIgnoresLegacyCookies() {
+        var extractor = new IdpUserCookieCredentialExtractor(new IdpReservedHeaderSanitizer(),
+                "__Host-egon_user_at", Set.of());
+        StepVerifier.create(Mono.from(extractor.extract(exchange(Map.of(
+                                "Cookie", List.of("__Host-egon_user_at=retired-token"))),
+                        context(GatewayPrincipal.anonymous()), policy())))
+                .assertNext(result -> assertThat(result.credentials()).isEmpty())
+                .verifyComplete();
+        StepVerifier.create(Mono.from(extractor.extract(exchange(Map.of(
+                                "Cookie", List.of("__Host-egon_user_at=retired-token"),
+                                "Authorization", List.of("Bearer current-token"))),
+                        context(GatewayPrincipal.anonymous()), policy())))
+                .assertNext(result -> {
+                    assertThat(result.valid()).isTrue();
+                    assertThat(result.credentials()).singleElement()
+                            .extracting(GatewayCredential::tokenReference).isEqualTo("current-token");
+                })
                 .verifyComplete();
     }
 

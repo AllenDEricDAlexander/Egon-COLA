@@ -1,12 +1,15 @@
 package top.egon.cola.platform.tianquan.shoubing.yuheng.security;
 
 import org.reactivestreams.Publisher;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.yuheng.core.exchange.GatewayExchange;
 import top.egon.cola.component.yuheng.core.security.AuthenticationFailure;
 import top.egon.cola.component.yuheng.core.security.CredentialRecoveryResult;
 import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
-import top.egon.cola.component.yuheng.core.security.GatewayCredentialOnlineStateResult;
 import top.egon.cola.component.yuheng.core.security.GatewayCredentialRecoveryProvider;
 
 import java.util.ArrayList;
@@ -15,15 +18,17 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Stops legacy USER refresh-token recovery while retaining authenticated online-state checks.
+ * Stops legacy cookie recovery after the authentication pipeline has checked the shared security snapshot.
  */
+@Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class IdpUserCredentialRecoveryProvider
         implements GatewayCredentialRecoveryProvider {
 
     public static final String PROVIDER_ID = "tianquan-shoubing-user-refresh";
 
+    @Qualifier("idpReservedHeaderSanitizer")
     private final IdpReservedHeaderSanitizer sanitizer;
-    private final IdpUserOnlineStateProvider onlineStateProvider;
     private final String refreshCookieName;
     private final String accessCookieName;
 
@@ -33,22 +38,23 @@ public final class IdpUserCredentialRecoveryProvider
             IdpReservedHeaderSanitizer sanitizer,
             String refreshCookieName,
             String accessCookieName) {
-        this(client, verifier, sanitizer, refreshCookieName, accessCookieName, null);
-    }
-
-    public IdpUserCredentialRecoveryProvider(
-            IdpRefreshClient client,
-            IdpGatewayJwtVerifier verifier,
-            IdpReservedHeaderSanitizer sanitizer,
-            String refreshCookieName,
-            String accessCookieName,
-            IdpUserOnlineStateProvider onlineStateProvider) {
+        this(Objects.requireNonNull(sanitizer, "sanitizer"), required(refreshCookieName, "refreshCookieName"),
+                required(accessCookieName, "accessCookieName"));
         Objects.requireNonNull(client, "client");
         Objects.requireNonNull(verifier, "verifier");
-        this.sanitizer = Objects.requireNonNull(sanitizer, "sanitizer");
-        this.onlineStateProvider = onlineStateProvider;
-        this.refreshCookieName = required(refreshCookieName, "refreshCookieName");
-        this.accessCookieName = required(accessCookieName, "accessCookieName");
+    }
+
+    /** Preserves the former constructor without re-enabling retired refresh/status operations. */
+    public IdpUserCredentialRecoveryProvider(IdpRefreshClient client, IdpGatewayJwtVerifier verifier,
+            IdpReservedHeaderSanitizer sanitizer, String refreshCookieName, String accessCookieName,
+            IdpUserOnlineStateProvider onlineStateProvider) {
+        this(client, verifier, sanitizer, refreshCookieName, accessCookieName);
+    }
+
+    public static IdpUserCredentialRecoveryProvider createConfigured(IdpReservedHeaderSanitizer sanitizer,
+            String refreshCookieName, String accessCookieName) {
+        return new IdpUserCredentialRecoveryProvider(Objects.requireNonNull(sanitizer, "sanitizer"),
+                required(refreshCookieName, "refreshCookieName"), required(accessCookieName, "accessCookieName"));
     }
 
     @Override
@@ -76,21 +82,11 @@ public final class IdpUserCredentialRecoveryProvider
                 expireCookies()));
     }
 
-    @Override
-    public Publisher<GatewayCredentialOnlineStateResult> validateAuthenticated(
-            GatewayAuthContext context,
-            GatewayExchange exchange) {
-        if (onlineStateProvider == null) {
-            return Mono.just(GatewayCredentialOnlineStateResult.active());
-        }
-        return onlineStateProvider.validateAuthenticated(context, exchange);
-    }
-
     private Map<String, List<String>> expireCookies() {
         String expiredAt = accessCookieName
-                + "=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax";
+                + "=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax";
         String expiredRt = refreshCookieName
-                + "=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax";
+                + "=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax";
         return Map.of("set-cookie", List.of(expiredAt, expiredRt));
     }
 

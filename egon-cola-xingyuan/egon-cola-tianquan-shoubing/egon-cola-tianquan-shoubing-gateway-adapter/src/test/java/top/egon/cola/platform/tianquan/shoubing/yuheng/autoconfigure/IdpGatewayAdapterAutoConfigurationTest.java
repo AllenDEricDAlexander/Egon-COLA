@@ -26,10 +26,18 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.time.Clock;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.TenantIssuerAuthenticationManagerComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.OAuthRevocationReader;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.VerifiedPrincipalConverter;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpRefreshClient;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpRefreshTokenStatusClient;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpUserOnlineStateProvider;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class IdpGatewayAdapterAutoConfigurationTest {
 
@@ -37,7 +45,23 @@ class IdpGatewayAdapterAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(
                     IdpGatewayAdapterAutoConfiguration.class))
             .withBean(ObjectMapper.class,
-                    () -> new ObjectMapper().findAndRegisterModules());
+                    () -> new ObjectMapper().findAndRegisterModules())
+            .withBean("tenantIssuerAuthenticationManagerComponent", TenantIssuerAuthenticationManagerComponent.class, () -> {
+                var manager = mock(TenantIssuerAuthenticationManagerComponent.class);
+                when(manager.isConfigured()).thenReturn(true);
+                return manager;
+            })
+            .withBean("oauthRevocationReader", OAuthRevocationReader.class, () -> verified -> OAuthRevocationReader.Result.valid())
+            .withBean("verifiedPrincipalConverter", VerifiedPrincipalConverter.class, () -> {
+                try {
+                    return (VerifiedPrincipalConverter) Class.forName(
+                            "top.egon.cola.platform.tianquan.shoubing.starter.security.VerifiedPrincipalConverterImpl")
+                            .getDeclaredConstructor().newInstance();
+                } catch (ReflectiveOperationException failure) {
+                    throw new AssertionError("Generated shared principal converter is required", failure);
+                }
+            })
+            .withBean("idpClock", Clock.class, Clock::systemUTC);
 
     @Test
     void runsBeforeTheServletStarterCreatesGenericStateReaders() {
@@ -81,6 +105,23 @@ class IdpGatewayAdapterAutoConfigurationTest {
                             .providerId()).isEqualTo("tianquan-shoubing-jwt");
                     assertThat(context.getBean(GatewayIdentityMapper.class)
                             .mapperId()).isEqualTo("tianquan-shoubing-identity");
+                });
+    }
+
+    @Test
+    void doesNotRegisterRetiredRefreshClientsOrRequireTheirUri() {
+        runner.withPropertyValues(
+                        "egon.cola.platform.tianquan.shoubing.yuheng.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.issuer=https://idp.example/platform",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.jwk-set-uri=https://idp.example/platform/.well-known/jwks.json",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.runtime.redis-enabled=false")
+                .withBean("idpGatewayRedissonClient", RedissonClient.class, () -> mock(RedissonClient.class))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(IdpRefreshClient.class);
+                    assertThat(context).doesNotHaveBean(IdpRefreshTokenStatusClient.class);
+                    assertThat(context).doesNotHaveBean(IdpUserOnlineStateProvider.class);
+                    assertThat(context).hasSingleBean(GatewayAuthenticationProvider.class);
                 });
     }
 
