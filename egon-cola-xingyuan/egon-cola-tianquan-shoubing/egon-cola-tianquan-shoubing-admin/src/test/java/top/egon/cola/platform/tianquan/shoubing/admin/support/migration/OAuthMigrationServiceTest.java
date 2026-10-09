@@ -1,6 +1,14 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.support.migration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.springframework.transaction.TransactionSystemException;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.po.IdentityUserPO;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,6 +74,10 @@ import static org.mockito.Mockito.atLeastOnce;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
 
 class OAuthMigrationServiceTest {
@@ -440,6 +452,235 @@ class OAuthMigrationServiceTest {
         OAuthMigrationReportResult replayed = service.importRealm(apply);
         assertThat(replayed.getImportedCount()).isEqualTo(imported.getImportedCount());
         verify(clientService, org.mockito.Mockito.times(1)).create(any(), any(), any(), any());
+    }
+
+    @Test
+    void rejectsUnknownAndInconsistentCheckpointStatesBeforeTargetEffects() throws Exception {
+        IdentityMigrationDAO dao = mock(IdentityMigrationDAO.class);
+        OAuthMigrationServiceImpl service = directoryMigrationService(dao,
+                mock(PlatformTransactionManager.class), new ObjectMapper()
+                .disable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES));
+        OAuthMigrationCommand command = directoryCommand("invalid-state");
+        String digest = service.importRealm(command).getReportSha256();
+        command.setDryRun(false).setApprovedReportSha256(digest);
+        ObjectMapper mapper = new ObjectMapper();
+        for (String invalid : List.of(
+                "{\"phase\":\"UNRECOGNIZED\",\"typeIndex\":5}",
+                "{\"phase\":\"TENANT_CLIENTS\",\"typeIndex\":5}",
+                "{\"phase\":\"COMPLETE\",\"typeIndex\":5,\"complete\":false}",
+                "{\"phase\":\"DIRECTORY\",\"typeIndex\":0,\"complete\":true}",
+                "{\"phase\":\"DIRECTORY\",\"typeIndex\":0,\"importedCount\":-1}",
+                "{\"phase\":\"COMPLETE\",\"typeIndex\":5,\"complete\":true,\"importedCount\":1}",
+                "{\"phase\":\"OAUTH_PENDING\",\"typeIndex\":0}",
+                "{\"phase\":\"RESOURCES\",\"typeIndex\":5,\"lastSourceId\":\"wrong-directory-cursor\"}",
+                "{\"phase\":\"DIRECTORY\",\"typeIndex\":0,\"unknownState\":true}")) {
+            ObjectNode checkpoint = checkpoint(mapper, command, digest);
+            ((ObjectNode) mapper.readTree(invalid)).fields().forEachRemaining(entry ->
+                    checkpoint.set(entry.getKey(), entry.getValue()));
+            writeOwnerOnly(command.getCheckpointFile(), mapper.writeValueAsString(checkpoint));
+            assertThatThrownBy(() -> service.importRealm(command)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("OAUTH_MIGRATION_CHECKPOINT");
+        }
+        verify(dao, never()).insertUserMigration(any());
+    }
+
+    @Test
+    void imports500And501RowsInBoundedTransactionsAndKeepsCompletedReplayStable() throws Exception {
+        for (int count : List.of(500, 501)) {
+            IdentityMigrationDAO dao = mock(IdentityMigrationDAO.class);
+            PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+            Map<String, IdentityUserPO> committed = new LinkedHashMap<>();
+            List<Integer> batches = new ArrayList<>();
+            AtomicInteger generatedId = new AtomicInteger(1000);
+            configureUserTransactions(dao, transactions, count, committed, batches, false);
+            OAuthMigrationServiceImpl service = directoryMigrationService(dao, transactions, new ObjectMapper());
+            OAuthMigrationCommand command = directoryCommand("batch-" + count);
+            command.setApprovedReportSha256(service.importRealm(command).getReportSha256()).setDryRun(false);
+            try (var ids = mockStatic(SnowflakeIdGenerator.class)) {
+                ids.when(SnowflakeIdGenerator::nextLongId).thenAnswer(call -> (long) generatedId.incrementAndGet());
+                OAuthMigrationReportResult applied = service.importRealm(command);
+                assertThat(applied.getImportedCount()).isEqualTo(count);
+                assertThat(committed).hasSize(count);
+                assertThat(batches).containsExactlyElementsOf(count == 500 ? List.of(500) : List.of(500, 1));
+                IdentityUserPO last = committed.get(String.format("user-%04d", count));
+                assertThat(last.getVersion()).isEqualTo(7);
+                assertThat(last.getCreateTime()).isEqualTo(CREATED_AT);
+                assertThat(last.getUpdateTime()).isEqualTo(CREATED_AT.plusSeconds(30));
+                assertThat(last.getTenantId()).isEqualTo(77351065313480704L);
+                assertThat(service.importRealm(command).getImportedCount()).isEqualTo(count);
+                verify(dao, times(count)).insertUserMigration(any());
+            }
+        }
+    }
+
+    @Test
+    void reconcilesCommittedRowsAfterCheckpointFailureWithoutDuplicateWrites() throws Exception {
+        IdentityMigrationDAO dao = mock(IdentityMigrationDAO.class);
+        PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+        Map<String, IdentityUserPO> committed = new LinkedHashMap<>();
+        List<Integer> batches = new ArrayList<>();
+        configureUserTransactions(dao, transactions, 501, committed, batches, false);
+        AtomicInteger failures = new AtomicInteger(1);
+        ObjectMapper failingCheckpointMapper = new ObjectMapper() {
+            @Override
+            public byte[] writeValueAsBytes(Object value) throws com.fasterxml.jackson.core.JsonProcessingException {
+                if (value.getClass().getSimpleName().equals("MigrationCheckpoint")
+                        && failures.getAndDecrement() > 0) {
+                    throw new com.fasterxml.jackson.core.JsonGenerationException("injected checkpoint failure", (com.fasterxml.jackson.core.JsonGenerator) null);
+                }
+                return super.writeValueAsBytes(value);
+            }
+        };
+        OAuthMigrationServiceImpl service = directoryMigrationService(dao, transactions, failingCheckpointMapper);
+        OAuthMigrationCommand command = directoryCommand("checkpoint-crash");
+        command.setApprovedReportSha256(service.importRealm(command).getReportSha256()).setDryRun(false);
+        AtomicInteger generatedId = new AtomicInteger(2000);
+        try (var ids = mockStatic(SnowflakeIdGenerator.class)) {
+            ids.when(SnowflakeIdGenerator::nextLongId).thenAnswer(call -> (long) generatedId.incrementAndGet());
+            assertThatThrownBy(() -> service.importRealm(command))
+                    .hasMessage("OAUTH_MIGRATION_CHECKPOINT_WRITE_FAILED");
+            assertThat(committed).hasSize(500);
+            assertThat(Files.exists(command.getCheckpointFile())).isFalse();
+            OAuthMigrationReportResult replay = service.importRealm(command);
+            assertThat(replay.getImportedCount()).isEqualTo(1);
+            assertThat(replay.getSkippedCount()).isEqualTo(500);
+            assertThat(committed).hasSize(501);
+            verify(dao, times(501)).insertUserMigration(any());
+        }
+    }
+
+    @Test
+    void reconcilesUnknownCommitAndRejectsStaleApprovalWithoutAdvancingCheckpoint() throws Exception {
+        IdentityMigrationDAO dao = mock(IdentityMigrationDAO.class);
+        PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+        Map<String, IdentityUserPO> committed = new LinkedHashMap<>();
+        List<Integer> batches = new ArrayList<>();
+        configureUserTransactions(dao, transactions, 501, committed, batches, true);
+        OAuthMigrationServiceImpl service = directoryMigrationService(dao, transactions, new ObjectMapper());
+        OAuthMigrationCommand command = directoryCommand("unknown-commit");
+        String digest = service.importRealm(command).getReportSha256();
+        command.setApprovedReportSha256(digest).setDryRun(false);
+        AtomicInteger generatedId = new AtomicInteger(3000);
+        try (var ids = mockStatic(SnowflakeIdGenerator.class)) {
+            ids.when(SnowflakeIdGenerator::nextLongId).thenAnswer(call -> (long) generatedId.incrementAndGet());
+            assertThatThrownBy(() -> service.importRealm(command)).isInstanceOf(TransactionSystemException.class);
+            assertThat(committed).hasSize(500);
+            assertThat(Files.exists(command.getCheckpointFile())).isFalse();
+            ObjectNode stale = checkpoint(new ObjectMapper(), command, "0".repeat(64));
+            writeOwnerOnly(command.getCheckpointFile(), stale.toString());
+            assertThatThrownBy(() -> service.importRealm(command)).hasMessage("OAUTH_MIGRATION_CHECKPOINT_MISMATCH");
+            assertThat(committed).hasSize(500);
+            Files.delete(command.getCheckpointFile());
+            committed.get("user-0001").setDisplayName("unexpected target change");
+            assertThatThrownBy(() -> service.importRealm(command)).hasMessage("OAUTH_MIGRATION_USER_CONTENT_CONFLICT");
+            assertThat(Files.exists(command.getCheckpointFile())).isFalse();
+            committed.get("user-0001").setDisplayName("Operator 1");
+            OAuthMigrationReportResult replay = service.importRealm(command);
+            assertThat(replay.getImportedCount()).isEqualTo(1);
+            assertThat(replay.getSkippedCount()).isEqualTo(500);
+            verify(dao, times(501)).insertUserMigration(any());
+        }
+    }
+
+    @Test
+    void rejectsSourcePageMutationInsideTheImportTransactionBeforeInsertingRows() throws Exception {
+        IdentityMigrationDAO dao = mock(IdentityMigrationDAO.class);
+        PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+        Map<String, IdentityUserPO> committed = new LinkedHashMap<>();
+        configureUserTransactions(dao, transactions, 1, committed, new ArrayList<>(), false);
+        OAuthMigrationServiceImpl service = directoryMigrationService(dao, transactions, new ObjectMapper());
+        OAuthMigrationCommand command = directoryCommand("changed-page");
+        command.setApprovedReportSha256(service.importRealm(command).getReportSha256()).setDryRun(false);
+        AtomicInteger firstPageReads = new AtomicInteger();
+        when(dao.selectUsersAfter(nullable(String.class), eq(500))).thenAnswer(call -> {
+            if (call.getArgument(0) != null) {
+                return List.of();
+            }
+            return List.of(UserRowDTO.builder().id("user-0001").username("operator-1")
+                    .normalizedUsername("operator-1").displayName(firstPageReads.incrementAndGet() <= 2
+                            ? "Operator 1" : "Changed source")
+                    .status("ACTIVE").failedLoginCount(0).version(7).createdAt(CREATED_AT)
+                    .updatedAt(CREATED_AT.plusSeconds(30)).build());
+        });
+        assertThatThrownBy(() -> service.importRealm(command)).hasMessage("OAUTH_MIGRATION_SOURCE_PAGE_CHANGED");
+        assertThat(committed).isEmpty();
+        assertThat(Files.exists(command.getCheckpointFile())).isFalse();
+        verify(dao, never()).insertUserMigration(any());
+        verify(transactions).rollback(any());
+    }
+
+    private OAuthMigrationCommand directoryCommand(String name) throws Exception {
+        Path secretDirectory = temporaryDirectory.resolve(name + "-secrets");
+        Files.createDirectory(secretDirectory);
+        Files.setPosixFilePermissions(secretDirectory, Set.of(PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE));
+        Path marker = temporaryDirectory.resolve(name + ".freeze");
+        Path owners = temporaryDirectory.resolve(name + "-owners.json");
+        writeOwnerOnly(marker, "realm=platform\nsnapshot=" + name + "\n");
+        writeOwnerOnly(owners, "{\"schemaVersion\":1,\"sourceSnapshotId\":\"" + name + "\",\"assignments\":[]}");
+        return OAuthMigrationCommand.builder().realmKey("platform").sourceSnapshotId(name).dryRun(true)
+                .freezeMarkerFile(marker).ownershipMapFile(owners)
+                .checkpointFile(temporaryDirectory.resolve(name + "-checkpoint.json"))
+                .secretDistributionDirectory(secretDirectory).build();
+    }
+
+    private static ObjectNode checkpoint(ObjectMapper mapper, OAuthMigrationCommand command, String digest) {
+        ObjectNode checkpoint = mapper.createObjectNode();
+        checkpoint.put("realmKey", command.getRealmKey()).put("sourceSnapshotId", command.getSourceSnapshotId())
+                .put("reportSha256", digest).put("typeIndex", 0).putNull("lastSourceId")
+                .put("importedCount", 0).put("skippedCount", 0).put("phase", "DIRECTORY")
+                .putNull("oauthCursor").put("complete", false);
+        return checkpoint;
+    }
+
+    private OAuthMigrationServiceImpl directoryMigrationService(IdentityMigrationDAO dao,
+            PlatformTransactionManager transactions, ObjectMapper mapper) {
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("egon.tianquan-shoubing.oauth.public-origin")).thenReturn("https://idp.example");
+        return new OAuthMigrationServiceImpl(dao, new IdentityDirectoryContext(77351065313480704L, "tenantId"),
+                mock(OAuthClientService.class), mock(ResourceServerService.class),
+                mock(OAuthSecurityProjectionComponent.class), mock(OAuthClientRepository.class),
+                mock(OAuthResourceRepository.class), mock(OAuthGrantRepository.class),
+                mock(TransactionalOutboxResourceServerEventAdapter.class), mock(OAuthRealmRepository.class),
+                transactions, mapper, environment);
+    }
+
+    private static void configureUserTransactions(IdentityMigrationDAO dao, PlatformTransactionManager transactions,
+            int count, Map<String, IdentityUserPO> committed, List<Integer> batches, boolean unknownFirstCommit) {
+        List<UserRowDTO> source = java.util.stream.IntStream.rangeClosed(1, count).mapToObj(index ->
+                UserRowDTO.builder().id(String.format("user-%04d", index)).username("operator-" + index)
+                        .normalizedUsername("operator-" + index).displayName("Operator " + index)
+                        .status("ACTIVE").failedLoginCount(0).version(7).createdAt(CREATED_AT)
+                        .updatedAt(CREATED_AT.plusSeconds(30)).build()).toList();
+        when(dao.selectUsersAfter(nullable(String.class), eq(500))).thenAnswer(call -> {
+            String cursor = call.getArgument(0);
+            return source.stream().filter(row -> cursor == null || row.getId().compareTo(cursor) > 0)
+                    .limit(500).toList();
+        });
+        Map<String, IdentityUserPO> staged = new LinkedHashMap<>();
+        when(dao.selectUserByIdentitySub(eq(77351065313480704L), any())).thenAnswer(call ->
+                committed.get(call.getArgument(1)));
+        when(dao.insertUserMigration(any())).thenAnswer(call -> {
+            IdentityUserPO row = call.getArgument(0);
+            assertThat(committed).doesNotContainKey(row.getIdentitySub());
+            assertThat(staged.put(row.getIdentitySub(), row)).isNull();
+            return 1;
+        });
+        when(transactions.getTransaction(any())).thenAnswer(call -> {
+            staged.clear();
+            return new SimpleTransactionStatus();
+        });
+        AtomicInteger commitNumber = new AtomicInteger();
+        doAnswer(call -> {
+            batches.add(staged.size());
+            committed.putAll(staged);
+            staged.clear();
+            if (unknownFirstCommit && commitNumber.getAndIncrement() == 0) {
+                throw new TransactionSystemException("injected unknown commit outcome");
+            }
+            return null;
+        }).when(transactions).commit(any());
+        doAnswer(call -> { staged.clear(); return null; }).when(transactions).rollback(any());
     }
 
     private OAuthMigrationServiceImpl migrationService(IdentityMigrationDAO dao, OAuthClientService clientService) {

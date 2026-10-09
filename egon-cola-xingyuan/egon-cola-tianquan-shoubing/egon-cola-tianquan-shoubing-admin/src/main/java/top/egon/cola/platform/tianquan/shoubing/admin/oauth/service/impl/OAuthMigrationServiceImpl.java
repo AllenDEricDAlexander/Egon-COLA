@@ -781,7 +781,7 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
     }
 
     private MigrationProgress migrateDirectoryRows(OAuthMigrationCommand command, MigrationPlan plan) {
-        MigrationCheckpoint checkpoint = readCheckpoint(command, plan.reportSha256());
+        MigrationCheckpoint checkpoint = readCheckpoint(command, plan);
         if (checkpoint != null && checkpoint.complete()) {
             return new MigrationProgress(checkpoint.importedCount(), checkpoint.skippedCount(),
                     checkpointId(checkpoint));
@@ -843,7 +843,7 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
 
     private MigrationProgress migrateOAuthRows(OAuthMigrationCommand command, MigrationPlan plan,
             TrustedRealmBO targetRealm, TrustedRealmBO platformRealm, MigrationProgress directoryProgress) {
-        MigrationCheckpoint checkpoint = readCheckpoint(command, plan.reportSha256());
+        MigrationCheckpoint checkpoint = readCheckpoint(command, plan);
         long imported = directoryProgress.importedCount();
         long skipped = directoryProgress.skippedCount();
         securityProjection.recoverRegisteredRealms();
@@ -1827,7 +1827,7 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
         }
     }
 
-    private MigrationCheckpoint readCheckpoint(OAuthMigrationCommand command, String reportSha256) {
+    private MigrationCheckpoint readCheckpoint(OAuthMigrationCommand command, MigrationPlan plan) {
         Path path = command.getCheckpointFile();
         if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
             return null;
@@ -1836,18 +1836,52 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
             throw new IllegalStateException("OAUTH_MIGRATION_CHECKPOINT_PERMISSIONS_INVALID");
         }
         try {
-            MigrationCheckpoint checkpoint = objectMapper.readValue(path.toFile(), MigrationCheckpoint.class);
+            if (Files.size(path) > 65_536L) {
+                throw new IllegalStateException("OAUTH_MIGRATION_CHECKPOINT_INVALID");
+            }
+            MigrationCheckpoint checkpoint = objectMapper.readerFor(MigrationCheckpoint.class)
+                    .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .with(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES)
+                    .with(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                    .readValue(path.toFile());
             if (!Objects.equals(checkpoint.realmKey(), command.getRealmKey())
                     || !Objects.equals(checkpoint.sourceSnapshotId(), command.getSourceSnapshotId())
-                    || !Objects.equals(checkpoint.reportSha256(), reportSha256)
+                    || !Objects.equals(checkpoint.reportSha256(), plan.reportSha256())
                     || checkpoint.typeIndex() < 0 || checkpoint.typeIndex() > SourceType.values().length
-                    || blank(checkpoint.phase())) {
+                    || !validCheckpointState(command, checkpoint)
+                    || checkpoint.importedCount() > plan.sourceCount()
+                    || checkpoint.skippedCount() > plan.sourceCount() - checkpoint.importedCount()) {
                 throw new IllegalStateException("OAUTH_MIGRATION_CHECKPOINT_MISMATCH");
             }
             return checkpoint;
         } catch (IOException exception) {
             throw new IllegalStateException("OAUTH_MIGRATION_CHECKPOINT_INVALID");
         }
+    }
+
+    private static boolean validCheckpointState(OAuthMigrationCommand command, MigrationCheckpoint checkpoint) {
+        if (blank(checkpoint.phase()) || checkpoint.importedCount() < 0L || checkpoint.skippedCount() < 0L
+                || (checkpoint.lastSourceId() != null
+                && (blank(checkpoint.lastSourceId()) || checkpoint.lastSourceId().length() > 256))
+                || (checkpoint.oauthCursor() != null
+                && (blank(checkpoint.oauthCursor()) || checkpoint.oauthCursor().length() > 256))) {
+            return false;
+        }
+        if ("DIRECTORY".equals(checkpoint.phase())) {
+            return !checkpoint.complete() && checkpoint.oauthCursor() == null
+                    && (checkpoint.typeIndex() < SourceType.values().length || checkpoint.lastSourceId() == null);
+        }
+        if (checkpoint.typeIndex() != SourceType.values().length || checkpoint.lastSourceId() != null) {
+            return false;
+        }
+        return switch (checkpoint.phase()) {
+            case "OAUTH_PENDING" -> !checkpoint.complete() && checkpoint.oauthCursor() == null;
+            case "PLATFORM_CLIENTS", "RESOURCES", "PLATFORM_GRANTS" -> !checkpoint.complete()
+                    && "platform".equals(command.getRealmKey());
+            case "TENANT_CLIENTS" -> !checkpoint.complete() && command.getRealmKey().startsWith("tenant:");
+            case "COMPLETE" -> checkpoint.complete() && checkpoint.oauthCursor() == null;
+            default -> false;
+        };
     }
 
     private void writeCheckpoint(Path path, MigrationCheckpoint checkpoint) {
@@ -1862,7 +1896,10 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
             byte[] json = objectMapper.writeValueAsBytes(checkpoint);
             try (FileChannel channel = FileChannel.open(temporary, StandardOpenOption.WRITE,
                     StandardOpenOption.TRUNCATE_EXISTING)) {
-                channel.write(ByteBuffer.wrap(json));
+                ByteBuffer buffer = ByteBuffer.wrap(json);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
                 channel.force(true);
             }
             Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
