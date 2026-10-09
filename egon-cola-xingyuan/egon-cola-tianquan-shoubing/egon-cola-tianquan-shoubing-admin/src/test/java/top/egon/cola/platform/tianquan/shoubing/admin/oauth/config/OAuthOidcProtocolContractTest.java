@@ -1,6 +1,7 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
 import java.time.Instant;
 import java.net.URI;
 import java.time.Duration;
@@ -91,6 +92,7 @@ import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServer;
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServerStatus;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthSecurityStateBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.SignedTokenClaimsBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthRevocationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthSecurityTargetEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.config.OAuthRevocationProperties;
@@ -118,6 +120,33 @@ import static org.mockito.Mockito.when;
 class OAuthOidcProtocolContractTest {
 
     private static final Instant NOW = Instant.parse("2026-10-08T08:00:00Z");
+
+    @Test
+    void idMetadataRetainsOidcFieldsWithoutWeakeningAccessTokenRequiredGroups() throws Exception {
+        SignedTokenClaimsBO id = SignedTokenClaimsBO.builder().issuer(URI.create("https://idp.example.test/tenants/1001"))
+                .audience(Set.of(URI.create("oidc-client"))).subject("fixture-subject").jti("1234567")
+                .issuedAt(NOW).expiresAt(NOW.plusSeconds(300)).authTime(NOW).acr("PASSWORD")
+                .tokenUse(OAuthTokenTypeEnum.ID).authorizedParty("oidc-client").nonce("N".repeat(64))
+                .sessionId("fixture-session").build();
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        SignedTokenClaimsBO restored = mapper.readValue(mapper.writeValueAsString(id), SignedTokenClaimsBO.class);
+        assertEquals(id.getNonce(), restored.getNonce());
+        assertEquals(id.getSessionId(), restored.getSessionId());
+        assertEquals(id.getAuthorizedParty(), restored.getAuthorizedParty());
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            assertTrue(validator.validate(restored).isEmpty());
+            restored.setTokenUse(OAuthTokenTypeEnum.ACCESS);
+            Set<String> required = validator.validate(restored).stream()
+                    .map(value -> value.getPropertyPath().toString()).collect(java.util.stream.Collectors.toSet());
+            assertTrue(required.containsAll(Set.of("scope", "clientId", "clientRegistrationId", "authorizationId",
+                    "principalType", "scopeContext", "securityVersion", "notBefore")));
+            restored.setTokenUse(OAuthTokenTypeEnum.ID).setAuthorizedParty(null);
+            assertTrue(validator.validate(restored).stream().anyMatch(value -> value.getPropertyPath().toString().equals("authorizedParty")));
+            restored.setAuthorizedParty("oidc-client").setTokenUse(OAuthTokenTypeEnum.CONSENT_STATE);
+            assertFalse(validator.validate(restored).isEmpty());
+        }
+    }
 
     @Test
     void requiresS256AndRejectsMissingPlainOrMalformedChallenges() {

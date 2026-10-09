@@ -1,5 +1,6 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -24,13 +25,13 @@ import lombok.experimental.Accessors;
 public class OAuthAuthorizationAttributesBO {
 
     @Min(1)
-    @Max(1)
+    @Max(2)
     @Builder.Default
     private int schemaVersion = 1;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @Size(max = 256)
+    @Size(max = 512)
     private String nonce;
 
     @ToString.Exclude
@@ -57,4 +58,10 @@ public class OAuthAuthorizationAttributesBO {
     private String acr;
 
     private Instant authTime;
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @Valid
+    private OAuthPendingConsentBO pendingConsent;
+
 }

@@ -5,8 +5,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import java.net.URI;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -34,42 +39,35 @@ import top.egon.cola.platform.tianquan.shoubing.core.identity.AuthenticatedIdent
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityException;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityFacade;
 import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
+import top.egon.cola.component.common.crypto.digest.Digests;
 
 @Component("tenantLoginAuthenticationFilter")
+@RequiredArgsConstructor
+@Slf4j
 public class TenantLoginAuthenticationFilter extends OncePerRequestFilter {
 
     private static final int MAXIMUM_BODY_BYTES = 16 * 1024;
-    private static final String ACR_PASSWORD = "urn:egon:loa:password";
+    private static final String ACR_PASSWORD = "PASSWORD";
 
     @Qualifier("identityFacade")
+    @NonNull
     private final IdentityFacade identities;
     @Qualifier("tenantMembershipPort")
+    @NonNull
     private final TenantMembershipPort tenantMemberships;
     @Qualifier("tenantIssuerService")
+    @NonNull
     private final TenantIssuerService tenantIssuerService;
     @Qualifier("oauthAuthorizationRequestCache")
+    @NonNull
     private final RequestCache requestCache;
     @Qualifier("egonColaMybatisPlusClock")
+    @NonNull
     private final Clock clock;
     @Qualifier("oauthLoginSessionAuthenticationStrategy")
+    @NonNull
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
-
-    public TenantLoginAuthenticationFilter(
-            @Qualifier("identityFacade") IdentityFacade identities,
-            @Qualifier("tenantMembershipPort") TenantMembershipPort tenantMemberships,
-            @Qualifier("tenantIssuerService") TenantIssuerService tenantIssuerService,
-            @Qualifier("oauthAuthorizationRequestCache") RequestCache requestCache,
-            @Qualifier("egonColaMybatisPlusClock") Clock clock,
-            @Qualifier("oauthLoginSessionAuthenticationStrategy") SessionAuthenticationStrategy sessionAuthenticationStrategy) {
-        this.identities = Objects.requireNonNull(identities, "identities");
-        this.tenantMemberships = Objects.requireNonNull(tenantMemberships, "tenantMemberships");
-        this.tenantIssuerService = Objects.requireNonNull(tenantIssuerService, "tenantIssuerService");
-        this.requestCache = Objects.requireNonNull(requestCache, "requestCache");
-        this.clock = Objects.requireNonNull(clock, "clock");
-        this.sessionAuthenticationStrategy = Objects.requireNonNull(
-                sessionAuthenticationStrategy, "sessionAuthenticationStrategy");
-    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -106,8 +104,18 @@ public class TenantLoginAuthenticationFilter extends OncePerRequestFilter {
 
         char[] password = passwords[0].toCharArray();
         try {
-            AuthenticatedIdentity identity = identities.authenticate(
-                    usernames[0], password, "SAS_LOGIN", clock.instant());
+            SavedRequest savedRequest = requestCache.getRequest(request, response);
+            boolean freshRequest = savedRequest instanceof DefaultSavedRequest saved && requestsFreshAuthentication(saved);
+            var current = SecurityContextHolder.getContext().getAuthentication();
+            boolean currentSubjectProof = freshRequest && current instanceof UsernamePasswordAuthenticationToken
+                    && current.isAuthenticated();
+            AuthenticatedIdentity identity = currentSubjectProof
+                    ? identities.authenticateCurrent(current.getName(), password, clock.instant())
+                    : identities.authenticate(usernames[0], password, "SAS_LOGIN", clock.instant());
+            if (currentSubjectProof && !current.getName().equals(identity.identitySub())) {
+                writeError(response, HttpStatus.UNAUTHORIZED, "Sign in failed");
+                return;
+            }
             if (identity.mustChangePassword()) {
                 writeError(response, HttpStatus.FORBIDDEN, "Password change is required");
                 return;
@@ -119,7 +127,6 @@ public class TenantLoginAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            SavedRequest savedRequest = requestCache.getRequest(request, response);
             URI authorizeUri = authorizeUri(savedRequest, trustedRealm);
             if (authorizeUri == null) {
                 writeError(response, HttpStatus.NOT_FOUND, "Request rejected");
@@ -130,7 +137,15 @@ public class TenantLoginAuthenticationFilter extends OncePerRequestFilter {
                     User.withUsername(identity.identitySub()).password("").authorities("ROLE_USER").build(),
                     "",
                     List.of(() -> "ROLE_USER"));
-            authentication.setDetails(Map.of("authTime", clock.instant(), "acr", ACR_PASSWORD));
+            Instant authenticatedAt = clock.instant();
+            Map<String, Object> details = new HashMap<>();
+            details.put("authTime", authenticatedAt);
+            details.put("acr", currentSubjectProof ? "STRONG" : ACR_PASSWORD);
+            if (freshRequest && savedRequest instanceof DefaultSavedRequest saved) {
+                details.put("reauthenticatedRequest", authorizationRequestDigest(trustedRealm.getIssuer(), saved.getParameterMap()));
+                details.put("reauthenticationExpiresAt", authenticatedAt.plusSeconds(300));
+            }
+            authentication.setDetails(details);
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(authentication);
             sessionAuthenticationStrategy.onAuthentication(authentication, request, response);
@@ -158,6 +173,25 @@ public class TenantLoginAuthenticationFilter extends OncePerRequestFilter {
         }
         return path.equals("/tenants/" + trustedRealm.getBusinessTenantId() + "/login")
                 && path.equals(trustedRealm.getIssuer().getRawPath() + "/login");
+    }
+
+    private static boolean requestsFreshAuthentication(DefaultSavedRequest request) {
+        String[] prompt = request.getParameterMap().get("prompt");
+        return oneValue(prompt) && Arrays.asList(prompt[0].split(" ", -1)).contains("login")
+                || request.getParameterMap().containsKey("max_age");
+    }
+
+    public static String authorizationRequestDigest(URI issuer, Map<String, String[]> parameters) {
+        String canonicalIssuer = Objects.requireNonNull(issuer, "issuer").toASCIIString();
+        StringBuilder normalized = new StringBuilder().append(canonicalIssuer.length()).append(':').append(canonicalIssuer);
+        parameters.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            normalized.append(entry.getKey().length()).append(':').append(entry.getKey())
+                    .append(':').append(entry.getValue().length).append(':');
+            for (String value : entry.getValue()) {
+                normalized.append(value.length()).append(':').append(value);
+            }
+        });
+        return Digests.sha256Hex(normalized.toString());
     }
 
     private boolean hasAuthorizedRequest(HttpServletRequest request, TrustedRealmBO trustedRealm) {

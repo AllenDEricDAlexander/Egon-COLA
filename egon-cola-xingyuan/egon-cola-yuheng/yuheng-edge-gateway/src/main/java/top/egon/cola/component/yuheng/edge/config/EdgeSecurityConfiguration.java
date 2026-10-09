@@ -206,8 +206,11 @@ public class EdgeSecurityConfiguration {
             @Qualifier("edgeAuthorizedClientRepository") ServerOAuth2AuthorizedClientRepository authorizedClients,
             @Qualifier("edgeCsrfTokenRepository")
             ServerCsrfTokenRepository csrfTokens,
-            @Qualifier("edgeClock") Clock clock) {
-        ServerOAuth2AuthorizationRequestResolver requestResolver = authorizationRequestResolver(registrations);
+            @Qualifier("edgeClock") Clock clock,
+            @Qualifier("edgeIdpStarterProperties") IdpStarterProperties idpProperties,
+            @Qualifier("jacksonObjectMapper") com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        ServerOAuth2AuthorizationRequestResolver requestResolver = authorizationRequestResolver(registrations,
+                java.util.Objects.requireNonNull(idpProperties.getResourceUri(), "resourceUri"));
 
         ServerRedirectStrategy redirectStrategy = new DefaultServerRedirectStrategy();
         ((DefaultServerRedirectStrategy) redirectStrategy).setHttpStatus(HttpStatus.SEE_OTHER);
@@ -250,7 +253,27 @@ public class EdgeSecurityConfiguration {
                         .clientRegistrationRepository(registrations)
                         .authorizedClientRepository(authorizedClients)
                         .authorizationRequestResolver(requestResolver)
-                        .authenticationSuccessHandler(successHandler))
+                        .authenticationSuccessHandler(successHandler)
+                        .authenticationFailureHandler((filterExchange, failure) -> {
+                            boolean unavailable = false;
+                            Throwable cause = failure;
+                            for (int depth = 0; cause != null && depth < 8; depth++, cause = cause.getCause()) {
+                                if (cause instanceof org.springframework.security.oauth2.core.OAuth2AuthenticationException oauth
+                                        && java.util.Set.of("temporarily_unavailable", "server_error", "invalid_token_response")
+                                                .contains(oauth.getError().getErrorCode())) {
+                                    unavailable = true;
+                                }
+                            }
+                            ServerWebExchange exchange = filterExchange.getExchange();
+                            exchange.getResponse().setStatusCode(unavailable
+                                    ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST);
+                            exchange.getResponse().getHeaders().setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+                            exchange.getResponse().getHeaders().setCacheControl("no-store");
+                            String code = unavailable ? "temporarily_unavailable" : "invalid_request";
+                            return Mono.fromCallable(() -> objectMapper.writeValueAsBytes(java.util.Map.of("error", code)))
+                                    .flatMap(body -> exchange.getResponse().writeWith(Mono.just(
+                                            exchange.getResponse().bufferFactory().wrap(body))));
+                        }))
                 .oauth2Client(oauth2 -> oauth2
                         .clientRegistrationRepository(registrations)
                         .authorizedClientRepository(authorizedClients))
@@ -259,7 +282,7 @@ public class EdgeSecurityConfiguration {
     }
 
     private ServerOAuth2AuthorizationRequestResolver authorizationRequestResolver(
-            ReactiveClientRegistrationRepository registrations) {
+            ReactiveClientRegistrationRepository registrations, URI resource) {
         DefaultServerOAuth2AuthorizationRequestResolver delegate =
                 new DefaultServerOAuth2AuthorizationRequestResolver(registrations);
         delegate.setAuthorizationRequestCustomizer(
@@ -283,21 +306,18 @@ public class EdgeSecurityConfiguration {
                 Mono<OAuth2AuthorizationRequest> resolved = registrationId == null
                         ? delegate.resolve(exchange)
                         : delegate.resolve(exchange, registrationId);
-                return resolved.map(request -> stepUp
-                        ? withStepUpAuthentication(request)
-                        : request);
+                return resolved.map(request -> withRegisteredResource(request, stepUp));
             }
 
-            private OAuth2AuthorizationRequest withStepUpAuthentication(
-                    OAuth2AuthorizationRequest request) {
-                String authorizationUri = UriComponentsBuilder
-                        .fromUriString(request.getAuthorizationRequestUri())
-                        .queryParam("prompt", "login")
-                        .queryParam("max_age", "0")
-                        .build(true)
-                        .toUriString();
+            private OAuth2AuthorizationRequest withRegisteredResource(
+                    OAuth2AuthorizationRequest request, boolean stepUp) {
+                var target = UriComponentsBuilder.fromUriString(request.getAuthorizationRequestUri())
+                        .queryParam("resource", org.springframework.web.util.UriUtils.encodeQueryParam(
+                                resource.toASCIIString(), StandardCharsets.UTF_8));
+                if (stepUp) { target.queryParam("prompt", "login").queryParam("max_age", "0"); }
                 return OAuth2AuthorizationRequest.from(request)
-                        .authorizationRequestUri(authorizationUri)
+                        .additionalParameters(values -> values.put("resource", resource.toASCIIString()))
+                        .authorizationRequestUri(target.build(true).toUriString())
                         .build();
             }
         };
@@ -309,7 +329,10 @@ public class EdgeSecurityConfiguration {
                 return chain.filter(exchange);
             }
             List<String> values = exchange.getRequest().getQueryParams().get("stepUp");
-            if (values == null || (values.size() == 1 && "true".equals(values.getFirst()))) {
+            boolean known = java.util.Set.of("returnTo", "stepUp").containsAll(exchange.getRequest().getQueryParams().keySet())
+                    && exchange.getRequest().getQueryParams().values().stream()
+                            .allMatch(entries -> entries.size() == 1 && entries.getFirst().length() <= 2048);
+            if (known && (values == null || (values.size() == 1 && "true".equals(values.getFirst())))) {
                 return chain.filter(exchange);
             }
             exchange.getResponse().setStatusCode(HttpStatus.BAD_REQUEST);
@@ -321,6 +344,7 @@ public class EdgeSecurityConfiguration {
     public OpenAPI edgeOpenAPI() {
         return new OpenAPI()
                 .info(new Info().title("Yuheng OAuth BFF").version("1.0"))
+                .paths(nativeLoginPaths())
                 .components(new Components()
                         .addSecuritySchemes("bffSessionCookie", new SecurityScheme()
                                 .type(SecurityScheme.Type.APIKEY)
@@ -330,6 +354,51 @@ public class EdgeSecurityConfiguration {
                                 .type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.HEADER)
                                 .name("X-CSRF-TOKEN")));
+    }
+
+    private static io.swagger.v3.oas.models.Paths nativeLoginPaths() {
+        var registration = new io.swagger.v3.oas.models.parameters.Parameter().name("registrationId").in("path")
+                .required(true).schema(new io.swagger.v3.oas.models.media.StringSchema().minLength(1).maxLength(128));
+        var errors = new io.swagger.v3.oas.models.media.Content().addMediaType("application/json",
+                new io.swagger.v3.oas.models.media.MediaType().schema(new io.swagger.v3.oas.models.media.ObjectSchema()
+                        .addProperty("error", new io.swagger.v3.oas.models.media.StringSchema()).required(java.util.List.of("error"))));
+        var bad = new io.swagger.v3.oas.models.responses.ApiResponse().description("Unknown registration or invalid state/request")
+                .content(errors);
+        var noStore = new io.swagger.v3.oas.models.headers.Header()
+                .schema(new io.swagger.v3.oas.models.media.StringSchema()._enum(java.util.List.of("no-store")));
+        var login = new io.swagger.v3.oas.models.Operation().operationId("oauthBffLogin")
+                .summary("Start OIDC login for a configured registration").security(java.util.List.of())
+                .description("Only trusted server-side registration; returnTo stays inside the allowlist. Exact stepUp=true starts real reauthentication.")
+                .addParametersItem(registration)
+                .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().name("returnTo").in("query")
+                        .schema(new io.swagger.v3.oas.models.media.StringSchema()))
+                .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().name("stepUp").in("query")
+                        .schema(new io.swagger.v3.oas.models.media.StringSchema()._enum(java.util.List.of("true"))))
+                .responses(new io.swagger.v3.oas.models.responses.ApiResponses()
+                        .addApiResponse("302", new io.swagger.v3.oas.models.responses.ApiResponse()
+                                .description("Redirect to configured issuer with PKCE/state/nonce")
+                                .addHeaderObject("Location", new io.swagger.v3.oas.models.headers.Header().required(true)
+                                        .schema(new io.swagger.v3.oas.models.media.StringSchema().format("uri"))))
+                        .addApiResponse("400", bad));
+        var callback = new io.swagger.v3.oas.models.Operation().operationId("oauthBffCallback")
+                .summary("Complete the stored OIDC transaction").security(java.util.List.of())
+                .description("The stored request binds state, nonce, issuer and registration. Tokens stay on the server; only the opaque session reaches the browser.")
+                .addParametersItem(registration);
+        for (String name : java.util.List.of("code", "state", "error", "error_description", "iss")) {
+            callback.addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter().name(name).in("query")
+                    .required(name.equals("state")).schema(new io.swagger.v3.oas.models.media.StringSchema()));
+        }
+        callback.responses(new io.swagger.v3.oas.models.responses.ApiResponses()
+                .addApiResponse("303", new io.swagger.v3.oas.models.responses.ApiResponse().description("Resume the validated local return path")
+                        .addHeaderObject("Location", new io.swagger.v3.oas.models.headers.Header().required(true)
+                                .schema(new io.swagger.v3.oas.models.media.StringSchema()))
+                        .addHeaderObject("Cache-Control", noStore))
+                .addApiResponse("400", bad)
+                .addApiResponse("503", new io.swagger.v3.oas.models.responses.ApiResponse()
+                        .description("Issuer/shared security/session dependency unavailable").content(errors)));
+        return new io.swagger.v3.oas.models.Paths()
+                .addPathItem("/oauth2/authorization/{registrationId}", new io.swagger.v3.oas.models.PathItem().get(login))
+                .addPathItem("/login/oauth2/code/{registrationId}", new io.swagger.v3.oas.models.PathItem().get(callback));
     }
 
     private ServerWebExchangeMatcher edgeCsrfMatcher() {

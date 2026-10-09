@@ -94,11 +94,15 @@ class OAuthManagedSchemaContractTest {
         JsonNode manifest = objectMapper.readTree(requiredResource(MANIFEST_RESOURCE));
 
         assertEquals("tianquan-oauth", manifest.path("family").asText());
-        assertEquals(1, manifest.path("scripts").size());
+        assertEquals(2, manifest.path("scripts").size());
         JsonNode script = manifest.path("scripts").get(0);
         assertEquals("20261008_001", script.path("version").asText());
         assertEquals(SQL_RESOURCE, script.path("path").asText());
         assertEquals(sha256(sqlBytes), script.path("sha256").asText());
+        JsonNode correction = manifest.path("scripts").get(1);
+        assertEquals("20261009_001", correction.path("version").asText());
+        assertEquals("db/egon-mp/V20261009_001__support_oauth_consent_state.sql", correction.path("path").asText());
+        assertEquals(sha256(requiredResource(correction.path("path").asText())), correction.path("sha256").asText());
 
         String sql = new String(sqlBytes, StandardCharsets.UTF_8);
         Matcher tableMatcher = Pattern.compile(

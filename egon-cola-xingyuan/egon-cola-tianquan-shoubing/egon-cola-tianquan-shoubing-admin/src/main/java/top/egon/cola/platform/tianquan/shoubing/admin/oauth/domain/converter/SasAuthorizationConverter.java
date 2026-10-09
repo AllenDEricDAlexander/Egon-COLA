@@ -12,6 +12,10 @@ import java.util.Set;
 import java.net.URI;
 import java.security.Principal;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -26,6 +30,7 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import top.egon.cola.component.common.core.converter.BaseConverter;
 import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationAttributesBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthPendingConsentBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenMetadataBO;
@@ -41,6 +46,11 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
     String ABSOLUTE_EXPIRES_AT_ATTRIBUTE = "oauthAbsoluteExpiresAt";
     String REVOKED_AT_ATTRIBUTE = "oauthRevokedAt";
     String REQUESTED_AUDIENCES_ATTRIBUTE = "oauthRequestedAudiences";
+
+    String PENDING_ISSUED_AT_ATTRIBUTE = "egon.pendingIssuedAt";
+    String PENDING_EXPIRES_AT_ATTRIBUTE = "egon.pendingExpiresAt";
+
+    OAuthAuthorizationAttributesBO copyAttributes(OAuthAuthorizationAttributesBO source);
 
     @Override
     default OAuth2Authorization toTarget(OAuthAuthorizationBO source) {
@@ -78,7 +88,7 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
         }
 
         if (authorization.getTokens() != null) {
-            if (authorization.getTokens().size() > 4) {
+            if (authorization.getTokens().size() > 5) {
                 throw new IllegalArgumentException("OAUTH_AUTHORIZATION_TOKEN_COUNT_INVALID");
             }
             authorization.getTokens().forEach(token -> addToken(
@@ -116,11 +126,24 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
                 .authorizationUri(Objects.requireNonNull(issuer, "issuer").toASCIIString() + "/oauth2/authorize")
                 .clientId(registeredClient.getClientId())
                 .redirectUri(attributes.getRedirectUri() == null ? null : attributes.getRedirectUri().toASCIIString())
-                .scopes(Set.copyOf(source.getAuthorizedScopes()))
+                .scopes(Set.copyOf(attributes.getPendingConsent() == null
+                        ? source.getAuthorizedScopes() : attributes.getPendingConsent().getRequestedScopes()))
+                .state(attributes.getPendingConsent() == null ? null : attributes.getPendingConsent().getClientState())
                 .additionalParameters(parameters)
                 .build();
+        UsernamePasswordAuthenticationToken principal = UsernamePasswordAuthenticationToken.authenticated(
+                source.getPrincipalName(), "", AuthorityUtils.createAuthorityList("ROLE_USER"));
+        Map<String, Object> details = new HashMap<>();
+        if (attributes.getAuthTime() != null) {
+            details.put("authTime", attributes.getAuthTime());
+        }
+        if (attributes.getAcr() != null) {
+            details.put("acr", attributes.getAcr());
+        }
+        principal.setDetails(details);
         return OAuth2Authorization.from(authorization)
                 .attribute(OAuth2AuthorizationRequest.class.getName(), request)
+                .attribute(Principal.class.getName(), principal)
                 .build();
     }
 
@@ -145,11 +168,15 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
         if (attributes == null) {
             attributes = attributesFromRequest(authorizationRequest, authorization);
         }
-        if (attributes == null || attributes.getSchemaVersion() != 1) {
+        if (attributes == null || attributes.getSchemaVersion() < 1 || attributes.getSchemaVersion() > 2) {
             throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_REQUIRED");
         }
+        attributes = copyAttributes(attributes);
+        if (authorization.getAttribute("state") == null && authorization.getToken(OAuth2AuthorizationCode.class) != null) {
+            attributes.setPendingConsent(null);
+        }
 
-        List<OAuthTokenBO> tokens = readTokens(authorization, objectMapper);
+        List<OAuthTokenBO> tokens = readTokens(authorization, objectMapper, attributes);
         Long authorizationId = authorization.getId() == null || isSasGeneratedUuid(authorization.getId())
                 ? authorizationIdFromTokens(tokens)
                 : Long.valueOf(parsePositiveId(authorization.getId(), "OAUTH_AUTHORIZATION_ID_INVALID"));
@@ -234,8 +261,27 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
             Object acrValue = details.get("acr");
             acr = acrValue instanceof String value ? value : null;
         }
+        OAuthPendingConsentBO pending = null;
+        String consentState = authorization.getAttribute("state");
+        if (consentState != null) {
+            Object requestContext = RequestContextHolder.getRequestAttributes();
+            if (!(requestContext instanceof ServletRequestAttributes servlet)
+                    || servlet.getRequest().getSession(false) == null) {
+                throw new IllegalArgumentException("OAUTH_CONSENT_SESSION_REQUIRED");
+            }
+            Instant pendingIssuedAt = authorization.getAttribute(PENDING_ISSUED_AT_ATTRIBUTE);
+            Instant pendingExpiresAt = authorization.getAttribute(PENDING_EXPIRES_AT_ATTRIBUTE);
+            if (pendingIssuedAt == null || pendingExpiresAt == null) {
+                throw new IllegalArgumentException("OAUTH_CONSENT_LIFETIME_REQUIRED");
+            }
+            pending = OAuthPendingConsentBO.builder().clientState(state).consentState(consentState)
+                    .requestedScopes(new ArrayList<>(authorizationRequest.getScopes()))
+                    .sessionBindingDigest(Digests.sha256Hex(servlet.getRequest().getSession(false).getId()))
+                    .issuedAt(pendingIssuedAt).expiresAt(pendingExpiresAt).build();
+        }
         return OAuthAuthorizationAttributesBO.builder()
-                .schemaVersion(1)
+                .schemaVersion(2)
+                .pendingConsent(pending)
                 .nonce(text(parameters.get("nonce")))
                 .codeChallenge(text(parameters.get("code_challenge")))
                 .codeChallengeMethod(text(parameters.get("code_challenge_method")))
@@ -267,6 +313,7 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
 
     private static Long authorizationIdFromTokens(List<OAuthTokenBO> tokens) {
         return tokens.stream()
+                .filter(token -> token.getTokenType() == OAuthTokenTypeEnum.ACCESS)
                 .map(OAuthTokenBO::getMetadata)
                 .filter(Objects::nonNull)
                 .map(OAuthTokenMetadataBO::getClaims)
@@ -294,11 +341,20 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
                 || token.getMetadata() == null || token.getMetadata().getSchemaVersion() != 1) {
             throw new IllegalArgumentException("OAUTH_AUTHORIZATION_TOKEN_PROJECTION_INVALID");
         }
+        if (token.getTokenType() == OAuthTokenTypeEnum.CONSENT_STATE) {
+            if (token.getMetadata() != null && !token.getMetadata().isInvalidated()
+                    && token.getRevokedAt() == null && token.getConsumedAt() == null) {
+                builder.attribute("state", token.getTokenValue());
+            }
+            return;
+        }
         OAuth2Token sasToken = switch (token.getTokenType()) {
             case CODE -> new OAuth2AuthorizationCode(token.getTokenValue(), token.getIssuedAt(), token.getExpiresAt());
             case ACCESS -> new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, token.getTokenValue(),
-                    token.getIssuedAt(), token.getExpiresAt(), Set.copyOf(authorizedScopes));
+                    token.getIssuedAt(), token.getExpiresAt(), token.getMetadata().getClaims() == null
+                            ? Set.copyOf(authorizedScopes) : Set.copyOf(token.getMetadata().getClaims().getScope()));
             case REFRESH -> new OAuth2RefreshToken(token.getTokenValue(), token.getIssuedAt(), token.getExpiresAt());
+            case CONSENT_STATE -> throw new IllegalArgumentException("OAUTH_CONSENT_STATE_IS_NOT_ISSUED_TOKEN");
             case ID -> new OidcIdToken(token.getTokenValue(), token.getIssuedAt(), token.getExpiresAt(),
                     claimsMap(token.getMetadata().getClaims(), objectMapper));
         };
@@ -312,7 +368,8 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
         });
     }
 
-    private static List<OAuthTokenBO> readTokens(OAuth2Authorization authorization, ObjectMapper objectMapper) {
+    private static List<OAuthTokenBO> readTokens(
+            OAuth2Authorization authorization, ObjectMapper objectMapper, OAuthAuthorizationAttributesBO attributes) {
         List<OAuthTokenBO> tokens = new ArrayList<>();
         OAuth2Authorization.Token<OAuth2AccessToken> access = authorization.getAccessToken();
         if (access != null) {
@@ -330,7 +387,17 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
         if (id != null) {
             tokens.add(toToken(id, OAuthTokenTypeEnum.ID, objectMapper));
         }
-        if (tokens.size() > 4) {
+        String consentState = authorization.getAttribute("state");
+        if (consentState != null) {
+            OAuthPendingConsentBO pending = attributes.getPendingConsent();
+            if (pending == null || !consentState.equals(pending.getConsentState())) {
+                throw new IllegalArgumentException("OAUTH_CONSENT_STATE_PAYLOAD_MISMATCH");
+            }
+            tokens.add(OAuthTokenBO.builder().tokenType(OAuthTokenTypeEnum.CONSENT_STATE)
+                    .tokenValue(consentState).issuedAt(pending.getIssuedAt()).expiresAt(pending.getExpiresAt())
+                    .metadata(OAuthTokenMetadataBO.builder().schemaVersion(1).build()).build());
+        }
+        if (tokens.size() > 5) {
             throw new IllegalArgumentException("OAUTH_AUTHORIZATION_TOKEN_COUNT_INVALID");
         }
         return tokens;
@@ -342,8 +409,21 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
             ObjectMapper objectMapper) {
         OAuth2Token token = source.getToken();
         Map<String, Object> claims = source.getClaims();
-        SignedTokenClaimsBO typedClaims = claims == null || claims.isEmpty() || objectMapper == null
-                ? null : objectMapper.convertValue(claims, SignedTokenClaimsBO.class);
+        Map<String, Object> normalizedClaims = claims == null ? null : new HashMap<>(claims);
+        if (normalizedClaims != null && normalizedClaims.get("scope") instanceof String scope) {
+            List<String> values = List.of(scope.split(" ", -1));
+            java.util.Set<String> scopes = new java.util.LinkedHashSet<>(values);
+            if (values.isEmpty() || values.size() > 64 || scopes.size() != values.size()
+                    || values.stream().anyMatch(value -> value.isEmpty() || value.length() > 128)) {
+                throw new IllegalArgumentException("OAUTH_TOKEN_SCOPE_INVALID");
+            }
+            normalizedClaims.put("scope", scopes);
+        }
+        SignedTokenClaimsBO typedClaims = normalizedClaims == null || normalizedClaims.isEmpty() || objectMapper == null
+                ? null : objectMapper.convertValue(normalizedClaims, SignedTokenClaimsBO.class);
+        if (typedClaims != null) {
+            typedClaims.setTokenUse(tokenType);
+        }
         return OAuthTokenBO.builder()
                 .tokenType(tokenType)
                 .tokenValue(token.getTokenValue())
@@ -363,12 +443,27 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
         if (claims == null) {
             return Map.of();
         }
-        return Objects.requireNonNull(objectMapper, "objectMapper")
+        Map<String, Object> value = Objects.requireNonNull(objectMapper, "objectMapper")
                 .convertValue(claims, new TypeReference<HashMap<String, Object>>() { });
+        value.remove("_token_use");
+        value.entrySet().removeIf(entry -> entry.getValue() == null);
+        if (claims.getScope() != null) {
+            value.put("scope", String.join(" ", claims.getScope()));
+        }
+        value.put("iat", claims.getIssuedAt());
+        value.put("exp", claims.getExpiresAt());
+        if (claims.getNotBefore() != null) {
+            value.put("nbf", claims.getNotBefore());
+        }
+        if (claims.getAuthTime() != null) {
+            value.put("auth_time", claims.getAuthTime());
+        }
+        return value;
     }
 
     private static List<String> audiences(List<OAuthTokenBO> tokens) {
         return tokens.stream()
+                .filter(token -> token.getTokenType() == OAuthTokenTypeEnum.ACCESS)
                 .map(OAuthTokenBO::getMetadata)
                 .filter(Objects::nonNull)
                 .map(OAuthTokenMetadataBO::getClaims)
@@ -399,7 +494,7 @@ public interface SasAuthorizationConverter extends BaseConverter<OAuthAuthorizat
                 || authorization.getPrincipalType() == null
                 || !Set.of("USER", "SERVICE").contains(authorization.getPrincipalType())
                 || authorization.getGrantType() == null || authorization.getAuthorizedScopes() == null
-                || authorization.getAttributes() == null || authorization.getAttributes().getSchemaVersion() != 1
+                || authorization.getAttributes() == null || (authorization.getAttributes().getSchemaVersion() < 1 || authorization.getAttributes().getSchemaVersion() > 2)
                 || authorization.getAttributes().getSecuritySnapshot() == null
                 || authorization.getAbsoluteExpiresAt() == null
                 || authorization.getStatus() == null

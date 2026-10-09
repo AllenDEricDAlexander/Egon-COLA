@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import java.io.IOException;
@@ -48,6 +49,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJ
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthAuthorizationMapper;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationAttributesBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthPendingConsentBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthConsentBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthSecuritySnapshotBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
@@ -85,6 +87,80 @@ class OAuthAuthorizationPersistenceContractTest {
 
     @TempDir
     Path temporaryDirectory;
+
+    @Test
+    void approvedAuthorizationSchemaTwoRetainsV1AndRejectsUnknownVersions() throws Exception {
+        Path key = temporaryDirectory.resolve("consent-kek.bin");
+        Files.write(key, new byte[32]);
+        Files.setPosixFilePermissions(key, PosixFilePermissions.fromString("rw-------"));
+        OAuthPayloadCipherComponent cipher = new OAuthPayloadCipherComponent(
+                new OAuthKeyEncryptionProperties().setKeyId("consent-kek").setKeyFile(key));
+        cipher.initializeKey();
+        OAuthAuthorizationConverter converter = Mappers.getMapper(OAuthAuthorizationConverter.class);
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+        OAuthAuthorizationBO value = authorization(authorizationRow(101L, 0L), 0L);
+        OAuthPendingConsentBO pending = OAuthPendingConsentBO.builder().clientState("original-client-state")
+                .consentState("S".repeat(43) + "=").sessionBindingDigest("b".repeat(64))
+                .requestedScopes(List.of("openid", "orders.read")).issuedAt(Instant.parse("2026-10-09T00:00:00Z"))
+                .expiresAt(Instant.parse("2026-10-09T00:05:00Z")).build();
+        value.getAttributes().setSchemaVersion(2).setPendingConsent(pending);
+        OAuthAuthorizationPO row = org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> converter.toSource(
+                trustedTenant(), cipher, mapper, "101", value));
+        OAuthAuthorizationAttributesBO restored = converter.toTarget(trustedTenant(), cipher, mapper, "101", row).getAttributes();
+        assertEquals(2, restored.getSchemaVersion());
+        assertNotNull(restored.getPendingConsent());
+        assertEquals(pending.getClientState(), restored.getPendingConsent().getClientState());
+        assertEquals(pending.getConsentState(), restored.getPendingConsent().getConsentState());
+        assertEquals(pending.getSessionBindingDigest(), restored.getPendingConsent().getSessionBindingDigest());
+        assertEquals(pending.getRequestedScopes(), restored.getPendingConsent().getRequestedScopes());
+        assertFalse(mapper.writeValueAsString(value.getAttributes()).contains("pendingConsent"));
+        assertFalse(mapper.writeValueAsString(pending).contains("original-client-state"));
+        assertFalse(pending.toString().contains(pending.getConsentState()));
+        assertFalse(row.getAttributesCiphertext().contains("original-client-state"));
+        assertThrows(IllegalArgumentException.class, () -> converter.toTarget(trustedTenant(), cipher, mapper, "102", row));
+        String originalCiphertext = row.getAttributesCiphertext();
+        String plain = cipher.decrypt(trustedTenant(), "authorization-attributes", "101", originalCiphertext);
+        com.fasterxml.jackson.databind.node.ObjectNode unknown = (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(plain);
+        unknown.put("unknownContractField", true);
+        row.setAttributesCiphertext(cipher.encrypt(trustedTenant(), "authorization-attributes", "101", mapper.writeValueAsString(unknown)));
+        assertThrows(IllegalStateException.class, () -> converter.toTarget(trustedTenant(), cipher, mapper, "101", row));
+        row.setAttributesCiphertext(originalCiphertext.substring(0, originalCiphertext.length() - 8)
+                + (originalCiphertext.charAt(originalCiphertext.length() - 8) == 'A' ? 'B' : 'A')
+                + originalCiphertext.substring(originalCiphertext.length() - 7));
+        assertThrows(IllegalArgumentException.class, () -> converter.toTarget(trustedTenant(), cipher, mapper, "101", row));
+        value.getAttributes().setSchemaVersion(1);
+        assertThrows(IllegalArgumentException.class, () -> converter.toSource(trustedTenant(), cipher, mapper, "101", value));
+        value.getAttributes().setPendingConsent(null);
+        OAuthAuthorizationPO v1 = converter.toSource(trustedTenant(), cipher, mapper, "101", value);
+        assertEquals(1, converter.toTarget(trustedTenant(), cipher, mapper, "101", v1).getAttributes().getSchemaVersion());
+        value.getAttributes().setSchemaVersion(99);
+        assertThrows(IllegalArgumentException.class, () -> converter.toSource(trustedTenant(), cipher, mapper, "101", value));
+    }
+
+    @Test
+    void consentMigrationAddsOneVersionAndFitsEveryPersistedTokenCode() throws Exception {
+        Path directory = repositoryRoot().resolve(ADMIN_PREFIX + "resources/db/egon-mp");
+        Path file = directory.resolve("V20261009_001__support_oauth_consent_state.sql");
+        assertTrue(Files.isRegularFile(file), "Missing single approved managed consent migration");
+        String sql = Files.readString(file);
+        assertTrue(sql.contains("ALTER COLUMN token_type TYPE VARCHAR(32)"));
+        assertTrue(sql.contains("CONSENT_STATE"));
+        assertTrue(OAuthTokenTypeEnum.CODE.getCode().length() > 16);
+        for (OAuthTokenTypeEnum type : OAuthTokenTypeEnum.values()) {
+            assertTrue(type.getCode().length() <= 32);
+            assertTrue(sql.contains("'" + type.getCode() + "'"));
+        }
+        assertFalse(sql.contains("ck_oauth_token_jti"));
+        JsonNode manifest = new ObjectMapper().readTree(Files.readString(directory.resolve("repository-manifest.json")));
+        assertEquals(2, manifest.path("scripts").size());
+        assertEquals("20261008_001", manifest.path("scripts").get(0).path("version").asText());
+        assertEquals("238adf24fc3025f27ac5da91528b6110962977762f3ce751467a970a7c6acc23",
+                manifest.path("scripts").get(0).path("sha256").asText());
+        assertEquals("20261009_001", manifest.path("scripts").get(1).path("version").asText());
+        String checksum = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(Files.readAllBytes(file)));
+        assertEquals(checksum, manifest.path("scripts").get(1).path("sha256").asText());
+    }
 
     @Test
     void authorizationTokenAndConsentDdlExposeExactColumnsAndBoundaries() throws IOException {
@@ -294,7 +370,7 @@ class OAuthAuthorizationPersistenceContractTest {
         assertFalse(objectMapper.writeValueAsString(restoredAuthorization).contains("synthetic-authorization-nonce"));
         assertFalse(restoredAuthorization.toString().contains("synthetic-authorization-nonce"));
         OAuthAuthorizationAttributesBO unsupportedAttributes = OAuthAuthorizationAttributesBO.builder()
-                .schemaVersion(2).securitySnapshot(authorization.getAttributes().getSecuritySnapshot()).build();
+                .schemaVersion(99).securitySnapshot(authorization.getAttributes().getSecuritySnapshot()).build();
         OAuthAuthorizationBO unsupportedAuthorization = authorization(authorizationRow(101L, 0L), 0L)
                 .setAttributes(unsupportedAttributes);
         assertThrows(IllegalArgumentException.class, () -> authorizationConverter.toSource(

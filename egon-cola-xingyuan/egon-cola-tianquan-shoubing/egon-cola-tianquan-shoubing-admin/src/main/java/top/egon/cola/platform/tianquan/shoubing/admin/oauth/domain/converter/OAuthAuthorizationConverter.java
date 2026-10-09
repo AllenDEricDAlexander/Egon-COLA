@@ -1,6 +1,10 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Context;
@@ -10,6 +14,7 @@ import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 import top.egon.cola.component.common.core.converter.BaseConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationAttributesBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthPendingConsentBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.po.OAuthAuthorizationPO;
@@ -84,10 +89,8 @@ public interface OAuthAuthorizationConverter extends BaseConverter<OAuthAuthoriz
         String json = payloadCipher.decrypt(trustedRealm, "authorization-attributes", authorizationId, ciphertext);
         try {
             OAuthAuthorizationAttributesBO attributes =
-                    objectMapper.readValue(json, OAuthAuthorizationAttributesBO.class);
-            if (attributes.getSchemaVersion() != 1) {
-                throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_SCHEMA_UNSUPPORTED");
-            }
+                    storageMapper(objectMapper).readValue(json, OAuthAuthorizationAttributesBO.class);
+            requireAttributesSchema(attributes);
             return attributes;
         } catch (JsonProcessingException failure) {
             throw new IllegalStateException("OAUTH_AUTHORIZATION_ATTRIBUTES_JSON_INVALID", failure);
@@ -101,14 +104,44 @@ public interface OAuthAuthorizationConverter extends BaseConverter<OAuthAuthoriz
             @Context OAuthPayloadCipherComponent payloadCipher,
             @Context ObjectMapper objectMapper,
             @Context String authorizationId) {
-        if (attributes == null || attributes.getSchemaVersion() != 1) {
-            throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_SCHEMA_UNSUPPORTED");
-        }
+        requireAttributesSchema(attributes);
         try {
             return payloadCipher.encrypt(trustedRealm, "authorization-attributes", authorizationId,
-                    objectMapper.writeValueAsString(attributes));
+                    storageMapper(objectMapper).writeValueAsString(attributes));
         } catch (JsonProcessingException failure) {
             throw new IllegalStateException("OAUTH_AUTHORIZATION_ATTRIBUTES_JSON_ENCODE_FAILED", failure);
         }
     }
+    private static void requireAttributesSchema(OAuthAuthorizationAttributesBO attributes) {
+        if (attributes == null || attributes.getSchemaVersion() < 1 || attributes.getSchemaVersion() > 2
+                || attributes.getSchemaVersion() == 1 && attributes.getPendingConsent() != null) {
+            throw new IllegalArgumentException("OAUTH_AUTHORIZATION_ATTRIBUTES_SCHEMA_UNSUPPORTED");
+        }
+    }
+
+    private static ObjectMapper storageMapper(ObjectMapper managedMapper) {
+        return managedMapper.copy().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .addMixIn(OAuthAuthorizationAttributesBO.class, AuthorizationStorageMixin.class)
+                .addMixIn(OAuthPendingConsentBO.class, PendingConsentStorageMixin.class);
+    }
+
+    abstract class AuthorizationStorageMixin {
+        @JsonIgnore(false)
+        @JsonProperty("pendingConsent")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        abstract OAuthPendingConsentBO getPendingConsent();
+    }
+
+    abstract class PendingConsentStorageMixin {
+        @JsonIgnore(false)
+        @JsonProperty("clientState")
+        abstract String getClientState();
+        @JsonIgnore(false)
+        @JsonProperty("consentState")
+        abstract String getConsentState();
+        @JsonIgnore(false)
+        @JsonProperty("sessionBindingDigest")
+        abstract String getSessionBindingDigest();
+    }
+
 }

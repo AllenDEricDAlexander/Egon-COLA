@@ -54,6 +54,29 @@ import static org.mockito.Mockito.mock;
 class SpringConstructorResolutionTest {
 
     @Test
+    void nativeConsentAndLoginConstructorsResolveQualifiedPortsWithCompetingTypes() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            registerNamedMock(context, "tenantIssuerService", TenantIssuerService.class);
+            registerNamedMock(context, "unrelatedIssuerService", TenantIssuerService.class);
+            registerNamedMock(context, "tenantAuthorizationService", org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService.class);
+            registerNamedMock(context, "unrelatedAuthorizationService", org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService.class);
+            registerNamedMock(context, "tenantRegisteredClientRepository", org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository.class);
+            registerNamedMock(context, "unrelatedRegisteredClientRepository", org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository.class);
+            registerNamedMock(context, "identityFacade", top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityFacade.class);
+            registerNamedMock(context, "tenantMembershipPort", top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort.class);
+            registerNamedMock(context, "oauthAuthorizationRequestCache", org.springframework.security.web.savedrequest.RequestCache.class);
+            registerNamedMock(context, "oauthLoginSessionAuthenticationStrategy", org.springframework.security.web.authentication.session.SessionAuthenticationStrategy.class);
+            context.registerBean("egonColaMybatisPlusClock", Clock.class, Clock::systemUTC);
+            context.registerBean("unrelatedClock", Clock.class, Clock::systemUTC);
+            context.registerBean(top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.OAuthConsentController.class);
+            context.registerBean(top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter.class);
+            context.refresh();
+            assertThat(context.getBean("oauthConsentController")).isNotNull();
+            assertThat(context.getBean("tenantLoginAuthenticationFilter")).isNotNull();
+        }
+    }
+
+    @Test
     void createsClassBasedTransactionProxyForMpIdentityPersistence() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
                 TransactionProxyConfiguration.class)) {

@@ -1,9 +1,11 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +16,10 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Set;
+import java.util.List;
+import org.hibernate.validator.group.GroupSequenceProvider;
+import org.hibernate.validator.spi.group.DefaultGroupSequenceProvider;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,6 +34,7 @@ import top.egon.cola.platform.tianquan.shoubing.contract.OAuthSecurityVersionBO;
 @AllArgsConstructor
 @Accessors(chain = true)
 @Builder
+@GroupSequenceProvider(SignedTokenClaimsBO.ClaimsGroupSequenceProvider.class)
 public class SignedTokenClaimsBO {
 
     @NotNull
@@ -47,7 +54,7 @@ public class SignedTokenClaimsBO {
     private String subject;
 
     @JsonProperty("scope")
-    @NotNull
+    @NotNull(groups = AccessToken.class)
     @Size(max = 64)
     private Set<@NotBlank @Size(max = 128) String> scope;
 
@@ -57,7 +64,7 @@ public class SignedTokenClaimsBO {
     private Long tenantId;
 
     @JsonProperty("principal_type")
-    @NotBlank
+    @NotBlank(groups = AccessToken.class)
     @Size(max = 16)
     private String principalType;
 
@@ -71,7 +78,7 @@ public class SignedTokenClaimsBO {
     private Instant issuedAt;
 
     @JsonProperty("nbf")
-    @NotNull
+    @NotNull(groups = AccessToken.class)
     private Instant notBefore;
 
     @JsonProperty("exp")
@@ -79,22 +86,22 @@ public class SignedTokenClaimsBO {
     private Instant expiresAt;
 
     @JsonProperty("client_id")
-    @NotBlank
+    @NotBlank(groups = AccessToken.class)
     @Size(max = 128)
     private String clientId;
 
     @JsonProperty("authorization_id")
-    @NotBlank
+    @NotBlank(groups = AccessToken.class)
     @Size(max = 32)
     private String authorizationId;
 
     @JsonProperty("client_registration_id")
-    @NotBlank
+    @NotBlank(groups = AccessToken.class)
     @Size(max = 128)
     private String clientRegistrationId;
 
     @JsonProperty("scope_context")
-    @NotBlank
+    @NotBlank(groups = AccessToken.class)
     @Size(max = 16)
     private String scopeContext;
 
@@ -109,6 +116,10 @@ public class SignedTokenClaimsBO {
     @JsonProperty("source_env")
     @Size(max = 128)
     private String sourceEnv;
+
+    @JsonProperty("app_id")
+    @Size(max = 128)
+    private String appId;
 
     @JsonProperty("credential_id")
     @Size(max = 128)
@@ -126,9 +137,50 @@ public class SignedTokenClaimsBO {
     private Instant authTime;
 
     @JsonProperty("security_version")
-    @NotNull
+    @NotNull(groups = AccessToken.class)
     @Valid
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private OAuthSecurityVersionBO securityVersion;
+    @JsonProperty("_token_use")
+    @NotNull
+    @Builder.Default
+    private OAuthTokenTypeEnum tokenUse = OAuthTokenTypeEnum.ACCESS;
+
+    @JsonProperty("nonce")
+    @Size(max = 512)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private String nonce;
+
+    @JsonProperty("azp")
+    @NotBlank(groups = IdToken.class)
+    @Size(max = 128)
+    private String authorizedParty;
+
+    @JsonProperty("sid")
+    @Size(max = 256)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private String sessionId;
+
+    @JsonIgnore
+    @AssertTrue
+    public boolean isSignedTokenUse() {
+        return tokenUse == OAuthTokenTypeEnum.ACCESS || tokenUse == OAuthTokenTypeEnum.ID;
+    }
+
+    public interface AccessToken { }
+    public interface IdToken { }
+
+    public static final class ClaimsGroupSequenceProvider
+            implements DefaultGroupSequenceProvider<SignedTokenClaimsBO> {
+        @Override
+        public List<Class<?>> getValidationGroups(SignedTokenClaimsBO claims) {
+            return List.of(SignedTokenClaimsBO.class,
+                    claims != null && claims.getTokenUse() == OAuthTokenTypeEnum.ID
+                            ? IdToken.class : AccessToken.class);
+        }
+    }
+
 }

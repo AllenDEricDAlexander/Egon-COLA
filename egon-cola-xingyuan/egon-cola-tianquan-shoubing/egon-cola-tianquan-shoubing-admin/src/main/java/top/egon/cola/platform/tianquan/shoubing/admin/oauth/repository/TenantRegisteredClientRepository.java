@@ -1,7 +1,5 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +46,7 @@ public class TenantRegisteredClientRepository implements RegisteredClientReposit
     }
 
     @Override
-    public RegisteredClient findByClientId(@NotBlank @Size(max = 128) String clientId) {
+    public RegisteredClient findByClientId(String clientId) {
         if (clientId == null || clientId.isBlank() || !clientId.equals(clientId.trim())
                 || clientId.length() > 128) {
             return null;

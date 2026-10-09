@@ -136,6 +136,20 @@ class EdgeLoginContractTest {
     Path tempDir;
 
     @Test
+    void nativeLoginAndCallbackAreInTheExistingEdgeOpenApiContract() {
+        var api = new EdgeSecurityConfiguration(propertiesWithIssuerOrigin()).edgeOpenAPI();
+        assertThat(api.getPaths()).containsKeys("/oauth2/authorization/{registrationId}",
+                "/login/oauth2/code/{registrationId}");
+        var login = api.getPaths().get("/oauth2/authorization/{registrationId}").getGet();
+        var callback = api.getPaths().get("/login/oauth2/code/{registrationId}").getGet();
+        assertThat(login.getOperationId()).isEqualTo("oauthBffLogin");
+        assertThat(callback.getOperationId()).isEqualTo("oauthBffCallback");
+        assertThat(login.getResponses()).containsKeys("302", "400");
+        assertThat(callback.getResponses()).containsKeys("303", "400", "503");
+        assertThat(api.getComponents().getSecuritySchemes()).containsKeys("bffSessionCookie", "bffCsrfHeader");
+    }
+
+    @Test
     void successfulApiAndMcpForwardingDropsCookiesButPreservesResolvedSessionAndBearer() {
         var filter = new top.egon.cola.component.yuheng.edge.filter.TrustedIdentityHeaderFilter(
                 new com.fasterxml.jackson.databind.ObjectMapper());
@@ -742,12 +756,16 @@ class EdgeLoginContractTest {
         WebSessionServerCsrfTokenRepository csrfTokens = new WebSessionServerCsrfTokenRepository();
         SecurityWebFilterChain apiChain = configuration.edgeApiSecurityWebFilterChain(
                 ServerHttpSecurity.http(), csrfTokens);
+        IdpStarterProperties resourceProperties = new IdpStarterProperties();
+        resourceProperties.setResourceUri(URI.create("https://edge.example/resource"));
         SecurityWebFilterChain browserChain = configuration.edgeBrowserSecurityWebFilterChain(
                 ServerHttpSecurity.http(),
                 registrations,
                 authorizedClients,
                 csrfTokens,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                resourceProperties,
+                new com.fasterxml.jackson.databind.ObjectMapper());
         WebFilterChainProxy security = new WebFilterChainProxy(apiChain, browserChain);
         WebHandler handler = exchange -> {
             exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.NO_CONTENT);
@@ -756,6 +774,12 @@ class EdgeLoginContractTest {
         WebTestClient client = WebTestClient.bindToWebHandler(handler)
                 .webFilter(security)
                 .build();
+
+        client.get().uri("/login/oauth2/code/tenant-a?code=synthetic-code&state=missing-request")
+                .exchange().expectStatus().isBadRequest()
+                .expectHeader().doesNotExist("Location")
+                .expectHeader().valueEquals("Cache-Control", "no-store")
+                .expectBody().jsonPath("$.error").isEqualTo("invalid_request");
 
         client.get().uri("/bff/session")
                 .exchange()
@@ -784,6 +808,7 @@ class EdgeLoginContractTest {
                 .getQueryParams();
         assertThat(normalQuery.getFirst("prompt")).isNull();
         assertThat(normalQuery.getFirst("max_age")).isNull();
+        assertThat(normalQuery.getFirst("resource")).isEqualTo("https://edge.example/resource");
 
         URI stepUpAuthorization = client.get()
                 .uri("/oauth2/authorization/tenant-a?stepUp=true")
@@ -797,6 +822,9 @@ class EdgeLoginContractTest {
                 .getQueryParams();
         assertThat(stepUpQuery.getFirst("prompt")).isEqualTo("login");
         assertThat(stepUpQuery.getFirst("max_age")).isEqualTo("0");
+        assertThat(stepUpQuery.getFirst("resource")).isEqualTo("https://edge.example/resource");
+        client.get().uri("/oauth2/authorization/tenant-a?resource=https://attacker.example/resource")
+                .exchange().expectStatus().isBadRequest();
 
         client.get().uri("/oauth2/authorization/tenant-a?stepUp=trusted-input")
                 .exchange()

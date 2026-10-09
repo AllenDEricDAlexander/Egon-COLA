@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 10:42 Asia/Shanghai` |
-| Updated | `2026-10-09 12:32 Asia/Shanghai` |
+| Updated | `2026-10-09 16:45 Asia/Shanghai` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | 授柄SAS/认证MP与受管DDL、SCG、Starter、玉衡/鉴神/天枢准入、五端认证前端、切流 |
@@ -26,6 +26,8 @@
 本Plan按18个逻辑Step实施有效设计；新增Step 3迁移用户/密码/租户/成员目录到MP，并修订当前Outbox装配、直接审计事件依赖、历史导入与消费者验证。主Spec OAuth/OIDC、独立SCG、PLATFORM隔离、即时撤销和强制重新登录继续有效。API-045现在纳入Step 10/16，不再让已有Grant页面缺失GET。
 
 用户已明确授权按本Plan与当前修订Spec继续执行。Step 1–18均已独立验证并提交，Step18为 `8b5a8fb5b9c360997621a6f29962f9269e2ac377`（精确70路径、324 Admin/56 focused tests通过）。C13、C8、C17、C8b、C15、C14按独立纠正提交关闭；最终审计发现的死配置C18按§6.11处理。文档保持Review，不以执行授权冒充整体Spec接受。原无guard全reactor意外启动临时Redis fixture的偏差、Cache/MP baseline失败及所有用户控制的运行验收缺口均在最终报告列出，禁止声称全reactor或完整Spec已通过。
+
+最终验收为 **PARTIAL**，详见 [执行审计](../reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md)。原生 pending consent 的期限/state 持久化及 API-005 CSRF 尚未闭合；C8c虽通过受影响47 Admin/24 Edge测试，仍未达到提交门禁。改变原state/schema合同及新增一个受管DDL版本的 [22路径补救提案](../reports/2026-10-09-oauth-consent-correction-proposal.md) 已由用户“继续执行，批准”授权，现按§6.13实施；不以既有Step提交或结构检查PASS代替完整协议验收。
 
 ## 2. Target Spec and Effective Design
 
@@ -1395,6 +1397,287 @@ C18 File 7 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-imple
 - Validation: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthPublicEndpointSettingsTest,TenantIssuerIsolationTest,OAuthConfigTest,IdpPersistenceEntityContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; `bash -n scripts/unified-identity-local.sh scripts/unified-xingyuan/test-direct-run-contract.sh`; static `bash scripts/unified-xingyuan/test-direct-run-contract.sh`; strict Spec/Plan and diff checks.
 - Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPublicEndpointSettingsTest.java`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `scripts/unified-identity-local.sh`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
 - Commit: `fix(shoubing): remove retired protocol configuration`；one exact7-path commit, then resume final audit; runtime acceptance stays operator-owned.
+
+### 6.12 Corrective gate C8c — final JWT wire and native protocol OAS closure
+
+- Origin/authorization: Final primary Spec §9.0/9.3/10 audit；EVD-179/DEC-178/TEST-172；用户已授权推荐解阻，不能把具体wire/docs缺口标作runtime未验证。
+- Baseline: C18 `4d9104f2817e051cacc2bbd99e24df4fdab88182`。
+- Design/reuse: Existing SAS JWT customizer and OAS Builder/configurer only, no new handler, model, layer or dependency. Space-delimited string normalizes already granted Set without new authorization. Schema helpers factor repeated protocol headers/errors/request fields, retaining existing login/discovery and annotated management ownership.
+
+C8c File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiContractTest.java`
+
+- Purpose/pseudocode: new config test first requires every canonical SAS operation and root410, unique IDs, Basic/Bearer schemes, bounded forms, no password/client_secret body and correct platform grants; old customizer missing paths yields RED。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+C8c File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`
+
+- Purpose/pseudocode: actual signed SERVICE PLATFORM/TENANT token asserts scope is String with exact granted value; current Set emits array and yields clean RED。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+C8c File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`
+
+- Purpose/pseudocode: existing Edge test first asserts native registration login/callback docs alongside three annotated BFF operations; keep logout/session/API tests。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+C8c File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
+
+- Purpose/pseudocode: extend existing customizer with tenant OAuth metadata/JWKS/GET+POST authorize/token/revoke/userinfo, platform metadata/JWKS/token/revoke and ten retired method/path410; retain login/discovery/management docs, use existing OAS builders and reusable shared protocol schema helpers。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+C8c File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`
+
+- Purpose/pseudocode: Existing BaseConverter/Jackson schema boundary normalizes standard space-delimited scope into the typed internal Set before claims decode and emits a string when reconstructing SAS metadata; bound/duplicate checks remain fail-closed. Capture the actual signed SAS authorization, prove the old decoder rejects String via clean assertion RED, then preserve the granted scope set and reconstructed wire. No encrypted schema/table change.
+- Boundaries: only raw protocol scalar normalization in the existing named converter factory, no general entity setter mapping/new class/library.
+
+C8c File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/SignedTokenClaimsBO.java`
+
+- Purpose/pseudocode: Retain the already-issued signed SERVICE app_id in the full-Lombok typed claim schema, @JsonProperty and @Size(max=128); no new claim/privilege is minted. Strict decode of actual signed claims exposes its missing field, and captured authorization mapping must retain it.
+- Boundary: internal encrypted token metadata only; USER appId remains absent/null, no public management view changes.
+
+C8c File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
+
+- Purpose/pseudocode: change only two AT scope claim assignments to String.join of granted scopes, preserve all other claims/branch/provider/transaction behavior。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+C8c File 8 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`
+
+- Purpose/pseudocode: add exact login/callback path items to existing edgeOpenAPI Bean with registrationId/query redirect/status and security/error schemas; native failure extension takes qualified managed Jackson, maps invalid callback400/dependency unavailable503 to constant no-store JSON with no Location; test actual callback through existing WebTestClient security chain; preserve success303 and opaque session+CSRF schemes and enabled/read-scope guards。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+C8c File 9 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose/pseudocode: record evidence/decision/test/requirements and no-runtime boundary。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+C8c File 10 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose/pseudocode: record exact10 paths/gates/order/commit and final audit impact。
+- Boundaries: same canonical endpoint methods; no new executable protocol endpoint, no secret values/examples, no PG/Redis/project/browser; 17MC+10Literal separately inspect final diff.
+
+- Validation: Admin `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthProtocolOpenApiContractTest,OAuthTokenClientCredentialsTest,TenantIssuerIsolationTest,OAuthOidcProtocolContractTest,IdpPublishedOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; Edge `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; strict Spec/Plan/diff gate. RED fixtures must compile and fail missing behavior only.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/SignedTokenClaimsBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
+- Commit: `fix(oauth): complete scope wire and protocol documentation`; exact10, one corrective commit after both module gates then final audit.
+
+### 6.13 Corrective gate C9b — Approved native consent/OIDC closure (combines uncommitted C8c)
+
+- Authorization: User 2026-10-09 explicitly “继续执行，批准” the recommended22-path proposal, schema/state/one-DDL and native consent changes. Exact baseline4d9104f2817e051cacc2bbd99e24df4fdab88182. C8c ten-path pending patch is included, not committed independently while API-005 remains unsatisfied.
+- Effective Spec: Current amendment REQ-047, API-046, EVD-180/181, DEC-179/180, TEST-173–178; primary unaffected contracts and existing CQE/Outbox remain governing. Review status stays historical; explicit execution approval is the authority.
+- Scope clarification: 22 approved candidate paths + current C8c ten =26 implementation paths; add existing TenantLoginAuthenticationFilter only for mandatory logging/Lombok/Qualifier conformity on this same native flow and two existing delivery report artifacts for approval/final audit. Initial29 paths below; native RED3 adds two necessary existing SPI adapter paths (Step19 File30/31), represented as approved Step19 in§7 for strict requirementcoverage. No new dependency/layer/state store, no unrelated RBAC/DDC/Engine edits.
+- Design: Strategy via existing native SAS auth request/consent Providers; existing TransactionalOAuthAuthenticationProvider Decorator owns one local TM; registered-client/issuer Adapter and version-guarded persisted STATE lifecycle; existing MapStruct/BaseConverter storage codec; direct Controller is a read-only page Query. Runtime systems remain operator-controlled.
+- State flow: first pending save pre-seeds issuedAt/expiry/family deadline using injected Clock and registered client TTL, persists encrypted state row and typed request/session state; read restores native request and trusted User principal. Native approve runs inside TM, validates/locks current realm/client/state then consent/code save+state invalidation atomically; decline invalidates pending and throws native access_denied after commit rather than rolling it back. Tokens/RT cannot extend the initial family limit.
+- Boundary validation: Jackson bounded whitelist/v1-v2 storage schema; Jakarta cascades/groups for pending/claims; direct page Query validates canonical issuer/client/subject/session/current state and returns constant errors; CSRF before consentProvider, existing token/revoke protocol exemptions preserved. Ordinary JSON/toString excludes sensitive state, encrypted codec alone has local explicit mixins. Unknown claims/property/type/realm/AAD never silently accepted.
+- DDL: one new V20261009_001 widens token_type varchar16→32 because existing AUTHORIZATION_CODE is18chars and adds CONSENT_STATE to current CHECK; immutable old SQL/manifest prefix retained; no other structural change, migration execution or repair.
+- RED/GREEN order: new native roundtrip first compiles against existing APIs and fails actual pending persistence/consent redirect or CSRF; persistence/schema/validation cases then show missing expected behavior. Implement models/converters/service/Provider/Controller/config and single SQL+manifest in order; rerun the actual full native roundtrip including cancel/replay/failure, AT/ID/UserInfo/RT, and affected existing suites. C8c previous cleanRED evidence remains documented; current combined finalGREEN must be fresh.
+
+C9b File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java`
+
+- Responsibility and concrete changes: 真实MockMvc/SAS授权→同意→code→AT/ID/RT→userinfo/refresh，不以Service直调用替代生产接线；跨realm、state/CSRF错误、重复提交、超时/失败/回滚.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`
+
+- Responsibility and concrete changes: 真实同意页面、Spring CSRF、两issuer同client/state隔离、配置/错误/Host/metadata.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`
+
+- Responsibility and concrete changes: 同意与code/refresh一次性CAS、JWT/IDOIDC claim类型分组、期限/标准错误.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiContractTest.java`
+
+- Responsibility and concrete changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`
+
+- Responsibility and concrete changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java`
+
+- Responsibility and concrete changes: 待同意STATE密文、expiry、客户端state/请求scope/principal重建和新的token类型正负例.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/openapi/IdpPublishedOpenApiContractTest.java`
+
+- Responsibility and concrete changes: 新同意页面仅direct AS provider，管理catalog既有断言保留.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`
+
+- Responsibility and concrete changes: 新Controller及事务装配Qualifier/Bean验证.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 9 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`
+
+- Responsibility and concrete changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Pseudocode: arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationAttributesBO.java`
+
+- Responsibility and concrete changes: 仅授权载荷允许受控schemaVersion2，可读旧v1；不得引入任意Object或默认多态.
+- Pseudocode: extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthPendingConsentBO.java`
+
+- Responsibility and concrete changes: 闭合typed schema，pending请求scope/客户端state/服务端state关联；敏感字段不出普通JSON/toString.
+- Pseudocode: extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/SignedTokenClaimsBO.java`
+
+- Responsibility and concrete changes: 区分AT与ID Token的必填约束，保留OIDC nonce；AT仍严格验证所有安全字段.
+- Pseudocode: full Lombok baseline; common iss/aud/sub/iat/exp/jti constraints plus nested AccessToken/IdToken validation groups selected by explicit encrypted token-use discriminator; AT required fields unchanged; bounded ID nonce/azp/sid preserved; SAS metadata adapter strips internal discriminator before claims reconstruction.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/enums/OAuthTokenTypeEnum.java`
+
+- Responsibility and concrete changes: 明确新增CONSENT_STATE持久化值；@EnumValue/@JsonValue，不伪装成CODE.
+- Pseudocode: extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
+
+- Responsibility and concrete changes: 只保护consent POST的CSRF、配置原生SAS consent hook与同库事务；精确issuer页面/redirect Adapter；不复制协议栈.
+- Pseudocode: configure consentPage to fixed internal /consent; issuer filter wraps only that SAS redirect into exact trusted tenant path; add consent GET matcher, authentication and bounded constant errors; require CSRF on POST authorize, leave token/revoke exemptions; wrap native request/consent Providers with existing TM/Strategy; preserve metadata/JWKS and both signed token customizers, family cap and numeric ID jti.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
+
+- Responsibility and concrete changes: API-046与真实CSRF/error/filter一致；不声明未实现的同步成功.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthConsentController.java`
+
+- Responsibility and concrete changes: API-046 GET /tenants/{tenantId}/consent；SAS session、真实待同意交易、CSRF/转义/默认不勾选、独立取消form；沿用现有AS登录HTML风格.
+- Pseudocode: named RestController/Slf4j/qualified Lombok fields; GET canonical issuer validates session+native state+client/requested scopes; load masked Spring CSRF and render escaped no-store text HTML with unchecked checkbox scope and separate cancel forms; no page writes/credentials/scripts.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`
+
+- Responsibility and concrete changes: 真实原生登录回合所需规范与既有REQ-043修正：具名Bean/qualified Lombok；普通登录PASSWORD，fresh intent仅用现有authenticateCurrent证明既有subject并写STRONG/auth_time及短期一次性请求摘要；保留membership/CSRF/session机制.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthAuthorizationConverter.java`
+
+- Responsibility and concrete changes: 现有MapStruct/BaseConverter加密payload codec，state只在AES-GCM载荷内；稳定PK/issuer/realm/purpose AAD；未知schema拒绝.
+- Pseudocode: extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`
+
+- Responsibility and concrete changes: 支持native pending授权，无token时明确初始化期限；state、原请求scope和受信principal/authTime/acr重建；state不作为业务AT.
+- Pseudocode: v2 pending adapter copies typed attributes using MapStruct; reconstruct native state/request scopes/Principal authTime/acr; only pending STATE creates a bounded internal OAuthTokenBO, never JWT; on approved code save pending payload clears; map AT/ID with explicit use validation and keep standard claim wire.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`
+
+- Responsibility and concrete changes: 检查pending不可提前签发、family绝对期限与实际native provider接线；仅根据完整roundtrip失败修必需路径.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`
+
+- Responsibility and concrete changes: state按digest和当前realm查找；owner/session绑定；拒绝/过期/已消费严格拒绝；只读token lookup不可跨realm.
+- Pseudocode: resolve/lock trusted realm+active client; initialize pending300s+fixed family deadline once before mapping; save auth/state under same TM, preserve immutable request/security snapshot; typed state lookup reloads after lock, verifies expiry/session/ownership and permits only pending ACTIVE; approval/removal invalidates state and records only real code issuance.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`
+
+- Responsibility and concrete changes: 复用既有Provider/事务Decorator，request/consent与ConsentRepository及Authorization/STATE/code保存同一TM；完整Slf4j/Lombok/Qualifier规范.
+- Pseudocode: Lombok constructor and qualified actual Spring ports; reuse native delegate strategies, add consent/cancellation strategy; deliberate denial is carried through successful transaction completion and rethrown after commit, while all true storage/signing/enqueue failures propagate to rollback and unavailable mapping.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 23 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`
+
+- Responsibility and concrete changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 24 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261009_001__support_oauth_consent_state.sql`
+
+- Responsibility and concrete changes: 唯一新受管ALTER版本，扩展oauth_token token_type CHECK允许CONSENT_STATE；保留现有jti约束及数据；不改任何旧SQL.
+- Pseudocode: append exactly the next version SQL and SHA-256 manifest entry; compare every prior SQL byte and manifest entry unchanged; only token_type width/CHECK affected; no DB execution.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 25 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json`
+
+- Responsibility and concrete changes: 同tianquan-oauth family追加新版本与实际SHA-256，原脚本记录保持不变.
+- Pseudocode: append exactly the next version SQL and SHA-256 manifest entry; compare every prior SQL byte and manifest entry unchanged; only token_type width/CHECK affected; no DB execution.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 26 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Responsibility and concrete changes: 锁定补救有序路径/RED-GREEN/每条MC与Rule、执行顺序及单次范围提交.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 27 — `MODIFY docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md`
+
+- Responsibility and concrete changes: 记录用户明确批准与候选范围/执行状态，保留发现和历史证据.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 28 — `MODIFY docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md`
+
+- Responsibility and concrete changes: 补救后按新有效Spec重新逐项审计；历史失败/Redisfixture偏差与runtime缺口保留.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+C9b File 29 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Responsibility and concrete changes: 明确定义加密state与v2内部载荷/API-046/STATE生命周期/事务/验收；旧密码/明文state存储仍禁止.
+- Pseudocode: preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+- Boundary/validation contribution: traditional existing packages; no extra dependencies. This file contributes to the exact native/related module gates below and the independent17 MC + ten Literal Rules before commit.
+
+- Exact focused native gate: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthConsentRoundTripTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest,OAuthOidcProtocolContractTest,OAuthTokenClientCredentialsTest,OAuthProtocolOpenApiContractTest,IdpPublishedOpenApiContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`.
+- Final regression: exact all Admin *Test list and existing non-runtime IdentityProfileControllerIT/InternalRefreshTokenSecurityIT/IdpAdminSecurityIT list (no wildcard/default external fixtures); EdgeLoginContractTest; approved affected Starter/Gateway/RPC/MCP targeted gates from §8; static shell + strict Spec/Plan + immutable SQL/manifest + diff/path parity. No unguarded fullreactor or app/PG/Redis/browser.
+- Commit: `fix(shoubing): complete native consent and oidc flow`; one dedicated path-limited31-path task, only after all source/controlled-test gates and each applicable17 MC/ten Rule PASS. History18Steps+seven corrective commits retained, no amend/squash. Do not mark live runtime acceptance complete.
+- Gate applicability lock: all17 MC IDs and Rules1,2,3,4,5,6,7,9,10,11 are Applicable (Rule7 profile parity unchanged but checked; Rule11 MP/managed-DDL/CQE always applies). State In Progress; evidence rows start UNKNOWN and will be evaluated from final diff/source/command, never predicted PASS.
+- Commit paths (exact):
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiContractTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/openapi/IdpPublishedOpenApiContractTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`
+- `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationAttributesBO.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthPendingConsentBO.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/SignedTokenClaimsBO.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/enums/OAuthTokenTypeEnum.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthConsentController.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthAuthorizationConverter.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`
+- `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261009_001__support_oauth_consent_state.sql`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json`
+- `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+- `docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md`
+- `docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md`
+- `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -15467,6 +15750,838 @@ assert no old protocol/persistence fallback is reachable
 - Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityAuthenticationTransactionContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/InternalRefreshTokenSecurityIT.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/web/IdentityProfileControllerIT.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/ddc/DdcPolicyConfigTest.java`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthStepUpController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthUserInfoController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/JpaOAuthClientStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/ClientSecretBasicAuthenticator.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/JpaResourceServerStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/repo/IdentityAuditLogRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRedirectUriRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientSecretRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityClientResourceGrantRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityResourceServerRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/repo/IdentityOutboxEventRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/IdentitySigningKeyRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/domain/pojo/IdentityAuditLogEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityCredentialEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityUserEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientRedirectUriEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientSecretEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityResourceServerEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/domain/pojo/IdentityOutboxEventEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantMembershipEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/pojo/IdentitySigningKeyEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`, `scripts/unified-identity-local.sh`, `scripts/unified-xingyuan/start-local-stack.sh`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml`, `docs/runbooks/unified-identity-local.md`, `docs/operations/unified-identity-mcp-local-runbook.md`, `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
 - Commit: `refactor(shoubing): retire legacy oauth protocol`。
 
+### Step 19 — Approved native consent/OIDC corrective closure (C9b + pending C8c)
+
+- Requirements: REQ-002, REQ-003, REQ-004, REQ-010, REQ-018, REQ-021, REQ-023, REQ-027, REQ-028, REQ-034, REQ-043, REQ-045, REQ-047.
+- Dependencies: Step1–18 and seven corrective commits already committed; exact baseline `4d9104f2817e051cacc2bbd99e24df4fdab88182`; user explicit approval2026-10-09; §6.13 exact decisions apply.
+- Scope clarification: Native RED3 confirms HV000151 from real method-validation interceptors on SAS SPI overrides. The registered-client, consent and real JWK-source adapters below are necessary direct native dependencies; this is annotation-compatibility correction with existing input bounds retained, no contract weakening, library or unrelated module. User AGENTS permits necessary direct compatibility changes; scope is explicitly33, not silently widened.
+- Existing-contract clarification (EVD-184): REQ-043 already requires real OIDC reauthentication. Within the same declared native request Provider/config/login/test paths, use the existing IdentityFacade.authenticateCurrent for current-subject password proof, canonical ACR, and an exact-request digest consumed once; delegate native request validation with anonymous principal before login. No new public API/dependency/store or unrelated password/membership behavior. Native freshness RED/GREEN is required.
+- Existing-contract clarification (EVD-185): Preserve primary API-004 state/nonce bounds32–512 and one exact registered Resource. Validate the bounded single-valued native query using the existing SAS validator/current trusted client repository before pending save. The existing Edge resolver adds its configured IdpStarterProperties.resourceUri to both ordinary and step-up requests and rejects caller resource/issuer/prompt overrides. Same33 declared files; no new API/config key or dependency. Required native/Edge RED/GREEN.
+- Existing-contract clarification (EVD-186): Native no-overgrant closure uses the same declared authorization/issuance service and SAS converter: persist only selected request scopes plus native openid, reconstruct ACCESS scopes from the particular token metadata, and fence explicit USER business scopes and Resource version before token consumption/signing. Preserve previous global consent and standard OIDC identity scopes. Native scope RED3 is required to turn GREEN. Broader legacy Core/management USER-grant scope configuration remains a separately reported final-audit finding, not silently changed in this Step.
+- Direct test clarification (EVD-187): allAdmin354 has one failure because OAuthManagedSchemaContractTest assumes exactly one managed version. Add the existing test as File33, assert exactly two ordered scripts, preserve the old path/version/SHA and check the single approved new version/SHA. No production or additional migration change.
+- Baseline state: Native pending consent/state/CSRF not satisfied; C8c ten-path wire/OAS/callback patch uncommitted; two user-owned oldSpec edits preserved outside this Step.
+- Observable outcome: Actual SAS personnel authorize→consent→code→AT/ID/RT/UserInfo works with S256, bounded encrypted state/session binding, CSRF and transactional replay/failure semantics; docs match effective behavior.
+- End state: All33 declared files verified together and one focused semantic commit; final audit distinguishes completed code from user-controlled runtime acceptance.
+- Test-first gate: Required; File1 nativeSAS test compiles against current public APIs then actual pending persistence/page/CSRF target failure RED, not fixture/classpath error; storage/code/fault negative RED where current behavior is absent; C8c historical cleanRED retained, final combinedGREEN fresh.
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; allApplicable; independent evidence required before commit.
+- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; allApplicable and must pass; ordinary mutablemodels retainfullLombok and converterBaseConverter; complexflow usesexistingStrategy/Decorator/Adapter/State.
+- Ordered files: File1–33 below; tests first, typedmodel/converter/service/Provider/page/config then single SQL/manifest, documentation; coupled compiled model prerequisites are not behaviorGREEN.
+- Validation working directory: `/Users/mario/SelfProject/Egon-COLA`.
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthConsentRoundTripTest,OAuthAuthorizationPersistenceContractTest,TenantIssuerIsolationTest,OAuthOidcProtocolContractTest,OAuthTokenClientCredentialsTest,OAuthProtocolOpenApiContractTest,IdpPublishedOpenApiContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`; then safe exact allAdmin/non-runtimeIT list, EdgeLoginContractTest, affectedStarter/Gateway/RPC/MCP/static+strict validators per§6.13; never defaultunguardedreactor.
+- Expected result: Native fullroundtrip and replay/CSRF/realm/cancel/failure/family bounds pass, no password/state/token leak; all oldSQL bytes+manifestprefix unchanged, newoneDDL checksum exact; consumers compile and targetedregressions pass.
+- Failure returns to: Step19 In Progress; repair only declared paths and approved state/schema; realPG/Redis/browser proof remains user-run, not fabricated.
+- Completion criteria: Allrequired native/nonruntimegates plus17MC/10Rules PASS, exactdiffreview33files and no unrelatedchanges; final audit updated then immediately one path-limitedcommit.
+- Rollback: Preserve original18Steps/seven corrections; no history rewrite. Before runtime newstate/authv2 cannot be interpreted by oldbinary; operationalrollback afternewfacts requires freeze/reconciliation. No database has been executed by this Step.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/openapi/IdpPublishedOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationAttributesBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthPendingConsentBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/SignedTokenClaimsBO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/enums/OAuthTokenTypeEnum.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthConsentController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthAuthorizationConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261009_001__support_oauth_consent_state.sql`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`, `docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md`, `docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/TenantRegisteredClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java`.
+- Commit: `fix(shoubing): complete native consent and oidc flow` (one logical correction).
+
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java`
+
+- Purpose: 真实MockMvc/SAS授权→同意→code→AT/ID/RT→userinfo/refresh，不以Service直调用替代生产接线；跨realm、state/CSRF错误、重复提交、超时/失败/回滚.
+- Symbols: `OAuthConsentRoundTripTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 真实MockMvc/SAS授权→同意→code→AT/ID/RT→userinfo/refresh，不以Service直调用替代生产接线；跨realm、state/CSRF错误、重复提交、超时/失败/回滚.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`
+
+- Purpose: 真实同意页面、Spring CSRF、两issuer同client/state隔离、配置/错误/Host/metadata.
+- Symbols: `TenantIssuerIsolationTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 真实同意页面、Spring CSRF、两issuer同client/state隔离、配置/错误/Host/metadata.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java`
+
+- Purpose: 同意与code/refresh一次性CAS、JWT/IDOIDC claim类型分组、期限/标准错误.
+- Symbols: `OAuthOidcProtocolContractTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 同意与code/refresh一次性CAS、JWT/IDOIDC claim类型分组、期限/标准错误.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthOidcProtocolContractTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiContractTest.java`
+
+- Purpose: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Symbols: `OAuthProtocolOpenApiContractTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiContractTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`
+
+- Purpose: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Symbols: `OAuthTokenClientCredentialsTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java`
+
+- Purpose: 待同意STATE密文、expiry、客户端state/请求scope/principal重建和新的token类型正负例.
+- Symbols: `OAuthAuthorizationPersistenceContractTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 待同意STATE密文、expiry、客户端state/请求scope/principal重建和新的token类型正负例.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/OAuthAuthorizationPersistenceContractTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/openapi/IdpPublishedOpenApiContractTest.java`
+
+- Purpose: 新同意页面仅direct AS provider，管理catalog既有断言保留.
+- Symbols: `IdpPublishedOpenApiContractTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 新同意页面仅direct AS provider，管理catalog既有断言保留.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/openapi/IdpPublishedOpenApiContractTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`
+
+- Purpose: 新Controller及事务装配Qualifier/Bean验证.
+- Symbols: `SpringConstructorResolutionTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 新Controller及事务装配Qualifier/Bean验证.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`
+
+- Purpose: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Symbols: `EdgeLoginContractTest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java` only.
+FLOW -> arrange actual Spring Security/SAS/Service or generated converter with controlled repo/transaction/key fixture; execute the native HTTP/storage handoff; assert accepted contract and no writes on rejection, using expected behavior RED before production changes.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationAttributesBO.java`
+
+- Purpose: 仅授权载荷允许受控schemaVersion2，可读旧v1；不得引入任意Object或默认多态.
+- Symbols: `OAuthAuthorizationAttributesBO` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 仅授权载荷允许受控schemaVersion2，可读旧v1；不得引入任意Object或默认多态.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthAuthorizationAttributesBO.java` only.
+FLOW -> extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthPendingConsentBO.java`
+
+- Purpose: 闭合typed schema，pending请求scope/客户端state/服务端state关联；敏感字段不出普通JSON/toString.
+- Symbols: `OAuthPendingConsentBO` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 闭合typed schema，pending请求scope/客户端state/服务端state关联；敏感字段不出普通JSON/toString.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/bo/OAuthPendingConsentBO.java` only.
+FLOW -> extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/SignedTokenClaimsBO.java`
+
+- Purpose: 区分AT与ID Token的必填约束，保留OIDC nonce；AT仍严格验证所有安全字段.
+- Symbols: `SignedTokenClaimsBO` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 区分AT与ID Token的必填约束，保留OIDC nonce；AT仍严格验证所有安全字段.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/bo/SignedTokenClaimsBO.java` only.
+FLOW -> full Lombok baseline; common iss/aud/sub/iat/exp/jti constraints plus nested AccessToken/IdToken validation groups selected by explicit encrypted token-use discriminator; AT required fields unchanged; bounded ID nonce/azp/sid preserved; SAS metadata adapter strips internal discriminator before claims reconstruction.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/enums/OAuthTokenTypeEnum.java`
+
+- Purpose: 明确新增CONSENT_STATE持久化值；@EnumValue/@JsonValue，不伪装成CODE.
+- Symbols: `OAuthTokenTypeEnum` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 明确新增CONSENT_STATE持久化值；@EnumValue/@JsonValue，不伪装成CODE.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/enums/OAuthTokenTypeEnum.java` only.
+FLOW -> extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
+
+- Purpose: 只保护consent POST的CSRF、配置原生SAS consent hook与同库事务；精确issuer页面/redirect Adapter；不复制协议栈.
+- Symbols: `AuthorizationServerConfiguration` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 只保护consent POST的CSRF、配置原生SAS consent hook与同库事务；精确issuer页面/redirect Adapter；不复制协议栈.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java` only.
+FLOW -> configure consentPage to fixed internal /consent; issuer filter wraps only that SAS redirect into exact trusted tenant path; add consent GET matcher, authentication and bounded constant errors; require CSRF on POST authorize, leave token/revoke exemptions; wrap native request/consent Providers with existing TM/Strategy; preserve metadata/JWKS and both signed token customizers, family cap and numeric ID jti.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java`
+
+- Purpose: API-046与真实CSRF/error/filter一致；不声明未实现的同步成功.
+- Symbols: `OAuthProtocolOpenApiConfiguration` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: API-046与真实CSRF/error/filter一致；不声明未实现的同步成功.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthProtocolOpenApiConfiguration.java` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 16 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthConsentController.java`
+
+- Purpose: API-046 GET /tenants/{tenantId}/consent；SAS session、真实待同意交易、CSRF/转义/默认不勾选、独立取消form；沿用现有AS登录HTML风格.
+- Symbols: `OAuthConsentController` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: API-046 GET /tenants/{tenantId}/consent；SAS session、真实待同意交易、CSRF/转义/默认不勾选、独立取消form；沿用现有AS登录HTML风格.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthConsentController.java` only.
+FLOW -> named RestController/Slf4j/qualified Lombok fields; GET canonical issuer validates session+native state+client/requested scopes; load masked Spring CSRF and render escaped no-store text HTML with unchecked checkbox scope and separate cancel forms; no page writes/credentials/scripts.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java`
+
+- Purpose: 真实原生登录回合所需规范与既有REQ-043修正：具名Bean/qualified Lombok；普通登录PASSWORD，fresh intent仅用现有authenticateCurrent证明既有subject并写STRONG/auth_time及短期一次性请求摘要；保留membership/CSRF/session机制.
+- Symbols: `TenantLoginAuthenticationFilter` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 真实原生登录回合所需规范与既有REQ-043修正：具名Bean/qualified Lombok；普通登录PASSWORD，fresh intent仅用现有authenticateCurrent证明既有subject并写STRONG/auth_time及短期一次性请求摘要；保留membership/CSRF/session机制.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/TenantLoginAuthenticationFilter.java` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthAuthorizationConverter.java`
+
+- Purpose: 现有MapStruct/BaseConverter加密payload codec，state只在AES-GCM载荷内；稳定PK/issuer/realm/purpose AAD；未知schema拒绝.
+- Symbols: `OAuthAuthorizationConverter` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 现有MapStruct/BaseConverter加密payload codec，state只在AES-GCM载荷内；稳定PK/issuer/realm/purpose AAD；未知schema拒绝.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/OAuthAuthorizationConverter.java` only.
+FLOW -> extend existing typed model/MapStruct/enumeration with bounded annotation/cascade/group rules and encrypted storage codec; retain BaseConverter<PO,BO>, explicit AAD and unknown-v1/v2-version fail-closed; normal JSON/log surfaces hide state.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java`
+
+- Purpose: 支持native pending授权，无token时明确初始化期限；state、原请求scope和受信principal/authTime/acr重建；state不作为业务AT.
+- Symbols: `SasAuthorizationConverter` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 支持native pending授权，无token时明确初始化期限；state、原请求scope和受信principal/authTime/acr重建；state不作为业务AT.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java` only.
+FLOW -> v2 pending adapter copies typed attributes using MapStruct; reconstruct native state/request scopes/Principal authTime/acr; only pending STATE creates a bounded internal OAuthTokenBO, never JWT; on approved code save pending payload clears; map AT/ID with explicit use validation and keep standard claim wire.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`
+
+- Purpose: 检查pending不可提前签发、family绝对期限与实际native provider接线；仅根据完整roundtrip失败修必需路径.
+- Symbols: `OAuthTokenIssueServiceImpl` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 检查pending不可提前签发、family绝对期限与实际native provider接线；仅根据完整roundtrip失败修必需路径.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`
+
+- Purpose: state按digest和当前realm查找；owner/session绑定；拒绝/过期/已消费严格拒绝；只读token lookup不可跨realm.
+- Symbols: `TenantAuthorizationServiceImpl` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: state按digest和当前realm查找；owner/session绑定；拒绝/过期/已消费严格拒绝；只读token lookup不可跨realm.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java` only.
+FLOW -> resolve/lock trusted realm+active client; initialize pending300s+fixed family deadline once before mapping; save auth/state under same TM, preserve immutable request/security snapshot; typed state lookup reloads after lock, verifies expiry/session/ownership and permits only pending ACTIVE; approval/removal invalidates state and records only real code issuance.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`
+
+- Purpose: 复用既有Provider/事务Decorator，request/consent与ConsentRepository及Authorization/STATE/code保存同一TM；完整Slf4j/Lombok/Qualifier规范.
+- Symbols: `TransactionalOAuthAuthenticationProvider` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 复用既有Provider/事务Decorator，request/consent与ConsentRepository及Authorization/STATE/code保存同一TM；完整Slf4j/Lombok/Qualifier规范.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java` only.
+FLOW -> Lombok constructor and qualified actual Spring ports; reuse native delegate strategies, add consent/cancellation strategy; deliberate denial is carried through successful transaction completion and rethrown after commit, while all true storage/signing/enqueue failures propagate to rollback and unavailable mapping.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`
+
+- Purpose: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.
+- Symbols: `EdgeSecurityConfiguration` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 延续C8c既有JWT scope/OAS/Edge callback补丁；保留既有RED/GREEN，重新受影响回归.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 24 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261009_001__support_oauth_consent_state.sql`
+
+- Purpose: 唯一新受管ALTER版本，扩展oauth_token token_type CHECK允许CONSENT_STATE；保留现有jti约束及数据；不改任何旧SQL.
+- Symbols: `V20261009_001__support_oauth_consent_state` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 唯一新受管ALTER版本，扩展oauth_token token_type CHECK允许CONSENT_STATE；保留现有jti约束及数据；不改任何旧SQL.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```sql
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/V20261009_001__support_oauth_consent_state.sql` only.
+FLOW -> append exactly the next version SQL and SHA-256 manifest entry; compare every prior SQL byte and manifest entry unchanged; only token_type width/CHECK affected; no DB execution.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json`
+
+- Purpose: 同tianquan-oauth family追加新版本与实际SHA-256，原脚本记录保持不变.
+- Symbols: `repository-manifest` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 同tianquan-oauth family追加新版本与实际SHA-256，原脚本记录保持不变.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```json
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/egon-mp/repository-manifest.json` only.
+FLOW -> append exactly the next version SQL and SHA-256 manifest entry; compare every prior SQL byte and manifest entry unchanged; only token_type width/CHECK affected; no DB execution.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 26 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: 锁定补救有序路径/RED-GREEN/每条MC与Rule、执行顺序及单次范围提交.
+- Symbols: `2026-09-23-10-42-tianquan-oauth-oidc-implementation` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 锁定补救有序路径/RED-GREEN/每条MC与Rule、执行顺序及单次范围提交.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```text
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 27 — `CREATE docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md`
+
+- Purpose: 记录用户明确批准与候选范围/执行状态，保留发现和历史证据.
+- Symbols: `2026-10-09-oauth-consent-correction-proposal` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 记录用户明确批准与候选范围/执行状态，保留发现和历史证据.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```text
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 28 — `CREATE docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md`
+
+- Purpose: 补救后按新有效Spec重新逐项审计；历史失败/Redisfixture偏差与runtime缺口保留.
+- Symbols: `2026-10-09-tianquan-oauth-oidc-execution-audit` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 补救后按新有效Spec重新逐项审计；历史失败/Redisfixture偏差与runtime缺口保留.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```text
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 29 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: 明确定义加密state与v2内部载荷/API-046/STATE生命周期/事务/验收；旧密码/明文state存储仍禁止.
+- Symbols: `2026-10-08-10-18-oauth-current-code-alignment` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 明确定义加密state与v2内部载荷/API-046/STATE生命周期/事务/验收；旧密码/明文state存储仍禁止.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```text
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; update only the approved local behavior or delivery trace; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/TenantRegisteredClientRepository.java`
+
+- Purpose: 明确定义加密state与v2内部载荷/API-046/STATE生命周期/事务/验收；旧密码/明文state存储仍禁止.
+- Symbols: `2026-10-08-10-18-oauth-current-code-alignment` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 明确定义加密state与v2内部载荷/API-046/STATE生命周期/事务/验收；旧密码/明文state存储仍禁止.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```text
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repository/TenantRegisteredClientRepository.java` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; remove overriding SPI parameter constraint strengthening; keep strict native input guards and annotated internal models; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java`
+
+- Purpose: 明确定义加密state与v2内部载荷/API-046/STATE生命周期/事务/验收；旧密码/明文state存储仍禁止.
+- Symbols: `2026-10-08-10-18-oauth-current-code-alignment` and the exact existing native handoff named in §6.13; no parallel protocol layer.
+- Repository evidence: Explicit user-approved22candidate+pendingC8c union; currentHEADsource/schema/nativeSAS1.5.8 source inspected; own draftCREATE paths may already exist untracked, no externaloverlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: 明确定义加密state与v2内部载荷/API-046/STATE生命周期/事务/验收；旧密码/明文state存储仍禁止.; effectiveSpec API-046/DEC-179/180; existingunaffected API/form/error fields remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```text
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantConsentServiceImpl.java` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; remove overriding SPI parameter constraint strengthening; keep strict native input guards and annotated internal models; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java`
+
+- Purpose: Real validated JWKSource SPI compatibility; remove illegal override parameter strengthening, retain the explicit null selector guard and trusted issuer/key status/pair checks.
+- Symbols: `TenantJwkSourceComponent#get`; actual existing named/qualified bean, not a replacement key source.
+- Repository evidence: `@Validated` JWKSource#get currently adds @NotNull absent from the Nimbus SPI; native fixture is upgraded to the actual JWKSource/key cipher with Boot method validation to reproduce HV000151 before this correction.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: No HTTP/token/key contract change; parameter constraint removal restores legal Java override validation while explicit null checks remain.
+- Input/output and state mapping: Typedbounded schema1/2/issuer/session input→existing framework/storage output; normalJSON excludesstate, encryptedcodec bindsissuer/realm/id AAD; absolute familydeadline does notgrow.
+- Error and edge behavior: Unknownschema/state/wrongrealm/client/session/CSRF/replay reject; failuresrollbacktruewrites; deliberatecancel commitsstateinvalidity before access_denied; nofalseissuance or credential output.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```text
+INPUT -> trusted native authorization/request or declared source/document contract; exactpath `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java` only.
+FLOW -> preserve existing C8c/provider/login semantics and exact dependency/profile boundaries; remove overriding SPI parameter constraint strengthening; keep strict native input guards and annotated internal models; no services/DB/browser/push.
+FAILURE -> reject untrusted/expired/replayed inputs or rollback the existing localtransaction; no issuer fallback or plaintextstate/token output.
+OUTPUT -> approved §9.4/DEC-179/180 behavior and targetedgate evidence; retain unaffected API/oldSQL/history and preserve source-to-target BaseConverter direction.
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 33 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthManagedSchemaContractTest.java`
+
+- Purpose: Synchronize the managed-schema contract fixture with the already approved one new correction version while retaining immutable initial-script assertions.
+- Symbols: `OAuthManagedSchemaContractTest#oneManagedVersionAndRoutesAllTables`.
+- Repository evidence: `/tmp/egon-c9b-all-admin-green2.log`: 354 tests, one expected scripts-size assertion failure, zero errors/skips.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Test only; no production interface or DDL change.
+- Input/output and state mapping: Existing manifest first item remains exact; second item is the approved 20261009_001 path and actual file SHA.
+- Error and edge behavior: Reject omitted/duplicate/newly rewritten old script or an incorrect new checksum.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+assertEquals(2, manifest.path("scripts").size());
+// Keep existing first-item path/version/checksum and all original table/route assertions.
+JsonNode correction = manifest.path("scripts").get(1);
+assertEquals("20261009_001", correction.path("version").asText());
+assertEquals("db/egon-mp/V20261009_001__support_oauth_consent_state.sql", correction.path("path").asText());
+assertEquals(sha256(requiredResource(correction.path("path").asText())), correction.path("sha256").asText());
+```
+
+- Verification contribution: Nativeexact8classesgate or thisfile's targetedstorage/constructor/OAS/Edge/static/manifest gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step19 cannotcommit until wholecorrectiveflow/gates pass.
+
+**Step19 verification record — 2026-10-09 16:45 Asia/Shanghai**
+
+- Status: Verified；下一动作按本Step拟定消息对精确33路径作一个提交，实际hash/路径由最终交付与同题git log核对；不推导完整Spec PASS。
+- Baseline refresh: 当前parent为独立公共MP提交`7084c44ce0d04ca2c8c8f0d09ea581bfe8a4b2d4`，其9路径不属于本任务；新可选statementPolicies默认空，授柄未启用；新鲜354/24/58门禁运行时已包含当前组件源码，未扩大Step或改写外部提交。
+- Actual GREEN: 68 safe Admin classes/354 tests，Edge24，Starter/Gateway/RPC/cancellation/MCP58，全部0 failures/errors/skips且exit0；static/strict/diff/95旧SQL/旧manifest/new checksum及2原dirtySpec SHA检查通过。
+- Actual RED: 原生storage/PKCE/CSRF、真实SPI HV000151、freshness、三个scope错误及旧manifest一版本fixture分别观察后最小纠正；编译/fixture准备错误不算行为RED。
+- Manual Check: 17稳定ID与10个Literal Rules分别逐项PASS，具体当前path/符号/命令证据见执行审计§9.1；不是一句汇总替代检查。
+- Deviation: 用户已批准C9b并允许必要直接兼容文件；File30–32修SPI约束，File33修旧schema fixture，均先声明/strict后改；未增加第二个迁移。一次并行Maven共享protobuf目录失败已串行重跑；不算PASS。
+- Final conformance finding: B-04显式USER业务Grant在旧Core/管理/UI/迁移被禁止/清空，C10具体提案待审核；真实PG/Redis/browser及完整reactor历史失败保持开放。Step19不实施C10。
+- Scratch disposition: 本Step九个/tmp编辑器删除，持久JUnit/static保留；既有ignored archetype Markdown原样保留，scripts/work无本任务残余脚本。无服务/数据库/browser/deploy/push/PR执行。
+
 ## 8. Test, Validation, and Quality Gates
 
 以下是批准后实施时的门禁，本次没有执行。每Step先目标RED、最小实现后GREEN，再按受影响模块回归；环境缺依赖不能当行为RED。Step 1仅编译结构，不要求虚构行为失败。真实数据库与浏览器验收只能在用户启动环境并授权后运行。
@@ -15567,6 +16682,8 @@ assert no old protocol/persistence fallback is reachable
 | REQ-044 | Current-code amendment §1/§3/§5.3/§16 | Step 17 | OAuthMigrationCommand/OAuthMigrationService/OAuthMigrationRunner; IdentityMigrationDAO exact source readers; profile-only non-web mode; atomic owner-only checkpoint, unique redacted report file, full mapped-source fingerprint, legacy PKCE/service-refresh checks, and purpose-correct service Resource/Grant mapping | OAuthMigrationServiceTest / IdentityMigrationContractTest / OAuthMigrationRunnerTest; Step17 exact Maven command | Explicit freeze marker and reviewed dry-run report SHA required; report file is mode 600 and never overwritten; all mapped source changes alter the digest; legacy USER clients must require PKCE and SERVICE clients must have refresh TTL 0; service-client resourceUris remain empty while Grant rows carry access; batch size ≤500; conflicts do not advance; unknown commit is verified before replay; no startup import or live import evidence claimed |
 | REQ-045 | 当前修订Spec§4/DEC-163–166 | Step 18 | 精确Step18的70个File/commit路径 | TEST-158–161 / Step18 focused、全Admin与静态shell门禁 | 无旧protocol/JPA链、主体单次新服务撤销、当前MP目录及显式操作者授权；真实外部切流待验 |
 | REQ-046 | 修订Spec§4/DEC-169 | Step13 correction C13 | §6.5精确三路径 | TEST-164及原IdpServiceOAuth2Client/auto-config回归 | 生产caller按显式tenant registration配置，无跨tenant回退 |
+
+| REQ-047 | Current amendment §9.4 / DEC-179/180 | Native pending state/consent/CSRF/code/OIDC/RT/family/storage/DDL closure | TEST-173–178 and C9b exact safe gate | Step 19 (Corrective C9b §6.13) after18 committedSteps |
 
 ## 11. Risks, Blockers, and User Decisions
 

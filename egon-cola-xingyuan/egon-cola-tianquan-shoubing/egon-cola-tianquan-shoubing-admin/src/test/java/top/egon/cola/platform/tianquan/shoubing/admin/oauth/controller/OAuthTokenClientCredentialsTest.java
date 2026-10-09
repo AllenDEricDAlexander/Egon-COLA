@@ -119,10 +119,27 @@ class OAuthTokenClientCredentialsTest {
         var signed = com.nimbusds.jwt.SignedJWT.parse(token);
         assertTrue(signed.verify(new com.nimbusds.jose.crypto.RSASSAVerifier(signingKey.toRSAPublicKey())));
         assertEquals(ISSUER.toString(), signed.getJWTClaimsSet().getIssuer());
+        assertEquals("orders:read", signed.getJWTClaimsSet().getClaim("scope"));
         assertEquals("SERVICE", signed.getJWTClaimsSet().getStringClaim("principal_type"));
         assertEquals("PLATFORM", signed.getJWTClaimsSet().getStringClaim("scope_context"));
         assertEquals(java.util.List.of(RESOURCE.toString()), signed.getJWTClaimsSet().getAudience());
         assertNull(signed.getJWTClaimsSet().getClaim("tenant_id"));
+        var saved = org.mockito.ArgumentCaptor.forClass(
+                org.springframework.security.oauth2.server.authorization.OAuth2Authorization.class);
+        verify(context.getBean(org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService.class))
+                .save(saved.capture());
+        var converter = (top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasAuthorizationConverter)
+                Class.forName("top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasAuthorizationConverterImpl")
+                        .getDeclaredConstructor().newInstance();
+        var mapper = new ObjectMapper().findAndRegisterModules();
+        var projection = new java.util.concurrent.atomic.AtomicReference<
+                top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO>();
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() ->
+                projection.set(converter.toSource(saved.getValue(), null, mapper)));
+        assertEquals(java.util.Set.of("orders:read"), projection.get().getTokens().getFirst().getMetadata().getClaims().getScope());
+        assertEquals(signed.getJWTClaimsSet().getStringClaim("app_id"),
+                projection.get().getTokens().getFirst().getMetadata().getClaims().getAppId());
+
         verify(context.getBean(OAuthTokenIssueService.class)).recordClientCredentialsIssued(REALM, 500L, RESOURCE);
     }
 
@@ -138,6 +155,7 @@ class OAuthTokenClientCredentialsTest {
         var jwt = com.nimbusds.jwt.SignedJWT.parse(response.path("access_token").asText());
         assertTrue(jwt.verify(new com.nimbusds.jose.crypto.RSASSAVerifier(signingKey.toRSAPublicKey())));
         assertEquals(TENANT_REALM.getIssuer().toString(), jwt.getJWTClaimsSet().getIssuer());
+        assertEquals("orders:read", jwt.getJWTClaimsSet().getClaim("scope"));
         assertEquals("TENANT", jwt.getJWTClaimsSet().getStringClaim("scope_context"));
         assertEquals("1001", String.valueOf(jwt.getJWTClaimsSet().getClaim("tenant_id")));
         verify(context.getBean(OAuthTokenIssueService.class))
@@ -191,6 +209,11 @@ class OAuthTokenClientCredentialsTest {
     @EnableWebMvc
     @Import({AuthorizationServerConfiguration.class, IdpSecurityConfig.class, LegacyOAuthRetirementFilter.class})
     static class SecurityConfiguration {
+
+        @Bean("idpClock")
+        java.time.Clock idpClock() {
+            return java.time.Clock.systemUTC();
+        }
 
         @Bean("jacksonObjectMapper")
         ObjectMapper objectMapper() {

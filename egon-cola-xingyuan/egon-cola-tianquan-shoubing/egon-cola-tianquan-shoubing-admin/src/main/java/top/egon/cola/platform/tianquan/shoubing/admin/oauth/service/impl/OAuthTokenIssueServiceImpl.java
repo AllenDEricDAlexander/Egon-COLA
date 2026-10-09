@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,6 +39,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthCons
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthGrantRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthGrantBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.bo.OAuthTokenBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthTokenRepository;
@@ -51,8 +53,11 @@ import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceServer;
 
 @Service("oauthTokenIssueService")
 @RequiredArgsConstructor
+@Slf4j
 @Validated
 public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
+
+    private static final Set<String> IDENTITY_SCOPES = Set.of("openid", "profile", "email", "address", "phone", "offline_access");
 
     private static final String INVALID_GRANT = "invalid_grant";
     private static final String TOKEN_ISSUED = "TOKEN_ISSUED";
@@ -111,7 +116,11 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
                 .filter(value -> "ACTIVE".equals(value.getStatus()))
                 .orElseThrow(OAuthTokenIssueServiceImpl::invalidGrant);
         if (!Objects.equals(authorizationCandidate.getClientPk(), input.getClientPk())
-                || !"USER".equals(authorizationCandidate.getPrincipalType())) {
+                || !"USER".equals(authorizationCandidate.getPrincipalType())
+                || authorizationCandidate.getAbsoluteExpiresAt() == null
+                || !authorizationCandidate.getAbsoluteExpiresAt().isAfter(clock.instant())
+                || authorizationCandidate.getAttributes() == null
+                || authorizationCandidate.getAttributes().getPendingConsent() != null) {
             throw invalidGrant();
         }
         realmRepository.findByRealmKeyForUpdate(realm)
@@ -137,7 +146,7 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
         if (!consentedScopes(lockedConsent).containsAll(authorizationCandidate.getAuthorizedScopes())) {
             throw new OAuth2AuthenticationException(new OAuth2Error("invalid_scope", "Request rejected", null));
         }
-        lockUserGrants(realm, lockedClient, authorizationCandidate.getAudiences());
+        lockUserGrants(realm, lockedClient, authorizationCandidate.getAudiences(), authorizationCandidate.getAuthorizedScopes());
 
         OAuthAuthorizationBO authorization = authorizationRepository
                 .findByIdForUpdate(realm, tokenCandidate.getAuthorizationPk())
@@ -244,6 +253,8 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
         OAuthAuthorizationBO value = Objects.requireNonNull(authorization, "authorization");
         if (!"USER".equals(value.getPrincipalType()) || value.getId() == null
                 || value.getAttributes() == null || value.getAttributes().getSecuritySnapshot() == null
+                || value.getAttributes().getPendingConsent() != null
+                || value.getAbsoluteExpiresAt() == null || !value.getAbsoluteExpiresAt().isAfter(clock.instant())
                 || value.getAudiences() == null || value.getAudiences().isEmpty()) {
             throw invalidGrant();
         }
@@ -297,12 +308,13 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
                     .filter(ResourceServer::active)
                     .orElseThrow(() -> new OAuth2AuthenticationException(
                             new OAuth2Error("invalid_target", "Request rejected", null)));
-            grantRepository.findGrantForUpdate(realm, value.getClientPk(), target.resourceServerId(),
+            OAuthGrantBO grant = grantRepository.findGrantForUpdate(realm, value.getClientPk(), target.resourceServerId(),
                             ResourceGrantType.USER_DELEGATION)
-                    .filter(grant -> grant.getStatus()
+                    .filter(candidate -> candidate.getStatus()
                             == top.egon.cola.platform.tianquan.shoubing.core.resource.ClientResourceGrant.Status.ACTIVE)
                     .orElseThrow(() -> new OAuth2AuthenticationException(
                             new OAuth2Error("invalid_target", "Request rejected", null)));
+            requireCurrentUserGrant(grant, target, value.getAuthorizedScopes());
         }
         return new UserAuthorizationIssueContext(value.getId(), snapshot, value.getPrincipalName(), audiences);
     }
@@ -349,7 +361,7 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
                 authorization.getAttributes().getCodeChallenge().getBytes(StandardCharsets.US_ASCII));
     }
 
-    private void lockUserGrants(TrustedRealmBO realm, OAuthClientBO client, List<String> audiences) {
+    private void lockUserGrants(TrustedRealmBO realm, OAuthClientBO client, List<String> audiences, List<String> scopes) {
         if (audiences == null || audiences.isEmpty()) {
             throw new OAuth2AuthenticationException(new OAuth2Error("invalid_target", "Request rejected", null));
         }
@@ -359,12 +371,24 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
                     .filter(ResourceServer::active)
                     .orElseThrow(() -> new OAuth2AuthenticationException(
                             new OAuth2Error("invalid_target", "Request rejected", null)));
-            grantRepository.findGrantForUpdate(realm, client.getId(), target.resourceServerId(),
+            OAuthGrantBO grant = grantRepository.findGrantForUpdate(realm, client.getId(), target.resourceServerId(),
                             ResourceGrantType.USER_DELEGATION)
-                    .filter(grant -> grant.getStatus()
+                    .filter(candidate -> candidate.getStatus()
                             == top.egon.cola.platform.tianquan.shoubing.core.resource.ClientResourceGrant.Status.ACTIVE)
                     .orElseThrow(() -> new OAuth2AuthenticationException(
                             new OAuth2Error("invalid_target", "Request rejected", null)));
+            requireCurrentUserGrant(grant, target, scopes);
+        }
+    }
+
+    private static void requireCurrentUserGrant(OAuthGrantBO grant, ResourceServer target, List<String> scopes) {
+        if (!Objects.equals(grant.getResourceVersion(), target.version())) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_target", "Request rejected", null));
+        }
+        Set<String> businessScopes = scopes.stream().filter(scope -> !IDENTITY_SCOPES.contains(scope))
+                .collect(java.util.stream.Collectors.toSet());
+        if (grant.getAllowedScopes() == null || !grant.getAllowedScopes().containsAll(businessScopes)) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_scope", "Request rejected", null));
         }
     }
 

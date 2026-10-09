@@ -8,7 +8,8 @@ public enum OAuthTokenTypeEnum {
     CODE("AUTHORIZATION_CODE"),
     ACCESS("ACCESS"),
     REFRESH("REFRESH"),
-    ID("ID_TOKEN");
+    ID("ID_TOKEN"),
+    CONSENT_STATE("CONSENT_STATE");
 
     @EnumValue
     private final String code;

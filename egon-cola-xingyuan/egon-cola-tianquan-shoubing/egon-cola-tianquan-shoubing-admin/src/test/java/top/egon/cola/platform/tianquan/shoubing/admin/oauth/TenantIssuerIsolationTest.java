@@ -343,7 +343,7 @@ class TenantIssuerIsolationTest {
                         .contentType("application/x-www-form-urlencoded")
                         .param("username", "alice")
                         .param("password", "synthetic-password"), 1001L))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
@@ -935,6 +935,11 @@ class TenantIssuerIsolationTest {
         @Bean("tenantIssuerService")
         TenantIssuerService tenantIssuerService() {
             return mock(TenantIssuerService.class);
+        }
+
+        @Bean("idpClock")
+        java.time.Clock idpClock() {
+            return java.time.Clock.systemUTC();
         }
 
         @Bean("tenantRegisteredClientRepository")

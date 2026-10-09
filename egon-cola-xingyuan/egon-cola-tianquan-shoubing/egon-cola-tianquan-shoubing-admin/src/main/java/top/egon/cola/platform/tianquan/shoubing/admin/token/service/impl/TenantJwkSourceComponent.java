@@ -10,7 +10,6 @@ import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-import jakarta.validation.constraints.NotNull;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateCrtKey;
@@ -54,7 +53,7 @@ public class TenantJwkSourceComponent implements JWKSource<SecurityContext> {
     private final OAuthKeyCipherComponent keyCipher;
 
     @Override
-    public List<JWK> get(@NotNull JWKSelector selector, SecurityContext context) throws KeySourceException {
+    public List<JWK> get(JWKSelector selector, SecurityContext context) throws KeySourceException {
         if (selector == null) {
             throw new KeySourceException("OAuth JWK selector is required");
         }

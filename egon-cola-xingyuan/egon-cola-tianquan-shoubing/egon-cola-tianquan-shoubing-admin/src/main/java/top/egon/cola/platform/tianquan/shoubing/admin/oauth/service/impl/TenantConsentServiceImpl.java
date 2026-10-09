@@ -1,7 +1,5 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -43,9 +41,10 @@ public class TenantConsentServiceImpl implements OAuth2AuthorizationConsentServi
 
     @Override
     @Transactional
-    public void save(@NotNull OAuth2AuthorizationConsent source) {
+    public void save(OAuth2AuthorizationConsent source) {
         OAuth2AuthorizationConsent consent = Objects.requireNonNull(source, "consent");
         TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
+        requirePrincipal(consent.getPrincipalName());
         long clientPk = parsePositiveId(consent.getRegisteredClientId(), "OAUTH_CONSENT_CLIENT_ID_INVALID");
         OAuthClientBO client = loadActiveClient(trustedRealm, clientPk);
         List<String> authorities = consent.getAuthorities().stream()
@@ -74,9 +73,10 @@ public class TenantConsentServiceImpl implements OAuth2AuthorizationConsentServi
 
     @Override
     @Transactional
-    public void remove(@NotNull OAuth2AuthorizationConsent source) {
+    public void remove(OAuth2AuthorizationConsent source) {
         OAuth2AuthorizationConsent consent = Objects.requireNonNull(source, "consent");
         TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
+        requirePrincipal(consent.getPrincipalName());
         long clientPk = parsePositiveId(consent.getRegisteredClientId(), "OAUTH_CONSENT_CLIENT_ID_INVALID");
         OAuthConsentBO current = consentRepository.findConsentForUpdate(
                 trustedRealm, clientPk, consent.getPrincipalName()).orElse(null);
@@ -91,8 +91,9 @@ public class TenantConsentServiceImpl implements OAuth2AuthorizationConsentServi
     @Override
     @Transactional(readOnly = true)
     public OAuth2AuthorizationConsent findById(
-            @NotBlank String registeredClientId,
-            @NotBlank String principalName) {
+            String registeredClientId,
+            String principalName) {
+        requirePrincipal(principalName);
         long clientPk = parsePositiveId(registeredClientId, "OAUTH_CONSENT_CLIENT_ID_INVALID");
         TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
         OAuthConsentBO consent = consentRepository.findConsent(trustedRealm, clientPk, principalName)
@@ -124,6 +125,12 @@ public class TenantConsentServiceImpl implements OAuth2AuthorizationConsentServi
             if (scope.isBlank() || !client.getAllowedScopes().contains(scope)) {
                 throw new IllegalArgumentException("OAUTH_CONSENT_SCOPE_NOT_ALLOWED");
             }
+        }
+    }
+
+    private static void requirePrincipal(String principalName) {
+        if (principalName == null || principalName.isBlank() || principalName.length() > 128) {
+            throw new IllegalArgumentException("OAUTH_CONSENT_PRINCIPAL_INVALID");
         }
     }
 

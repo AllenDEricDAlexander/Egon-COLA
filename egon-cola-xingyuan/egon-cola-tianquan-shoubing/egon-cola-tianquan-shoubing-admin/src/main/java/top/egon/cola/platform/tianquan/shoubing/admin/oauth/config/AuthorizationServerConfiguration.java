@@ -1,5 +1,20 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.config;
 
+import lombok.AccessLevel;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.config.ObjectPostProcessor;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.web.util.UriComponentsBuilder;
+import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.time.Instant;
+import java.time.Clock;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,6 +50,18 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.oauth2.server.authorization.oidc.authentication.OidcUserInfoAuthenticationProvider;
+import org.springframework.dao.DataAccessException;
+import org.redisson.client.RedisException;
+import com.nimbusds.jose.KeySourceException;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationValidator;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientCredentialsAuthenticationProvider;
@@ -82,6 +110,8 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAutho
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthSecuritySnapshotBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasAuthorizationConverter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
@@ -133,12 +163,23 @@ public class AuthorizationServerConfiguration {
     JwtDecoder tenantAuthorizationServerJwtDecoder(
             @Qualifier("tenantJwkSourceComponent") JWKSource<SecurityContext> jwkSource,
             @Qualifier("tenantIssuerService") TenantIssuerService tenantIssuerService) {
-        JwtDecoder delegate = org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration
-                .OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+        DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
+        processor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwkSource));
+        processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(new JOSEObjectType("at+jwt")));
+        processor.setJWTClaimsSetVerifier((claims, context) -> { });
+        JwtDecoder delegate = new NimbusJwtDecoder(processor);
         return token -> {
-            Jwt jwt = delegate.decode(token);
+            Jwt jwt;
+            try {
+                jwt = delegate.decode(token);
+            } catch (JwtException failure) {
+                if (!isInfrastructureFailure(failure)) { throw failure; }
+                throw new OAuth2AuthenticationException(new OAuth2Error("temporarily_unavailable", "Request temporarily unavailable", null), failure);
+            } catch (DataAccessException | RedisException failure) {
+                throw new OAuth2AuthenticationException(new OAuth2Error("temporarily_unavailable", "Request temporarily unavailable", null), failure);
+            }
             TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
-            if (!trustedRealm.getIssuer().equals(jwt.getIssuer())) {
+            if (!trustedRealm.getIssuer().toASCIIString().equals(jwt.getClaimAsString("iss"))) {
                 throw new JwtValidationException("Token issuer does not match the current issuer.",
                         List.of(new OAuth2Error("invalid_token", "Request rejected", null)));
             }
@@ -155,10 +196,20 @@ public class AuthorizationServerConfiguration {
         JwtGenerator jwtGenerator = new JwtGenerator(new NimbusJwtEncoder(jwkSource));
         jwtGenerator.setJwtCustomizer(context -> customizeJwt(
                 context, tokenIssueService, tenantIssuerService, realmRepository));
-        return new DelegatingOAuth2TokenGenerator(
-                jwtGenerator,
-                new OAuth2AccessTokenGenerator(),
-                new OAuth2RefreshTokenGenerator());
+        OAuth2RefreshTokenGenerator refreshGenerator = new OAuth2RefreshTokenGenerator();
+        OAuth2TokenGenerator<OAuth2RefreshToken> boundedRefreshGenerator = context -> {
+            OAuth2RefreshToken refresh = refreshGenerator.generate(context);
+            if (refresh == null || context.getAuthorization() == null) {
+                return refresh;
+            }
+            Instant deadline = context.getAuthorization().getAttribute(SasAuthorizationConverter.ABSOLUTE_EXPIRES_AT_ATTRIBUTE);
+            if (deadline == null || !deadline.isAfter(refresh.getIssuedAt())) {
+                throw new OAuth2AuthenticationException(new OAuth2Error("invalid_grant", "Request rejected", null));
+            }
+            return new OAuth2RefreshToken(refresh.getTokenValue(), refresh.getIssuedAt(),
+                    refresh.getExpiresAt().isAfter(deadline) ? deadline : refresh.getExpiresAt());
+        };
+        return new DelegatingOAuth2TokenGenerator(jwtGenerator, new OAuth2AccessTokenGenerator(), boundedRefreshGenerator);
     }
 
     @Bean("authorizationServerSecurityFilterChain")
@@ -177,7 +228,9 @@ public class AuthorizationServerConfiguration {
             ObjectProvider<PlatformTransactionManager> transactionManagers,
             ObjectProvider<TenantLoginAuthenticationFilter> loginFilters,
             ObjectProvider<TokenRevocationService> tokenRevocationServices,
+            @Qualifier("oAuthClientRepository") ObjectProvider<OAuthClientRepository> clientRepositories,
             @Qualifier("oauthLoginCsrfTokenRepository") CsrfTokenRepository csrfTokenRepository,
+            @Qualifier("idpClock") Clock clock,
             @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper) throws Exception {
         OAuth2AuthorizationServerConfigurer authorizationServer =
                 OAuth2AuthorizationServerConfigurer.authorizationServer();
@@ -188,14 +241,24 @@ public class AuthorizationServerConfiguration {
         RequestMatcher canonicalIssuerPaths = request -> request.getRequestURI().substring(
                 request.getContextPath().length()).matches("/(platform|tenants/[1-9][0-9]{0,18})/.*"
                         + "|/\\.well-known/oauth-authorization-server/(platform|tenants/[1-9][0-9]{0,18})");
+        RequestMatcher consentPage = request -> contextPath(request).matches("/tenants/[1-9][0-9]{0,18}/consent");
         RequestMatcher protocolAndLogin = new AndRequestMatcher(canonicalIssuerPaths,
-                new OrRequestMatcher(endpoints, loginRequests));
+                new OrRequestMatcher(endpoints, loginRequests, consentPage));
         OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator = tokenGenerators.getIfAvailable();
         if (tokenGenerator == null) {
             throw new IllegalStateException("OAUTH_TOKEN_GENERATOR_REQUIRED");
         }
         http.securityMatcher(protocolAndLogin)
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository).ignoringRequestMatchers(endpoints))
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
+                        .withObjectPostProcessor(new ObjectPostProcessor<CsrfFilter>() {
+                            @Override
+                            public <O extends CsrfFilter> O postProcess(O filter) {
+                                // SAS exempts all endpoints during init; the native browser POST must remain protected.
+                                filter.setRequireCsrfProtectionMatcher(request -> CsrfFilter.DEFAULT_CSRF_MATCHER.matches(request)
+                                        && (!endpoints.matches(request) || isConsentSubmit(request)));
+                                return filter;
+                            }
+                        }))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .requestCache(cache -> cache.requestCache(requestCache))
                 .with(authorizationServer, server -> server
@@ -224,8 +287,10 @@ public class AuthorizationServerConfiguration {
                                 }
                             }));
                         })
-                        .authorizationEndpoint(endpoint -> endpoint.authenticationProviders(providers ->
-                                configureAuthorizationProviders(providers)))
+                        .authorizationEndpoint(endpoint -> endpoint.consentPage("/consent")
+                                .authenticationProviders(providers -> configureAuthorizationProviders(providers,
+                                        authorizationService, tokenIssueServices, transactionManagers, tenantIssuerService, clock, clientRepositories))
+                                .errorResponseHandler(authorizationFailureHandler(objectMapper)))
                         .tokenEndpoint(endpoint -> {
                             endpoint.authenticationProviders(providers -> configureTokenProviders(
                                     providers, tokenIssueServices, transactionManagers, tenantIssuerService));
@@ -243,24 +308,38 @@ public class AuthorizationServerConfiguration {
                                     builder.tokenRevocationEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
                                     builder.grantTypes(AuthorizationServerConfiguration::metadataGrantTypes);
                                 }))
-                        .oidc(oidc -> oidc.providerConfigurationEndpoint(metadata -> metadata
+                        .oidc(oidc -> oidc.userInfoEndpoint(userinfo -> userinfo
+                                .authenticationProviders(providers -> configureUserInfoProviders(providers,
+                                        tokenIssueServices, transactionManagers, tenantIssuerService))
+                                .errorResponseHandler(userInfoFailureHandler(objectMapper)))
+                                .providerConfigurationEndpoint(metadata -> metadata
                                 .providerConfigurationCustomizer(builder -> {
                                     builder.tokenEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
                                     builder.tokenRevocationEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
                                     builder.grantTypes(AuthorizationServerConfiguration::metadataGrantTypes);
                                 }))))
+                .oauth2ResourceServer(resource -> resource.jwt(Customizer.withDefaults())
+                        .authenticationEntryPoint((request, response, failure) ->
+                                userInfoFailureHandler(objectMapper).onAuthenticationFailure(request, response, failure)))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(loginRequests).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, failure) -> {
                     TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
+                    if (consentPage.matches(request)) {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("text/html;charset=UTF-8");
+                        response.setHeader("Cache-Control", "no-store");
+                        response.getWriter().write("<!doctype html><html><body><p>SAS session required</p></body></html>");
+                        return;
+                    }
                     response.setStatus(HttpServletResponse.SC_SEE_OTHER);
                     response.setHeader("Cache-Control", "no-store");
                     response.setHeader("Location", trustedRealm.getIssuer().getRawPath() + "/login");
                 }));
 
         // SAS installs its protocol endpoint filters at this anchor after the issuer context filter.
-        http.addFilterBefore(new ExactIssuerContextFilter(tenantIssuerService, publicOrigin, objectMapper),
+        http.addFilterBefore(ExactIssuerContextFilter.create(tenantIssuerService, publicOrigin, objectMapper),
                 AbstractPreAuthenticatedProcessingFilter.class);
         TenantLoginAuthenticationFilter loginFilter = loginFilters.getIfAvailable();
         if (loginFilter != null) {
@@ -288,19 +367,43 @@ public class AuthorizationServerConfiguration {
         grants.add("client_credentials");
     }
 
-    private static void configureAuthorizationProviders(List<AuthenticationProvider> providers) {
+    private static void configureAuthorizationProviders(
+            List<AuthenticationProvider> providers,
+            OAuth2AuthorizationService authorizations,
+            ObjectProvider<OAuthTokenIssueService> issueServices,
+            ObjectProvider<PlatformTransactionManager> transactionManagers,
+            TenantIssuerService issuers, Clock clock, ObjectProvider<OAuthClientRepository> clientRepositories) {
+        OAuthTokenIssueService issueService = issueServices.getIfAvailable();
+        PlatformTransactionManager transactionManager = transactionManagers.getIfAvailable();
+        if (issueService == null || transactionManager == null) {
+            throw new IllegalStateException("OAUTH_AUTHORIZATION_TRANSACTION_REQUIRED");
+        }
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
         OAuth2AuthorizationCodeRequestAuthenticationValidator standardValidator =
                 new OAuth2AuthorizationCodeRequestAuthenticationValidator();
-        for (AuthenticationProvider provider : providers) {
+        for (int index = 0; index < providers.size(); index++) {
+            AuthenticationProvider provider = providers.get(index);
+            TransactionalOAuthAuthenticationProvider.GrantTransaction strategy = null;
             if (provider instanceof OAuth2AuthorizationCodeRequestAuthenticationProvider codeProvider) {
                 codeProvider.setAuthenticationValidator(context -> {
                     standardValidator.accept(context);
-                    String method = text(context.getAuthorizationRequest()
-                            .getAdditionalParameters().get("code_challenge_method"));
-                    String challenge = text(context.getAuthorizationRequest()
-                            .getAdditionalParameters().get("code_challenge"));
-                    requireS256Challenge(method, challenge);
+                    OAuth2AuthorizationCodeRequestAuthenticationToken request = context.getAuthentication();
+                    try {
+                        requireS256Challenge(text(request.getAdditionalParameters().get("code_challenge_method")),
+                                text(request.getAdditionalParameters().get("code_challenge")));
+                        requireAuthorizationTransaction(request, context.getRegisteredClient(),
+                                issuers.resolveCurrentIssuer(), clientRepositories.getObject());
+                    } catch (OAuth2AuthenticationException rejected) {
+                        throw new OAuth2AuthorizationCodeRequestAuthenticationException(rejected.getError(), request);
+                    }
                 });
+                strategy = TransactionalOAuthAuthenticationProvider.authorizationRequest(clock);
+            } else if (provider instanceof OAuth2AuthorizationConsentAuthenticationProvider) {
+                strategy = TransactionalOAuthAuthenticationProvider.authorizationConsent(authorizations);
+            }
+            if (strategy != null) {
+                providers.set(index, new TransactionalOAuthAuthenticationProvider(provider, transaction,
+                        issueService, issuers, strategy));
             }
         }
     }
@@ -311,6 +414,63 @@ public class AuthorizationServerConfiguration {
             throw new OAuth2AuthenticationException(new OAuth2Error(
                     "invalid_request", "Request rejected", null));
         }
+    }
+
+    private static void requireAuthorizationTransaction(OAuth2AuthorizationCodeRequestAuthenticationToken request,
+            RegisteredClient registeredClient, TrustedRealmBO realm, OAuthClientRepository clients) {
+        String state = request.getState();
+        String nonce = text(request.getAdditionalParameters().get("nonce"));
+        String resource = text(request.getAdditionalParameters().get("resource"));
+        if (state == null || state.isBlank() || state.length() < 32 || state.length() > 512
+                || nonce == null || nonce.isBlank() || nonce.length() < 32 || nonce.length() > 512
+                || resource == null || resource.isBlank() || resource.length() > 2048
+                || request.getScopes().isEmpty() || request.getScopes().size() > 64
+                || request.getScopes().stream().anyMatch(scope -> !scope.matches("[A-Za-z0-9._:-]{1,128}"))) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_request", "Request rejected", null));
+        }
+        URI target;
+        try { target = URI.create(resource); }
+        catch (IllegalArgumentException failure) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_target", "Request rejected", null));
+        }
+        if (target.getHost() == null || target.getUserInfo() != null || target.getFragment() != null
+                || !("https".equals(target.getScheme()) || "http".equals(target.getScheme()) && "127.0.0.1".equals(target.getHost()))) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_target", "Request rejected", null));
+        }
+        OAuthClientBO client = clients.findById(realm, parsePositiveId(registeredClient.getId(), "invalid_request"))
+                .orElseThrow(() -> new OAuth2AuthenticationException(new OAuth2Error("invalid_request", "Request rejected", null)));
+        if (client.getResourceUris() == null || !client.getResourceUris().contains(target.toASCIIString())) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_target", "Request rejected", null));
+        }
+    }
+
+    private static void configureUserInfoProviders(List<AuthenticationProvider> providers,
+            ObjectProvider<OAuthTokenIssueService> issueServices,
+            ObjectProvider<PlatformTransactionManager> transactionManagers, TenantIssuerService issuers) {
+        OAuthTokenIssueService issueService = issueServices.getIfAvailable();
+        PlatformTransactionManager transactionManager = transactionManagers.getIfAvailable();
+        if (issueService == null || transactionManager == null) {
+            throw new IllegalStateException("OAUTH_USERINFO_TRANSACTION_REQUIRED");
+        }
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setReadOnly(true);
+        for (int index = 0; index < providers.size(); index++) {
+            AuthenticationProvider provider = providers.get(index);
+            if (provider instanceof OidcUserInfoAuthenticationProvider) {
+                providers.set(index, new TransactionalOAuthAuthenticationProvider(provider, transaction,
+                        issueService, issuers, TransactionalOAuthAuthenticationProvider.userInfo()));
+            }
+        }
+    }
+
+    private static boolean isInfrastructureFailure(Throwable failure) {
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < 16; depth++, current = current.getCause()) {
+            if (current instanceof DataAccessException || current instanceof RedisException || current instanceof KeySourceException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void configureTokenProviders(
@@ -420,7 +580,7 @@ public class AuthorizationServerConfiguration {
                     .claim("iss", trustedRealm.getIssuer().toASCIIString())
                     .claim("sub", registeredClient.getClientId())
                     .claim("aud", List.of(access.targetResourceUri().toASCIIString()))
-                    .claim("scope", context.getAuthorizedScopes())
+                    .claim("scope", String.join(" ", context.getAuthorizedScopes()))
                     .claim("jti", SnowflakeIdGenerator.nextId())
                     .claim("client_id", registeredClient.getClientId())
                     .claim("authorization_id", Long.toString(issue.authorizationId()))
@@ -475,12 +635,13 @@ public class AuthorizationServerConfiguration {
                 .claim("iss", trustedRealm.getIssuer().toASCIIString())
                 .claim("sub", issue.subject());
         if (idToken) {
-            context.getClaims().claim("aud", List.of(registeredClient.getClientId()));
+            context.getClaims().claim("aud", List.of(registeredClient.getClientId()))
+                    .claim("jti", SnowflakeIdGenerator.nextId());
             if (attributes.getNonce() != null) {
                 context.getClaims().claim("nonce", attributes.getNonce());
             }
             if (attributes.getAuthTime() != null) {
-                context.getClaims().claim("auth_time", attributes.getAuthTime());
+                context.getClaims().claim("auth_time", attributes.getAuthTime().getEpochSecond());
             }
             if (attributes.getAcr() != null) {
                 context.getClaims().claim("acr", attributes.getAcr());
@@ -491,7 +652,7 @@ public class AuthorizationServerConfiguration {
             }
             context.getClaims()
                     .claim("aud", issue.audiences().stream().map(URI::toASCIIString).toList())
-                    .claim("scope", context.getAuthorizedScopes())
+                    .claim("scope", String.join(" ", context.getAuthorizedScopes()))
                     .claim("jti", SnowflakeIdGenerator.nextId())
                     .claim("client_id", registeredClient.getClientId())
                     .claim("authorization_id", Long.toString(issue.authorizationId()))
@@ -499,9 +660,21 @@ public class AuthorizationServerConfiguration {
                     .claim("principal_type", "USER")
                     .claim("scope_context", trustedRealm.getBusinessTenantId() == null ? "PLATFORM" : "TENANT")
                     .claim("security_version", securityVersion(issue.securitySnapshot()));
+            if (attributes.getAuthTime() != null) {
+                context.getClaims().claim("auth_time", attributes.getAuthTime().getEpochSecond());
+            }
+            if (attributes.getAcr() != null) {
+                context.getClaims().claim("acr", attributes.getAcr());
+            }
             if (trustedRealm.getBusinessTenantId() != null) {
                 context.getClaims().claim("tenant_id", trustedRealm.getBusinessTenantId().toString());
             }
+        }
+        Map<String, Object> currentClaims = new java.util.HashMap<>();
+        context.getClaims().claims(currentClaims::putAll);
+        Instant generatedExpiry = (Instant) currentClaims.get("exp");
+        if (generatedExpiry != null && generatedExpiry.isAfter(absoluteExpiresAt)) {
+            context.getClaims().expiresAt(absoluteExpiresAt);
         }
     }
 
@@ -558,6 +731,126 @@ public class AuthorizationServerConfiguration {
         };
     }
 
+    private static String contextPath(HttpServletRequest request) {
+        String context = request.getContextPath();
+        return context == null || context.isEmpty() ? request.getRequestURI()
+                : request.getRequestURI().substring(context.length());
+    }
+
+    private static boolean isConsentSubmit(HttpServletRequest request) {
+        return "POST".equals(request.getMethod())
+                && contextPath(request).matches("/tenants/[1-9][0-9]{0,18}/oauth2/authorize");
+    }
+
+    private static boolean isAuthorizationRequest(HttpServletRequest request) {
+        return "GET".equals(request.getMethod())
+                && contextPath(request).matches("/tenants/[1-9][0-9]{0,18}/oauth2/authorize");
+    }
+
+    private static boolean boundedAuthorizationQuery(HttpServletRequest request) {
+        if (request.getHeader("Authorization") != null
+                || request.getQueryString() != null && request.getQueryString().length() > 16 * 1024
+                || !java.util.Set.of("client_id", "response_type", "redirect_uri", "scope", "resource", "state", "nonce",
+                        "code_challenge", "code_challenge_method", "prompt", "max_age").containsAll(request.getParameterMap().keySet())) {
+            return false;
+        }
+        for (var entry : request.getParameterMap().entrySet()) {
+            int maximum = switch (entry.getKey()) {
+                case "scope" -> 8320;
+                case "redirect_uri", "resource" -> 2048;
+                case "state", "nonce" -> 512;
+                default -> 128;
+            };
+            String[] values = entry.getValue();
+            if (values == null || values.length != 1 || values[0] == null || values[0].length() > maximum) { return false; }
+            if (entry.getKey().equals("scope")) {
+                List<String> scopes = java.util.Arrays.asList(values[0].split(" ", -1));
+                if (scopes.size() > 64 || scopes.stream().anyMatch(String::isBlank)
+                        || java.util.Set.copyOf(scopes).size() != scopes.size()) { return false; }
+            }
+        }
+        return true;
+    }
+
+    private static boolean boundedConsentForm(HttpServletRequest request) {
+        if (request.getContentLengthLong() > 16 * 1024 || request.getQueryString() != null
+                || !java.util.Set.of("client_id", "state", "scope", "_csrf", "consent_action")
+                        .containsAll(request.getParameterMap().keySet())) {
+            return false;
+        }
+        for (var entry : request.getParameterMap().entrySet()) {
+            String[] values = entry.getValue();
+            if (values == null || values.length == 0 || values.length > ("scope".equals(entry.getKey()) ? 64 : 1)
+                    || java.util.Arrays.stream(values).anyMatch(value -> value == null || value.length() > 256)) {
+                return false;
+            }
+        }
+        return request.getParameter("consent_action") == null || "deny".equals(request.getParameter("consent_action"));
+    }
+
+    private static String nativeRedirect(HttpServletRequest request, String location, TrustedRealmBO realm) {
+        if (!contextPath(request).equals(realm.getIssuer().getRawPath() + "/oauth2/authorize")) {
+            return location;
+        }
+        URI target = URI.create(location);
+        String query = target.getRawQuery();
+        boolean callback = query != null && java.util.Arrays.stream(query.split("&"))
+                .anyMatch(value -> value.startsWith("code=") || value.startsWith("error="));
+        if (callback) {
+            return UriComponentsBuilder.fromUriString(location)
+                    .queryParam("iss", URLEncoder.encode(realm.getIssuer().toASCIIString(), StandardCharsets.UTF_8))
+                    .build(true).toUriString();
+        }
+        if (target.getRawPath().equals(request.getContextPath() + "/consent") && query != null
+                && target.getUserInfo() == null && target.getFragment() == null
+                && java.util.Arrays.stream(query.split("&")).anyMatch(value -> value.startsWith("client_id="))) {
+            return realm.getIssuer().toASCIIString() + "/consent?" + query;
+        }
+        return location;
+    }
+
+    private static AuthenticationFailureHandler authorizationFailureHandler(ObjectMapper mapper) {
+        return (request, response, failure) -> {
+            response.setHeader("Cache-Control", "no-store");
+            response.setHeader("Referrer-Policy", "no-referrer");
+            if (failure instanceof OAuth2AuthenticationException oauth
+                    && "temporarily_unavailable".equals(oauth.getError().getErrorCode())) {
+                response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                mapper.writeValue(response.getWriter(), Map.of("error", "temporarily_unavailable", "error_description", "Request temporarily unavailable"));
+                return;
+            }
+            if (failure instanceof OAuth2AuthorizationCodeRequestAuthenticationException oauth
+                    && oauth.getAuthorizationCodeRequestAuthentication() != null
+                    && oauth.getAuthorizationCodeRequestAuthentication().getRedirectUri() != null) {
+                OAuth2AuthorizationCodeRequestAuthenticationToken source = oauth.getAuthorizationCodeRequestAuthentication();
+                UriComponentsBuilder redirect = UriComponentsBuilder.fromUriString(source.getRedirectUri())
+                        .queryParam("error", URLEncoder.encode(oauth.getError().getErrorCode(), StandardCharsets.UTF_8));
+                if (source.getState() != null) {
+                    redirect.queryParam("state", URLEncoder.encode(source.getState(), StandardCharsets.UTF_8));
+                }
+                response.sendRedirect(redirect.build(true).toUriString());
+                return;
+            }
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("text/html;charset=UTF-8");
+            response.getWriter().write("<!doctype html><html><body><p>Request rejected</p></body></html>");
+        };
+    }
+
+    private static AuthenticationFailureHandler userInfoFailureHandler(ObjectMapper mapper) {
+        return (request, response, failure) -> {
+            String code = failure instanceof OAuth2AuthenticationException oauth ? oauth.getError().getErrorCode()
+                    : failure instanceof AuthenticationServiceException ? "temporarily_unavailable" : "invalid_token";
+            int status = "temporarily_unavailable".equals(code) ? 503 : "insufficient_scope".equals(code) ? 403 : 401;
+            response.setStatus(status);
+            response.setHeader("Cache-Control", "no-store");
+            if (status == 401) { response.setHeader("WWW-Authenticate", "Bearer"); }
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            mapper.writeValue(response.getWriter(), Map.of("error", code, "error_description", "Request rejected"));
+        };
+    }
+
     private static URI validatePublicOrigin(URI origin) {
         if (origin == null || !origin.isAbsolute() || !"https".equalsIgnoreCase(origin.getScheme())
                 || origin.getHost() == null || origin.getUserInfo() != null
@@ -569,17 +862,24 @@ public class AuthorizationServerConfiguration {
         return origin;
     }
 
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    @Slf4j
     private static final class ExactIssuerContextFilter extends OncePerRequestFilter {
 
+        @NonNull
+        @Qualifier("tenantIssuerService")
         private final TenantIssuerService tenantIssuerService;
+        @NonNull
         private final String publicOriginRoot;
+        @NonNull
+        @Qualifier("jacksonObjectMapper")
         private final ObjectMapper objectMapper;
 
-        private ExactIssuerContextFilter(TenantIssuerService tenantIssuerService, URI publicOrigin, ObjectMapper objectMapper) {
-            this.tenantIssuerService = tenantIssuerService;
-            this.objectMapper = objectMapper;
+        private static ExactIssuerContextFilter create(
+                TenantIssuerService issuers, URI publicOrigin, ObjectMapper mapper) {
             String origin = publicOrigin.toASCIIString();
-            this.publicOriginRoot = origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin;
+            return new ExactIssuerContextFilter(issuers,
+                    origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin, mapper);
         }
 
         @Override
@@ -597,6 +897,10 @@ public class AuthorizationServerConfiguration {
             try {
                 URI requestIssuer = URI.create(current.getIssuer());
                 String path = requestIssuer.getRawPath();
+                String pagePath = contextPath(request);
+                if (pagePath.matches("/tenants/[1-9][0-9]{0,18}/(login|consent)")) {
+                    path = pagePath.substring(0, pagePath.lastIndexOf('/'));
+                }
                 if (path == null || path.isEmpty()) {
                     throw new OAuth2AuthenticationException("invalid_request");
                 }
@@ -627,7 +931,21 @@ public class AuthorizationServerConfiguration {
             };
             AuthorizationServerContextHolder.setContext(resolvedContext);
             try {
-                filterChain.doFilter(request, response);
+                HttpServletResponse forwarded = new HttpServletResponseWrapper(response) {
+                    @Override
+                    public void sendRedirect(String location) throws IOException {
+                        super.sendRedirect(nativeRedirect(request, location, trustedRealm));
+                    }
+                };
+                if (isConsentSubmit(request) && !boundedConsentForm(request)) {
+                    writeError(response, HttpServletResponse.SC_BAD_REQUEST, "invalid_request", "Request rejected");
+                    return;
+                }
+                if (isAuthorizationRequest(request) && !boundedAuthorizationQuery(request)) {
+                    writeError(response, HttpServletResponse.SC_BAD_REQUEST, "invalid_request", "Request rejected");
+                    return;
+                }
+                filterChain.doFilter(request, forwarded);
             } finally {
                 AuthorizationServerContextHolder.setContext(current);
             }
