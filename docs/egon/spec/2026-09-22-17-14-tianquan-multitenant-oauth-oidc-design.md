@@ -20,7 +20,7 @@
 | Amends | [OAuth Client 与租户权威设计](2026-08-21-07-51-idp-oauth-client-tenant-ownership.md) §7–§11、§15–§16 中 client 存储、单 issuer、凭证和持久化方案；[Gateway 身份种子](2026-09-05-16-00-gateway-oauth-resource-bootstrap.md) §7、§15–§16 中 issuer 配置与凭证引导 |
 | Supersedes | [无 Session JWT 设计](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §7–§11、§13–§16 中无浏览器会话、固定 RT、统一 audience、单密钥及仅撤销 RT 的认证契约；替换范围在 §16 逐项列出，需本 Spec 获批后生效 |
 | Depends On | None |
-| Related Specs | [统一身份平台设计](../../superpowers/specs/2026-08-01-unified-identity-platform-design.md) §7–§13；[RBAC3 授权分层](2026-08-24-17-30-rbac3-resource-grants-layering.md)；[玉衡双引擎](2026-09-02-19-52-gateway-dual-engine-separation.md) |
+| Related Specs | [统一身份平台设计](../../superpowers/specs/2026-08-01-unified-identity-platform-design.md) §7–§13；[RBAC3 授权分层](2026-08-24-17-30-rbac3-resource-grants-layering.md)；[玉衡双引擎](2026-09-02-19-52-gateway-dual-engine-separation.md)；[2026-10-08当前代码修订（Review）](2026-10-08-10-18-oauth-current-code-alignment.md) |
 | Related Plans | [天权多租户 OAuth2 / OIDC 实施 Plan](../plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md) |
 
 ## 1. Summary

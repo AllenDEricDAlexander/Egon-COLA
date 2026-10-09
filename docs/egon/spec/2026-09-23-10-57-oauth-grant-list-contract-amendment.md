@@ -20,7 +20,7 @@
 | Amends | [已确认主Spec](2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §9.1、§9.2、§9.3、§9.4、§12、§14、§19、§20：补一条原子Grant列表查询及前端消费/测试；其他契约保持 |
 | Supersedes | None |
 | Depends On | [已确认主Spec](2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) §7、§8.4、§9.0、§10、§11、§15、§16的realm、存储、权限、错误与切流规则 |
-| Related Specs | None |
+| Related Specs | [2026-10-08当前代码修订（Review）](2026-10-08-10-18-oauth-current-code-alignment.md) |
 | Related Plans | [天权 OAuth/OIDC 实施 Plan 草稿](../plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md)；本修订获确认前该Plan不得进入Ready或实现 |
 
 ## 1. Summary
