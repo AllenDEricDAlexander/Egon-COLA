@@ -116,17 +116,9 @@ egon:
       platform-storage-partition-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID}
     identity-state-key-prefix: "identity:v1:user:"
     oauth:
-      issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
       public-origin: ${EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN}
       platform-management-tenant-id: ${EGON_TIANQUAN_SHOUBING_PLATFORM_MANAGEMENT_TENANT_ID}
-      login-uri: ${TIANQUAN_SHOUBING_OAUTH_LOGIN_URI}
       allowed-origins: ${TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS:}
-      refresh-cookie-secure: ${TIANQUAN_SHOUBING_REFRESH_COOKIE_SECURE:true}
-      signing-key:
-        kid: ${TIANQUAN_SHOUBING_SIGNING_KEY_KID}
-        public-key-file: ${TIANQUAN_SHOUBING_SIGNING_PUBLIC_KEY_FILE}
-        private-key-file: ${TIANQUAN_SHOUBING_SIGNING_PRIVATE_KEY_FILE}
-
       key-encryption:
         key-id: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_ID}
         key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_KEK_FILE}

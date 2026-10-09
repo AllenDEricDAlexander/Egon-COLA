@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 10:42 Asia/Shanghai` |
-| Updated | `2026-10-09 05:48 Asia/Shanghai` |
+| Updated | `2026-10-09 12:32 Asia/Shanghai` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | 授柄SAS/认证MP与受管DDL、SCG、Starter、玉衡/鉴神/天枢准入、五端认证前端、切流 |
@@ -25,7 +25,7 @@
 
 本Plan按18个逻辑Step实施有效设计；新增Step 3迁移用户/密码/租户/成员目录到MP，并修订当前Outbox装配、直接审计事件依赖、历史导入与消费者验证。主Spec OAuth/OIDC、独立SCG、PLATFORM隔离、即时撤销和强制重新登录继续有效。API-045现在纳入Step 10/16，不再让已有Grant页面缺失GET。
 
-用户已明确授权按本Plan与当前修订Spec继续执行。Step 1–17已独立验证并提交；当前执行Step18，并先关闭源审计发现的Step13修正C13。C8 已提交 `e7889ee7bc31f743bfd17e78e68e164cf13b7450`，C17 checkpoint恢复已提交 `cd2a350d0309c53e936982c5a0f86efa0ad463db`（20 focused tests PASS），C8b accepted JWKS设置修正独立在Step18结束前关闭。修订Spec保持Review状态，不以执行授权冒充整体Spec接受。每个Step先RED/GREEN，按本Step精确路径验证后单独提交，再进入下一Step；未真实运行数据库/服务的能力不宣称生产验收。
+用户已明确授权按本Plan与当前修订Spec继续执行。Step 1–18均已独立验证并提交，Step18为 `8b5a8fb5b9c360997621a6f29962f9269e2ac377`（精确70路径、324 Admin/56 focused tests通过）。C13、C8、C17、C8b、C15、C14按独立纠正提交关闭；最终审计发现的死配置C18按§6.11处理。文档保持Review，不以执行授权冒充整体Spec接受。原无guard全reactor意外启动临时Redis fixture的偏差、Cache/MP baseline失败及所有用户控制的运行验收缺口均在最终报告列出，禁止声称全reactor或完整Spec已通过。
 
 ## 2. Target Spec and Effective Design
 
@@ -1350,6 +1350,51 @@ C15 File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+
+### 6.11 Corrective gate C18 — final retired configuration closure
+
+- Origin/authorization: Final audit primary Spec §15.5 explicit old signing/issuer binding retirement；EVD-178/DEC-177/TEST-171；沿用用户已授权推荐解阻方案，原18 Steps均已提交。
+- Baseline: Step18 `8b5a8fb5b9c360997621a6f29962f9269e2ac377`；两旧Spec不改/不stage。
+- Design: exact dead key removal, no new pattern/interface/model/dependency. The existing parsed-YAML assertion and static shell extension guard this closed config change; preserve live RPC settings/key files and new realm KEK settings.
+
+C18 File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPublicEndpointSettingsTest.java`
+
+- Purpose/pseudocode: test-first parsed base/local asserts retired leaves absent, required public-origin/key-encryption/Starter issuer leaves retained; old base signing leaves cause RED。
+- Validation/constraints: no database/Redis/application/browser; no secret data outputs; review exact scope and all17MC/10Literal gates.
+
+C18 File 2 — `MODIFY scripts/unified-xingyuan/test-direct-run-contract.sh`
+
+- Purpose/pseudocode: static RED detects old global signing/login/cookie env emissions, retain current service-registry/RPC assertions。
+- Validation/constraints: no database/Redis/application/browser; no secret data outputs; review exact scope and all17MC/10Literal gates.
+
+C18 File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
+
+- Purpose/pseudocode: remove only egon.tianquan-shoubing.oauth issuer/login-uri/refresh-cookie-secure/signing-key subtree; keep active CORS/realm KEK/Starter keys。
+- Validation/constraints: no database/Redis/application/browser; no secret data outputs; review exact scope and all17MC/10Literal gates.
+
+C18 File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+
+- Purpose/pseudocode: remove corresponding dead issuer/login-uri/refresh-cookie-secure leaves; keep same active key schema。
+- Validation/constraints: no database/Redis/application/browser; no secret data outputs; review exact scope and all17MC/10Literal gates.
+
+C18 File 5 — `MODIFY scripts/unified-identity-local.sh`
+
+- Purpose/pseudocode: remove six old protocol environment emissions only; existing independent RPC/private-file usages remain。
+- Validation/constraints: no database/Redis/application/browser; no secret data outputs; review exact scope and all17MC/10Literal gates.
+
+C18 File 6 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose/pseudocode: record exact finding/decision/test/requirement, no requirement weakening。
+- Validation/constraints: no database/Redis/application/browser; no secret data outputs; review exact scope and all17MC/10Literal gates.
+
+C18 File 7 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose/pseudocode: record seven paths/order/validation/commit evidence without rewriting existing Step18 commit。
+- Validation/constraints: no database/Redis/application/browser; no secret data outputs; review exact scope and all17MC/10Literal gates.
+
+- Validation: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthPublicEndpointSettingsTest,TenantIssuerIsolationTest,OAuthConfigTest,IdpPersistenceEntityContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; `bash -n scripts/unified-identity-local.sh scripts/unified-xingyuan/test-direct-run-contract.sh`; static `bash scripts/unified-xingyuan/test-direct-run-contract.sh`; strict Spec/Plan and diff checks.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPublicEndpointSettingsTest.java`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `scripts/unified-identity-local.sh`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
+- Commit: `fix(shoubing): remove retired protocol configuration`；one exact7-path commit, then resume final audit; runtime acceptance stays operator-owned.
 
 ## 7. Ordered File-by-file Implementation Steps
 

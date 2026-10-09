@@ -55,6 +55,13 @@ assert_contains "${identity_script}" '${issuer}/.well-known/jwks.json' \
 assert_not_contains "${identity_script}" '${issuer}/oauth2/jwks' \
   'generated trusted JWKS must not use the retired default path'
 
+assert_not_contains "${identity_script}" 'write_env "${file}" TIANQUAN_SHOUBING_SIGNING_' \
+  'retired global OAuth PEM settings must not be emitted'
+assert_not_contains "${identity_script}" 'write_env "${file}" TIANQUAN_SHOUBING_OAUTH_LOGIN_URI' \
+  'retired root login config must not be emitted'
+assert_not_contains "${identity_script}" 'write_env "${file}" TIANQUAN_SHOUBING_REFRESH_COOKIE_SECURE' \
+  'retired OAuth cookie config must not be emitted'
+
 # New deployments must not bootstrap credentials through retired protocol roots.
 assert_not_contains "${identity_script}" 'token_endpoint="${idp_url}/oauth2/token"' \
   'local SERVICE issuance must use its explicit trusted realm issuer'

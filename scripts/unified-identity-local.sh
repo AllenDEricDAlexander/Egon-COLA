@@ -941,13 +941,8 @@ write_service_env_files() {
   write_env "${file}" TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_DATABASE 8
   write_env "${file}" TIANQUAN_SHOUBING_ADVERTISED_PORT 18120
-  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_LOGIN_URI http://127.0.0.1:18121/login
   write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS \
     http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
-  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_COOKIE_SECURE false
-  write_env "${file}" TIANQUAN_SHOUBING_SIGNING_KEY_KID tianquan-shoubing-local
-  write_env "${file}" TIANQUAN_SHOUBING_SIGNING_PRIVATE_KEY_FILE "${secret_dir}/tianquan-shoubing-private.pem"
-  write_env "${file}" TIANQUAN_SHOUBING_SIGNING_PUBLIC_KEY_FILE "${secret_dir}/tianquan-shoubing-public.pem"
   write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_BASE_URL "${rbac3_url}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
     tianquan-shoubing-service tianquan-shoubing-local "${secret_dir}/tianquan-shoubing-private.pem"
