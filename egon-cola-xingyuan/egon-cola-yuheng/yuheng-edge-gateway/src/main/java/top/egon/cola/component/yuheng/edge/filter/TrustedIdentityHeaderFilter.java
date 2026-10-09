@@ -6,6 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -14,12 +17,16 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Set;
 
 @Component("trustedIdentityHeaderFilter")
 @Slf4j
+@RequiredArgsConstructor
 public class TrustedIdentityHeaderFilter implements GlobalFilter, Ordered {
+    @Qualifier("jacksonObjectMapper")
+    private final ObjectMapper objectMapper;
+
     private static final String BFF_COOKIE = "__Host-egon_bff";
     private static final Set<String> UNTRUSTED_IDENTITY_HEADERS = Set.of(
             "tenant_id",
@@ -49,15 +56,17 @@ public class TrustedIdentityHeaderFilter implements GlobalFilter, Ordered {
         if (bearer && hasSession) {
             return writeError(sanitized, HttpStatus.BAD_REQUEST, "invalid_request");
         }
+        ServerWebExchange forwarded = sanitized.mutate().request(request.mutate()
+                .headers(headers -> headers.remove(HttpHeaders.COOKIE)).build()).build();
         if (bearer) {
-            return chain.filter(sanitized);
+            return chain.filter(forwarded);
         }
         return sanitized.getPrincipal()
                 .ofType(Authentication.class)
                 .filter(TrustedIdentityHeaderFilter::authenticated)
                 .hasElement()
                 .flatMap(hasAuthenticatedSession -> hasAuthenticatedSession
-                        ? chain.filter(sanitized)
+                        ? chain.filter(forwarded)
                         : writeError(sanitized, HttpStatus.UNAUTHORIZED, "invalid_token"));
     }
 
@@ -83,11 +92,11 @@ public class TrustedIdentityHeaderFilter implements GlobalFilter, Ordered {
             HttpStatus status,
             String code) {
         log.debug("Rejected Yuheng route request; status={}, error={}", status.value(), code);
-        byte[] body = ("{\"error\":\"" + code + "\"}").getBytes(StandardCharsets.UTF_8);
         exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
         exchange.getResponse().getHeaders().setCacheControl("no-store");
-        return exchange.getResponse().writeWith(Mono.just(
-                exchange.getResponse().bufferFactory().wrap(body)));
+        return Mono.fromCallable(() -> objectMapper.writeValueAsBytes(Map.of("error", code)))
+                .flatMap(body -> exchange.getResponse().writeWith(Mono.just(
+                        exchange.getResponse().bufferFactory().wrap(body))));
     }
 }

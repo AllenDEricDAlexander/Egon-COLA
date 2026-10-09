@@ -136,6 +136,69 @@ class EdgeLoginContractTest {
     Path tempDir;
 
     @Test
+    void successfulApiAndMcpForwardingDropsCookiesButPreservesResolvedSessionAndBearer() {
+        var filter = new top.egon.cola.component.yuheng.edge.filter.TrustedIdentityHeaderFilter(
+                new com.fasterxml.jackson.databind.ObjectMapper());
+        for (String path : List.of("/api/orders", "/mcp/messages")) {
+            var bearer = org.springframework.mock.web.server.MockServerWebExchange.from(
+                    org.springframework.mock.http.server.reactive.MockServerHttpRequest.get(path)
+                            .header("Authorization", "Bearer service-token")
+                            .header("Cookie", "legacy_at=old; legacy_rt=old")
+                            .header("x-egon-user-id", "spoofed"));
+            AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+            filter.filter(bearer, next -> { forwarded.set(next); return Mono.empty(); }).block();
+            assertThat(forwarded.get().getRequest().getHeaders().getFirst("Cookie")).isNull();
+            assertThat(forwarded.get().getRequest().getHeaders().getFirst("Authorization"))
+                    .isEqualTo("Bearer service-token");
+            assertThat(forwarded.get().getRequest().getHeaders().getFirst("x-egon-user-id")).isNull();
+
+            var browser = org.springframework.mock.web.server.MockServerWebExchange.from(
+                    org.springframework.mock.http.server.reactive.MockServerHttpRequest.get(path)
+                            .cookie(new org.springframework.http.HttpCookie("__Host-egon_bff", "opaque-session")));
+            WebSession resolved = browser.getSession().block();
+            resolved.getAttributes().put("resolved-binding", "session-1");
+            Authentication principal = oauthAuthentication("tenant-a", "subject-1");
+            ServerWebExchange authenticated = browser.mutate().principal(Mono.just(principal)).build();
+            filter.filter(authenticated, next -> { forwarded.set(next); return Mono.empty(); }).block();
+            assertThat(forwarded.get().getRequest().getHeaders().getFirst("Cookie")).isNull();
+            assertThat(forwarded.get().getPrincipal().block()).isSameAs(principal);
+            assertThat(forwarded.get().getSession().block()).isSameAs(resolved);
+            assertThat(forwarded.get().getSession().block().getAttribute("resolved-binding").toString())
+                    .isEqualTo("session-1");
+        }
+    }
+
+    @Test
+    void asCookiesArePreservedWhileRejectedApiCredentialsNeverReachEngine() throws Exception {
+        var filter = new top.egon.cola.component.yuheng.edge.filter.TrustedIdentityHeaderFilter(
+                new com.fasterxml.jackson.databind.ObjectMapper());
+        AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+        var as = org.springframework.mock.web.server.MockServerWebExchange.from(
+                org.springframework.mock.http.server.reactive.MockServerHttpRequest.get("/tenants/1001/login")
+                        .header("Cookie", "JSESSIONID=as-session"));
+        filter.filter(as, next -> { forwarded.set(next); return Mono.empty(); }).block();
+        assertThat(forwarded.get().getRequest().getHeaders().getFirst("Cookie"))
+                .isEqualTo("JSESSIONID=as-session");
+        forwarded.set(null);
+        var mixed = org.springframework.mock.web.server.MockServerWebExchange.from(
+                org.springframework.mock.http.server.reactive.MockServerHttpRequest.get("/api/orders")
+                        .header("Authorization", "Bearer explicit-token")
+                        .cookie(new org.springframework.http.HttpCookie("__Host-egon_bff", "session")));
+        filter.filter(mixed, next -> { forwarded.set(next); return Mono.empty(); }).block();
+        assertThat(forwarded.get()).isNull();
+        assertThat(mixed.getResponse().getStatusCode().value()).isEqualTo(400);
+        assertThat(new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(mixed.getResponse().getBodyAsString().block()).get("error").asText())
+                .isEqualTo("invalid_request");
+        var anonymous = org.springframework.mock.web.server.MockServerWebExchange.from(
+                org.springframework.mock.http.server.reactive.MockServerHttpRequest.get("/mcp"));
+        filter.filter(anonymous, next -> { forwarded.set(next); return Mono.empty(); }).block();
+        assertThat(forwarded.get()).isNull();
+        assertThat(anonymous.getResponse().getStatusCode().value()).isEqualTo(401);
+        assertThat(anonymous.getResponse().getHeaders().getCacheControl()).isEqualTo("no-store");
+    }
+
+    @Test
     void edgeDeclaresManagedRedisDriverAndExistingWebfluxOpenApiAdapter() throws Exception {
         String pom = Files.readString(Path.of("pom.xml"));
 
@@ -914,7 +977,8 @@ class EdgeLoginContractTest {
                 top.egon.cola.component.yuheng.edge.service.impl.EdgeLogoutRevocationWorker.class,
                 EdgeLogoutService.class,
                 EdgeSecurityConfiguration.class,
-                EdgeSessionController.class)) {
+                EdgeSessionController.class,
+                top.egon.cola.component.yuheng.edge.filter.TrustedIdentityHeaderFilter.class)) {
             assertQualifiedConstructor(type);
         }
 
