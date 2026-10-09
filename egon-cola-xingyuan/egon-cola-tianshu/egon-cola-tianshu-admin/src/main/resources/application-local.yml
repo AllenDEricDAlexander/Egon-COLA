@@ -10,8 +10,8 @@ egon:
     platform:
       tianquan:
         shoubing:
-          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
-          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
         jianshen:
           runtime:
             redis-address: ${TIANSHU_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}

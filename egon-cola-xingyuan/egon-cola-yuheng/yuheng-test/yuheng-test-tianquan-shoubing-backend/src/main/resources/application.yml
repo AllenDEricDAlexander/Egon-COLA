@@ -5,7 +5,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
   config:
     import:
       - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/mock-backend.properties
@@ -44,8 +44,8 @@ egon:
         shoubing:
           enabled: true
           register-filter: false
-          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
-          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
           resource-server-id: ${MOCK_BACKEND_RESOURCE_SERVER_ID:identity-mock-backend-local}
           resource-uri: ${MOCK_BACKEND_RESOURCE_URI:https://api.egon.internal/local/identity/mock-backend}
         jianshen:

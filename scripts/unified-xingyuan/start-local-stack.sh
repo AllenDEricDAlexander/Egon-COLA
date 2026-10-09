@@ -19,7 +19,7 @@ gateway_mcp_engine_jar="${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-co
 mcp_provider_jar="${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/target/yuheng-test-mcp-provider-exec.jar"
 mcp_remote_jar="${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/target/yuheng-test-mcp-remote-exec.jar"
 gateway_control_plane_service_token_file="${unified_xingyuan_secret_dir}/yuheng-admin-control-plane.service.jwt"
-default_cookie_jar="${unified_xingyuan_runtime_dir}/browser.default.cookies"
+default_user_input_file="${unified_xingyuan_runtime_dir}/default-user.input.jwt"
 mcp_user_token_file="${unified_xingyuan_runtime_dir}/mcp-user.at"
 gateway_group_file="${unified_xingyuan_runtime_dir}/yuheng-group.id"
 default_tenant_id=
@@ -75,26 +75,19 @@ export UNIFIED_IDENTITY_SKIP_BUILD="${UNIFIED_XINGYUAN_SKIP_BUILD:-false}"
 export UNIFIED_IDENTITY_DEFER_YUHENG_RELEASE=true
 
 default_user_access_token() {
-  local access_token
-  [[ -s "${default_cookie_jar}" ]] \
-    || unified_xingyuan_fail "default tenant Yuheng cookie jar is unavailable"
-  access_token="$(awk 'BEGIN { FS="\t" } { sub(/^#HttpOnly_/, "", $1) } $0 !~ /^#/ && ($6 == "__Host-egon_user_at" || $6 == "egon_user_at_local") { value=$7 } END { print value }' \
-    "${default_cookie_jar}")"
-  [[ "${access_token}" =~ ^[^.[:space:]]+\.[^.[:space:]]+\.[^.[:space:]]+$ ]] \
-    || unified_xingyuan_fail "default tenant USER Access Token cookie is unavailable"
-  printf '%s' "${access_token}"
+  UNIFIED_IDENTITY_TENANT=default \
+  UNIFIED_IDENTITY_ACCESS_TOKEN_FILE="${default_user_input_file}" \
+    "${legacy_script}" issue-user-token
+  [[ -s "${default_user_input_file}" ]] || unified_xingyuan_fail "protected formal default USER input is unavailable"
+  printf '%s' "$(<"${default_user_input_file}")"
 }
 
 prepare_admin_web_login_environments() {
-  local userinfo access_token
-  access_token="$(default_user_access_token)"
-  userinfo="$(curl --max-time 10 -fsS \
-    -H "Authorization: Bearer ${access_token}" \
-    "${TIANQUAN_SHOUBING_BASE_URL}/oauth2/userinfo")" \
-    || unified_xingyuan_fail "Tianquan-Shoubing USER Access Token could not resolve /oauth2/userinfo"
-  default_tenant_id="$(jq -er '.tid' <<<"${userinfo}")"
-  [[ "${default_tenant_id}" =~ ^[1-9][0-9]*$ ]] \
-    || unified_xingyuan_fail "default tenant access token has an invalid tenant ID"
+  local context
+  context="$(UNIFIED_IDENTITY_TENANT=default "${legacy_script}" oauth-context)" \
+    || unified_xingyuan_fail "Formal default USER context is unavailable"
+  default_tenant_id="$(jq -er '.tenantId' <<<"${context}")"
+  [[ "${default_tenant_id}" =~ ^[1-9][0-9]*$ ]] || unified_xingyuan_fail "Configured default tenant is invalid"
   unified_xingyuan_write_frontend_login_env "${idp_web_dir}"
   unified_xingyuan_write_frontend_login_env "${rbac3_web_dir}"
   unified_xingyuan_write_frontend_login_env "${gateway_web_dir}"
@@ -188,33 +181,8 @@ issue_mcp_user_token() {
 }
 
 ensure_mcp_user_delegation() {
-  local resource_id=identity-yuheng-test-mcp-provider-local
-  local resource_response resource_version response_file status body access_token
-  if issue_mcp_user_token >/dev/null 2>&1; then
-    return
-  fi
-  access_token="$(default_user_access_token)"
-  response_file="$(mktemp "${unified_xingyuan_runtime_dir}/tianquan-shoubing-api.XXXXXX")"
-  resource_response="$(curl --max-time 30 -fsS \
-    -H "Authorization: Bearer ${access_token}" \
-    "${TIANQUAN_SHOUBING_BASE_URL}/api/v1/tianquan-shoubing/resource-servers/${resource_id}")" \
-    || unified_xingyuan_fail "MCP provider Resource is unavailable"
-  resource_version="$(jq -er '.version' <<<"${resource_response}")"
-  body="$(jq -cn --argjson version "${resource_version}" \
-    '{grantType:"USER_DELEGATION",tenantId:null,allowedScopes:[],expectedResourceVersion:$version,expectedGrantVersion:null}')"
-  status="$(curl --max-time 30 -sS -o "${response_file}" -w '%{http_code}' \
-    -X PUT -H "Authorization: Bearer ${access_token}" \
-    -H 'Content-Type: application/json' -d "${body}" \
-    "${TIANQUAN_SHOUBING_BASE_URL}/api/v1/tianquan-shoubing/clients/mock-backend/resources/${resource_id}")"
-  if [[ ! "${status}" =~ ^2[0-9][0-9]$ ]]; then
-    body="$(<"${response_file}")"
-    rm -f "${response_file}"
-    unified_xingyuan_fail \
-      "MCP USER_DELEGATION grant failed with HTTP ${status}: ${body}"
-  fi
-  rm -f "${response_file}"
   issue_mcp_user_token \
-    || unified_xingyuan_fail "MCP provider Resource token issuance failed"
+    || unified_xingyuan_fail "Provide a formal tenant-b USER token with the pre-provisioned MCP Resource/Grant authorization"
 }
 
 draft_revision() {
@@ -244,19 +212,20 @@ write_extra_service_env_files() {
   chmod 600 "${file}"
   unified_xingyuan_write_env "${file}" MCP_TEST_REMOTE_PORT 18151
 
+  # Keep the established fixture/PID alias while running the second dedicated MCP Engine role.
   file="${unified_xingyuan_env_dir}/yuheng-biz-gateway-b.env"
-  cp "${unified_xingyuan_env_dir}/yuheng-biz-gateway.env" "${file}"
-  chmod 600 "${file}"
-  unified_xingyuan_write_env "${file}" SERVER_PORT 18183
+  cp "${unified_xingyuan_env_dir}/yuheng-mcp-gateway.env" "${file}"
+  cp "${unified_xingyuan_env_dir}/yuheng-mcp-gateway.properties" "${file%.env}.properties"
+  chmod 600 "${file}" "${file%.env}.properties"
+  unified_xingyuan_write_env "${file}" SPRING_CONFIG_ADDITIONAL_LOCATION "file:${file%.env}.properties"
   unified_xingyuan_write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 36
-  unified_xingyuan_write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_NODE_ID yuheng-biz-gateway-local-b
-  unified_xingyuan_write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_INSTANCE_ID yuheng-biz-gateway-local-2
-  unified_xingyuan_write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_DATA_DIRECTORY "${unified_xingyuan_runtime_dir}/yuheng-biz-gateway-b-data"
-  unified_xingyuan_write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_HTTP_PUBLIC_PORT 18184
-  unified_xingyuan_write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_HTTP_INTERNAL_PORT 18185
-  unified_xingyuan_write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_RPC_PORT 19190
-  unified_xingyuan_write_env "${file}" YUHENG_ENGINE_TIANSHU_INSTANCE_ID yuheng-biz-gateway-local-2
-  unified_xingyuan_write_env "${file}" YUHENG_ENGINE_TIANSHU_ADVERTISED_PORT 18184
+  unified_xingyuan_write_env "${file}" YUHENG_MCP_ENGINE_PORT 18184
+  unified_xingyuan_write_env "${file}" SERVER_PORT 18183
+  unified_xingyuan_write_env "${file}" YUHENG_MCP_ENGINE_MANAGEMENT_PORT 18183
+  unified_xingyuan_write_env "${file}" YUHENG_MCP_ENGINE_NODE_ID yuheng-mcp-gateway-local-b
+  unified_xingyuan_write_env "${file}" YUHENG_MCP_ENGINE_TIANSHU_INSTANCE_ID yuheng-mcp-gateway-local-2
+  unified_xingyuan_write_env "${file}" YUHENG_MCP_ENGINE_DATA_DIRECTORY "${unified_xingyuan_runtime_dir}/yuheng-mcp-gateway-b-data"
+  unified_xingyuan_write_env "${file}" YUHENG_MCP_ENGINE_TIANSHU_ADVERTISED_PORT 18184
   unified_xingyuan_write_env "${file}" YUHENG_MCP_REMOTE_CIRCUIT_OPEN_DURATION PT3S
   unified_xingyuan_write_env "${file}" YUHENG_MCP_REMOTE_FAILURE_THRESHOLD 2
   unified_xingyuan_write_env "${file}" YUHENG_MCP_TASK_POLL_INTERVAL PT1S
@@ -277,51 +246,9 @@ write_extra_service_env_files() {
   unified_xingyuan_write_env "${file}" MCP_TEST_PROVIDER_INSTANCE_ID mcp-provider-local-1
   unified_xingyuan_write_env "${file}" MCP_TEST_PROVIDER_BUILD_ID \
     "$(unified_xingyuan_local_build_id "${mcp_provider_jar}")"
-  unified_xingyuan_write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ISSUER "${TIANQUAN_SHOUBING_BASE_URL}"
-  unified_xingyuan_write_env "${file}" TIANQUAN_SHOUBING_JWK_SET_URI \
-    "${TIANQUAN_SHOUBING_BASE_URL}/oauth2/jwks"
-  unified_xingyuan_write_env "${file}" MCP_PROVIDER_RESOURCE_SERVER_ID \
-    identity-yuheng-test-mcp-provider-local
-  unified_xingyuan_write_env "${file}" MCP_PROVIDER_RESOURCE_URI \
-    https://api.egon.internal/local/identity/yuheng-test-mcp-provider
-  unified_xingyuan_write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_ID \
-    mcp-provider-service
-  unified_xingyuan_write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_SECRET \
-    "$(<"${unified_xingyuan_secret_dir}/mcp-provider-service.secret")"
-  unified_xingyuan_write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_AUTHORIZATION_GRANT_TYPE \
-    client_credentials
-  unified_xingyuan_write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_AUTHENTICATION_METHOD \
-    client_secret_basic
-  unified_xingyuan_write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_EGON_TIANQUAN_SHOUBING_TOKEN_URI \
-    "${TIANQUAN_SHOUBING_BASE_URL}/oauth2/token"
-  unified_xingyuan_write_env "${file}" \
-    EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_APP_ID mcp-provider-service
-  unified_xingyuan_write_env "${file}" \
-    EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_REGISTRATION_ID egon-tianquan-shoubing
-  unified_xingyuan_write_property "${properties_file}" \
-    spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-id \
-    mcp-provider-service
-  unified_xingyuan_write_property "${properties_file}" \
-    spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-secret \
-    "$(<"${unified_xingyuan_secret_dir}/mcp-provider-service.secret")"
-  unified_xingyuan_write_property "${properties_file}" \
-    spring.security.oauth2.client.registration.egon-tianquan-shoubing.authorization-grant-type \
-    client_credentials
-  unified_xingyuan_write_property "${properties_file}" \
-    spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-authentication-method \
-    client_secret_basic
-  unified_xingyuan_write_property "${properties_file}" \
-    spring.security.oauth2.client.provider.egon-tianquan-shoubing.token-uri \
-    "${TIANQUAN_SHOUBING_BASE_URL}/oauth2/token"
-  unified_xingyuan_write_property "${properties_file}" \
-    egon.cola.platform.tianquan.shoubing.service-client.app-id mcp-provider-service
-  unified_xingyuan_write_property "${properties_file}" \
-    egon.cola.platform.tianquan.shoubing.service-client.registration-id egon-tianquan-shoubing
+  UNIFIED_IDENTITY_REGISTRATION_ENV_FILE="${file}" \
+  UNIFIED_IDENTITY_REGISTRATION_CLIENT_ID=mcp-provider-service \
+    "${legacy_script}" write-service-registration
   unified_xingyuan_write_env "${file}" MCP_PROVIDER_REDIS_ADDRESS \
     redis://127.0.0.1:6379
   unified_xingyuan_write_env "${file}" MCP_PROVIDER_REDIS_DATABASE 8
@@ -963,7 +890,7 @@ unified_xingyuan_wait_http mcp-remote \
 
 unified_xingyuan_stage "starting Yuheng Engine B"
 unified_xingyuan_start_jar yuheng-biz-gateway-b \
-  "${unified_xingyuan_env_dir}/yuheng-biz-gateway-b.env" "${gateway_engine_jar}"
+  "${unified_xingyuan_env_dir}/yuheng-biz-gateway-b.env" "${gateway_mcp_engine_jar}"
 unified_xingyuan_wait_http yuheng-biz-gateway-b \
   "${YUHENG_ENGINE_B_BASE_URL}/actuator/health/readiness"
 wait_gateway_engine_provider_catalog

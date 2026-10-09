@@ -40,12 +40,13 @@ rbac3_database="${UNIFIED_IDENTITY_TIANQUAN_JIANSHEN_DATABASE:-egon_rbac3_unifie
 gateway_database="${UNIFIED_IDENTITY_YUHENG_DATABASE:-egon_gateway_local}"
 ddc_database="${UNIFIED_IDENTITY_TIANSHU_DATABASE:-egon_tianshu_local}"
 service_tenant_id="${UNIFIED_IDENTITY_SERVICE_TENANT_ID:-default}"
-tenant_authority_artifact="${UNIFIED_IDENTITY_TENANT_AUTHORITY_ARTIFACT:-}"
-# USER tokens stay in the Yuheng-managed cookie jar for the browser path.  These
-# variables are deliberately process-local and are used only while bootstrapping
-# or running an explicit command-line verification.
+oauth_registry_file="${UNIFIED_IDENTITY_OAUTH_REGISTRY_FILE:-}"
+oauth_registry_json=""
+platform_partition_id=""
+platform_issuer=""
+tenant_b_id=""
+# USER authorization comes only from protected operator-provided formal input files.
 ddc_admin_access_token=""
-pre_logout_access_token=""
 
 idp_jar="${repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar"
 rbac3_jar="${repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/target/egon-cola-tianquan-jianshen-admin-exec.jar"
@@ -64,8 +65,10 @@ Commands:
   start    Start and bootstrap Tianshu, Tianquan-Shoubing, Tianquan-Jianshen, Yuheng, and the mock backend
   publish-yuheng-routes  Publish the prepared local Yuheng routes after Engine startup
   refresh-yuheng-admin-catalog  Refresh the running Admin's own interface catalog
-  sync-local-credentials  Refresh local SERVICE credentials and USER cookie snapshots
-  issue-user-token  Issue one local USER Access Token from explicit inputs
+  sync-local-credentials  Refresh SERVICE credentials and verify protected formal USER inputs
+  issue-user-token  Copy one verified operator-provided formal USER input to a protected output
+  oauth-context  Print the verified operator tenant/subject/issuer context without token data
+  write-service-registration  Append one explicit registered client to a managed env/properties file
   verify   Execute the host-local unified identity acceptance checks
   status   Show exact managed process and health status
   stop     Gracefully stop only processes recorded by this harness
@@ -98,6 +101,336 @@ initialize_directories() {
   umask 077
   mkdir -p "${secret_dir}" "${log_dir}" "${pid_dir}" "${env_dir}"
   chmod 700 "${runtime_dir}" "${secret_dir}" "${log_dir}" "${pid_dir}" "${env_dir}"
+}
+
+protected_oauth_file() {
+  local file="$1" maximum="${2:-131072}" metadata owner mode bytes
+  [[ "${file}" == /* && -f "${file}" && -s "${file}" && ! -L "${file}" ]] \
+    || fail "OAuth material must be an existing absolute regular owner-only file"
+  if [[ "$(uname -s)" == Darwin ]]; then
+    metadata="$(stat -f '%u:%Lp:%z' "${file}")"
+  else
+    metadata="$(stat -c '%u:%a:%s' "${file}")"
+  fi
+  IFS=: read -r owner mode bytes <<<"${metadata}"
+  [[ "${owner}" == "$(id -u)" && ( "${mode}" == 400 || "${mode}" == 600 ) \
+    && "${bytes}" =~ ^[0-9]+$ && "${bytes}" -le "${maximum}" ]] \
+    || fail "OAuth material has unsafe ownership, permissions, or size"
+}
+
+require_oauth_decimal() {
+  local value="$1" allow_zero="${2:-false}"
+  [[ "${value}" =~ ^(0|[1-9][0-9]{0,18})$ \
+    && ( "${#value}" -lt 19 || "${value}" < 9223372036854775808 ) \
+    && ( "${allow_zero}" == true || "${value}" != 0 ) ]] \
+    || fail "OAuth registry contains an invalid decimal Long"
+}
+
+require_oauth_origin() {
+  local origin="$1"
+  [[ "${origin}" =~ ^https://([A-Za-z0-9][A-Za-z0-9.-]*|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?$ \
+    || "${origin}" =~ ^http://(127\.0\.0\.1|localhost|\[::1\])(:[0-9]{1,5})?$ ]] \
+    || fail "OAuth public origin must be canonical HTTPS or exact loopback HTTP"
+  [[ "${origin}" != *..* && "${#origin}" -le 2048 ]] \
+    || fail "OAuth public origin is invalid"
+  if [[ "${origin}" =~ :([0-9]{1,5})$ ]]; then
+    local port=$((10#${BASH_REMATCH[1]}))
+    [[ "${port}" -ge 1 && "${port}" -le 65535 ]] || fail "OAuth public-origin port is invalid"
+  fi
+}
+
+local_oauth_registration() {
+  local client_id="$1" tenant_id="${2:-PLATFORM}"
+  [[ -n "${oauth_registry_json:-}" ]] || load_local_oauth_registry
+  jq -ce --arg client "${client_id}" --arg tenant "${tenant_id}" '
+    .clients[$client] | if $tenant == "PLATFORM" then .platform else .tenants[$tenant] end
+    | select(type == "object")' <<<"${oauth_registry_json}" \
+    || fail "OAuth client has no explicit registration for the requested realm"
+}
+
+local_oauth_issuer() {
+  local ref="$1"
+  jq -er --arg ref "${ref}" '.issuers[$ref].issuer' <<<"${oauth_registry_json}" \
+    || fail "OAuth issuer reference is missing"
+}
+
+load_local_oauth_registry() {
+  [[ -n "${oauth_registry_json:-}" ]] && return
+  [[ -n "${oauth_registry_file:-}" ]] \
+    || fail "UNIFIED_IDENTITY_OAUTH_REGISTRY_FILE is required; provision/import the current OAuth facts first"
+  protected_oauth_file "${oauth_registry_file}"
+  oauth_registry_json="$(<"${oauth_registry_file}")"
+  jq -e '
+    def text: type == "string" and length > 0 and length <= 4096;
+    def decimal: type == "string" and test("^(0|[1-9][0-9]{0,18})$");
+    def positive: decimal and . != "0";
+    def registration:
+      type == "object" and (keys | sort) == ["credentialVersion","issuerRef","secretFile"]
+      and (.issuerRef | text) and (.credentialVersion | decimal) and (.secretFile | text);
+    type == "object"
+    and (keys | sort) == ["auditHmacKeyFile","clients","identitySub","issuers","kekFile","kekId",
+      "platformManagementTenantId","platformStoragePartitionId","publicOrigin","revocationEpoch","schemaVersion","tenants"]
+    and .schemaVersion == 1 and (.publicOrigin | text)
+    and (.platformStoragePartitionId | positive) and (.platformManagementTenantId | positive)
+    and (.identitySub | type == "string" and test("^[A-Za-z0-9._~-]{1,64}$"))
+    and (.revocationEpoch | type == "string" and test("^[A-Za-z0-9._-]{1,128}$"))
+    and (.kekId | type == "string" and test("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"))
+    and (.kekFile | text) and (.auditHmacKeyFile | text)
+    and (.issuers | type == "object" and length >= 1 and length <= 16)
+    and all(.issuers | to_entries[];
+      (.key | test("^[a-z][a-z0-9-]{0,31}$")) and (.value | type == "object")
+      and ((.value | keys | sort) == ["issuer","realmKey","realmType","trustVersion"]
+        or (.value | keys | sort) == ["issuer","realmKey","realmType","tenantId","trustVersion"])
+      and (.value.issuer | text) and (.value.trustVersion | decimal)
+      and (.value.realmKey | type == "string" and test("^(platform|tenant:[1-9][0-9]{0,18})$"))
+      and ((.value.realmType == "PLATFORM" and .value.tenantId == null)
+        or (.value.realmType == "TENANT" and (.value.tenantId | positive))))
+    and ([.issuers[].issuer] | length == (unique | length))
+    and ([.issuers[] | select(.realmType == "PLATFORM")] | length == 1)
+    and (.tenants | type == "object" and length >= 2 and length <= 8 and has("default") and has("tenant-b"))
+    and all(.tenants | to_entries[];
+      (.key | test("^[a-z][a-z0-9-]{2,63}$")) and (.value | type == "object")
+      and ((.value | keys | sort) == ["accessTokenFile","issuerRef","tenantId"]
+        or (.value | keys | sort) == ["accessTokenFile","issuerRef","revokedAccessTokenFile","tenantId"])
+      and (.value.tenantId | positive) and (.value.issuerRef | text) and (.value.accessTokenFile | text)
+      and (.value.revokedAccessTokenFile == null or (.value.revokedAccessTokenFile | text)))
+    and ([.tenants[].tenantId] | length == (unique | length))
+    and (.clients | type == "object" and length >= 1 and length <= 32)
+    and all(.clients | to_entries[];
+      (.key | test("^[a-z][a-z0-9-]{2,127}$")) and (.value | type == "object")
+      and (.value | (keys | sort) == ["appId","platform","tenants"])
+      and (.value.appId | type == "string" and test("^[a-z][a-z0-9-]{2,127}$"))
+      and (.value.platform | registration)
+      and (.value.tenants | type == "object" and length >= 2 and length <= 8)
+      and all(.value.tenants | to_entries[]; (.key | positive) and (.value | registration)))
+  ' <<<"${oauth_registry_json}" >/dev/null \
+    || fail "OAuth registry schema is invalid or contains unknown fields"
+  require_oauth_origin "$(jq -er '.publicOrigin' <<<"${oauth_registry_json}")"
+  [[ "$(jq -er '.publicOrigin' <<<"${oauth_registry_json}")" == "${idp_url}" ]] \
+    || fail "OAuth registry publicOrigin must equal the explicit local IdP origin"
+  platform_partition_id="$(jq -er '.platformStoragePartitionId' <<<"${oauth_registry_json}")"
+  require_oauth_decimal "${platform_partition_id}"
+  require_oauth_decimal "$(jq -er '.platformManagementTenantId' <<<"${oauth_registry_json}")"
+  protected_oauth_file "$(jq -er '.kekFile' <<<"${oauth_registry_json}")" 1024
+  protected_oauth_file "$(jq -er '.auditHmacKeyFile' <<<"${oauth_registry_json}")" 1024
+  local ref issuer type tenant_id realm_key version expected registration client_id tenant_code secret_file secret
+  while IFS= read -r ref; do
+    issuer="$(local_oauth_issuer "${ref}")"
+    type="$(jq -er --arg ref "${ref}" '.issuers[$ref].realmType' <<<"${oauth_registry_json}")"
+    realm_key="$(jq -er --arg ref "${ref}" '.issuers[$ref].realmKey' <<<"${oauth_registry_json}")"
+    version="$(jq -er --arg ref "${ref}" '.issuers[$ref].trustVersion' <<<"${oauth_registry_json}")"
+    require_oauth_decimal "${version}" true
+    if [[ "${type}" == PLATFORM ]]; then
+      expected="${idp_url}/platform"
+      [[ "${realm_key}" == platform ]] || fail "PLATFORM registry realmKey is invalid"
+      platform_issuer="${issuer}"
+    else
+      tenant_id="$(jq -er --arg ref "${ref}" '.issuers[$ref].tenantId' <<<"${oauth_registry_json}")"
+      require_oauth_decimal "${tenant_id}"
+      [[ "${tenant_id}" != "${platform_partition_id}" && "${realm_key}" == "tenant:${tenant_id}" ]] \
+        || fail "TENANT registry partition or realmKey is invalid"
+      expected="${idp_url}/tenants/${tenant_id}"
+    fi
+    [[ "${issuer}" == "${expected}" ]] || fail "OAuth issuer must equal its canonical configured realm URI"
+  done < <(jq -r '.issuers | keys[]' <<<"${oauth_registry_json}")
+  while IFS= read -r tenant_code; do
+    tenant_id="$(jq -er --arg tenant "${tenant_code}" '.tenants[$tenant].tenantId' <<<"${oauth_registry_json}")"
+    ref="$(jq -er --arg tenant "${tenant_code}" '.tenants[$tenant].issuerRef' <<<"${oauth_registry_json}")"
+    require_oauth_decimal "${tenant_id}"
+    jq -e --arg ref "${ref}" --arg tenant "${tenant_id}" \
+      '.issuers[$ref].realmType == "TENANT" and .issuers[$ref].tenantId == $tenant' \
+      <<<"${oauth_registry_json}" >/dev/null || fail "Local tenant does not match its trusted issuer"
+    protected_oauth_file "$(jq -er --arg tenant "${tenant_code}" '.tenants[$tenant].accessTokenFile' <<<"${oauth_registry_json}")" 16384
+    local_user_input_metadata "${tenant_code}" >/dev/null
+  done < <(jq -r '.tenants | keys[]' <<<"${oauth_registry_json}")
+  for client_id in tianquan-shoubing-service tianquan-jianshen-service yuheng-admin-service \
+      yuheng-biz-gateway-service yuheng-mcp-gateway-service tianshu-service mock-backend-service mcp-provider-service; do
+    jq -e --arg client "${client_id}" '.clients | has($client)' <<<"${oauth_registry_json}" >/dev/null \
+      || fail "A required local SERVICE client is absent from the explicit registry"
+  done
+  while IFS= read -r client_id; do
+    jq -e --arg client "${client_id}" \
+      '(.clients[$client].tenants | keys | sort) == ([.tenants[].tenantId] | sort)' \
+      <<<"${oauth_registry_json}" >/dev/null || fail "Local client must explicitly register every configured tenant"
+    while IFS= read -r tenant_id; do
+      registration="$(local_oauth_registration "${client_id}" "${tenant_id}")"
+      ref="$(jq -er '.issuerRef' <<<"${registration}")"
+      version="$(jq -er '.credentialVersion' <<<"${registration}")"
+      require_oauth_decimal "${version}" true
+      if [[ "${tenant_id}" == PLATFORM ]]; then
+        jq -e --arg ref "${ref}" '.issuers[$ref].realmType == "PLATFORM"' <<<"${oauth_registry_json}" >/dev/null \
+          || fail "Local PLATFORM client points to a tenant issuer"
+      else
+        jq -e --arg ref "${ref}" --arg tenant "${tenant_id}" \
+          '.issuers[$ref].realmType == "TENANT" and .issuers[$ref].tenantId == $tenant' \
+          <<<"${oauth_registry_json}" >/dev/null || fail "Local SERVICE client issuer is outside its configured tenant"
+      fi
+      secret_file="$(jq -er '.secretFile' <<<"${registration}")"
+      protected_oauth_file "${secret_file}" 512
+      secret="$(<"${secret_file}")"
+      [[ "${#secret}" -ge 32 && "${#secret}" -le 256 && "${secret}" =~ ^[-A-Za-z0-9_]+$ ]] || fail "Local SERVICE secret has an invalid one-time format"
+    done < <(jq -r --arg client "${client_id}" \
+      '"PLATFORM", (.clients[$client].tenants | keys[])' <<<"${oauth_registry_json}")
+  done < <(jq -r '.clients | keys[]' <<<"${oauth_registry_json}")
+  service_tenant_id="$(jq -er '.tenants.default.tenantId' <<<"${oauth_registry_json}")"
+  tenant_b_id="$(jq -er '.tenants["tenant-b"].tenantId' <<<"${oauth_registry_json}")"
+}
+
+write_oauth_property() {
+  local file="$1" key="$2" value="$3"
+  printf '%s=%s\n' "${key}" "$(properties_escape "${value}")" >>"${file%.env}.properties"
+}
+
+write_local_oauth_trust_env() {
+  local file="$1" ref issuer prefix type tenant_id
+  [[ -n "${oauth_registry_json:-}" ]] || load_local_oauth_registry
+  write_env "${file}" SPRING_CONFIG_ADDITIONAL_LOCATION "file:${file%.env}.properties"
+  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ISSUER "${platform_issuer}"
+  write_env "${file}" TIANQUAN_SHOUBING_JWK_SET_URI "${platform_issuer}/.well-known/jwks.json"
+  while IFS= read -r ref; do
+    issuer="$(local_oauth_issuer "${ref}")"
+    prefix="egon.cola.platform.tianquan.shoubing.trusted-issuers.[${ref}]"
+    type="$(jq -er --arg ref "${ref}" '.issuers[$ref].realmType' <<<"${oauth_registry_json}")"
+    write_oauth_property "${file}" "${prefix}.issuer" "${issuer}"
+    write_oauth_property "${file}" "${prefix}.jwks-uri" "${issuer}/.well-known/jwks.json"
+    write_oauth_property "${file}" "${prefix}.realm-key" \
+      "$(jq -er --arg ref "${ref}" '.issuers[$ref].realmKey' <<<"${oauth_registry_json}")"
+    write_oauth_property "${file}" "${prefix}.realm-type" "${type}"
+    write_oauth_property "${file}" "${prefix}.trust-version" \
+      "$(jq -er --arg ref "${ref}" '.issuers[$ref].trustVersion' <<<"${oauth_registry_json}")"
+    if [[ "${type}" == TENANT ]]; then
+      tenant_id="$(jq -er --arg ref "${ref}" '.issuers[$ref].tenantId' <<<"${oauth_registry_json}")"
+      write_oauth_property "${file}" "${prefix}.tenant-id" "${tenant_id}"
+    fi
+  done < <(jq -r '.issuers | keys[]' <<<"${oauth_registry_json}")
+  write_oauth_property "${file}" egon.cola.platform.tianquan.shoubing.revocation.primary-endpoint \
+    "redis://${redis_host}:${redis_port}"
+  write_oauth_property "${file}" egon.cola.platform.tianquan.shoubing.revocation.epoch \
+    "$(jq -er '.revocationEpoch' <<<"${oauth_registry_json}")"
+  write_oauth_property "${file}" egon.cola.platform.tianquan.shoubing.revocation.mode STRICT_SHARED
+}
+
+write_local_oauth_registration_env() {
+  local file="$1" client_id="$2" tenant_id registration ref issuer secret_file registration_id prefix
+  write_local_oauth_trust_env "${file}"
+  while IFS= read -r tenant_id; do
+    registration="$(local_oauth_registration "${client_id}" "${tenant_id}")"
+    ref="$(jq -er '.issuerRef' <<<"${registration}")"
+    issuer="$(local_oauth_issuer "${ref}")"
+    secret_file="$(jq -er '.secretFile' <<<"${registration}")"
+    registration_id=egon-tianquan-shoubing
+    if [[ "${tenant_id}" != PLATFORM ]]; then
+      registration_id="egon-tianquan-shoubing-tenant-${tenant_id}"
+      write_oauth_property "${file}" \
+        "egon.cola.platform.tianquan.shoubing.service-client.tenant-registration-ids.[${tenant_id}]" \
+        "${registration_id}"
+    fi
+    prefix="spring.security.oauth2.client.registration.${registration_id}"
+    write_oauth_property "${file}" "${prefix}.client-id" "${client_id}"
+    write_oauth_property "${file}" "${prefix}.client-secret" "$(<"${secret_file}")"
+    write_oauth_property "${file}" "${prefix}.authorization-grant-type" client_credentials
+    write_oauth_property "${file}" "${prefix}.client-authentication-method" client_secret_basic
+    write_oauth_property "${file}" "${prefix}.provider" "${registration_id}"
+    prefix="spring.security.oauth2.client.provider.${registration_id}"
+    write_oauth_property "${file}" "${prefix}.issuer-uri" "${issuer}"
+    write_oauth_property "${file}" "${prefix}.token-uri" "${issuer}/oauth2/token"
+    write_oauth_property "${file}" "${prefix}.jwk-set-uri" "${issuer}/.well-known/jwks.json"
+    write_oauth_property "${file}" \
+      "egon.cola.platform.tianquan.shoubing.service-client.credential-versions.[${registration_id}]" \
+      "$(jq -er '.credentialVersion' <<<"${registration}")"
+  done < <(jq -r --arg client "${client_id}" \
+    '"PLATFORM", (.clients[$client].tenants | keys[])' <<<"${oauth_registry_json}")
+  write_oauth_property "${file}" egon.cola.platform.tianquan.shoubing.service-client.app-id \
+    "$(jq -er --arg client "${client_id}" '.clients[$client].appId' <<<"${oauth_registry_json}")"
+  write_oauth_property "${file}" egon.cola.platform.tianquan.shoubing.service-client.registration-id egon-tianquan-shoubing
+}
+
+validate_current_oauth_directory() {
+  local subject ref issuer type partition version count client_id tenant_id registration app_id
+  subject="$(jq -er '.identitySub' <<<"${oauth_registry_json}")"
+  count="$(psql_command "${idp_database}" -Atqc \
+    "select count(*) from tianquan_oauth.oauth_identity_user where tenant_id = ${platform_partition_id}
+      and identity_sub = '${subject}' and status = 'ACTIVE' and deleted_at is null")"
+  [[ "${count}" == 1 ]] || fail "Current MP operator identity is missing or inactive; complete explicit import/provisioning first"
+  while IFS= read -r ref; do
+    issuer="$(local_oauth_issuer "${ref}")"
+    type="$(jq -er --arg ref "${ref}" '.issuers[$ref].realmType' <<<"${oauth_registry_json}")"
+    partition="${platform_partition_id}"
+    if [[ "${type}" == TENANT ]]; then
+      partition="$(jq -er --arg ref "${ref}" '.issuers[$ref].tenantId' <<<"${oauth_registry_json}")"
+    fi
+    version="$(jq -er --arg ref "${ref}" '.issuers[$ref].trustVersion' <<<"${oauth_registry_json}")"
+    count="$(psql_command "${idp_database}" -Atqc \
+      "select count(*) from tianquan_oauth.oauth_realm r join tianquan_oauth.oauth_signing_key k
+        on k.tenant_id = r.tenant_id and k.kid = r.active_kid and k.status = 'ACTIVE' and k.deleted_at is null
+        where r.tenant_id = ${partition} and r.issuer = '${issuer}' and r.realm_type = '${type}'
+          and r.trust_version = ${version} and r.status = 'ACTIVE' and r.deleted_at is null")"
+    [[ "${count}" == 1 ]] || fail "Current OAuth realm/key is not ready or differs from the approved registry"
+  done < <(jq -r '.issuers | keys[]' <<<"${oauth_registry_json}")
+  while IFS= read -r tenant_id; do
+    count="$(psql_command "${idp_database}" -Atqc \
+      "select count(*) from tianquan_oauth.oauth_identity_tenant t join tianquan_oauth.oauth_identity_membership m
+        on m.tenant_id = t.tenant_id and m.identity_tenant_id = t.identity_tenant_id
+          and m.identity_sub = '${subject}' and m.status = 'ACTIVE' and m.deleted_at is null
+        where t.tenant_id = ${platform_partition_id} and t.identity_tenant_id = '${tenant_id}'
+          and t.status = 'ACTIVE' and t.deleted_at is null")"
+    [[ "${count}" == 1 ]] || fail "Current MP tenant/membership is missing or inactive"
+  done < <(jq -r '.tenants[].tenantId' <<<"${oauth_registry_json}")
+  while IFS= read -r client_id; do
+    app_id="$(jq -er --arg client "${client_id}" '.clients[$client].appId' <<<"${oauth_registry_json}")"
+    while IFS= read -r tenant_id; do
+      registration="$(local_oauth_registration "${client_id}" "${tenant_id}")"
+      partition="${tenant_id}"
+      [[ "${tenant_id}" == PLATFORM ]] && partition="${platform_partition_id}"
+      version="$(jq -er '.credentialVersion' <<<"${registration}")"
+      count="$(psql_command "${idp_database}" -Atqc \
+        "select count(*) from tianquan_oauth.oauth_client c where c.tenant_id = ${partition}
+          and c.client_id = '${client_id}' and c.app_id = '${app_id}' and c.credential_version = ${version}
+          and c.purpose = 'SERVICE' and c.status = 'ACTIVE' and c.deleted_at is null
+          and exists (select 1 from tianquan_oauth.oauth_grant g join tianquan_oauth.oauth_resource r
+            on r.tenant_id = ${platform_partition_id} and r.resource_server_id = g.resource_server_id
+              and r.version = g.resource_version and r.status = 'ACTIVE' and r.deleted_at is null
+            where g.tenant_id = c.tenant_id and g.client_pk = c.id and g.grant_type = 'CLIENT_CREDENTIALS'
+              and g.status = 'ACTIVE' and g.deleted_at is null)")"
+      [[ "${count}" == 1 ]] || fail "Current SERVICE client/credential/Resource/Grant facts are not provisioned"
+    done < <(jq -r --arg client "${client_id}" \
+      '"PLATFORM", (.clients[$client].tenants | keys[])' <<<"${oauth_registry_json}")
+  done < <(jq -r '.clients | keys[]' <<<"${oauth_registry_json}")
+}
+
+local_user_input_metadata() {
+  local tenant="$1" file ref issuer tenant_id token claims subject userinfo
+  [[ -n "${oauth_registry_json:-}" ]] || load_local_oauth_registry
+  file="${2:-$(jq -er --arg tenant "${tenant}" '.tenants[$tenant].accessTokenFile' <<<"${oauth_registry_json}")}" \
+    || fail "A protected formal USER authorization input is required for this tenant"
+  protected_oauth_file "${file}" 16384
+  token="$(<"${file}")"
+  [[ "${token}" =~ ^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] \
+    || fail "Formal USER input has an invalid token format"
+  issuer="$(local_oauth_issuer "$(jq -er --arg tenant "${tenant}" '.tenants[$tenant].issuerRef' <<<"${oauth_registry_json}")")"
+  tenant_id="$(jq -er --arg tenant "${tenant}" '.tenants[$tenant].tenantId' <<<"${oauth_registry_json}")"
+  subject="$(jq -er '.identitySub' <<<"${oauth_registry_json}")"
+  claims="$(jq -Rer 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson' <<<"${token}" 2>/dev/null)" \
+    || fail "Formal USER input payload is invalid"
+  jq -e --arg issuer "${issuer}" --arg tenant "${tenant_id}" --arg subject "${subject}" '
+    .iss == $issuer and (.tenant_id | tostring) == $tenant and .sub == $subject
+    and .principal_type == "USER" and (.exp | type == "number" and . > now)
+    and (.aud | type == "array" and length > 0)
+  ' <<<"${claims}" >/dev/null || fail "Formal USER input is expired or outside its configured issuer/tenant/identity"
+  printf '%s' "${token}"
+}
+
+user_access_token_for_tenant() {
+  local tenant="$1" token issuer subject userinfo
+  token="$(local_user_input_metadata "${tenant}")"
+  issuer="$(local_oauth_issuer "$(jq -er --arg tenant "${tenant}" '.tenants[$tenant].issuerRef' <<<"${oauth_registry_json}")")"
+  subject="$(jq -er '.identitySub' <<<"${oauth_registry_json}")"
+  # Metadata parsing is only an early guard. The formal issuer verifies the active signed token.
+  userinfo="$(curl --max-time 10 -fsS -H "Authorization: Bearer ${token}" "${issuer}/userinfo" 2>/dev/null)" \
+    || fail "Formal USER authorization is not currently valid; complete operator OIDC authentication"
+  jq -e --arg subject "${subject}" '.sub == $subject' <<<"${userinfo}" >/dev/null \
+    || fail "Formal issuer UserInfo does not match the configured operator identity"
+  printf '%s' "${token}"
 }
 
 random_secret() {
@@ -210,8 +543,11 @@ base64url() {
 }
 
 write_pending_service_credential() {
-  printf 'pending-tianquan-shoubing-client-credentials' >"$1"
-  chmod 600 "$1"
+  [[ ! -L "$1" ]] || fail "SERVICE credential output must not be a symlink"
+  if [[ ! -e "$1" ]]; then
+    printf 'pending-tianquan-shoubing-client-credentials' >"$1"
+    chmod 600 "$1"
+  fi
 }
 
 write_runtime_secrets() {
@@ -246,25 +582,31 @@ oauth_service_token() {
   local client_id="$1" output="$2"
   local resource="${3:-https://api.egon.internal/local/permission/tianquan-jianshen}"
   local scopes="${4:-service:authorization:decide service:authorization:snapshot service:identity:resolve}"
-  local response_file status token_endpoint secret_file
-  token_endpoint="${idp_url}/oauth2/token"
-  secret_file="${secret_dir}/${client_id}.secret"
-  [[ -s "${secret_file}" ]] \
-    || fail "Tianquan-Shoubing Client Secret is unavailable for ${client_id}"
+  local tenant_id="${5:-PLATFORM}" registration issuer secret_file response_file status token_endpoint token
+  registration="$(local_oauth_registration "${client_id}" "${tenant_id}")"
+  issuer="$(local_oauth_issuer "$(jq -er '.issuerRef' <<<"${registration}")")"
+  token_endpoint="${issuer}/oauth2/token"
+  secret_file="$(jq -er '.secretFile' <<<"${registration}")"
+  protected_oauth_file "${secret_file}" 512
+  [[ ! -L "${output}" ]] || fail "SERVICE output must not be a symlink"
   response_file="$(mktemp "${runtime_dir}/service-token.XXXXXX")"
-  status="$(curl -sS -o "${response_file}" -w '%{http_code}' -X POST \
-    --user "${client_id}:$(<"${secret_file}")" \
+  chmod 600 "${response_file}"
+  # Configuration on stdin keeps client credentials out of process arguments.
+  status="$(curl --max-time 10 --config - -sS -o "${response_file}" -w '%{http_code}' -X POST \
     -H 'Content-Type: application/x-www-form-urlencoded' \
-    --data-urlencode grant_type=client_credentials \
-    --data-urlencode \
-      "resource=${resource}" \
-    --data-urlencode "tenant_id=${service_tenant_id}" \
-    --data-urlencode "scope=${scopes}" \
-    "${token_endpoint}")"
-  [[ "${status}" == "200" ]] || fail \
-    "Tianquan-Shoubing Client Credentials failed for ${client_id} with HTTP ${status}: $(<"${response_file}")"
-  jq -er '.access_token' "${response_file}" >"${output}"
+    --data-urlencode grant_type=client_credentials --data-urlencode "resource=${resource}" \
+    --data-urlencode "scope=${scopes}" "${token_endpoint}" <<CURL_CONFIG
+user = "${client_id}:$(<"${secret_file}")"
+CURL_CONFIG
+)" || { rm -f "${response_file}"; fail "Formal SERVICE token request failed"; }
+  if [[ "${status}" != 200 ]]; then
+    rm -f "${response_file}"
+    fail "Formal SERVICE token request returned HTTP ${status}"
+  fi
+  token="$(jq -er '.access_token | select(type == "string" and length <= 16384)' "${response_file}")" \
+    || { rm -f "${response_file}"; fail "Formal SERVICE response did not contain a bounded access token"; }
   rm -f "${response_file}"
+  printf '%s' "${token}" >"${output}"
   chmod 600 "${output}"
 }
 
@@ -477,8 +819,7 @@ common_identity_env() {
   write_env "${file}" UNIFIED_XINGYUAN_RUNTIME_DIR "${runtime_dir}"
   write_env "${file}" UNIFIED_IDENTITY_ENABLED true
   write_env "${file}" TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ISSUER "${idp_url}"
-  write_env "${file}" TIANQUAN_SHOUBING_JWK_SET_URI "${idp_url}/oauth2/jwks"
+  write_local_oauth_trust_env "${file}"
   write_env "${file}" TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT "${rbac3_url}"
   write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_REGISTRATION_RESOURCE_URI \
     https://api.egon.internal/local/platform/tianshu
@@ -494,32 +835,7 @@ common_identity_env() {
 }
 
 write_idp_service_client_env() {
-  local file="$1" client_id="$2" secret_file secret_value
-  secret_file="${secret_dir}/${client_id}.secret"
-  if [[ -s "${secret_file}" ]]; then
-    secret_value="$(<"${secret_file}")"
-  else
-    secret_value=local-client-secret-pending
-  fi
-  write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_ID \
-    "${client_id}"
-  write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_SECRET \
-    "${secret_value}"
-  write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_AUTHORIZATION_GRANT_TYPE \
-    client_credentials
-  write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_AUTHENTICATION_METHOD \
-    client_secret_basic
-  write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_EGON_TIANQUAN_SHOUBING_TOKEN_URI \
-    "${idp_url}/oauth2/token"
-  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_APP_ID \
-    "${client_id}"
-  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_REGISTRATION_ID \
-    egon-tianquan-shoubing
+  write_local_oauth_registration_env "$1" "$2"
 }
 
 write_tenant_aware_rbac3_service_token_env() {
@@ -558,7 +874,7 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_REDIS_ENABLED false
   write_env "${file}" TIANSHU_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" TIANSHU_AUTHORIZATION_REDIS_DATABASE 8
-  write_env "${file}" TIANSHU_ADMIN_JWT_ISSUER "${idp_url}"
+  write_env "${file}" TIANSHU_ADMIN_JWT_ISSUER "${platform_issuer}"
   write_env "${file}" TIANSHU_RESOURCE_SERVER_ID platform-tianshu-local
   write_env "${file}" TIANSHU_RESOURCE_URI \
     https://api.egon.internal/local/platform/tianshu
@@ -566,7 +882,7 @@ write_service_env_files() {
     "${idp_rpc_target}"
   write_env "${file}" TIANSHU_ADMIN_JWT_AUDIENCE \
     https://api.egon.internal/local/platform/tianshu
-  write_env "${file}" TIANSHU_ADMIN_JWT_JWK_SET_URI "${idp_url}/oauth2/jwks"
+  write_env "${file}" TIANSHU_ADMIN_JWT_JWK_SET_URI "${platform_issuer}/.well-known/jwks.json"
   write_env "${file}" TIANSHU_RPC_PORT 19080
   write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
   write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
@@ -602,6 +918,19 @@ write_service_env_files() {
   common_identity_env "${file}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
     tianquan-shoubing-service tianquan-shoubing-local "${secret_dir}/tianquan-shoubing-private.pem"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID "${platform_partition_id}"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_OAUTH_PUBLIC_ORIGIN "${idp_url}"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_PLATFORM_MANAGEMENT_TENANT_ID \
+    "$(jq -er '.platformManagementTenantId' <<<"${oauth_registry_json}")"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_OAUTH_KEK_ID "$(jq -er '.kekId' <<<"${oauth_registry_json}")"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_OAUTH_KEK_FILE "$(jq -er '.kekFile' <<<"${oauth_registry_json}")"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH "$(jq -er '.revocationEpoch' <<<"${oauth_registry_json}")"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_HMAC_KEY_FILE \
+    "$(jq -er '.auditHmacKeyFile' <<<"${oauth_registry_json}")"
+  mkdir -p "${runtime_dir}/oauth-audit-spool"
+  chmod 700 "${runtime_dir}/oauth-audit-spool"
+  write_env "${file}" EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_DIRECTORY "${runtime_dir}/oauth-audit-spool"
+  write_oauth_property "${file}" egon.tianquan-shoubing.oauth.local-explicit-service-registrations true
   write_env "${file}" TIANQUAN_SHOUBING_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${idp_database}"
   write_env "${file}" TIANQUAN_SHOUBING_POSTGRES_USER "${postgres_user}"
   write_env "${file}" TIANQUAN_SHOUBING_POSTGRES_PASSWORD "${postgres_password_value}"
@@ -636,7 +965,7 @@ write_service_env_files() {
   write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_SCOPES \
     'service:authorization:decide service:authorization:snapshot service:identity:resolve'
   write_env "${file}" TIANQUAN_SHOUBING_SNOWFLAKE_MACHINE_ID 32
-  write_env "${file}" TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${file}" TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_ENABLED false
   write_env "${file}" TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY \
     "${secret_dir}"
   write_env "${file}" TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD_FILE "${secret_dir}/tianquan-shoubing-admin.password"
@@ -861,8 +1190,7 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT \
     "${rbac3_url}"
   write_env "${file}" SERVER_PORT 18182
-  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ISSUER "${idp_url}"
-  write_env "${file}" TIANQUAN_SHOUBING_JWK_SET_URI "${idp_url}/oauth2/jwks"
+  write_local_oauth_trust_env "${file}"
   write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_REGISTRATION_RESOURCE_URI \
     https://api.egon.internal/local/platform/tianshu
   write_env "${file}" YUHENG_ENGINE_RESOURCE_SERVER_ID \
@@ -879,8 +1207,6 @@ write_service_env_files() {
     "${idp_rpc_target}"
   write_env "${file}" TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
   write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_ENABLED true
-  write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_ENDPOINT \
-    "${idp_url}/oauth2/token"
   write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_CLIENT_ID \
     yuheng-biz-gateway-service
   write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_KEY_ID \
@@ -892,9 +1218,6 @@ write_service_env_files() {
   write_env "${file}" TIANQUAN_SHOUBING_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" TIANQUAN_SHOUBING_REDIS_DATABASE 8
   write_env "${file}" TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_URI "${idp_url}/oauth2/token"
-  write_env "${file}" TIANQUAN_SHOUBING_ACCESS_TOKEN_COOKIE_NAME egon_user_at_local
-  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_TOKEN_COOKIE_NAME egon_user_rt_local
   write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_RESOURCE_URI \
     https://api.egon.internal/local/permission/tianquan-shoubing
   write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_SCOPES tianquan-shoubing:refresh-token:validate
@@ -980,9 +1303,6 @@ write_mcp_engine_env_file() {
   write_env "${file}" TIANQUAN_SHOUBING_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" TIANQUAN_SHOUBING_REDIS_DATABASE 8
   write_env "${file}" TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_URI "${idp_url}/oauth2/token"
-  write_env "${file}" TIANQUAN_SHOUBING_ACCESS_TOKEN_COOKIE_NAME egon_user_at_local
-  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_TOKEN_COOKIE_NAME egon_user_rt_local
   write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_RESOURCE_URI https://api.egon.internal/local/permission/tianquan-shoubing
   write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_SCOPES tianquan-shoubing:refresh-token:validate
   write_env "${file}" TIANQUAN_SHOUBING_YUHENG_TRUSTED_ORIGINS \
@@ -1056,6 +1376,7 @@ write_application_build_ids() {
 }
 
 command_prepare() {
+  load_local_oauth_registry
   for command in java curl jq openssl psql createdb redis-cli awk nc; do
     require_command "${command}"
   done
@@ -1131,111 +1452,45 @@ wait_ddc_rpc() {
   fail "Tianshu RPC did not become ready at ${ddc_rpc_target}"
 }
 
-bootstrap_idp_argument() {
-  if database_table_exists "${idp_database}" public.identity_user \
-      && database_row_exists "${idp_database}" 'select count(*) from identity_user'; then
-    return
-  fi
-  printf '%s' '--tianquan-shoubing-bootstrap-admin=alice'
-}
+
 
 identity_subject() {
-  psql_command "${idp_database}" -Atqc \
-    "select id from identity_user where username_normalized = 'alice'"
+  local subject count
+  subject="$(jq -er '.identitySub' <<<"${oauth_registry_json}")"
+  count="$(psql_command "${idp_database}" -Atqc \
+    "select count(*) from tianquan_oauth.oauth_identity_user where tenant_id = ${platform_partition_id}
+      and identity_sub = '${subject}' and status = 'ACTIVE' and deleted_at is null")"
+  [[ "${count}" == 1 ]] || fail "Current MP operator identity is not available"
+  printf '%s' "${subject}"
 }
 
 rbac3_tenant_id() {
-  local tenant_code="$1"
-  [[ "${tenant_code}" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]] \
-    || fail "unsafe tenant code: ${tenant_code}"
-  local tenant_id
-  if database_table_exists "${idp_database}" public.identity_tenant; then
-    tenant_id="$(psql_command "${idp_database}" -Atqc \
-      "select id from identity_tenant where lower(tenant_code) = '${tenant_code}'")"
-  else
-    tenant_id="$(psql_command "${rbac3_database}" -Atqc \
-      "select id from rbac3_tenant where lower(code) = '${tenant_code}'")"
-  fi
-  [[ -n "${tenant_id}" ]] || fail "Tianquan-Shoubing tenant does not exist: ${tenant_code}"
+  local tenant_code="$1" tenant_id count
+  [[ "${tenant_code}" =~ ^[a-z][a-z0-9-]{2,63}$ ]] || fail "unsafe tenant code"
+  [[ -n "${oauth_registry_json:-}" ]] || load_local_oauth_registry
+  tenant_id="$(jq -er --arg code "${tenant_code}" '.tenants[$code].tenantId' <<<"${oauth_registry_json}")" \
+    || fail "Local tenant is not explicitly configured"
+  count="$(psql_command "${idp_database}" -Atqc \
+    "select count(*) from tianquan_oauth.oauth_identity_tenant where tenant_id = ${platform_partition_id}
+      and identity_tenant_id = '${tenant_id}' and tenant_code = '${tenant_code}'
+      and status = 'ACTIVE' and deleted_at is null")"
+  [[ "${count}" == 1 ]] || fail "Current MP tenant does not match the operator registry"
   printf '%s' "${tenant_id}"
 }
 
 resolve_existing_service_tenant_id() {
-  if [[ "${service_tenant_id}" =~ ^[1-9][0-9]*$ ]]; then
-    return
-  fi
-  if database_table_exists "${idp_database}" public.identity_tenant \
-      || database_table_exists "${rbac3_database}" public.rbac3_tenant; then
-    if database_table_exists "${idp_database}" public.identity_tenant \
-        && ! database_row_exists "${idp_database}" 'select count(*) from identity_tenant'; then
-      return
-    fi
-    service_tenant_id="$(rbac3_tenant_id "${service_tenant_id}")"
-  fi
+  [[ -n "${oauth_registry_json:-}" ]] || load_local_oauth_registry
+  service_tenant_id="$(jq -er '.tenants.default.tenantId' <<<"${oauth_registry_json}")"
+  require_oauth_decimal "${service_tenant_id}"
 }
 
 rbac3_jdbc_url() {
-  local base source_count bootstrap_tenant_ids bootstrap_identity_sub
-  base="jdbc:postgresql://${postgres_host}:${postgres_port}/${rbac3_database}"
-  if database_table_exists "${rbac3_database}" \
-      public.rbac3_tenant_authorization_state; then
-    printf '%s' "${base}"
-    return
-  fi
-  source_count=0
-  if database_table_exists "${rbac3_database}" public.rbac3_tenant; then
-    source_count="$(psql_command "${rbac3_database}" -Atqc \
-      'select count(*) from rbac3_tenant')"
-  fi
-  bootstrap_tenant_ids="${service_tenant_id}"
-  # The first Tianquan-Shoubing process creates tenant authority. Tianquan-Jianshen is not started until
-  # the generated environment is rewritten with those exact numeric IDs.
-  if [[ "${bootstrap_tenant_ids}" == "default" && -z "${tenant_authority_artifact}" ]]; then
-    printf '%s' "${base}"
-    return
-  fi
-  if [[ -n "${tenant_authority_artifact}" \
-      && -s "${tenant_authority_artifact}" ]]; then
-    bootstrap_tenant_ids="$(jq -er \
-      '[.tenants[].id] | unique | join(",")' \
-      "${tenant_authority_artifact}")"
-  elif database_table_exists "${idp_database}" public.identity_tenant; then
-    bootstrap_tenant_ids="$(psql_command "${idp_database}" -Atqc \
-      "select string_agg(id, ',' order by tenant_code) from identity_tenant where tenant_code in ('default', 'tenant-b')")"
-  fi
-  [[ "${bootstrap_tenant_ids}" =~ ^[1-9][0-9]{0,18}(,[1-9][0-9]{0,18})*$ ]] \
-    || fail "Tianquan-Jianshen bootstrap tenant IDs are invalid"
-  bootstrap_identity_sub=""
-  if database_table_exists "${idp_database}" public.identity_user; then
-    bootstrap_identity_sub="$(identity_subject)"
-  fi
-  [[ -z "${bootstrap_identity_sub}" \
-      || "${bootstrap_identity_sub}" =~ ^[A-Za-z0-9._~-]{1,200}$ ]] \
-    || fail "Tianquan-Jianshen bootstrap identity subject is invalid"
-  printf '%s?options=-c%%20tianquan-jianshen.tenant_authority.gate_id=VERIFIED%%20-c%%20tianquan-jianshen.tenant_authority.gate_checksum=local-bootstrap%%20-c%%20tianquan-jianshen.tenant_authority.source_count=%s%%20-c%%20tianquan-jianshen.tenant_authority.orphan_count=0%%20-c%%20tianquan-jianshen.tenant_authority.duplicate_count=0%%20-c%%20tianquan-jianshen.tenant_authority.placeholder_count=0%%20-c%%20tianquan-jianshen.bootstrap.tenant_ids=%s%%20-c%%20tianquan-jianshen.bootstrap.identity_sub=%s' \
-    "${base}" "${source_count}" "${bootstrap_tenant_ids}" \
-    "${bootstrap_identity_sub}"
+  database_table_exists "${rbac3_database}" public.rbac3_tenant_authorization_state \
+    || fail "Complete the explicit Tianquan-Jianshen tenant-authority migration before local startup"
+  printf 'jdbc:postgresql://%s:%s/%s' "${postgres_host}" "${postgres_port}" "${rbac3_database}"
 }
 
-adopt_local_idp_authority() {
-  if [[ -n "${tenant_authority_artifact}" ]]; then
-    [[ -s "${tenant_authority_artifact}" ]] \
-      || fail "tenant authority artifact is unreadable"
-    PGPASSWORD="$(postgres_password)" \
-      "${repo_root}/scripts/unified-xingyuan/migrate-tenant-authority.sh" \
-      import-tianquan-shoubing \
-      --db-url "postgresql://${postgres_user}@${postgres_host}:${postgres_port}/${idp_database}" \
-      --freeze-marker "$(dirname "${tenant_authority_artifact}")/write-freeze.marker" \
-      --artifact "${tenant_authority_artifact}"
-    PGPASSWORD="$(postgres_password)" \
-      "${repo_root}/scripts/unified-xingyuan/migrate-tenant-authority.sh" \
-      verify-tianquan-shoubing \
-      --artifact "${tenant_authority_artifact}" \
-      --db-url "postgresql://${postgres_user}@${postgres_host}:${postgres_port}/${idp_database}"
-  fi
-  psql_command "${idp_database}" -qc \
-    "update identity_client set app_id = client_id where client_type = 'CONFIDENTIAL' and app_id is null"
-}
+
 
 reconcile_local_tianquan_jianshen_tianshu_catalog() {
   local definition application_code ddc_app_code ddc_business_code
@@ -1297,103 +1552,22 @@ reconcile_local_tianquan_jianshen_tianshu_catalog() {
   done
 }
 
-cookie_jar_for_tenant() {
-  local tenant="$1"
-  [[ "${tenant}" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]] \
-    || fail "unsafe tenant code: ${tenant}"
-  printf '%s/browser.%s.cookies' "${runtime_dir}" "${tenant}"
-}
 
-access_token_from_cookie() {
-  local cookie_jar="$1" token
-  [[ -s "${cookie_jar}" ]] || fail "missing USER cookie jar: ${cookie_jar}"
-  token="$(awk 'BEGIN { FS="\t" } { sub(/^#HttpOnly_/, "", $1) } $0 !~ /^#/ && ($6 == "__Host-egon_user_at" || $6 == "egon_user_at_local") { value=$7 } END { print value }' "${cookie_jar}")"
-  [[ "${token}" =~ ^[^.[:space:]]+\.[^.[:space:]]+\.[^.[:space:]]+$ ]] \
-    || fail "USER Access Token cookie is missing from ${cookie_jar}"
-  printf '%s' "${token}"
-}
 
-user_access_token_is_active() {
-  local access_token="$1" http_code
-  http_code="$(curl -sS -o /dev/null -w '%{http_code}' \
-    -H "Authorization: Bearer ${access_token}" \
-    "${idp_url}/oauth2/userinfo" 2>/dev/null || true)"
-  [[ "${http_code}" == "200" ]]
-}
 
-idp_bootstrap_login() {
-  local tenant="$1" cookie_jar csrf status
-  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
-  csrf="$(curl -fsS -c "${cookie_jar}" -b "${cookie_jar}" \
-    "${idp_url}/oauth2/login/csrf" | jq -er '.token')"
-  status="$(curl -sS -o "${runtime_dir}/login.response" -w '%{http_code}' \
-    -c "${cookie_jar}" -b "${cookie_jar}" \
-    -H 'Content-Type: application/json' -H "X-TIANQUAN-SHOUBING-CSRF: ${csrf}" \
-    -d "$(jq -cn --arg tenantId "$(rbac3_tenant_id "${tenant}")" \
-      --arg password "$(<"${secret_dir}/tianquan-shoubing-admin.password")" \
-      '{tenantId:$tenantId,username:"alice",password:$password}')" \
-    "${idp_url}/oauth2/login")"
-  [[ "${status}" == "200" ]] || fail \
-    "Tianquan-Shoubing bootstrap login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
-}
 
-gateway_login() {
-  local tenant="$1" cookie_jar csrf status
-  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
-  csrf="$(curl -fsS -c "${cookie_jar}" -b "${cookie_jar}" \
-    "${gateway_url}/oauth2/login/csrf" | jq -er '.token')"
-  status="$(curl -sS -o "${runtime_dir}/login.response" -w '%{http_code}' \
-    -c "${cookie_jar}" -b "${cookie_jar}" \
-    -H 'Content-Type: application/json' -H "X-TIANQUAN-SHOUBING-CSRF: ${csrf}" \
-    -d "$(jq -cn --arg tenantId "$(rbac3_tenant_id "${tenant}")" \
-      --arg password "$(<"${secret_dir}/tianquan-shoubing-admin.password")" \
-      '{tenantId:$tenantId,username:"alice",password:$password}')" \
-    "${gateway_url}/oauth2/login")"
-  [[ "${status}" == "200" ]] || fail \
-    "Yuheng login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
-}
 
-platform_user_login() {
-  local tenant="${1:-default}"
-  if [[ "${UNIFIED_IDENTITY_DEFER_YUHENG_RELEASE:-false}" != "true" ]] \
-      && process_running yuheng-biz-gateway; then
-    gateway_login "${tenant}"
-  else
-    idp_bootstrap_login "${tenant}"
-  fi
-}
 
-gateway_refresh() {
-  local tenant="$1" cookie_jar="${2:-}" status
-  [[ -n "${cookie_jar}" ]] || cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
-  status="$(curl -sS -o "${runtime_dir}/refresh.response" -w '%{http_code}' \
-    -c "${cookie_jar}" -b "${cookie_jar}" -X POST \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    --data-urlencode grant_type=refresh_token "${gateway_url}/oauth2/token")"
-  [[ "${status}" == "200" ]] || fail \
-    "Yuheng USER refresh failed with HTTP ${status}: $(<"${runtime_dir}/refresh.response")"
-}
 
-gateway_logout() {
-  local tenant="$1" cookie_jar="${2:-}" status
-  [[ -n "${cookie_jar}" ]] || cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
-  status="$(curl -sS -o "${runtime_dir}/logout.response" -w '%{http_code}' \
-    -c "${cookie_jar}" -b "${cookie_jar}" -X POST \
-    "${gateway_url}/oauth2/logout")"
-  [[ "${status}" == "204" ]] || fail \
-    "Yuheng logout failed with HTTP ${status}: $(<"${runtime_dir}/logout.response")"
-}
 
-user_access_token_for_tenant() {
-  local tenant="$1" cookie_jar token
-  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
-  if ! token="$(access_token_from_cookie "${cookie_jar}" 2>/dev/null)" \
-      || ! user_access_token_is_active "${token}"; then
-    platform_user_login "${tenant}"
-    token="$(access_token_from_cookie "${cookie_jar}")"
-  fi
-  printf '%s' "${token}"
-}
+
+
+
+
+
+
+
+
 
 clear_local_rbac3_snapshots() {
   local password pattern key tenant
@@ -1411,15 +1585,50 @@ clear_local_rbac3_snapshots() {
 }
 
 command_issue_user_token() {
-  local tenant="${UNIFIED_IDENTITY_TENANT:-}"
-  local output="${UNIFIED_IDENTITY_ACCESS_TOKEN_FILE:-}" token
-  process_running tianquan-shoubing || fail "tianquan-shoubing is not running; run start first"
-  process_running tianquan-jianshen || fail "tianquan-jianshen is not running; run start first"
-  [[ -n "${tenant}" ]] || fail "UNIFIED_IDENTITY_TENANT is required"
-  [[ -n "${output}" ]] || fail "UNIFIED_IDENTITY_ACCESS_TOKEN_FILE is required"
+  local tenant="${UNIFIED_IDENTITY_TENANT:-}" output="${UNIFIED_IDENTITY_ACCESS_TOKEN_FILE:-}" token temporary directory metadata
+  [[ -n "${tenant}" && "${output}" == /* && ! -L "${output}" ]] \
+    || fail "An explicit tenant and safe absolute protected output are required"
+  directory="$(dirname "${output}")"
+  [[ -d "${directory}" && ! -L "${directory}" ]] || fail "USER output requires an existing private directory"
+  if [[ "$(uname -s)" == Darwin ]]; then
+    metadata="$(stat -f '%u:%Lp' "${directory}")"
+  else
+    metadata="$(stat -c '%u:%a' "${directory}")"
+  fi
+  [[ "${metadata}" == "$(id -u):700" ]] || fail "USER output directory must be owner-only"
+  if [[ -e "${output}" ]]; then
+    protected_oauth_file "${output}" 16384
+  fi
   token="$(user_access_token_for_tenant "${tenant}")"
-  printf '%s' "${token}" >"${output}"
-  chmod 600 "${output}"
+  [[ ! "${output}" -ef "$(jq -er --arg tenant "${tenant}" '.tenants[$tenant].accessTokenFile' <<<"${oauth_registry_json}")" ]] \
+    || fail "Formal USER source material must not be overwritten"
+  temporary="$(mktemp "$(dirname "${output}")/user-input.XXXXXX")"
+  chmod 600 "${temporary}"
+  printf '%s' "${token}" >"${temporary}"
+  mv -f "${temporary}" "${output}"
+}
+
+command_write_service_registration() {
+  local file="${UNIFIED_IDENTITY_REGISTRATION_ENV_FILE:-}" client_id="${UNIFIED_IDENTITY_REGISTRATION_CLIENT_ID:-}"
+  [[ "${file}" == "${env_dir}/"*.env && -n "${client_id}" ]] \
+    || fail "An explicit managed env file and SERVICE client are required"
+  [[ "$(cd -P "$(dirname "${file}")" && pwd)" == "$(cd -P "${env_dir}" && pwd)" ]] \
+    || fail "SERVICE env output must stay in the managed env directory"
+  protected_oauth_file "${file}" 131072
+  [[ ! -L "${file%.env}.properties" ]] || fail "SERVICE properties output must not be a symlink"
+  if [[ -e "${file%.env}.properties" ]]; then
+    protected_oauth_file "${file%.env}.properties" 131072
+  fi
+  write_local_oauth_registration_env "${file}" "${client_id}"
+  chmod 600 "${file%.env}.properties"
+}
+
+command_oauth_context() {
+  local tenant="${UNIFIED_IDENTITY_TENANT:-default}"
+  user_access_token_for_tenant "${tenant}" >/dev/null
+  jq -c --arg tenant "${tenant}" \
+    '{tenantId:.tenants[$tenant].tenantId,subject:.identitySub,
+      issuer:.issuers[.tenants[$tenant].issuerRef].issuer}' <<<"${oauth_registry_json}"
 }
 
 activate_roles() {
@@ -1909,21 +2118,10 @@ select_gateway_catalog_operations() {
     | map(if any(.[]; .sourceType == "OPENAPI31")
         then map(select(.sourceType != "STARTER")) else . end)
     | (add // [])
+    | map(select((.methodIdentity | split(" ")[1]
+        | test("^/(oauth2/|\\.well-known/|tenants/|platform/|internal/v1/oauth2/refresh-token/)")) | not))
     | map(. + {securityType:
-      (if .reportedApplication == "tianquan-shoubing" and (
-        .methodIdentity == "GET /oauth2/login/csrf"
-        or .methodIdentity == "POST /oauth2/login"
-        or .methodIdentity == "POST /oauth2/token"
-        or .methodIdentity == "POST /oauth2/revoke"
-        or .methodIdentity == "POST /oauth2/logout"
-        or .methodIdentity == "GET /.well-known/oauth-authorization-server"
-        or .methodIdentity == "GET /oauth2/jwks")
-       then "PUBLIC_PROTOCOL"
-       elif .reportedApplication == "tianquan-shoubing" and (
-        .methodIdentity == "GET /oauth2/userinfo"
-        or .methodIdentity == "POST /oauth2/step-up")
-       then "IDENTITY_PROTECTED"
-       elif .reportedApplication == "tianquan-jianshen" and (
+      (if .reportedApplication == "tianquan-jianshen" and (
         .methodIdentity == "GET /api/v1/auth/about"
         or .methodIdentity == "GET /api/tianquan-jianshen/v1/auth/role-activation-candidates"
         or .methodIdentity == "GET /api/tianquan-jianshen/v1/auth/role-activations"
@@ -2130,53 +2328,35 @@ publish_gateway_routes() {
 }
 
 wait_gateway_route() {
-  local status route
-  if [[ "${startup_mode}" == "xingyuan" ]]; then
-    route="${gateway_url}/oauth2/login/csrf"
-  else
-    route="${gateway_url}/api/mock/read"
-  fi
+  local status route="${gateway_url}/api/v1/tianquan-shoubing/me"
+  [[ "${startup_mode}" != xingyuan ]] && route="${gateway_url}/api/mock/read"
   for ((attempt = 1; attempt <= 30; attempt++)); do
-    status="$(curl -sS -o /dev/null -w '%{http_code}' \
-      "${route}")"
-    if [[ "${startup_mode}" == "xingyuan" && "${status}" == "200" \
-        || "${startup_mode}" != "xingyuan" && "${status}" == "401" ]]; then
-      return
-    fi
+    status="$(curl --max-time 3 -sS -o /dev/null -w '%{http_code}' "${route}")"
+    [[ "${status}" == 401 ]] && return
     sleep 1
   done
-  fail "Yuheng Engine did not load the ${startup_mode} routes at ${route}"
+  fail "Yuheng Engine did not expose its current protected routes"
 }
 
 command_start() {
+  load_local_oauth_registry
   command_prepare
+  validate_current_oauth_directory
   case "${startup_mode}" in
     xingyuan|full) ;;
     *) fail "unsupported UNIFIED_IDENTITY_START_MODE: ${startup_mode} (use xingyuan or full)" ;;
   esac
-  local idp_argument subject tenant_b_id rbac3_access_token ddc_access_token
-  stage "starting Tianshu"
+  local subject rbac3_access_token ddc_access_token
+  stage "starting the provisioned local authorization server without Tianshu publication"
+  start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}" \
+    --egon.cola.component.tianshu.enabled=false \
+    --egon.cola.component.tianshu.registry.enabled=false \
+    --egon.cola.component.tianshu.registry.http.enabled=false
+  wait_http tianquan-shoubing "${idp_url}/actuator/health/readiness"
+  stage "starting Tianshu with the provisioned PLATFORM registration"
   start_process tianshu "${env_dir}/tianshu.env" "${ddc_jar}"
   wait_http tianshu "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
-
-  stage "starting Tianquan-Shoubing bootstrap phase without Tianshu publication"
-  idp_argument="$(bootstrap_idp_argument)"
-  if [[ -n "${idp_argument}" ]]; then
-    start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}" \
-      --egon.cola.component.tianshu.enabled=false \
-      --egon.cola.component.tianshu.registry.enabled=false \
-      --egon.cola.component.tianshu.registry.http.enabled=false \
-      "${idp_argument}"
-  else
-    start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}" \
-      --egon.cola.component.tianshu.enabled=false \
-      --egon.cola.component.tianshu.registry.enabled=false \
-      --egon.cola.component.tianshu.registry.http.enabled=false
-  fi
-  wait_http tianquan-shoubing "${idp_url}/actuator/health/readiness"
-  stage "adopting Tianquan-Shoubing tenant authority and local confidential app IDs"
-  adopt_local_idp_authority
   resolve_existing_service_tenant_id
   write_service_env_files
   write_application_build_ids
@@ -2222,9 +2402,8 @@ command_start() {
 
   stage "clearing stale local Tianquan-Jianshen authorization snapshots"
   clear_local_rbac3_snapshots
-  stage "establishing the default-tenant USER cookie"
-  idp_bootstrap_login default
-  stage "loading the default-tenant USER Access Token from its Yuheng cookie"
+  stage "validating the protected formal default-tenant USER input"
+  stage "validating current USER authorization at its formal issuer"
   rbac3_access_token="$(user_access_token_for_tenant default)"
   stage "initializing Tianshu unified identity topology"
   ddc_access_token="$(user_access_token_for_tenant default)"
@@ -2267,7 +2446,6 @@ command_start() {
     --egon.tianquan-jianshen.development-bootstrap.enabled=false
   wait_http tianquan-jianshen "${rbac3_url}/actuator/health/readiness"
   stage "refreshing the USER token for Tianshu RPC registration polling"
-  idp_bootstrap_login default
   ddc_admin_access_token="$(user_access_token_for_tenant default)"
   wait_ddc_rpc_provider_registration permission tianquan-shoubing egon.tianquan.shoubing.v1.IdentityDirectoryService tianquan-shoubing 1.0.0
   stage "starting Tianquan-Jianshen topology bootstrap after Tianquan-Shoubing RPC publication"
@@ -2275,8 +2453,7 @@ command_start() {
   start_process tianquan-jianshen "${env_dir}/tianquan-jianshen.env" "${rbac3_jar}"
   wait_http tianquan-jianshen "${rbac3_url}/actuator/health/readiness"
 
-  stage "restoring the USER cookie and Tianquan-Jianshen activation context"
-  idp_bootstrap_login default
+  stage "validating the operator USER authorization and activation context"
   rbac3_access_token="$(user_access_token_for_tenant default)"
   activate_roles "${rbac3_access_token}" false
   wait_ddc_provider_registration permission tianquan-shoubing tianquan-shoubing-admin
@@ -2354,125 +2531,84 @@ command_start() {
 }
 
 command_refresh_tokens() {
+  load_local_oauth_registry
   local default_access_token tenant_b_access_token
-  process_running tianquan-shoubing || fail "tianquan-shoubing is not running; run start first"
-  process_running tianquan-jianshen || fail "tianquan-jianshen is not running; run start first"
-  service_tenant_id="$(rbac3_tenant_id default)"
-
-  stage "refreshing Tianquan-Shoubing-owned service credentials"
+  process_running tianquan-shoubing || fail "tianquan-shoubing is not running"
+  process_running tianquan-jianshen || fail "tianquan-jianshen is not running"
+  validate_current_oauth_directory
   refresh_service_tokens
-  stage "refreshing local USER cookies and authorization snapshots"
-  platform_user_login
   default_access_token="$(user_access_token_for_tenant default)"
   activate_roles "${default_access_token}" true
-
-  platform_user_login tenant-b
   tenant_b_access_token="$(user_access_token_for_tenant tenant-b)"
   activate_roles "${tenant_b_access_token}" true
-  stage "local USER Access Token cookies and authorization snapshots are current"
+  stage "SERVICE credentials refreshed; operator USER inputs verified without token or browser refresh"
 }
 
 http_status() {
-  local url="$1" access_token="$2" cookie_jar="${3:-}"
-  local arguments=(-sS -o /dev/null -w '%{http_code}'
-    -H "Authorization: Bearer ${access_token}")
-  if [[ -n "${cookie_jar}" ]]; then
-    arguments+=(-b "${cookie_jar}")
-  fi
-  curl "${arguments[@]}" "${url}"
+  curl --max-time 10 -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $2" "$1"
 }
 
-stable_refresh_check() {
-  local tenant=default cookie_jar old_cookie before after revoked_status
-  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
-  old_cookie="${runtime_dir}/refresh-stable-before.cookies"
-  before="$(access_token_from_cookie "${cookie_jar}")"
-  cp "${cookie_jar}" "${old_cookie}"
-  gateway_refresh "${tenant}" "${cookie_jar}"
-  after="$(access_token_from_cookie "${cookie_jar}")"
-  [[ "${before}" != "${after}" ]] \
-    || fail "USER refresh did not issue a new five-minute Access Token"
 
-  gateway_refresh "${tenant}" "${old_cookie}"
-  [[ "$(access_token_from_cookie "${old_cookie}")" != "${before}" ]] \
-    || fail "stable Refresh Token did not remain usable for a second refresh"
-  pre_logout_access_token="${after}"
-  gateway_logout "${tenant}" "${cookie_jar}"
-  revoked_status="$(curl -sS -o "${runtime_dir}/refresh-after-logout.response" \
-    -w '%{http_code}' -c "${old_cookie}" -b "${old_cookie}" -X POST \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    --data-urlencode grant_type=refresh_token "${gateway_url}/oauth2/token")"
-  [[ "${revoked_status}" != "200" ]] \
-    || fail "Refresh Token remained usable after Yuheng logout"
-}
 
 command_verify() {
-  local status subject_before subject_tenant_b token_claims
+  load_local_oauth_registry
+  local status subject_before subject_tenant_b token_claims revoked_file
   local rbac3_access_token default_access_token tenant_b_access_token
   local verify_token_dir mvn_status
   for name in tianshu tianquan-shoubing tianquan-jianshen yuheng-admin mock-backend yuheng-biz-gateway yuheng-mcp-gateway; do
     process_running "${name}" || fail "${name} is not running; run start first"
   done
-  platform_user_login
   rbac3_access_token="$(user_access_token_for_tenant default)"
   activate_roles "${rbac3_access_token}" false
   default_access_token="$(user_access_token_for_tenant default)"
   status="$(http_status "${gateway_url}/api/mock/admin" \
-    "${default_access_token}" "$(cookie_jar_for_tenant default)")"
+    "${default_access_token}")"
   [[ "${status}" == "403" ]] || fail \
     "downstream permission denial must be 403 before mock role activation; got ${status}"
   activate_roles "${rbac3_access_token}" true
   for ((attempt = 1; attempt <= 20; attempt++)); do
     if [[ "$(http_status "${gateway_url}/api/mock/admin" \
-      "${default_access_token}" "$(cookie_jar_for_tenant default)")" == "200" ]]; then
+      "${default_access_token}")" == "200" ]]; then
       break
     fi
     sleep 1
   done
   [[ "$(http_status "${gateway_url}/api/mock/admin" \
-    "${default_access_token}" "$(cookie_jar_for_tenant default)")" == "200" ]] \
+    "${default_access_token}")" == "200" ]] \
     || fail "role activation did not authorize the unchanged access token"
 
-  platform_user_login tenant-b
   tenant_b_access_token="$(user_access_token_for_tenant tenant-b)"
   activate_roles "${tenant_b_access_token}" true
   [[ "$(http_status "${gateway_url}/api/mock/read" \
-    "${tenant_b_access_token}" "$(cookie_jar_for_tenant tenant-b)")" == "200" ]] \
+    "${tenant_b_access_token}")" == "200" ]] \
     || fail "tenant-b token did not reach the backend"
-  subject_before="$(jq -Rer 'split(".")[1] | @base64d | fromjson | .sub' \
+  subject_before="$(jq -Rer 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson | .sub' \
     <<<"${default_access_token}")"
-  subject_tenant_b="$(jq -Rer 'split(".")[1] | @base64d | fromjson | .sub' \
+  subject_tenant_b="$(jq -Rer 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson | .sub' \
     <<<"${tenant_b_access_token}")"
   [[ "${subject_before}" == "${subject_tenant_b}" ]] \
     || fail "tenant switch changed the USER identity subject"
   for token_claims in "${default_access_token}" "${tenant_b_access_token}"; do
-    jq -Rre 'split(".")[1] | @base64d | fromjson
+    jq -Rre 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson
       | ((.principal_type // "USER") == "USER"
         and (has("sid") | not)
-        and (has("client_id") | not)
+        and (has("client_id"))
         and (has("token_version") | not))' <<<"${token_claims}" >/dev/null 2>&1 \
       || fail "USER Access Token contains a session or client lifecycle claim"
   done
 
-  platform_user_login default
-  default_access_token="$(user_access_token_for_tenant default)"
-  stable_refresh_check
-  platform_user_login default
-  default_access_token="$(user_access_token_for_tenant default)"
-  platform_user_login tenant-b
-  tenant_b_access_token="$(user_access_token_for_tenant tenant-b)"
-  [[ "$(http_status "${gateway_url}/api/mock/read" \
-    "${default_access_token}" "$(cookie_jar_for_tenant default)")" == "200" ]] \
-    || fail "fresh access token failed after stable refresh and logout"
-  [[ "$(http_status "${gateway_url}/api/mock/read" \
-    "${tenant_b_access_token}" "$(cookie_jar_for_tenant tenant-b)")" == "200" ]] \
-    || fail "fresh tenant-b token failed after stable refresh and logout"
+  revoked_file="$(jq -er '.tenants.default.revokedAccessTokenFile' <<<"${oauth_registry_json}")" \
+    || fail "Provide protected revoked USER evidence for backend revocation acceptance; BFF rotation/logout is operator-run"
+  protected_oauth_file "${revoked_file}" 16384
+  local_user_input_metadata default "${revoked_file}" >/dev/null
+  [[ "$(http_status "${gateway_url}/api/mock/read" "$(<"${revoked_file}")")" == 401 ]] \
+    || fail "The supplied revoked USER evidence is still accepted"
 
   verify_token_dir="$(mktemp -d "${runtime_dir}/verify-tokens.XXXXXX")"
   chmod 700 "${verify_token_dir}"
   printf '%s' "${default_access_token}" >"${verify_token_dir}/default.at"
   printf '%s' "${tenant_b_access_token}" >"${verify_token_dir}/tenant-b.at"
-  printf '%s' "${pre_logout_access_token}" >"${verify_token_dir}/pre-logout.at"
+  printf '%s' "$(<"${revoked_file}")" >"${verify_token_dir}/pre-logout.at"
   chmod 600 "${verify_token_dir}"/*.at
   UNIFIED_IDENTITY_LIVE=true \
   UNIFIED_IDENTITY_YUHENG_URL="${gateway_url}" \
@@ -2489,7 +2625,7 @@ command_verify() {
     return "${mvn_status}"
   fi
   rm -rf "${verify_token_dir}"
-  echo "Unified identity host-local verification passed."
+  echo "Backend permission, tenant and supplied revocation checks passed; real BFF rotation/logout remains separate operator acceptance."
 }
 
 command_status() {
@@ -2518,6 +2654,7 @@ command_status() {
 }
 
 command_refresh_gateway_admin_catalog() {
+  load_local_oauth_registry
   for command in java curl jq openssl psql; do
     require_command "${command}"
   done
@@ -2539,6 +2676,7 @@ command_refresh_gateway_admin_catalog() {
 }
 
 command_publish_gateway_routes() {
+  load_local_oauth_registry
   local command
   for command in curl jq openssl; do
     require_command "${command}"
@@ -2592,7 +2730,9 @@ case "${1:---help}" in
   publish-yuheng-routes) command_publish_gateway_routes ;;
   refresh-yuheng-admin-catalog) command_refresh_gateway_admin_catalog ;;
   sync-local-credentials) command_refresh_tokens ;;
-  issue-user-token) command_issue_user_token ;;
+  issue-user-token) load_local_oauth_registry; command_issue_user_token ;;
+  oauth-context) load_local_oauth_registry; command_oauth_context ;;
+  write-service-registration) load_local_oauth_registry; command_write_service_registration ;;
   verify) command_verify ;;
   status) command_status ;;
   stop) command_stop ;;

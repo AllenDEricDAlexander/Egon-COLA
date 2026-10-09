@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,7 +17,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.vo.IdentityAu
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.vo.IdentityAuditVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.service.IdentityAuditService;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.controller.IdentityProfileController;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.OAuthUserInfoController;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.LegacyOAuthRetirementFilter;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.security.IdpAdminAuthenticationToken;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.security.IdpSecurityConfig;
@@ -35,12 +38,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({
+@WebMvcTest(value = {
         IdentityAuditController.class,
-        IdentityProfileController.class,
-        OAuthUserInfoController.class
-})
-@Import(IdpSecurityConfig.class)
+        IdentityProfileController.class
+}, excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
+        classes = TenantLoginAuthenticationFilter.class))
+@Import({IdpSecurityConfig.class, LegacyOAuthRetirementFilter.class})
 class IdentityProfileControllerIT {
 
     @Autowired
@@ -127,7 +130,7 @@ class IdentityProfileControllerIT {
     }
 
     @Test
-    void returnsAuthenticatedIdentityFromMeAndUserinfo() throws Exception {
+    void returnsAuthenticatedIdentityFromMeAndRetiresRootUserinfo() throws Exception {
         mockMvc.perform(get("/api/v1/tianquan-shoubing/me").with(identityJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subject").value("admin-sub"))
@@ -140,10 +143,12 @@ class IdentityProfileControllerIT {
         );
 
         mockMvc.perform(get("/oauth2/userinfo").with(identityJwt()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.sub").value("admin-sub"))
-                .andExpect(jsonPath("$.tid").value("tenant-a"))
-                .andExpect(jsonPath("$.aud[0]").value("tianquan-shoubing-admin"));
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.error").value("legacy_endpoint_retired"))
+                .andExpect(jsonPath("$.sub").doesNotExist())
+                .andExpect(jsonPath("$.tid").doesNotExist())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .doesNotExist("Set-Cookie"));
     }
 
     @Test

@@ -41,8 +41,12 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordHashPort;
-import top.egon.cola.platform.tianquan.shoubing.core.port.RefreshTokenStore;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityPersistenceAdapter;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.repository.IdentityUserRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.identity.repository.IdentityCredentialRepository;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
+import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
+import top.egon.cola.platform.tianquan.shoubing.admin.support.outbox.service.IdentityOutboxPublisher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -50,10 +54,10 @@ import static org.mockito.Mockito.mock;
 class SpringConstructorResolutionTest {
 
     @Test
-    void createsClassBasedTransactionProxyForOAuthClientStore() {
+    void createsClassBasedTransactionProxyForMpIdentityPersistence() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
                 TransactionProxyConfiguration.class)) {
-            Object store = context.getBean("oauthClientStore");
+            Object store = context.getBean("identityPersistenceAdapter");
             assertThat(AopUtils.isAopProxy(store)).isTrue();
         }
     }
@@ -64,6 +68,8 @@ class SpringConstructorResolutionTest {
                 + ".OAuthClientViewConverterImpl")).isEqualTo("OAuthClientViewConverterImpl");
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             registerNamedMock(context, "oAuthClientRepository", OAuthClientRepository.class);
+            registerNamedMock(context, "oAuthRealmRepository", OAuthRealmRepository.class);
+            registerNamedMock(context, "tokenRevocationService", TokenRevocationService.class);
             registerNamedMock(context, "oAuthResourceRepository", OAuthResourceRepository.class);
             registerNamedMock(context, "oAuthGrantRepository", OAuthGrantRepository.class);
             registerNamedMock(context, "OAuthClientViewConverterImpl", OAuthClientViewConverter.class);
@@ -79,14 +85,13 @@ class SpringConstructorResolutionTest {
 
     @Test
     void createsIdentityUserServiceUsingItsProductionConstructor() {
-        try (AnnotationConfigApplicationContext context = contextWith(
-                IdentityUserStore.class,
-                PasswordCredentialStore.class,
-                IdentityUserDirectory.class,
-                PasswordHashPort.class,
-                IdentityUserStatePort.class,
-                IdentitySecurityEventPort.class,
-                RefreshTokenStore.class)) {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            registerNamedMock(context, "identityPersistenceAdapter", IdentityPersistenceAdapter.class);
+            registerNamedMock(context, "mpIdentityUserDirectory", IdentityUserDirectory.class);
+            registerNamedMock(context, "springPasswordHashAdapter", PasswordHashPort.class);
+            registerNamedMock(context, "identityOutboxPublisher", IdentityOutboxPublisher.class);
+            registerNamedMock(context, "tokenRevocationService", TokenRevocationService.class);
+            context.registerBean("idpClock", Clock.class, Clock::systemUTC);
             context.registerBean(IdentityUserServiceImpl.class);
             context.refresh();
 
@@ -208,23 +213,10 @@ class SpringConstructorResolutionTest {
             return mock(PlatformTransactionManager.class);
         }
 
-        @Bean
-        top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRepository
-                identityClientRepository() {
-            return mock(top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRepository.class);
-        }
-
-        @Bean
-        top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRedirectUriRepository
-                identityClientRedirectUriRepository() {
-            return mock(top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRedirectUriRepository.class);
-        }
-
-        @Bean
-        top.egon.cola.platform.tianquan.shoubing.core.port.OAuthClientStore oauthClientStore(
-                top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRepository clients,
-                top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRedirectUriRepository redirects) {
-            return new top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.JpaOAuthClientStore(clients, redirects);
+        @Bean("identityPersistenceAdapter")
+        IdentityPersistenceAdapter identityPersistenceAdapter() {
+            return new IdentityPersistenceAdapter(mock(IdentityUserRepository.class),
+                    mock(IdentityCredentialRepository.class));
         }
     }
 }

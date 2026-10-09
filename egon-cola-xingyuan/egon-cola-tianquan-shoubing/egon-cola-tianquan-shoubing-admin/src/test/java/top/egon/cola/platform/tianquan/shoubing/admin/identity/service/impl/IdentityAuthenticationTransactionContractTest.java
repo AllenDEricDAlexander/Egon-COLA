@@ -19,8 +19,6 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.config.OAuthPersiste
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.command.OAuthSubjectRevokeCommand;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.TokenRevocationServiceImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.runtime.IdpPlatformConfiguration;
-import top.egon.cola.platform.tianquan.shoubing.admin.audit.repo.IdentityAuditLogRepository;
-import top.egon.cola.platform.tianquan.shoubing.admin.support.outbox.repo.IdentityOutboxEventRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.outbox.service.IdentityOutboxPublisher;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEvent;
@@ -36,16 +34,19 @@ class IdentityAuthenticationTransactionContractTest {
 
         assertThat(dependencies).contains(TransactionalOutbox.class, OAuthAuditRepository.class,
                 OAuthManagementRealmResolver.class);
-        assertThat(dependencies).doesNotContain(
-                IdentityAuditLogRepository.class, IdentityOutboxEventRepository.class);
+        assertThat(dependencies).extracting(Class::getName).doesNotContain(
+                "top.egon.cola.platform.tianquan.shoubing.admin.audit.repo.IdentityAuditLogRepository",
+                "top.egon.cola.platform.tianquan.shoubing.admin.support.outbox.repo.IdentityOutboxEventRepository");
         assertThat(Arrays.stream(IdpPlatformConfiguration.class.getDeclaredMethods())
                 .map(Method::getName)).doesNotContain("identityOutboxPublisher");
         List<Class<?>> platformConfigurationDependencies = Arrays.stream(
                         IdpPlatformConfiguration.class.getDeclaredMethods())
                 .flatMap(method -> Arrays.stream(method.getParameterTypes()))
                 .toList();
-        assertThat(platformConfigurationDependencies).contains(OutboxStore.class)
-                .doesNotContain(IdentityAuditLogRepository.class, IdentityOutboxEventRepository.class);
+        assertThat(platformConfigurationDependencies).contains(OutboxStore.class);
+        assertThat(platformConfigurationDependencies).extracting(Class::getName).doesNotContain(
+                "top.egon.cola.platform.tianquan.shoubing.admin.audit.repo.IdentityAuditLogRepository",
+                "top.egon.cola.platform.tianquan.shoubing.admin.support.outbox.repo.IdentityOutboxEventRepository");
     }
 
     @Test

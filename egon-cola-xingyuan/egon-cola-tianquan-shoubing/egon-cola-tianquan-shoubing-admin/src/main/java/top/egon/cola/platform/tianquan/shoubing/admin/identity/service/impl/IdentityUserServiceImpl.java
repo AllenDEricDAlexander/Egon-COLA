@@ -26,7 +26,6 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordHashPort;
-import top.egon.cola.platform.tianquan.shoubing.core.port.RefreshTokenStore;
 
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -57,8 +56,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
     private final IdentitySecurityEventPort securityEvents;
     @Qualifier("tokenRevocationService")
     private final TokenRevocationService revocations;
-    @Qualifier("refreshTokenStore")
-    private final RefreshTokenStore refreshTokens;
     private final UsernameNormalizer normalizer = new UsernameNormalizer();
     @Qualifier("idpClock")
     private final Clock clock;
@@ -147,9 +144,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         if (securityStateChanged) {
             Instant now = clock.instant();
             String reason = status == IdentityUserStatus.DISABLED ? "USER_DISABLED" : "USER_ENABLED";
-            if (revoke) {
-                refreshTokens.revokeSubject(updated.id(), reason, now);
-            }
             revocations.revokeSubject(
                     new OAuthSubjectRevokeCommand(updated.id(), reason));
             publish(updated, status == IdentityUserStatus.DISABLED
@@ -182,7 +176,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         IdentityUser revoked = current.revokeSecurityState();
         users.save(revoked, current.version());
         revocations.revokeSubject(new OAuthSubjectRevokeCommand(revoked.id(), "PASSWORD_RESET"));
-        refreshTokens.revokeSubject(revoked.id(), "PASSWORD_RESET", now);
         publish(
                 revoked,
                 "IDENTITY_PASSWORD_RESET",
@@ -203,8 +196,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         IdentityUser revoked = current.revokeSecurityState();
         users.save(revoked, current.version());
         revocations.revokeSubject(new OAuthSubjectRevokeCommand(revoked.id(), "ADMIN_REVOKE_ALL"));
-        refreshTokens.revokeSubject(
-                revoked.id(), "ADMIN_REVOKE_ALL", clock.instant());
         publish(
                 revoked,
                 "IDENTITY_TOKEN_REVOKED",

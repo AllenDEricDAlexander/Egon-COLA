@@ -78,6 +78,8 @@ class DdcPolicyConfigTest {
                 .withPropertyValues(
                         "spring.application.name=tianquan-shoubing-admin-test",
                         "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.tenant-id=101",
+                        "egon.cola.component.tianshu.redis.username=fixture-tenant-101",
                         "egon.cola.component.tianshu.biz-code=identity",
                         "egon.cola.component.tianshu.env=test",
                         "egon.cola.component.tianshu.app-code=tianquan-shoubing-admin",

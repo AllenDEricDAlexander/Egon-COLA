@@ -256,16 +256,16 @@ class TenantIssuerIsolationTest {
                         get("/tenants/1001/.well-known/openid-configuration"), 1001L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.issuer").value("https://idp.example.test/tenants/1001"))
-                .andExpect(jsonPath("$.jwks_uri").value("https://idp.example.test/tenants/1001/oauth2/jwks"))
+                .andExpect(jsonPath("$.jwks_uri").value("https://idp.example.test/tenants/1001/.well-known/jwks.json"))
                 .andReturn();
         assertEquals("public, max-age=60", discovery.getResponse().getHeader("Cache-Control"));
         assertTrue(discovery.getResponse().getContentAsString().contains("openid"));
 
-        MvcResult firstJwksResponse = mockMvc.perform(tenantRequest(get("/tenants/1001/oauth2/jwks"), 1001L))
+        MvcResult firstJwksResponse = mockMvc.perform(tenantRequest(get("/tenants/1001/.well-known/jwks.json"), 1001L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.keys[0].kid").value(SHARED_KID))
                 .andReturn();
-        MvcResult secondJwksResponse = mockMvc.perform(tenantRequest(get("/tenants/1002/oauth2/jwks"), 1002L))
+        MvcResult secondJwksResponse = mockMvc.perform(tenantRequest(get("/tenants/1002/.well-known/jwks.json"), 1002L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.keys[0].kid").value(SHARED_KID))
                 .andReturn();
@@ -281,6 +281,22 @@ class TenantIssuerIsolationTest {
         mockMvc.perform(tenantRequest(get("/platform/.well-known/openid-configuration"), 9000L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.issuer").value("https://idp.example.test/platform"));
+
+        for (String issuerPath : List.of("/tenants/1001", "/platform")) {
+            boolean platform = issuerPath.equals("/platform");
+            MvcResult metadata = mockMvc.perform(tenantRequest(
+                            get("/.well-known/oauth-authorization-server" + issuerPath), platform ? 9000L : 1001L))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.issuer").value("https://idp.example.test" + issuerPath))
+                    .andExpect(jsonPath("$.jwks_uri").value("https://idp.example.test" + issuerPath + "/.well-known/jwks.json"))
+                    .andReturn();
+            assertEquals("public, max-age=60", metadata.getResponse().getHeader("Cache-Control"));
+            JsonNode claims = OBJECT_MAPPER.readTree(metadata.getResponse().getContentAsString());
+            assertEquals(platform ? "[\"client_secret_basic\"]" : "[\"client_secret_basic\",\"none\"]",
+                    claims.get("token_endpoint_auth_methods_supported").toString());
+            assertEquals(platform ? "[\"client_credentials\"]" : "[\"authorization_code\",\"refresh_token\",\"client_credentials\"]",
+                    claims.get("grant_types_supported").toString());
+        }
 
         mockMvc.perform(tenantRequest(post("/tenants/1001/oauth2/token")
                         .contentType("application/x-www-form-urlencoded")
@@ -890,6 +906,31 @@ class TenantIssuerIsolationTest {
     @EnableConfigurationProperties(SpringDocConfigProperties.class)
     @Import({SpringDocConfiguration.class, SpringDocWebMvcConfiguration.class})
     static class TestWebConfiguration {
+
+        @Bean("jacksonObjectMapper")
+        ObjectMapper objectMapper() {
+            return OBJECT_MAPPER;
+        }
+
+        @Bean("oauthTokenIssueService")
+        OAuthTokenIssueService oauthTokenIssueService() {
+            return mock(OAuthTokenIssueService.class);
+        }
+
+        @Bean("oAuthRealmRepository")
+        OAuthRealmRepository oauthRealmRepository() {
+            return mock(OAuthRealmRepository.class);
+        }
+
+        @Bean("tokenRevocationService")
+        top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService tokenRevocationService() {
+            return mock(top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService.class);
+        }
+
+        @Bean("transactionManager")
+        org.springframework.transaction.PlatformTransactionManager transactionManager() {
+            return mock(org.springframework.transaction.PlatformTransactionManager.class);
+        }
 
         @Bean("tenantIssuerService")
         TenantIssuerService tenantIssuerService() {

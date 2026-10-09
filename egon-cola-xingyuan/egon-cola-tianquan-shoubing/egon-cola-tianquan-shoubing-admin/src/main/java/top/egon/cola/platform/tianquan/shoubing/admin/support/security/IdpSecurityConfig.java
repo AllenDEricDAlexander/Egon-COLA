@@ -1,6 +1,11 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.support.security;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.LegacyOAuthRetirementFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,25 +36,15 @@ import java.util.List;
 public class IdpSecurityConfig {
 
     /**
-     * 将 Tianquan-Shoubing 开放协议面精确标记为 PUBLIC；其余 Tianquan-Shoubing Admin 路径默认使用 USER。
+     * 仅将健康检查标记为 PUBLIC；管理 API 默认使用 USER，新协议与旧协议退役分别由有序安全链处理。
      *
-     * <p>Marks only the Tianquan-Shoubing public protocol surface as PUBLIC; all other Tianquan-Shoubing Admin paths use the
-     * starter's USER default.</p>
+     * <p>Marks only health checks as PUBLIC; administration APIs use USER and protocol chains own their endpoints.</p>
      */
     @Bean
     @ConditionalOnMissingBean(IdpEndpointAuthenticationPolicy.class)
     IdpEndpointAuthenticationPolicy idpEndpointAuthenticationPolicy() {
         return new IdpEndpointAuthenticationPolicy(
-                List.of(
-                        "/.well-known/oauth-authorization-server",
-                        "/oauth2/jwks",
-                        "/oauth2/login/csrf",
-                        "/oauth2/login",
-                        "/oauth2/token",
-                        "/oauth2/revoke",
-                        "/oauth2/logout",
-                        "/actuator/health/liveness",
-                        "/actuator/health/readiness"),
+                List.of("/actuator/health/liveness", "/actuator/health/readiness"),
                 List.of());
     }
 
@@ -62,10 +57,9 @@ public class IdpSecurityConfig {
     }
 
     /**
-     * 配置无状态身份链，并只公开必须匿名访问的 OAuth 与健康检查端点。
+     * 配置无状态管理 API 身份链；协议与健康检查由其他有序链处理。
      *
-     * <p>Configures the stateless identity chain and exposes only OAuth and health endpoints that
-     * require anonymous access.</p>
+     * <p>Configures the stateless administration identity chain; ordered protocol/fallback chains own other endpoints.</p>
      *
      * @param http Spring Security HTTP 配置；Spring Security HTTP configuration
      * @param idpFilters Tianquan-Shoubing Bearer 过滤器候选；Tianquan-Shoubing Bearer filter candidate
@@ -73,39 +67,28 @@ public class IdpSecurityConfig {
      * @return Tianquan-Shoubing Security Filter Chain；Tianquan-Shoubing Security Filter Chain
      * @throws Exception Spring Security 装配失败时抛出；when Spring Security wiring fails
      */
-    @Bean
+    @Bean("idpAdminSecurityFilterChain")
+    @Order(2)
     SecurityFilterChain idpAdminSecurityFilterChain(
             HttpSecurity http,
             ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
-            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters)
+            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters,
+            @Qualifier("jacksonObjectMapper") com.fasterxml.jackson.databind.ObjectMapper objectMapper)
             throws Exception {
         IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
         Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
-        http
-                .csrf(csrf -> csrf.ignoringRequestMatchers(
-                        "/api/**",
-                        "/oauth2/login",
-                        "/oauth2/token",
-                        "/oauth2/revoke",
-                        "/oauth2/logout",
-                        "/internal/v1/oauth2/refresh-token/validate"
-                ))
+        http.securityMatcher("/api/**")
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> { })
-                .sessionManagement(session -> session.sessionCreationPolicy(
-                        SessionCreationPolicy.STATELESS
-                ))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(
-                                "/.well-known/oauth-authorization-server",
-                                "/oauth2/jwks",
-                                "/oauth2/login/**",
-                                "/oauth2/token",
-                                "/oauth2/revoke",
-                                "/oauth2/logout",
-                                "/actuator/health/liveness",
-                                "/actuator/health/readiness"
-                        ).permitAll()
-                        .anyRequest().authenticated())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+                .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, failure) -> {
+                    response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.setHeader("Cache-Control", "no-store");
+                    objectMapper.writeValue(response.getWriter(), java.util.Map.of(
+                            "error", "invalid_token", "error_description", "Request rejected"));
+                }))
                 .headers(headers -> headers
                         .contentTypeOptions(contentType -> { })
                         .referrerPolicy(referrer -> referrer.policy(
@@ -123,6 +106,29 @@ public class IdpSecurityConfig {
                     "Tianquan-Jianshen authentication filter requires the Tianquan-Shoubing bearer filter");
         }
         return http.build();
+    }
+
+    /** Retires exact legacy operations before any credential handling and denies other unmatched requests. */
+    @Bean("idpFallbackSecurityFilterChain")
+    @Order(3)
+    SecurityFilterChain idpFallbackSecurityFilterChain(HttpSecurity http,
+            @Qualifier("legacyOAuthRetirementFilter") LegacyOAuthRetirementFilter retirementFilter) throws Exception {
+        return http.csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/actuator/health/liveness", "/actuator/health/readiness").permitAll()
+                        .anyRequest().denyAll())
+                .addFilterBefore(retirementFilter, SecurityContextHolderFilter.class)
+                .build();
+    }
+
+    @Bean("legacyOAuthRetirementFilterRegistration")
+    FilterRegistrationBean<LegacyOAuthRetirementFilter> legacyOAuthRetirementFilterRegistration(
+            @Qualifier("legacyOAuthRetirementFilter") LegacyOAuthRetirementFilter retirementFilter) {
+        FilterRegistrationBean<LegacyOAuthRetirementFilter> registration =
+                new FilterRegistrationBean<>(retirementFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     /**

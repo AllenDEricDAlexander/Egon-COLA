@@ -1,158 +1,90 @@
 # 统一身份与 Yuheng MCP 本地联调 Runbook
 
-本文说明如何在开发机上启动、验证和停止 Tianquan-Shoubing、Tianquan-Jianshen、Tianshu、Yuheng 与完整 MCP 联调拓扑。脚本复用本机 PostgreSQL 和 Redis，不使用容器，不删除已有数据库、密钥或验收证据。
+本流程使用授柄的正式 PLATFORM/tenant issuer、鉴神权限、天枢HMAC/registry和独立的 Yuheng API/MCP Engine。浏览器经独立 Edge OIDC/BFF 会话登录；MCP/业务服务仍验证资源绑定的 Bearer，不读取浏览器 AT/RT cookie。运行命令只由操作者执行。
+
+## 前置准备
+
+先按[本机身份联调手册](../runbooks/unified-identity-local.md)和[受控切流手册](../runbooks/unified-identity-oauth-client-tenant-cutover.md)准备当前 MP identity、issuer/key/client/Resource/Grant 与真实鉴神 tenant-authority 状态。
+
+- PostgreSQL/Redis 已由操作者运行，明确提供私密凭据文件。
+- `UNIFIED_IDENTITY_OAUTH_REGISTRY_FILE` 是mode400/600的当前用户私密配置，精确格式见修订Spec§16.1。包含8个既有本地 SERVICE client 的独立 PLATFORM/tenant slots、credentialVersion、one-time secret 文件引用和两个正式 USER 输入。
+- tenant-b USER 输入已有 MCP Provider Resource/Scope/角色授权；工具不会在失败时创建空scope USER Grant或扩大权限。
+- `YUHENG_EDGE_BASE_URL` 指向操作者配置并运行的 Edge；默认OAUTH根路径不再提供旧密码、RT或JWK协议。
+- Java21、Maven Wrapper、Node/npm和常用本地CLI工具可用。当前MCP夹具不要求启动Kafka；脚本不启动PG/Redis/Edge/Docker。
 
 ## 拓扑与端口
 
-| 组件                | 地址                                         | 用途                                    |
-|-------------------|--------------------------------------------|---------------------------------------|
-| Tianquan-Shoubing Admin Web     | `http://127.0.0.1:18121`                   | 统一登录入口和 Tianquan-Shoubing 管理界面                      |
-| Tianquan-Jianshen Admin Web   | `http://127.0.0.1:18131`                   | Tianquan-Jianshen 管理界面                            |
-| Yuheng Admin Web | `http://127.0.0.1:18141`                   | 经 Yuheng JWT Cookie 保护的 Yuheng 管理界面 |
-| Tianshu Admin Web     | `http://127.0.0.1:18152`                   | Tianshu 管理界面                              |
-| Tianquan-Shoubing               | `http://127.0.0.1:18120`                   | OAuth/OIDC、USER AT/RT 签发与 RT 有效状态     |
-| Tianquan-Jianshen Admin       | `http://127.0.0.1:18130`                   | 下游授权快照与角色激活                           |
-| Yuheng Admin     | `http://127.0.0.1:18140`                   | Yuheng/MCP 控制面                       |
-| Tianshu Admin         | `http://127.0.0.1:18150`                   | 配置、注册发现和发布通知                          |
-| Yuheng MCP A     | `http://127.0.0.1:18180/mcp/unified-local` | Stable、RC 和 Legacy 公共入口               |
-| Yuheng MCP B     | `http://127.0.0.1:18184/mcp/unified-local` | 双节点会话与任务恢复验证入口                        |
-| Mock Backend      | `http://127.0.0.1:18160`                   | 统一身份 HTTP 验证夹具                        |
-| MCP Provider      | `http://127.0.0.1:18161`                   | 本地 Operation 调用夹具                     |
-| Remote MCP        | `http://127.0.0.1:18151`                   | Stable/RC 远端联邦夹具                      |
+| 组件 | 默认端口 | 角色 |
+| --- | --- | --- |
+| 授柄/鉴神/玉衡Admin/天枢Admin | 18120/18130/18140/18150 | 身份、权限、发布、注册/配置 |
+| 玉衡 API Engine | 18180，管理18182 | HTTP/RPC数据面 |
+| 玉衡 MCP Engine A | 18185，管理18186 | 独立MCP数据面 |
+| MCP Engine B | 18184，管理18183 | 独立MCP节点；保留旧 `yuheng-biz-gateway-b` PID/env兼容别名 |
+| MCP Provider/Remote MCP/Mock | 18161/18151/18160 | 本地Operation、联邦、HTTP夹具 |
+| Portal/四Admin Web | 18125/18121/18131/18141/18152 | 同一Edge BFF登录入口 |
+| Edge | 操作者显式配置 | OAuth2 Client/TokenRelay/服务端会话 |
 
-Yuheng 只执行 USER JWT 合法性、过期恢复等基础身份校验，并在保护业务 Route 上执行外围 Tianquan-Jianshen 权限判断；业务系统继续使用 Tianquan-Shoubing
-Starter 本地校验同一个 USER AT，再从 Tianquan-Jianshen 拉取与缓存当前用户的授权快照。普通业务请求不会携带 Refresh Token。
+MCP两节点使用同一角色的执行JAR、数据库与Redis会话/任务基础设施，但节点/instance ID、数据目录和监听器独立。B不能运行API artifact，也不能占用A的18185数据端口。
 
-## 前置条件
+## 用户运行流程
 
-- Java 21、`curl`、`jq`、`openssl`、`psql`、`createdb`、`redis-cli`、Node.js/npm。
-- 本机 PostgreSQL 可通过 `127.0.0.1:5432` 访问；默认用户为 `postgres`，首次运行时密码必须通过受保护的 `UNIFIED_IDENTITY_POSTGRES_PASSWORD_FILE` 或 `UNIFIED_IDENTITY_POSTGRES_PASSWORD` 显式提供，后续可复用权限为 `0600` 的 runtime secret。脚本不会猜测或修改账号密码。
-- 本机 Redis 可通过 `127.0.0.1:6379` 访问。脚本优先从 `/opt/homebrew/etc/redis.conf` 读取 `requirepass`。
-- 若本机配置不同，通过 `UNIFIED_IDENTITY_POSTGRES_*`、`UNIFIED_IDENTITY_REDIS_*` 环境变量或相应密码文件覆盖；不要把密码写入仓库。
-
-当前联调链路不依赖 Kafka。启动脚本只校验并复用用户已有的 PostgreSQL/Redis，不负责启动或停止它们。
-
-## 启动
-
-在仓库根目录执行：
+以下命令会构建或启动设施、改变联调状态；编码任务没有执行它们：
 
 ```bash
+export UNIFIED_IDENTITY_OAUTH_REGISTRY_FILE=/absolute/private/local-oauth-registry.json
+export UNIFIED_IDENTITY_POSTGRES_PASSWORD_FILE=/absolute/private/postgres.password
+export UNIFIED_IDENTITY_REDIS_PASSWORD_FILE=/absolute/private/redis.password
+export YUHENG_EDGE_BASE_URL=http://127.0.0.1:<operator-edge-port>
 scripts/unified-xingyuan/start-local-stack.sh
 ```
 
-首次执行会完成 Maven 打包、Admin Web 构建、数据库初始化、Tianquan-Shoubing 用户引导、Tianquan-Jianshen 多租户角色初始化、Tianshu 应用与注册初始化，以及 Yuheng HTTP/MCP 统一发布。本地 MCP Tool 由 Provider 的 `@GatewayInterfaceGroup` 和 `@GatewayOperation` 注解投影，脚本只协调 Server、Remote MCP 和其他控制面能力，不创建本地 Tool 或 disabled Route 锚点。
+启动前核查当前 MP facts 和私密材料；AS先以已配置的issuer/key/client启动，其余依赖随后启动。前端只生成 `VITE_YUHENG_ORIGIN`，API代理保持Engine，认证/回调代理指向Edge。Source/target导入是独立的人工受控CLI，启动脚本不会自动执行。
 
-需要验证交付给开发者的原生命令时，先执行一次：
+`prepare-local-stack.sh` 包含用户运行的完整编排和停止阶段，不是静态测试。只有准备完成、配置和材料经过核实时才可运行。每个JAR必须加载自己的 `env/<component>.properties`；`UNIFIED_XINGYUAN_SKIP_BUILD=true` 仅在确认所有现有artifact是当前版本时使用。
 
-```bash
-scripts/unified-xingyuan/prepare-local-stack.sh
-```
-
-准备流程会初始化同一完整拓扑并停止所有受管进程。随后从仓库根目录分别运行五个后端；JAR 会自动读取 `target/local-unified-xingyuan/env/*.properties`：
+直接启动时也必须加载同一受管配置；以下命令由操作者按拓扑顺序执行，前端在各包目录运行 `npm run dev`：
 
 ```bash
-java -jar egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar
-java -jar egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar
-java -jar egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/target/egon-cola-tianquan-jianshen-admin-exec.jar
-java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/target/yuheng-admin-exec.jar
-java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/target/yuheng-biz-gateway-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar --spring.config.additional-location=file:/absolute/runtime/env/tianquan-shoubing.properties
+java -jar egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar --spring.config.additional-location=file:/absolute/runtime/env/tianshu.properties
+java -jar egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/target/egon-cola-tianquan-jianshen-admin-exec.jar --spring.config.additional-location=file:/absolute/runtime/env/tianquan-jianshen.properties
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/target/yuheng-admin-exec.jar --spring.config.additional-location=file:/absolute/runtime/env/yuheng-admin.properties
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/target/yuheng-biz-gateway-exec.jar --spring.config.additional-location=file:/absolute/runtime/env/yuheng-biz-gateway.properties
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/target/yuheng-mcp-gateway-exec.jar --spring.config.additional-location=file:/absolute/runtime/env/yuheng-mcp-gateway.properties
 ```
-
-四个 Admin Web 则分别进入各自目录执行同一条无参数命令，默认代理已固定为对应的 `18120`、`18130`、`18140`、`18150` 后端端口：
-
-```bash
-npm run dev
-```
-
-准备流程会在四个 Admin Web 目录生成受管的 `.env.local`，把真实数值型默认租户 ID 注入 `VITE_DEFAULT_TENANT_ID`；因此无参数启动不会再把租户代码 `default` 错当成租户 ID。
-
-直接启动顺序为 Tianshu、Tianquan-Shoubing、Tianquan-Jianshen、Yuheng Admin、Yuheng Engine；等待后端 Readiness 为 `200` 后再启动 Web。首次数据库初始化必须经过准备流程，不能只启动空库上的 JAR。
-
-只在已确认可执行 JAR 和 Web 构建均为最新时，才可跳过构建：
-
-```bash
-UNIFIED_XINGYUAN_SKIP_BUILD=true scripts/unified-xingyuan/start-local-stack.sh
-```
-
-## 状态与日志
 
 ```bash
 scripts/unified-xingyuan/status-local-stack.sh
-```
-
-状态必须显示 13 个受管进程均为 `running`，健康码均为 `200`。运行时目录为 `target/local-unified-xingyuan/`：
-
-- PID：`target/local-unified-xingyuan/pids/`
-- 日志：`target/local-unified-xingyuan/logs/`
-- 脱敏验收证据：`target/local-unified-xingyuan/evidence/verification-summary.json`
-- QA 密钥：`target/local-unified-xingyuan/secrets/`，目录权限为 `0700`，文件权限为 `0600`
-
-脚本和日志不会输出访问令牌、服务凭据或明文密码。
-
-## 登录 Admin Web
-
-打开 `http://127.0.0.1:18141`，通过 Yuheng 公共登录 Route 登录：
-
-- 用户名：`alice`
-- 密码文件：`target/local-unified-xingyuan/secrets/tianquan-shoubing-admin.password`
-
-在本机终端读取密码（仅用于密码登录，不代表建立服务端 Session）：
-
-```bash
-sed -n '1p' target/local-unified-xingyuan/secrets/tianquan-shoubing-admin.password
-```
-
-不要把密码复制到文档、Issue、聊天记录或 Git 提交中。默认租户与 `tenant-b` 已初始化，用于多租户隔离验证。
-
-## 深度验收
-
-```bash
 scripts/unified-xingyuan/verify-local-stack.sh
 ```
 
-验收覆盖：
+## 人员与机器授权边界
 
-- Yuheng Cookie 登录、固定五分钟 USER AT、稳定不轮换 RT，以及 Logout/强制退出后删除 RT；旧 AT 只保留到原 `exp`，RT
-  刷新失败后必须重新登录；
-- Tianquan-Jianshen 角色激活、授权撤销传播及原 JWT 下的权限恢复；
-- Tianshu 注册、配置中断时 LKG 连续服务和恢复；
-- 注解托管的 MCP Operation 不依赖 Route，并在两个 Engine 上进入同一发布；
-- Stable、RC、Legacy SSE，以及 Tools、Resources、Templates、Prompts、Completion、Apps、订阅；
-- Engine A 创建会话/任务、Engine B 读取会话/任务；
-- 本地 Operation、远端 MCP 联邦、熔断开启与恢复；
-- PostgreSQL 持久任务和 Redis 跨节点会话/事件流。
+Portal/Admin通过Edge配置的Code/S256流程登录，可信AS页面负责密码策略，浏览器仅持会话cookie。高风险角色操作需要真实OIDC step-up。不得注入USER token或tenant默认值到前端，不把SERVICE token当作USER授权材料。
 
-验收会短暂中断并恢复 Tianshu、Remote MCP 和 Tianquan-Jianshen 权限；不会创建、删除或恢复用于 MCP 占位的草稿路由。`trap` 会在成功或失败时尽力恢复现场。若终端被强制杀死，重新执行启动脚本即可协调完整拓扑。
+机器控制面注册使用PLATFORM registration；业务鉴神凭据按可信tenant选择显式TENANT registration。来源app、Resource、最小scope、Tianshu HMAC和registry准入一起保留。MCP Provider拿到的Bearer必须绑定其精确Resource，不能借用Mock或另一个MCP角色的audience。
 
-运行 MCP 官方 conformance：
+本地USER输入由操作者通过正式授权取得，以私密文件引用提供。工具先做metadata早期拒错，再调用配置issuer的正式UserInfo校验；本地解码不是签名/授权证明。过期或缺少输入时停止，不自动登录/刷新；撤销验收额外提供已撤销的独立USER证据。
 
-```bash
-egon-cola-xingyuan/egon-cola-yuheng/deployment/scripts/run-mcp-conformance.sh \
-  http://127.0.0.1:18151/conformance/stable \
-  http://127.0.0.1:18151/conformance/rc \
-  target/local-unified-xingyuan/evidence/mcp-conformance
-```
+## 深度验收与限制
 
-脚本使用同一 Remote MCP 进程内隔离的
-`/conformance/stable` 与 `/conformance/rc` 场景服务器，分别运行固定版本的
-Stable Active Suite 和 RC Draft Suite。它们只提供官方 CLI 约定的诊断能力；
-Yuheng 实际远端联邦仍使用 `/remote/stable` 与 `/remote/rc`，两类夹具互不混用。
-验收结果写入
-`target/local-unified-xingyuan/evidence/mcp-conformance/{stable,rc}/`。
+用户运行验收仍需覆盖：
 
-## 停止
+- 鉴神角色激活/撤销和两tenant隔离；共享Redis不可用时fail-closed。
+- 天枢HMAC、注册、配置LKG与恢复；MCP角色和来源应用匹配。
+- 注解托管Operation、Stable/RC/Legacy SSE、Tools/Resources/Templates/Prompts/Completion/Apps和订阅。
+- A创建会话/任务，B读取或恢复；PostgreSQL持久任务和Redis事件/会话流。
+- 本地Operation、远端MCP联邦、超时/熔断/恢复及流式取消。
+- 真实Edge Code/PKCE、session/CSRF/logout、RT轮换、单飞refresh、密钥多实例传播和切流后旧根410。
+
+CLI不会代替浏览器refresh/logout验收。缺少相关材料或运行证据必须明确记录，不能以静态测试/HTTP匿名预检宣称完整运行通过。联调验收可能短暂中断并恢复天枢、Remote MCP或权限状态；先阅读所执行脚本并保留用户现场。
+
+官方MCP conformance由操作者按仓库部署脚本运行，Stable/RC场景与实际联邦夹具不能混用；结果保留在当前runtime证据目录。不要打印密码、client secret、AT、RT或Cookie内容。
+
+## 停止和排查
 
 ```bash
 scripts/unified-xingyuan/stop-local-stack.sh
 ```
 
-停止脚本只处理 PID 文件记录且仍存活的受管进程，不停止本机 PostgreSQL/Redis，也不删除数据库、密钥、日志或证据。需要重新验证时再次执行启动脚本。
-
-## 常见排查
-
-- 某组件 `health=000`：查看 `target/local-unified-xingyuan/logs/<component>.log`，然后重新执行启动脚本。
-- Tianquan-Shoubing 登录失败：确认用户名是 `alice`，密码来自当前运行时目录的限制文件；不要使用旧运行时目录中的副本。浏览器身份只由 Yuheng
-  Cookie 携带，不要向前端注入 USER AT/RT，也不要把 Tianquan-Shoubing 内部端口作为浏览器 API 地址。
-- 授权更新短暂未生效：本地 Yuheng Engine 授权缓存 TTL 为 1 秒，先等待状态轮询；持续失败时检查 Tianquan-Jianshen 与两个 Engine 日志。
-- Remote MCP 调用失败：确认 `mcp-remote` 健康；深度验收会主动触发熔断，恢复后等待约 4 秒。
-- 发布失败：检查 Yuheng Admin 日志和草稿校验响应；无效发布不得替换当前 LKG。
+仅处理受管PID，保留数据库/Redis、secret、spool、日志和证据。缺注册配置/MP事实时回受控准备；issuer/credentialVersion不匹配时核对正式注册，不能恢复旧根协议或复制旧hash。USER过期时由操作者重新正式授权；MCP B问题先核对角色artifact、18184/18183和独立instance ID。真实设施或浏览器问题需要用户运行证据。

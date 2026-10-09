@@ -5,7 +5,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2

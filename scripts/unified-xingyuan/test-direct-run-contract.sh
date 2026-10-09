@@ -28,6 +28,41 @@ assert_not_contains() {
   fi
 }
 
+# Executable consumer profiles must require an explicitly provisioned issuer/JWKS.
+for oauth_profile in \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml; do
+  assert_not_contains "${repo_root}/${oauth_profile}" 'TIANQUAN_SHOUBING_OAUTH_ISSUER:http://' \
+    'consumer profile must not default to the retired root issuer'
+  assert_not_contains "${repo_root}/${oauth_profile}" 'TIANQUAN_SHOUBING_JWK_SET_URI:http://' \
+    'consumer profile must not default to the retired root JWKS'
+  assert_not_contains "${repo_root}/${oauth_profile}" 'tianquan-shoubing-refresh-uri:' \
+    'consumer profile must not retain retired refresh client config'
+done
+
+assert_contains "${identity_script}" '${issuer}/.well-known/jwks.json' \
+  'generated trusted JWKS must use the accepted per-issuer endpoint'
+assert_not_contains "${identity_script}" '${issuer}/oauth2/jwks' \
+  'generated trusted JWKS must not use the retired default path'
+
+# New deployments must not bootstrap credentials through retired protocol roots.
+assert_not_contains "${identity_script}" 'token_endpoint="${idp_url}/oauth2/token"' \
+  'local SERVICE issuance must use its explicit trusted realm issuer'
+assert_not_contains "${identity_script}" 'idp_bootstrap_login()' \
+  'local startup must not post a password to the retired root login'
+assert_not_contains "${platform_start_script}" '${TIANQUAN_SHOUBING_BASE_URL}/oauth2/userinfo' \
+  'platform startup must use explicit current identity prerequisites'
+
 extract_function() {
   local name="$1" output="$2"
   awk -v signature="${name}()" '
@@ -158,49 +193,114 @@ fi
   || fail 'rejected PostgreSQL credential changed runtime secret permissions'
 unset -f psql
 
+# Pure function/owner-only filesystem fixtures. No process, database, Redis or real HTTP call is started.
+for helper in protected_oauth_file require_oauth_decimal require_oauth_origin local_oauth_registration \
+    local_oauth_issuer load_local_oauth_registry local_user_input_metadata user_access_token_for_tenant; do
+  function_file="${temporary_dir}/${helper}.sh"
+  extract_function "${helper}" "${function_file}"
+  source "${function_file}"
+done
+registry_fixture_dir="${temporary_dir}/oauth-inputs"
+mkdir -p "${registry_fixture_dir}"
+chmod 700 "${registry_fixture_dir}"
+printf '%s' 'abcdefghijklmnopqrstuvwxyzABCDEF0123456789_-abcdef' >"${registry_fixture_dir}/client.secret"
+printf '%s' 'fixture-mounted-kek' >"${registry_fixture_dir}/kek.key"
+printf '%s' 'fixture-mounted-audit-hmac' >"${registry_fixture_dir}/audit.key"
+for entry in 'default|42001' 'tenant-b|73001'; do
+  IFS='|' read -r tenant_code fixture_tenant_id <<<"${entry}"
+  payload="$(jq -cn --arg issuer "http://127.0.0.1:18120/tenants/${fixture_tenant_id}" \
+    --arg tenant "${fixture_tenant_id}" --argjson expires "$(( $(date +%s) + 3600 ))" \
+    '{iss:$issuer,tenant_id:$tenant,sub:"fixture-subject",principal_type:"USER",exp:$expires,
+      aud:["https://api.example/fixture"],client_id:"formal-cli"}' | openssl base64 -A | tr '+/' '-_' | tr -d '=')"
+  printf 'eyJhbGciOiJSUzI1NiJ9.%s.fixture-signature' "${payload}" >"${registry_fixture_dir}/${tenant_code}.jwt"
+done
+chmod 600 "${registry_fixture_dir}"/*
+registry_fixture="${registry_fixture_dir}/registry.json"
+jq -n --arg base "${registry_fixture_dir}" '
+  ["tianquan-shoubing-service","tianquan-jianshen-service","yuheng-admin-service",
+    "yuheng-biz-gateway-service","yuheng-mcp-gateway-service","tianshu-service",
+    "mock-backend-service","mcp-provider-service"] as $clients
+  | {schemaVersion:1,publicOrigin:"http://127.0.0.1:18120",platformStoragePartitionId:"90001",
+    platformManagementTenantId:"42001",identitySub:"fixture-subject",revocationEpoch:"fixture-epoch",
+    kekId:"local-kek",kekFile:($base+"/kek.key"),auditHmacKeyFile:($base+"/audit.key"),
+    issuers:{platform:{issuer:"http://127.0.0.1:18120/platform",realmKey:"platform",realmType:"PLATFORM",trustVersion:"0"},
+      default:{issuer:"http://127.0.0.1:18120/tenants/42001",realmKey:"tenant:42001",realmType:"TENANT",tenantId:"42001",trustVersion:"0"},
+      secondary:{issuer:"http://127.0.0.1:18120/tenants/73001",realmKey:"tenant:73001",realmType:"TENANT",tenantId:"73001",trustVersion:"0"}},
+    tenants:{default:{tenantId:"42001",issuerRef:"default",accessTokenFile:($base+"/default.jwt")},
+      "tenant-b":{tenantId:"73001",issuerRef:"secondary",accessTokenFile:($base+"/tenant-b.jwt")}},
+    clients:(reduce $clients[] as $client ({}; .[$client]={appId:$client,
+      platform:{issuerRef:"platform",credentialVersion:"1",secretFile:($base+"/client.secret")},
+      tenants:{"42001":{issuerRef:"default",credentialVersion:"1",secretFile:($base+"/client.secret")},
+        "73001":{issuerRef:"secondary",credentialVersion:"2",secretFile:($base+"/client.secret")}}}))}
+' >"${registry_fixture}"
+chmod 600 "${registry_fixture}"
+oauth_registry_file="${registry_fixture}"
+oauth_registry_json=
+idp_url=http://127.0.0.1:18120
+load_local_oauth_registry
+[[ "${service_tenant_id}" == 42001 && "${tenant_b_id}" == 73001 \
+  && "${platform_issuer}" == http://127.0.0.1:18120/platform ]] \
+  || fail 'local registry must select only its explicit numeric tenants and PLATFORM issuer'
+for filter in '.unexpected=true' '.issuers.secondary.issuer=.issuers.default.issuer' \
+    '.clients["tianshu-service"].platform.issuerRef="default"' \
+    '.tenants["tenant-b"].tenantId="42001"' '.platformStoragePartitionId="9223372036854775808"' \
+    '.tenants.default.accessTokenFile="/absent/formal-input.jwt"'; do
+  jq "${filter}" "${registry_fixture}" >"${registry_fixture_dir}/invalid.json"
+  chmod 600 "${registry_fixture_dir}/invalid.json"
+  if (oauth_registry_json=; oauth_registry_file="${registry_fixture_dir}/invalid.json"; load_local_oauth_registry) \
+      >/dev/null 2>&1; then
+    fail 'malformed/cross-realm/missing-owner-input local registry must reject before dependent effects'
+  fi
+done
+chmod 644 "${registry_fixture_dir}/invalid.json"
+if (protected_oauth_file "${registry_fixture_dir}/invalid.json") >/dev/null 2>&1; then
+  fail 'local OAuth registry must reject world-readable material'
+fi
+# Formal UserInfo is mocked; metadata parsing alone is never a signature/authorization proof.
+formal_probe_calls="${temporary_dir}/formal-probes.txt"
+curl() {
+  printf '%s\n' "${*: -1}" >>"${formal_probe_calls}"
+  printf '%s' '{"sub":"fixture-subject"}'
+}
+user_access_token_for_tenant default >/dev/null
+[[ "$(<"${formal_probe_calls}")" == http://127.0.0.1:18120/tenants/42001/userinfo ]] \
+  || fail 'formal USER validation must call only the exact configured tenant issuer'
+extract_function command_issue_user_token "${temporary_dir}/copy-user-input.sh"
+source "${temporary_dir}/copy-user-input.sh"
+unsafe_output="${registry_fixture_dir}/unsafe-output.jwt"
+printf '%s' 'existing-owner-data' >"${unsafe_output}"
+chmod 644 "${unsafe_output}"
+if (UNIFIED_IDENTITY_TENANT=default UNIFIED_IDENTITY_ACCESS_TOKEN_FILE="${unsafe_output}";
+    command_issue_user_token) >/dev/null 2>&1; then
+  fail 'formal USER output must reject an existing unsafe file before overwrite'
+fi
+[[ "$(<"${unsafe_output}")" == existing-owner-data ]] \
+  || fail 'rejected USER output must preserve existing data'
+if (local_user_input_metadata default "${registry_fixture_dir}/tenant-b.jwt") >/dev/null 2>&1; then
+  fail 'revoked USER evidence must reject a different tenant before a 401 assertion'
+fi
+unset -f curl
+
 function_file="${temporary_dir}/resolve-existing-service-tenant-id.sh"
 extract_function resolve_existing_service_tenant_id "${function_file}"
-# shellcheck disable=SC1090
 source "${function_file}"
-idp_database=tianquan-shoubing-test
-rbac3_database=tianquan-jianshen-test
 service_tenant_id=default
-database_table_exists() {
-  [[ "$1" == 'tianquan-jianshen-test' && "$2" == 'public.rbac3_tenant' ]]
-}
-rbac3_tenant_id() {
-  [[ "$1" == 'default' ]] || return 1
-  printf '%s' '42001'
-}
 resolve_existing_service_tenant_id
-[[ "${service_tenant_id}" == '42001' ]] \
-  || fail 'prepare must restore the numeric ID of an existing service tenant'
-service_tenant_id=73001
-rbac3_tenant_id() {
-  return 1
-}
-resolve_existing_service_tenant_id
-[[ "${service_tenant_id}" == '73001' ]] \
-  || fail 'an explicit numeric service tenant ID must be preserved'
-service_tenant_id=default
-database_table_exists() { [[ "$1" == 'tianquan-shoubing-test' ]]; }
-database_row_exists() { return 1; }
-resolve_existing_service_tenant_id
-[[ "${service_tenant_id}" == 'default' ]] \
-  || fail 'an empty Tianquan-Shoubing catalog must wait for local tenant bootstrap'
+[[ "${service_tenant_id}" == 42001 ]] || fail 'service tenant must come from the explicit operator registry'
 function_file="${temporary_dir}/tianquan-jianshen-jdbc-url.sh"
 extract_function rbac3_jdbc_url "${function_file}"
-(
-  source "${function_file}"
-  postgres_host=127.0.0.1
-  postgres_port=5432
-  tenant_authority_artifact=
-  database_table_exists() { return 1; }
-  [[ "$(rbac3_jdbc_url)" == 'jdbc:postgresql://127.0.0.1:5432/tianquan-jianshen-test' ]] \
-    || fail 'fresh prepare must not emit a fake numeric tenant or authority gate'
-)
-unset -f database_table_exists database_row_exists rbac3_tenant_id
-unset idp_database
+source "${function_file}"
+postgres_host=127.0.0.1
+postgres_port=5432
+rbac3_database=tianquan-jianshen-test
+database_table_exists() { return 1; }
+if (rbac3_jdbc_url) >/dev/null 2>&1; then
+  fail 'missing current Tianquan-Jianshen authority state must not become a fake verified JDBC gate'
+fi
+database_table_exists() { [[ "$2" == public.rbac3_tenant_authorization_state ]]; }
+[[ "$(rbac3_jdbc_url)" == jdbc:postgresql://127.0.0.1:5432/tianquan-jianshen-test ]] \
+  || fail 'current Tianquan-Jianshen directory must preserve the exact existing database URL'
+unset -f database_table_exists
 
 jq -e '
   .server.resourceUri == "https://api.egon.internal/local/identity/yuheng-test-mcp-provider"
@@ -208,7 +308,7 @@ jq -e '
 ' "${release_fixture}" >/dev/null \
   || fail 'MCP Server fixture must use the exact OAuth Resource URI contract'
 assert_contains "${platform_start_script}" 'ensure_mcp_user_delegation' \
-  'local MCP startup must explicitly grant its exact Resource to the OAuth client'
+  'local MCP startup must verify pre-provisioned formal USER Resource authorization'
 assert_contains "${platform_start_script}" \
   'wait_gateway_engine_provider_catalog' \
   'local MCP release must wait for both Yuheng Engine Tianshu registrations'
@@ -251,7 +351,7 @@ assert_contains "${platform_verify_script}" \
   'mcp_token_file="${verification_token_dir}/mcp-user.at"' \
   'MCP verification must not reuse the mock backend Resource token'
 assert_contains "${platform_verify_script}" 'run_identity issue-user-token' \
-  'MCP verification must refresh its Resource token after identity revocation checks'
+  'MCP verification must revalidate its operator-provided Resource token after backend checks'
 assert_contains "${platform_verify_script}" \
   'UNIFIED_IDENTITY_TIANQUAN_SHOUBING_DATABASE="${identity_idp_database}"' \
   'platform verification must use the Tianquan-Shoubing database recorded by the running stack'
@@ -270,6 +370,12 @@ assert_not_contains "${platform_verify_script}" \
 assert_contains "${platform_verify_script}" \
   '"local_echo_task","arguments":{"body":{"value":"task"}}' \
   'MCP task verification must preserve the Yuheng Operation body location'
+
+assert_property_equals() {
+  local file="$1" key="$2" expected="$3" context="$4" actual
+  actual="$(awk -v key="${key}" 'index($0,key "=")==1 {value=substr($0,length(key)+2)} END {print value}' "${file%.env}.properties")"
+  [[ "${actual}" == "${expected}" ]] || fail "${context}: missing/incorrect canonical property ${key}"
+}
 
 assert_env_equals() {
   local file="$1" key="$2" expected="$3" context="$4" actual
@@ -300,7 +406,9 @@ generated_runtime="${temporary_dir}/generated-runtime"
   postgres_password() {
     printf '%s' 'test-postgres-password'
   }
-  service_tenant_id=42001
+  oauth_registry_file="${registry_fixture}"
+  oauth_registry_json=
+  load_local_oauth_registry
   database_table_exists() {
     return 1
   }
@@ -323,7 +431,7 @@ assert_env_equals "${mcp_engine_env}" YUHENG_MCP_ENGINE_RESOURCE_SERVER_ID \
 assert_env_equals "${mcp_engine_env}" YUHENG_MCP_ENGINE_RESOURCE_URI \
   https://api.egon.internal/local/identity/yuheng-mcp-gateway-default \
   'MCP Engine must not borrow the API Resource URI'
-assert_env_equals "${mcp_engine_env}" SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_ID \
+assert_property_equals "${mcp_engine_env}" spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-id \
   yuheng-mcp-gateway-service \
   'MCP Engine must use its own confidential management Client'
 assert_env_equals "${mcp_engine_env}" YUHENG_MCP_ENGINE_PORT 18185 \
@@ -340,6 +448,14 @@ assert_env_equals "${generated_runtime}/env/yuheng-admin.env" YUHENG_ADMIN_TIANS
   yuheng-mcp-gateway-default 'Admin must target the MCP role scope explicitly'
 assert_contains "${platform_start_script}" 'unified_xingyuan_start_jar yuheng-mcp-gateway' \
   'core startup must start the independent MCP process before publication'
+assert_contains "${platform_start_script}" \
+  '"${unified_xingyuan_env_dir}/yuheng-biz-gateway-b.env" "${gateway_mcp_engine_jar}"' \
+  'the second MCP fixture must run the dedicated MCP role artifact'
+assert_contains "${platform_start_script}" \
+  'cp "${unified_xingyuan_env_dir}/yuheng-mcp-gateway.properties" "${file%.env}.properties"' \
+  'the second fixture must retain and load the correct role registration properties'
+assert_contains "${platform_start_script}" 'YUHENG_MCP_ENGINE_MANAGEMENT_PORT 18183' \
+  'the second MCP management listener must not collide with the first MCP data listener'
 assert_not_contains "${mcp_engine_env}" 'YUHENG_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE=' \
   'MCP must use the standard confidential service Client'
 
@@ -454,8 +570,8 @@ assert_env_equals "${rbac3_env}" TIANQUAN_JIANSHEN_ARTIFACT_VERSION local \
 assert_env_equals "${rbac3_env}" \
   EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_ENABLED true \
   'Tianquan-Jianshen must acquire internal authorization credentials per target tenant'
-assert_env_equals "${rbac3_env}" \
-  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_ID \
+assert_property_equals "${rbac3_env}" \
+  spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-id \
   tianquan-jianshen-service \
   'Tianquan-Jianshen tenant-aware credentials must use the approved service Client'
 assert_env_equals "${rbac3_env}" TIANQUAN_JIANSHEN_RESOURCE_SERVER_ID \
@@ -525,9 +641,14 @@ assert_contains \
   'egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml' \
   '          id: ${MOCK_BACKEND_INSTANCE_ID:mock-backend-local-1}' \
   'mock backend Tianshu client and admission ticket must share one instance id'
-[[ "$(grep -Fc 'service_tenant_id="$(rbac3_tenant_id default)"' \
-  "${identity_script}")" == "2" ]] || fail \
-  'start and credential synchronization must both resolve the exact Tianquan-Jianshen tenant id'
+assert_contains "${identity_script}" 'load_local_oauth_registry' \
+  'startup and synchronization must require explicit current OAuth prerequisites'
+assert_not_contains "${identity_script}" 'adopt_local_idp_authority' \
+  'startup must not silently import legacy tenant facts'
+assert_not_contains "${identity_script}" 'from identity_user' \
+  'operator identity must resolve through the current MP directory'
+assert_not_contains "${identity_script}" 'update identity_client' \
+  'startup must never mutate old client records'
 assert_contains "${identity_script}" \
   'resolve_existing_service_tenant_id' \
   'prepare must restore an existing exact Tianquan-Jianshen tenant id before rewriting env files'
@@ -541,12 +662,12 @@ assert_contains "${identity_script}" 'MOCK_LOCAL_ENTRY' \
   'the no-admin verification state must preserve mock Resource entry permission'
 assert_contains "${identity_script}" \
   'user_access_token_for_tenant "${tenant}"' \
-  'USER token issuance must reuse the Yuheng cookie and never create a server session'
+  'USER-dependent CLI operations must verify only protected formal input at the configured issuer'
 assert_not_contains "${identity_script}" '.access.jwt' \
   'identity bootstrap must not persist per-client USER Access Token files'
 legacy_service_file_key='TIANQUAN_JIANSHEN_SERVICE_CREDENTIAL_'
 assert_not_contains "${identity_script}" "${legacy_service_file_key}FILE" \
-  'identity services must use Tianquan-Shoubing Client Assertion instead of static Tianquan-Jianshen bearer files'
+  'identity services must use registered confidential clients instead of static Tianquan-Jianshen bearer files'
 assert_not_contains "${platform_start_script}" '.access.jwt' \
   'platform startup must not persist per-client USER Access Token files'
 assert_not_contains "${platform_verify_script}" '.access.jwt' \
@@ -614,8 +735,8 @@ while IFS='|' read -r service_env client_id _ _; do
   assert_env_equals "${generated_runtime}/env/${service_env}.env" \
     EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_ENABLED true \
     "${service_env} must acquire Tianquan-Jianshen credentials for the exact USER tenant"
-  assert_env_equals "${generated_runtime}/env/${service_env}.env" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_ID \
+  assert_property_equals "${generated_runtime}/env/${service_env}.env" \
+    spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-id \
     "${client_id}" \
     "${service_env} must use its own approved OAuth service Client"
 done <<'SERVICE_TOKENS'
@@ -626,6 +747,31 @@ mock-backend|mock-backend-service|mock-backend-local|mock-backend
 yuheng-biz-gateway|yuheng-biz-gateway-service|yuheng-biz-gateway-local|yuheng-biz-gateway
 yuheng-mcp-gateway|yuheng-mcp-gateway-service|yuheng-mcp-gateway-local|yuheng-mcp-gateway
 SERVICE_TOKENS
+
+assert_property_equals "${idp_env}" egon.tianquan-shoubing.oauth.local-explicit-service-registrations true \
+  'local AS bootstrap must not discover itself before its listener starts'
+assert_env_equals "${idp_env}" EGON_TIANQUAN_SHOUBING_PLATFORM_STORAGE_PARTITION_ID 90001 \
+  'local AS directory must use its explicit platform partition'
+assert_env_equals "${idp_env}" SPRING_CONFIG_ADDITIONAL_LOCATION "file:${idp_env%.env}.properties" \
+  'generated trusted registration properties must actually be loaded by Spring'
+assert_property_equals "${rbac3_env}" \
+  'egon.cola.platform.tianquan.shoubing.service-client.tenant-registration-ids.[42001]' \
+  egon-tianquan-shoubing-tenant-42001 'default tenant must use its explicit tenant registration'
+assert_property_equals "${rbac3_env}" \
+  'egon.cola.platform.tianquan.shoubing.service-client.tenant-registration-ids.[73001]' \
+  egon-tianquan-shoubing-tenant-73001 'secondary tenant must use its own explicit tenant registration'
+assert_property_equals "${rbac3_env}" \
+  spring.security.oauth2.client.provider.egon-tianquan-shoubing-tenant-73001.issuer-uri \
+  http://127.0.0.1:18120/tenants/73001 'secondary registration must name its exact trusted issuer'
+assert_property_equals "${rbac3_env}" \
+  'egon.cola.platform.tianquan.shoubing.service-client.credential-versions.[egon-tianquan-shoubing-tenant-73001]' \
+  2 'credential generation must be preserved independently for the secondary registration'
+assert_property_equals "${rbac3_env}" \
+  'egon.cola.platform.tianquan.shoubing.trusted-issuers.[platform].realm-type' PLATFORM \
+  'platform trust must remain separate from business tenant trust'
+assert_not_contains "${identity_script}" 'cookie_jar_for_tenant' 'local tool must not recover USER tokens from cookies'
+assert_not_contains "${identity_script}" 'grant_type=refresh_token' 'local tool must not drive browser refresh tokens'
+assert_not_contains "${identity_script}" 'idp_bootstrap_login' 'local tool must not bootstrap passwords through old routes'
 
 function_file="${temporary_dir}/initialize-tianshu-topology.sh"
 extract_function initialize_ddc_topology "${function_file}"
@@ -845,7 +991,7 @@ assert_contains "${identity_script}" \
   'Tianquan-Jianshen topology bootstrap must have an explicit post-publication stage'
 assert_contains "${identity_script}" \
   'ddc_admin_access_token="$(user_access_token_for_tenant default)"' \
-  'Tianshu registry polling must use a fresh USER Access Token after the Tianquan-Shoubing restart'
+  'Tianshu registry polling must use a formally validated protected USER input after the Tianquan-Shoubing restart'
 assert_contains "${identity_script}" 'clear_local_rbac3_snapshots' \
   'local startup must discard stale derived Tianquan-Jianshen snapshots before rebuilding them'
 assert_contains "${identity_script}" \

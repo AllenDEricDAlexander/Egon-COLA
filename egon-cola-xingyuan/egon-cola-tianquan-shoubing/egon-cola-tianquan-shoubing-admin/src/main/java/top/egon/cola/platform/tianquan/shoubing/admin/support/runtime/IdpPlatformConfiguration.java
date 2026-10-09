@@ -20,7 +20,18 @@ import top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap.IdpBoots
 import top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap.IdpDevelopmentTenantBootstrap;
 import top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap.IdpBootstrapService;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.service.IdentityUserStateService;
-import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.Rs256TokenService;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthManagementRealmResolver;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
+import com.nimbusds.jose.KeySourceException;
+import com.nimbusds.jose.jwk.JWKMatcher;
+import com.nimbusds.jose.jwk.JWKSelector;
+import com.nimbusds.jose.jwk.KeyType;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContext;
+import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthSecurityProjectionComponent;
 import top.egon.cola.component.outbox.store.OutboxStore;
 import java.util.Map;
@@ -54,7 +65,10 @@ public class IdpPlatformConfiguration {
             ObjectProvider<DdcRuntimeCoordinator> coordinators,
             @Qualifier("outboxStore") OutboxStore outbox,
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
-            Rs256TokenService tokenService
+            @Qualifier("oauthManagementRealmResolver") OAuthManagementRealmResolver realms,
+            @Qualifier("oAuthRealmRepository") OAuthRealmRepository realmRepository,
+            @Qualifier("tenantJwkSourceComponent") JWKSource<SecurityContext> jwkSource,
+            @Qualifier("authorizationServerSettings") AuthorizationServerSettings settings
     ) {
         return () -> {
             DdcRuntimeCoordinator coordinator = coordinators.getIfAvailable();
@@ -64,7 +78,32 @@ public class IdpPlatformConfiguration {
                     .filter(session -> session.role()
                             == DdcLeaseRole.CONFIG_CLIENT)
                     .isPresent();
-            boolean oauthReady = !tokenService.jwkSet().isEmpty();
+            boolean oauthReady = false;
+            AuthorizationServerContext previous = AuthorizationServerContextHolder.getContext();
+            try {
+                var realm = realms.platformRealm();
+                var active = realmRepository.findByIssuer(realm)
+                        .filter(row -> "ACTIVE".equals(row.getStatus()) && row.getActiveKid() != null);
+                if (active.isPresent()) {
+                    AuthorizationServerContextHolder.setContext(new AuthorizationServerContext() {
+                        @Override
+                        public String getIssuer() {
+                            return realm.getIssuer().toASCIIString();
+                        }
+                        @Override
+                        public AuthorizationServerSettings getAuthorizationServerSettings() {
+                            return settings;
+                        }
+                    });
+                    oauthReady = !jwkSource.get(new JWKSelector(new JWKMatcher.Builder()
+                            .keyType(KeyType.RSA).privateOnly(true)
+                            .keyID(active.get().getActiveKid()).build()), null).isEmpty();
+                }
+            } catch (OAuth2AuthenticationException | KeySourceException notReady) {
+                oauthReady = false;
+            } finally {
+                AuthorizationServerContextHolder.setContext(previous);
+            }
             boolean outboxReady = outbox != null
                     && !redisson.isShutdown()
                     && !redisson.isShuttingDown();

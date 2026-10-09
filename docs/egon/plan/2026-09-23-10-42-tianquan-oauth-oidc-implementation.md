@@ -25,7 +25,7 @@
 
 本Plan按18个逻辑Step实施有效设计；新增Step 3迁移用户/密码/租户/成员目录到MP，并修订当前Outbox装配、直接审计事件依赖、历史导入与消费者验证。主Spec OAuth/OIDC、独立SCG、PLATFORM隔离、即时撤销和强制重新登录继续有效。API-045现在纳入Step 10/16，不再让已有Grant页面缺失GET。
 
-用户已明确授权按本Plan与当前修订Spec继续执行。Step 1–5已独立验证并提交；当前执行Step 6。修订Spec保持Review状态，不以执行授权冒充整体Spec接受。每个Step先RED/GREEN，按本Step精确路径验证后单独提交，再进入下一Step；未真实运行数据库/服务的能力不宣称生产验收。
+用户已明确授权按本Plan与当前修订Spec继续执行。Step 1–17已独立验证并提交；当前执行Step18，并先关闭源审计发现的Step13修正C13。C8 已提交 `e7889ee7bc31f743bfd17e78e68e164cf13b7450`，C17 checkpoint恢复已提交 `cd2a350d0309c53e936982c5a0f86efa0ad463db`（20 focused tests PASS），C8b accepted JWKS设置修正独立在Step18结束前关闭。修订Spec保持Review状态，不以执行授权冒充整体Spec接受。每个Step先RED/GREEN，按本Step精确路径验证后单独提交，再进入下一Step；未真实运行数据库/服务的能力不宣称生产验收。
 
 ## 2. Target Spec and Effective Design
 
@@ -95,6 +95,8 @@
 | REQ-040 | 修订Spec EVD-152/DEC-148 | Edge使用受管Lombok compile API、显式Bean名、构造器注入和Qualifier copy规则 | TEST-144；Lombok仅provided | Step 14 |
 | REQ-041 | 修订Spec EVD-153/DEC-149 | TokenRelay使用分布式同身份刷新锁，旋转授权客户端密文落库后再释放 | TEST-145；真实Redis/AS由用户运行 | Step 14 |
 | REQ-042 | 修订Spec EVD-154/DEC-150 | API-015验证被持有token本身及当前issuer/tenant/subject/audience/共享安全世代 | TEST-146；真实Redis/AS由用户运行 | Step 14 |
+| REQ-045 | 当前修订§4/DEC-163–166 | 旧协议与JPA完整退役、身份主体撤销兼容及本地消费者迁出 | 十精确旧method/path410、无旧Bean/JPA写链、主体仅撤销一次、显式realm与操作者授权前置 | Step 18 |
+| REQ-046 | 修订Spec§4/DEC-169 | 生产tenant SERVICE caller显式选择registration | 两tenant精确registration、未映射拒绝、空map单registration兼容 | Step 13 correction C13 / Step 18 consumer gate |
 
 ## 4. Implementation Strategy and Dependency Order
 
@@ -612,15 +614,45 @@ MODIFY scripts/unified-xingyuan/status-local-stack.sh  # Step 17
 MODIFY scripts/unified-xingyuan/verify-local-stack.sh  # Step 17
 MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 17
 MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 17
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapterTest.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImplTest.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityAuthenticationTransactionContractTest.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/InternalRefreshTokenSecurityIT.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/web/IdentityProfileControllerIT.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/ddc/DdcPolicyConfigTest.java  # Step 18
+MODIFY scripts/unified-xingyuan/test-direct-run-contract.sh  # Step 18
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapter.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImpl.java  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml  # Step 18
+MODIFY scripts/unified-identity-local.sh  # Step 18
+MODIFY scripts/unified-xingyuan/start-local-stack.sh  # Step 18
+MODIFY docs/runbooks/unified-identity-local.md  # Step 18
+MODIFY docs/operations/unified-identity-mcp-local-runbook.md  # Step 18
+MODIFY docs/runbooks/unified-identity-oauth-client-tenant-cutover.md  # Step 18
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 18
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 18
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java  # Step 18
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java  # Step 18
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java  # Step 18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java  # Step 18
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java  # Step 18
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java  # Step 18
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java  # Step 18
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java  # Step 18
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthStepUpController.java  # Step 18
-MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthUserInfoController.java  # Step 18
+DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java  # Step 18
+DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java  # Step 18
+DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java  # Step 18
+DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java  # Step 18
+DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthStepUpController.java  # Step 18
+DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthUserInfoController.java  # Step 18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java  # Step 18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java  # Step 18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java  # Step 18
@@ -1077,6 +1109,21 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | DELETE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/JpaResourceServerStore.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 退役新MP/SAS链已替换的旧认证JPA/Basic实现。 | Step 18 | REQ-001,REQ-006,REQ-010,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
 | DELETE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/pojo/IdentitySigningKeyEntity.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 退役新MP/SAS链已替换的旧认证JPA/Basic实现。 | Step 18 | REQ-001,REQ-006,REQ-010,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
 | DELETE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/IdentitySigningKeyRepository.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 退役新MP/SAS链已替换的旧认证JPA/Basic实现。 | Step 18 | REQ-001,REQ-006,REQ-010,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapterTest.java` | EVD-164–167/当前HEAD直接引用 | adapterDelegatesSubjectRevocationOnce | 密码变更只委托主体撤销，旧Token生命周期明确不可调用 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImplTest.java` | EVD-164–167/当前HEAD直接引用 | revocationOccursOnce | 用户管理单次新链撤销与错误透传 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityAuthenticationTransactionContractTest.java` | EVD-164–167/当前HEAD直接引用 | identityPublisherUsesOAuthAuditAndComponentOutboxOnly | JPA类型删除后保留统一事务与Outbox约束 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/InternalRefreshTokenSecurityIT.java` | EVD-164–167/当前HEAD直接引用 | legacyRefreshValidationIsGone | 旧RT validation匿名及已验SERVICE均410 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/web/IdentityProfileControllerIT.java` | EVD-164–167/当前HEAD直接引用 | returnsAuthenticatedIdentityFromMe | 保留me与audit合同并移除旧userinfo正例 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `scripts/unified-xingyuan/test-direct-run-contract.sh` | EVD-164–167/当前HEAD直接引用 | retired_protocol_consumer_contract | 锁定显式realm和操作者授权材料，禁止旧目录/密码/cookie回退 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapter.java` | EVD-164–167/当前HEAD直接引用 | subjectRevocationRefreshTokenStoreAdapter | 兼容core主体撤销端口，不保留旧RT状态机 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImpl.java` | EVD-164–167/当前HEAD直接引用 | update/resetPassword/revokeAll | 移除重复旧store主体撤销调用 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `scripts/unified-identity-local.sh` | EVD-164–167/当前HEAD直接引用 | oauth_service_token/user_access_token_for_tenant/command_start | 底层本地启动工具迁出旧OAuth协议和旧identity目录 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `scripts/unified-xingyuan/start-local-stack.sh` | EVD-164–167/当前HEAD直接引用 | prepare_admin_web_login_environments/default_user_access_token | 上层本地启动复用新realm授权合同 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `docs/runbooks/unified-identity-local.md` | EVD-164–167/当前HEAD直接引用 | local operator prerequisites | 准确记录操作者准备和新OIDC入口 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `docs/operations/unified-identity-mcp-local-runbook.md` | EVD-164–167/当前HEAD直接引用 | MCP authorization evidence | MCP联调不读取浏览器Token或假冒USER | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md` | EVD-164–167/当前HEAD直接引用 | retirement preflight | 切流前必须关闭legacy消费者并保留回滚证据 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | EVD-164–167/当前HEAD直接引用 | EVD-164..167/DEC-163..166/TEST-158..161/REQ-045 | 记录已授权Step18直接依赖修订 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
+| MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | EVD-164–167/当前HEAD直接引用 | Step18 scoped execution | 锁定当前Step55个有序文件及验证门禁 | Step 18 | REQ-017,REQ-045 | Step18 focused/静态门禁 |
 
 ## 6. Prerequisites, Constraints, and Plan Clarifications
 
@@ -1108,6 +1155,202 @@ DEC-001–008全部由用户确认：SAS归授柄、SCG前置不替玉衡、传�
 | PLAN-CLAR-001 | 把已存在的项目5.4.0→5.4.1只作为Maven父版本更新处理 | 当前root/SA/Y POM均5.4.1，diff主要发布版本 | 不改变Boot3.5.16、接口或Spec状态 | 若code/API随版本另改需回Spec |
 | PLAN-CLAR-002 | Source原型PO名/DAO包按Spec §8.4机械展开，不运行CLI | 当前传统admin.<domain>业务包，backend-code-generation明确traditional unsupported | 仅把已命名Type/Domain代入精确目录，不改变架构 | 路径已有人工文件则暂停而非覆盖 |
 | PLAN-CLAR-003 | 局部OAuthKeyCipherComponent使用JDK AES-GCM而不是新crypto依赖 | common-crypto仅Digest/Hmac/Codec，没有AES/GCM；Spec §8.4明确该类型 | 实现选定JDK原语，不增第三方能力 | 若源组件新增AES接口须复核避免重复 |
+
+
+### 6.5 Corrective gate C13 — 生产tenant SERVICE registration选择
+
+- Origin: Step13 的consumer补齐；EVD-170/DEC-169/TEST-164/REQ-046。2026-10-09用户授权按推荐方案继续完成并探索阻塞解法。
+- Baseline: Step17 HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27`；Step18未提交的所有已授权变化保留，暂停Step18源码推进，仅C13当前三路径接受修改和staging。
+- Purpose/outcome: 不允许用一个TENANT issuer registration请求其他tenant的SERVICE token；两个租户必须显式选各自配置，当前Spring facade仍执行issuer/client/credentialVersion/audience/tenant/scope校验。
+- Design: 复用现有mutable配置和生产Function Adapter，不建立新注册表服务/Strategy层；direct map选择是已知配置variation，不推导客户端或issuer。
+- Test-first: 首先只改File1，BeanWrapper缺少新property导致真实assertion RED；随后File2/3 GREEN。不得以编译、网络或fixture失败作为RED。
+- Compatibility: empty map保留单registration调用合同；nonempty map缺tenant立即拒绝；不改变HTTP/RPC/model public interfaces。
+- Manual Checks: MC-ARCH-001,MC-REUSE-001,MC-DEP-001,MC-NAME-001,MC-VALID-001,MC-MODEL-001,MC-CONVERT-001,MC-LOG-001,MC-BEAN-001,MC-UTIL-001,MC-JSON-001,MC-TIME-001,MC-CONFIG-001,MC-PATTERN-001,MC-SCOPE-001,MC-TEST-001,MC-BLOCKER-001；十原Literal Rules分别检查。
+
+C13 File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan/jianshen/starter/client/HttpTenantServiceTokenSupplierTest.java`
+
+- Source evidence: EVD-170/当前源码；本文件现有命名/接口/fixture直接复用。
+- Dependencies/consumer: 前序C13文件与现有service-client/IdpServiceOAuth2Client边界，不进入Admin未提交源码。
+- Exact implementation:
+
+```java
+BeanWrapper assert writable tenantRegistrationIds first, then bind two positive Long tenant keys;
+production supplier apply(each tenant), capture exact IdpServiceTokenRequest registrationId/tenantId;
+missing entry and invalid key/version reject before facade call;
+empty map preserves old single registration.
+```
+
+- Edge/failure: 无映射/非法/溢出/缺version明确拒绝；不回退PLATFORM或猜issuer。
+- Validation: TEST-164/精确C13命令及原facade/config回归；生产Supplier变更只有registration选择。
+
+C13 File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterProperties.java`
+
+- Source evidence: EVD-170/当前源码；本文件现有命名/接口/fixture直接复用。
+- Dependencies/consumer: 前序C13文件与现有service-client/IdpServiceOAuth2Client边界，不进入Admin未提交源码。
+- Exact implementation:
+
+```java
+ServiceClient keeps bounded Map<String,String> tenantRegistrationIds with defensive copy accessors;
+validate each positive canonical Long key, stable ASCII registration value, configured credentialVersion and count≤1000;
+registrationIdForTenant returns explicit entry, or fixed registration only if map is empty.
+```
+
+- Edge/failure: 无映射/非法/溢出/缺version明确拒绝；不回退PLATFORM或猜issuer。
+- Validation: TEST-164/精确C13命令及原facade/config回归；生产Supplier变更只有registration选择。
+
+C13 File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/client/HttpTenantServiceTokenSupplier.java`
+
+- Source evidence: EVD-170/当前源码；本文件现有命名/接口/fixture直接复用。
+- Dependencies/consumer: 前序C13文件与现有service-client/IdpServiceOAuth2Client边界，不进入Admin未提交源码。
+- Exact implementation:
+
+```java
+HttpTenantServiceTokenSupplier existing production branch uses client.registrationIdForTenant(exactTenantId);
+appId/resource/context/scopes unchanged;
+existing facade remains sole issuer validation/cache/renewal owner;
+no new resolver/endpoint or token retry.
+```
+
+- Edge/failure: 无映射/非法/溢出/缺version明确拒绝；不回退PLATFORM或猜issuer。
+- Validation: TEST-164/精确C13命令及原facade/config回归；生产Supplier变更只有registration选择。
+
+- Working directory: `/Users/mario/SelfProject/Egon-COLA`。
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter -am -Dtest=HttpTenantServiceTokenSupplierTest,IdpServiceOAuth2ClientTest,IdpStarterAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`；首次RED仅选择HttpTenantServiceTokenSupplierTest。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan/jianshen/starter/client/HttpTenantServiceTokenSupplierTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterProperties.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/client/HttpTenantServiceTokenSupplier.java`。当前Spec/Plan的C13追踪随Step18文档提交，避免混入Step18未完成范围；C13源修正提交仅这三路径。
+- Commit: `fix(oauth): select service registration for each tenant`；已提交 `c72de6fe1407430759a68acd76b8c06212720e0c`，精确三路径；27 focused tests PASS（8 auto-config +14 facade +5生产caller），不amend/rewrite既有Step13提交。
+- Completion gate: 原facade两issuer隔离/credentialVersion/自动续签合同与新生产caller/binding测试全部GREEN，当前三路径Manual/Literal及范围审核通过后立即独立提交，再恢复Step18。
+
+### 6.6 Corrective gate C8 — direct provider登录页与目录覆盖
+
+- Origin/authorization: Step8 provider login新增Controller的代码规范与OpenAPI消费修正；EVD-172/DEC-171/TEST-165。用户已授权继续完成并探索推荐阻塞方案。暂停Step18，先独立修正两个直接依赖文件。
+- Baseline: C13 HEAD `c72de6fe1407430759a68acd76b8c06212720e0c`；其他Step18和两份用户Spec不stage。
+- Design: 沿用现有Controller与Spring/Lombok惯例，登录页继续仅由直接AS issuer承载；不新增接口或catalog路由，不引入设计模式层。OpenAPI扫描对这个精确provider类有独立断言，其余catalog断言保持。
+- File 1/test-first: `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/openapi/IdpPublishedOpenApiContractTest.java`。先断言provider Controller显式Bean名、GET tenant/login及Operation，而非假定所有RestController都发布到Engine；旧代码空Bean名产生RED。
+- File 2/implementation: `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java`。使用`@RestController("tenantLoginController")`、`@Slf4j`、`@RequiredArgsConstructor`、final `@NonNull @Qualifier`；删除手写转发构造器，保留表单、CSRF、SavedRequest、错误/URI逻辑与wire。
+- Manual Checks: 17个MC逐项与10个Literal Rules分别检查；无新模型/转换/配置/持久化，Rule11保持传统域包。
+- Validation: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=IdpPublishedOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；无外部设施。Step18 isolation fixture独立补全后再全Admin验证。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/openapi/IdpPublishedOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/TenantLoginController.java`。Spec/Plan追踪随Step18文档提交，避免混入未完成Step。
+- Commit: `fix(shoubing): keep issuer login outside gateway catalog`；精确两路径，验证后立即提交，随后恢复Step18。
+
+### 6.7 Corrective gate C17 — migration checkpoint恢复边界
+
+- Origin: Step17 TEST-151/REQ-022/044；EVD-173/DEC-172/TEST-166。已授权推荐解阻方案：暂停Step18，先独立纠正精确两路径；用户现场与其他Step18变化保留。
+- Baseline: C8 HEAD `e7889ee7bc31f743bfd17e78e68e164cf13b7450`。
+- Design: 复用现有checkpoint immutable value、既有phase state与Template Method目录导入；没有新public API/格式、表、依赖或抽象层。校验是现有恢复边界的闭合集合约束，简单本地状态predicate即可。
+- File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`: 测试先写未知phase/不一致完成状态的真实importRealm断言并运行RED；随后使用500/501目录行、staged/committed DAO、mock transaction manager、实际私密临时文件注入commit失败/commit后checkpoint写失败。验证无重复写、历史映射保留、旧checkpoint不前移、已完成重放稳定；stale/unknown JSON与源变动均拒绝。
+- File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`: readCheckpoint使用严格Spring Jackson reader、文件大小上限，已知phase与realm/typeIndex/cursor/complete一致且counts非负；未知/不一致在任何target作用前抛现有MISMATCH/INVALID错误；保持atomic move/fsync与commit后写checkpoint，FileChannel完整写入buffer再force。
+- Validation: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest,OAuthMigrationRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test`；无真实PG/Redis/CLI。17个MC、10个Literal Rules与two-path diff逐项通过才独立提交。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`。当前Spec/Plan追踪随Step18文档提交。
+- Commit: `fix(shoubing): validate migration checkpoint recovery state`；不amend原Step17，再恢复Step18的fresh完整Admin门禁。
+
+### 6.8 Corrective gate C8b — accepted JWKS settings
+
+- Origin: Step8 SAS默认JWKS与主Spec API-003/010显式URL不一致；EVD-174/DEC-173/TEST-167。沿用用户授权的推荐解阻方案。
+- Baseline: C17 `cd2a350d0309c53e936982c5a0f86efa0ad463db`；先完成本纠正提交，再恢复Step18。
+- File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPublicEndpointSettingsTest.java`: 单元直接调用现有settings factory，断言multipleIssuersAllowed=true、无固定issuer、accepted JWKS/authorize/token/revoke/userinfo paths；默认JWKS导致干净RED。
+- File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`: 只在settings builder增补`jwkSetEndpoint("/.well-known/jwks.json")`。该文件有本agent的Step18未提交变化；保留worktree，index只接受本明确settings hunk，不能将其他Step18变化混入。
+- Design/consumers: 使用现有SAS配置extension，不增加alias/Controller/库。Root退役与正式metadata/JWKS Consumer/实际filter回归由Step18精确文件继续覆盖；可配置operator URI与legacy cutover例子不假冒正式endpoint。
+- Validation: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthPublicEndpointSettingsTest -Dsurefire.failIfNoSpecifiedTests=false test`；17MC/10Literal逐项，index对照HEAD仅这一settings行及新测试。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPublicEndpointSettingsTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`。Spec/Plan追踪仍随Step18文档提交。
+- Commit: `fix(shoubing): use accepted well-known jwks path`；精确两路径，source只一个settings hunk；Step18 diff在提交后仍保留。
+
+### 6.9 Corrective gate C15 — Gateway实际验证装配
+
+- Origin: Step15实际消费者；EVD-175/DEC-174/TEST-168；用户已授权按推荐方案继续及解阻。暂停Step18，严格只修改下列10路径。
+- Baseline: C8b `1f09ce028ea534704ccd9acda71de891e7d844de`。
+- Design: 复用现有Gateway TokenVerifier Adapter与Starter createConfigured/verifyAny Facade；信任Registry/签名cache/shared revocation/MapStruct转换仍只由Starter拥有。每请求从可信route属性解析Resource；不新增Bean registry/DTO/cache/model。UNAVAILABLE经既有AuthenticationDecision.error到503，不降为401。
+- Dependency reuse: 添加已接受规范必须的parent-managed Lombok及既有Starter使用的jakarta.servlet-api provided/optional compile API和module Qualifier copy rule；无新version/runtime库。Fixture预检显示Mockito解析共享manager的servletResolver签名需要Servlet API（TypeNotPresent HttpServletRequest），真实API/MCP Engine既有management starter-web提供运行时API；不能把该预检失败当行为RED。其余Spring/Jackson/Mockito/Converter全部现有依赖。
+- Ordered files:
+
+C15 File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewayJwtVerifierTest.java`
+
+- Purpose/pseudocode: 反射锁定管理factory缺失RED，随后验证真实新USER/SERVICE两tenant、audience/revocation/outage与一次验证。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`
+
+- Purpose/pseudocode: Bearer-only/cookie-recovery退役RED；保持mapper/RBAC权限分离及旧构造合同。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java`
+
+- Purpose/pseudocode: actual autoConfiguration supplies shared ports and asserts managed verifier + absent old RT factories; no legacy refresh URI needed。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/pom.xml`
+
+- Purpose/pseudocode: parent-managed provided/optional Lombok compile API，确保普通SDK运行时不出口Lombok。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/lombok.config`
+
+- Purpose/pseudocode: stopBubbling+copyable Spring Qualifier；新Bean构造注解保留。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewayJwtVerifier.java`
+
+- Purpose/pseudocode: RequiredArgsConstructor/Slf4j与明确qualified shared dependencies；createConfigured requires trusted manager/reader/converter; verifyAny uses per-route Resource; standalone old constructor remains source adapter。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCookieCredentialExtractor.java`
+
+- Purpose/pseudocode: 保留EXTRACTOR_ID；只parse bounded explicit Authorization，Cookie从credentials移除且从转发字段清理，删除cookie token/CSRF fallback private code。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java`
+
+- Purpose/pseudocode: 保留PROVIDER_ID/旧public constructors；managed generated-constructor factory无RT clients/status dependency；missing/expired不recover并清除旧cookie；authenticated hook只依赖已完成的shared verifier。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterProperties.java`
+
+- Purpose/pseudocode: 删除已退役refresh/status字段的mandatory validate要求，保留public getters/setters供显式旧caller；新必须参数仍拒绝。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+C15 File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`
+
+- Purpose/pseudocode: actual named factories select new shared ports/clock; remove old refresh/status/online factories/statusUri helper, keep scoped state readers and mandatory New issuer mode。
+- Boundary/failure: 不猜tenant/issuer，不读Cookie AT/RT；没有新外部API/DDL。默认必须managed多issuer；签名/tenant绑定与共享撤销仍是Starter原实现。
+- Standards/evidence: MC17与Literal10逐项；新业务role class用Slf4j/RequiredArgsConstructor/qualified依赖，legacy constructors只作明确兼容Adapter；新转换直接复用BaseForwardConverter。TEST-168。
+
+- Validation: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewayJwtVerifierTest,IdpGatewayAdapterAutoConfigurationTest,IdpGatewaySecurityProviderTest,GatewayResourceServerResolverTest,MultiIssuerResourceServerTest -Dsurefire.failIfNoSpecifiedTests=false test`；首次RED先只锁new factory/cookie contract；短期loopback test fixture允许，禁止真实Redis/PG/项目/浏览器。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewayJwtVerifierTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/pom.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/lombok.config`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpGatewayJwtVerifier.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCookieCredentialExtractor.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpUserCredentialRecoveryProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterProperties.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`。
+- Commit: `fix(shoubing): wire gateway to shared issuer verification`；已提交 `076f34a8e36335fd3055f05e069fb15ea1263484`，28 tests PASS/精确十路径；再恢复Step18。
+- Trace: 当前Spec/Plan追踪随Step18文档提交，避免混入尚未完成的Step18。
+
+### 6.10 Corrective gate C14 — Edge Cookie forwarding boundary
+
+- Origin/authorization: Step14 EVD-176/DEC-175/TEST-169；用户已授权推荐解阻方案。暂停Step18，只处理精确两路径。
+- Baseline: C15 `076f34a8e36335fd3055f05e069fb15ea1263484`。
+- File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`: test-first真实Filter捕获API/MCP成功转发exchange，assert Cookie removed、Authorization/已解析WebSession/principal仍保留、伪造身份头删除；AS route retains cookie；mixed400/anonymous401不进入chain。现有代码Cookie leak产生RED。
+- File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`: existing named GlobalFilter adds RequiredArgsConstructor and final qualified jacksonObjectMapper. Check mixed Bearer/BFF before stripping, mutate only API/MCP forwarded request headers.remove(COOKIE). Preserve session/principal and AS branch. Mono.fromCallable managed writeValueAsBytes(Map.of(error,code)) with existing status/JSON/no-store.
+- Design: 延用GlobalFilter Chain of Responsibility扩展点；简单closed route predicate无需新增模式participant，无新依赖/配置/模型/endpoint。
+- Validation: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；in-memory mocks，禁止runtime/PG/Redis/browser。17MC+10Literal独立审核。
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`；docs trace随Step18提交。
+- Commit: `fix(yuheng): strip browser cookies before engine forwarding`；已提交 `54573468864018e733f4f7542424ef8f2b9e607a`，23 tests PASS/精确两路径；恢复Step18。
+
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml` | EVD-177 executable consumer defaults | issuer/JWK required inputs | Remove retired root/RT defaults | Step 18 | REQ-045,REQ-046 | static contract/compile |
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — 锁定依赖和技术入口
@@ -13450,14 +13693,18 @@ FAIL -> omitted local auth script blocks Step17 implementation
 
 ### Step 18 — 退役旧协议并校验全域回归
 
-- Requirements: REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027
-- Dependencies: Step 16, Step 17；均GREEN并提交后
+- Requirements: REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027, REQ-045, REQ-046
+- Dependencies: Step 16, Step 17；均GREEN并提交后；Step17基线1dfd119已核验，§6.5修正C13已提交 `c72de6fe1407430759a68acd76b8c06212720e0c`；恢复本Step的新HEAD为该提交
 - Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在oldTenRoutes410所列新行为。
 - Observable outcome: 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出。
-- End state: 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出；后续Step的Consumer尚未切流，不声明完整生产验收。
+- End state: 新部署旧OAuth根协议返回410且无双签发链；仓库消费者迁出，外部切流/PG/Redis/Edge/浏览器运行证据由操作者补齐，不声明完整生产验收。
 - Test-first gate: Required — old token/login controllers still registered produce non410 RED；retirement filter/config GREEN。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
+- Approved scope correction: 2026-10-09用户“按照推荐方案继续完成任务，遇到阻塞问题，探索一个推荐方案”授权基于 `/tmp/egon-step18-scope-correction.md` 的40+15直接依赖修订，真实SAS测试证明授权配置为第56个必需路径；精确70路径（原56+两mandatory fixture+十二退役默认配置），旧Controller源码删除仅在测试/消费者迁出后，无新DDL/依赖。
+- Design decision: DEC-163–166。兼容主体撤销采用Adapter，禁止重新使用旧RT状态机；用户管理只调用新服务一次。当前目录/realm及操作者显式授权材料是本地工具的前置，不自动导入/登录。
+- RED checkpoint: File1/2反射与旧route注册失败、File11静态旧consumer失败先记录；引用新类型的IT/fixture只能在RED后接线，不把编译错误当RED。
+- Final consumer correction: EVD-177/DEC-176/TEST-170，精确新增下列十二执行YAML；已有static contract先RED，再去掉root默认与四个已退役RT URI；canonical metadata/JWKS/method advertisement使用现有SAS扩展点。
 - Ordered files:
 
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`
@@ -13484,158 +13731,373 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 oldTenRoutes410 的正例与 unknown old route does not redirect new login 负例。
 - After this file: oldTenRoutes410 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapterTest.java`
 
-- Purpose: 旧固定URL明确410。
-- Symbols: `legacyOAuthRetirementFilter`。
-- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 旧固定URL明确410在此位置后才可接消费者。
-- Contract/signature changes: legacyOAuthRetirementFilter；旧固定URL明确410。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: legacy client receives actionable error only。
-- Error and edge behavior: methods not listed remain normal deny chain。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: 密码变更只委托主体撤销，旧Token生命周期明确不可调用。
+- Symbols: `adapterDelegatesSubjectRevocationOnce`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 密码变更只委托主体撤销，旧Token生命周期明确不可调用；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
 - Implementation pseudocode:
 
 ```java
-INPUT -> legacy client receives actionable error only。
-FLOW -> @Component("legacyOAuthRetirementFilter") @Slf4j @RequiredArgsConstructor; match exact ten paths/methods from Spec API-035..044; return safe OAuth error+410; no old credential parse, no fallback to tenant guess
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> methods not listed remain normal deny chain。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+use reflection for clean RED when adapter is absent
+validate subject/reason/Instant
+call revokeSubject and verify one TokenRevocationService command
+propagate projection failure
+create/findValid/revokeToken/expire must throw before downstream interaction
+bind TokenConfig compatibility Bean with mocked new service and assert no old signer/store Bean
+exercise core IdentityFacade password-change integration
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 legacyOAuthRetirementFilter 的正例与 methods not listed remain normal deny chain 负例。
-- After this file: legacyOAuthRetirementFilter 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
 
-#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImplTest.java`
 
-- Purpose: 先SAS登录/管理，再旧路径退役。
-- Symbols: `3 ordered filter chains`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 先SAS登录/管理，再旧路径退役在此位置后才可接消费者。
-- Contract/signature changes: 3 ordered filter chains；先SAS登录/管理，再旧路径退役。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: tenant/issuer from accepted registry only。
-- Error and edge behavior: no duplicate /oauth2/token handler mappings。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: 用户管理单次新链撤销与错误透传。
+- Symbols: `revocationOccursOnce`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 用户管理单次新链撤销与错误透传；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
 - Implementation pseudocode:
 
 ```java
-INPUT -> tenant/issuer from accepted registry only。
-FLOW -> wire SAS higher-order protocol chain; management ResourceServer chain; legacy410/fallback deny; old OAuth token/login controller routes not registered
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no duplicate /oauth2/token handler mappings。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+remove FakeRefreshTokens constructor dependency
+preserve existing state/password/optimistic-version assertions
+verify disable/reset/revoke-all each call the new TokenRevocationService once
+failure remains failure
+no old store interaction or extra security-generation increment
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 3 ordered filter chains 的正例与 no duplicate /oauth2/token handler mappings 负例。
-- After this file: 3 ordered filter chains 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
 
-#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityAuthenticationTransactionContractTest.java`
 
-- Purpose: 旧POST /oauth2/token/revoke/logout停止处理。
-- Symbols: `remove old mapping/bean registration`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 旧POST /oauth2/token/revoke/logout停止处理在此位置后才可接消费者。
-- Contract/signature changes: remove old mapping/bean registration；旧POST /oauth2/token/revoke/logout停止处理。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: no new SAS forwarding controller。
-- Error and edge behavior: no dual AT signing。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: JPA类型删除后保留统一事务与Outbox约束。
+- Symbols: `identityPublisherUsesOAuthAuditAndComponentOutboxOnly`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: JPA类型删除后保留统一事务与Outbox约束；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
 - Implementation pseudocode:
 
 ```java
-INPUT -> no new SAS forwarding controller。
-FLOW -> remove old @PostMapping from new deployment or delete class after rg callers=0; old data only read by offline migration
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no dual AT signing。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+replace imports/class literals for deleted repositories with forbidden full type-name checks
+keep MP OAuthAuditRepository/component TransactionalOutbox dependencies and DataSourceTransactionManager identity assertions
+no JPA production or test dependency
+assert no old protocol/persistence fallback is reachable
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove old mapping/bean registration 的正例与 no dual AT signing 负例。
-- After this file: remove old mapping/bean registration 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
 
-#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/InternalRefreshTokenSecurityIT.java`
 
-- Purpose: 新issuer discovery ownsmetadata。
-- Symbols: `remove fixed jwks metadata`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 新issuer discovery ownsmetadata在此位置后才可接消费者。
-- Contract/signature changes: remove fixed jwks metadata；新issuer discovery ownsmetadata。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: SAS publishes perrealm JWKS。
-- Error and edge behavior: old root returns410 via filter。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: 旧RT validation匿名及已验SERVICE均410。
+- Symbols: `legacyRefreshValidationIsGone`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 旧RT validation匿名及已验SERVICE均410；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
 - Implementation pseudocode:
 
 ```java
-INPUT -> SAS publishes perrealm JWKS。
-FLOW -> remove fixed issuer /oauth2/jwks handlers after Spring route test; no one-key assumption
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> old root returns410 via filter。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+import real security chain and retirement filter in a mocked WebMvc slice
+POST legacy validate with invalid or valid-looking credentials always410/no cookies/token
+no TokenFacade Bean
+do not launch server or connect external infrastructure
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove fixed jwks metadata 的正例与 old root returns410 via filter 负例。
-- After this file: remove fixed jwks metadata 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
 
-#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/web/IdentityProfileControllerIT.java`
 
-- Purpose: 只接受新tenant login + BFF Code。
-- Symbols: `remove password login mapping`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 只接受新tenant login + BFF Code在此位置后才可接消费者。
-- Contract/signature changes: remove password login mapping；只接受新tenant login + BFF Code。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: new login session via TenantLoginController。
-- Error and edge behavior: old cookies not issued。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: 保留me与audit合同并移除旧userinfo正例。
+- Symbols: `returnsAuthenticatedIdentityFromMe`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 保留me与audit合同并移除旧userinfo正例；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
 - Implementation pseudocode:
 
 ```java
-INPUT -> new login session via TenantLoginController。
-FLOW -> remove /oauth2/login/csrf and /oauth2/login handlers once UI regression green
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> old cookies not issued。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+retain audit filter binding/time/page/permission and me response assertions
+remove deleted OAuthUserInfoController import
+register actual retirement filter
+old root userinfo returns410/no identity data/cookie while me remains unchanged
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove password login mapping 的正例与 old cookies not issued 负例。
-- After this file: remove password login mapping 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
 
-#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java`
 
-- Purpose: new BFF uses SAS revocation and server session。
-- Symbols: `remove old RT validation route`。
-- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； new BFF uses SAS revocation and server session在此位置后才可接消费者。
-- Contract/signature changes: remove old RT validation route；new BFF uses SAS revocation and server session。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: no legacy RT backend call。
-- Error and edge behavior: legacy GET/POST requests 410。
-- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Symbols: `OAuthConfigTest`，以下伪代码所列方法与字段。
+- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java及其引用链；修订Spec§8/10。
+- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
+- Why now: 先固定目标失败行为，避免用删除断言修测试。
+- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
+- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
 - Implementation pseudocode:
 
 ```java
-INPUT -> no legacy RT backend call。
-FLOW -> remove /internal/v1/oauth2/refresh-token/validate handler after gateway tests
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> legacy GET/POST requests 410。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
+assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
+assert explicit local AS registration context starts with an unreachable loopback issuer and no discovery; invalid endpoint/method/issuer/version reject, default opt-in absent leaves Boot ownership;
+assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
+assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
+// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
+
 ```
 
-- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove old RT validation route 的正例与 legacy GET/POST requests 410 负例。
-- After this file: remove old RT validation route 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: Step 18 的 `OAuthConfigTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- After this file: OAuthConfigTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthStepUpController.java`
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`
 
-- Purpose: 关闭 `OAuthStepUpController` 在主Spec中的字段/消费依赖。
-- Symbols: `OAuthStepUpController`。
+- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Symbols: `OAuthTokenClientCredentialsTest`，以下伪代码所列方法与字段。
+- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java及其引用链；修订Spec§8/10。
+- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
+- Why now: 先固定目标失败行为，避免用删除断言修测试。
+- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
+- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Implementation pseudocode:
+
+```java
+replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
+assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
+assert explicit local AS registration context starts with an unreachable loopback issuer and no discovery; invalid endpoint/method/issuer/version reject, default opt-in absent leaves Boot ownership;
+assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
+assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
+// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
+
+```
+
+- Verification contribution: Step 18 的 `OAuthTokenClientCredentialsTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- After this file: OAuthTokenClientCredentialsTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java`
+
+- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Symbols: `IdpPersistenceEntityContractTest`，以下伪代码所列方法与字段。
+- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java及其引用链；修订Spec§8/10。
+- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
+- Why now: 先固定目标失败行为，避免用删除断言修测试。
+- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
+- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Implementation pseudocode:
+
+```java
+replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
+assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
+assert explicit local AS registration context starts with an unreachable loopback issuer and no discovery; invalid endpoint/method/issuer/version reject, default opt-in absent leaves Boot ownership;
+assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
+assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
+// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
+
+```
+
+- Verification contribution: Step 18 的 `IdpPersistenceEntityContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- After this file: IdpPersistenceEntityContractTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
+
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`
+
+- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Symbols: `SpringConstructorResolutionTest`，以下伪代码所列方法与字段。
+- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java及其引用链；修订Spec§8/10。
+- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
+- Why now: 先固定目标失败行为，避免用删除断言修测试。
+- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
+- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Implementation pseudocode:
+
+```java
+replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
+assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
+assert explicit local AS registration context starts with an unreachable loopback issuer and no discovery; invalid endpoint/method/issuer/version reject, default opt-in absent leaves Boot ownership;
+assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
+assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
+// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
+
+```
+
+- Verification contribution: Step 18 的 `SpringConstructorResolutionTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- After this file: SpringConstructorResolutionTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
+
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`
+
+- Purpose: SAS mandatory Bean夹具完整且两issuer断言不削弱
+- Symbols: `TenantIssuerIsolationTest`，以下伪代码所列方法与字段。
+- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/TenantIssuerIsolationTest.java及其引用链；修订Spec§8/10。
+- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
+- Why now: 先固定目标失败行为，避免用删除断言修测试。
+- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
+- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Implementation pseudocode:
+
+```java
+@Bean("jacksonObjectMapper") ObjectMapper mapper = existing module-registered fixture mapper;
+@Bean("oauthTokenIssueService") use mock(OAuthTokenIssueService.class);
+@Bean("oAuthRealmRepository") use mock(OAuthRealmRepository.class);
+@Bean("transactionManager") use mock(PlatformTransactionManager.class);
+construct actual AuthorizationServerConfiguration chain with mandatory generator;
+run every existing two-issuer/JWK/consent/login/discovery assertion unchanged;
+assert unavailable dependencies remain production fail-closed; never substitute fallback generation;
+```
+
+- Verification contribution: Step 18 的 `TenantIssuerIsolationTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- After this file: TenantIssuerIsolationTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
+
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/ddc/DdcPolicyConfigTest.java`
+
+- Purpose: Tianshu required tenant/Redis ACL夹具按现行契约
+- Symbols: `DdcPolicyConfigTest`，以下伪代码所列方法与字段。
+- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/DdcPolicyConfigTest.java及其引用链；修订Spec§8/10。
+- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
+- Why now: 先固定目标失败行为，避免用删除断言修测试。
+- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
+- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
+- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Implementation pseudocode:
+
+```java
+configure positive egon.cola.component.tianshu.tenant-id=101;
+configure test Redis ACL username and remaining required client identity fields;
+keep existing runtime HMAC access-key/secret-key fixture;
+ApplicationContextRunner loads actual DdcRpcAutoConfiguration;
+assert exactly one DdcConfigClient implemented by RpcDdcConfigClient;
+preserve nonsecret policy/applier registry assertions;
+never invoke remote RPC or start an application listener;
+```
+
+- Verification contribution: Step 18 的 `DdcPolicyConfigTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
+- After this file: DdcPolicyConfigTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
+
+#### File 13 — `MODIFY scripts/unified-xingyuan/test-direct-run-contract.sh`
+
+- Purpose: 锁定显式realm和操作者授权材料，禁止旧目录/密码/cookie回退。
+- Symbols: `retired_protocol_consumer_contract`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 锁定显式realm和操作者授权材料，禁止旧目录/密码/cookie回退；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```bash
+add static RED for root token/JWK/login/userinfo, legacy identity table writes and startup import
+replace positive cookie assertions with explicit trusted issuer and protected operator material contract
+retain same-port/topology/HMAC/registry/MCP constraints
+extracted pure functions use mocked commands only
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 14 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapter.java`
+
+- Purpose: 兼容core主体撤销端口，不保留旧RT状态机。
+- Symbols: `subjectRevocationRefreshTokenStoreAdapter`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 兼容core主体撤销端口，不保留旧RT状态机；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```java
+@managed by TokenConfig @Bean("refreshTokenStore") @Slf4j @RequiredArgsConstructor @Validated
+final @Qualifier("tokenRevocationService") TokenRevocationService revocations and @Qualifier("defaultValidator") Validator validator
+implement RefreshTokenStore
+revokeSubject validates a @Valid OAuthSubjectRevokeCommand and nonnull Instant then revocations.revokeSubject(command)
+unsupported old lifecycle methods throw UnsupportedOperationException without parsing credentials or touching persistence
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImpl.java`
+
+- Purpose: 移除重复旧store主体撤销调用。
+- Symbols: `update/resetPassword/revokeAll`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除重复旧store主体撤销调用；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```java
+remove RefreshTokenStore dependency and old revokeSubject calls only
+retain each existing TokenRevocationService command, user version change, transactional boundary and audit/Outbox publication
+no password/user/API behavior change
+assert no old protocol/persistence fallback is reachable
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`
+
+- Purpose: 关闭 `TokenConfig` 在主Spec中的字段/消费依赖。
+- Symbols: `TokenConfig`。
 - Repository evidence: 当前同名文件存在，符号/消费者由rg确认。
 - Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §8.4/§16，不产生新HTTP路由。
 - Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: remove old /oauth2/step-up mapping after BFF max_age=0/acr path proven; 410 via retirement filter。
+- Contract/signature changes: remove legacy signer/refresh/TokenFacade Bean registration; keep only subject Adapter Bean dependency for core IdentityFacade; user management no longer injects oldstore。
 - Input/output and state mapping: 精确字段由主Spec §8.4/§16 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -13644,22 +14106,22 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 ```java
 INPUT -> 仅接受主Spec §8.4/§16 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> remove old /oauth2/step-up mapping after BFF max_age=0/acr path proven; 410 via retirement filter。
-OUTPUT -> OAuthStepUpController 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
+FLOW -> remove legacy signer/refresh/TokenFacade Bean registration; keep only subject Adapter Bean dependency for core IdentityFacade; user management no longer injects oldstore。
+OUTPUT -> TokenConfig 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
 
-- Verification contribution: Step 18 的focus测试对 `OAuthStepUpController` 的字段、装配、负例及不泄密断言。
-- After this file: `OAuthStepUpController` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
+- Verification contribution: Step 18 的focus测试对 `TokenConfig` 的字段、装配、负例及不泄密断言。
+- After this file: `TokenConfig` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthUserInfoController.java`
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`
 
-- Purpose: 关闭 `OAuthUserInfoController` 在主Spec中的字段/消费依赖。
-- Symbols: `OAuthUserInfoController`。
+- Purpose: 关闭 `OAuthConfig` 在主Spec中的字段/消费依赖。
+- Symbols: `OAuthConfig`。
 - Repository evidence: 当前同名文件存在，符号/消费者由rg确认。
 - Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §8.4/§16，不产生新HTTP路由。
 - Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: remove old /oauth2/userinfo mapping; new issuer /tenants/{tenantId}/userinfo from SAS only。
+- Contract/signature changes: remove legacy signer/client/JPA endpoint wiring; retain idpClock/idpSecureRandom/tenantMembershipPort/clientCredentialsAccessPolicy required by SAS/identity; @Profile(local) and explicit opt-in property local-explicit-service-registrations builds named standard ClientRegistrationRepository from finite OAuth2ClientProperties, trusted issuer registry and credentialVersions without any discovery; reject non-client_credentials/basic, unknown issuer, wrong exact token URI, missing secret/version; defaults unaffected。
 - Input/output and state mapping: 精确字段由主Spec §8.4/§16 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -13668,15 +14130,50 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 
 ```java
 INPUT -> 仅接受主Spec §8.4/§16 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> remove old /oauth2/userinfo mapping; new issuer /tenants/{tenantId}/userinfo from SAS only。
-OUTPUT -> OAuthUserInfoController 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
+FLOW -> remove legacy signer/client/JPA endpoint wiring; retain idpClock/idpSecureRandom/tenantMembershipPort/clientCredentialsAccessPolicy required by SAS/identity; @Profile(local) and explicit opt-in property local-explicit-service-registrations builds named standard ClientRegistrationRepository from finite OAuth2ClientProperties, trusted issuer registry and credentialVersions without any discovery; reject non-client_credentials/basic, unknown issuer, wrong exact token URI, missing secret/version; defaults unaffected。
+OUTPUT -> OAuthConfig 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
 
-- Verification contribution: Step 18 的focus测试对 `OAuthUserInfoController` 的字段、装配、负例及不泄密断言。
-- After this file: `OAuthUserInfoController` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
+- Verification contribution: Step 18 的focus测试对 `OAuthConfig` 的字段、装配、负例及不泄密断言。
+- After this file: `OAuthConfig` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`
+
+- Purpose: 将SAS链限定在正式issuer路径，复用现有原始BCrypt hash并拒绝混用client认证。
+- Symbols: `authorizationServerSecurityFilterChain` / `configureClientAuthentication`。
+- Repository evidence: `/tmp/egon-step18-second-green.log` 真实SAS filter测试：root token404；raw BCrypt secret抛DelegatingPasswordEncoder异常；第四轮真实filter产生JWT但缺principal_type，证明conditional generator存在fallback。EVD-168。
+- Dependencies and consumers: Step8现有SAS链；同Step OAuthTokenClientCredentialsTest；生产OAuthClientServiceImpl BCrypt12 secret合同。
+- Why now: 真实测试证实正式issuer/旧root链冲突，必须在旧协议GREEN和提交前关闭；用户已授权遇到阻塞按推荐方案继续。
+- Contract/signature changes: 只正式 `/platform/...` / `/tenants/<canonical-id>/...` 进入SAS；root交给旧协议410；SAS使用现有BCryptPasswordEncoder(12)验证raw hash，禁止重复Authorization或Basic/body混用。
+- Input/output and state mapping: endpoint matcher精确排除旧root；保持SAS默认client认证与授权provider，只配置已存在client-secret provider和前置不变式；无额外签发/secret转换。
+- Error and edge behavior: 不合法认证输入返回安全OAuth错误且无token/secret；不对原hash加密二次，不吞异常；新issuer流程和PKCE保持。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-VALID-001, MC-BEAN-001, MC-JSON-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；复用Spring/SAS默认策略和现有crypto，不引入依赖/新Filter层。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；既有配置扩展点内完成认证边界，不新建策略注册表。
+- Implementation pseudocode:
+
+```java
+RequestMatcher canonicalIssuer = request -> contextRelativePath(request).matches("/(platform|tenants/[1-9][0-9]{0,18})/.*");
+http.securityMatcher(new AndRequestMatcher(canonicalIssuer, protocolAndLogin));
+require configured token generator and OAuthTokenIssueService/transactionManager; // 缺失即构链失败，禁止默认无security claims签发。
+remove ConditionalOnBean from mandatory tenantOAuthTokenGenerator;
+clientAuthentication.authenticationConverters(converters -> converters.add(0, request -> {
+    if (duplicateAuthorization(request) || bodySecret(request) || basicAndBodyClientId(request)) {
+        throw new OAuth2AuthenticationException(new OAuth2Error("invalid_client", "Request rejected", null));
+    }
+    return null; // 默认SAS认证converter继续执行；无自制Basic解码。
+}));
+clientAuthentication.authenticationProviders(providers -> providers.forEach(provider -> {
+    if (provider instanceof ClientSecretAuthenticationProvider secretProvider) {
+        secretProvider.setPasswordEncoder(new BCryptPasswordEncoder(12));
+    }
+}));
+```
+
+- Verification contribution: `OAuthTokenClientCredentialsTest` 真实SAS Basic/签名/无RT、畸形/重复/混用/错secret，以及root410；完整Step18命令。
+- After this file: root请求由fallback退役，正式issuer使用已存BCrypt凭据；全Step GREEN前不能提交。
+
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`
 
 - Purpose: 关闭 `IdpPlatformConfiguration` 在主Spec中的字段/消费依赖。
 - Symbols: `IdpPlatformConfiguration`。
@@ -13700,14 +14197,158 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Verification contribution: Step 18 的focus测试对 `IdpPlatformConfiguration` 的字段、装配、负例及不泄密断言。
 - After this file: `IdpPlatformConfiguration` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`
+#### File 20 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java`
 
-- Purpose: 关闭 `TokenConfig` 在主Spec中的字段/消费依赖。
-- Symbols: `TokenConfig`。
+- Purpose: 旧固定URL明确410。
+- Symbols: `legacyOAuthRetirementFilter`。
+- Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
+- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Why now: 前一文件建立本文件需要的字段或调用契约； 旧固定URL明确410在此位置后才可接消费者。
+- Contract/signature changes: legacyOAuthRetirementFilter；旧固定URL明确410。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Input/output and state mapping: legacy client receives actionable error only。
+- Error and edge behavior: methods not listed remain normal deny chain。
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Implementation pseudocode:
+
+```java
+INPUT -> legacy client receives actionable error only。
+FLOW -> @Component("legacyOAuthRetirementFilter") @Slf4j @RequiredArgsConstructor; match exact ten paths/methods from Spec API-035..044; return safe OAuth error+410; no old credential parse, no fallback to tenant guess
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> methods not listed remain normal deny chain。
+RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```
+
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 legacyOAuthRetirementFilter 的正例与 methods not listed remain normal deny chain 负例。
+- After this file: legacyOAuthRetirementFilter 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java`
+
+- Purpose: 先SAS登录/管理，再旧路径退役。
+- Symbols: `3 ordered filter chains`。
+- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java；目标源于主Spec §7–§16。
+- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Why now: 前一文件建立本文件需要的字段或调用契约； 先SAS登录/管理，再旧路径退役在此位置后才可接消费者。
+- Contract/signature changes: 3 ordered filter chains；先SAS登录/管理，再旧路径退役。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Input/output and state mapping: tenant/issuer from accepted registry only。
+- Error and edge behavior: no duplicate /oauth2/token handler mappings。
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 9, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Implementation pseudocode:
+
+```java
+INPUT -> tenant/issuer from accepted registry only。
+FLOW -> keep existing SAS Order1; management stateless Order2 /api/**; legacy/fallback Order3, exact retirement filter before CSRF/authentication, health permit and other requests deny; FilterRegistrationBean disabled; old OAuth token/login Controller classes removed
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no duplicate /oauth2/token handler mappings。
+RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```
+
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 3 ordered filter chains 的正例与 no duplicate /oauth2/token handler mappings 负例。
+- After this file: 3 ordered filter chains 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+
+#### File 22 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java`
+
+- Purpose: 旧POST /oauth2/token/revoke/logout停止处理。
+- Symbols: `remove old mapping/bean registration`。
+- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java；目标源于主Spec §7–§16。
+- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Why now: 前一文件建立本文件需要的字段或调用契约； 旧POST /oauth2/token/revoke/logout停止处理在此位置后才可接消费者。
+- Contract/signature changes: remove old mapping/bean registration；旧POST /oauth2/token/revoke/logout停止处理。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Input/output and state mapping: no new SAS forwarding controller。
+- Error and edge behavior: no dual AT signing。
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Implementation pseudocode:
+
+```java
+INPUT -> no new SAS forwarding controller。
+FLOW -> delete class after all runtime and test consumers are migrated and rg callers=0; old data only read by offline migration
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> no dual AT signing。
+RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```
+
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove old mapping/bean registration 的正例与 no dual AT signing 负例。
+- After this file: remove old mapping/bean registration 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+
+#### File 23 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java`
+
+- Purpose: 新issuer discovery ownsmetadata。
+- Symbols: `remove fixed jwks metadata`。
+- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java；目标源于主Spec §7–§16。
+- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Why now: 前一文件建立本文件需要的字段或调用契约； 新issuer discovery ownsmetadata在此位置后才可接消费者。
+- Contract/signature changes: remove fixed jwks metadata；新issuer discovery ownsmetadata。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Input/output and state mapping: SAS publishes perrealm JWKS。
+- Error and edge behavior: old root returns410 via filter。
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Implementation pseudocode:
+
+```java
+INPUT -> SAS publishes perrealm JWKS。
+FLOW -> remove fixed issuer /oauth2/jwks handlers after Spring route test; no one-key assumption
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> old root returns410 via filter。
+RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```
+
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove fixed jwks metadata 的正例与 old root returns410 via filter 负例。
+- After this file: remove fixed jwks metadata 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+
+#### File 24 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java`
+
+- Purpose: 只接受新tenant login + BFF Code。
+- Symbols: `remove password login mapping`。
+- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java；目标源于主Spec §7–§16。
+- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Why now: 前一文件建立本文件需要的字段或调用契约； 只接受新tenant login + BFF Code在此位置后才可接消费者。
+- Contract/signature changes: remove password login mapping；只接受新tenant login + BFF Code。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Input/output and state mapping: new login session via TenantLoginController。
+- Error and edge behavior: old cookies not issued。
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Implementation pseudocode:
+
+```java
+INPUT -> new login session via TenantLoginController。
+FLOW -> remove /oauth2/login/csrf and /oauth2/login handlers once UI regression green
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> old cookies not issued。
+RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```
+
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove password login mapping 的正例与 old cookies not issued 负例。
+- After this file: remove password login mapping 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+
+#### File 25 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java`
+
+- Purpose: new BFF uses SAS revocation and server session。
+- Symbols: `remove old RT validation route`。
+- Repository evidence: 当前文件存在：egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java；目标源于主Spec §7–§16。
+- Dependencies and consumers: 输入依赖 Step 16、Step 17 与本Step此前文件；输出供 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Why now: 前一文件建立本文件需要的字段或调用契约； new BFF uses SAS revocation and server session在此位置后才可接消费者。
+- Contract/signature changes: remove old RT validation route；new BFF uses SAS revocation and server session。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Input/output and state mapping: no legacy RT backend call。
+- Error and edge behavior: legacy GET/POST requests 410。
+- Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
+- Literal rule enforcement: Rule 2, Rule 4, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Implementation pseudocode:
+
+```java
+INPUT -> no legacy RT backend call。
+FLOW -> remove /internal/v1/oauth2/refresh-token/validate handler after gateway tests
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> legacy GET/POST requests 410。
+RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```
+
+- Verification contribution: 本Step `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；此文件负责 remove old RT validation route 的正例与 legacy GET/POST requests 410 负例。
+- After this file: remove old RT validation route 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+
+#### File 26 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthStepUpController.java`
+
+- Purpose: 关闭 `OAuthStepUpController` 在主Spec中的字段/消费依赖。
+- Symbols: `OAuthStepUpController`。
 - Repository evidence: 当前同名文件存在，符号/消费者由rg确认。
-- Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §8.4/§16，不产生新HTTP路由。
-- Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: remove legacy signer/refresh/TokenFacade Bean registration after all callers routed to SAS and legacy instance isolated。
+- Dependencies and consumers: 本Step既有File块调用旧Controller类型；数据来源/消费者为主Spec §8.4/§16，不产生新HTTP路由。
+- Why now: 旧Controller类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
+- Contract/signature changes: remove old /oauth2/step-up mapping after BFF max_age=0/acr path proven; 410 via retirement filter。
 - Input/output and state mapping: 精确字段由主Spec §8.4/§16 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -13716,22 +14357,22 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 
 ```java
 INPUT -> 仅接受主Spec §8.4/§16 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> remove legacy signer/refresh/TokenFacade Bean registration after all callers routed to SAS and legacy instance isolated。
-OUTPUT -> TokenConfig 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
+FLOW -> remove old /oauth2/step-up mapping after BFF max_age=0/acr path proven; 410 via retirement filter。
+OUTPUT -> OAuthStepUpController 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
 
-- Verification contribution: Step 18 的focus测试对 `TokenConfig` 的字段、装配、负例及不泄密断言。
-- After this file: `TokenConfig` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
+- Verification contribution: Step 18 的focus测试对 `OAuthStepUpController` 的字段、装配、负例及不泄密断言。
+- After this file: `OAuthStepUpController` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`
+#### File 27 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthUserInfoController.java`
 
-- Purpose: 关闭 `OAuthConfig` 在主Spec中的字段/消费依赖。
-- Symbols: `OAuthConfig`。
+- Purpose: 关闭 `OAuthUserInfoController` 在主Spec中的字段/消费依赖。
+- Symbols: `OAuthUserInfoController`。
 - Repository evidence: 当前同名文件存在，符号/消费者由rg确认。
-- Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §8.4/§16，不产生新HTTP路由。
-- Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: remove legacy signer/client endpoint wiring after SAS provider tests/zero callers。
+- Dependencies and consumers: 本Step既有File块调用旧Controller类型；数据来源/消费者为主Spec §8.4/§16，不产生新HTTP路由。
+- Why now: 旧Controller类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
+- Contract/signature changes: remove old /oauth2/userinfo mapping; new issuer /tenants/{tenantId}/userinfo from SAS only。
 - Input/output and state mapping: 精确字段由主Spec §8.4/§16 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
@@ -13740,119 +14381,15 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 
 ```java
 INPUT -> 仅接受主Spec §8.4/§16 的可信issuer/realm/输入字段；调用前 @Valid 或 ValueObject不变量检查。
-FLOW -> remove legacy signer/client endpoint wiring after SAS provider tests/zero callers。
-OUTPUT -> OAuthConfig 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
+FLOW -> remove old /oauth2/userinfo mapping; new issuer /tenants/{tenantId}/userinfo from SAS only。
+OUTPUT -> OAuthUserInfoController 的Java方法、DTO字段或配置可被本Step既有调用者编译使用；不新增业务API。
 FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step已列错误模型fail-closed，不能输出原secret/token。
 ```
 
-- Verification contribution: Step 18 的focus测试对 `OAuthConfig` 的字段、装配、负例及不泄密断言。
-- After this file: `OAuthConfig` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
+- Verification contribution: Step 18 的focus测试对 `OAuthUserInfoController` 的字段、装配、负例及不泄密断言。
+- After this file: `OAuthUserInfoController` 成为已声明的Step依赖，下一文件可按原合同引用；未完成整条行为前不宣称GREEN。
 
-#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java`
-
-- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Symbols: `OAuthConfigTest`，以下伪代码所列方法与字段。
-- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java及其引用链；修订Spec§8/10。
-- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
-- Why now: 先固定目标失败行为，避免用删除断言修测试。
-- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
-- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
-- Implementation pseudocode:
-
-```java
-replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
-assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
-assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
-assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
-// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
-
-```
-
-- Verification contribution: Step 18 的 `OAuthConfigTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
-- After this file: OAuthConfigTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
-
-#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`
-
-- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Symbols: `OAuthTokenClientCredentialsTest`，以下伪代码所列方法与字段。
-- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java及其引用链；修订Spec§8/10。
-- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
-- Why now: 先固定目标失败行为，避免用删除断言修测试。
-- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
-- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
-- Implementation pseudocode:
-
-```java
-replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
-assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
-assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
-assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
-// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
-
-```
-
-- Verification contribution: Step 18 的 `OAuthTokenClientCredentialsTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
-- After this file: OAuthTokenClientCredentialsTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
-
-#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java`
-
-- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Symbols: `IdpPersistenceEntityContractTest`，以下伪代码所列方法与字段。
-- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java及其引用链；修订Spec§8/10。
-- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
-- Why now: 先固定目标失败行为，避免用删除断言修测试。
-- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
-- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
-- Implementation pseudocode:
-
-```java
-replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
-assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
-assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
-assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
-// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
-
-```
-
-- Verification contribution: Step 18 的 `IdpPersistenceEntityContractTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
-- After this file: IdpPersistenceEntityContractTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
-
-#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`
-
-- Purpose: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Symbols: `SpringConstructorResolutionTest`，以下伪代码所列方法与字段。
-- Repository evidence: 当前文件egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java及其引用链；修订Spec§8/10。
-- Dependencies and consumers: Step 17及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
-- Why now: 先固定目标失败行为，避免用删除断言修测试。
-- Contract/signature changes: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 退役旧签发/JPA装配断言并保留目标对应安全与字段覆盖。
-- Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
-- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
-- Implementation pseudocode:
-
-```java
-replace JPA Entity construction assertions with the equivalent MP PO/BO field mapping contract;
-assert new protocol uses SAS and old root token route returns 410 with no token/cookie;
-assert legacy ClientSecretBasicAuthenticator/JpaOAuthClientStore/JpaResourceServerStore are not wired;
-assert named constructor injection resolves current MP repository and single DataSourceTransactionManager;
-// 原Basic畸形头/错误凭据安全负例移动到SAS真实filter测试，不能直接删除后宣称覆盖。
-
-```
-
-- Verification contribution: Step 18 的 `SpringConstructorResolutionTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
-- After this file: SpringConstructorResolutionTest达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
-
-#### File 17 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/JpaOAuthClientStore.java`
+#### File 28 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/JpaOAuthClientStore.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `JpaOAuthClientStore`，以下伪代码所列方法与字段。
@@ -13875,7 +14412,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: JpaOAuthClientStore达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 18 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/ClientSecretBasicAuthenticator.java`
+#### File 29 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/ClientSecretBasicAuthenticator.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `ClientSecretBasicAuthenticator`，以下伪代码所列方法与字段。
@@ -13898,7 +14435,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: ClientSecretBasicAuthenticator达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 19 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/JpaResourceServerStore.java`
+#### File 30 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/JpaResourceServerStore.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `JpaResourceServerStore`，以下伪代码所列方法与字段。
@@ -13921,7 +14458,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: JpaResourceServerStore达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 20 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/repo/IdentityAuditLogRepository.java`
+#### File 31 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/repo/IdentityAuditLogRepository.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityAuditLogRepository`，以下伪代码所列方法与字段。
@@ -13945,7 +14482,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityAuditLogRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 21 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRedirectUriRepository.java`
+#### File 32 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRedirectUriRepository.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientRedirectUriRepository`，以下伪代码所列方法与字段。
@@ -13968,7 +14505,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientRedirectUriRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 22 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRepository.java`
+#### File 33 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRepository.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientRepository`，以下伪代码所列方法与字段。
@@ -13991,7 +14528,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 23 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientSecretRepository.java`
+#### File 34 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientSecretRepository.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientSecretRepository`，以下伪代码所列方法与字段。
@@ -14014,7 +14551,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientSecretRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 24 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityClientResourceGrantRepository.java`
+#### File 35 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityClientResourceGrantRepository.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientResourceGrantRepository`，以下伪代码所列方法与字段。
@@ -14037,7 +14574,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientResourceGrantRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 25 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityResourceServerRepository.java`
+#### File 36 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityResourceServerRepository.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityResourceServerRepository`，以下伪代码所列方法与字段。
@@ -14060,7 +14597,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityResourceServerRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 26 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/repo/IdentityOutboxEventRepository.java`
+#### File 37 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/repo/IdentityOutboxEventRepository.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityOutboxEventRepository`，以下伪代码所列方法与字段。
@@ -14084,7 +14621,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityOutboxEventRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 27 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/IdentitySigningKeyRepository.java`
+#### File 38 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/IdentitySigningKeyRepository.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentitySigningKeyRepository`，以下伪代码所列方法与字段。
@@ -14107,7 +14644,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentitySigningKeyRepository达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 28 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/domain/pojo/IdentityAuditLogEntity.java`
+#### File 39 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/domain/pojo/IdentityAuditLogEntity.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityAuditLogEntity`，以下伪代码所列方法与字段。
@@ -14131,7 +14668,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityAuditLogEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 29 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityCredentialEntity.java`
+#### File 40 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityCredentialEntity.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityCredentialEntity`，以下伪代码所列方法与字段。
@@ -14155,7 +14692,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityCredentialEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 30 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityUserEntity.java`
+#### File 41 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityUserEntity.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityUserEntity`，以下伪代码所列方法与字段。
@@ -14179,7 +14716,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityUserEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 31 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientRedirectUriEntity.java`
+#### File 42 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientRedirectUriEntity.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientRedirectUriEntity`，以下伪代码所列方法与字段。
@@ -14202,7 +14739,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientRedirectUriEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 32 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientSecretEntity.java`
+#### File 43 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientSecretEntity.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientSecretEntity`，以下伪代码所列方法与字段。
@@ -14225,7 +14762,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientSecretEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 33 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java`
+#### File 44 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientResourceGrantEntity`，以下伪代码所列方法与字段。
@@ -14248,7 +14785,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientResourceGrantEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 34 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityResourceServerEntity.java`
+#### File 45 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityResourceServerEntity.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityResourceServerEntity`，以下伪代码所列方法与字段。
@@ -14271,7 +14808,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityResourceServerEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 35 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/domain/pojo/IdentityOutboxEventEntity.java`
+#### File 46 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/domain/pojo/IdentityOutboxEventEntity.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityOutboxEventEntity`，以下伪代码所列方法与字段。
@@ -14295,7 +14832,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityOutboxEventEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 36 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantEntity.java`
+#### File 47 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantEntity.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityTenantEntity`，以下伪代码所列方法与字段。
@@ -14319,7 +14856,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 37 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantMembershipEntity.java`
+#### File 48 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantMembershipEntity.java`
 
 - Purpose: 退役无引用的认证JPA类，保留旧SQL/旧表。
 - Symbols: `IdentityTenantMembershipEntity`，以下伪代码所列方法与字段。
@@ -14343,7 +14880,7 @@ delete only this Java source; // 不删除任何db/migration SQL，不DROP源表
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityTenantMembershipEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 38 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/pojo/IdentitySigningKeyEntity.java`
+#### File 49 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/pojo/IdentitySigningKeyEntity.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentitySigningKeyEntity`，以下伪代码所列方法与字段。
@@ -14366,7 +14903,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentitySigningKeyEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 39 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientEntity.java`
+#### File 50 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientEntity.java`
 
 - Purpose: 退役新MP/SAS链已替换的旧认证JPA/Basic实现。
 - Symbols: `IdentityClientEntity`，以下伪代码所列方法与字段。
@@ -14389,7 +14926,7 @@ delete this Java file only; preserve every legacy SQL and database object;
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: IdentityClientEntity达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
-#### File 40 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`
+#### File 51 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`
 
 - Purpose: 在全部认证读写与legacy路由迁完后退役JPA/Flyway自动装配依赖。
 - Symbols: `pom`，以下伪代码所列方法与字段。
@@ -14414,13 +14951,475 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 - Verification contribution: Step 18 的 `LegacyOAuthRetirementTest` 与同Step验证命令；失败必须定位到本文件映射/控制流而非跳过断言。
 - After this file: pom达到本段明确的中间契约；整个Step相关引用完成且GREEN才提交，未连真实环境不宣称运行完成。
 
+#### File 52 — `MODIFY scripts/unified-identity-local.sh`
+
+- Purpose: 底层本地启动工具迁出旧OAuth协议和旧identity目录。
+- Symbols: `oauth_service_token/user_access_token_for_tenant/command_start`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 底层本地启动工具迁出旧OAuth协议和旧identity目录；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```bash
+require owner-only bounded UNIFIED_IDENTITY_OAUTH_REGISTRY_FILE with exact schema in amendment§16.1; validate no unknown fields, numeric strings/references/duplicate issuers and protected key/secret/USER files before any dependent process; generate and actually load additive Spring properties including required origin/P/management/KEK/epoch/audit settings, explicit platform default and C13 tenant registration map; local AS uses explicit no-discovery opt-in; read-only current MP realm/key/client/grant/directory prerequisites before dependent operations
+SERVICE POST exact trusted issuer/oauth2/token without tenant_id guess
+configured JWKS exact issuer/oauth2/jwks
+no password POST, cookie token extraction, root refresh/logout, legacy identity SQL mutation or automatic tenant-authority import
+current identity/membership lookups use MP directory
+fail closed without credentials
+preserve Tianshu HMAC/registration and Jianshen authorization
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 53 — `MODIFY scripts/unified-xingyuan/start-local-stack.sh`
+
+- Purpose: 上层本地启动复用新realm授权合同。
+- Symbols: `prepare_admin_web_login_environments/default_user_access_token`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 上层本地启动复用新realm授权合同；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```bash
+delegate USER material validation to lower approved tool rather than read cookie
+explicit numeric default tenant from operator or MP directory
+per-realm SERVICE provider token/JWK configuration
+no rootuserinfo/password/token fallback
+preserve frontend Edge proxies/Tianshu namespace/HMAC; secondary MCP fixture retains PID alias but copies and loads MCP properties, runs gateway_mcp_engine_jar, uses B data18184/management18183 and distinct MCP node/instance IDs per DEC-170, no port18185 collision
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 54 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 55 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 56 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 57 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 58 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 59 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 60 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 61 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 62 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 63 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 64 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 65 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml`
+
+- Purpose: 移除该执行profile隐式退役issuer/JWKS默认值。
+- Symbols: `TIANQUAN_SHOUBING_OAUTH_ISSUER / TIANQUAN_SHOUBING_JWK_SET_URI`。
+- Repository evidence: EVD-177/DEC-176/TEST-170；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 移除该执行profile隐式退役issuer/JWKS默认值；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 66 — `MODIFY docs/runbooks/unified-identity-local.md`
+
+- Purpose: 准确记录操作者准备和新OIDC入口。
+- Symbols: `local operator prerequisites`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 准确记录操作者准备和新OIDC入口；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+replace root password/cookie issuance steps
+document explicit issuer/key/client/grant prerequisites and protected USER material lifecycle
+clarify start is operator-only and missing prerequisite aborts before processes
+preserve topology/stop procedures
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 67 — `MODIFY docs/operations/unified-identity-mcp-local-runbook.md`
+
+- Purpose: MCP联调不读取浏览器Token或假冒USER。
+- Symbols: `MCP authorization evidence`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: MCP联调不读取浏览器Token或假冒USER；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+document separate PLATFORM/tenant SERVICE issuer inputs, resource-bound grants and operator USER verification
+no SERVICE substitution for USER
+retain HMAC/Tianshu/streaming acceptance
+mark live evidence unverified
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 68 — `MODIFY docs/runbooks/unified-identity-oauth-client-tenant-cutover.md`
+
+- Purpose: 切流前必须关闭legacy消费者并保留回滚证据。
+- Symbols: `retirement preflight`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 切流前必须关闭legacy消费者并保留回滚证据；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+require approved Step17 import/provisioning evidence before new startup
+reference only explicit independent migration CLI
+new deployment ten exact retired routes410
+no automatic dual issuance/legacy imports
+runtime acceptance remains operator-run
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 69 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: 记录已授权Step18直接依赖修订。
+- Symbols: `EVD-164..167/DEC-163..166/TEST-158..161/REQ-045`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 记录已授权Step18直接依赖修订；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+record Adapter-only subject revocation, single new-service invocation, strict ten-route retirement, no JPA and explicit local formal authorization prerequisites
+preserve prior effective requirements and runtime evidence boundary
+preserve existing valid permissions and never log credentials
+assert no old protocol/persistence fallback is reachable
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
+#### File 70 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: 锁定当前Step56个有序文件及验证门禁。
+- Symbols: `Step18 scoped execution`。
+- Repository evidence: EVD-164–167；HEAD `1dfd11960fa5c868766c1d50becea684a8a3ef27` 的真实源码/消费者引用；本文件仅处理已核实直接依赖。
+- Dependencies and consumers: Step16/17已提交；core IdentityFacade/现有TokenRevocationService、MP目录和本地工具消费者；只使用本Step此前类型，不引入admin反向依赖。
+- Why now: 测试先锁定缺失行为；消费者修订必须在旧类/Bean退役前完成。
+- Contract/signature changes: 锁定当前Step56个有序文件及验证门禁；HTTP/core公共合同及Jianshen/Tianshu权限边界保持。
+- Input/output and state mapping: 可信realm、已验证subject/reason、操作者显式本地授权材料；日志仅状态，UTC由现有Clock提供；不保存浏览器AT/RT。
+- Error and edge behavior: 缺少/错误realm、旧入口、投影失败及无授权材料均明确拒绝；禁止no-op撤销、双签发或跳过验收后宣称成功。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；沿用传统域包、具名Bean/Qualifier/Lombok及Validation，复用现有MP/Outbox事务，不加依赖。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Adapter解决已有端口和新主体撤销合同差异，闭合集合端点使用直接精确匹配，无新增Strategy注册表。
+- Implementation pseudocode:
+
+```text
+synchronize ordered File blocks, inventory, dependency tree, focused and full validation commands, commit paths, REQ-045 trace and Manual/Literal gates
+no prior Step rewrite
+preserve existing valid permissions and never log credentials
+assert no old protocol/persistence fallback is reachable
+```
+
+- Verification contribution: 精确focused命令 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`，shell文件 `bash -n` 和仅静态 `test-direct-run-contract.sh`；遵守无外部基础设施门禁。
+- After this file: 该直接依赖已落位；全Step编译/测试/规则与范围审计通过后才可GREEN并单次提交。
+
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
-- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test`；其余受影响consumer门禁按§8。必须无JPA生产引用、无漏迁fixture；不启动应用。
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；原精确无guard命令已尝试并在未修改的Cache模块失败；无外部设施的broad reactor尝试使用 `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dsurefire.excludes=**/integration/**/*Test.java,**/EgonColaTwoLevelCacheTest.java,**/EgonColaCacheClusterConvergenceTest.java,**/EgonColaTwoLevelCachePortEvictionIntegrationTest.java,**/RedissonStoreIntegrationTest.java -Degon.cola.cache.redis.it=false -Degon.access.guard.redis.it=false test`；`bash -n scripts/unified-identity-local.sh scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/test-direct-run-contract.sh`；仅执行 `scripts/unified-xingyuan/test-direct-run-contract.sh` 静态合同；其余consumer门禁按§8。默认全reactor测试先审计无外部Testcontainers/应用启动；真实PG/Redis/Edge/浏览器不得运行。
+- Validation deviation/evidence: 原无guard full reactor `/tmp/egon-step18-full-reactor.log` 在未修改Cache cluster tests有2 ClassCastException，并意外启动Testcontainers Redis。已结束；日志归属的3 Redis及1 Ryuk容器均经精确ID确认自动删除，不碰其他容器。不得再运行未门控的full reactor。Safe broad尝试 `/tmp/egon-step18-safe-full.log` 在未修改MP组件3个契约断言失败（RESTORE enum/restoreById与旧精确清单不一致），未到Admin。推荐范围内替代门禁：保留每个Admin *Test并显式添加IdpAdminSecurityIT/InternalRefreshTokenSecurityIT/IdentityProfileControllerIT，用精确测试类列表和`-Dsurefire.failIfNoSpecifiedTests=false`跨reactor执行；两次broad失败均保留，不能报告full reactor PASS。Safe gate显式排除3个CacheRedisTestSupport子类、独立Redisson IT及integration目录；保留所有Admin默认测试和其余模块默认测试。完整未知外部fixture测试不是本轮绿色证据，偏差必须在最终报告列出。
 - Expected result: 先确认上述RED由缺失目标行为引起，GREEN时命名用例成功、模块编译成功、`git diff --check`零错误；不以不存在依赖/数据库/fixture而失败作为RED。
 - Failure returns to: Step 17 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
 - Completion criteria: 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
 - Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthStepUpController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthUserInfoController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityUserEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityCredentialEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantMembershipEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/domain/pojo/IdentityAuditLogEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/repo/IdentityAuditLogRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/domain/pojo/IdentityOutboxEventEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/repo/IdentityOutboxEventRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientRedirectUriEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientSecretEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRedirectUriRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientSecretRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/JpaOAuthClientStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/ClientSecretBasicAuthenticator.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityResourceServerEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityClientResourceGrantRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityResourceServerRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/JpaResourceServerStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/pojo/IdentitySigningKeyEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/IdentitySigningKeyRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapterTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityAuthenticationTransactionContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/InternalRefreshTokenSecurityIT.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/web/IdentityProfileControllerIT.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfigTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenClientCredentialsTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/TenantIssuerIsolationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/ddc/DdcPolicyConfigTest.java`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/service/impl/IdentityUserServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/config/TokenConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthTokenController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthMetadataController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthLoginController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/InternalRefreshTokenController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthStepUpController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/OAuthUserInfoController.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/JpaOAuthClientStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/ClientSecretBasicAuthenticator.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/JpaResourceServerStore.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/repo/IdentityAuditLogRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRedirectUriRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/repo/IdentityClientSecretRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityClientResourceGrantRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/repo/IdentityResourceServerRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/repo/IdentityOutboxEventRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/IdentitySigningKeyRepository.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/domain/pojo/IdentityAuditLogEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityCredentialEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/domain/pojo/IdentityUserEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientRedirectUriEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientSecretEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/pojo/IdentityResourceServerEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/domain/pojo/IdentityOutboxEventEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/tenant/domain/pojo/IdentityTenantMembershipEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/domain/pojo/IdentitySigningKeyEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/pojo/IdentityClientEntity.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`, `scripts/unified-identity-local.sh`, `scripts/unified-xingyuan/start-local-stack.sh`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/resources/application.yml`, `docs/runbooks/unified-identity-local.md`, `docs/operations/unified-identity-mcp-local-runbook.md`, `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`。
 - Commit: `refactor(shoubing): retire legacy oauth protocol`。
 
 ## 8. Test, Validation, and Quality Gates
@@ -14446,7 +15445,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | Step 15 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 保留玉衡、鉴神与天枢准入链 | Cookie refresh、SCOPE bridge、nested context行为先RED后GREEN；Starter/Tianshu现有验证合同与模块编译通过 | Step 15对应File | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025；真实Redis/AS/HMAC运行证据另列 |
 | Step 16 | /Users/mario/SelfProject/Egon-COLA | Edge `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; shared auth and Portal/four Admin package typecheck/test scripts from §8; targeted Jianshen step-up/shell, Shoubing auth/client/grant/key/resource page tests, Yuheng login/layout tests, and updated OIDC/BFF E2E fixture sources | 迁移共享认证客户端与五个前端消费者及OIDC step-up | RED/GREEN and all affected package checks pass; no app/browser/AS/Redis runtime | Step 16对应47 Files | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026, REQ-043；运行环境证据另列 |
 | Step 17 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest,OAuthMigrationRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test`; `python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`; `bash -n` on the seven touched shell files; `scripts/unified-xingyuan/test-direct-run-contract.sh`. Do not run prepare/start/status/verify/live-login/import commands. | Controlled migration, cutover and local Edge BFF preparation | Migration/runner tests and static shell contract pass; live Edge/import/browser is operator-run | Step 17对应23 Files | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023, REQ-043, REQ-044；runtime evidence remains user-run |
-| Step 18 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test`；其余受影响consumer门禁按§8。必须无JPA生产引用、无漏迁fixture；不启动应用。 | 退役旧协议并校验全域回归 | 精确用例先目标RED后GREEN；模块编译通过 | Step 18对应File | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027；运行环境证据另列 |
+| Step 18 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=LegacyOAuthRetirementTest,SubjectRevocationRefreshTokenStoreAdapterTest,IdentityUserServiceImplTest,IdentityAuthenticationTransactionContractTest,InternalRefreshTokenSecurityIT,IdentityProfileControllerIT,OAuthOidcProtocolContractTest,OAuthConfigTest,OAuthTokenClientCredentialsTest,IdpPersistenceEntityContractTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`；`bash -n scripts/unified-identity-local.sh scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/test-direct-run-contract.sh`；仅静态 `scripts/unified-xingyuan/test-direct-run-contract.sh`；`mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dsurefire.excludes=**/integration/**/*Test.java,**/EgonColaTwoLevelCacheTest.java,**/EgonColaCacheClusterConvergenceTest.java,**/EgonColaTwoLevelCachePortEvictionIntegrationTest.java,**/RedissonStoreIntegrationTest.java -Degon.cola.cache.redis.it=false -Degon.access.guard.redis.it=false test`（已尝试，失败记录见Step18 validation deviation）；全Admin精确类列表替代门禁及其余受影响consumer门禁按§8。必须无JPA生产引用、无漏迁fixture；不启动应用。 | 退役旧协议并校验全域回归 | 精确用例先目标RED后GREEN；模块编译通过 | Step 18对应File | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027,REQ-045；运行环境证据另列 |
 
 追加消费者门禁（在Step 15接入完成、Step 18最终审核时执行一次；代码不再改变时不重复跑）：
 
@@ -14521,6 +15520,8 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | REQ-042 | 修订Spec §4/DEC-150/EVD-154 | Step 14 | API-015 matches held token value/JWT issuer/subject to client registration and checks tenant/audience/shared generation | EdgeLoginContractTest TEST-146 | token/issuer/subject/tenant/audience/expiry/revoked mismatch 401; Redis unavailable 503; never refreshes while returning session view |
 | REQ-043 | Current-code amendment §1/§3/§5.3 | Step 16; Step 17 | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` ; `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`; `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts` ; `scripts/unified-xingyuan/lib/common.sh` ; `scripts/unified-xingyuan/start-local-stack.sh` ; `scripts/unified-xingyuan/status-local-stack.sh` ; `scripts/unified-xingyuan/verify-local-stack.sh` ; `scripts/unified-xingyuan/prepare-local-stack.sh` ; `scripts/unified-xingyuan/test-direct-run-contract.sh` ; `scripts/unified-xingyuan/test-live-frontend-login.sh` ; `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md` | TEST-147/148/149/150 and all affected package typecheck/test scripts | Passwordless OIDC/BFF login/logout, fixed-registration step-up, one version-bound role-intent retry, no token/password persistence |
 | REQ-044 | Current-code amendment §1/§3/§5.3/§16 | Step 17 | OAuthMigrationCommand/OAuthMigrationService/OAuthMigrationRunner; IdentityMigrationDAO exact source readers; profile-only non-web mode; atomic owner-only checkpoint, unique redacted report file, full mapped-source fingerprint, legacy PKCE/service-refresh checks, and purpose-correct service Resource/Grant mapping | OAuthMigrationServiceTest / IdentityMigrationContractTest / OAuthMigrationRunnerTest; Step17 exact Maven command | Explicit freeze marker and reviewed dry-run report SHA required; report file is mode 600 and never overwritten; all mapped source changes alter the digest; legacy USER clients must require PKCE and SERVICE clients must have refresh TTL 0; service-client resourceUris remain empty while Grant rows carry access; batch size ≤500; conflicts do not advance; unknown commit is verified before replay; no startup import or live import evidence claimed |
+| REQ-045 | 当前修订Spec§4/DEC-163–166 | Step 18 | 精确Step18的70个File/commit路径 | TEST-158–161 / Step18 focused、全Admin与静态shell门禁 | 无旧protocol/JPA链、主体单次新服务撤销、当前MP目录及显式操作者授权；真实外部切流待验 |
+| REQ-046 | 修订Spec§4/DEC-169 | Step13 correction C13 | §6.5精确三路径 | TEST-164及原IdpServiceOAuth2Client/auto-config回归 | 生产caller按显式tenant registration配置，无跨tenant回退 |
 
 ## 11. Risks, Blockers, and User Decisions
 

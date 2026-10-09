@@ -22,8 +22,6 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordHashPort;
-import top.egon.cola.platform.tianquan.shoubing.core.port.RefreshTokenStore;
-import top.egon.cola.platform.tianquan.shoubing.core.token.RefreshTokenRecord;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -51,7 +49,7 @@ class IdentityUserServiceImplTest {
                 .doesNotThrowAnyException();
         assertThat(java.util.Arrays.stream(IdentityUserServiceImpl.class.getDeclaredFields())
                 .map(java.lang.reflect.Field::getName))
-                .contains("revocations");
+                .contains("revocations").doesNotContain("refreshTokens");
     }
 
     @Test
@@ -73,7 +71,6 @@ class IdentityUserServiceImplTest {
     private final FakePersistence persistence = new FakePersistence();
     private final FakeState state = new FakeState();
     private final TokenRevocationService revocations = mock(TokenRevocationService.class);
-    private final FakeRefreshTokens refreshTokens = new FakeRefreshTokens();
     private final List<IdentitySecurityEvent> events = new ArrayList<>();
     private IdentityUserServiceImpl service;
 
@@ -87,7 +84,6 @@ class IdentityUserServiceImplTest {
                 state,
                 events::add,
                 revocations,
-                refreshTokens,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
@@ -118,7 +114,7 @@ class IdentityUserServiceImplTest {
     }
 
     @Test
-    void disablingAndPasswordResetRevokeRefreshTokens() {
+    void disablingAndPasswordResetRevokeTheSubjectExactlyOnce() {
         String subject = service.create(new CreateIdentityUserDTO(
                 "alice",
                 "Alice"
@@ -141,14 +137,31 @@ class IdentityUserServiceImplTest {
                 .isEqualTo(2L);
         assertThat(persistence.credentials.get(subject).mustChangePassword())
                 .isTrue();
-        assertThat(refreshTokens.revocations)
-                .containsExactly(subject + ":USER_DISABLED", subject + ":PASSWORD_RESET");
         verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
                 && command.getReasonCode().equals("USER_CREATED")));
         verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
                 && command.getReasonCode().equals("USER_DISABLED")));
         verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
                 && command.getReasonCode().equals("PASSWORD_RESET")));
+        org.mockito.Mockito.verifyNoMoreInteractions(revocations);
+    }
+
+    @Test
+    void revokeAllInvokesOnlyTheUnifiedServiceAndPropagatesProjectionFailure() {
+        String subject = service.create(new CreateIdentityUserDTO("alice", "Alice")).subject();
+        org.mockito.Mockito.clearInvocations(revocations);
+        service.revokeAll(subject);
+        verify(revocations).revokeSubject(argThat(command -> command.getSubject().equals(subject)
+                && command.getReasonCode().equals("ADMIN_REVOKE_ALL")));
+        org.mockito.Mockito.verifyNoMoreInteractions(revocations);
+        RuntimeException unavailable = new IllegalStateException("PROJECTION_UNAVAILABLE");
+        org.mockito.Mockito.doThrow(unavailable).when(revocations).revokeSubject(
+                org.mockito.ArgumentMatchers.any());
+        int previousEvents = events.size();
+        org.junit.jupiter.api.Assertions.assertSame(unavailable,
+                org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,
+                        () -> service.revokeAll(subject)));
+        assertThat(events).hasSize(previousEvents);
     }
 
     private static final class FakePersistence
@@ -230,33 +243,4 @@ class IdentityUserServiceImplTest {
         }
     }
 
-    private static final class FakeRefreshTokens implements RefreshTokenStore {
-
-        private final List<String> revocations = new ArrayList<>();
-
-        @Override
-        public void create(RefreshTokenRecord record) {
-        }
-
-        @Override
-        public java.util.Optional<RefreshTokenRecord> findValid(
-                String tokenDigest,
-                Instant now
-        ) {
-            return java.util.Optional.empty();
-        }
-
-        @Override
-        public void revokeToken(String tokenDigest, String reason, Instant now) {
-        }
-
-        @Override
-        public void revokeSubject(String identitySub, String reason, Instant now) {
-            revocations.add(identitySub + ':' + reason);
-        }
-
-        @Override
-        public void expire(Instant now) {
-        }
-    }
 }

@@ -111,6 +111,22 @@ UNIFIED_XINGYUAN_SKIP_BUILD=true scripts/unified-xingyuan/start-local-stack.sh
 
 The launcher checks `/bff/csrf`, an anonymous `/bff/session` response, and the configured OIDC authorization route. Its frontend preflight checks CORS for all five origins without posting a password, persisting a browser cookie, reading UserInfo, or refreshing a USER token. `verify-local-stack.sh --static-only`, `test-direct-run-contract.sh`, and `bash -n` are static checks; live Edge, issuer, Redis, browser login, database import, and cutover remain operator-run gates.
 
+### Local retirement prerequisites
+
+The lower `scripts/unified-identity-local.sh` and upper platform tool share one protected `UNIFIED_IDENTITY_OAUTH_REGISTRY_FILE`. Its exact bounded schema is defined in the alignment Spec §16.1. It contains configured origin/partition/management tenant/identity/fence/key references, finite issuer/tenant/client maps and protected formal USER input-file references; raw secrets and tokens do not belong in it. Decimal IDs/versions are strings. Every named local client has an explicit PLATFORM slot and each tenant slot, with its current credentialVersion and one-time secret-file reference. The default Spring registration is PLATFORM; the Jianshen caller selects explicit tenant registrations through `service-client.tenant-registration-ids`.
+
+Before new local startup, separately complete and review MP identity/tenant/membership import or provisioning, realm/key activation, client/Resource/Grant setup and real Jianshen tenant-authority state. The startup tools read these current facts and reject missing/conflicting evidence; they never update old identity clients, guess directory ownership or run a tenant-authority import. Source tables and every old migration remain untouched. The explicitly enabled local AS client-registration factory avoids self-discovery using already trusted endpoints; normal environments retain Boot ownership.
+
+Formal CLI USER input is supplied by the operator, checked for early format/expiry/issuer/tenant/subject rejection, and verified at the configured issuer UserInfo before USER-dependent operations. This is not a BFF token export. The compatibility `issue-user-token` command only copies verified formal input into a protected explicit output. It cannot log in, mint a USER credential, refresh browser tokens or widen an MCP Grant. Provide a separate protected revoked-token artifact for backend revocation evidence; actual Edge session/refresh/logout remains operator browser acceptance.
+
+New-deployment retirement must check the ten exact API-035–044 method/path pairs for safe410 without token/cookie/redirect. Formal `/platform` and `/tenants/<id>` protocol endpoints belong solely to SAS, and management/health/fallback stay in their ordered chains. Capture service/USER/issuer-negative evidence before declaring external cutover. Local MCP B keeps its established PID/env alias for compatibility but must run the dedicated MCP artifact with data18184/management18183 and a distinct MCP node/instance identity.
+
+```bash
+export UNIFIED_IDENTITY_OAUTH_REGISTRY_FILE="/secure/operator/local-oauth-registry.json"
+export YUHENG_EDGE_BASE_URL="<operator-configured-edge-origin>"
+# Only the operator executes startup or live validation after these prerequisites.
+```
+
 ## 5. Rollback and evidence boundaries
 
 Before any target writes, the operator may abandon the run and keep the legacy source authoritative. Once a new realm, client, secret generation, audit event, or security generation is committed, do not roll back binaries alone or copy legacy secrets/keys over new facts. Freeze all issuers and writers, reconcile source/target counts and security state, then fix forward or use a coordinated database/configuration/secret restore approved for the entire fleet. Never decrease a security generation or restore a revoked credential.

@@ -1,5 +1,6 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,11 +17,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -69,6 +68,9 @@ import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.server.authorization.authentication.ClientSecretAuthenticationProvider;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -145,7 +147,6 @@ public class AuthorizationServerConfiguration {
     }
 
     @Bean("tenantOAuthTokenGenerator")
-    @ConditionalOnBean(OAuthTokenIssueService.class)
     OAuth2TokenGenerator<? extends OAuth2Token> tenantOAuthTokenGenerator(
             @Qualifier("tenantJwkSourceComponent") JWKSource<SecurityContext> jwkSource,
             @Qualifier("oauthTokenIssueService") OAuthTokenIssueService tokenIssueService,
@@ -176,41 +177,78 @@ public class AuthorizationServerConfiguration {
             ObjectProvider<PlatformTransactionManager> transactionManagers,
             ObjectProvider<TenantLoginAuthenticationFilter> loginFilters,
             ObjectProvider<TokenRevocationService> tokenRevocationServices,
-            @Qualifier("oauthLoginCsrfTokenRepository") CsrfTokenRepository csrfTokenRepository) throws Exception {
+            @Qualifier("oauthLoginCsrfTokenRepository") CsrfTokenRepository csrfTokenRepository,
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper) throws Exception {
         OAuth2AuthorizationServerConfigurer authorizationServer =
                 OAuth2AuthorizationServerConfigurer.authorizationServer();
         RequestMatcher endpoints = authorizationServer.getEndpointsMatcher();
         RequestMatcher loginRequests = request -> request.getRequestURI().substring(
                 request.getContextPath() == null ? 0 : request.getContextPath().length())
                 .matches("/tenants/[1-9][0-9]{0,18}/login");
-        RequestMatcher protocolAndLogin = new OrRequestMatcher(endpoints, loginRequests);
+        RequestMatcher canonicalIssuerPaths = request -> request.getRequestURI().substring(
+                request.getContextPath().length()).matches("/(platform|tenants/[1-9][0-9]{0,18})/.*"
+                        + "|/\\.well-known/oauth-authorization-server/(platform|tenants/[1-9][0-9]{0,18})");
+        RequestMatcher protocolAndLogin = new AndRequestMatcher(canonicalIssuerPaths,
+                new OrRequestMatcher(endpoints, loginRequests));
         OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator = tokenGenerators.getIfAvailable();
-        if (tokenGenerator != null) {
-            authorizationServer.tokenGenerator(tokenGenerator);
+        if (tokenGenerator == null) {
+            throw new IllegalStateException("OAUTH_TOKEN_GENERATOR_REQUIRED");
         }
         http.securityMatcher(protocolAndLogin)
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository).ignoringRequestMatchers(endpoints))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .requestCache(cache -> cache.requestCache(requestCache))
                 .with(authorizationServer, server -> server
+                        .tokenGenerator(tokenGenerator)
                         .authorizationServerSettings(settings)
                         .registeredClientRepository(registeredClientRepository)
                         .authorizationService(authorizationService)
                         .authorizationConsentService(authorizationConsentService)
+                        .clientAuthentication(client -> {
+                            client.authenticationConverters(converters -> converters.add(0, request -> {
+                                var headers = request.getHeaders("Authorization");
+                                boolean hasAuthorization = headers.hasMoreElements();
+                                if (hasAuthorization) {
+                                    headers.nextElement();
+                                }
+                                if (headers.hasMoreElements() || request.getParameter("client_secret") != null
+                                        || (hasAuthorization && request.getParameter("client_id") != null)) {
+                                    throw new OAuth2AuthenticationException(new OAuth2Error(
+                                            "invalid_client", "Request rejected", null));
+                                }
+                                return null;
+                            }));
+                            client.authenticationProviders(providers -> providers.forEach(provider -> {
+                                if (provider instanceof ClientSecretAuthenticationProvider secretProvider) {
+                                    secretProvider.setPasswordEncoder(new BCryptPasswordEncoder(12));
+                                }
+                            }));
+                        })
                         .authorizationEndpoint(endpoint -> endpoint.authenticationProviders(providers ->
                                 configureAuthorizationProviders(providers)))
                         .tokenEndpoint(endpoint -> {
                             endpoint.authenticationProviders(providers -> configureTokenProviders(
                                     providers, tokenIssueServices, transactionManagers, tenantIssuerService));
-                            endpoint.errorResponseHandler(tokenEndpointFailureHandler());
+                            endpoint.errorResponseHandler(tokenEndpointFailureHandler(objectMapper));
                         })
                         .tokenRevocationEndpoint(endpoint -> {
                             endpoint.authenticationProviders(providers -> configureRevocationProviders(
                                     providers, authorizationService, tokenRevocationServices.getIfAvailable(),
                                     tenantIssuerService, transactionManagers.getIfAvailable()));
-                            endpoint.errorResponseHandler(tokenEndpointFailureHandler());
+                            endpoint.errorResponseHandler(tokenEndpointFailureHandler(objectMapper));
                         })
-                        .oidc(Customizer.withDefaults()))
+                        .authorizationServerMetadataEndpoint(metadata -> metadata
+                                .authorizationServerMetadataCustomizer(builder -> {
+                                    builder.tokenEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
+                                    builder.tokenRevocationEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
+                                    builder.grantTypes(AuthorizationServerConfiguration::metadataGrantTypes);
+                                }))
+                        .oidc(oidc -> oidc.providerConfigurationEndpoint(metadata -> metadata
+                                .providerConfigurationCustomizer(builder -> {
+                                    builder.tokenEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
+                                    builder.tokenRevocationEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
+                                    builder.grantTypes(AuthorizationServerConfiguration::metadataGrantTypes);
+                                }))))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(loginRequests).permitAll()
                         .anyRequest().authenticated())
@@ -222,13 +260,32 @@ public class AuthorizationServerConfiguration {
                 }));
 
         // SAS installs its protocol endpoint filters at this anchor after the issuer context filter.
-        http.addFilterBefore(new ExactIssuerContextFilter(tenantIssuerService, publicOrigin),
+        http.addFilterBefore(new ExactIssuerContextFilter(tenantIssuerService, publicOrigin, objectMapper),
                 AbstractPreAuthenticatedProcessingFilter.class);
         TenantLoginAuthenticationFilter loginFilter = loginFilters.getIfAvailable();
         if (loginFilter != null) {
             http.addFilterAfter(loginFilter, ExactIssuerContextFilter.class);
         }
         return http.build();
+    }
+
+    private static void metadataAuthenticationMethods(List<String> methods) {
+        methods.clear();
+        methods.add("client_secret_basic");
+        if (!"/platform".equals(URI.create(
+                AuthorizationServerContextHolder.getContext().getIssuer()).getRawPath())) {
+            methods.add("none");
+        }
+    }
+
+    private static void metadataGrantTypes(List<String> grants) {
+        grants.clear();
+        if (!"/platform".equals(URI.create(
+                AuthorizationServerContextHolder.getContext().getIssuer()).getRawPath())) {
+            grants.add("authorization_code");
+            grants.add("refresh_token");
+        }
+        grants.add("client_credentials");
     }
 
     private static void configureAuthorizationProviders(List<AuthenticationProvider> providers) {
@@ -264,7 +321,7 @@ public class AuthorizationServerConfiguration {
         OAuthTokenIssueService issueService = tokenIssueServices.getIfAvailable();
         PlatformTransactionManager transactionManager = transactionManagers.getIfAvailable();
         if (issueService == null || transactionManager == null) {
-            return;
+            throw new IllegalStateException("OAUTH_TOKEN_TRANSACTION_SERVICE_REQUIRED");
         }
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         for (int index = 0; index < providers.size(); index++) {
@@ -320,7 +377,7 @@ public class AuthorizationServerConfiguration {
         RegisteredClient registeredClient = context.getRegisteredClient();
         TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
         OAuth2Authorization authorization = context.getAuthorization();
-        if (registeredClient == null || authorization == null) {
+        if (registeredClient == null) {
             throw new OAuth2AuthenticationException(new OAuth2Error("invalid_grant", "Request rejected", null));
         }
         long clientPk = parsePositiveId(registeredClient.getId(), "OAUTH_CLIENT_REGISTRATION_ID_INVALID");
@@ -348,6 +405,17 @@ public class AuthorizationServerConfiguration {
             OAuthTokenIssueService.ClientCredentialsIssueContext issue = tokenIssueService
                     .authorizeClientCredentials(trustedRealm, clientPk, resource, context.getAuthorizedScopes());
             var access = issue.resourceAccess();
+            if (access.scopeContext() == top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.TENANT) {
+                if (trustedRealm.getRealmType() != top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum.TENANT
+                        || trustedRealm.getBusinessTenantId() == null
+                        || !Long.toString(trustedRealm.getBusinessTenantId()).equals(access.tenantId())) {
+                    throw new OAuth2AuthenticationException(new OAuth2Error("invalid_grant", "Request rejected", null));
+                }
+                context.getClaims().claim("tenant_id", trustedRealm.getBusinessTenantId());
+            } else if (trustedRealm.getRealmType()
+                    != top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum.PLATFORM) {
+                throw new OAuth2AuthenticationException(new OAuth2Error("invalid_grant", "Request rejected", null));
+            }
             context.getClaims()
                     .claim("iss", trustedRealm.getIssuer().toASCIIString())
                     .claim("sub", registeredClient.getClientId())
@@ -369,6 +437,9 @@ public class AuthorizationServerConfiguration {
             return;
         }
 
+        if (authorization == null) {
+            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_grant", "Request rejected", null));
+        }
         OAuthAuthorizationAttributesBO attributes = authorization.getAttribute(
                 SasAuthorizationConverter.ATTRIBUTES_ATTRIBUTE);
         if (attributes == null) {
@@ -471,7 +542,7 @@ public class AuthorizationServerConfiguration {
         return value instanceof String text ? text : null;
     }
 
-    private static AuthenticationFailureHandler tokenEndpointFailureHandler() {
+    private static AuthenticationFailureHandler tokenEndpointFailureHandler(ObjectMapper objectMapper) {
         OAuth2ErrorAuthenticationFailureHandler defaultHandler = new OAuth2ErrorAuthenticationFailureHandler();
         return (request, response, failure) -> {
             if (failure instanceof OAuth2AuthenticationException authenticationFailure
@@ -479,8 +550,8 @@ public class AuthorizationServerConfiguration {
                 response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.setHeader("Cache-Control", "no-store");
-                response.getWriter().write(
-                        "{\"error\":\"temporarily_unavailable\",\"error_description\":\"Request temporarily unavailable\"}");
+                objectMapper.writeValue(response.getWriter(), Map.of("error", "temporarily_unavailable",
+                        "error_description", "Request temporarily unavailable"));
                 return;
             }
             defaultHandler.onAuthenticationFailure(request, response, failure);
@@ -502,9 +573,11 @@ public class AuthorizationServerConfiguration {
 
         private final TenantIssuerService tenantIssuerService;
         private final String publicOriginRoot;
+        private final ObjectMapper objectMapper;
 
-        private ExactIssuerContextFilter(TenantIssuerService tenantIssuerService, URI publicOrigin) {
+        private ExactIssuerContextFilter(TenantIssuerService tenantIssuerService, URI publicOrigin, ObjectMapper objectMapper) {
             this.tenantIssuerService = tenantIssuerService;
+            this.objectMapper = objectMapper;
             String origin = publicOrigin.toASCIIString();
             this.publicOriginRoot = origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin;
         }
@@ -560,7 +633,7 @@ public class AuthorizationServerConfiguration {
             }
         }
 
-        private static void writeError(
+        private void writeError(
                 HttpServletResponse response,
                 int status,
                 String error,
@@ -568,7 +641,7 @@ public class AuthorizationServerConfiguration {
             response.setStatus(status);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setHeader("Cache-Control", "no-store");
-            response.getWriter().write("{\"error\":\"" + error + "\",\"error_description\":\"" + description + "\"}");
+            objectMapper.writeValue(response.getWriter(), Map.of("error", error, "error_description", description));
         }
 
         private static boolean isPublicMetadataRequest(HttpServletRequest request, TrustedRealmBO trustedRealm) {
@@ -582,7 +655,8 @@ public class AuthorizationServerConfiguration {
             }
             String issuerPath = trustedRealm.getIssuer().getRawPath();
             return path.equals(issuerPath + "/.well-known/openid-configuration")
-                    || path.equals(issuerPath + "/oauth2/jwks");
+                    || path.equals(issuerPath + "/.well-known/jwks.json")
+                    || path.equals("/.well-known/oauth-authorization-server" + issuerPath);
         }
     }
 }
