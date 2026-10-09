@@ -102,6 +102,7 @@ public class AuthorizationServerConfiguration {
     AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder()
                 .multipleIssuersAllowed(true)
+                .jwkSetEndpoint("/.well-known/jwks.json")
                 .build();
     }
 
