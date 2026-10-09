@@ -73,6 +73,12 @@ public final class EgonColaLocalWriteGuardInnerInterceptor implements InnerInter
                     targetCount += result.targets().size();
                 }
             }
+            if (sqlGuard.requiresLifecycleTransaction(statement)
+                    && (!TransactionSynchronizationManager.isActualTransactionActive()
+                        || !TransactionSynchronizationManager.isSynchronizationActive()
+                        || !(TransactionSynchronizationManager.getResource(factory.getEnvironment().getDataSource()) instanceof ConnectionHolder))) {
+                throw new IllegalStateException("PURGE_TRANSACTION_REQUIRED");
+            }
             if (!write || queries.isEmpty()) { return; }
             if (groups.size() != 1) { throw new IllegalStateException("LOCAL_WRITE_TARGET_MISMATCH"); }
             boolean active = TransactionSynchronizationManager.isActualTransactionActive();

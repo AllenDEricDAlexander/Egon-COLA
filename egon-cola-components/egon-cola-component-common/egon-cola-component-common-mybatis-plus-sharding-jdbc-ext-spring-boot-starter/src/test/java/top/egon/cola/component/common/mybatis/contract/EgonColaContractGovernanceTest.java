@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * 修复合同：本模块的九个手写 enum 必须落在 {@link EgonEnum} 上，配置异常必须以
+ * 修复合同：本模块的十个手写 enum 必须落在 {@link EgonEnum} 上，配置异常必须以
  * {@link CommonException} 为公共根（REQ-003、REQ-004）。
  *
  * <p>线值、{@code @ConfigurationProperties} 绑定名与既有失败码文本必须由原回归继续证明保持。</p>
@@ -59,6 +59,7 @@ class EgonColaContractGovernanceTest {
             EgonColaShardingProperties.ConfigStyleEnum.class,
             EgonColaShardingProperties.DataSourceRoleEnum.class,
             EgonColaModelValidationGroups.Operation.class,
+            top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties.LifecycleScopeEnum.class,
             BatchOperation.TYPE);
 
     private static final Map<Class<?>, List<String>> DECLARATION_ORDER = ordered(
@@ -71,7 +72,9 @@ class EgonColaContractGovernanceTest {
             entry(EgonColaShardingProperties.ConfigStyleEnum.class, "STRATEGY", "NATIVE"),
             entry(EgonColaShardingProperties.DataSourceRoleEnum.class, "PRIMARY", "REPLICA"),
             entry(EgonColaModelValidationGroups.Operation.class,
-                    "INSERT", "UPDATE", "DELETE", "QUERY", "LOADED"),
+                    "INSERT", "UPDATE", "DELETE", "QUERY", "LOADED", "RESTORE"),
+            entry(top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties.LifecycleScopeEnum.class,
+                    "ID", "PARENT", "PAGE", "COUNT", "ALL_PARENT", "MONOTONE_DELETE", "RESTORE", "PURGE_ID", "PURGE_PARENT"),
             entry(BatchOperation.TYPE, "INSERT", "UPDATE", "UPSERT"));
 
     private static final Pattern PACKAGE = Pattern.compile("^package\\s+([\\w.]+)\\s*;");
@@ -92,7 +95,7 @@ class EgonColaContractGovernanceTest {
     void everyHandwrittenEnumJoinsTheCommonEnumContract() throws Exception {
         List<String> headers = enumHeaders();
 
-        assertThat(headers).as("本模块手写 enum 只有九个").hasSize(9);
+        assertThat(headers).as("本模块手写 enum 精确十个").hasSize(10);
         assertThat(headers).as("REQ-004 手写 enum 必须实现 EgonEnum")
                 .allSatisfy(header -> assertThat(header).contains(EgonEnum.class.getSimpleName()));
         assertThat(enumConstantsWithoutExplicitCode())

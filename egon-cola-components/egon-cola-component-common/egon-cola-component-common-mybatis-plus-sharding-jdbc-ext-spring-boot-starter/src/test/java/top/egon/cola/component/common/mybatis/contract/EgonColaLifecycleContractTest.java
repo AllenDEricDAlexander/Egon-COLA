@@ -262,6 +262,68 @@ class EgonColaLifecycleContractTest {
                 });
     }
 
+    @Test
+    void statementPolicyMustExistAndCannotClearTechnicalColumns() {
+        contextRunner.withPropertyValues(
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.statement-policies[" + HISTORY + "].scope=ID",
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.statement-policies[" + HISTORY + "].table=test_business_record")
+                .run(context -> assertThat(context).hasNotFailed());
+        contextRunner.withPropertyValues(
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.statement-policies[test.MissingMapper.operation].scope=ID",
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.statement-policies[test.MissingMapper.operation].table=test_business_record")
+                .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining("LIFECYCLE_STATEMENT_POLICY_MISSING"));
+        contextRunner.withPropertyValues(
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.restore-statements[0]=" + RESTORE,
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.statement-policies[" + RESTORE + "].scope=RESTORE",
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.statement-policies[" + RESTORE + "].table=test_business_record",
+                EgonColaMybatisPlusProperties.PREFIX + ".lifecycle.statement-policies[" + RESTORE + "].restore-null-columns[0]=create_time")
+                .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining("LIFECYCLE_STATEMENT_POLICY_INVALID"));
+    }
+
+    @Test
+    void registeredPurgeRequiresRecycledParentAndRollsBackAllChildHistory() {
+        String children = MAPPER + ".purgeChildren";
+        String parent = MAPPER + ".purgeRecycled";
+        String prefix = EgonColaMybatisPlusProperties.PREFIX;
+        contextRunner.withPropertyValues(
+                prefix + ".local-write-guard.allowed-root-statements[" + children + "]=parent_id",
+                prefix + ".lifecycle.statement-policies[" + children + "].scope=PURGE_PARENT",
+                prefix + ".lifecycle.statement-policies[" + children + "].table=lifecycle_child",
+                prefix + ".lifecycle.statement-policies[" + children + "].key-column=parent_id",
+                prefix + ".lifecycle.statement-policies[" + children + "].parent-table=test_business_record",
+                prefix + ".lifecycle.statement-policies[" + parent + "].scope=PURGE_ID",
+                prefix + ".lifecycle.statement-policies[" + parent + "].table=test_business_record")
+                .run(context -> {
+            assertThat(context).hasNotFailed();
+            context.getBean(TestTenantIdProvider.class).set(41L);
+            context.getBean(TestUserIdProvider.class).set("purge-user");
+            var repository = context.getBean(TestBusinessRepository.class);
+            var sql = context.getBean(SqlSessionTemplate.class);
+            var jdbc = new JdbcTemplate(context.getBean(DataSource.class));
+            jdbc.execute("CREATE TABLE lifecycle_child(id BIGINT PRIMARY KEY, tenant_id BIGINT, parent_id BIGINT, deleted_at TIMESTAMP)");
+            TestBusinessModel recycled = createDeleted(repository, "purge-parent");
+            LocalDateTime tombstone = jdbc.queryForObject("SELECT deleted_at FROM test_business_record WHERE id=?", LocalDateTime.class, recycled.getId());
+            jdbc.update("INSERT INTO lifecycle_child VALUES(1,41,?,NULL)", recycled.getId());
+            jdbc.update("INSERT INTO lifecycle_child VALUES(2,41,?,?)", recycled.getId(), tombstone);
+            Map<String, Object> input = Map.of("id", recycled.getId(), "tenantId", 41L, "deletedAt", tombstone, "version", 1L);
+            assertThatThrownBy(() -> sql.delete(children, input)).hasRootCauseMessage("PURGE_TRANSACTION_REQUIRED");
+            TransactionTemplate tx = transaction(context.getBean(DataSource.class));
+            assertThat(tx.<Integer>execute(status -> sql.delete(children, Map.of("id", recycled.getId(), "tenantId", 41L, "deletedAt", tombstone, "version", 0L))))
+                    .isEqualTo(0);
+            assertThatThrownBy(() -> tx.execute(status -> {
+                assertThat(sql.delete(children, input)).isEqualTo(2);
+                throw new IllegalStateException("forced parent failure");
+            })).hasMessage("forced parent failure");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM lifecycle_child", Integer.class)).isEqualTo(2);
+            assertThat(tx.<Integer>execute(status -> {
+                assertThat(sql.delete(children, input)).isEqualTo(2);
+                return sql.delete(parent, input);
+            })).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM lifecycle_child", Integer.class)).isZero();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM test_business_record WHERE id=?", Integer.class, recycled.getId())).isZero();
+        });
+    }
+
     private static TestBusinessModel createDeleted(TestBusinessRepository repository, String title) {
         TestBusinessModel row = new TestBusinessModel().businessValues(title, "payload");
         assertThat(repository.save(row)).isTrue();
@@ -315,6 +377,15 @@ class EgonColaLifecycleContractTest {
                     UPDATE test_business_record SET create_time=#{createTime}
                     WHERE id=#{id} AND tenant_id=#{tenantId} AND deleted_at IS NULL
                   </update>
+                  <delete id="purgeChildren">
+                    DELETE FROM lifecycle_child WHERE parent_id=#{id} AND tenant_id=#{tenantId}
+                    AND EXISTS (SELECT 1 FROM test_business_record p WHERE p.id=#{id} AND p.tenant_id=#{tenantId}
+                        AND p.deleted_at=#{deletedAt} AND p.version=#{version} FOR UPDATE)
+                  </delete>
+                  <delete id="purgeRecycled">
+                    DELETE FROM test_business_record WHERE id=#{id} AND tenant_id=#{tenantId}
+                      AND deleted_at=#{deletedAt} AND version=#{version}
+                  </delete>
                   <delete id="physicalDelete">
                     DELETE FROM test_business_record WHERE id=#{id} AND tenant_id=#{tenantId}
                   </delete>

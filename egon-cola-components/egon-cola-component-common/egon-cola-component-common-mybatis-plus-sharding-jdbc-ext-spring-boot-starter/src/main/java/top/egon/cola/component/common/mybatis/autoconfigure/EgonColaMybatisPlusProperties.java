@@ -109,6 +109,11 @@ public class EgonColaMybatisPlusProperties {
         @Builder.Default
         private Set<@NotBlank @Pattern(regexp = MAPPER_STATEMENT_ID_PATTERN) String> restoreStatements = new LinkedHashSet<>();
 
+        @Valid
+        @NotNull
+        @Builder.Default
+        private Map<@Pattern(regexp = MAPPER_STATEMENT_ID_PATTERN) String, @Valid LifecyclePolicyBO> statementPolicies = new LinkedHashMap<>();
+
         public Set<String> getHistoryReadStatements() {
             return Collections.unmodifiableSet(new LinkedHashSet<>(historyReadStatements));
         }
@@ -126,6 +131,60 @@ public class EgonColaMybatisPlusProperties {
             restoreStatements = statementIds == null
                     ? new LinkedHashSet<>() : new LinkedHashSet<>(statementIds);
         }
+    }
+
+    /** Exact SQL capabilities; no policy is enabled by default. */
+    public enum LifecycleScopeEnum implements top.egon.cola.component.common.core.enums.EgonEnum {
+        ID(0, "ID"),
+        PARENT(1, "PARENT"),
+        PAGE(2, "PAGE"),
+        COUNT(3, "COUNT"),
+        ALL_PARENT(4, "ALL_PARENT"),
+        MONOTONE_DELETE(5, "MONOTONE_DELETE"),
+        RESTORE(6, "RESTORE"),
+        PURGE_ID(7, "PURGE_ID"),
+        PURGE_PARENT(8, "PURGE_PARENT");
+
+        private final int code;
+        private final String message;
+
+        LifecycleScopeEnum(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override public int getCode() { return code; }
+        @Override public String getMessage() { return message; }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @Builder
+    public static class LifecyclePolicyBO {
+        @NotNull
+        private LifecycleScopeEnum scope;
+        @NotBlank
+        @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}")
+        private String table;
+        @NotBlank
+        @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}")
+        @Builder.Default
+        private String keyColumn = "id";
+        @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}")
+        private String parentTable;
+        @NotBlank
+        @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}")
+        @Builder.Default
+        private String businessKeyColumn = "sn";
+        @NotBlank
+        @Pattern(regexp = "[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*")
+        @Builder.Default
+        private String pageSizeParameter = "query.page.pageSize";
+        @NotNull
+        @Builder.Default
+        private Set<@Pattern(regexp = "[a-z_][a-z0-9_]{0,62}") String> restoreNullColumns = new LinkedHashSet<>();
     }
 
     @Data

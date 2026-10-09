@@ -204,8 +204,8 @@ public final class EgonColaOriginalSqlGuardInterceptor implements Interceptor {
         }
         expression.accept(new ExpressionVisitorAdapter<Void>() {
             @Override
-            public <S> Void visit(ParenthesedSelect select, S context) {
-                collect(select.getSelect(), scopes, ctes);
+            public <S> Void visit(Select select, S context) {
+                collect(select, scopes, ctes);
                 return null;
             }
         }, null);

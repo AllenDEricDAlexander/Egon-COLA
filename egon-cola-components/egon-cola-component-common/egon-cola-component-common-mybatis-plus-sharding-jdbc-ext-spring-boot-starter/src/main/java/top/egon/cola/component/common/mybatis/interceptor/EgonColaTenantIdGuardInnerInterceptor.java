@@ -41,6 +41,10 @@ import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 
 import java.sql.Connection;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.function.BiConsumer;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties.LifecycleScopeEnum;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,10 +80,30 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
     private Set<String> historyReadStatements = Set.of();
     private Set<String> restoreStatements = Set.of();
 
+    private Map<String, LifecyclePolicySnapshotBO> lifecyclePolicies = Map.of();
+
+    // Strategy dispatch keeps each SQL capability independent of the default active-row policy.
+    private final Map<LifecycleScopeEnum, BiConsumer<LifecyclePolicySnapshotBO, LifecycleSqlContextBO>> policyChecks = Map.of(
+            LifecycleScopeEnum.ID, this::validateHistoryPolicy,
+            LifecycleScopeEnum.PARENT, this::validateHistoryPolicy,
+            LifecycleScopeEnum.ALL_PARENT, this::validateHistoryPolicy,
+            LifecycleScopeEnum.PAGE, this::validatePagePolicy,
+            LifecycleScopeEnum.COUNT, this::validatePagePolicy,
+            LifecycleScopeEnum.MONOTONE_DELETE, (policy, context) -> { },
+            LifecycleScopeEnum.RESTORE, (policy, context) -> { },
+            LifecycleScopeEnum.PURGE_ID, this::validatePurgePolicy,
+            LifecycleScopeEnum.PURGE_PARENT, this::validatePurgePolicy);
+
     @PostConstruct
     void snapshotLifecycleStatements() {
         historyReadStatements = Set.copyOf(properties.getLifecycle().getHistoryReadStatements());
         restoreStatements = Set.copyOf(properties.getLifecycle().getRestoreStatements());
+        Map<String, LifecyclePolicySnapshotBO> policies = new HashMap<>();
+        properties.getLifecycle().getStatementPolicies().forEach((id, value) -> policies.put(id,
+                new LifecyclePolicySnapshotBO(value.getScope(), value.getTable(), value.getKeyColumn(),
+                        value.getParentTable(), value.getBusinessKeyColumn(), value.getPageSizeParameter(),
+                        Set.copyOf(value.getRestoreNullColumns()))));
+        lifecyclePolicies = Map.copyOf(policies);
     }
 
     @Override
@@ -96,9 +120,12 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         Long tenant = requireTenant();
         validateExplicitTenants(shape, sql, statement.getConfiguration(), tenant);
         boolean historyRead = historyRead(statement);
+        LifecyclePolicySnapshotBO policy = validatePolicy(statement, shape, sql);
         for (TableScopeBO scope : shape.scopes()) {
             if (!ignored(scope)) {
-                if (historyRead) {
+                if (policy != null && historyPolicy(policy)) {
+                    // Registered scope has already proved tenant, key and lifecycle bounds.
+                } else if (historyRead) {
                     validateHistoricalRead(statement, shape, scope, sql);
                 } else if (!active(scope.isolation(), scope)) {
                     throw new IllegalStateException("ACTIVE_PREDICATE_REQUIRED");
@@ -135,7 +162,8 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         }
         Long tenant = requireTenant();
         boolean query = statement.getSqlCommandType() == SqlCommandType.SELECT;
-        if (shape.statement() instanceof net.sf.jsqlparser.statement.delete.Delete) {
+        LifecyclePolicySnapshotBO policy = validatePolicy(statement, shape, sql);
+        if (shape.statement() instanceof net.sf.jsqlparser.statement.delete.Delete && (policy == null || !purgePolicy(policy))) {
             throw new IllegalStateException("PHYSICAL_DELETE_FORBIDDEN");
         }
         boolean historyRead = historyRead(statement);
@@ -162,7 +190,9 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
             if (tenants == null || tenants.size() != 1 || !tenants.contains(tenant)) {
                 throw new IllegalStateException("TENANT_CONTEXT_MISMATCH");
             }
-            if (historyRead) {
+            if (policy != null && (historyPolicy(policy) || purgePolicy(policy))) {
+                // The exact policy validates every scope, including the recycled parent proof.
+            } else if (historyRead) {
                 validateHistoricalRead(statement, shape, scope, sql);
             } else if (lifecycleRestore) {
                 validateRestorePredicate(shape, scope, sql, statement.getConfiguration());
@@ -188,7 +218,7 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
                 throw new IllegalStateException("REGISTERED_QUERY_SQL_REQUIRED");
             }
             // Only the actual DML target is a write; subqueries remain independently scoped reads.
-            if (query || scope == shape.scopes().getFirst()) {
+            if (query || scope == shape.scopes().getFirst() || policy != null && policy.scope() == LifecycleScopeEnum.PURGE_PARENT) {
                 routes.add(new ScopedRouteQuery(new EgonColaRouteQuery(table, tenant, roots, operation, range), scope.table().getSchemaName() == null ? null : identifier(scope.table().getSchemaName())));
             }
         }
@@ -202,6 +232,180 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         }
         return List.copyOf(routes);
     }
+
+    private LifecyclePolicySnapshotBO validatePolicy(MappedStatement statement, SqlShapeBO shape, BoundSql sql) {
+        LifecyclePolicySnapshotBO policy = lifecyclePolicies.get(statement.getId());
+        if (policy == null) {
+            return null;
+        }
+        TableScopeBO target = shape.scopes().getFirst();
+        if (!logicalTable(target.table().getName()).equals(policy.table())) {
+            throw new IllegalStateException("LIFECYCLE_TABLE_MISMATCH");
+        }
+        SqlCommandType expected = historyPolicy(policy) ? SqlCommandType.SELECT
+                : purgePolicy(policy) ? SqlCommandType.DELETE : SqlCommandType.UPDATE;
+        if (statement.getSqlCommandType() != expected
+                || statement.getResource() == null || !statement.getResource().contains(".xml")) {
+            throw new IllegalStateException("LIFECYCLE_STATEMENT_POLICY_INVALID");
+        }
+        for (TableScopeBO scope : shape.scopes()) {
+            Set<Object> tenants = values(scope.isolation(), scope, "tenant_id", shape, sql,
+                    statement.getConfiguration(), false, new HashSet<>());
+            if (tenants == null || tenants.size() != 1 || !tenants.contains(requireTenant())) {
+                throw new IllegalStateException("TENANT_CONTEXT_MISMATCH");
+            }
+        }
+        if (policy.scope() != LifecycleScopeEnum.PURGE_PARENT && shape.scopes().size() != 1) {
+            throw new IllegalStateException("LIFECYCLE_SCOPE_REQUIRED");
+        }
+        policyChecks.get(policy.scope()).accept(policy, new LifecycleSqlContextBO(statement, shape, sql));
+        return policy;
+    }
+
+    private void validateHistoryPolicy(LifecyclePolicySnapshotBO policy, LifecycleSqlContextBO context) {
+        TableScopeBO scope = context.shape().scopes().getFirst();
+        requireKey(policy.keyColumn(), scope, context, "LIFECYCLE_KEY_REQUIRED");
+        if (policy.scope() != LifecycleScopeEnum.ALL_PARENT && !active(scope.isolation(), scope)
+                && !deletedAtNotNull(scope.isolation(), scope)) {
+            throw new IllegalStateException("LIFECYCLE_HISTORY_PREDICATE_REQUIRED");
+        }
+    }
+
+    private void validatePagePolicy(LifecyclePolicySnapshotBO policy, LifecycleSqlContextBO context) {
+        TableScopeBO scope = context.shape().scopes().getFirst();
+        if (!active(scope.isolation(), scope) && !deletedAtNotNull(scope.isolation(), scope)) {
+            throw new IllegalStateException("LIFECYCLE_HISTORY_PREDICATE_REQUIRED");
+        }
+        if (!(scope.scopeId() instanceof net.sf.jsqlparser.statement.select.PlainSelect select)) {
+            throw new IllegalStateException("LIFECYCLE_SCOPE_REQUIRED");
+        }
+        Object size;
+        if (policy.scope() == LifecycleScopeEnum.PAGE) {
+            size = select.getLimit() == null ? null
+                    : value(select.getLimit().getRowCount(), context.sql(), context.statement().getConfiguration());
+        } else {
+            if (select.getSelectItems().size() != 1
+                    || !select.getSelectItems().getFirst().getExpression().toString().equalsIgnoreCase("COUNT(*)")) {
+                throw new IllegalStateException("LIFECYCLE_COUNT_SHAPE_REQUIRED");
+            }
+            var parameter = context.sql().getParameterObject();
+            var meta = context.statement().getConfiguration().newMetaObject(parameter);
+            size = meta.hasGetter(policy.pageSizeParameter()) ? meta.getValue(policy.pageSizeParameter()) : null;
+        }
+        if (!(size instanceof Integer || size instanceof Long) || ((Number) size).longValue() < 1
+                || ((Number) size).longValue() > properties.getPagination().getMaxPageSize()) {
+            throw new IllegalStateException("PAGE_SIZE_INVALID");
+        }
+    }
+
+    private void validatePurgePolicy(LifecyclePolicySnapshotBO policy, LifecycleSqlContextBO context) {
+        requireUser();
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            throw new IllegalStateException("PURGE_TRANSACTION_REQUIRED");
+        }
+        TableScopeBO target = context.shape().scopes().getFirst();
+        Long key = requireKey(policy.keyColumn(), target, context, "LIFECYCLE_KEY_REQUIRED");
+        if (policy.scope() == LifecycleScopeEnum.PURGE_ID) {
+            validateRestorePredicate(context.shape(), target, context.sql(), context.statement().getConfiguration());
+        } else {
+            if (context.shape().scopes().size() != 2) {
+                throw new IllegalStateException("PURGE_PARENT_PROOF_REQUIRED");
+            }
+            TableScopeBO parent = context.shape().scopes().get(1);
+            if (!(parent.scopeId() instanceof net.sf.jsqlparser.statement.select.PlainSelect parentSelect)
+                    || parentSelect.getForMode() != net.sf.jsqlparser.statement.select.ForMode.UPDATE
+                    || !logicalTable(parent.table().getName()).equals(policy.parentTable())
+                    || !mandatoryExists(target.predicate(), parent.scopeId())) {
+                throw new IllegalStateException("PURGE_PARENT_PROOF_REQUIRED");
+            }
+            validateRestorePredicate(context.shape(), parent, context.sql(), context.statement().getConfiguration());
+            if (!key.equals(requireKey("id", parent, context, "PURGE_PARENT_MISMATCH"))) {
+                throw new IllegalStateException("PURGE_PARENT_MISMATCH");
+            }
+        }
+    }
+
+    private static boolean mandatoryExists(Expression expression, net.sf.jsqlparser.statement.Statement parent) {
+        Expression checked = unwrap(expression);
+        if (checked instanceof net.sf.jsqlparser.expression.operators.conditional.AndExpression and) {
+            return mandatoryExists(and.getLeftExpression(), parent) || mandatoryExists(and.getRightExpression(), parent);
+        }
+        if (checked instanceof net.sf.jsqlparser.expression.operators.conditional.OrExpression or) {
+            return mandatoryExists(or.getLeftExpression(), parent) && mandatoryExists(or.getRightExpression(), parent);
+        }
+        if (!(checked instanceof net.sf.jsqlparser.expression.operators.relational.ExistsExpression exists) || exists.isNot()) {
+            return false;
+        }
+        Expression right = exists.getRightExpression();
+        return right instanceof net.sf.jsqlparser.statement.select.ParenthesedSelect nested && nested.getSelect() == parent;
+    }
+
+    private static Long requireKey(String column, TableScopeBO scope, LifecycleSqlContextBO context, String failure) {
+        Set<Object> keys = values(scope.predicate(), scope, column, context.shape(), context.sql(),
+                context.statement().getConfiguration(), false, new HashSet<>());
+        if (keys == null || keys.size() != 1 || !(keys.iterator().next() instanceof Long id) || id <= 0
+                || !hasEquality(scope.predicate(), scope, column, context.sql(), context.statement().getConfiguration())) {
+            throw new IllegalStateException(failure);
+        }
+        return (Long) keys.iterator().next();
+    }
+
+    private boolean monotoneDeletion(Update update, MappedStatement statement, BoundSql sql, Expression expression) {
+        LifecyclePolicySnapshotBO policy = lifecyclePolicies.get(statement.getId());
+        if (policy == null || policy.scope() != LifecycleScopeEnum.MONOTONE_DELETE
+                || !logicalTable(update.getTable().getName()).equals(policy.table())
+                || !statement.getId().endsWith(".deleteVersionedById")) {
+            return false;
+        }
+        String expected = "GREATEST((CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), COALESCE((SELECT MAX(history.deleted_at) + INTERVAL '0.000001' SECOND FROM "
+                + policy.table() + " history WHERE history.tenant_id = ? AND history." + policy.businessKeyColumn()
+                + " = ?), (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')))";
+        try {
+            String canonical = net.sf.jsqlparser.parser.CCJSqlParserUtil.parseExpression(expected).toString();
+            if (!canonical.equalsIgnoreCase(expression.toString())) {
+                return false;
+            }
+        } catch (net.sf.jsqlparser.JSQLParserException invalidPolicy) {
+            throw new IllegalStateException("LIFECYCLE_STATEMENT_POLICY_INVALID", invalidPolicy);
+        }
+        // Check the two JDBC bindings independently; SQL shape alone is not tenant authority.
+        List<Object> bindings = new ArrayList<>();
+        expression.accept(new ExpressionVisitorAdapter<Void>() {
+            @Override public <S> Void visit(net.sf.jsqlparser.statement.select.Select select, S context) {
+                select.getPlainSelect().getWhere().accept(this, context);
+                return null;
+            }
+            @Override public <S> Void visit(JdbcParameter parameter, S context) {
+                bindings.add(value(parameter, sql, statement.getConfiguration()));
+                return null;
+            }
+        });
+        SqlShapeBO shape = shape(sql.getSql());
+        TableScopeBO scope = shape.scopes().getFirst();
+        Set<Object> keys = values(scope.predicate(), scope, policy.businessKeyColumn(), shape, sql,
+                statement.getConfiguration(), false, new HashSet<>());
+        return bindings.size() == 2 && requireTenant().equals(bindings.getFirst())
+                && bindings.get(1) instanceof String key && !key.isBlank()
+                && keys != null && keys.size() == 1 && keys.contains(key);
+    }
+
+    boolean requiresLifecycleTransaction(MappedStatement statement) {
+        LifecyclePolicySnapshotBO policy = lifecyclePolicies.get(statement.getId());
+        return policy != null && purgePolicy(policy);
+    }
+
+    private static boolean historyPolicy(LifecyclePolicySnapshotBO policy) {
+        return Set.of(LifecycleScopeEnum.ID, LifecycleScopeEnum.PARENT, LifecycleScopeEnum.PAGE,
+                LifecycleScopeEnum.COUNT, LifecycleScopeEnum.ALL_PARENT).contains(policy.scope());
+    }
+
+    private static boolean purgePolicy(LifecyclePolicySnapshotBO policy) {
+        return policy.scope() == LifecycleScopeEnum.PURGE_ID || policy.scope() == LifecycleScopeEnum.PURGE_PARENT;
+    }
+
+    private record LifecyclePolicySnapshotBO(LifecycleScopeEnum scope, String table, String keyColumn,
+            String parentTable, String businessKeyColumn, String pageSizeParameter, Set<String> restoreNullColumns) { }
+    private record LifecycleSqlContextBO(MappedStatement statement, SqlShapeBO shape, BoundSql sql) { }
 
     private boolean historyRead(MappedStatement statement) {
         return statement.getSqlCommandType() == SqlCommandType.SELECT
@@ -248,7 +452,7 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         Set<Object> deletedAtValues = values(scope.predicate(), scope, "deleted_at", shape, sql, configuration, false, new HashSet<>());
         if (ids == null || ids.size() != 1 || !(ids.iterator().next() instanceof Long id) || id <= 0
                 || versions == null || versions.size() != 1 || !(versions.iterator().next() instanceof Long version) || version < 0
-                || deletedAtValues == null || deletedAtValues.size() != 1 || deletedAtValues.iterator().next() == null
+                || deletedAtValues == null || deletedAtValues.size() != 1 || !(deletedAtValues.iterator().next() instanceof LocalDateTime)
                 || !hasEquality(scope.predicate(), scope, "id", sql, configuration)
                 || !hasEquality(scope.predicate(), scope, "version", sql, configuration)
                 || !hasEquality(scope.predicate(), scope, "deleted_at", sql, configuration)) {
@@ -379,7 +583,20 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
         }
         Expression deletedAt = assigned(update, "deleted_at");
         if (lifecycleRestore(statement)) {
-            Set<String> permitted = Set.of("deleted_at", "version", "update_user_id", "update_time");
+            Set<String> permitted = new HashSet<>(Set.of("deleted_at", "version", "update_user_id", "update_time"));
+            LifecyclePolicySnapshotBO policy = lifecyclePolicies.get(statement.getId());
+            if (policy != null && policy.scope() == LifecycleScopeEnum.RESTORE) {
+                if (!logicalTable(update.getTable().getName()).equals(policy.table())) {
+                    throw new IllegalStateException("LIFECYCLE_TABLE_MISMATCH");
+                }
+                for (String column : policy.restoreNullColumns()) {
+                    Expression assigned = assigned(update, column);
+                    if (!(unwrap(assigned) instanceof NullValue)) {
+                        throw new IllegalStateException("LIFECYCLE_RESTORE_SHAPE_REQUIRED");
+                    }
+                }
+                permitted.addAll(policy.restoreNullColumns());
+            }
             if (deletedAt == null || !(unwrap(deletedAt) instanceof NullValue)
                     || update.getUpdateSets().stream().flatMap(set -> set.getColumns().stream())
                     .anyMatch(column -> !permitted.contains(identifier(column.getColumnName())))) {
@@ -392,7 +609,8 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
                 throw new IllegalStateException("LOGIC_DELETE_COLUMN_MUTATION_FORBIDDEN");
             }
             String expression = deletedAt.toString().replace("(", "").replace(")", "").replaceAll("\\s+", " ").trim();
-            if (!"CURRENT_TIMESTAMP AT TIME ZONE 'UTC'".equalsIgnoreCase(expression)) {
+            if (!"CURRENT_TIMESTAMP AT TIME ZONE 'UTC'".equalsIgnoreCase(expression)
+                    && !monotoneDeletion(update, statement, sql, deletedAt)) {
                 throw new IllegalStateException("LOGIC_DELETE_TIMESTAMP_REQUIRED");
             }
         }

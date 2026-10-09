@@ -122,6 +122,7 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
         Set<Class<?>> persistedEnums = new HashSet<>();
         Set<String> historyStatementsFound = new HashSet<>();
         Set<String> restoreStatementsFound = new HashSet<>();
+        Set<String> policiesFound = new HashSet<>();
         for (SqlSessionFactory factory : beanFactory.getBeanProvider(SqlSessionFactory.class).orderedStream().toList()) {
             var configuration = factory.getConfiguration();
             List<Interceptor> plugins = configuration.getInterceptors();
@@ -182,6 +183,17 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                     }
                 }
             }
+            properties.getLifecycle().getStatementPolicies().forEach((id, policy) -> {
+                if (configuration.hasStatement(id, false)) {
+                    MappedStatement statement = configuration.getMappedStatement(id, false);
+                    SqlCommandType expected = policyCommand(policy.getScope());
+                    if (statement.getSqlCommandType() != expected || statement.getResource() == null
+                            || !statement.getResource().contains(".xml")) {
+                        throw failure("LIFECYCLE_STATEMENT_POLICY_INVALID");
+                    }
+                    policiesFound.add(id);
+                }
+            });
             validateLifecycleStatements(configuration, properties.getLifecycle().getHistoryReadStatements(),
                     SqlCommandType.SELECT, historyStatementsFound, "LIFECYCLE_HISTORY_STATEMENT_INVALID");
             validateLifecycleStatements(configuration, properties.getLifecycle().getRestoreStatements(),
@@ -192,6 +204,9 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
         }
         if (!restoreStatementsFound.containsAll(properties.getLifecycle().getRestoreStatements())) {
             throw failure("LIFECYCLE_RESTORE_STATEMENT_MISSING");
+        }
+        if (!policiesFound.containsAll(properties.getLifecycle().getStatementPolicies().keySet())) {
+            throw failure("LIFECYCLE_STATEMENT_POLICY_MISSING");
         }
         validateExternalEnums(persistedEnums);
     }
@@ -241,6 +256,30 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             }
         });
         var lifecycle = properties.getLifecycle();
+        lifecycle.getStatementPolicies().forEach((id, policy) -> {
+            Set<String> protectedColumns = Set.of("id", "tenant_id", "version", "deleted_at", "create_time",
+                    "create_user_id", "update_time", "update_user_id");
+            if (id == null || !MAPPER_STATEMENT_ID.matcher(id).matches() || policy == null || policy.getScope() == null
+                    || !identifier(policy.getTable()) || properties.getTenantId().ignores(policy.getTable())
+                    || !identifier(policy.getKeyColumn()) || !identifier(policy.getBusinessKeyColumn())
+                    || policy.getRestoreNullColumns() == null
+                    || policy.getRestoreNullColumns().stream().anyMatch(column -> !identifier(column) || protectedColumns.contains(column))
+                    || policy.getPageSizeParameter() == null || !policy.getPageSizeParameter().matches("[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*")) {
+                throw failure("LIFECYCLE_STATEMENT_POLICY_INVALID");
+            }
+            var mode = policy.getScope();
+            if ((mode == EgonColaMybatisPlusProperties.LifecycleScopeEnum.RESTORE
+                        && (!id.endsWith(".restoreVersionedById") || !lifecycle.getRestoreStatements().contains(id)))
+                    || (mode != EgonColaMybatisPlusProperties.LifecycleScopeEnum.RESTORE && !policy.getRestoreNullColumns().isEmpty())
+                    || (mode == EgonColaMybatisPlusProperties.LifecycleScopeEnum.MONOTONE_DELETE && !id.endsWith(".deleteVersionedById"))
+                    || (mode == EgonColaMybatisPlusProperties.LifecycleScopeEnum.PURGE_PARENT && !identifier(policy.getParentTable()))
+                    || (Set.of(EgonColaMybatisPlusProperties.LifecycleScopeEnum.ID, EgonColaMybatisPlusProperties.LifecycleScopeEnum.PURGE_ID).contains(mode) && !"id".equals(policy.getKeyColumn()))
+                    || (Set.of(EgonColaMybatisPlusProperties.LifecycleScopeEnum.PARENT, EgonColaMybatisPlusProperties.LifecycleScopeEnum.ALL_PARENT,
+                            EgonColaMybatisPlusProperties.LifecycleScopeEnum.PURGE_PARENT).contains(mode) && protectedColumns.contains(policy.getKeyColumn()))
+                    || lifecycle.getHistoryReadStatements().contains(id)) {
+                throw failure("LIFECYCLE_STATEMENT_POLICY_INVALID");
+            }
+        });
         Set<String> historyStatements = lifecycle.getHistoryReadStatements();
         Set<String> restoreStatements = lifecycle.getRestoreStatements();
         if (historyStatements.stream().anyMatch(statement -> statement == null
@@ -252,6 +291,19 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                 || historyStatements.stream().anyMatch(restoreStatements::contains)) {
             throw failure("LIFECYCLE_STATEMENT_POLICY_INVALID");
         }
+    }
+
+    private static SqlCommandType policyCommand(EgonColaMybatisPlusProperties.LifecycleScopeEnum mode) {
+        return Map.of(
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.ID, SqlCommandType.SELECT,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.PARENT, SqlCommandType.SELECT,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.PAGE, SqlCommandType.SELECT,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.COUNT, SqlCommandType.SELECT,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.ALL_PARENT, SqlCommandType.SELECT,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.MONOTONE_DELETE, SqlCommandType.UPDATE,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.RESTORE, SqlCommandType.UPDATE,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.PURGE_ID, SqlCommandType.DELETE,
+                EgonColaMybatisPlusProperties.LifecycleScopeEnum.PURGE_PARENT, SqlCommandType.DELETE).get(mode);
     }
 
     private static void validateLifecycleStatements(org.apache.ibatis.session.Configuration configuration,

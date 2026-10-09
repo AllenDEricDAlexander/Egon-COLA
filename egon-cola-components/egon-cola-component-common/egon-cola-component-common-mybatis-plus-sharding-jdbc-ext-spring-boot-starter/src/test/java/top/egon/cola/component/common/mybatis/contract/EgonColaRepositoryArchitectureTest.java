@@ -31,6 +31,7 @@ class EgonColaRepositoryArchitectureTest {
                 .collect(Collectors.toSet());
 
         assertEquals(57, expected.size());
+        expected.add(new MethodKeyBO("restoreById", "boolean", java.util.List.of("java.lang.Object")));
         assertEquals(expected, Arrays.stream(target.getDeclaredMethods())
                 .filter(method -> !method.isSynthetic())
                 .map(MethodKeyBO::of)
@@ -46,6 +47,7 @@ class EgonColaRepositoryArchitectureTest {
                         && !Modifier.isStatic(method.getModifiers()))
                 .map(MethodKeyBO::of)
                 .collect(Collectors.toSet());
+        expected.add(new MethodKeyBO("restoreById", "boolean", java.util.List.of("java.lang.Object")));
         assertEquals(expected, Arrays.stream(implementation.getDeclaredMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()) && !method.isSynthetic())
                 .map(MethodKeyBO::of)
