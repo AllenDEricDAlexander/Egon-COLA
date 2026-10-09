@@ -470,6 +470,13 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
                         || grant.getGrantContext() != null || mappedScopes.isEmpty()) {
                     return "USER_GRANT_CONTEXT_OR_SCOPE";
                 }
+                try {
+                    new ClientResourceGrant(client.getClientId(), grant.getResourceServerId(),
+                            ResourceGrantType.USER_DELEGATION, null, Set.copyOf(mappedScopes),
+                            ClientResourceGrant.Status.ACTIVE, 0L);
+                } catch (IllegalArgumentException exception) {
+                    return "USER_GRANT_CONTEXT_OR_SCOPE";
+                }
                 if (!sourceScopes.isEmpty() && !new LinkedHashSet<>(sourceScopes).equals(new LinkedHashSet<>(mappedScopes))) {
                     return "USER_GRANT_SCOPE_EXPANSION";
                 }
@@ -1163,15 +1170,18 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
             ResourceGrantType grantType = ResourceGrantType.valueOf(sourceGrant.getGrantType());
             List<String> approvedScopes = assignment.getApprovedGrantScopesByResource()
                     .get(sourceGrant.getResourceServerId()).stream().sorted().toList();
-            List<String> storedScopes = grantType == ResourceGrantType.USER_DELEGATION
-                    ? List.of() : approvedScopes;
+            List<String> storedScopes = approvedScopes;
             ClientResourceGrant.Status desiredStatus = ClientResourceGrant.Status.valueOf(sourceGrant.getStatus());
             OAuthGrantBO current = grantRepository.findGrant(clientRealm, client.getId(),
                     sourceGrant.getResourceServerId(), grantType).orElse(null);
             boolean createdDuringMigration = current == null || importedClient;
             boolean grantChanged = false;
+            boolean initializeUserScopes = importedClient && current != null
+                    && grantType == ResourceGrantType.USER_DELEGATION
+                    && current.getVersion() == 0L && current.getStatus() == ClientResourceGrant.Status.ACTIVE
+                    && current.getAllowedScopes().isEmpty();
             if (current != null && (!Objects.equals(current.getResourceVersion(), resource.getVersion())
-                    || !Objects.equals(current.getAllowedScopes(), storedScopes))) {
+                    || (!initializeUserScopes && !Objects.equals(current.getAllowedScopes(), storedScopes)))) {
                 throw new IllegalStateException("OAUTH_MIGRATION_TARGET_GRANT_CONTENT_CONFLICT");
             }
             if (current == null) {
@@ -1190,14 +1200,14 @@ public class OAuthMigrationServiceImpl implements OAuthMigrationService {
             } else if (!importedClient && (current.getStatus() != desiredStatus
                     || current.getVersion() != sourceGrant.getVersion())) {
                 throw new IllegalStateException("OAUTH_MIGRATION_TARGET_GRANT_CONTENT_CONFLICT");
-            } else if (current.getStatus() != desiredStatus) {
+            } else if (initializeUserScopes || current.getStatus() != desiredStatus) {
                 OAuthGrantBO updated = OAuthGrantBO.builder()
                         .id(current.getId())
                         .version(Math.addExact(current.getVersion(), 1L))
                         .clientPk(current.getClientPk())
                         .resourceServerId(current.getResourceServerId())
                         .grantType(current.getGrantType())
-                        .allowedScopes(current.getAllowedScopes())
+                        .allowedScopes(storedScopes)
                         .status(desiredStatus)
                         .resourceVersion(current.getResourceVersion())
                         .build();

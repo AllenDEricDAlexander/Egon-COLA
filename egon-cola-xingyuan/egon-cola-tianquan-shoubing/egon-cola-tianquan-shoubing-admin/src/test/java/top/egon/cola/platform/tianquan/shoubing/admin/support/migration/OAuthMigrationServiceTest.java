@@ -454,6 +454,185 @@ class OAuthMigrationServiceTest {
         verify(clientService, org.mockito.Mockito.times(1)).create(any(), any(), any(), any());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void importsApprovedUserScopesAndUpdatesOnlyFreshEmptyAssociation(boolean legacyScopesEmpty, boolean freshAssociation) throws Exception {
+        IdentityMigrationDAO dao = mock(IdentityMigrationDAO.class);
+        OAuthClientService clientService = mock(OAuthClientService.class);
+        ResourceServerService resourceServerService = mock(ResourceServerService.class);
+        OAuthSecurityProjectionComponent securityProjection = mock(OAuthSecurityProjectionComponent.class);
+        OAuthClientRepository clientRepository = mock(OAuthClientRepository.class);
+        OAuthResourceRepository resourceRepository = mock(OAuthResourceRepository.class);
+        OAuthGrantRepository grantRepository = mock(OAuthGrantRepository.class);
+        TransactionalOutboxResourceServerEventAdapter resourceEvents =
+                mock(TransactionalOutboxResourceServerEventAdapter.class);
+        OAuthRealmRepository realmRepository = mock(OAuthRealmRepository.class);
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("egon.tianquan-shoubing.oauth.public-origin"))
+                .thenReturn("https://identity.example");
+
+        ClientRowDTO managementClient = ClientRowDTO.builder().clientId("client-service")
+                .appId("platform-service").clientName("Manager").clientType("CONFIDENTIAL")
+                .status("ACTIVE").pkceRequired(false).accessTokenTtlSeconds(300).refreshTokenTtlSeconds(0)
+                .version(1).createdAt(CREATED_AT).updatedAt(CREATED_AT).build();
+        ClientRowDTO sourceClient = ClientRowDTO.builder().clientId("client-user").clientName("User portal").clientType("PUBLIC")
+                .status("ACTIVE").pkceRequired(true).accessTokenTtlSeconds(300).refreshTokenTtlSeconds(0)
+                .version(1).createdAt(CREATED_AT).updatedAt(CREATED_AT).build();
+        ResourceRowDTO sourceResource = ResourceRowDTO.builder().id("legacy-resource-1")
+                .resourceServerId("resource-1").resourceUri("https://api.example/resource-1")
+                .bizCode("identity").appCode("portal").environment("prod").displayName("Portal API")
+                .managementClientId("client-service").rbacApplicationCode("portal")
+                .entryPermissionCode("portal:read").status("ACTIVE").version(1)
+                .createdAt(CREATED_AT).updatedAt(CREATED_AT).build();
+        GrantRowDTO sourceGrant = GrantRowDTO.builder().id("grant-user").clientId("client-user")
+                .resourceServerId("resource-1").grantType("USER_DELEGATION")
+                .allowedScopes(legacyScopesEmpty ? "[]" : "[\"orders.read\"]").status("ACTIVE").version(1)
+                .createdAt(CREATED_AT).updatedAt(CREATED_AT).build();
+        OAuthClientBO targetClient = OAuthClientBO.builder().id(501L).version(1L)
+                .clientId(sourceClient.getClientId()).appId(sourceClient.getAppId())
+                .clientName(sourceClient.getClientName()).clientType(OAuthClient.ClientType.PUBLIC)
+                .purpose(OAuthClientPurposeEnum.USER).status(OAuthClient.Status.ACTIVE)
+                .credentialVersion(1L).redirectUris(List.of("https://portal.example/callback"))
+                .resourceUris(List.of("https://api.example/resource-1"))
+                .allowedScopes(List.of("orders.read")).accessTtlSeconds(300).refreshTtlSeconds(0)
+                .createdAt(CREATED_AT).updatedAt(CREATED_AT).build();
+        OAuthResourceBO targetResource = OAuthResourceBO.builder().id(601L).version(1L)
+                .resourceServerId(sourceResource.getResourceServerId()).resourceUri(URI.create(sourceResource.getResourceUri()))
+                .bizCode(sourceResource.getBizCode()).appCode(sourceResource.getAppCode())
+                .environment(sourceResource.getEnvironment()).displayName(sourceResource.getDisplayName())
+                .managementClientId(sourceResource.getManagementClientId()).managementClientPk(501L)
+                .rbacApplicationCode(sourceResource.getRbacApplicationCode())
+                .entryPermissionCode(sourceResource.getEntryPermissionCode()).status(ResourceServerStatus.ACTIVE)
+                .admissionTicketTtl(Duration.ofMinutes(5)).createdAt(CREATED_AT).updatedAt(CREATED_AT).build();
+        OAuthGrantBO targetGrant = OAuthGrantBO.builder().id(701L).version(0L).clientPk(501L)
+                .resourceServerId("resource-1").grantType(ResourceGrantType.USER_DELEGATION)
+                .allowedScopes(List.of()).status(ClientResourceGrant.Status.ACTIVE)
+                .resourceVersion(1L).build();
+        when(dao.selectUsersAfter(nullable(String.class), eq(500))).thenReturn(List.of());
+        when(dao.selectCredentialsAfter(nullable(String.class), eq(500))).thenReturn(List.of());
+        when(dao.selectTenantsAfter(nullable(String.class), eq(500))).thenReturn(List.of());
+        when(dao.selectMembershipsAfter(nullable(String.class), eq(500))).thenReturn(List.of());
+        when(dao.selectAuditAfter(nullable(String.class), eq(500))).thenReturn(List.of());
+        when(dao.selectClientsAfter(nullable(String.class), eq(500))).thenAnswer(call ->
+                call.getArgument(0) == null ? List.of(managementClient, sourceClient)
+                        : "client-service".equals(call.getArgument(0)) ? List.of(sourceClient) : List.of());
+        when(dao.selectResourcesAfter(nullable(String.class), eq(500))).thenAnswer(call ->
+                call.getArgument(0) == null ? List.of(sourceResource) : List.of());
+        when(dao.selectClientById("client-service")).thenReturn(managementClient);
+        when(dao.sourceTenantExists("1001")).thenReturn(1);
+        when(dao.selectSourceTenantStatus("1001")).thenReturn("ACTIVE");
+        when(dao.selectTenantByExternalId(77351065313480704L, "1001")).thenReturn(
+                top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.po.IdentityTenantPO.builder()
+                        .id(1001L).identityTenantId("1001").status("ACTIVE").build());
+        when(dao.selectResourceById("resource-1")).thenReturn(sourceResource);
+        when(dao.selectGrantsForClient("client-service", 65)).thenReturn(List.of(
+                GrantRowDTO.builder().id("manager-grant").clientId("client-service")
+                        .resourceServerId("resource-1").grantType("CLIENT_CREDENTIALS").grantContext("PLATFORM")
+                        .allowedScopes("[\"orders.manage\"]").status("ACTIVE").version(1L)
+                        .createdAt(CREATED_AT).updatedAt(CREATED_AT).build()));
+        when(dao.selectRedirectUrisForClient("client-service", 17)).thenReturn(List.of());
+        when(dao.selectGrantsForClient("client-user", 65)).thenReturn(List.of(sourceGrant));
+        when(dao.selectRedirectUrisForClient("client-user", 17)).thenReturn(List.of(
+                RedirectUriRowDTO.builder().id("redirect-user").clientId("client-user")
+                        .redirectUri("https://portal.example/callback").createdAt(CREATED_AT).build()));
+        when(dao.selectOutboxEventsAfter(nullable(String.class), eq(500))).thenReturn(List.of());
+        when(dao.countLegacyClientSecrets()).thenReturn(0L);
+        when(dao.countLegacySigningKeys()).thenReturn(0L);
+        when(dao.restoreClientHistory(any(Long.class), eq("client-user"), eq(1L), eq(CREATED_AT), eq(CREATED_AT)))
+                .thenReturn(1);
+        when(dao.restoreGrantHistory(any(Long.class), eq(501L), eq("resource-1"),
+                eq("USER_DELEGATION"), eq(1L), eq(CREATED_AT), eq(CREATED_AT))).thenAnswer(call -> {
+                    targetGrant.setVersion(1L);
+                    return 1;
+                });
+        when(realmRepository.findByRealmKey(any())).thenReturn(Optional.empty());
+        AtomicInteger clientLookups = new AtomicInteger();
+        when(clientRepository.findByClientId(any(), eq("client-user"))).thenAnswer(call ->
+                clientLookups.getAndIncrement() == 0 ? Optional.empty() : Optional.of(targetClient));
+        when(clientService.create(any(), any(), any(), any())).thenReturn(CreatedOAuthClientVO.builder()
+                .build());
+        when(resourceRepository.findByResourceServerId(any(), eq("resource-1")))
+                .thenReturn(Optional.of(targetResource));
+        AtomicReference<OAuthGrantBO> storedGrant = new AtomicReference<>(freshAssociation ? targetGrant : null);
+        when(grantRepository.findGrant(any(), eq(501L), eq("resource-1"),
+                eq(ResourceGrantType.USER_DELEGATION))).thenAnswer(call -> Optional.ofNullable(storedGrant.get()));
+        when(grantRepository.save(any(), any(), eq(0L))).thenAnswer(call -> {
+            OAuthGrantBO saved = call.getArgument(1);
+            targetGrant.setAllowedScopes(saved.getAllowedScopes()).setVersion(saved.getVersion())
+                    .setStatus(saved.getStatus());
+            storedGrant.set(targetGrant);
+            return targetGrant;
+        });
+
+        Path freezeMarker = temporaryDirectory.resolve("user-source.freeze");
+        Path ownershipMap = temporaryDirectory.resolve("user-owner-map.json");
+        Path secretDirectory = temporaryDirectory.resolve("user-secrets");
+        Files.createDirectory(secretDirectory);
+        Files.setPosixFilePermissions(secretDirectory, Set.of(PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE));
+        writeOwnerOnly(freezeMarker, "realm=tenant:1001\nsnapshot=snapshot-user\n");
+        writeOwnerOnly(ownershipMap, """
+                {"schemaVersion":1,"sourceSnapshotId":"snapshot-user","assignments":[
+                  {"clientId":"client-service","realmKey":"platform","purpose":"SERVICE",
+                   "approvedGrantScopesByResource":{"resource-1":["orders.manage"]}},
+                  {"clientId":"client-user","realmKey":"tenant:1001","purpose":"USER",
+                   "scopeApprovalId":"review-user-business-scopes",
+                   "approvedGrantScopesByResource":{"resource-1":["orders.read"]}}
+                ]}
+                """);
+        OAuthMigrationServiceImpl service = new OAuthMigrationServiceImpl(
+                dao, new IdentityDirectoryContext(77351065313480704L, "tenantId"), clientService,
+                resourceServerService, securityProjection, clientRepository, resourceRepository, grantRepository,
+                resourceEvents, realmRepository, transactionManager, new ObjectMapper(), environment);
+        OAuthMigrationCommand dryRun = OAuthMigrationCommand.builder().realmKey("tenant:1001")
+                .sourceSnapshotId("snapshot-user").dryRun(true).freezeMarkerFile(freezeMarker)
+                .ownershipMapFile(ownershipMap).checkpointFile(temporaryDirectory.resolve("user-checkpoint.json"))
+                .secretDistributionDirectory(secretDirectory).build();
+        OAuthMigrationReportResult approved = service.importRealm(dryRun);
+        assertThat(approved.getConflictCodes()).isEmpty();
+        OAuthMigrationCommand apply = OAuthMigrationCommand.builder().realmKey(dryRun.getRealmKey())
+                .sourceSnapshotId(dryRun.getSourceSnapshotId()).dryRun(false)
+                .freezeMarkerFile(dryRun.getFreezeMarkerFile()).ownershipMapFile(dryRun.getOwnershipMapFile())
+                .checkpointFile(dryRun.getCheckpointFile())
+                .secretDistributionDirectory(dryRun.getSecretDistributionDirectory())
+                .approvedReportSha256(approved.getReportSha256()).build();
+
+        OAuthMigrationReportResult imported = service.importRealm(apply);
+
+        assertThat(imported.getConflictCount()).isZero();
+        assertThat(imported.getImportedCount()).isEqualTo(1L);
+        ArgumentCaptor<CreateOAuthClientDTO> createCaptor = ArgumentCaptor.forClass(CreateOAuthClientDTO.class);
+        verify(clientService).create(any(), any(), createCaptor.capture(), any());
+        assertThat(createCaptor.getValue().getResourceUris()).containsExactly("https://api.example/resource-1");
+        assertThat(createCaptor.getValue().getAllowedScopes()).containsExactly("orders.read");
+        assertThat(createCaptor.getValue().getRefreshTokenTtlSeconds()).isZero();
+        assertThat(targetGrant.getAllowedScopes()).containsExactly("orders.read");
+        assertThat(targetGrant.getVersion()).isEqualTo(1L);
+        verify(resourceEvents, never()).enqueueServiceGrantProjection(any(), any(), any());
+
+        OAuthMigrationReportResult replayed = service.importRealm(apply);
+        assertThat(replayed.getImportedCount()).isEqualTo(imported.getImportedCount());
+        verify(clientService, times(1)).create(any(), any(), any(), any());
+        verify(grantRepository, times(1)).save(any(), any(), eq(0L));
+        Files.delete(apply.getCheckpointFile());
+        targetGrant.setAllowedScopes(List.of()).setVersion(0L);
+        assertThatThrownBy(() -> service.importRealm(apply))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("OAUTH_MIGRATION_TARGET_GRANT_CONTENT_CONFLICT");
+        assertThat(new ObjectMapper().readTree(apply.getCheckpointFile().toFile()).path("phase").asText())
+                .isEqualTo("TENANT_CLIENTS");
+        targetGrant.setAllowedScopes(List.of("orders.write")).setVersion(1L);
+        assertThatThrownBy(() -> service.importRealm(apply))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("OAUTH_MIGRATION_TARGET_GRANT_CONTENT_CONFLICT");
+        if (legacyScopesEmpty) {
+            writeOwnerOnly(ownershipMap, Files.readString(ownershipMap).replace("orders.read", "openid"));
+            assertThat(service.importRealm(dryRun).getConflictCodes())
+                    .contains("CLIENT:client-user:USER_GRANT_CONTEXT_OR_SCOPE");
+        }
+    }
+
     @Test
     void rejectsUnknownAndInconsistentCheckpointStatesBeforeTargetEffects() throws Exception {
         IdentityMigrationDAO dao = mock(IdentityMigrationDAO.class);

@@ -23,6 +23,35 @@ class ResourceServerPolicyTest {
             "https://api.egon.internal/prod/permission/tianquan-shoubing");
 
     @Test
+    void userBusinessGrantPreservesExplicitImmutableScopeAndEmptyNeverMeansAll() {
+        Set<String> selected = new java.util.HashSet<>(Set.of("orders:read"));
+        ClientResourceGrant grant = new ClientResourceGrant("user-client", "orders-api",
+                ResourceGrantType.USER_DELEGATION, null, selected, ClientResourceGrant.Status.ACTIVE, 0L);
+        selected.add("orders:write");
+        assertEquals(Set.of("orders:read"), grant.allowedScopes());
+        assertTrue(grant.allows(Set.of("orders:read")));
+        assertFalse(grant.allows(Set.of("orders:write")));
+        assertThrows(UnsupportedOperationException.class, () -> grant.allowedScopes().add("orders:write"));
+        ClientResourceGrant empty = new ClientResourceGrant("user-client", "orders-api",
+                ResourceGrantType.USER_DELEGATION, null, Set.of(), ClientResourceGrant.Status.ACTIVE, 0L);
+        assertFalse(empty.allows(Set.of("orders:read")));
+        assertFalse(empty.allows(Set.of()));
+        for (String identity : List.of("openid", "profile", "email", "address", "phone", "offline_access")) {
+            assertThrows(IllegalArgumentException.class, () -> new ClientResourceGrant("user-client", "orders-api",
+                    ResourceGrantType.USER_DELEGATION, null, Set.of(identity), ClientResourceGrant.Status.ACTIVE, 0L));
+        }
+        assertThrows(IllegalArgumentException.class, () -> new ClientResourceGrant("user-client", "orders-api",
+                ResourceGrantType.USER_DELEGATION, null, Set.of("s".repeat(129)), ClientResourceGrant.Status.ACTIVE, 0L));
+        assertThrows(IllegalArgumentException.class, () -> new ClientResourceGrant("user-client", "orders-api",
+                ResourceGrantType.USER_DELEGATION, null,
+                java.util.stream.IntStream.range(0, 65).mapToObj(i -> "scope:" + i).collect(java.util.stream.Collectors.toSet()),
+                ClientResourceGrant.Status.ACTIVE, 0L));
+        assertThrows(IllegalArgumentException.class, () -> new ClientResourceGrant("user-client", "orders-api",
+                ResourceGrantType.USER_DELEGATION, null, Set.of("orders:read"), ClientResourceGrant.Status.ACTIVE, 0L,
+                top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.PLATFORM));
+    }
+
+    @Test
     void validatesResourceIdentifierAndExactApplicationScope() {
         ResourceServer resource = resource(ResourceServerStatus.ACTIVE);
 

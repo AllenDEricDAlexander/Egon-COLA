@@ -16,7 +16,7 @@ import java.util.TreeSet;
  * @param resourceServerId  目标 Resource Server 标识；target Resource Server identifier
  * @param grantType         授权类型；grant type
  * @param tenantId          CLIENT_CREDENTIALS 绑定租户，PLATFORM 时为空；tenant bound to CLIENT_CREDENTIALS, null for PLATFORM
- * @param allowedScopes     Tianquan-Shoubing 许可的服务 Scope；service scopes permitted by Tianquan-Shoubing
+ * @param allowedScopes     明确的用户业务或服务 Scope；explicit USER business or SERVICE scopes
  * @param status            授权状态；grant status
  * @param version           乐观锁和投影版本；optimistic-lock and projection version
  * @param scopeContext      SERVICE 授权上下文；SERVICE authorization context
@@ -45,17 +45,16 @@ public record ClientResourceGrant(
         );
         grantType = Objects.requireNonNull(grantType, "grantType");
         tenantId = optional(tenantId);
-        allowedScopes = scopes(allowedScopes);
+        allowedScopes = scopes(allowedScopes, grantType);
         status = Objects.requireNonNull(status, "status");
         if (version < 0L) {
             throw new IllegalArgumentException("version must not be negative");
         }
         if (grantType == ResourceGrantType.USER_DELEGATION
                 && (tenantId != null
-                || !allowedScopes.isEmpty()
                 || scopeContext != null)) {
             throw new IllegalArgumentException(
-                    "USER_DELEGATION must not contain tenant, scopes or context"
+                    "USER_DELEGATION must not contain tenant or context"
             );
         }
         if (grantType == ResourceGrantType.CLIENT_CREDENTIALS) {
@@ -134,7 +133,7 @@ public record ClientResourceGrant(
      * @return 请求集合为非空子集时为 {@code true}；{@code true} when the request is a non-empty subset
      */
     public boolean allows(Set<String> requestedScopes) {
-        Set<String> requested = scopes(requestedScopes);
+        Set<String> requested = scopes(requestedScopes, grantType);
         return !requested.isEmpty() && allowedScopes.containsAll(requested);
     }
 
@@ -144,15 +143,22 @@ public record ClientResourceGrant(
      * <p>Normalizes a scope set.</p>
      *
      * @param values 原始 Scope；raw scopes
+     * @param type 授权类型；grant type
      * @return 已排序不可变集合；sorted immutable set
      */
-    private static Set<String> scopes(Set<String> values) {
+    private static Set<String> scopes(Set<String> values, ResourceGrantType type) {
         Objects.requireNonNull(values, "allowedScopes");
+        if (type == ResourceGrantType.USER_DELEGATION && values.size() > 64) {
+            throw new IllegalArgumentException("USER_DELEGATION scopes exceed limit");
+        }
         TreeSet<String> normalized = new TreeSet<>();
         for (String value : values) {
             String scope = required(value, "scope");
-            if (scope.length() > 256
-                    || !scope.matches("[A-Za-z0-9][A-Za-z0-9:._~/-]*")) {
+            boolean invalid = type == ResourceGrantType.USER_DELEGATION
+                    ? !scope.matches("[A-Za-z0-9._:-]{1,128}")
+                    || Set.of("openid", "profile", "email", "address", "phone", "offline_access").contains(scope)
+                    : scope.length() > 256 || !scope.matches("[A-Za-z0-9][A-Za-z0-9:._~/-]*");
+            if (invalid) {
                 throw new IllegalArgumentException("scope is invalid");
             }
             if (!normalized.add(scope)) {

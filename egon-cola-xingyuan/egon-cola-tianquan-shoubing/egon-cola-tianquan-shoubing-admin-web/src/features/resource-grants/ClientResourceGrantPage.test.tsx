@@ -127,6 +127,56 @@ describe('Client Resource Grant administration', () => {
     ))
   })
 
+  it('sends the exact explicit business scopes for a USER delegation grant', async () => {
+    renderPage()
+    await screen.findByText('Orders API')
+    fireEvent.click(screen.getByRole('button', { name: /新建.*Grant/ }))
+    fireEvent.change(screen.getByLabelText('允许的 Scope（空格分隔）'), { target: { value: 'orders:read orders:write' } })
+    fireEvent.click(screen.getByRole('button', { name: /确定|OK/ }))
+    await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api?realm=tenant%3A1001',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({
+        grantType: 'USER_DELEGATION', allowedScopes: ['orders:read', 'orders:write'],
+        expectedResourceVersion: resourceServer.version,
+      }) }),
+    ))
+  })
+
+  it.each(['openid', 'orders/read', 'x'.repeat(129),
+    Array.from({ length: 65 }, (_, i) => `orders:${i}`).join(' ')])(
+    'rejects invalid USER scope input before PUT: %s', async (value) => {
+      renderPage()
+      await screen.findByText('Orders API')
+      fireEvent.click(screen.getByRole('button', { name: /新建.*Grant/ }))
+      fireEvent.change(screen.getByLabelText('允许的 Scope（空格分隔）'), { target: { value } })
+      fireEvent.click(screen.getByRole('button', { name: /确定|OK/ }))
+      expect(await screen.findByText('USER Grant 仅允许最多 64 个业务 Scope，每项最多 128 个字符')).toBeInTheDocument()
+      expect(state.request.mock.calls.some(([, options]) => options?.method === 'PUT')).toBe(false)
+    },
+  )
+
+  it('restores explicit USER scope and grant version when editing', async () => {
+    state.request.mockImplementation((path: string, options?: RequestInit) => {
+      if (path === '/api/v1/tianquan-shoubing/resource-servers?realm=platform' && !options) return Promise.resolve([resourceServer])
+      if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources?realm=tenant%3A1001' && !options) {
+        return Promise.resolve([{ ...grant, grantType: 'USER_DELEGATION', tenantId: undefined }])
+      }
+      return Promise.resolve(grant)
+    })
+    renderPage()
+    await screen.findByText('Orders API')
+    fireEvent.click(await screen.findByRole('button', { name: /新建.*更新.*Grant/ }))
+    expect(screen.getByLabelText('允许的 Scope（空格分隔）')).toHaveValue('orders:read')
+    fireEvent.click(screen.getByRole('button', { name: /确定|OK/ }))
+    await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api?realm=tenant%3A1001',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({
+        grantType: 'USER_DELEGATION', allowedScopes: ['orders:read'],
+        expectedResourceVersion: resourceServer.version, expectedGrantVersion: grant.version,
+      }) }),
+    ))
+  })
+
   it('uses the existing DELETE grant path and retains the row after a conflict', async () => {
     state.grantsAvailable = true
     state.request.mockImplementation((path: string, options?: RequestInit) => {

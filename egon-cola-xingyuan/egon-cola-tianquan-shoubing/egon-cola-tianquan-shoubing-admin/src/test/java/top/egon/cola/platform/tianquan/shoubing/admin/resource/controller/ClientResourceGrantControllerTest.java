@@ -102,6 +102,37 @@ class ClientResourceGrantControllerTest {
     }
 
     @Test
+    void userScopeSchemaRejectsInvalidTokensBeforeManagementWrites() throws Exception {
+        for (String scope : List.of("*", "orders/read", "x".repeat(129))) {
+            mockMvc.perform(put("/api/v1/tianquan-shoubing/clients/user-client/resources/orders")
+                            .contentType(MediaType.APPLICATION_JSON).content("""
+                                    {"grantType":"USER_DELEGATION","allowedScopes":["%s"],
+                                     "expectedResourceVersion":0}
+                                    """.formatted(scope)))
+                    .andExpect(status().isBadRequest());
+        }
+        verify(resources, org.mockito.Mockito.never()).putGrant(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void userGrantRequestAndViewRetainExactBusinessScopes() throws Exception {
+        ClientResourceGrantVO userGrant = grant().setGrantType("USER_DELEGATION")
+                .setTenantId(null).setAllowedScopes(Set.of("orders:read"));
+        when(resources.putGrant(eq(TENANT_REALM), eq(PLATFORM_REALM), eq("user-client"), eq("orders"), any()))
+                .thenReturn(userGrant);
+        mockMvc.perform(put("/api/v1/tianquan-shoubing/clients/user-client/resources/orders")
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"grantType":"USER_DELEGATION","allowedScopes":["orders:read"],
+                                 "expectedResourceVersion":0}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"grantType\":\"USER_DELEGATION\",\"allowedScopes\":[\"orders:read\"]}"));
+        verify(resources).putGrant(eq(TENANT_REALM), eq(PLATFORM_REALM), eq("user-client"), eq("orders"),
+                org.mockito.ArgumentMatchers.argThat(value -> value.getAllowedScopes().equals(Set.of("orders:read"))
+                        && value.getTenantId() == null));
+    }
+
+    @Test
     void batchGrantRequiresExplicitApplicationCodes() throws Exception {
         when(resources.batchGrants(eq(TENANT_REALM), eq(PLATFORM_REALM), eq("tianquan-shoubing-service"), any()))
                 .thenReturn(List.of(grant()));

@@ -120,7 +120,10 @@ class OAuthClientServiceImplTest {
         verify(clients).save(eq(tenantA), any(OAuthClientBO.class), eq(0L));
         verify(revocations).revokeClient(eq(tenantA), argThat(command -> command.getClientPk() == 501L
                 && command.getReasonCode().equals("CLIENT_CREATED")));
-        verify(grants).save(eq(tenantA), any(OAuthGrantBO.class), eq(0L));
+        var initialGrant = org.mockito.ArgumentCaptor.forClass(OAuthGrantBO.class);
+        verify(grants).save(eq(tenantA), initialGrant.capture(), eq(0L));
+        assertThat(initialGrant.getValue().getAllowedScopes()).isEmpty();
+        assertThat(initialGrant.getValue().getGrantType()).isEqualTo(ResourceGrantType.USER_DELEGATION);
         verify(clients, never()).findByClientId(tenantB, "orders-web");
     }
 

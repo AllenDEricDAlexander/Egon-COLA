@@ -1,6 +1,9 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -22,7 +25,8 @@ public class UpsertClientResourceGrantDTO {
     private ResourceGrantType grantType;
     private String tenantId;
     @NotNull
-    private Set<String> allowedScopes;
+    @Size(max = 64)
+    private Set<@NotBlank @Size(max = 128) @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String> allowedScopes;
     @PositiveOrZero
     private long expectedResourceVersion;
     @PositiveOrZero

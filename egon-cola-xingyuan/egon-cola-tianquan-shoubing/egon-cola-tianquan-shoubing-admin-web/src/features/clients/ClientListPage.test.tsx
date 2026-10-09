@@ -155,7 +155,7 @@ describe('OAuth client secret administration', () => {
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
             '/api/v1/tianquan-shoubing/clients?page=0&size=20&realm=platform',
         ))
-        fireEvent.click(screen.getByText('Order Service'))
+        fireEvent.click(await screen.findByText('Order Service'))
         expect(screen.getAllByText(client.issuer).length).toBeGreaterThan(0)
     })
 

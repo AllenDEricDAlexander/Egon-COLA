@@ -1,6 +1,6 @@
 # OAuth 原生同意链补救结果与 USER Grant 后续提案
 
-状态：**C9b Verified，按 Step 19 单一提交交付；C10 Review，待批准**。用户2026-10-09明确批准 C9b。最终范围为33个明确文件，原生回合、354个Admin测试、24个Edge测试、58个消费者测试及静态门禁通过。以下原始阻塞和候选22项保留为决策来由；实际执行以Plan Step19 File1–33为准。未启动应用或执行数据库。
+状态：**C9b Verified，按 Step 19 单一提交交付；C10 Approved / In Progress**。用户2026-10-09明确批准 C9b。最终范围为33个明确文件，原生回合、354个Admin测试、24个Edge测试、58个消费者测试及静态门禁通过。以下原始阻塞和候选22项保留为决策来由；实际执行以Plan Step19 File1–33为准。未启动应用或执行数据库。
 
 ## 原始阻塞（C9b 已修复）
 
@@ -101,9 +101,9 @@ Step19在既有SAS Provider外复用事务Decorator和GrantTransaction Strategy�
 
 最终证据：`/tmp/egon-c9b-all-admin-green3.log`：68类/354测试；`/tmp/egon-c9b-final-edge.log`：24测试；`/tmp/egon-c9b-consumers.log`：33 Starter +17 Gateway +3 RPC +2 cancellation +3 MCP =58测试。均exit0，0失败/错误/跳过；static/strict/diff/旧SQL核验通过。对应精确命令和33路径见执行审计。
 
-## C10 推荐纠正：显式 USER 业务 Grant（待批准）
+## C10 已实现纠正：显式 USER 业务 Grant
 
-**B-04 / Not satisfied。** 主Spec §10/11 oauth_grant明确USER也必须受显式allowed_scopes限制。当前Core `ClientResourceGrant`构造器禁止非空USER scope；Admin `ResourceServerServiceImpl#validateClientGrantContext`拒绝非空USER scope，upsert持久化时强制写空；`ClientResourceGrantPage`只显示SERVICE scope输入且USER提交强制空；`OAuthMigrationServiceImpl#importClientGrants`对已审核USER scopes再次写空。这是实现缺口，不能归类为仅未运行。C9b签发保护已阻止扩权，但通过当前管理/导入入口无法建立合法人员业务授权。
+**B-04 / Closed（Step20；以下为纠正前证据）。** 主Spec §10/11 oauth_grant明确USER也必须受显式allowed_scopes限制。当前Core `ClientResourceGrant`构造器禁止非空USER scope；Admin `ResourceServerServiceImpl#validateClientGrantContext`拒绝非空USER scope，upsert持久化时强制写空；`ClientResourceGrantPage`只显示SERVICE scope输入且USER提交强制空；`OAuthMigrationServiceImpl#importGrantsForClient`对已审核USER scopes再次写空。这是实现缺口，不能归类为仅未运行。C9b签发保护已阻止扩权，但通过当前管理/导入入口无法建立合法人员业务授权。
 
 推荐保留现有API-028/029/030/045和realm/乐观版本/原权限入口：Core允许有界、明确的USER BUSINESS scopes，继续禁止USER tenantId/scopeContext；Admin按当前client允许scope、原Resource/version边界验证并保存实际选择。UI让USER输入/展示同一显式业务scope集合。迁移只保存已审核assignment中的准确scopes，并在恢复比对时校验准确集合。既有空Grant保持拒绝业务权限，不猜测或补写全量scope；client Resource自动关联不得自动增加业务权利。标准OIDC身份scope继续由原client/consent校验。
 
@@ -126,4 +126,6 @@ Step19在既有SAS Provider外复用事务Decorator和GrantTransaction Strategy�
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx` | USER编辑/提交/展示准确scope，保留realm缓存和错误状态 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx` | USER非空scope实际请求与错误/缓存合同 |
 
-批准后先在现有有效Spec/Plan形成一个精确Step20并通过strict，再执行测试RED→最小实现→GREEN→一个聚焦提交；前一步Step19提交必须先验证。门禁为Core ResourceServerPolicyTest、上述受影响Admin测试、全部安全Admin精确列表、前端Grant页面测试/typecheck及C9b原生回合。真实PG/Redis/TLS/浏览器仍由用户控制。本提案不自动授权改变这些管理/Core/UI/迁移路径。
+批准后先在现有有效Spec/Plan形成一个精确Step20并通过strict，再执行测试RED→最小实现→GREEN→一个聚焦提交；前一步Step19提交必须先验证。门禁为Core ResourceServerPolicyTest、上述受影响Admin测试、全部安全Admin精确列表、前端Grant页面测试/typecheck及C9b原生回合。真实PG/Redis/TLS/浏览器仍由用户控制。该具体范围已由用户明确批准。
+
+用户已明确批准C10。Step20原16路径加三个直接必要的构造/页面测试兼容路径，共19路径，已先声明并strict验证。五个生产路径完整传递明确USER BUSINESS scope，空集合拒绝业务，既有SERVICE/realm/版本/权限合同保留；新Client同事务创建的空关联仅初始化为审核集合，既有空/冲突Grant仍拒绝扩权。实际管理→原生签发、清空/禁用不消费code、迁移四种源/初始关联组合与恢复冲突均通过。最终364 Admin +29 Core、前端50/Grant11、本地共享源码typecheck及strict/旧SQL/原dirty边界通过；原安装包typecheck失败和真实运行未验单列执行审计。立即按Step20完成一个聚焦提交，无DDL/依赖/运行操作。

@@ -434,12 +434,12 @@ export const ClientResourceGrantPage = () => {
                             && values.scopeContext === 'TENANT'
                                 ? values.tenantId?.trim() || undefined
                                 : undefined,
-                            allowedScopes: values.grantType === 'CLIENT_CREDENTIALS' ? scopes : [],
+                            allowedScopes: scopes,
                             expectedResourceVersion: selectedRs.version,
                             ...(expectedGrantVersion === undefined ? {} : {expectedGrantVersion}),
                         }
                         upsertMutation.mutate({rsId: selectedRs.resourceServerId, data})
-                    })
+                    }, () => undefined)
                 }}
                 destroyOnHidden
             >
@@ -475,9 +475,20 @@ export const ClientResourceGrantPage = () => {
                                 )}
                             </Form.Item>
                             <Form.Item noStyle dependencies={['grantType']}>
-                                {({getFieldValue}) => getFieldValue('grantType') === 'CLIENT_CREDENTIALS' && (
-                                    <Form.Item name="allowedScopes" label="允许的 Scope（空格分隔）">
-                                        <Input placeholder="read write admin"/>
+                                {({getFieldValue}) => (
+                                    <Form.Item name="allowedScopes" label="允许的 Scope（空格分隔）" rules={[{
+                                        validator: (_rule, value?: string) => {
+                                            if (getFieldValue('grantType') !== 'USER_DELEGATION') return Promise.resolve()
+                                            const scopes = (value || '').split(/\s+/).filter(Boolean)
+                                            const identityScopes = ['openid', 'profile', 'email', 'address', 'phone', 'offline_access']
+                                            if (scopes.length > 64 || scopes.some((scope) =>
+                                                !/^[A-Za-z0-9._:-]{1,128}$/.test(scope) || identityScopes.includes(scope))) {
+                                                return Promise.reject(new Error('USER Grant 仅允许最多 64 个业务 Scope，每项最多 128 个字符'))
+                                            }
+                                            return Promise.resolve()
+                                        },
+                                    }]}>
+                                        <Input placeholder="orders:read orders:write"/>
                                     </Form.Item>
                                 )}
                             </Form.Item>

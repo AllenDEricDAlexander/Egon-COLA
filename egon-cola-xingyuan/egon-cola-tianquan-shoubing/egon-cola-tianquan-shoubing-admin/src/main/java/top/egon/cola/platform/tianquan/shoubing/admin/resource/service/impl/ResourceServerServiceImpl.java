@@ -1,5 +1,6 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.resource.service.impl;
 
+import jakarta.validation.Validator;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.OAuthClientPurposeEnum;
@@ -79,6 +81,9 @@ public class ResourceServerServiceImpl implements ResourceServerService {
     @NonNull
     @Qualifier("resourceServerEventAdapter")
     private final TransactionalOutboxResourceServerEventAdapter events;
+    @NonNull
+    @Qualifier("defaultValidator")
+    private final Validator validator;
 
     @Override
     @Transactional(readOnly = true)
@@ -335,6 +340,7 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             OAuthClientBO client,
             OAuthResourceBO resource,
             UpsertClientResourceGrantDTO command) {
+        new ValidationUtils(validator).validate(command);
         ResourceGrantType type = Objects.requireNonNull(command.getGrantType(), "grantType");
         Set<String> scopes = command.getAllowedScopes() == null ? Set.of() : canonicalScopes(command.getAllowedScopes());
         validateClientGrantContext(realm, client, type, command.getTenantId(), scopes);
@@ -352,7 +358,8 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                     .clientPk(client.getId())
                     .resourceServerId(resource.getResourceServerId())
                     .grantType(type)
-                    .allowedScopes(type == ResourceGrantType.USER_DELEGATION ? List.of() : List.copyOf(scopes))
+                    .allowedScopes(type == ResourceGrantType.USER_DELEGATION
+                            ? scopes.stream().sorted().toList() : List.copyOf(scopes))
                     .status(ClientResourceGrant.Status.ACTIVE)
                     .resourceVersion(resource.getVersion())
                     .build(), 0L);
@@ -362,7 +369,8 @@ public class ResourceServerServiceImpl implements ResourceServerService {
         }
         OAuthGrantBO changed = copy(current)
                 .version(Math.addExact(current.getVersion(), 1L))
-                .allowedScopes(type == ResourceGrantType.USER_DELEGATION ? List.of() : List.copyOf(scopes))
+                .allowedScopes(type == ResourceGrantType.USER_DELEGATION
+                        ? scopes.stream().sorted().toList() : List.copyOf(scopes))
                 .status(ClientResourceGrant.Status.ACTIVE)
                 .resourceVersion(resource.getVersion())
                 .build();
@@ -401,9 +409,12 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             String tenantId,
             Set<String> scopes) {
         if (type == ResourceGrantType.USER_DELEGATION) {
-            if (client.getPurpose() != OAuthClientPurposeEnum.USER || tenantId != null || !scopes.isEmpty()) {
+            if (client.getPurpose() != OAuthClientPurposeEnum.USER || tenantId != null
+                    || !client.getAllowedScopes().containsAll(scopes)) {
                 throw new IllegalArgumentException("OAUTH_USER_DELEGATION_GRANT_INVALID");
             }
+            new ClientResourceGrant(client.getClientId(), "grant-target", type, null, scopes,
+                    ClientResourceGrant.Status.ACTIVE, 0L);
             return;
         }
         if (client.getPurpose() != OAuthClientPurposeEnum.SERVICE || scopes.isEmpty()) {

@@ -2,20 +2,20 @@
 
 **Verdict: PARTIAL — Spec requirements are unmet or unverified.**
 
-18个原Plan步骤和7个历史纠正提交保留。已批准的Step19/C9b通过33路径审查、真实原生Filter回合及354 Admin +24 Edge +58消费者测试，按一个聚焦纠正提交交付。B-01/02/03已关闭。独立发现B-04：管理/Core/UI/迁移无法保存显式USER业务Grant，待审核C10；真实PG/Redis/多实例/TLS/浏览器与负载仍未验证，完整reactor历史失败未豁免。因此全任务仍为PARTIAL。
+18个原Plan步骤和7个历史纠正提交保留。已批准的Step19/C9b通过33路径审查、真实原生Filter回合及354 Admin +24 Edge +58消费者测试，按一个聚焦纠正提交交付。B-01/02/03已关闭。已批准的Step20/C10关闭B-04，19路径且364 Admin +29 Core/前端50通过；真实PG/Redis/多实例/TLS/浏览器与负载仍未验证，完整reactor历史失败未豁免。因此全任务仍为PARTIAL。
 
 ## 1. 审计基线与授权
 
 | 项 | 值 |
 | --- | --- |
-| Branch / baseline | main；提交前当前parent `7084c44ce0d04ca2c8c8f0d09ea581bfe8a4b2d4`；Step19起点`4d9104f2817e051cacc2bbd99e24df4fdab88182`；本报告与Step19同次提交，实际hash由最终交付及`git log --format=%H --grep="^fix(shoubing): complete native consent and oidc flow$" -1`读取 |
+| Branch / baseline | main；Step20起点`9fc41f38f0638a375d049f5350d7e3a1b92051ac`；本报告随Step20唯一提交交付，实际hash由最终交付及同题git log读取 |
 | 执行起点 | `ad60242402eb45a4a801730cf5151119031a98b4` |
-| Plan | docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md；Review；Updated 2026-10-09 16:45（文档状态不冒充Accepted） |
+| Plan | docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md；Review；Updated 2026-10-09 17:37（文档状态不冒充Accepted） |
 | 主Spec | docs/egon/spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md；历史Accepted，保留既有未提交文档修改 |
 | 有效联合修订 | docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md；Review，依当前对话明确执行授权实施；Grant提案由本修订点名替代 |
 | 依赖Spec | docs/egon/spec/2026-09-24-12-00-outbox-statemachine-cqe-integration.md；同源DataSource/SqlSessionFactory/TransactionManager与Outbox投递合同 |
-| 补救结果/后续提案 | docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md；C9b已批准/验证33路径；C10显式USER Grant十二候选代码/测试路径待批准 |
-| 审核范围 | 原18步骤/7纠正及Step19共33声明路径；有效47 REQ、46 HTTP +4 INTERNAL +2 EVENT +2 JOB与88 TEST逐项矩阵。运行验收不得从测试替身推断。 |
+| 补救结果/后续提案 | docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md；C9b已批准/验证33路径；C10已批准并实现；19路径包括3个直接必要构造/关联页面测试兼容路径 |
+| 审核范围 | 原18步骤/7纠正及Step19的33路径、Step20的19路径；有效48 REQ、46 HTTP +4 INTERNAL +2 EVENT +2 JOB与91 TEST逐项矩阵。运行验收不得从测试替身推断。 |
 
 
 ## 2. 已关闭的纠正与剩余缺口
@@ -26,9 +26,9 @@
 
 **B-03 / Closed，Step19。** C8c合并入这一逻辑纠正：实际JWT scope字符串、Token-specific scope重载、ID/AT分组校验、API-046/OAS、303登录/302同意或callback、必填state/nonce/resource边界及Edge固定Resource/stepUp合同同步。准确登记一个新DDL并保持旧项不变。
 
-**B-04 / Not satisfied，C10待批准。** `core/resource/ClientResourceGrant.java:53`禁止非空USER scope；Admin `resource/service/impl/ResourceServerServiceImpl.java:355/365/403`拒绝并强制保存空；前端`features/resource-grants/ClientResourceGrantPage.tsx:437/478`只为SERVICE提供scope；`oauth/service/impl/OAuthMigrationServiceImpl.java:1166`丢弃已审核USER scope。主Spec§10/11 oauth_grant明确USER也受显式allowed_scopes限制，现有效联合修订没有取代这条安全上界。Step19签发拒绝空Grant业务scope，保护已闭合，但真实管理和导入入口不能建立合法人员业务Grant。此项不是Runtime unverified。
+**B-04 / Closed，Step20。** Core不可变ClientResourceGrant允许准确的USER BUSINESS范围（≤64项、1–128 ASCII字符，不含六个OIDC身份scope），继续拒绝tenant/context。既有Admin upsert/batch按当前client上界、Jakarta DTO和Core域约束保存/回读准确集合；USER列表按scope排序以保持导入比对稳定，SERVICE保持原保存/上下文规则。UI支持USER编辑和原样提交；空集合清除业务权限，自动Resource关联仍为空。迁移只保存审核assignment；新Client在同事务内创建的ACTIVE version0空关联可初始化为审核范围，既有空/冲突Grant不能借该例外扩权。四种legacy scope/新关联组合、target内容冲突、真实分页游标恢复、重放和SERVICE原例通过。真实管理Service→原生Token兑换、清空/禁用/错版本不消费code的回归通过。
 
-推荐C10：沿既有API/Service/Core value object/UI/导入保存准确审核USER业务scope；保留USER tenant/context互斥与realm/client/Resource/version/原权限边界；空集合仍拒绝业务，不自动回填或推测权限；不新增DDL或依赖。十二代码/测试候选路径及验证顺序在[具体提案](2026-10-09-oauth-consent-correction-proposal.md#c10-推荐纠正显式-user-业务-grant待批准)。未实施这些额外路径。
+**B-05 / 本机共享包产物未刷新，Partial。** 已安装`@egon-cola/xingyuan-admin-web-shared@0.2.3`仍声明旧login(request)/logout():void，当前已提交共享源码0.2.4为无密码BFF login()/GatewayLogoutResult。原`npm run typecheck`在AuthContext报TS2554/TS2339；没有改消费者来迎合旧接口，没有修改安装包、依赖/锁文件或发布。临时tsconfig解析当前共享源码后完整类型检查exit0；前端原始完整Vitest50通过。用户运行/部署前需要使用与已提交共享源码一致的包产物，本报告不把该本机安装状态称作已验收。
 
 **运行与历史失败。** §4保留两个全reactor失败及先前误启动临时Redis的真实记录。真实PG事务/CHECK/唯一性、Redis撤销/恢复、多实例、TLS、浏览器布局/键盘/SSO和负载由用户控制，尚未运行。另一次排查错误地将本机Maven配置凭据输出至工具日志，已向用户披露；报告不保留值，建议轮换所涉及凭据。
 
@@ -36,7 +36,7 @@
 
 ## 3. 原18步骤与纠正提交
 
-Committed记录表示对应提交存在并已有其步骤测试证据；不推导其有效Spec已经全部满足。步骤9原闭环结论曾被B-01推翻，Step19已补足受控原生链；B-04仍阻止完整实际配置闭合。
+Committed记录表示对应提交存在并已有其步骤测试证据；不推导其有效Spec已经全部满足。步骤9原闭环结论曾被B-01推翻，Step19已补足受控原生链；Step20已闭合管理/导入明确业务范围；真实运行及B-05产物状态仍单列。
 
 | Step | 提交主题 | 状态 | Commit | 路径数 | 已执行证据 | 范围 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -58,7 +58,9 @@ Committed记录表示对应提交存在并已有其步骤测试证据；不推�
 | 16 | feat(xingyuan): migrate admin auth to oidc bff | Committed；最终验收Partial | e71d00d3826cc96d7c46dbdc485cc972bf330ca5 | 49 | V-FRONTEND / V-EDGE | 附录 Step 16 精确路径 |
 | 17 | feat(xingyuan): add oauth migration and local bff verification | Committed | 1dfd11960fa5c868766c1d50becea684a8a3ef27 | 23 | V-MIGRATION / V-STATIC | 附录 Step 17 精确路径 |
 | 18 | refactor(shoubing): retire legacy oauth protocol | Committed；最终验收Partial | 8b5a8fb5b9c360997621a6f29962f9269e2ac377 | 70 | V-ADMIN / V-FOCUS | 附录 Step 18 精确路径 |
-| 19 | fix(shoubing): complete native consent and oidc flow | Verified，随本报告单次交付；提交后由最终交付核对 | 本报告所在Step19纠正提交（同题git log可解析） | 33 | V-C9b-ADMIN / V-C9b-EDGE / V-C9b-CONSUMERS / V-C9b-STATIC | 附录 Step19精确路径 |
+| 19 | fix(shoubing): complete native consent and oidc flow | Committed | 9fc41f38f0638a375d049f5350d7e3a1b92051ac | 33 | V-C9b-ADMIN / V-C9b-EDGE / V-C9b-CONSUMERS / V-C9b-STATIC | 附录 Step19精确路径 |
+| 20 | fix(shoubing): preserve explicit user grant scopes | Verified；随本报告唯一提交，hash由最终交付核对 | 同题git log及最终交付 | 19 | V-C10-ADMIN / V-C10-UI / V-C10-TYPE / V-C10-STATIC | 附录E精确路径 |
+
 
 
 | 纠正 | Commit | 内容 | 路径数 | 状态 |
@@ -93,7 +95,7 @@ Committed记录表示对应提交存在并已有其步骤测试证据；不推�
 | V-STATIC | /tmp/egon-c18-static-green.log | PASS / exit0 | scripts/unified-xingyuan/test-direct-run-contract.sh；bash -n 受影响shell | 纯fixture文件/受控HTTP mock，不执行prepare/start/verify/import |
 | V-FRONTEND | /tmp/egon-step18-shared-test.log；/tmp/egon-step18-shared-typecheck.log | 14 tests / 3 files PASS；typecheck exit0 | npm --prefix egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared run test；run typecheck | 五消费者Step16精确package门禁历史通过；未做浏览器E2E |
 | V-C18 | /tmp/egon-c18-green.log | 19 tests / 0 failures/errors/skips；BUILD SUCCESS | C18 Plan §6.11精确测试 | base/local dead叶子/全local输出静态检查 |
-| V-DOCS | 本轮重新运行结果见§9 | strict Spec/Plan与git diff --check PASS | python3 .agents/skills/egon-coding-writing-spec/scripts/validate_spec.py docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md --strict；对应validate_plan.py；git diff --check | 结构证据不豁免B-04/运行验收 |
+| V-DOCS | 本轮重新运行结果见§9 | strict Spec/Plan与git diff --check PASS | python3 .agents/skills/egon-coding-writing-spec/scripts/validate_spec.py docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md --strict；对应validate_plan.py；git diff --check | 结构证据不豁免运行验收 |
 
 
 ### Step19新鲜门禁
@@ -112,6 +114,18 @@ RED保留：native储存RED5（18/4预期失败）、真实SPI HV000151、freshn
 
 未启动项目/服务器/浏览器、未连接或迁移真实业务数据库、未运行导入、未部署/push/PR/发布。曾运行上述临时Redis容器，因此不能说“未启动任何Redis/容器”。用户既有业务数据未被本任务迁移/修改。
 
+### Step20新鲜门禁
+
+| Gate | 精确命令/argv | 实际结果/日志 | 限制 |
+| --- | --- | --- | --- |
+| V-C10-FOCUS | Plan Step20精确7类Maven命令，含SpringConstructorResolutionTest | `/tmp/egon-c10-focused-green2.log` Core3 +Admin76，exit0；末次完整门禁还覆盖随后新增两个migration参数组合 | 实际Service/生成Converter/SAS+受控端口；非PG/Redis |
+| V-C10-ADMIN | `/tmp/egon-c10-all-admin-command.json`；原68类安全Admin白名单加当前9类Core，`mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=<该77类准确列表> -Dsurefire.failIfNoSpecifiedTests=false test` | `/tmp/egon-c10-all-admin-final.log` 68类/364 Admin +9类/29 Core；exit0，全部0失败/错误/跳过 | 不执行外部设施测试；不是完整reactorPASS |
+| V-C10-UI | `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test`；Grant文件单独命令见Plan | `/tmp/egon-c10-ui-all2.log` 12文件/50；`/tmp/egon-c10-ui-green.log` Grant11；均exit0 | Vitest/jsdom；无浏览器。原全UI50/5失败与起点HEAD隔离17/4失败在baseline日志；只修三个直接必要测试夹具/等待条件后通过 |
+| V-C10-TYPE | Admin-web现有tsc；临时config extends其tsconfig.app.json，paths只把共享包指向当前repo src/index.ts，types显式指向现有Admin-web node_modules的vitest/globals、jest-dom/types/index、vite/client | 原`npm run typecheck` exit1（B-05）；`./node_modules/.bin/tsc -p /tmp/egon-c10-ui-source-tsconfig.json --noEmit --incremental false` exit0，`/tmp/egon-c10-ui-source-typecheck3.log` | 证明当前源码完整类型合同，不证明旧安装包或发布/部署；无依赖修改 |
+| V-C10-STATIC | strict Spec/Plan/resource validator、精确路径git diff --check、SHA与SQL/manifest字节对照 | `/tmp/egon-c10-spec-strict.log`、plan-strict/resources/scope-proof.json；97个HEAD db SQL与manifest不变、2原dirty Spec SHA不变、19声明路径 | 不运行任何migration/stack/browser；结构不是runtime证明 |
+
+行为RED：Core构造器拒绝非空USER（core-manage-red）；管理Service和实际managed-native链拒绝（all-admin-red）；Controller malformed DTO返200（api-import-red）；实际迁移apply之后准确scope仍空（import-red2）；UI缺scope editor（ui-red/ui-red2）。编译错误、source tenant/Page fixture、native二轮旧已消费记录不计作RED。migration恢复阶段本来正确，后来失败来自测试缺少游标后的下一页，已修正fixture且生产checkpoint阶段未改。最终全部由上述成功命令覆盖。
+
 ## 5. 每项有效需求
 
 Satisfied只用于实现和必要非运行证据足够的原子需求；需要运行证明的行单列Runtime unverified；代码缺口使用Partial/Not satisfied。各行验收条件直接来自有效Spec，修订覆盖范围按§5.3，不将历史Spec-only限制误用为当前禁止编写已授权代码。
@@ -120,9 +134,9 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | --- | --- | --- | --- | --- | --- |
 | REQ-001 | 授柄使用 SAS，保持鉴神/天枢/玉衡职责；只有授柄签发令牌，鉴神不保存密码/私钥 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 原18Steps / C纠正；V-ADMIN | Satisfied | 已执行模块/合同证据；此行Satisfied只限该原子需求，不代表整个系统通过。 |
 | REQ-002 | 路径 issuer 隔离租户客户端、授权状态、consent、JWK；A 租户 code/client/key 对 B 不可用；未知 issuer 无出站请求 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantIssuerServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/service/impl/TenantJwkSourceComponent.java` | V-C9b-ADMIN / V-C9b-EXACT8 | Satisfied | Native pending/code/client/state/JWK隔离和Host正负例通过；真实共享状态另列runtime。 |
-| REQ-003 | 第三方 Code 强制 S256 PKCE、redirect 白名单；缺 PKCE/plain/错 verifier/URI 通配符/重复 code 均拒绝 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java` | V-C9b-ADMIN | Satisfied | S256缺失/plain/错verifier/跨issuer/replay及实际code交换通过；B-04管理业务Grant另列。 |
+| REQ-003 | 第三方 Code 强制 S256 PKCE、redirect 白名单；缺 PKCE/plain/错 verifier/URI 通配符/重复 code 均拒绝 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthTokenIssueServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/converter/SasAuthorizationConverter.java` | V-C10-ADMIN / V-C9b-ADMIN | Satisfied | 原生S256/隔离/重放与真实管理明确scope后兑换通过；runtime另列。 |
 | REQ-004 | OIDC discovery、ID Token、UserInfo；iss/aud/nonce 校验、UserInfo sub 一致，ID Token 不能访问业务 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/AuthorizationServerConfiguration.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantAuthorizationServiceImpl.java` | V-C9b-ADMIN / V-C9b-CONSUMERS | Satisfied | 实际RS256 AT/nonce ID/UserInfo/refresh、ID拒绝Bearer、claim分组/时间/issuer验证通过。 |
-| REQ-005 | 每微服务独立 client_id 与最小 scope；SERVICE 无 refresh_token/ID Token；scope/resource 超授权拒绝 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2Client.java` | V-C9b-ADMIN / V-C9b-CONSUMERS / B-04 | Partial | SERVICE最小scope/无ID/RT与签发上界通过；USER业务Grant无法由管理/导入建立，需C10。 |
+| REQ-005 | 每微服务独立 client_id 与最小 scope；SERVICE 无 refresh_token/ID Token；scope/resource 超授权拒绝 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2Client.java` | V-C10-ADMIN / V-C9b-CONSUMERS | Satisfied | USER client上界/明确BUSINESS范围及SERVICE无ID/RT/最小scope通过；不外推部署。 |
 | REQ-006 | RS256 本地验签及 aud/时间/主体校验；有缓存公钥时不逐请求调用授权服务器；错 aud/alg 拒绝 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/TenantIssuerAuthenticationManagerComponent.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/IdpJwtVerifier.java` | 原18Steps / C纠正；V-STARTER / V-GATEWAY | Satisfied | 已执行模块/合同证据；此行Satisfied只限该原子需求，不代表整个系统通过。 |
 | REQ-007 | tenant_id 可信上下文与 finally 清理；ThreadLocal、MDC、异步取消/异常均无跨请求污染 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/VerifiedTenantContextFilter.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/shared/tenant/controller/filter/TenantContextFilter.java` | 原18Steps / C纠正；V-STARTER / V-GATEWAY | Satisfied | 已执行模块/合同证据；此行Satisfied只限该原子需求，不代表整个系统通过。 |
 | REQ-008 | SQL 级租户隔离；两租户相同业务 ID、批处理/自定义 SQL/逻辑删除不能串租户 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityDirectoryContext.java` | 原18Steps / C纠正；V-ADMIN | Runtime unverified | 源码和受控测试已存在；真实PG/Redis/多实例/TLS、数据对账或负载证据尚未运行，按本行合同由用户控制验收。 |
@@ -134,8 +148,8 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | REQ-014 | token 申请/使用/撤销全量脱敏审计；不记录原 token/secret/code/password，投递有恢复证据 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/audit/TokenUsageAuditComponent.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/audit/service/impl/OAuthAuditConsumer.java` | 原18Steps / C纠正；V-ADMIN | Runtime unverified | 源码和受控测试已存在；真实PG/Redis/多实例/TLS、数据对账或负载证据尚未运行，按本行合同由用户控制验收。 |
 | REQ-015 | 指标与告警；JWT 延迟、缓存命中、失败授权、撤销依赖/投递积压可观测 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/audit/TokenUsageAuditComponent.java` | 原18Steps / C纠正；V-ADMIN | Runtime unverified | 源码和受控测试已存在；真实PG/Redis/多实例/TLS、数据对账或负载证据尚未运行，按本行合同由用户控制验收。 |
 | REQ-016 | 保留隔离 PLATFORM 控制面；`/platform` 只服务控制面；业务 tenant token 必含 tenant_id | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TenantIssuerServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/client/IdpServiceOAuth2Client.java` | 原18Steps / C纠正；V-STARTER / V-GATEWAY | Satisfied | 已执行模块/合同证据；此行Satisfied只限该原子需求，不代表整个系统通过。 |
-| REQ-017 | 旧链迁移且保留业务数据；用户/tenant/client/grant 映射可审计；切换/回退界限明确 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | V-C9b-ADMIN / V-STATIC / B-04 | Partial | 退役和native链已验证；迁移已审核USER scope被存为空，需C10；真实数据对账未运行。 |
-| REQ-018 | 按最新 Java/CQE/MP/DDL 规范；§6.2、§20 每项证据闭合；保留传统业务分包 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java` | V-C9b-ADMIN / V-C9b-STATIC / §9 | Partial | Step19技术规范/MP/CQE/immutable DDL和逐行门禁通过；全任务B-04错误USER范围交接仍导致Final Rule2 FAIL，runtime另列。 |
+| REQ-017 | 旧链迁移且保留业务数据；用户/tenant/client/grant 映射可审计；切换/回退界限明确 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | V-C10-ADMIN / V-MIGRATION / V-STATIC | Runtime unverified | USER审核scope四种源/新关联组合、恢复/冲突/重放已通过；真实数据对账与切流尚未执行。 |
+| REQ-018 | 按最新 Java/CQE/MP/DDL 规范；§6.2、§20 每项证据闭合；保留传统业务分包 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/TransactionalOAuthAuthenticationProvider.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java` | V-C10-ADMIN / V-C10-STATIC / §9 | Satisfied | 最终Java/CQE/MP/immutable SQL与17MC/10Rule技术检查通过；全reactor/运行验收独立保持开放。 |
 | REQ-019 | 仅 Spec、禁 generator；git diff 只有本 Spec；无 Plan/代码/运行态动作 |  | 原18Steps / C纠正；V-ADMIN | Satisfied | 原Spec-only阶段限制已由本次明确执行授权及联合修订取代；无自动启动或执行数据库授权。保留历史原文。 |
 | REQ-020 | 认证四种目录事实统一MP；相同subject、Argon2 hash、锁定/版本/成员状态保留；新认证运行链无JPA写；四目录固定required P、tenant/user scope finally恢复，hash不出JSON/toString；四个BaseConverter映射由现有MapStruct版本按PO source→BO target方向正常生成并通过往返断言 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/repo/IdentityPersistenceAdapter.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java` | 原18Steps / C纠正；V-ADMIN | Satisfied | 已执行模块/合同证据；此行Satisfied只限该原子需求，不代表整个系统通过。 |
 | REQ-021 | 认证写与组件Outbox同库同事务；同DataSource/SqlSessionFactory/DataSourceTransactionManager；enqueue失败全部回滚；Redis失败不误报撤销成功 | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/config/OAuthPersistenceConfiguration.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/outbox/service/IdentityOutboxPublisher.java` | 原18Steps / C纠正；V-ADMIN | Runtime unverified | 源码和受控测试已存在；真实PG/Redis/多实例/TLS、数据对账或负载证据尚未运行，按本行合同由用户控制验收。 |
@@ -161,12 +175,14 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | REQ-041 | Serialize BFF refresh-token rotation across Edge instances；Every TokenRelay manager refresh uses a distributed lock keyed by the complete session/client identity; manager reloads the latest encrypted AuthorizedClient after lock acquisition, writes rotated tokens before manager completion, and releases the lock on success/failure/timeout; lock wait and lease are bounded; an unavailable lock fails closed as unavailable and never replays the old refresh token | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSingleFlightAuthorizedClientManager.java` | 原18Steps / C纠正；V-EDGE / V-C8c | Runtime unverified | 源码和受控测试已存在；真实PG/Redis/多实例/TLS、数据对账或负载证据尚未运行，按本行合同由用户控制验收。 |
 | REQ-042 | Make API-015 report only a currently valid BFF session；The session view never triggers token refresh; it locally verifies the exact held token and requires JWT issuer to match both ClientRegistration and trusted issuer, plus JWT/verified subject, tenant and Edge Resource audience; then checks shared revocation/generation state; invalid, expired or revoked token returns 401; unavailable shared Redis returns 503, not authenticated or 401; response remains token-free | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java` | 原18Steps / C纠正；V-EDGE / V-C8c | Satisfied | 已执行模块/合同证据；此行Satisfied只限该原子需求，不代表整个系统通过。 |
 | REQ-043 | Migrate Portal/four Admin consumers to passwordless OIDC through the Edge BFF and preserve high-risk role reauthentication；Login navigates only to the configured registration; session reads and CSRF logout use the BFF; browser never accepts or stores username/password/AT/RT; local UI clears on confirmed or pending logout; exact stepUp=true maps only to prompt=login and max_age=0; same-tab role intent stores only role IDs and expectedAuthVersion, validates then retries once after reauthentication; local auth harness routes all five consumers through an explicit Edge origin without browser passwords | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` | V-C9b-ADMIN / V-C9b-EDGE / V-FRONTEND | Runtime unverified | 实际SAS强制新密码事件、同subject STRONG/新auth_time/一次性请求证明与Edge固定Resource通过；五端真实浏览器SSO/高风险角色回合仍待用户验收。 |
-| REQ-044 | Provide an explicitly invoked, offline and restart-safe identity/OAuth data migration；Only the `oauth-migration` profile can expose a one-shot runner; it requires `spring.main.web-application-type=none`, RPC/HTTP registration disabled, an explicit enable flag, exact realm/snapshot, matching operator freeze marker, owner-only checkpoint and snapshot-bound ownership/scope map, secret-output directory, a new owner-only JSON report file, and (for apply) the reviewed dry-run report SHA-256. The typed DAO reads only the accepted static legacy table allowlist and imports in batches of at most 500 while preserving external IDs, hashes, versions and timestamps. The report digest binds every mapped source field without disclosing one-way-hashed sensitive values. OAuth target writes use existing MP administration services/repositories; each confidential client gets a newly generated BCrypt secret written once to a protected file, never copying an old secret hash. USER sources without PKCE and SERVICE sources with refresh TTL are conflicts; SERVICE Resource authorization is imported as Grant rows, not client resourceUris. Ambiguous ownership, empty user scopes, malformed tenants, privilege conflicts or incomplete mappings stop the realm without checkpoint advancement. Ordinary bootstrap/scheduling are excluded from this profile | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunner.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java` | V-C9b-ADMIN / V-MIGRATION / B-04 | Partial | runner与checkpoint规则通过，真实导入未运行；USER审核scope丢弃是具体实现缺口，不能仅称runtime未证。 |
+| REQ-044 | Provide an explicitly invoked, offline and restart-safe identity/OAuth data migration；Only the `oauth-migration` profile can expose a one-shot runner; it requires `spring.main.web-application-type=none`, RPC/HTTP registration disabled, an explicit enable flag, exact realm/snapshot, matching operator freeze marker, owner-only checkpoint and snapshot-bound ownership/scope map, secret-output directory, a new owner-only JSON report file, and (for apply) the reviewed dry-run report SHA-256. The typed DAO reads only the accepted static legacy table allowlist and imports in batches of at most 500 while preserving external IDs, hashes, versions and timestamps. The report digest binds every mapped source field without disclosing one-way-hashed sensitive values. OAuth target writes use existing MP administration services/repositories; each confidential client gets a newly generated BCrypt secret written once to a protected file, never copying an old secret hash. USER sources without PKCE and SERVICE sources with refresh TTL are conflicts; SERVICE Resource authorization is imported as Grant rows, not client resourceUris. Ambiguous ownership, empty user scopes, malformed tenants, privilege conflicts or incomplete mappings stop the realm without checkpoint advancement. Ordinary bootstrap/scheduling are excluded from this profile | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunner.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java` | V-C10-ADMIN / V-MIGRATION | Runtime unverified | runner/历史字段/checkpoint/USER scope准确保存与恢复冲突已验证；真实offline导入和对账未运行。 |
 | REQ-045 | Complete legacy protocol retirement and direct consumers；New deployment returns safe 410 for API-035–044 before reading credentials or issuing cookies/tokens; old JPA and signing/RT Beans are absent. Core password-change subject revocation delegates to INTERNAL-002 once through an Adapter, and user-management revocation invokes only the existing new service once. Local tooling uses explicit realm issuers/current MP directories and requires operator authorization prerequisites; it never logs in through old password/cookie routes or automatically imports legacy directory facts | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java`<br>`egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/token/repo/SubjectRevocationRefreshTokenStoreAdapter.java` | V-C9b-ADMIN / V-C9b-STATIC | Satisfied | 旧root410、密码/身份撤销Adapter、配置退役与native重新登录回合通过；未运行实际切流。 |
 | REQ-046 | Production tenant SERVICE registration selection；Existing Jianshen HttpTenantServiceTokenSupplier selects registration from explicit service-client.tenant-registration-ids keyed by canonical positive tenant ID before calling the existing IdpServiceOAuth2Client; mapped entries require configured credential versions and exact trusted issuer/client/tenant checks still apply. An absent entry fails without token issuance; empty map preserves single-registration compatibility | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan/jianshen/starter/client/HttpTenantServiceTokenSupplier.java` | 原18Steps / C纠正；V-C13 | Satisfied | 已执行模块/合同证据；此行Satisfied只限该原子需求，不代表整个系统通过。 |
 
 | REQ-047 | Native pending/CSRF/consent/code/OIDC/refresh/family/storage与唯一DDL闭合 | `OAuthConsentController` / `SasAuthorizationConverter` / `TenantAuthorizationServiceImpl` / `TransactionalOAuthAuthenticationProvider` / `AuthorizationServerConfiguration` | Step19，V-C9b-ADMIN / V-C9b-EDGE，TEST-173–178 | Satisfied | 实际Filter/Service/Converter与受控事务故障正负例通过；PG并发/DDL及浏览器另列runtime，不外推。 |
 
+
+| REQ-048 | Existing USER BUSINESS scopes are bounded, explicit and client-limited through Core/manage/UI/import; empty denies and tenant/context are forbidden | `ClientResourceGrant` / `UpsertClientResourceGrantDTO` / `ResourceServerServiceImpl` / `OAuthMigrationServiceImpl` / `ClientResourceGrantPage` | Step20；V-C10-ADMIN / V-C10-UI / V-C10-TYPE；TEST-179–181 | Satisfied | 准确scope、自动空关联、四种迁移组合、真实managed-native与清空/禁用不消费code通过；无新API/DDL/数据回填。 |
 
 ## 6. 接口/事件/任务逐项核验
 
@@ -177,11 +193,11 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | API-001 | tenant_oidc_discovery | GET /tenants/{tenantId}/.well-known/openid-configuration | SAS | V-C8c / TenantIssuerIsolationTest / OAuthTokenClientCredentialsTest | Satisfied | 实际SAS metadata/JWKS/client auth/filter合同；JWKS多节点传播另列Runtime unverified。 |
 | API-002 | tenant_oauth_metadata | GET /.well-known/oauth-authorization-server/tenants/{tenantId} | SAS | V-C8c / TenantIssuerIsolationTest / OAuthTokenClientCredentialsTest | Satisfied | 实际SAS metadata/JWKS/client auth/filter合同；JWKS多节点传播另列Runtime unverified。 |
 | API-003 | tenant_jwks | GET /tenants/{tenantId}/.well-known/jwks.json | SAS | V-C8c / TenantIssuerIsolationTest / OAuthTokenClientCredentialsTest | Satisfied | 实际SAS metadata/JWKS/client auth/filter合同；JWKS多节点传播另列Runtime unverified。 |
-| API-004 | authorization_request | GET /tenants/{tenantId}/oauth2/authorize | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；业务Grant可配置缺口B-04及真实部署另列。 |
-| API-005 | authorization_consent | POST /tenants/{tenantId}/oauth2/authorize | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；业务Grant可配置缺口B-04及真实部署另列。 |
-| API-006 | tenant_token | POST /tenants/{tenantId}/oauth2/token | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；业务Grant可配置缺口B-04及真实部署另列。 |
+| API-004 | authorization_request | GET /tenants/{tenantId}/oauth2/authorize | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；B-04由Step20关闭；真实部署另列。 |
+| API-005 | authorization_consent | POST /tenants/{tenantId}/oauth2/authorize | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；B-04由Step20关闭；真实部署另列。 |
+| API-006 | tenant_token | POST /tenants/{tenantId}/oauth2/token | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；B-04由Step20关闭；真实部署另列。 |
 | API-007 | tenant_revoke | POST /tenants/{tenantId}/oauth2/revoke | SAS | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
-| API-008 | tenant_userinfo | GET /tenants/{tenantId}/userinfo | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；业务Grant可配置缺口B-04及真实部署另列。 |
+| API-008 | tenant_userinfo | GET /tenants/{tenantId}/userinfo | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；B-04由Step20关闭；真实部署另列。 |
 | API-009 | platform_metadata | GET /.well-known/oauth-authorization-server/platform | SAS | V-C8c / TenantIssuerIsolationTest / OAuthTokenClientCredentialsTest | Satisfied | 实际SAS metadata/JWKS/client auth/filter合同；JWKS多节点传播另列Runtime unverified。 |
 | API-010 | platform_jwks | GET /platform/.well-known/jwks.json | SAS | V-C8c / TenantIssuerIsolationTest / OAuthTokenClientCredentialsTest | Satisfied | 实际SAS metadata/JWKS/client auth/filter合同；JWKS多节点传播另列Runtime unverified。 |
 | API-011 | platform_token | POST /platform/oauth2/token | SAS | V-C8c / TenantIssuerIsolationTest / OAuthTokenClientCredentialsTest | Satisfied | 实际SAS metadata/JWKS/client auth/filter合同；JWKS多节点传播另列Runtime unverified。 |
@@ -191,19 +207,19 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | API-015 | bff_session | GET /bff/session | SCG | V-EDGE | Satisfied | 会话/CSRF/多client logout fake边界已验证；真实Redis恢复见REQ-036/037/041。 |
 | API-016 | bff_csrf | GET /bff/csrf | SCG | V-EDGE | Satisfied | 会话/CSRF/多client logout fake边界已验证；真实Redis恢复见REQ-036/037/041。 |
 | API-017 | bff_logout | POST /bff/logout | SCG | V-EDGE | Satisfied | 会话/CSRF/多client logout fake边界已验证；真实Redis恢复见REQ-036/037/041。 |
-| API-018 | sas_login_page | GET /tenants/{tenantId}/login | 授柄登录页 | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；业务Grant可配置缺口B-04及真实部署另列。 |
-| API-019 | sas_login_submit | POST /tenants/{tenantId}/login | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；业务Grant可配置缺口B-04及真实部署另列。 |
+| API-018 | sas_login_page | GET /tenants/{tenantId}/login | 授柄登录页 | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；B-04由Step20关闭；真实部署另列。 |
+| API-019 | sas_login_submit | POST /tenants/{tenantId}/login | SAS | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；B-04由Step20关闭；真实部署另列。 |
 | API-020 | client_list | GET /api/v1/tianquan-shoubing/clients | OAuthClientController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
-| API-021 | client_create | POST /api/v1/tianquan-shoubing/clients | OAuthClientController | V-ADMIN | Partial | B-04：现有人员自动关联为零业务权限；USER非空scope上载被拒绝/清空，不能经这些管理入口建立明确业务授权；需C10。 |
+| API-021 | client_create | POST /api/v1/tianquan-shoubing/clients | OAuthClientController | V-C10-ADMIN / V-C10-UI | Satisfied | 准确USER scope经既有管理/列表/批处理和原生链验证；自动关联仍为零业务权限，空scope拒绝业务；runtime另列。 |
 | API-022 | client_update | PATCH /api/v1/tianquan-shoubing/clients/{clientId} | OAuthClientController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
 | API-023 | client_secret_rotate | POST /api/v1/tianquan-shoubing/clients/{clientId}/secret-rotations | OAuthClientController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
 | API-024 | client_redirect_put | PUT /api/v1/tianquan-shoubing/clients/{clientId}/redirect-uris | OAuthClientController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
 | API-025 | client_redirect_delete | DELETE /api/v1/tianquan-shoubing/clients/{clientId}/redirect-uris | OAuthClientController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
-| API-026 | client_resource_put | PUT /api/v1/tianquan-shoubing/clients/{clientId}/resource-uris | OAuthClientController | V-ADMIN | Partial | B-04：现有人员自动关联为零业务权限；USER非空scope上载被拒绝/清空，不能经这些管理入口建立明确业务授权；需C10。 |
+| API-026 | client_resource_put | PUT /api/v1/tianquan-shoubing/clients/{clientId}/resource-uris | OAuthClientController | V-C10-ADMIN / V-C10-UI | Satisfied | 准确USER scope经既有管理/列表/批处理和原生链验证；自动关联仍为零业务权限，空scope拒绝业务；runtime另列。 |
 | API-027 | client_resource_delete | DELETE /api/v1/tianquan-shoubing/clients/{clientId}/resource-uris | OAuthClientController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
-| API-028 | grant_upsert | PUT /api/v1/tianquan-shoubing/clients/{clientId}/resources/{resourceServerId} | ClientResourceGrantController | V-ADMIN | Partial | B-04：现有人员自动关联为零业务权限；USER非空scope上载被拒绝/清空，不能经这些管理入口建立明确业务授权；需C10。 |
+| API-028 | grant_upsert | PUT /api/v1/tianquan-shoubing/clients/{clientId}/resources/{resourceServerId} | ClientResourceGrantController | V-C10-ADMIN / V-C10-UI | Satisfied | 准确USER scope经既有管理/列表/批处理和原生链验证；自动关联仍为零业务权限，空scope拒绝业务；runtime另列。 |
 | API-029 | grant_delete | DELETE /api/v1/tianquan-shoubing/clients/{clientId}/resources/{resourceServerId} | ClientResourceGrantController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
-| API-030 | grant_batch | POST /api/v1/tianquan-shoubing/clients/{clientId}/resource-grants/actions/batch | ClientResourceGrantController | V-ADMIN | Partial | B-04：现有人员自动关联为零业务权限；USER非空scope上载被拒绝/清空，不能经这些管理入口建立明确业务授权；需C10。 |
+| API-030 | grant_batch | POST /api/v1/tianquan-shoubing/clients/{clientId}/resource-grants/actions/batch | ClientResourceGrantController | V-C10-ADMIN / V-C10-UI | Satisfied | 准确USER scope经既有管理/列表/批处理和原生链验证；自动关联仍为零业务权限，空scope拒绝业务；runtime另列。 |
 | API-031 | key_list | GET /api/v1/tianquan-shoubing/signing-keys | SigningKeyController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
 | API-032 | key_publish | POST /api/v1/tianquan-shoubing/signing-keys | SigningKeyController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
 | API-033 | key_activate | POST /api/v1/tianquan-shoubing/signing-keys/{kid}/activate | SigningKeyController | V-ADMIN | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
@@ -218,11 +234,11 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | API-042 | legacy_retired_8 | POST /oauth2/step-up | LegacyOAuthRetirementFilter | V-FOCUS / LegacyOAuthRetirementTest | Satisfied | 精确10个方法+路径410，先于credential解析、无Cookie/签发；其他路径不扩大匹配。 |
 | API-043 | legacy_retired_9 | GET /oauth2/userinfo | LegacyOAuthRetirementFilter | V-FOCUS / LegacyOAuthRetirementTest | Satisfied | 精确10个方法+路径410，先于credential解析、无Cookie/签发；其他路径不扩大匹配。 |
 | API-044 | legacy_retired_10 | POST /internal/v1/oauth2/refresh-token/validate | LegacyOAuthRetirementFilter | V-FOCUS / LegacyOAuthRetirementTest | Satisfied | 精确10个方法+路径410，先于credential解析、无Cookie/签发；其他路径不扩大匹配。 |
-| API-045 | List client grants | GET /api/v1/tianquan-shoubing/clients/{clientId}/resources | ClientResourceGrantController | V-ADMIN / ClientResourceGrantControllerTest / OAuthResourcePersistenceContractTest | Satisfied | 同realm排序、空[]、≤64、limit65溢出503和无写入；原UI独立读用途。 |
+| API-045 | List client grants | GET /api/v1/tianquan-shoubing/clients/{clientId}/resources | ClientResourceGrantController | V-C10-ADMIN / V-C10-UI | Satisfied | 准确USER scope经既有管理/列表/批处理和原生链验证；自动关联仍为零业务权限，空scope拒绝业务；runtime另列。 |
 | API-046 | native_consent_page | GET /tenants/{tenantId}/consent | OAuthConsentController | Step19 / V-C9b-ADMIN / published OAS | Satisfied | escaped HTML/session/state/client/CSRF/过期/cancel/Host负例；真实布局/键盘浏览器验收另列。 |
 | EVENT-001 | OAuthSecurityChangedEvent | oauth-security / redis-security-projection-v1 | OAuthSecurityChangedEvent | V-ADMIN / V-STARTER | Runtime unverified | 同事务enqueue/幂等/retry/retention单元合同存在；真实Outbox、Stream投递/重启/时钟与多节点验收未做。 |
 | EVENT-002 | TokenUsageAuditEvent | egon:oauth:audit:v1 | TokenUsageAuditEvent | V-ADMIN / V-STARTER | Runtime unverified | 同事务enqueue/幂等/retry/retention单元合同存在；真实Outbox、Stream投递/重启/时钟与多节点验收未做。 |
-| INTERNAL-001 | OAuthTokenIssueService.consumeAndIssue | consumeAndIssue(TrustedRealmBO, ConsumeOAuthTokenCommand) | OAuthTokenIssueService.consumeAndIssue | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；业务Grant可配置缺口B-04及真实部署另列。 |
+| INTERNAL-001 | OAuthTokenIssueService.consumeAndIssue | consumeAndIssue(TrustedRealmBO, ConsumeOAuthTokenCommand) | OAuthTokenIssueService.consumeAndIssue | V-C9b-ADMIN | Satisfied | 实际SAS原生回合/失败/CSRF/状态隔离通过；B-04由Step20关闭；真实部署另列。 |
 | INTERNAL-002 | TokenRevocationService.revokeSubject | revokeSubject(OAuthSubjectRevokeCommand) | TokenRevocationService.revokeSubject | V-ADMIN / V-STARTER | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
 | INTERNAL-003 | OAuthRevocationReader.check | check(VerifiedJwtBO) | OAuthRevocationReader.check | V-ADMIN / V-STARTER | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
 | INTERNAL-004 | IdpServiceOAuth2Client.authorize | authorize(IdpServiceTokenRequest) | IdpServiceOAuth2Client.authorize | V-ADMIN / V-STARTER | Satisfied | 沿既有Controller/服务及MockMvc合同；真实环境边界见关联REQ。 |
@@ -296,8 +312,8 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | JWT/state合同 | 状态 | 实际证据与缺口 |
 | --- | --- | --- |
 | AT issuer/aud/typ/kid/security_version/tenant/subject/scope | Satisfied | V-C9b-ADMIN/CONSUMERS真实USER与SERVICE签名、specific-token scope重载/RS256/at+jwt/issuer/aud和revocation替身正负例 |
-| ID Token nonce/aud/sub/acr/auth_time与业务拒绝 | Partial | 资源入口拒ID Token合同存在；完整SAS ID生成/nonce/UserInfo/RT回合未证明，不能把CC签名套用到ID |
-| CODE/RT单次CAS、family绝对期限和重放 | Partial | OAuthTokenIssueService direct tests通过；pending→code原生链尚未闭合，期限关系需真实native roundtrip |
+| ID Token nonce/aud/sub/acr/auth_time与业务拒绝 | Satisfied | V-C10-ADMIN native25包含真实SAS RS256 ID/nonce/azp/auth_time/UserInfo/RT及资源拒ID Token；跨系统浏览器证明另列runtime |
+| CODE/RT单次CAS、family绝对期限和重放 | Runtime unverified | native25实际pending→S256/code→AT/ID/RT、绝对family期限和顺序重放/受控回滚通过；真实PG CAS并发未运行 |
 | SAS state/请求scope/用户principal重建 | Satisfied | Step19实际v2密文/原scope/state/session/principal/authTime/acr回合通过；普通JSON隐藏state |
 | BFF opaque cookie/加密session与AuthorizedClient | Runtime unverified | Edge tests验证cipher/key/binding/no-token view；真实Session Redis/Lettuce+Redisson与跨实例期限/锁验收未做 |
 
@@ -305,7 +321,7 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | UI验收项（主Spec§12） | 状态 | 源码/测试证据与限制 |
 | --- | --- | --- |
 | 五个Admin/Portal登录导航 | Runtime unverified | 共享/五package历史门禁及新native/Edge测试通过；实际SSO/浏览器未运行 |
-| AS登录表单/CSRF/错误/锁定 | Partial | TenantLoginController/Filter合同；登录后真实待同意交易未闭合 |
+| AS登录表单/CSRF/错误/锁定 | Runtime unverified | 原生MockMvc登录→pending/CSRF/同意/兑换已通过；真实浏览器与Redis session仍未运行 |
 | 同意页应用名/tenant/scope/取消/转义/未默认全选 | Runtime unverified | API046已实现且MockMvc页面/CSRF/unchecked/cancel/转义通过；真实浏览器布局/键盘未运行 |
 | AuthContext bootstrap/401/403/503与缓存边界 | Satisfied | 共享Vitest/对应AuthContext tests；token-free BFF session |
 | 本地退出/远端PENDING/UNKNOWN与重试 | Runtime unverified | fake queue/WebFlux合同通过；真实Redis恢复/远端revoke未做 |
@@ -320,7 +336,7 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | NFR-A03 | §15.3 脱敏全量审计、durable spool/Outbox/Stream | Runtime unverified | audit/consumer/spool tests；实际disk容量、Streams pending重启/backpressure待验 |
 | NFR-A04 | §15.4 六指标/告警及p95/命中率 | Runtime unverified | MeterRegistry emitter code并非仪表盘运行证明；p95 JWT≤5ms/Redis≤10ms、cache≥99%、积压/拒绝/key告警未压测 |
 | NFR-A05 | §15.5 TLS/秘密挂载/profile叶子和外部配置 | Runtime unverified | 配置静态/绑定正负例存在；真实证书、owner-only KEK、operator realm registry/PRIMARY endpoint尚未验收 |
-| NFR-A06 | §12/§16 accessibility、部署/切流/回退 | Partial | 表单错误/状态测试存在；同意页未满足；键盘/屏幕阅读器/窄屏、真实备份/停写/切流/回退未执行 |
+| NFR-A06 | §12/§16 accessibility、部署/切流/回退 | Partial | 原生同意页/错误/状态与前端50存在；键盘/屏幕阅读器/窄屏、真实备份/停写/切流/回退未执行 |
 
 
 ### 配置与部署叶子合同
@@ -448,11 +464,11 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | TEST-150 | generated frontend origin; Vite auth/callback route ownership; Edge OIDC entry; BFF CSRF/session; no legacy password probes | `YUHENG_EDGE_BASE_URL` is the explicit public Edge origin persisted as `VITE_YUHENG_ORIGIN`; no `VITE_DEFAULT_TENANT_ID` is generated; `/oauth2`, `/bff`, and `/login/oauth2` auth proxies use Edge; `/api` remains separately routed to Yuheng Engine; live probe does not post password or persist USER AT/RT/cookies | REQ-043,REQ-022 | V-STATIC / V-C18 | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
 | TEST-151 | exact source allowlist; frozen source versions; batches 500/501; dry-run/apply digest; stale/missing checkpoint; commit-before-checkpoint crash; unknown commit; duplicate/malformed/orphan rows; password hash and history fields | Only parameterized, fixed legacy-source SQL is accepted; valid apply preserves external identity, source hash/version/timestamps; changing a same-version password hash/settings/audit payload/resource field changes the approved SHA; conflict stops the realm; replay reconciles the canonical row hash; output/toString/logs never disclose credential/client secrets | REQ-044 | V-MIGRATION / V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
 | TEST-152 | default profile, explicit migration profile, false/missing enable flag, web mode, RPC/registration enabled, missing/mismatched freeze marker, incomplete command | Normal startup has no migration runner; migration profile rejects unsafe web/RPC/registration configuration; only an explicit safe command invokes one dry-run or reviewed apply and exits without starting service endpoints | REQ-044 | V-MIGRATION / V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
-| TEST-153 | duplicate/missing map row, sourceSnapshotId mismatch, cross-tenant grant/resource, source owner disagreement, PUBLIC/CONFIDENTIAL type, mixed purposes, empty USER scopes, malformed scope, missing target Resource, disabled facts, prior/unknown secret file and fresh secret delivery | Each imported client resolves to exactly one target realm and no more than its mapped/verified scopes; old secret hash and private-key ciphertext are never selected or copied; PUBLIC has no secret; CONFIDENTIAL gets a fresh BCrypt hash and owner-only file; unknown or conflicting input stops before checkpoint advancement; report includes file references only | REQ-044 | V-MIGRATION / V-ADMIN | Partial | 已测SERVICE/冲突/文件边界；B-04 USER已审核scope存为空未闭合，需C10 |
+| TEST-153 | duplicate/missing map row, sourceSnapshotId mismatch, cross-tenant grant/resource, source owner disagreement, PUBLIC/CONFIDENTIAL type, mixed purposes, empty USER scopes, malformed scope, missing target Resource, disabled facts, prior/unknown secret file and fresh secret delivery | Each imported client resolves to exactly one target realm and no more than its mapped/verified scopes; old secret hash and private-key ciphertext are never selected or copied; PUBLIC has no secret; CONFIDENTIAL gets a fresh BCrypt hash and owner-only file; unknown or conflicting input stops before checkpoint advancement; report includes file references only | REQ-044 | V-C10-ADMIN / V-MIGRATION | Satisfied | 已审核USER范围四组合/恢复冲突/重放和既有SERVICE导入均通过；非真实PG导入证明。 |
 | TEST-154 | missing report path, pre-existing report, non-owner-only parent, serialization, full digest, secret field exclusion | Runner refuses unsafe/reused report paths; successful dry-run writes one owner-only JSON report containing `reportSha256` and conflicts/counts, while logs contain only the digest/path summary | REQ-044 | V-MIGRATION / V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
 | TEST-155 | USER client with PKCE true/false; SERVICE client with refresh TTL zero/nonzero | A USER client without legacy PKCE and a SERVICE client with a refresh TTL are explicit conflicts before apply; accepted USER clients remain PKCE-required and SERVICE clients have no refresh-token grant | REQ-044 | V-MIGRATION / V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
 | TEST-156 | same legacy row IDs/versions with changed password hash, tenant settings, audit payload, source IP/user agent, or Resource mapping field | Each changed mapped field changes the dry-run report digest using a one-way fingerprint; raw source password hashes and payload data never appear in the report or command output | REQ-044 | V-MIGRATION / V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
-| TEST-157 | platform SERVICE client with a valid management Resource and CLIENT_CREDENTIALS grant | SERVICE client creation receives no client-level resourceUris; the Resource is imported under platform and the exact Grant is persisted/projected in the same target transaction | REQ-044 | V-MIGRATION / V-ADMIN | Partial | 已测SERVICE/冲突/文件边界；B-04 USER已审核scope存为空未闭合，需C10 |
+| TEST-157 | platform SERVICE client with a valid management Resource and CLIENT_CREDENTIALS grant | SERVICE client creation receives no client-level resourceUris; the Resource is imported under platform and the exact Grant is persisted/projected in the same target transaction | REQ-044 | V-C10-ADMIN / V-MIGRATION | Satisfied | 已审核USER范围四组合/恢复冲突/重放和既有SERVICE导入均通过；非真实PG导入证明。 |
 | TEST-158 | Subject revocation Adapter and single invocation | Core password change, malformed/null subject/reason/time, old token lifecycle entry, user disable/reset/revoke-all and projection failure | SubjectRevocationRefreshTokenStoreAdapterTest / IdentityUserServiceImplTest / SpringConstructorResolutionTest | V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
 | TEST-159 | Exact legacy root retirement | API-035–044 methods/paths; malformed Basic/body/cookie; authenticated and anonymous requests; context path; wrong method and tenant/platform SAS paths | LegacyOAuthRetirementTest / InternalRefreshTokenSecurityIT / IdentityProfileControllerIT | V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
 | TEST-160 | Client auth security and JPA retirement | Valid Basic client, malformed/duplicate headers, wrong secret, disallowed post/body auth, no matching client; immutable SQL; Java/pom references | OAuthTokenClientCredentialsTest / OAuthConfigTest / IdpPersistenceEntityContractTest / IdentityAuthenticationTransactionContractTest | V-ADMIN | Satisfied | 已执行受控单元/合同部分；不外推运行证明 |
@@ -476,6 +492,10 @@ Satisfied只用于实现和必要非运行证据足够的原子需求；需要�
 | TEST-176 | 唯一新版本varchar32/CHECK五类、95旧SQL/旧manifest | 有效修订§14 TEST-176准确输入/输出 | OAuthConsentRoundTripTest / OAuthAuthorizationPersistenceContractTest / OAuthOidcProtocolContractTest / OAuthManagedSchemaContractTest | V-C9b-ADMIN / V-C9b-STATIC | Satisfied | 真实生产接线+受控端口/事务；不外推PG/Redis/browser |
 | TEST-177 | AT/ID动态校验组与真实签名、时间metadata重载 | 有效修订§14 TEST-177准确输入/输出 | OAuthConsentRoundTripTest / OAuthAuthorizationPersistenceContractTest / OAuthOidcProtocolContractTest / OAuthManagedSchemaContractTest | V-C9b-ADMIN / V-C9b-STATIC | Satisfied | 真实生产接线+受控端口/事务；不外推PG/Redis/browser |
 | TEST-178 | Consent/code/Outbox/签名故障原子回滚及family deadline | 有效修订§14 TEST-178准确输入/输出 | OAuthConsentRoundTripTest / OAuthAuthorizationPersistenceContractTest / OAuthOidcProtocolContractTest / OAuthManagedSchemaContractTest | V-C9b-ADMIN / V-C9b-STATIC | Satisfied | 真实生产接线+受控端口/事务；不外推PG/Redis/browser |
+| TEST-179 | Core/management bounded scope, immutable/empty/client/context/schema/version and update/batch/list | Exact approved USER business set persists; invalid inputs have no writes and SERVICE projections are absent | REQ-005/026/048 | V-C10-ADMIN | Satisfied | Core29/Admin364包含真实Core/DTO/Service/Controller及自动空关联断言 |
+| TEST-180 | Explicit/legacy-empty approved scope × missing/fresh empty association, existing empty/content conflicts and cursor recovery | Only reviewed USER set persists, replay is stable and target conflicts reject; SERVICE unchanged | REQ-017/044/048 | V-C10-ADMIN | Satisfied | Migration14，其中USER四参数组合；真实PG另列runtime |
+| TEST-181 | Actual managed grant→native exchange, clear/disable/stale versions and USER UI exact editor/readback/validation | Exact grant permits scoped exchange; denied exchange does not consume code; UI sends exact set | REQ-003/004/010/048 | V-C10-ADMIN / V-C10-UI / V-C10-TYPE | Satisfied | native25+Grant11及App关联/full UI50通过；无浏览器运行 |
+
 ## 9. Step19门禁与独立最终审计
 
 ### 9.1 Step19阻塞Manual Check（33路径，提交前逐项复核）
@@ -517,7 +537,7 @@ Step19只关闭已批准的原生协议纠正；每项证据由当前diff/声明
 
 ### 9.2 独立最终Manual Check（所有交付提交与有效Specs）
 
-逐项复看原18步骤/7纠正/Step19最终树，不从Step19预测状态复制总体结论。未改其他模块来掩盖失败；以下FAIL/BLOCKED保持开放。
+逐项复看原18步骤/7纠正/Step19/Step20最终树，不从Step19预测状态复制总体结论。未改其他模块来掩盖失败；技术规则重新核对C10后PASS，必需运行/完整reactor和B-05产物限制使最终TEST/BLOCKER仍保持BLOCKED。
 
 | MC ID | Applicability | 状态 | 最终证据/发现 | 动作 |
 | --- | --- | --- | --- | --- |
@@ -525,24 +545,24 @@ Step19只关闭已批准的原生协议纠正；每项证据由当前diff/声明
 | MC-REUSE-001 | Applicable | PASS | SAS request/consent/UserInfo原Provider、Spring session/CSRF、既有MP/cipher/Outbox与BaseConverter复用；真实SAS/JWK/Boot validation native24及storage16 | None；runtime限制仍在逐REQ矩阵 |
 | MC-DEP-001 | Applicable | PASS | 33路径无pom/package/build依赖修改；Nimbus/Hibernate/Jackson皆当前已有受管库；差异清单与offline Maven exit0 | None；runtime限制仍在逐REQ矩阵 |
 | MC-NAME-001 | Applicable | PASS | 新OAuthPendingConsentBO及既有SignedTokenClaimsBO/AttributesBO；Controller/Provider/filter是行为扩展点，Mixin/validation group为框架技术类型；编译与类型声明逐项检查 | None；runtime限制仍在逐REQ矩阵 |
-| MC-VALID-001 | Applicable | FAIL | B-04 Core/管理/迁移/UI USER scope交接禁止或丢弃Spec要求的明确业务集合；C9b原生验证通过；native24、OIDC17、真实方法校验、constructor8与storage16 | 批准C10后修管理/模型/迁移/UI与准确正负例 |
+| MC-VALID-001 | Applicable | PASS | C10 Jakarta DTO→真实Service的ValidationUtils schema→client subset/Core USER约束→原Valid Repository→MapStruct view→UI明确set；native25/migration14/Core29/管理14/Controller6通过 | None；运行验收独立开放 |
 | MC-MODEL-001 | Applicable | PASS | Pending/Attributes/SignedClaims保留完整Data/NoArgs/AllArgs/Accessors/Builder；没有新实体record；state从普通JSON/toString排除；实际Lombok编译、原生密文重载与组校验 | None；runtime限制仍在逐REQ矩阵 |
 | MC-CONVERT-001 | Applicable | PASS | OAuthAuthorizationConverter/SasAuthorizationConverter仍MapStruct +BaseConverter<S,T>；copyAttributes由生成Mapper实现；SAS框架投影维持原Adapter；storage16/native24与实际target/generated-sources/annotations | None；runtime限制仍在逐REQ矩阵 |
 | MC-LOG-001 | Applicable | PASS | AuthenticationProvider/LoginFilter/ExactIssuerFilter/ConsentController/TokenIssueService带Slf4j；仅取消常量debug，不日志state/password/token；业务diff逐项与fault/rejection测试 | None；runtime限制仍在逐REQ矩阵 |
-| MC-BEAN-001 | Applicable | PASS | ConsentController命名oauthConsentController、三依赖Qualifier+NonNull；LoginFilter与业务Provider@RequiredArgsConstructor；lombok.config拷贝Qualifier；constructor8真实同类型消歧与Native Boot context | None；runtime限制仍在逐REQ矩阵 |
+| MC-BEAN-001 | Applicable | PASS | 具名ResourceServerServiceImpl及@RequiredArgsConstructor/Slf4j；defaultValidator新增NonNull+Qualifier并由Lombok复制；真实constructor8和native服务调用通过 | None；无手写Spring构造器 |
 | MC-UTIL-001 | Applicable | PASS | 新逻辑使用JDK URI/time/collections与既有Digests、SAS/Nimbus/Spring扩展；没有Utils/额外通用工具包；33路径import/dependency逐项检查、offline编译 | None；runtime限制仍在逐REQ矩阵 |
 | MC-JSON-001 | Applicable | PASS | managed Jackson显式storageMixin只对AES-GCM codec开放隐藏属性；v1/v2/unknown闭合；@EnumValue/JsonValue；scope String↔内部Set；storage16/OIDC17/native24和OAS/published合同 | None；runtime限制仍在逐REQ矩阵 |
 | MC-TIME-001 | Applicable | PASS | Clock/Instant/Duration贯穿pending300s、reauth300s和immutable family；SAS iat/exp/nbf/auth_time重载Instant；边界/expired/freshness/RT cap与原生UserInfo测试 | None；runtime限制仍在逐REQ矩阵 |
 | MC-CONFIG-001 | Applicable | PASS | 本Step未改YAML或属性键；既有base/local绑定/环境同构保留，Spring CSRF只对native browser POST要求；Admin OAuthConfig/PublicEndpointSettings/ManagedSchema与Edge profile合同、static脚本 | None；runtime限制仍在逐REQ矩阵 |
 | MC-PATTERN-001 | Applicable | PASS | GrantTransaction Strategy +事务Decorator包原SASProvider；issuer redirect Adapter只改内部consent；pending/consumed/revoked版本State沿既有CAS；native同意/取消/故障/重放/精确scope/reauth实际分支通过 | None；runtime限制仍在逐REQ矩阵 |
-| MC-SCOPE-001 | Applicable | PASS | 33声明路径相等；File30–32直接SPI兼容、File33旧manifest fixture已先声明；2旧dirty Spec SHA不变；95旧SQL原字节；git diff/status/strict/SQL checksum；附录精确33路径 | None；runtime限制仍在逐REQ矩阵 |
-| MC-TEST-001 | Applicable | BLOCKED | 当前354+24+58安全门禁通过，但B-04旧测试维护了错误USER空scope前提；完整reactor两次历史失败和必需runtime未通过；/tmp/egon-c9b-all-admin-green3.log、final-edge.log、consumers.log、static.log | C10准确业务合同回归；另由用户控制runtime与独立全reactor基线问题 |
-| MC-BLOCKER-001 | Applicable | BLOCKED | B-01/02/03已关；B-04与MC-VALID/TEST及运行验收开放，不能发布最终PASS；final cached diff/check与成功单一提交需在最终交付核对 | C10范围审核；用户启动/授权后验证真实环境 |
+| MC-SCOPE-001 | Applicable | PASS | Step19提交33、Step20声明19路径；三个新增测试仅直接构造/页面合同兼容；2dirty Spec SHA/97个HEAD SQL与manifest不变；scripts/work原有ignored Markdown未触碰 | 提交后核对唯一Step20hash/精确19路径；无无关提交 |
+| MC-TEST-001 | Applicable | BLOCKED | 当前Admin364/Core29/UI50/Grant11及共享源码类型/strict通过；原typecheck仍因已安装0.2.3旧接口失败；完整reactor历史失败和必需运行无最终PASS | 刷新正确共享包产物；用户控制运行环境和独立全reactor问题；不宣称全验收PASS |
+| MC-BLOCKER-001 | Applicable | BLOCKED | B-01/02/03/04已关；技术10Rules通过；B-05安装产物、PG/Redis/TLS/多实例/browser/负载及完整reactor证明仍开放 | 保留PARTIAL并按本报告运行/依赖边界补证，不自动启动或发布 |
 
 | Literal Rule | Applicability | 状态 | 最终diff/path与测试证据 | 发现/动作 |
 | --- | --- | --- | --- | --- |
 | Rule 1 | Applicable | PASS | Pending/Attributes/SignedClaims BO与行为类语义命名，引用Step19 File10–22/30–33；实际编译/类型inventory/native/OAS | None；技术规则不替代业务/运行验收 |
-| Rule 2 | Applicable | FAIL | B-04：Core/管理/迁移/UI的USER scope交接错误禁止/清空明确范围；原生链groups/边界已完成；native24/storage16/OIDC17与真实HV000151纠正 | C10闭合有效Spec的USER scope传递，不用测试绿色豁免 |
+| Rule 2 | Applicable | PASS | C10 DTO/Controller/Service schema与Core域约束、原Valid Repository/BO、MapStruct view与UI set完整传递；native25、migration14、Controller6、管理14/Core29验证准确边界；SPI合同不强化 | B-04闭合；运行/本机旧包不因技术规则通过而豁免 |
 | Rule 3 | Applicable | PASS | 普通模型完整Lombok；不可变既有VO record不改；MapStruct/BaseConverter及生成copyAttributes；生成Mapper/constructor8/密文重载 | None；技术规则不替代业务/运行验收 |
 | Rule 4 | Applicable | PASS | 相关业务Slf4j；具名Spring Bean、final qualified fields、RequiredArgsConstructor；工厂delegate不伪造Bean；constructor8与实际Boot/nativecontext；日志diff | None；技术规则不替代业务/运行验收 |
 | Rule 5 | Applicable | PASS | JDK与既有Digests/组件/Spring/Nimbus，不加通用工具依赖；全部production import与pom差异清单 | None；技术规则不替代业务/运行验收 |
@@ -552,6 +572,43 @@ Step19只关闭已批准的原生协议纠正；每项证据由当前diff/声明
 | Rule 10 | Applicable | PASS | Instant/Clock/Duration及SAS metadata时刻类型；没有java.util.Date/Calendar/SimpleDateFormat；expired/pending/family/max_age/签名auth_time tests | None；技术规则不替代业务/运行验收 |
 | Rule 11 | Applicable | PASS | 传统分包+MP/同库Outbox；仅一个managed ALTER/manifest追加；95旧SQL/软删除与jti约束不变；编译/managed-schema/SQL-byte/atomic-outbox/static；PG另列runtime | None；技术规则不替代业务/运行验收 |
 
+### 9.3 Step20阻塞Manual Check与Literal Rules（19路径）
+
+用户已批准C10；三个必要fixture兼容路径先声明并strict通过。以下仅验证C10可提交，不免除9.2的全任务运行/产物限制。
+
+| MC ID | Applicability | 状态 | Diff/path/符号证据 | 测试/静态证据 | 发现 | 动作 |
+| --- | --- | --- | --- | --- | --- | --- |
+| MC-ARCH-001 | Applicable | PASS | 既有Controller→Service→Repository→DAO与Core value object；19路径无新层/模块 | Admin/Core Maven当前树编译 | 传统域分包保留 | None；全Spec限制另列 |
+| MC-REUSE-001 | Applicable | PASS | Boot defaultValidator/Common ValidationUtils、既有Core guard、MP/Outbox和生成MapStruct view | 管理14/Controller6/native25/migration14 | 只复用既有能力 | None；全Spec限制另列 |
+| MC-DEP-001 | Applicable | PASS | 生产5路径；无POM/package/lock/build配置修改，安装共享包原样 | diff路径与offline Maven、source typecheck | 无依赖引入/升级 | None；全Spec限制另列 |
+| MC-NAME-001 | Applicable | PASS | UpsertClientResourceGrantDTO、既有GrantBO与服务/Controller；Core不可变record按值对象例外 | 类型/声明diff与编译 | 无新语义类型或伪POJO | None；全Spec限制另列 |
+| MC-VALID-001 | Applicable | PASS | DTO Jakarta max64/元素128/pattern；Service手工schema与client上界，Core BUSINESS/tenant/context；原Repo Valid | 管理schema/越权/版本/批处理、Core非法OIDC/不可变与Controller400 | 每个受影响交接有边界，ValidationUtils不承载业务状态 | None；全Spec限制另列 |
+| MC-MODEL-001 | Applicable | PASS | DTO完整Data/NoArgs/AllArgs/private factory Builder/Accessors与defensive Set；Core record不可变 | Caller mutation/returned Set与真实Mapper/native路径 | 无模型规范降级 | None；全Spec限制另列 |
+| MC-CONVERT-001 | Applicable | PASS | 原ClientResourceGrantViewConverter/ResourceServerViewConverter的MapStruct+BaseForwardConverter继续使用 | native实际生成Converter；管理/list JSON回读；全Admin persistence合同 | 无手写映射替代 | None；全Spec限制另列 |
+| MC-LOG-001 | Applicable | PASS | 两个生产Service均保留Slf4j；无新增日志，不输出scope相关凭据或tokens | production diff逐行检查 | 无敏感/高频日志新增 | None；全Spec限制另列 |
+| MC-BEAN-001 | Applicable | PASS | ResourceServerServiceImpl具名@RequiredArgsConstructor，新增defaultValidator为NonNull/Qualifier final；lombok.config保持 | SpringConstructorResolutionTest8与实际native服务调用 | 现有Boot Bean消歧，无手写构造器 | None；全Spec限制另列 |
+| MC-UTIL-001 | Applicable | PASS | JDK集合/regex/time和现有Common ValidationUtils；不增加Utils或第三方通用库 | imports/manifests/diff与Maven编译 | 白名单/组件复用 | None；全Spec限制另列 |
+| MC-JSON-001 | Applicable | PASS | 既有Jackson接口不变，DTO set↔BO list/VO set完整；USER持久化排序，不改SERVICE列表/枚举wire | Controller6、管理14、native密文重载与migration精确比对 | 不泄漏/发明tenant/context或scope | None；全Spec限制另列 |
+| MC-TIME-001 | Applicable | PASS | 本Step无日期实体变化；迁移原java.time source历史值与Clock/Instant沿用 | migration14/原历史恢复及全Admin合同 | 无Date/Calendar或时间语义漂移 | None；全Spec限制另列 |
+| MC-CONFIG-001 | Applicable | PASS | 无YAML/属性键变化；新增Validator复用Boot名称；本机安装产物B-05单列 | OAuthConfig/ManagedSchema/PublicEndpoint/constructor gates | profile结构保持，源码检查不是安装包证明 | None；全Spec限制另列 |
+| MC-PATTERN-001 | Applicable | PASS | C10为简单有界集合恢复，复用Service/immutable value object；C9 Strategy/Decorator不改 | upsert/update/batch/import/replay/native分支覆盖 | 无需新增抽象模式；复杂原生流程仍有既有模式 | None；全Spec限制另列 |
+| MC-SCOPE-001 | Applicable | PASS | 用户C10批准+AGENTS直接必要兼容规则；19明确路径，2dirty Spec/97 SQL/manifest/ignored Markdown保持 | scope-proof/strict/diff与最终缓存清单 | 无迁移/数据/无关模块改动 | None；全Spec限制另列 |
+| MC-TEST-001 | Applicable | PASS | 行为RED均观察；最终364 Admin+29 Core/50 UI与源码类型、strict成功，失败/夹具错误单列 | V-C10全日志及末次exit0；无skip | 满足本Step受控门禁，不外推full reactor/runtime | None；全Spec限制另列 |
+| MC-BLOCKER-001 | Applicable | PASS | 本Step其余16MC和10Rules均逐行PASS；19路径与2dirty无重叠；最终全Spec限制单列 | 前commit缓存check及单一提交由最终交付核对 | 可交付C10；不宣称整个Goal完成 | None；全Spec限制另列 |
+
+| Literal Rule | Applicability | 状态 | Diff/path/符号证据 | 测试/静态证据 | 发现 | 动作 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rule 1 | Applicable | PASS | 既有DTO/BO和行为服务名；Core为不可变领域值对象 | 编译/类型声明 | 无普通实体record | None；全Spec限制另列 |
+| Rule 2 | Applicable | PASS | DTO Jakarta→Service ValidationUtils schema/client business→Core→原Repo Valid→View/UI | Core29/管理14/Controller6/native25/migration14 | 没有仅Controller验证或非法SPI强化 | None；全Spec限制另列 |
+| Rule 3 | Applicable | PASS | DTO完整Lombok+factory Builder/defensive Set；Core immutable record；MapStruct BaseForwardConverter不改 | 生成Mapper/native回读及immutable tests | 按值对象例外处理 | None；全Spec限制另列 |
+| Rule 4 | Applicable | PASS | 两个Service具名/Slf4j/RequiredArgsConstructor；defaultValidator qualifier final注入 | constructor8/native真实调用与log diff | 无手写Spring构造器或凭据日志 | None；全Spec限制另列 |
+| Rule 5 | Applicable | PASS | JDK集合与既有Common ValidationUtils，不加工具/依赖 | import/path inventory与offline编译 | 符合白名单与能力复用 | None；全Spec限制另列 |
+| Rule 6 | Applicable | PASS | 既有Boot Jackson DTO/BO/View字段/枚举code不变；USER exact set传递 | Controller JSON/原储存contract/native | 无JSON框架或ordinal引入 | None；全Spec限制另列 |
+| Rule 7 | Applicable | PASS | 无环境属性键/配置文件变化；Boot defaultValidator沿用 | 全Admin配置/constructor合同 | 本机旧包产物另列B-05 | None；全Spec限制另列 |
+| Rule 9 | Applicable | PASS | 简单bounded set沿Service/value object；复杂C9原生Strategy/Decorator未触碰 | upsert/batch/import/replay/native正负例 | 不为局部集合增加无价值模式 | None；全Spec限制另列 |
+| Rule 10 | Applicable | PASS | 保持java.time/Clock/Instant，历史created/updated恢复值未改 | migration14与原历史合同 | 不引入旧日期类 | None；全Spec限制另列 |
+| Rule 11 | Applicable | PASS | 传统分包、MP端口与同库事务/Outbox不改；USER不发SERVICE投影；97SQL/manifest不变 | 全部Admin/Core与schema/bytes/static | 无生成器/新DDL/soft-delete规则变更 | None；全Spec限制另列 |
+
 ## 10. 迁移、兼容、非目标与回退
 
 | 合同项 | 状态 | 证据/下一步 |
@@ -559,10 +616,10 @@ Step19只关闭已批准的原生协议纠正；每项证据由当前diff/声明
 | 旧Flyway/受管SQL内容与checksum不可变 | Satisfied | 本轮git对照执行起点无任何历史SQL修改；新版本不以repair/覆盖旧SQL代替 |
 | 15新表+13精确legacy只读源+2Outbox技术表路由 | Runtime unverified | OAuthPersistenceConfiguration/Schema contract；PG topology实际运行待验 |
 | 仅明确offline profile/enable/freeze/approved SHA/owner-only报告触发导入 | Satisfied | OAuthMigrationRunner/MigrationService20 tests；本任务未执行runner |
-| 身份subject/hash/version/time保留与OAuth归属/scope冲突禁止扩权 | Partial | 基本迁移/fingerprint正负例通过；B-04已审核USER scope丢失；实际对账未做 |
+| 身份subject/hash/version/time保留与OAuth归属/scope冲突禁止扩权 | Runtime unverified | USER审核范围/原历史字段/冲突/游标恢复已通过；实际PG对账未做 |
 | 500/501与未知commit/写checkpoint失败恢复 | Satisfied | C17 20测试包含真实Service调用和临时文件；非PG transaction运行证明 |
 | confidential新bcrypt secret分发一次、旧RT/cookie不导入 | Runtime unverified | migration file/clientpurpose合同；真实运营交付/旧session失效待验 |
-| exact realm readiness、即时撤销和两租户负例切流门禁 | Partial | 新部署410和隔离测试存在；B-01已由Step19闭合；B-04业务Grant配置与真实ready/fence/多实例仍未完成 |
+| exact realm readiness、即时撤销和两租户负例切流门禁 | Partial | 新部署410和隔离测试存在；B-01已由Step19闭合；B-04业务Grant配置已验证；真实ready/fence/多实例仍未完成 |
 | Portal/四Admin与Starter/Gateway同时更新 | Partial | 代码/配置/原生Filter与模块已验证；真实五端SSO及部署切流未运行 |
 | 真实备份/停写/导入/发布后的回退边界 | Runtime unverified | runbooks规定新写后先冻结对账，禁止恢复旧generation/secret；实际备份/演练未做 |
 | 鉴神RBAC3、天枢信任/目录、玉衡biz/MCP数据面保持职责 | Satisfied | 既有桥/过滤器/注册/HMAC/流取消门禁；未重建权限模型/Engine/DDC |
@@ -1502,7 +1559,7 @@ scripts/unified-xingyuan/test-direct-run-contract.sh
 
 strict Spec/Plan最终复跑均exit0，`git diff --check`exit0。精确工作树14路径：C8c10 + 原有dirty Spec2 + 提案/审计报告2；staged为空。报告的所有46 REQ、53接口、82测试和17 MC/10 Rule均有各自一行状态。历史Step16 Yuheng全套`npm test`曾等待75秒后中断，只对已完成的targeted AdminLayout等测试和package typecheck记录PASS；Yuheng全套前端回归不声称通过。
 
-## 附录 C. Step19精确交付路径
+## 附录 D. Step19精确交付路径
 
 一个逻辑任务、一个聚焦提交；提交hash不自嵌入文档，由最终交付和本报告同题commit的git log解析。最终工作树只留两个既有dirty Spec；ignored archetype Markdown保留不入提交。
 
@@ -1545,3 +1602,35 @@ egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
 ### Step19一次性编辑器处置
 
 以下九个`/tmp`临时编辑器已删除：egon-c9b-declare.py、lock-step.py、test-first.py、models.py、sas-adapter.py、services.py、provider.py、controller.py、config.py（后八项共享egon-c9b-前缀）。测试/验证逻辑进入持久JUnit或原static suite，日志/argv/范围SHA清单保留为证据。Fixture @AfterAll关闭其临时KEK/key目录。`scripts/work/archetype-readme-frozen-tokens.md`来源属于既有无关工作，不删除、不提交；没有本任务遗留脚本。
+
+## 附录 E. Step20精确交付路径与Scratch处置
+
+Step20仅以下19路径；完整hash在同题提交`fix(shoubing): preserve explicit user grant scopes`与最终交付读取。原2份dirty历史Spec不在清单内。
+
+| # | 操作 | 路径 |
+| --- | --- | --- |
+| 1 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ResourceServerPolicyTest.java` |
+| 2 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java` |
+| 3 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java` |
+| 4 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImplTest.java` |
+| 5 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java` |
+| 6 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java` |
+| 7 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx` |
+| 8 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ClientResourceGrant.java` |
+| 9 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/UpsertClientResourceGrantDTO.java` |
+| 10 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImpl.java` |
+| 11 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java` |
+| 12 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx` |
+| 13 | MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` |
+| 14 | MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` |
+| 15 | MODIFY | `docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md` |
+| 16 | MODIFY | `docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md` |
+| 17 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java` |
+| 18 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx` |
+| 19 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx` |
+
+三个额外路径为Spring构造Validator fixture、App canonical realm/既有404合同fixture、ClientList等待平台返回数据，按Plan C10-01/02在编辑前先声明；没有额外生产接口/模块/数据语义。复核迁移恢复的生产阶段原本正确，仅source Page fixture修正，不存在阶段纠正提交。
+
+Scratch outcome：Core/Admin/JUnit/Vitest行为验证保留到声明测试文件；本Step没有创建临时编辑脚本。隔离起点HEAD的TemporaryDirectory已自动删除；`/tmp/egon-c10-ui-source-tsconfig.json`与`/tmp/egon-c10-ui-source-vitest.config.mts`在检查完成后删除，生成说明保留V-C10-TYPE。argv/lock/SHA JSON与完整日志只作为本机证据，不提交。`scripts/work/archetype-readme-frozen-tokens.md`是执行前存在的ignored用户文档，SHA `7b0a5debf462ddfcd476b37e6827efa3ac9ce4691d6e7143412ae2b9042c55ec`保持不变；scripts/work没有本任务未处置脚本。
+
+交付后只应剩原2份dirty历史Spec，SHA见scope-proof/原lock；runtime/数据库/migration/Redis/browser/GUI/deploy/push/PR均未执行。本报告未将旧安装包typecheck、完整reactor历史失败或操作偏差重新命名为PASS。

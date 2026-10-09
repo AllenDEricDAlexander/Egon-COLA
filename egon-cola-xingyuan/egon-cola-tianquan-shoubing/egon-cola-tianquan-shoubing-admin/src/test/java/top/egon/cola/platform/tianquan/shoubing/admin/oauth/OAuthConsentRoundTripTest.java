@@ -103,6 +103,14 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuer
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.OAuthTokenIssueServiceImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TenantAuthorizationServiceImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TenantConsentServiceImpl;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthResourceBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.converter.ClientResourceGrantViewConverter;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.converter.ResourceServerViewConverter;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto.UpsertClientResourceGrantDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto.DeleteClientResourceGrantDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthResourceRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.service.impl.ResourceServerServiceImpl;
+import top.egon.cola.platform.tianquan.shoubing.admin.resource.support.outbox.TransactionalOutboxResourceServerEventAdapter;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.bo.OAuthGrantBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.repository.OAuthGrantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.config.OAuthKeyEncryptionProperties;
@@ -645,6 +653,60 @@ class OAuthConsentRoundTripTest {
     }
 
     @Test
+    void managedUserGrantSurvivesNativeExchangeAndClearDisableDoNotConsumeCode() throws Exception {
+        TrustedRealmBO realm = fixture.realm(URI.create("https://idp.example.test/tenants/1001"));
+        TrustedRealmBO platform = TrustedRealmBO.builder().issuer(ORIGIN.resolve("/platform"))
+                .realmKey("platform").realmType(RealmTypeEnum.PLATFORM).storagePartitionId(9000L)
+                .trustVersion(0L).build();
+        OAuthResourceRepository resources = mock(OAuthResourceRepository.class);
+        when(resources.findByResourceServerIdForUpdate(platform, "orders")).thenReturn(Optional.of(
+                OAuthResourceBO.builder().id(601L).version(0L).resourceServerId("orders")
+                        .resourceUri(RESOURCE).status(ResourceServerStatus.ACTIVE).build()));
+        when(fixture.grantRepository.save(eq(realm), any(OAuthGrantBO.class), anyLong())).thenAnswer(call -> {
+            OAuthGrantBO saved = call.getArgument(1);
+            fixture.userGrantScopes = saved.getAllowedScopes();
+            fixture.userGrantVersion = saved.getVersion();
+            fixture.userGrantStatus = saved.getStatus();
+            return saved;
+        });
+        try (var validatorFactory = Validation.buildDefaultValidatorFactory()) {
+            ResourceServerServiceImpl management = new ResourceServerServiceImpl(resources, fixture.grantRepository,
+                    fixture.clientRepository, Mappers.getMapper(ResourceServerViewConverter.class),
+                    Mappers.getMapper(ClientResourceGrantViewConverter.class), fixture.clock,
+                    mock(TransactionalOutboxResourceServerEventAdapter.class), validatorFactory.getValidator());
+            fixture.userGrantScopes = List.of();
+            management.putGrant(realm, platform, CLIENT, "orders", UpsertClientResourceGrantDTO.builder()
+                    .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of("orders.read"))
+                    .expectedResourceVersion(0L).expectedGrantVersion(0L).build());
+            Pending first = startThroughRealLogin(1001L);
+            assertTrue(token(approve(first, consentCsrf(first)), VERIFIER).hasNonNull("access_token"));
+            fixture.authorizations.clear();
+            fixture.consents.clear();
+            Pending pending = startThroughRealLogin(1001L);
+            String code = approve(pending, consentCsrf(pending));
+            management.putGrant(realm, platform, CLIENT, "orders", UpsertClientResourceGrantDTO.builder()
+                    .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of())
+                    .expectedResourceVersion(0L).expectedGrantVersion(1L).build());
+            tokenRejected(code, VERIFIER);
+            management.putGrant(realm, platform, CLIENT, "orders", UpsertClientResourceGrantDTO.builder()
+                    .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of("orders.read"))
+                    .expectedResourceVersion(0L).expectedGrantVersion(2L).build());
+            assertThrows(org.springframework.dao.OptimisticLockingFailureException.class,
+                    () -> management.putGrant(realm, platform, CLIENT, "orders", UpsertClientResourceGrantDTO.builder()
+                            .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of("orders.write"))
+                            .expectedResourceVersion(99L).expectedGrantVersion(3L).build()));
+            management.deleteGrant(realm, platform, CLIENT, "orders", DeleteClientResourceGrantDTO.builder()
+                    .grantType(ResourceGrantType.USER_DELEGATION).expectedResourceVersion(0L)
+                    .expectedGrantVersion(3L).build());
+            tokenRejected(code, VERIFIER);
+            management.putGrant(realm, platform, CLIENT, "orders", UpsertClientResourceGrantDTO.builder()
+                    .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of("orders.read"))
+                    .expectedResourceVersion(0L).expectedGrantVersion(4L).build());
+            assertTrue(token(code, VERIFIER).hasNonNull("access_token"));
+        }
+    }
+
+    @Test
     void reducedRefreshScopeCannotRegainOpenidThroughMetadataReload() throws Exception {
         Pending pending = startThroughRealLogin(1001L);
         JsonNode original = token(approve(pending, consentCsrf(pending)), VERIFIER);
@@ -895,6 +957,8 @@ class OAuthConsentRoundTripTest {
         boolean failTokenLookup;
         List<String> userGrantScopes = List.of("orders.read", "orders.write");
         long grantResourceVersion;
+        long userGrantVersion;
+        ClientResourceGrant.Status userGrantStatus = ClientResourceGrant.Status.ACTIVE;
 
         Fixture() throws Exception {
             directory = Files.createTempDirectory("egon-native-consent-");
@@ -918,6 +982,7 @@ class OAuthConsentRoundTripTest {
             failCodeSave = false; failEnqueue = false; failConsentSave = false; failSigning = false; publicClient = false;
             failTokenLookup = false;
             userGrantScopes = List.of("orders.read", "orders.write"); grantResourceVersion = 0L;
+            userGrantVersion = 0L; userGrantStatus = ClientResourceGrant.Status.ACTIVE;
             clock.now = Instant.now();
         }
 
@@ -979,9 +1044,9 @@ class OAuthConsentRoundTripTest {
                     "orders", "orders:enter", Duration.ofSeconds(300), ResourceServerStatus.ACTIVE, 0L);
             when(resources.findByUri(RESOURCE)).thenReturn(Optional.of(resource));
             when(grantRepository.findGrantForUpdate(any(), anyLong(), eq("orders"), eq(ResourceGrantType.USER_DELEGATION)))
-                    .thenAnswer(i -> Optional.of(OAuthGrantBO.builder().id(701L).version(0L).clientPk(501L)
+                    .thenAnswer(i -> Optional.of(OAuthGrantBO.builder().id(701L).version(userGrantVersion).clientPk(501L)
                             .resourceServerId("orders").grantType(ResourceGrantType.USER_DELEGATION)
-                            .allowedScopes(userGrantScopes).status(ClientResourceGrant.Status.ACTIVE)
+                            .allowedScopes(userGrantScopes).status(userGrantStatus)
                             .resourceVersion(grantResourceVersion).build()));
             when(authorizationRepository.findById(any(), anyLong())).thenAnswer(i -> readAuthorization(i.getArgument(0), i.getArgument(1)));
             when(authorizationRepository.findByIdForUpdate(any(), anyLong())).thenAnswer(i -> readAuthorization(i.getArgument(0), i.getArgument(1)));

@@ -26,7 +26,7 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     loading: false,
     bootstrap: {
-        user: {id: 'user-1', identitySub: 'alice-sub', tenantId: 'default', status: 'ACTIVE'},
+        user: {id: 'user-1', identitySub: 'alice-sub', tenantId: '1001', status: 'ACTIVE'},
         activeRoleContexts: [],
       permissions: admin.permissions,
         apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
@@ -69,7 +69,7 @@ beforeEach(() => {
         status: 'ACTIVE',
       }])
     }
-    if (path === '/api/v1/tianquan-shoubing/clients?page=0&size=20') {
+    if (path === '/api/v1/tianquan-shoubing/clients?page=0&size=20&realm=tenant%3A1001') {
       return Promise.resolve({
         content: [{
           appId: 'tianquan-shoubing-admin-web',
@@ -92,7 +92,7 @@ beforeEach(() => {
         totalPages: 1,
       })
     }
-    if (path === '/api/v1/tianquan-shoubing/clients') {
+    if (path === '/api/v1/tianquan-shoubing/clients?realm=tenant%3A1001') {
       return Promise.resolve([{
         appId: 'tianquan-shoubing-admin-web',
         clientId: 'tianquan-shoubing-admin-web',
@@ -109,10 +109,10 @@ beforeEach(() => {
         updatedAt: '2026-08-06T10:00:00Z',
       }])
     }
-    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources?realm=tenant%3A1001') {
       return Promise.reject(Object.assign(new Error('Grant read endpoint is not available'), {status: 404}))
     }
-    if (path === '/api/v1/tianquan-shoubing/resource-servers') {
+    if (path === '/api/v1/tianquan-shoubing/resource-servers?realm=platform') {
       return Promise.resolve([{
         resourceServerId: 'orders-api',
         resourceUri: 'https://api.example.com/orders',
@@ -147,7 +147,7 @@ beforeEach(() => {
         totalPages: 1,
       })
     }
-    if (path === '/api/v1/tianquan-shoubing/signing-keys') {
+    if (path === '/api/v1/tianquan-shoubing/signing-keys?realm=tenant%3A1001') {
       return Promise.resolve([{
         kid: 'kid-1',
         algorithm: 'RS256',
@@ -215,9 +215,9 @@ describe('Tianquan-Shoubing Admin application providers', () => {
 
   it.each([
     ['/users', '/api/v1/tianquan-shoubing/users', 'alice'],
-    ['/clients', '/api/v1/tianquan-shoubing/clients', 'Tianquan-Shoubing Admin Web'],
+    ['/clients', '/api/v1/tianquan-shoubing/clients?realm=tenant%3A1001', 'Tianquan-Shoubing Admin Web'],
     ['/tenants', '/api/v1/tianquan-shoubing/tenants?page=0&size=20', 'Acme'],
-    ['/keys', '/api/v1/tianquan-shoubing/signing-keys', 'kid-1'],
+    ['/keys', '/api/v1/tianquan-shoubing/signing-keys?realm=tenant%3A1001', 'kid-1'],
     ['/audits', '/api/v1/tianquan-shoubing/audits?page=0&size=20', 'LOGIN_SUCCEEDED'],
   ])('renders the data page at %s', async (route, requestPath, expectedText) => {
     window.history.replaceState({}, '', route)
@@ -244,7 +244,7 @@ describe('Tianquan-Shoubing Admin application providers', () => {
 
     await waitFor(() => expect(screen.getByText('Orders API')).toBeInTheDocument())
     expect(screen.queryByText(/JWK|准入|Admission/)).not.toBeInTheDocument()
-    expect(admin.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/resource-servers')
+    expect(admin.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/resource-servers?realm=platform')
   })
 
   it('recursively prunes unauthorized navigation groups', async () => {
@@ -269,6 +269,6 @@ describe('Tianquan-Shoubing Admin application providers', () => {
     fireEvent.click(screen.getByRole('button', {name: '打开导航'}))
     fireEvent.click(screen.getByText('OAuth 与资源'))
     expect(screen.getByText('OAuth 客户端').closest('.ant-menu-item')).toHaveClass('ant-menu-item-selected')
-    expect(await screen.findByText(/Grant 读取接口待补齐/)).toBeInTheDocument()
+    expect(await screen.findByText(/Client 或 Grant 不存在/)).toBeInTheDocument()
   })
 })

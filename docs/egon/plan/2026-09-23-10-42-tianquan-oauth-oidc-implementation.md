@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-23 10:42 Asia/Shanghai` |
-| Updated | `2026-10-09 16:45 Asia/Shanghai` |
+| Updated | `2026-10-09 17:37 Asia/Shanghai` |
 | Owner | `mario` |
 | Repository | `Egon-COLA` |
 | Scope | 授柄SAS/认证MP与受管DDL、SCG、Starter、玉衡/鉴神/天枢准入、五端认证前端、切流 |
@@ -27,7 +27,7 @@
 
 用户已明确授权按本Plan与当前修订Spec继续执行。Step 1–18均已独立验证并提交，Step18为 `8b5a8fb5b9c360997621a6f29962f9269e2ac377`（精确70路径、324 Admin/56 focused tests通过）。C13、C8、C17、C8b、C15、C14按独立纠正提交关闭；最终审计发现的死配置C18按§6.11处理。文档保持Review，不以执行授权冒充整体Spec接受。原无guard全reactor意外启动临时Redis fixture的偏差、Cache/MP baseline失败及所有用户控制的运行验收缺口均在最终报告列出，禁止声称全reactor或完整Spec已通过。
 
-最终验收为 **PARTIAL**，详见 [执行审计](../reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md)。原生 pending consent 的期限/state 持久化及 API-005 CSRF 尚未闭合；C8c虽通过受影响47 Admin/24 Edge测试，仍未达到提交门禁。改变原state/schema合同及新增一个受管DDL版本的 [22路径补救提案](../reports/2026-10-09-oauth-consent-correction-proposal.md) 已由用户“继续执行，批准”授权，现按§6.13实施；不以既有Step提交或结构检查PASS代替完整协议验收。
+最终验收为 **PARTIAL**，详见 [执行审计](../reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md)。Step19已提交`9fc41f38f0638a375d049f5350d7e3a1b92051ac`，关闭原生pending/CSRF/OIDC合同缺口。已批准的C10由Step20关闭明确USER业务Grant的模型/管理/迁移/UI交接；364 Admin +29 Core、前端50与本地共享源码typecheck通过。真实PG/Redis/TLS/多实例/浏览器、部署依赖产物刷新和完整reactor历史失败仍单列，不以步骤提交或结构PASS代替运行验收。
 
 ## 2. Target Spec and Effective Design
 
@@ -16582,6 +16582,510 @@ assertEquals(sha256(requiredResource(correction.path("path").asText())), correct
 - Final conformance finding: B-04显式USER业务Grant在旧Core/管理/UI/迁移被禁止/清空，C10具体提案待审核；真实PG/Redis/browser及完整reactor历史失败保持开放。Step19不实施C10。
 - Scratch disposition: 本Step九个/tmp编辑器删除，持久JUnit/static保留；既有ignored archetype Markdown原样保留，scripts/work无本任务残余脚本。无服务/数据库/browser/deploy/push/PR执行。
 
+### Step 20 — Approved explicit USER business Grant correction (C10)
+
+- Requirements: REQ-003, REQ-004, REQ-005, REQ-017, REQ-026, REQ-027, REQ-044, REQ-048.
+- Dependencies: Step19 Committed `9fc41f38f0638a375d049f5350d7e3a1b92051ac`; user explicitly approved C10 twelve code/test paths plus existing four delivery docs; no pending schema decision.
+- Baseline state: USER scope forbidden or dropped in Core/management/UI/migration; native issuer now safely rejects empty-business grants. Two old dirty Specs must keep current SHA.
+- Observable outcome: Exact reviewed USER BUSINESS scopes can be managed, imported, edited and used for native scoped issuance; empty authority does not permit business; old SERVICE/realm/version boundaries remain.
+- End state: All16 declared paths verified together and one focused semantic commit; full audit continues to distinguish code from user-controlled runtime.
+- Test-first gate: Required; Core/management/import/UI/actual native positive tests fail on missing USER scope preservation before production changes; input/fencing cases then green.
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; independent path/test evidence before commit.
+- Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; exact model/validation/injection contracts remain, no silent exception.
+- Ordered files: Tests first, then bounded model/DTO/current service/migration/UI, then existing delivery docs. No dependencies, generator, DDL, backfill or services.
+- Validation working directory: `/Users/mario/SelfProject/Egon-COLA`.
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=ResourceServerPolicyTest,ResourceServerServiceImplTest,ClientResourceGrantControllerTest,OAuthClientServiceImplTest,OAuthMigrationServiceTest,OAuthConsentRoundTripTest,SpringConstructorResolutionTest -Dsurefire.failIfNoSpecifiedTests=false test`; `npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run test -- src/features/resource-grants/ClientResourceGrantPage.test.tsx`; frontend typecheck; safe exact allAdmin list and affected core/Frontend regression; strict Spec/Plan, diff and old SQL/user SHA gates.
+- Expected result: Behavior RED first, exact approved scopes GREEN through management/native/import/UI; bad/identity/oversize/out-of-client bounds no writes, version/tenant/context/revocation/empty-deny negative cases pass; unchanged SERVICE gates pass.
+- Failure returns to: Step20 In Progress; fix only declared paths/direct necessary compatibility previously allowed by user; real PG/Redis/browser remains user-run.
+- Completion criteria: Required safe gates, 17MC/10Rules PASS and exact19-path diff; audit updated then immediately one path-limited commit.
+- Rollback: Code-only change, no new migration/data action; existing empty grants remain deny-business; no history rewrite or automatic data repair.
+- Plan Clarification C10-01: 既有服务必须注入Boot `defaultValidator`；旧SpringConstructorResolutionTest裸context缺少该Bean，测试注册既有Validator属于直接必要配置兼容，按用户AGENTS依赖规则纳入同一纠正。新增一个测试路径，不变更生产API/Bean能力、配置或依赖；共17路径。前端安装产物仍是旧password接口，原typecheck失败后以临时tsconfig映射已提交共享源码完成同范围类型验证，不修改/升级锁文件或安装包；Grant11为本Step精确前端门禁。额外全UI回归的App/ClientList失败必须以起点HEAD隔离复现并单列最终审计，不冒充Step20造成或已通过。临时配置/隔离树完成后删除。
+- Plan Clarification C10-02: 起点HEAD隔离测试已复现App四项既有失败；C10页面需通过真实App/Client关联入口回归，因此只校正两个关联测试夹具：canonical tenant1001、既有realm请求路径/当前404文案，以及等待平台查询结果渲染再点击。无生产行为/API改动，属于用户AGENTS允许的直接必要配置/调用者兼容；纳入同一逻辑纠正，共19路径。保留失败日志，不宣称起点已通过。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ResourceServerPolicyTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImplTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ClientResourceGrant.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/UpsertClientResourceGrantDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`, `docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md`, `docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`.
+- Commit: `fix(shoubing): preserve explicit user grant scopes`.
+
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ResourceServerPolicyTest.java`
+
+- Purpose: Construct explicit USER grant with bounded business scopes; assert allows subset, empty denies, tenant/context and malformed identity/oversize reject, immutable caller set.
+- Symbols: `ResourceServerPolicyTest` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ResourceServerPolicyTest.java` under approved C10;
+FLOW -> Construct explicit USER grant with bounded business scopes; assert allows subset, empty denies, tenant/context and malformed identity/oversize reject, immutable caller set.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java`
+
+- Purpose: Use actual putGrant/listGrants/update/delete/batch with current client scopes and Resource/version ports; assert exact saved collection, overgrant rejected with no write, USER no SERVICE event.
+- Symbols: `ResourceServerServiceImplTest` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java` under approved C10;
+FLOW -> Use actual putGrant/listGrants/update/delete/batch with current client scopes and Resource/version ports; assert exact saved collection, overgrant rejected with no write, USER no SERVICE event.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java`
+
+- Purpose: MockMvc USER nonempty scopes and API045 exact view; malformed collections rejected before service and realm/version/security unchanged.
+- Symbols: `ClientResourceGrantControllerTest` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java` under approved C10;
+FLOW -> MockMvc USER nonempty scopes and API045 exact view; malformed collections rejected before service and realm/version/security unchanged.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImplTest.java`
+
+- Purpose: Existing USER create/addResource relation retains empty business grant, no rights are implicitly granted from client allowedScopes.
+- Symbols: `OAuthClientServiceImplTest` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthClientServiceImplTest.java` under approved C10;
+FLOW -> Existing USER create/addResource relation retains empty business grant, no rights are implicitly granted from client allowedScopes.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`
+
+- Purpose: Actual USER apply writes approved exact scope collection, including approved empty-source conversion; identical replay reconciles and divergent target scopes reject before checkpoint.
+- Symbols: `OAuthMigrationServiceTest` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java` under approved C10;
+FLOW -> Actual USER apply writes approved exact scope collection, including approved empty-source conversion; identical replay reconciles and divergent target scopes reject before checkpoint.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java`
+
+- Purpose: Wire actual management service/generated views into fixture ports; persist explicit scoped grant then actual code exchange succeeds; narrowed/disabled/stale grant rejects before signing/consumption.
+- Symbols: `OAuthConsentRoundTripTest` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/OAuthConsentRoundTripTest.java` under approved C10;
+FLOW -> Wire actual management service/generated views into fixture ports; persist explicit scoped grant then actual code exchange succeeds; narrowed/disabled/stale grant rejects before signing/consumption.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`
+
+- Purpose: Actual USER form input sends exact scopes, empty clears business, malformed/bounded errors and current realm/cache/read failure behavior remain.
+- Symbols: `ClientResourceGrantPage.test` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx` under approved C10;
+FLOW -> Actual USER form input sends exact scopes, empty clears business, malformed/bounded errors and current realm/cache/read failure behavior remain.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ClientResourceGrant.java`
+
+- Purpose: Keep record/constructor and defensive collections. USER allows bounded business tokens excluding standard identity scopes, still forbids tenant/context; empty never allows nonempty business request; SERVICE construction unchanged.
+- Symbols: `ClientResourceGrant` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan/shoubing/core/resource/ClientResourceGrant.java` under approved C10;
+FLOW -> Keep record/constructor and defensive collections. USER allows bounded business tokens excluding standard identity scopes, still forbids tenant/context; empty never allows nonempty business request; SERVICE construction unchanged.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/UpsertClientResourceGrantDTO.java`
+
+- Purpose: Add existing Jakarta Size max64 and NotBlank/Size128/Pattern element validation, keep class Lombok and defensive Builder/getter/setter.
+- Symbols: `UpsertClientResourceGrantDTO` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/domain/dto/UpsertClientResourceGrantDTO.java` under approved C10;
+FLOW -> Add existing Jakarta Size max64 and NotBlank/Size128/Pattern element validation, keep class Lombok and defensive Builder/getter/setter.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImpl.java`
+
+- Purpose: Inject existing defaultValidator via qualified Lombok constructor (only direct callers are declared tests); validate Upsert DTO schema using existing ValidationUtils at no-proxy service boundary; existing business context checks bound USER scope subset to current client and forbid identity tokens; save exact sorted USER scope list and retain SERVICE list handling; empty delete/upsert no authority and versions remain.
+- Symbols: `ResourceServerServiceImpl` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/resource/service/impl/ResourceServerServiceImpl.java` under approved C10;
+FLOW -> Inject existing defaultValidator via qualified Lombok constructor (only direct callers are declared tests); validate Upsert DTO schema using existing ValidationUtils at no-proxy service boundary; existing business context checks bound USER scope subset to current client and forbid identity tokens; save exact sorted USER scope list and retain SERVICE list handling; empty delete/upsert no authority and versions remain.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`
+
+- Purpose: importGrantsForClient stores approvedScopes for USER as well as SERVICE; a USER empty association created by the client in this same import transaction is updated to the reviewed scopes; pre-existing scope/resource/version conflicts still reject; existing TENANT_CLIENTS phase and source cursor remain unchanged; recovery fixtures must return the actual next page and prove scope conflicts reject; current preflight already requires USER explicit approval; preserve target conflict/replay and original history/secret boundaries.
+- Symbols: `OAuthMigrationServiceImpl` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java` under approved C10;
+FLOW -> importGrantsForClient stores approvedScopes for USER as well as SERVICE; a USER empty association created by the client in this same import transaction is updated to the reviewed scopes; pre-existing scope/resource/version conflicts still reject; existing TENANT_CLIENTS phase and source cursor remain unchanged; recovery fixtures must return the actual next page and prove scope conflicts reject; current preflight already requires USER explicit approval; preserve target conflict/replay and original history/secret boundaries.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`
+
+- Purpose: Show scope editor for either grant type, send exact parsed collection for USER and SERVICE; existing tenant/context choice remains SERVICE-only; bound scope count/format and exclude identity for USER.
+- Symbols: `ClientResourceGrantPage` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx` under approved C10;
+FLOW -> Show scope editor for either grant type, send exact parsed collection for USER and SERVICE; existing tenant/context choice remains SERVICE-only; bound scope count/format and exclude identity for USER.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 13 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: Record approved C10 REQ048/DEC181/TEST179–181, existing API/DTO field bounds and scope semantics; final implementation proof never substitutes runtime.
+- Symbols: `2026-10-08-10-18-oauth-current-code-alignment` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` under approved C10;
+FLOW -> Record approved C10 REQ048/DEC181/TEST179–181, existing API/DTO field bounds and scope semantics; final implementation proof never substitutes runtime.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 14 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: Lock16 exact paths, baseline, source-specific pseudocode, RED/GREEN and per-row MC/Rule evidence plus one semantic commit.
+- Symbols: `2026-09-23-10-42-tianquan-oauth-oidc-implementation` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` under approved C10;
+FLOW -> Lock16 exact paths, baseline, source-specific pseudocode, RED/GREEN and per-row MC/Rule evidence plus one semantic commit.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 15 — `MODIFY docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md`
+
+- Purpose: Record C10 approval, actual result/validation/scope without changing original architecture or guessing additional authority.
+- Symbols: `2026-10-09-oauth-consent-correction-proposal` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `docs/egon/reports/2026-10-09-oauth-consent-correction-proposal.md` under approved C10;
+FLOW -> Record C10 approval, actual result/validation/scope without changing original architecture or guessing additional authority.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+
+#### File 16 — `MODIFY docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md`
+
+- Purpose: Refresh full effective requirement/interface/test matrix, per-step commit/gates, corrected old AppendixC label, scratch disposition and remaining runtime/historical failure verdict.
+- Symbols: `2026-10-09-tianquan-oauth-oidc-execution-audit` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `docs/egon/reports/2026-10-09-tianquan-oauth-oidc-execution-audit.md` under approved C10;
+FLOW -> Refresh full effective requirement/interface/test matrix, per-step commit/gates, corrected old AppendixC label, scratch disposition and remaining runtime/historical failure verdict.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java`
+
+- Purpose: Register the existing defaultValidator in the narrow ResourceServerServiceImpl Spring constructor fixture; no production or dependency changes.
+- Symbols: `SpringConstructorResolutionTest` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/SpringConstructorResolutionTest.java` under approved C10;
+FLOW -> register a managed LocalValidatorFactoryBean named defaultValidator before the existing context refresh; assert named/qualified service wiring remains valid.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx`
+
+- Purpose: Align the existing App-to-Grant consumer fixture with canonical tenant1001, exact realm URLs and the existing 404 error text; preserve all production behavior.
+- Symbols: `App.test` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx` under approved C10;
+FLOW -> Align the existing App-to-Grant consumer fixture with canonical tenant1001, exact realm URLs and the existing 404 error text; preserve all production behavior.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`
+
+- Purpose: Wait for the selected platform client response to render before opening its Grant-capable detail view; preserve request and issuer assertions.
+- Symbols: `ClientListPage.test` and the source-specific existing handoff stated above.
+- Repository evidence: C10 user-approved exact proposal; currentHEAD/source/callers/validation commands inspected, no path ownership overlap.
+- Dependencies and consumers: Existing trustedIssuer/SAS repositories/converters/localTM/Outbox/session; direct downstream native/SERVICE/BFF andfinalaudit consumers. Preserve traditionalController→Service→Repository→DAO.
+- Why now: This file follows its test/model/nativeflow prerequisites within the single approvedcorrection; no unrelatedmodule is added.
+- Contract/signature changes: Existing fields/paths remain; USER explicit BUSINESS semantics restored per§9.5/DEC181; no SERVICE context or OIDC identity widening.
+- Input/output and state mapping: Explicit bounded client/reviewed USER scope set → existing immutable Core/DTO/GrantBO/view/JSON; keep realm/Resource/version/permission state and existing collection ownership.
+- Error and edge behavior: Invalid/identity/out-of-bound scope, tenant/context conflict, stale/disabled facts reject; empty never all; failed writes rollback via existing local transaction, no automatic source data action.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001; thisfile contributes applicable rows, no Step-wideblanketpass.
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11; no silentexemptionfromtestGREEN; inheriteddatabaseconstraints and namedqualifiedLombokSpringinjection retained.
+- Implementation pseudocode:
+
+```java
+INPUT -> current existing handoff for `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx` under approved C10;
+FLOW -> Wait for the selected platform client response to render before opening its Grant-capable detail view; preserve request and issuer assertions.
+FAILURE -> reject invalid/expanded scope before write/consume; retain existing realm/version/transaction/recovery errors;
+OUTPUT -> exact bounded USER business scope, no implicit rights, SERVICE and OIDC identity authority unchanged;
+```
+
+- Verification contribution: C10 exact7 Java classes or Grant page Vitest/typecheck/static gate plus strictSpec/Plan/diff review; sourceproof never substitutes runtime.
+- After this file: Only its declared nativecontract is available for later files/tests; Step20 cannotcommit until wholecorrectiveflow/gates pass.
+
+**Step20 verification record — 2026-10-09 17:37 Asia/Shanghai**
+
+- Status: Verified；按拟定消息对精确19路径立即作一个提交；提交hash以同题git log和最终交付核对，不伪造自引用hash。
+- Baseline: `9fc41f38f0638a375d049f5350d7e3a1b92051ac`。原有2份dirty Spec和97个HEAD SQL及repository-manifest保持原字节；新DDL/依赖/数据动作均为0。
+- Actual RED: Core不接受明确USER scope；Service拒绝范围；Controller格式错误返回200；真实管理→native被拒；migration实际apply后scope仍空；UI缺少scope editor。日志见执行审计§9.3。迁移source tenant/分页、native二轮旧记录问题为夹具准备错误，未计为行为RED；既有TENANT_CLIENTS阶段无缺陷、未修改。
+- Actual GREEN: 68 Admin类/364 +9 Core类/29，exit0且0失败/错误/跳过；7类聚焦为Core3+Admin76；Grant11及完整前端12文件50通过；源共享包映射typecheck exit0。末次Java仅做等价import分组整理，不改变已验证语义。准确命令/输出见审计V-C10。
+- Validation deviation: 本机安装共享包仍旧login/logout声明，原npm typecheck失败；按C10-01临时tsconfig解析当前已提交共享源码通过，未改安装包/锁文件或发布。App四项起点失败与ClientList等待问题已由C10-02两个直接消费者夹具修正，原完整npm test50已成功，未将其首轮失败冒充PASS。
+- Scope clarifications: C10-01 Validator构造fixture和C10-02 App/ClientList合同fixture，共三个额外测试路径，遵循用户AGENTS允许直接必要兼容；五个生产路径/API/schema范围不变。
+- Gates: 17 Manual Check与10 Literal Rules分别逐项PASS，具体路径、符号、命令和独立最终矩阵在审计§9.3；runtime/历史操作偏差仍不因此豁免。
+- Scratch: 持久JUnit/Vitest保留；两临时源码验证配置和隔离baseline树删除；scripts/work原有ignored archetype Markdown原样保留，无本任务新脚本。原日志/JSON argv作为证据保留，不加入Git。
+
 ## 8. Test, Validation, and Quality Gates
 
 以下是批准后实施时的门禁，本次没有执行。每Step先目标RED、最小实现后GREEN，再按受影响模块回归；环境缺依赖不能当行为RED。Step 1仅编译结构，不要求虚构行为失败。真实数据库与浏览器验收只能在用户启动环境并授权后运行。
@@ -16684,6 +17188,7 @@ assertEquals(sha256(requiredResource(correction.path("path").asText())), correct
 | REQ-046 | 修订Spec§4/DEC-169 | Step13 correction C13 | §6.5精确三路径 | TEST-164及原IdpServiceOAuth2Client/auto-config回归 | 生产caller按显式tenant registration配置，无跨tenant回退 |
 
 | REQ-047 | Current amendment §9.4 / DEC-179/180 | Native pending state/consent/CSRF/code/OIDC/RT/family/storage/DDL closure | TEST-173–178 and C9b exact safe gate | Step 19 (Corrective C9b §6.13) after18 committedSteps |
+| REQ-048 | Current amendment §9.5 / DEC-181 | Exact USER BUSINESS scopes through Core/manage/import/UI/native | TEST-179–181 and C10 safe focused/full-module gates | Step 20 after committedStep19 |
 
 ## 11. Risks, Blockers, and User Decisions
 

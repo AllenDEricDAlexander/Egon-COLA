@@ -78,12 +78,19 @@ class ResourceServerServiceImplTest {
     private final ClientResourceGrantViewConverter grantViews = mock(ClientResourceGrantViewConverter.class);
     private final TransactionalOutboxResourceServerEventAdapter events =
             mock(TransactionalOutboxResourceServerEventAdapter.class);
+    private final jakarta.validation.ValidatorFactory validatorFactory =
+            jakarta.validation.Validation.buildDefaultValidatorFactory();
     private ResourceServerServiceImpl service;
+
+    @org.junit.jupiter.api.AfterEach
+    void closeValidator() {
+        validatorFactory.close();
+    }
 
     @BeforeEach
     void setUp() {
         service = new ResourceServerServiceImpl(resources, grants, clients,
-                resourceViews, grantViews, Clock.fixed(NOW, ZoneOffset.UTC), events);
+                resourceViews, grantViews, Clock.fixed(NOW, ZoneOffset.UTC), events, validatorFactory.getValidator());
         when(resourceViews.toTarget(any(OAuthResourceBO.class))).thenAnswer(invocation -> {
             OAuthResourceBO value = invocation.getArgument(0);
             return resourceView(value.getResourceServerId(), value.getAppCode(), value.getStatus(), value.getVersion());
@@ -197,7 +204,8 @@ class ResourceServerServiceImplTest {
     void userDelegationGrantHasNoTenantOrServiceProjection() {
         OAuthResourceBO resource = resource("permission-tianquan-shoubing-prod", "tianquan-shoubing",
                 ResourceServerStatus.ACTIVE);
-        OAuthClientBO client = userClient("tianquan-shoubing-admin-web", 22L);
+        OAuthClientBO client = userClient("tianquan-shoubing-admin-web", 22L)
+                .setAllowedScopes(List.of("openid", "orders:read", "orders:write"));
         when(clients.findByClientIdForUpdate(TENANT, client.getClientId())).thenReturn(Optional.of(client));
         when(resources.findByResourceServerIdForUpdate(PLATFORM, resource.getResourceServerId()))
                 .thenReturn(Optional.of(resource));
@@ -208,12 +216,112 @@ class ResourceServerServiceImplTest {
 
         ClientResourceGrantVO result = service.putGrant(TENANT, PLATFORM, client.getClientId(),
                 resource.getResourceServerId(), UpsertClientResourceGrantDTO.builder()
-                        .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of())
+                        .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of("orders:write", "orders:read"))
                         .expectedResourceVersion(0L).build());
 
         assertThat(result.getTenantId()).isNull();
-        assertThat(result.getAllowedScopes()).isEmpty();
+        assertThat(result.getAllowedScopes()).containsExactlyInAnyOrder("orders:read", "orders:write");
+        verify(grants).save(eq(TENANT), org.mockito.ArgumentMatchers.argThat(value ->
+                value.getAllowedScopes().equals(List.of("orders:read", "orders:write"))), eq(0L));
         verify(events, never()).enqueueServiceGrantProjection(any(), any(), any());
+    }
+
+    @Test
+    void userGrantUpdateListBatchAndClearKeepExactScopesAndVersions() {
+        OAuthResourceBO resource = resource("resource-user", "orders", ResourceServerStatus.ACTIVE);
+        OAuthClientBO client = userClient("user-client", 22L)
+                .setAllowedScopes(List.of("openid", "orders:read", "orders:write"));
+        AtomicReference<OAuthGrantBO> current = new AtomicReference<>(OAuthGrantBO.builder()
+                .id(77L).version(2L).clientPk(client.getId()).resourceServerId(resource.getResourceServerId())
+                .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(List.of("orders:read", "orders:write"))
+                .status(ClientResourceGrant.Status.ACTIVE).resourceVersion(0L).build());
+        when(clients.findByClientIdForUpdate(TENANT, client.getClientId())).thenReturn(Optional.of(client));
+        when(clients.findByClientId(TENANT, client.getClientId())).thenReturn(Optional.of(client));
+        when(resources.findByResourceServerIdForUpdate(PLATFORM, resource.getResourceServerId()))
+                .thenReturn(Optional.of(resource));
+        when(resources.findByBizCodeAndEnvironmentAndAppCodeIn(PLATFORM, "permission", "prod", List.of("orders")))
+                .thenReturn(List.of(resource));
+        when(grants.findGrantForUpdate(TENANT, client.getId(), resource.getResourceServerId(),
+                ResourceGrantType.USER_DELEGATION)).thenAnswer(call -> Optional.of(current.get()));
+        when(grants.listByClient(TENANT, client.getId(), 65)).thenAnswer(call -> List.of(current.get()));
+        when(grants.save(eq(TENANT), any(OAuthGrantBO.class), anyLong())).thenAnswer(call -> {
+            current.set(call.getArgument(1));
+            return current.get();
+        });
+        service.putGrant(TENANT, PLATFORM, client.getClientId(), resource.getResourceServerId(),
+                UpsertClientResourceGrantDTO.builder().grantType(ResourceGrantType.USER_DELEGATION)
+                        .allowedScopes(Set.of("orders:read")).expectedResourceVersion(0L)
+                        .expectedGrantVersion(2L).build());
+        assertThat(service.listGrants(TENANT, PLATFORM, client.getClientId()).get(0).getAllowedScopes())
+                .containsExactly("orders:read");
+        assertThat(current.get().getVersion()).isEqualTo(3L);
+        assertThatThrownBy(() -> service.putGrant(TENANT, PLATFORM, client.getClientId(), resource.getResourceServerId(),
+                UpsertClientResourceGrantDTO.builder().grantType(ResourceGrantType.USER_DELEGATION)
+                        .allowedScopes(Set.of("orders:write")).expectedResourceVersion(0L)
+                        .expectedGrantVersion(2L).build())).isInstanceOf(OptimisticLockingFailureException.class);
+        service.batchGrants(TENANT, PLATFORM, client.getClientId(), BatchClientResourceGrantDTO.builder()
+                .bizCode("permission").environment("prod").appCodes(List.of("orders"))
+                .action(BatchClientResourceGrantDTO.Action.UPSERT).grantType(ResourceGrantType.USER_DELEGATION)
+                .allowedScopes(Set.of("orders:write"))
+                .expectedResourceVersions(Map.of("orders", 0L)).expectedGrantVersions(Map.of("orders", 3L)).build());
+        assertThat(current.get().getAllowedScopes()).containsExactly("orders:write");
+        service.putGrant(TENANT, PLATFORM, client.getClientId(), resource.getResourceServerId(),
+                UpsertClientResourceGrantDTO.builder().grantType(ResourceGrantType.USER_DELEGATION)
+                        .allowedScopes(Set.of()).expectedResourceVersion(0L).expectedGrantVersion(4L).build());
+        assertThat(current.get().getAllowedScopes()).isEmpty();
+        verify(events, never()).enqueueServiceGrantProjection(any(), any(), any());
+    }
+
+    @Test
+    void directUserGrantSchemaValidationRejectsOversizeMalformedNullAndNegativeInputs() {
+        OAuthResourceBO resource = resource("resource-user", "orders", ResourceServerStatus.ACTIVE);
+        OAuthClientBO client = userClient("user-client", 22L).setAllowedScopes(List.of("orders:read"));
+        when(clients.findByClientIdForUpdate(TENANT, client.getClientId())).thenReturn(Optional.of(client));
+        when(resources.findByResourceServerIdForUpdate(PLATFORM, resource.getResourceServerId()))
+                .thenReturn(Optional.of(resource));
+        Set<String> oversized = java.util.stream.IntStream.range(0, 65)
+                .mapToObj(index -> "orders:" + index).collect(java.util.stream.Collectors.toSet());
+        for (Set<String> scopes : List.of(Set.of("*"), Set.of("orders/read"), Set.of("x".repeat(129)), oversized)) {
+            assertThatThrownBy(() -> service.putGrant(TENANT, PLATFORM, client.getClientId(),
+                    resource.getResourceServerId(), UpsertClientResourceGrantDTO.builder()
+                            .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(scopes)
+                            .expectedResourceVersion(0L).build()))
+                    .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+        }
+        assertThatThrownBy(() -> service.putGrant(TENANT, PLATFORM, client.getClientId(),
+                resource.getResourceServerId(), UpsertClientResourceGrantDTO.builder()
+                        .grantType(ResourceGrantType.USER_DELEGATION).expectedResourceVersion(0L).build()))
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+        assertThatThrownBy(() -> service.putGrant(TENANT, PLATFORM, client.getClientId(),
+                resource.getResourceServerId(), UpsertClientResourceGrantDTO.builder()
+                        .grantType(ResourceGrantType.USER_DELEGATION).allowedScopes(Set.of("orders:read"))
+                        .expectedResourceVersion(-1L).build()))
+                .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+        verify(grants, never()).save(any(), any(), anyLong());
+    }
+
+    @Test
+    void userGrantCannotExceedClientOrContainIdentityScopesOrStaleResourceVersion() {
+        OAuthResourceBO resource = resource("resource-user", "orders", ResourceServerStatus.ACTIVE);
+        OAuthClientBO client = userClient("user-client", 22L).setAllowedScopes(List.of("openid", "orders:read"));
+        when(clients.findByClientIdForUpdate(TENANT, client.getClientId())).thenReturn(Optional.of(client));
+        when(resources.findByResourceServerIdForUpdate(PLATFORM, resource.getResourceServerId()))
+                .thenReturn(Optional.of(resource));
+        for (String scope : List.of("orders:write", "openid", "*", "s".repeat(129))) {
+            assertThatThrownBy(() -> service.putGrant(TENANT, PLATFORM, client.getClientId(), resource.getResourceServerId(),
+                    UpsertClientResourceGrantDTO.builder().grantType(ResourceGrantType.USER_DELEGATION)
+                            .allowedScopes(Set.of(scope)).expectedResourceVersion(0L).build()))
+                    .isInstanceOf(RuntimeException.class);
+        }
+        assertThatThrownBy(() -> service.putGrant(TENANT, PLATFORM, client.getClientId(), resource.getResourceServerId(),
+                UpsertClientResourceGrantDTO.builder().grantType(ResourceGrantType.USER_DELEGATION)
+                        .tenantId("7").allowedScopes(Set.of("orders:read")).expectedResourceVersion(0L).build()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.putGrant(TENANT, PLATFORM, client.getClientId(), resource.getResourceServerId(),
+                UpsertClientResourceGrantDTO.builder().grantType(ResourceGrantType.USER_DELEGATION)
+                        .allowedScopes(Set.of("orders:read")).expectedResourceVersion(1L).build()))
+                .isInstanceOf(OptimisticLockingFailureException.class);
+        verify(grants, never()).save(any(), any(), anyLong());
     }
 
     @Test

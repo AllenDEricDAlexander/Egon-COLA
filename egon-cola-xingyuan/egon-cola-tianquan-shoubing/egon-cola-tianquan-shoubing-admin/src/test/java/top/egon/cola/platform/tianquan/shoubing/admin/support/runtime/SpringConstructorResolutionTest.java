@@ -155,6 +155,7 @@ class SpringConstructorResolutionTest {
             registerNamedMock(context, "transactionalOutbox", TransactionalOutbox.class);
             context.registerBean("idpClock", Clock.class, Clock::systemUTC);
             context.registerBean("resourceServerEventAdapter", TransactionalOutboxResourceServerEventAdapter.class);
+            context.registerBean("defaultValidator", org.springframework.validation.beanvalidation.LocalValidatorFactoryBean.class);
             context.registerBean(ResourceServerServiceImpl.class);
             context.refresh();
 
