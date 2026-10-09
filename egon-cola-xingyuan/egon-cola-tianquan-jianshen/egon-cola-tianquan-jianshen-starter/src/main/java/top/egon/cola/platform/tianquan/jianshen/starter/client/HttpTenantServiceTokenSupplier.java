@@ -189,7 +189,7 @@ public final class HttpTenantServiceTokenSupplier
                     idpProperties.getServiceClient();
             client.validate();
             return serviceClient.authorize(new IdpServiceTokenRequest(
-                    client.getRegistrationId(),
+                    client.registrationIdForTenant(exactTenantId),
                     client.getAppId(),
                     resourceUri,
                     ServiceTokenContext.TENANT,

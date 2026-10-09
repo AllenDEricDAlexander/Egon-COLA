@@ -753,6 +753,7 @@ public class IdpStarterProperties {
         private String appId;
         private String registrationId;
         private Map<String, Long> credentialVersions = new LinkedHashMap<>();
+        private Map<String, String> tenantRegistrationIds = new LinkedHashMap<>();
         private Duration renewalSkew = Duration.ofSeconds(60);
 
         public String getAppId() {
@@ -798,6 +799,27 @@ public class IdpStarterProperties {
             return version;
         }
 
+        public Map<String, String> getTenantRegistrationIds() {
+            return tenantRegistrationIds;
+        }
+
+        public void setTenantRegistrationIds(Map<String, String> tenantRegistrationIds) {
+            this.tenantRegistrationIds = tenantRegistrationIds == null
+                    ? new LinkedHashMap<>() : new LinkedHashMap<>(tenantRegistrationIds);
+        }
+
+        /** Selects only an explicitly configured tenant registration; an empty map keeps single-registration mode. */
+        public String registrationIdForTenant(String tenantId) {
+            if (tenantRegistrationIds.isEmpty()) {
+                return registrationId;
+            }
+            String selected = tenantRegistrationIds.get(tenantId);
+            if (selected == null) {
+                throw invalid("service-client tenant registration is not configured");
+            }
+            return selected;
+        }
+
         public Duration getRenewalSkew() {
             return renewalSkew;
         }
@@ -819,6 +841,25 @@ public class IdpStarterProperties {
                         "egon.cola.platform.tianquan.shoubing.service-client.renewal-skew must be non-negative"
                 );
             }
+            if (tenantRegistrationIds.size() > 1000) {
+                throw invalid("service-client tenant-registration-ids exceeds the issuer bound");
+            }
+            java.util.Set<String> registrations = new java.util.HashSet<>();
+            tenantRegistrationIds.forEach((tenantId, registration) -> {
+                if (tenantId == null || !tenantId.matches("[1-9][0-9]{0,18}")
+                        || registration == null || !registration.matches("[A-Za-z0-9._-]{1,128}")) {
+                    throw invalid("service-client tenant-registration-ids entry is invalid");
+                }
+                try {
+                    Long.parseLong(tenantId);
+                } catch (NumberFormatException overflow) {
+                    throw invalid("service-client tenant-registration-ids tenant is outside Long range");
+                }
+                if (!registrations.add(registration)) {
+                    throw invalid("service-client tenant registrations must be distinct");
+                }
+                credentialVersion(registration);
+            });
             credentialVersions.forEach((key, version) -> {
                 if (key == null || !key.matches("[A-Za-z0-9._-]{1,128}")
                         || version == null || version < 0L) {
