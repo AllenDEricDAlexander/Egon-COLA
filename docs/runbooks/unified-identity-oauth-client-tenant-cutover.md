@@ -1,293 +1,118 @@
 # Unified Identity, OAuth Client, and Tenant Authority Cutover Runbook
 
-This runbook is the operator procedure for the breaking migration described by
-the [identity and tenant ownership Spec](../egon/spec/2026-08-21-07-51-tianquan-shoubing-oauth-client-tenant-ownership.md).
-It moves tenant catalog and membership authority to Tianquan-Shoubing, changes machine
-authentication to Spring Security OAuth2 Client `client_credentials`, and
-retains only Tianquan-Jianshen authorization state in the RBAC database.
+This operator procedure follows the accepted [multitenant OAuth/OIDC Spec](../egon/spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md) and its current-code amendment under review, [2026-10-08 alignment](../egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md). It covers the controlled Shoubing identity/OAuth data import, per-realm cutover, and local Edge BFF checks. It does not migrate Jianshen business tables or claim live runtime health.
 
-The procedure is deliberately offline and phase-gated. It does not start a
-service, connect to a production database, print a credential, or claim live
-topology health. Every command below uses placeholders; replace them through a
-secret manager or an operator-only environment, never by committing values.
+Run this procedure only in an approved maintenance window. The coding workflow does not run the commands below, start services, connect to a database or Redis, or use a browser. Replace every placeholder through an operator-only environment or secret manager. Never put credentials, access tokens, refresh tokens, cookies, encryption keys, or secret contents in shell history, logs, Git, reports, or tickets.
 
-## 0. Scope and non-negotiable boundaries
+## 1. Prepare the frozen source and evidence directory
 
-- Tianquan-Shoubing owns `identity_tenant`, `identity_tenant_membership`, confidential
-  `appId`/`client_id`, one-time client Secret issuance, OAuth grants, and token
-  claims.
-- Tianquan-Jianshen owns policy snapshots, roles, permissions, fences, and the external
-  `tenantId` authorization-state row. It does not provide tenant catalog or
-  membership CRUD.
-- A biz service receives its `appId`/`client_id` and Secret from an Tianquan-Shoubing
-  administrator and uses Spring's OAuth2 Client manager to obtain a SERVICE
-  token. The Secret is never stored in the repository, artifact, database
-  migration output, Tianshu, or log.
-- Tianshu registration uses a SERVICE token whose audience is the Tianshu Resource and
-  whose grant context is `PLATFORM`. There is no second Admission Ticket or
-  Admission RPC. Tianshu still validates token audience, source/application claims,
-  replay protection, and lease/instance binding; lease expiry cannot outlive
-  the token validity boundary.
-- USER Authorization Code + PKCE, refresh-token rotation, and signing-key
-  behavior are compatibility gates and must remain green.
-- V5 and V8 are breaking migration boundaries. There is no online dual-write
-  window and no single-service or single-database rollback after V8.
+Stop every writer to the legacy identity/OAuth source tables across the full fleet. A component-level migration flag is not a fleet-wide write fence. Take restorable source and target database backups, record their checksums, and verify that the source snapshot will remain immutable until all realm imports finish.
 
-## 1. Operator variables and evidence directory
-
-Set only non-secret connection identifiers in the operator shell. Passwords are
-resolved by the PostgreSQL client or secret manager and are not placed in the
-command line.
+Create a protected evidence directory and exact snapshot marker. The marker is a human-attested maintenance gate; it does not replace stopping all writers or reconciling the report against the backed-up snapshot.
 
 ```bash
 export CUTOVER_EVIDENCE_DIR="/secure/operator/evidence/<release-id>"
-export FREEZE_MARKER="${CUTOVER_EVIDENCE_DIR}/write-freeze.marker"
-export TIANQUAN_JIANSHEN_DSN="postgresql://<tianquan-jianshen-host>:5432/<tianquan-jianshen-database>"
-export TIANQUAN_SHOUBING_DSN="postgresql://<tianquan-shoubing-host>:5432/<tianquan-shoubing-database>"
-export ARTIFACT="${CUTOVER_EVIDENCE_DIR}/tenant-authority-v1.json"
-export REPORT="${CUTOVER_EVIDENCE_DIR}/tenant-authority-report.json"
+export SOURCE_SNAPSHOT_ID="<immutable-snapshot-id>"
+export REALM_KEY="platform" # or tenant:<canonical-positive-decimal-id>
+export FREEZE_MARKER="${CUTOVER_EVIDENCE_DIR}/source.freeze"
+export OWNERSHIP_MAP="${CUTOVER_EVIDENCE_DIR}/client-ownership.json"
+export SECRET_OUTPUT_DIR="${CUTOVER_EVIDENCE_DIR}/client-secrets"
+export CHECKPOINT="${CUTOVER_EVIDENCE_DIR}/checkpoint-${REALM_KEY//:/_}.json"
+export DRY_RUN_REPORT="${CUTOVER_EVIDENCE_DIR}/dry-run-${REALM_KEY//:/_}.json"
+export APPLY_REPORT="${CUTOVER_EVIDENCE_DIR}/apply-${REALM_KEY//:/_}.json"
 
-install -d -m 700 "${CUTOVER_EVIDENCE_DIR}"
-printf 'FROZEN\n' >"${FREEZE_MARKER}"
+install -d -m 700 "${CUTOVER_EVIDENCE_DIR}" "${SECRET_OUTPUT_DIR}"
+printf 'realm=%s\nsnapshot=%s\n' "${REALM_KEY}" "${SOURCE_SNAPSHOT_ID}" >"${FREEZE_MARKER}"
 chmod 600 "${FREEZE_MARKER}"
 ```
 
-Record the release commit, Flyway locations, PostgreSQL major versions, Tianquan-Shoubing
-issuer, OAuth Resource URIs, Tianshu/RBAC RPC targets, and the operator identity in
-the evidence directory. Do not record DSN passwords, client Secrets, bearer
-tokens, cookies, private keys, or full request headers.
+The ownership map must be owner-only JSON and name every legacy client exactly once. It binds each client to the same snapshot, one exact realm, purpose, and explicit effective scopes per resource. Do not derive ownership from `clientId`/`appId`, choose a default tenant, infer empty USER scopes, or copy old confidential-client secret hashes. Example shape only:
 
-## 2. Preflight inventory and static gate
-
-Before changing data, stop if any in-scope consumer still expects the removed
-machine authentication or local tenant-owner contract. The inventory must cover
-the Tianquan-Shoubing starter/admin client boundary, Tianshu registration caller, Tianquan-Jianshen
-authorization/bootstrap boundary, unified-xingyuan scripts, generated release
-fixture, and both Tianquan-Shoubing/Tianquan-Jianshen Web bundles. Yuheng or other external consumers
-must be added to the same inventory by the release owner; this repository gate
-does not claim a live Yuheng deployment.
-
-```bash
-if rg -n --glob '!target/**' --glob '!node_modules/**' --glob '!**/*.test.*' \
-    'private_key_jwt|client[_-]?jwks?|TIANQUAN_SHOUBING_[A-Z0-9_]*ADMISSION|[A-Z0-9_]*RESOURCE_ADMISSION|/iam/tenants|targetTenantId|rbac3UserId' \
-    scripts/unified-xingyuan/prepare-local-stack.sh \
-    scripts/unified-xingyuan/fixtures/unified-xingyuan-release.json \
-    egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src; then
-  echo 'legacy in-scope identity/tenant consumer found' >&2
-  exit 1
-fi
-
-bash scripts/unified-xingyuan/verify-local-stack.sh --static-only
+```json
+{
+  "schemaVersion": 1,
+  "sourceSnapshotId": "<immutable-snapshot-id>",
+  "assignments": [
+    {
+      "clientId": "<legacy-client-id>",
+      "realmKey": "tenant:<canonical-positive-decimal-id>",
+      "purpose": "USER",
+      "approvedGrantScopesByResource": {
+        "<legacy-resource-id>": ["<approved-scope>"]
+      },
+      "scopeApprovalId": "<approval-reference-for-empty-legacy-user-scopes>"
+    }
+  ]
+}
 ```
 
-Expected result is zero legacy consumer hits in the listed runtime/config/Web
-paths. Historical migration SQL, this runbook's explicit removal language,
-negative tests, and Tianshu's retained non-secret Resource-version audit mapping
-are not runtime client consumers. Resolve every other hit before proceeding.
-Run the module and Web gates from the plan and save their exit codes and logs in
-`${CUTOVER_EVIDENCE_DIR}`.
+Validate the source tables, realm membership, grant contexts, client/resource ownership, redirect URIs, and scope decisions before proceeding. The CLI reads only its fixed legacy table allowlist. Old signing-key ciphertext and legacy identity-Outbox payloads are not imported; prepare independent signing keys for every new realm before enabling issuance. A report that says signing-key replacement is required is a blocking operator task, not an invitation to copy old private material.
 
-## 3. Maintenance freeze and two readable backups
+## 2. Run and review the dry-run report
 
-1. Announce the maintenance window and stop tenant, membership, client/grant,
-   role, and permission writes in all Admin Web/API entry points.
-2. Stop old Tianquan-Shoubing, Tianshu registration callers, and SERVICE-token consumers before
-   applying V5. Keep the old binaries available for the pre-V8 restore point;
-   never run them against a V5/V8 schema.
-3. Take independent, restorable Tianquan-Shoubing and Tianquan-Jianshen PostgreSQL snapshots/dumps. Test
-   that each backup can be listed and restored into an isolated database. Store
-   backup identifiers and checksums, not credentials, in the evidence record.
-4. Confirm Redis/Tianshu/Yuheng snapshots and the release artifact are available
-   if the release includes those components.
-
-Abort here if the marker is absent, a backup is unreadable, or the write freeze
-cannot be enforced. No schema or data state has changed at this point.
-
-## 4. Export Tianquan-Jianshen authority artifact
-
-Export the ordered catalog and `identitySub` membership facts while the freeze is
-held. The tool writes mode-`600` JSON and a SHA-256 sidecar; it does not include
-passwords, client Secrets, signing material, or database URLs.
+Use the already-built Shoubing admin executable JAR. Production-like execution must use the `oauth-migration` profile; local source imports that require loopback redirect URIs may use exactly `local,oauth-migration`, with migration last. The runner rejects other profile combinations, web mode, enabled RPC/registration, mismatched markers, and unsafe file permissions.
 
 ```bash
-UNIFIED_XINGYUAN_PSQL_BIN="psql" \
-  scripts/unified-xingyuan/migrate-tenant-authority.sh export-tianquan-jianshen \
-  --db-url "${TIANQUAN_JIANSHEN_DSN}" --freeze-marker "${FREEZE_MARKER}" \
-  --output "${ARTIFACT}"
+export SHOUBING_ADMIN_JAR="egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar"
 
-scripts/unified-xingyuan/migrate-tenant-authority.sh verify-rbac \
-  --artifact "${ARTIFACT}"
+java -jar "${SHOUBING_ADMIN_JAR}" \
+  --spring.profiles.active=oauth-migration \
+  --spring.main.web-application-type=none \
+  --egon.tianquan-shoubing.oauth.migration.enabled=true \
+  --egon.tianquan-shoubing.oauth.migration.realm-key="${REALM_KEY}" \
+  --egon.tianquan-shoubing.oauth.migration.source-snapshot-id="${SOURCE_SNAPSHOT_ID}" \
+  --egon.tianquan-shoubing.oauth.migration.dry-run=true \
+  --egon.tianquan-shoubing.oauth.migration.freeze-marker-file="${FREEZE_MARKER}" \
+  --egon.tianquan-shoubing.oauth.migration.ownership-map-file="${OWNERSHIP_MAP}" \
+  --egon.tianquan-shoubing.oauth.migration.checkpoint-file="${CHECKPOINT}" \
+  --egon.tianquan-shoubing.oauth.migration.secret-distribution-directory="${SECRET_OUTPUT_DIR}" \
+  --egon.tianquan-shoubing.oauth.migration.report-file="${DRY_RUN_REPORT}"
 ```
 
-Capture the `tenants`, `memberships`, status counts, and checksum in the phase
-report. A duplicate ID/code/member pair, an orphan, a `migrating-*` placeholder,
-an invalid status, an unsafe DSN, or a checksum mismatch is a hard failure.
+The runner writes a new mode-`600` JSON report to the requested path and logs only counts, the report digest, checkpoint ID, and report path. Keep the parent directory mode `700`. Review all conflicts, counts, source and ownership fingerprints, target realm, scope approvals, signing-key replacement count, and secret-file references. Require zero unresolved conflicts. Approve the exact `reportSha256` from the protected JSON report; do not edit or reuse that report file.
 
-## 5. Apply Tianquan-Shoubing V5 and import real tenant authority
+## 3. Apply one realm and reconcile before the next
 
-Apply exactly the new Tianquan-Shoubing V5 migration on the isolated/release Tianquan-Shoubing database;
-never edit an existing Flyway file or run a down migration. V5 creates the
-tenant/membership tables, app ID and Secret history, converts existing grant
-context, and removes obsolete client-key/admission storage.
-
-After Flyway succeeds, import the artifact transactionally and idempotently:
+Run the platform realm first so platform clients and Resource records exist before dependent tenant imports. Then run each tenant with its own checkpoint and report paths. Directory rows are global and replayed idempotently into the trusted storage partition; tenant OAuth rows are limited to the named tenant realm. Every source page is bounded to at most 500 rows. The checkpoint advances only after target commits and content verification.
 
 ```bash
-scripts/unified-xingyuan/migrate-tenant-authority.sh import-tianquan-shoubing \
-  --db-url "${TIANQUAN_SHOUBING_DSN}" --freeze-marker "${FREEZE_MARKER}" \
-  --artifact "${ARTIFACT}"
+export APPROVED_REPORT_SHA256="<reviewed-64-hex-reportSha256>"
 
-scripts/unified-xingyuan/migrate-tenant-authority.sh verify-tianquan-shoubing \
-  --artifact "${ARTIFACT}" --db-url "${TIANQUAN_SHOUBING_DSN}"
-
-scripts/unified-xingyuan/migrate-tenant-authority.sh report \
-  --artifact "${ARTIFACT}" --output "${REPORT}"
+java -jar "${SHOUBING_ADMIN_JAR}" \
+  --spring.profiles.active=oauth-migration \
+  --spring.main.web-application-type=none \
+  --egon.tianquan-shoubing.oauth.migration.enabled=true \
+  --egon.tianquan-shoubing.oauth.migration.realm-key="${REALM_KEY}" \
+  --egon.tianquan-shoubing.oauth.migration.source-snapshot-id="${SOURCE_SNAPSHOT_ID}" \
+  --egon.tianquan-shoubing.oauth.migration.dry-run=false \
+  --egon.tianquan-shoubing.oauth.migration.freeze-marker-file="${FREEZE_MARKER}" \
+  --egon.tianquan-shoubing.oauth.migration.ownership-map-file="${OWNERSHIP_MAP}" \
+  --egon.tianquan-shoubing.oauth.migration.checkpoint-file="${CHECKPOINT}" \
+  --egon.tianquan-shoubing.oauth.migration.secret-distribution-directory="${SECRET_OUTPUT_DIR}" \
+  --egon.tianquan-shoubing.oauth.migration.report-file="${APPLY_REPORT}" \
+  --egon.tianquan-shoubing.oauth.migration.approved-report-sha256="${APPROVED_REPORT_SHA256}"
 ```
 
-The import preserves decimal tenant IDs and `identitySub` values; rerunning it
-updates the same tenant/member rows instead of creating a second identity. The
-Tianquan-Shoubing verification must prove exact counts/checksums, no duplicate tenant code or
-tenant/member pair, no orphan membership, no placeholder tenant, and no grant
-pointing at a missing tenant. Do not continue on any mismatch.
+The apply recomputes the report digest and stops before target writes if it differs. A source conflict, ownership mismatch, transaction failure, or unknown commit stops that realm; never skip a row or advance a checkpoint manually. If the process stops after a target batch commits, rerun only with the same snapshot, ownership map, approval digest, and protected checkpoint; the importer re-reads and verifies target content before replay. If report writing fails after an apply, the checkpoint is still authoritative: use a new report path and rerun the same approved command to retrieve a reconciled report.
 
-## 6. Provision clients, Secret, and grants
+Confidential clients receive newly generated BCrypt credentials. The clear value is written once to an owner-only file under `SECRET_OUTPUT_DIR`; distribute it to the intended operator-owned secret manager and record only the file reference, client ID, credential version, and distribution acknowledgement. Do not print the file or copy old hashes. If a failed transaction leaves an orphaned secret file or the target/client state is uncertain, stop and reconcile the protected artifact against the target before another attempt. Never delete or distribute an ambiguous artifact automatically.
 
-With old traffic still stopped, start the new Tianquan-Shoubing backend and Tianquan-Shoubing Admin Web in
-the maintenance network. For every Confidential Client:
+For each realm, record `PREPARED` (frozen snapshot, backups, ownership decisions), `VERIFIED` (zero-conflict report and approved digest), `CUTOVER` (apply report and target reconciliation accepted), and `RETIRED` (legacy writers/issuer path disabled and old source retained read-only). Do not advance a realm on partial reconciliation.
 
-1. Confirm the administrator-owned `appId` and `client_id` mapping.
-2. Create or rotate the Secret in the Web page. The clear Secret is returned
-   once; copy it directly into the consumer Secret Manager and record only its
-   hint, credential ID, version, and distribution timestamp.
-3. Configure the consumer's standard Spring registration:
+## 4. Local Edge BFF verification
 
-   ```yaml
-   spring:
-     security:
-       oauth2:
-         client:
-           registration:
-             egon-tianquan-shoubing:
-               client-id: ${EGON_TIANQUAN_SHOUBING_APP_KEY}
-               client-secret: ${EGON_TIANQUAN_SHOUBING_APP_SECRET}
-               authorization-grant-type: client_credentials
-               client-authentication-method: client_secret_basic
-           provider:
-             egon-tianquan-shoubing:
-               token-uri: ${EGON_TIANQUAN_SHOUBING_TOKEN_URI}
-   egon:
-     cola:
-       xingyuan:
-         tianquan-shoubing:
-           service-client:
-             app-id: ${EGON_TIANQUAN_SHOUBING_APP_ID}
-   ```
-
-4. Add only the exact Resource Grant and scopes needed by that consumer. Tianshu
-   registration uses a `CLIENT_CREDENTIALS` grant with `grantContext: PLATFORM`;
-   a tenant business call uses an explicit `TENANT` context and decimal
-   `tenantId`.
-5. Verify that no Secret is written to Git, a database row, Tianshu configuration,
-   browser storage, request log, or migration artifact. A missing client stays
-   disabled; do not invent a fallback credential.
-
-## 7. Token, RPC, Tianshu, and USER smoke gates
-
-Use a disposable client and representative tenant in the maintenance network.
-Redact every token before storing evidence; preferably store only decoded claim
-names, status codes, latency, and a token hash prefix.
-
-- Obtain a SERVICE token through `OAuth2AuthorizedClientManager` and verify
-  `sub`, `client_id`, `principal_type=SERVICE`, exact `aud`, grant context,
-  scope, and expiry. A token request with an invalid Secret or wrong Resource
-  must fail closed.
-- Call the Tianquan-Shoubing→RBAC membership RPC with an `identitySub` and tenant ID. An
-  ACTIVE membership succeeds; a DISABLED/unknown subject fails before any RBAC
-  write. Confirm timeout and error metrics are present without logging token
-  material.
-- Register and heartbeat a Tianshu instance using the Tianshu-audience PLATFORM SERVICE
-  token. Confirm lease identity, instance binding, expiry cap, replay rejection,
-  and recovery after token renewal. Confirm there is no Admission RPC or
-  second-ticket traffic.
-- Execute the selected USER Authorization Code + PKCE, refresh, signing-key,
-  cookie/session, and revoked-user regression tests. USER behavior is a release
-  gate, not an optional smoke test.
-
-Abort before V8 if any token audience/scope, membership status, lease binding,
-or USER/Signing regression is wrong.
-
-## 8. Apply Tianquan-Jianshen V8 and bootstrap by external ID
-
-Run the Tianquan-Jianshen V8 migration only after the Tianquan-Shoubing report, Secret distribution, and
-all smoke gates are PASS. V8 copies policy version/audit state, retargets every
-inbound tenant foreign key without changing child values, verifies the gate
-facts, and drops the local tenant catalog table in one transaction.
+Set the public Edge HTTP(S) origin explicitly before running the local stack. `prepare-local-stack.sh` and `start-local-stack.sh` reject a missing origin. Auth and callback proxies point at Edge; `/api` and Portal API proxies remain on Yuheng Engine. Generated `.env.local` files contain only `VITE_YUHENG_ORIGIN=<Edge origin>` and have mode `600`; they do not prefill a browser tenant.
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
-  -am -Dflyway.url="${TIANQUAN_JIANSHEN_DSN}" migrate
-
-scripts/unified-xingyuan/migrate-tenant-authority.sh verify-rbac \
-  --artifact "${ARTIFACT}" --db-url "${TIANQUAN_JIANSHEN_DSN}"
+export YUHENG_EDGE_BASE_URL="http://127.0.0.1:<edge-port>"
+scripts/unified-xingyuan/prepare-local-stack.sh
+UNIFIED_XINGYUAN_SKIP_BUILD=true scripts/unified-xingyuan/start-local-stack.sh
 ```
 
-Deploy the Tianquan-Jianshen backend and Web as the same release unit. Development/bootstrap
-must use `--tenant-id` plus `--identity-sub` (or the decimal `tenant-ids` list)
-and must pass the Tianquan-Shoubing ACTIVE membership gate; it must not create a tenant or
-fall back to a tenant code. Confirm the RBAC Web has no tenant catalog route or
-resource definition and that Tianquan-Shoubing Web owns tenant/member administration.
+The launcher checks `/bff/csrf`, an anonymous `/bff/session` response, and the configured OIDC authorization route. Its frontend preflight checks CORS for all five origins without posting a password, persisting a browser cookie, reading UserInfo, or refreshing a USER token. `verify-local-stack.sh --static-only`, `test-direct-run-contract.sh`, and `bash -n` are static checks; live Edge, issuer, Redis, browser login, database import, and cutover remain operator-run gates.
 
-Inside V8, a failed FK inventory, row-count/checksum comparison, or authorization
-state copy rolls back the database transaction. After V8, restore is coordinated
-across both database snapshots, all binaries, and all Secret distributions; a
-single service or single database rollback is prohibited.
+## 5. Rollback and evidence boundaries
 
-## 9. Restore traffic and observe
+Before any target writes, the operator may abandon the run and keep the legacy source authoritative. Once a new realm, client, secret generation, audit event, or security generation is committed, do not roll back binaries alone or copy legacy secrets/keys over new facts. Freeze all issuers and writers, reconcile source/target counts and security state, then fix forward or use a coordinated database/configuration/secret restore approved for the entire fleet. Never decrease a security generation or restore a revoked credential.
 
-1. Enable Tianquan-Shoubing grants and release the new Tianquan-Shoubing, biz services, Tianshu, Tianquan-Jianshen, Yuheng,
-   and Admin Web in the tested order. Keep the write freeze until all health and
-   smoke probes pass.
-2. Re-enable client/tenant/member/role/permission writes and then business
-   traffic. Record the exact time and release IDs.
-3. Observe for the agreed stability window:
-   - OAuth token failures by client/resource/error, token latency, cache hit rate;
-   - membership RPC latency, timeout, ACTIVE/DISABLED decisions, and zero-write
-     failures;
-   - Tianshu register/heartbeat/replay/lease-expiry counters and instance identity;
-   - RBAC policyVersion monotonicity, fence/reprojection errors, and Yuheng
-     route consistency;
-   - Tianquan-Shoubing Admin Web Secret rotation and tenant/member audit events.
-4. Retain backups, artifact, report, static/module/Web logs, and redacted smoke
-   evidence until the stability window and restore drill are accepted.
-
-## 10. Abort and rollback matrix
-
-| Boundary | Safe action |
-| --- | --- |
-| Before V5 | Cancel the window; remove the freeze marker after operators agree. |
-| After V5, before import/cutover | Stop new binaries and restore the Tianquan-Shoubing snapshot with the old app set. |
-| After import, before V8 | Fix forward or restore the Tianquan-Shoubing snapshot; do not run old binaries against the new schema. |
-| Inside V8 | Let the transaction roll back; retain evidence and repair the gate. |
-| After V8 | Restore both database snapshots and the complete compatible binary/config/Secret release, or fix forward. Never roll back one service/database alone. |
-
-If a newly issued Secret was exposed during an aborted release, revoke it and
-rotate it before the next attempt, even if the old snapshot is restored. Never
-put a Secret or bearer token in this runbook, a ticket, a shell history, or an
-artifact report.
-
-## 11. Completion checklist
-
-- [ ] Freeze marker and readable Tianquan-Shoubing/RBAC backups recorded.
-- [ ] Export artifact, sidecar checksum, import log, and PASS report stored mode 600.
-- [ ] V5 and V8 Flyway migrations applied without modifying history.
-- [ ] Tianquan-Shoubing tenant/member/grant invariants and RBAC authorization-state/FK gates PASS.
-- [ ] Every biz service has administrator-provisioned app ID, one-time Secret,
-      Spring OAuth2 Client configuration, and least-privilege grants.
-- [ ] Tianshu PLATFORM SERVICE token registration/heartbeat smoke PASS with no
-      Admission RPC or second ticket.
-- [ ] USER Authorization Code + PKCE, refresh, signing, cookie, and revoked-user
-      regressions PASS.
-- [ ] RBAC bootstrap and Web use external tenant IDs; Tianquan-Shoubing Web owns tenant/member
-      administration; legacy static gate is zero for runtime consumers.
-- [ ] Observability and coordinated restore evidence accepted by the release owner.
+Retain source and target backup references, immutable snapshot identity, freeze marker, owner-map fingerprint, dry-run/apply reports, checkpoints, secret-distribution acknowledgements, and reconciliation evidence in the protected evidence directory. Static/unit tests do not prove production data correctness, TLS, Redis durability, issuer behavior, browser login, or distributed cutover.

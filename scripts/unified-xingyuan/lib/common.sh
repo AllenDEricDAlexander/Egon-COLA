@@ -39,6 +39,7 @@ MOCK_BACKEND_BASE_URL="${MOCK_BACKEND_BASE_URL:-http://127.0.0.1:18160}"
 MCP_PROVIDER_BASE_URL="${MCP_PROVIDER_BASE_URL:-http://127.0.0.1:18161}"
 MCP_REMOTE_BASE_URL="${MCP_REMOTE_BASE_URL:-http://127.0.0.1:18151}"
 YUHENG_BASE_URL="${YUHENG_BASE_URL:-http://127.0.0.1:18180}"
+YUHENG_EDGE_BASE_URL="${YUHENG_EDGE_BASE_URL:-}"
 YUHENG_MCP_BASE_URL="${YUHENG_MCP_BASE_URL:-http://127.0.0.1:18185}"
 YUHENG_MCP_ENGINE_BASE_URL="${YUHENG_MCP_ENGINE_BASE_URL:-http://127.0.0.1:18186}"
 YUHENG_ENGINE_A_BASE_URL="${YUHENG_ENGINE_A_BASE_URL:-http://127.0.0.1:18182}"
@@ -179,28 +180,38 @@ unified_xingyuan_local_build_id() {
 }
 
 unified_xingyuan_write_frontend_login_env() {
-  local web_dir="$1" tenant_id="$2"
+  local web_dir="$1"
   local file="${web_dir}/.env.local"
-  local marker='# Managed by scripts/unified-xingyuan for Yuheng USER cookies.'
+  local marker='# Managed by scripts/unified-xingyuan for Edge OIDC/BFF.'
   local legacy_marker='# Managed by scripts/unified-xingyuan for local SSO.'
-  [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
-    || unified_xingyuan_fail "default tenant ID must be a positive integer"
+  unified_xingyuan_require_edge_origin
   [[ -d "${web_dir}" ]] \
     || unified_xingyuan_fail "frontend directory is missing: ${web_dir}"
   if [[ -e "${file}" ]] \
       && [[ "$(sed -n '1p' "${file}")" != "${marker}" ]] \
+      && [[ "$(sed -n '1p' "${file}")" != '# Managed by scripts/unified-xingyuan for Yuheng USER cookies.' ]] \
       && [[ "$(sed -n '1p' "${file}")" != "${legacy_marker}" ]]; then
     unified_xingyuan_fail \
       "refusing to overwrite unmanaged frontend environment: ${file}"
   fi
-  # Vite only inherits shell exports for that process. Persist both values so
-  # a later plain npm run dev uses the same authenticated Yuheng entry point.
-  printf '%s\nVITE_DEFAULT_TENANT_ID=%s\nVITE_YUHENG_ORIGIN=%s\n' \
-    "${marker}" "${tenant_id}" "${YUHENG_BASE_URL}" >"${file}"
+  # Persist the public Edge origin so plain npm run dev uses the same BFF.
+  printf '%s\nVITE_YUHENG_ORIGIN=%s\n' \
+    "${marker}" "${YUHENG_EDGE_BASE_URL}" >"${file}"
   chmod 600 "${file}"
 }
 
 unified_xingyuan_require_command() {
   command -v "$1" >/dev/null 2>&1 \
     || unified_xingyuan_fail "missing prerequisite: $1"
+}
+
+unified_xingyuan_require_edge_origin() {
+  if [[ "${YUHENG_EDGE_BASE_URL}" =~ ^https?://(\[[0-9A-Fa-f:]+\]|[A-Za-z0-9.-]+)(:([0-9]{1,5}))?$ ]]; then
+    local port="${BASH_REMATCH[3]:-}"
+    if [[ -n "${port}" ]] && ((10#${port} < 1 || 10#${port} > 65535)); then
+      unified_xingyuan_fail "YUHENG_EDGE_BASE_URL has an invalid port"
+    fi
+    return
+  fi
+  unified_xingyuan_fail "YUHENG_EDGE_BASE_URL must be an explicit HTTP(S) Edge origin without a path"
 }

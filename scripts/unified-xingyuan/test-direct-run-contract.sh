@@ -739,19 +739,41 @@ declare -F unified_xingyuan_write_frontend_login_env >/dev/null \
   || fail 'frontend login environment writer is missing'
 frontend_dir="${temporary_dir}/admin-web"
 mkdir -p "${frontend_dir}"
+YUHENG_EDGE_BASE_URL='https://edge.local.example'
+export YUHENG_EDGE_BASE_URL
 unified_xingyuan_write_frontend_login_env \
-  "${frontend_dir}" '77351065313480704'
+  "${frontend_dir}"
 frontend_env="${frontend_dir}/.env.local"
 [[ "$(stat -f '%Lp' "${frontend_env}")" == '600' ]] \
-  || fail 'generated frontend login environment must have mode 600'
+  || fail 'generated frontend Edge environment must have mode 600'
 # shellcheck disable=SC1090
 source "${frontend_env}"
-[[ "${VITE_DEFAULT_TENANT_ID}" == '77351065313480704' ]] \
-  || fail 'plain npm run dev must receive the resolvable default tenant ID'
-[[ "${VITE_YUHENG_ORIGIN}" == "${YUHENG_BASE_URL}" ]] \
-  || fail 'plain npm run dev must use Yuheng rather than the Vite HTML fallback for login'
+[[ "${VITE_YUHENG_ORIGIN}" == "${YUHENG_EDGE_BASE_URL}" ]] \
+  || fail 'plain npm run dev must use the configured Edge BFF origin'
+assert_not_contains "${frontend_env}" 'VITE_DEFAULT_TENANT_ID=' \
+  'browser environment must not prefill a tenant into the login form'
+if (YUHENG_EDGE_BASE_URL='https://edge.local.example/bff' \
+    unified_xingyuan_require_edge_origin) >/dev/null 2>&1; then
+  fail 'Edge origin validation must reject paths'
+fi
+if (YUHENG_EDGE_BASE_URL='https://edge.local.example:70000' \
+    unified_xingyuan_require_edge_origin) >/dev/null 2>&1; then
+  fail 'Edge origin validation must reject invalid ports'
+fi
 assert_contains "${platform_start_script}" '"${script_dir}/test-live-frontend-login.sh"' \
-  'startup must verify a fresh login and authorization before reporting success'
+  'startup must verify the configured Edge BFF contract before reporting success'
+assert_contains "${platform_start_script}" 'YUHENG_EDGE_BASE_URL' \
+  'frontend startup must require an explicit Edge origin'
+assert_contains "${platform_start_script}" '/bff/csrf' \
+  'frontend startup must preflight the Edge BFF path'
+assert_not_contains "${platform_start_script}" '/oauth2/login/csrf' \
+  'frontend startup must not probe the retired password-login route'
+assert_contains "${platform_start_script}" 'TIANQUAN_SHOUBING_AUTH_PROXY' \
+  'Shoubing frontend auth routes must use the Edge BFF'
+assert_contains "${platform_start_script}" 'PORTAL_AUTH_PROXY="${YUHENG_EDGE_BASE_URL}"' \
+  'Portal auth routes must use the Edge BFF'
+assert_contains "${platform_start_script}" 'PORTAL_API_PROXY="${YUHENG_BASE_URL}"' \
+  'Portal API routes must remain on the Yuheng Engine'
 printf '%s\n' 'VITE_CUSTOM_SETTING=preserve-me' >"${frontend_env}"
 if (unified_xingyuan_write_frontend_login_env \
     "${frontend_dir}" '77351065313480704') >/dev/null 2>&1; then
@@ -910,7 +932,7 @@ assert_contains "${prepare_script}" 'npm ci' \
 assert_contains "${prepare_script}" '.properties' \
   'preparation must verify generated Java runtime configuration'
 assert_contains "${start_script}" 'test-live-frontend-login.sh' \
-  'stack startup must prove fresh password login and authorization before success'
+  'stack startup must preflight Edge BFF routes before success'
 assert_contains "${start_script}" 'unified_xingyuan_write_tianshu_identity_env' \
   'local MCP provider must receive its resolved Tianshu tenant and ACL identity'
 assert_contains "${identity_script}" 'publish_gateway_routes true' \
@@ -939,30 +961,26 @@ draft_validation_line="$(grep -nF 'validation="$(gateway_api POST' \
 [[ -n "${deferred_return_line}" && -n "${draft_validation_line}" \
     && "${deferred_return_line}" -lt "${draft_validation_line}" ]] \
   || fail 'deferred startup must postpone full draft validation until MCP providers are online'
-assert_contains "${live_login_test}" 'fresh Admin endpoint returned HTTP' \
-  'frontend login contract must exercise fresh Yuheng JWT Admin endpoints'
-assert_contains "${live_login_test}" 'fresh_cookie="${fresh_dir}/yuheng.cookies"' \
-  'frontend login contract must use one Yuheng USER cookie jar'
-assert_not_contains "${live_login_test}" 'Authorization: Bearer $(<"${default_token}")' \
-  'frontend login contract must not forward the pre-generated USER Access Token'
-assert_not_contains "${live_login_test}" 'fresh_dir}/tianquan-shoubing.access.jwt' \
-  'frontend login contract must not create per-client USER token files'
-assert_not_contains "${live_login_test}" '.access.jwt' \
-  'frontend login contract must not persist per-client USER Access Token files'
-assert_not_contains "${live_login_test}" '/oauth2/authorize' \
-  'frontend login contract must not use Authorization Code flow'
-assert_not_contains "${live_login_test}" 'grant_type=authorization_code' \
-  'frontend login contract must not exchange Authorization Codes'
-for application_code in tianquan-shoubing-admin tianquan-jianshen-admin yuheng-admin tianshu-admin mock-backend; do
-  assert_contains "${live_login_test}" "\"${application_code}\"" \
-    "frontend login contract must verify the ${application_code} role"
-done
-for role_code in \
-  TIANQUAN_SHOUBING_LOCAL_ADMIN TIANQUAN_JIANSHEN_LOCAL_ADMIN YUHENG_LOCAL_ADMIN TIANSHU_LOCAL_ADMIN \
-  MOCK_LOCAL_ADMIN MOCK_LOCAL_ENTRY; do
-  assert_contains "${live_login_test}" "\"${role_code}\"" \
-    "frontend login contract must verify the ${role_code} role code"
-done
+assert_contains "${live_login_test}" '/oauth2/authorization/edge-ui' \
+  'frontend auth preflight must use the configured Edge registration'
+assert_contains "${live_login_test}" '/bff/csrf' \
+  'frontend auth preflight must verify BFF CSRF shape'
+assert_contains "${live_login_test}" '/bff/session' \
+  'frontend auth preflight must distinguish anonymous session from a login'
+assert_contains "${live_login_test}" 'X-CSRF-TOKEN' \
+  'frontend auth preflight must use the BFF CSRF header contract'
+assert_not_contains "${live_login_test}" '/oauth2/login' \
+  'frontend auth preflight must not invoke the retired password endpoint'
+assert_not_contains "${live_login_test}" 'username:"alice",password' \
+  'frontend auth preflight must not contain a password request body'
+assert_not_contains "${live_login_test}" 'grant_type=refresh_token' \
+  'frontend auth preflight must not refresh a browser USER token'
+assert_not_contains "${live_login_test}" 'userinfo' \
+  'frontend auth preflight must not read browser USER userinfo'
+assert_not_contains "${live_login_test}" 'cookie' \
+  'frontend auth preflight must not read or persist browser cookies'
+assert_not_contains "${live_login_test}" 'password' \
+  'frontend auth preflight must not handle browser passwords'
 last_web_line="$(grep -nF 'start_admin_web tianshu-admin-web' \
   "${start_script}" | tail -1 | cut -d: -f1)"
 success_line="$(grep -nF "printf 'Unified Xingyuan local stack is running" \

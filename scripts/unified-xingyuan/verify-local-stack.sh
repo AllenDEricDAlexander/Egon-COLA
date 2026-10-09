@@ -43,6 +43,8 @@ if [[ "${static_only}" == 'true' ]]; then
   exit 0
 fi
 
+unified_xingyuan_require_edge_origin
+
 legacy_script="${unified_xingyuan_repo_root}/scripts/unified-identity-local.sh"
 ddc_jar="${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar"
 mcp_remote_jar="${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/target/yuheng-test-mcp-remote-exec.jar"
@@ -350,7 +352,7 @@ verify_browser_preflight() {
     -H "Origin: ${origin}" \
     -H 'Access-Control-Request-Method: POST' \
     -H "Access-Control-Request-Headers: ${request_headers}" \
-    "${YUHENG_BASE_URL}${endpoint}")"
+    "${YUHENG_EDGE_BASE_URL}${endpoint}")"
   [[ "${http_code}" == "200" || "${http_code}" == "204" ]] || unified_xingyuan_fail \
     "${label} browser preflight failed with HTTP ${http_code}"
   allowed_origin="$(response_header \
@@ -375,7 +377,7 @@ verify_unknown_origin_rejected() {
     -H 'Origin: http://localhost:18152' \
     -H 'Access-Control-Request-Method: POST' \
     -H 'Access-Control-Request-Headers: content-type' \
-    "${YUHENG_BASE_URL}/oauth2/token")"
+    "${YUHENG_EDGE_BASE_URL}/bff/logout")"
   [[ "${http_code}" == "403" ]] || unified_xingyuan_fail \
     "unconfigured browser origin was not rejected: HTTP ${http_code}"
   [[ -z "$(response_header "${headers}" Access-Control-Allow-Origin)" ]] \
@@ -456,17 +458,17 @@ mcp_call() {
   printf '%s' "${response}"
 }
 
-unified_xingyuan_stage "verifying Admin Web browser CORS boundaries"
-verify_browser_preflight tianquan-shoubing-login "${TIANQUAN_SHOUBING_ADMIN_WEB_URL}" \
-  /oauth2/login 'content-type,x-tianquan-shoubing-csrf'
-verify_browser_preflight tianquan-shoubing-token "${TIANQUAN_SHOUBING_ADMIN_WEB_URL}" \
-  /oauth2/token content-type
-verify_browser_preflight tianquan-jianshen-token "${TIANQUAN_JIANSHEN_ADMIN_WEB_URL}" \
-  /oauth2/token content-type
-verify_browser_preflight yuheng-token "${YUHENG_ADMIN_WEB_URL}" \
-  /oauth2/token content-type
-verify_browser_preflight tianshu-token "${TIANSHU_ADMIN_WEB_URL}" \
-  /oauth2/token content-type
+unified_xingyuan_stage "verifying Edge BFF browser CORS boundaries"
+verify_browser_preflight tianquan-shoubing-bff "${TIANQUAN_SHOUBING_ADMIN_WEB_URL}" \
+  /bff/logout 'content-type,x-csrf-token'
+verify_browser_preflight tianquan-jianshen-bff "${TIANQUAN_JIANSHEN_ADMIN_WEB_URL}" \
+  /bff/logout 'content-type,x-csrf-token'
+verify_browser_preflight yuheng-bff "${YUHENG_ADMIN_WEB_URL}" \
+  /bff/logout 'content-type,x-csrf-token'
+verify_browser_preflight tianshu-bff "${TIANSHU_ADMIN_WEB_URL}" \
+  /bff/logout 'content-type,x-csrf-token'
+verify_browser_preflight portal-bff "${PLATFORM_PORTAL_URL}" \
+  /bff/logout 'content-type,x-csrf-token'
 verify_unknown_origin_rejected
 
 unified_xingyuan_stage "verifying unified identity JWT cookie and refresh-token semantics"

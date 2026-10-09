@@ -8,6 +8,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseRole;
@@ -26,6 +27,7 @@ import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
+@Profile("!oauth-migration")
 public class IdpPlatformConfiguration {
 
     @Bean

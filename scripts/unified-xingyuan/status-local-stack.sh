@@ -51,9 +51,13 @@ print_status tianquan-jianshen-admin-web "${TIANQUAN_JIANSHEN_ADMIN_WEB_URL}/"
 print_status yuheng-admin-web "${YUHENG_ADMIN_WEB_URL}/"
 print_status tianshu-admin-web "${TIANSHU_ADMIN_WEB_URL}/"
 print_status portal-web "${PLATFORM_PORTAL_URL}/"
-login_status="$(unified_xingyuan_http_code "${YUHENG_BASE_URL}/oauth2/login/csrf")"
-printf 'Yuheng login route: %s/oauth2/login/csrf health=%s\n' \
-  "${YUHENG_BASE_URL}" "${login_status:-unreachable}"
+if [[ -n "${YUHENG_EDGE_BASE_URL}" ]]; then
+  bff_status="$(unified_xingyuan_http_code "${YUHENG_EDGE_BASE_URL}/bff/csrf")"
+  printf 'Edge BFF CSRF route: %s/bff/csrf health=%s\n' \
+    "${YUHENG_EDGE_BASE_URL}" "${bff_status:-unreachable}"
+else
+  printf 'Edge BFF origin: not configured (set YUHENG_EDGE_BASE_URL)\n'
+fi
 
 printf 'Runtime: %s\n' "${unified_xingyuan_runtime_dir}"
 printf 'Logs:    %s\n' "${unified_xingyuan_log_dir}"

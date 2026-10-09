@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.IdentityMigrationDAO">
+
+    <select id="selectUsersAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$UserRowDTO">
+        SELECT id, username, username_normalized AS normalizedUsername, display_name AS displayName,
+               status, failed_login_count AS failedLoginCount, locked_until AS lockedUntil,
+               last_login_at AS lastLoginAt, version, created_at AS createdAt, updated_at AS updatedAt
+        FROM public.identity_user
+        WHERE id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectCredentialsAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$CredentialRowDTO">
+        SELECT id, identity_sub AS identitySub, credential_type AS credentialType,
+               password_hash AS passwordHash, password_changed_at AS passwordChangedAt,
+               must_change_password AS mustChangePassword, status, version,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM public.identity_user_credential
+        WHERE id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectTenantsAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$TenantRowDTO">
+        SELECT id, tenant_code AS tenantCode, tenant_name AS tenantName, status, settings,
+               version, created_at AS createdAt, updated_at AS updatedAt,
+               created_by AS createdBy, updated_by AS updatedBy
+        FROM public.identity_tenant
+        WHERE id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectMembershipsAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$MembershipRowDTO">
+        SELECT id, tenant_id AS tenantId, identity_sub AS identitySub, status, version,
+               created_at AS createdAt, updated_at AS updatedAt,
+               created_by AS createdBy, updated_by AS updatedBy
+        FROM public.identity_tenant_membership
+        WHERE id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectAuditAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$AuditRowDTO">
+        SELECT id, event_type AS eventType, actor_sub AS actorSub, target_sub AS targetSub,
+               tenant_id AS tenantId, source_ip AS sourceIp, user_agent AS userAgent,
+               result, reason, trace_id AS traceId, payload, occurred_at AS occurredAt
+        FROM public.identity_audit_log
+        WHERE id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectClientsAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$ClientRowDTO">
+        SELECT client_id AS clientId, app_id AS appId, client_name AS clientName, client_type AS clientType,
+               status, pkce_required AS pkceRequired, access_token_ttl_seconds AS accessTokenTtlSeconds,
+               refresh_token_ttl_seconds AS refreshTokenTtlSeconds, version,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM public.identity_client
+        WHERE client_id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY client_id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectClientById"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$ClientRowDTO">
+        SELECT client_id AS clientId, app_id AS appId, client_name AS clientName, client_type AS clientType,
+               status, pkce_required AS pkceRequired, access_token_ttl_seconds AS accessTokenTtlSeconds,
+               refresh_token_ttl_seconds AS refreshTokenTtlSeconds, version,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM public.identity_client
+        WHERE client_id = #{clientId}
+    </select>
+
+    <select id="selectRedirectUrisForClient"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$RedirectUriRowDTO">
+        SELECT id, client_id AS clientId, redirect_uri AS redirectUri, created_at AS createdAt
+        FROM public.identity_client_redirect_uri
+        WHERE client_id = #{clientId}
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectGrantsForClient"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$GrantRowDTO">
+        SELECT id, client_id AS clientId, resource_server_id AS resourceServerId,
+               grant_type AS grantType, grant_context AS grantContext, tenant_id AS tenantId,
+               allowed_scopes AS allowedScopes, status, version,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM public.identity_client_resource_grant
+        WHERE client_id = #{clientId}
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectResourcesAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$ResourceRowDTO">
+        SELECT id, resource_server_id AS resourceServerId, resource_uri AS resourceUri,
+               biz_code AS bizCode, app_code AS appCode, environment, display_name AS displayName,
+               management_client_id AS managementClientId, rbac_application_code AS rbacApplicationCode,
+               entry_permission_code AS entryPermissionCode, status, version,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM public.identity_resource_server
+        WHERE id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectResourceById"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$ResourceRowDTO">
+        SELECT id, resource_server_id AS resourceServerId, resource_uri AS resourceUri,
+               biz_code AS bizCode, app_code AS appCode, environment, display_name AS displayName,
+               management_client_id AS managementClientId, rbac_application_code AS rbacApplicationCode,
+               entry_permission_code AS entryPermissionCode, status, version,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM public.identity_resource_server
+        WHERE resource_server_id = #{resourceServerId}
+    </select>
+
+    <select id="selectOutboxEventsAfter"
+            resultType="top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.IdentityMigrationRowDTO$OutboxEventMetadataRowDTO">
+        SELECT id, aggregate_type AS aggregateType, aggregate_id AS aggregateId,
+               event_type AS eventType, status, attempt_count AS attemptCount,
+               next_attempt_at AS nextAttemptAt, created_at AS createdAt, published_at AS publishedAt
+        FROM public.identity_outbox_event
+        WHERE id &gt; COALESCE(#{lastSourceId}, '')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="countLegacyClientSecrets" resultType="long">
+        SELECT COUNT(*) FROM public.identity_client_secret
+    </select>
+
+    <select id="countLegacySigningKeys" resultType="long">
+        SELECT COUNT(*) FROM public.identity_signing_key
+    </select>
+
+    <update id="restoreClientHistory">
+        UPDATE oauth_client
+        SET version = #{version}, create_time = #{createdAt}, update_time = #{updatedAt}
+        WHERE tenant_id = #{partitionId} AND client_id = #{clientId} AND deleted_at IS NULL
+    </update>
+
+    <update id="restoreResourceHistory">
+        UPDATE oauth_resource
+        SET version = #{version}, create_time = #{createdAt}, update_time = #{updatedAt}
+        WHERE tenant_id = #{partitionId} AND resource_server_id = #{resourceServerId} AND deleted_at IS NULL
+    </update>
+
+    <update id="restoreGrantHistory">
+        UPDATE oauth_grant
+        SET version = #{version}, create_time = #{createdAt}, update_time = #{updatedAt}
+        WHERE tenant_id = #{partitionId} AND client_pk = #{clientPk}
+          AND resource_server_id = #{resourceServerId} AND grant_type = #{grantType} AND deleted_at IS NULL
+    </update>
+
+    <select id="sourceUserExists" resultType="int">
+        SELECT CASE WHEN EXISTS (SELECT 1 FROM public.identity_user WHERE id = #{identitySub}) THEN 1 ELSE 0 END
+    </select>
+
+    <select id="sourceTenantExists" resultType="int">
+        SELECT CASE WHEN EXISTS (SELECT 1 FROM public.identity_tenant WHERE id = #{tenantId}) THEN 1 ELSE 0 END
+    </select>
+
+    <select id="selectSourceTenantStatus" resultType="string">
+        SELECT status FROM public.identity_tenant WHERE id = #{tenantId}
+    </select>
+
+    <select id="selectUserByIdentitySub" resultType="top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.po.IdentityUserPO">
+        SELECT * FROM oauth_identity_user
+        WHERE tenant_id = #{partitionId} AND identity_sub = #{identitySub} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectCredentialByLegacyId" resultType="top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.po.IdentityCredentialPO">
+        SELECT * FROM oauth_identity_credential
+        WHERE tenant_id = #{partitionId} AND legacy_id = #{legacyId} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectTenantByExternalId" resultMap="top.egon.cola.platform.tianquan.shoubing.admin.tenant.dao.IdentityTenantDAO.IdentityTenantPOResultMap">
+        SELECT * FROM oauth_identity_tenant
+        WHERE tenant_id = #{partitionId} AND identity_tenant_id = #{identityTenantId} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectMembershipById" resultType="top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.po.IdentityTenantMembershipPO">
+        SELECT * FROM oauth_identity_membership
+        WHERE tenant_id = #{partitionId} AND membership_id = #{membershipId} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectAuditByEventId" resultMap="top.egon.cola.platform.tianquan.shoubing.admin.audit.dao.OAuthAuditMapper.OAuthAuditPOResultMap">
+        SELECT * FROM oauth_audit
+        WHERE tenant_id = #{partitionId} AND event_id = #{eventId} AND deleted_at IS NULL
+    </select>
+
+    <insert id="insertUserMigration">
+        INSERT INTO oauth_identity_user
+            (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+             identity_sub, username, username_normalized, display_name, status, failed_login_count,
+             locked_until, last_login_at)
+        VALUES
+            (#{row.id}, #{row.tenantId}, #{row.version}, #{row.createTime}, #{row.createUserId},
+             #{row.updateTime}, #{row.updateUserId}, #{row.deletedAt}, #{row.identitySub}, #{row.username},
+             #{row.usernameNormalized}, #{row.displayName}, #{row.status}, #{row.failedLoginCount},
+             #{row.lockedUntil}, #{row.lastLoginAt})
+    </insert>
+
+    <insert id="insertCredentialMigration">
+        INSERT INTO oauth_identity_credential
+            (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+             legacy_id, identity_sub, credential_type, password_hash, password_changed_at,
+             must_change_password, status)
+        VALUES
+            (#{row.id}, #{row.tenantId}, #{row.version}, #{row.createTime}, #{row.createUserId},
+             #{row.updateTime}, #{row.updateUserId}, #{row.deletedAt}, #{row.legacyId}, #{row.identitySub},
+             #{row.credentialType}, #{row.passwordHash}, #{row.passwordChangedAt},
+             #{row.mustChangePassword}, #{row.status})
+    </insert>
+
+    <insert id="insertTenantMigration">
+        INSERT INTO oauth_identity_tenant
+            (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+             identity_tenant_id, tenant_code, tenant_name, status, settings)
+        VALUES
+            (#{row.id}, #{row.tenantId}, #{row.version}, #{row.createTime}, #{row.createUserId},
+             #{row.updateTime}, #{row.updateUserId}, #{row.deletedAt}, #{row.identityTenantId},
+             #{row.tenantCode}, #{row.tenantName}, #{row.status},
+             #{row.settings, typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.tenant.dao.IdentityTenantSettingsJsonbTypeHandler})
+    </insert>
+
+    <insert id="insertMembershipMigration">
+        INSERT INTO oauth_identity_membership
+            (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+             membership_id, identity_tenant_id, identity_sub, status)
+        VALUES
+            (#{row.id}, #{row.tenantId}, #{row.version}, #{row.createTime}, #{row.createUserId},
+             #{row.updateTime}, #{row.updateUserId}, #{row.deletedAt}, #{row.membershipId},
+             #{row.identityTenantId}, #{row.identitySub}, #{row.status})
+    </insert>
+
+    <insert id="insertAuditMigration">
+        INSERT INTO oauth_audit
+            (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
+             event_id, event_type, subject_ref, client_ref, token_ref, resource_ref, result, reason_code,
+             trace_id, occurred_at, payload, audit_kind, public_id, actor_sub, target_sub, identity_tenant_id)
+        VALUES
+            (#{row.id}, #{row.tenantId}, #{row.version}, #{row.createTime}, #{row.createUserId},
+             #{row.updateTime}, #{row.updateUserId}, #{row.deletedAt}, #{row.eventId}, #{row.eventType},
+             #{row.subjectRef}, #{row.clientRef}, #{row.tokenRef}, #{row.resourceRef}, #{row.result},
+             #{row.reasonCode}, #{row.traceId}, #{row.occurredAt},
+             CAST(#{row.payload, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler} AS jsonb),
+             #{row.auditKind}, #{row.publicId}, #{row.actorSub}, #{row.targetSub}, #{row.identityTenantId})
+    </insert>
+
+</mapper>

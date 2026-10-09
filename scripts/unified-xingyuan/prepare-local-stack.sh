@@ -12,6 +12,7 @@ fi
 for command in java npm curl jq openssl psql createdb redis-cli awk; do
   unified_xingyuan_require_command "${command}"
 done
+unified_xingyuan_require_edge_origin
 
 ensure_frontend_dependencies() {
   local install_dir="$1" vite="$2" label="$3"
@@ -90,9 +91,15 @@ for web_dir in \
   "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web" \
   "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web" \
   "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web" \
-  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web"; do
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-xingyuan-admin-portal"; do
   [[ -s "${web_dir}/.env.local" ]] \
     || unified_xingyuan_fail "missing generated frontend login environment: ${web_dir}"
+  grep -Fqx "VITE_YUHENG_ORIGIN=${YUHENG_EDGE_BASE_URL}" "${web_dir}/.env.local" \
+    || unified_xingyuan_fail "frontend Edge origin does not match YUHENG_EDGE_BASE_URL: ${web_dir}"
+  if grep -q '^VITE_DEFAULT_TENANT_ID=' "${web_dir}/.env.local"; then
+    unified_xingyuan_fail "frontend environment must not prefill a tenant: ${web_dir}"
+  fi
 done
 
 printf 'Direct-run artifacts are ready. Runtime configuration: %s\n' \

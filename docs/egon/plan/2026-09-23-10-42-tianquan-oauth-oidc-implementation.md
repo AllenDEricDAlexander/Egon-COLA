@@ -126,7 +126,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | Step 14 | Step 13 | None，逐Step完成并提交 | 其他未完成Step写域 | encrypted issuer/tenant/client/subject session state; API-015 verifies the exact held token and current shared security state; logout requires authenticated session+CSRF; multi-client durable logout; scope-protected opt-in OpenAPI group; pinned GatewayProperties route prefix; cross-instance refresh lock; existing biz/mcp routes retained. |
 | Step 15 | Step 14 | None，逐Step完成并提交 | 其他未完成Step写域 | 平台控制SERVICE token与USER授权在现有路由/鉴神/天枢链正确准入。 |
 | Step 16 | Step 15 | None，逐Step完成并提交 | 其他未完成Step写域 | Portal/四Admin前端按新BFF/Consent/Session契约运行且不保存token。 |
-| Step 17 | Step 15 | None，逐Step完成并提交 | 其他未完成Step写域 | 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收。 |
+| Step 17 | Step 16 | None，逐Step完成并提交 | 其他未完成Step写域 | frozen allowlisted import uses an explicit non-web migration profile, reviewed report and durable file checkpoint; local Edge BFF verification remains user-run. |
 | Step 18 | Step 16, Step 17；均GREEN并提交后 | None，逐Step完成并提交 | 其他未完成Step写域 | 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出。 |
 
 ### 4.4 Commit boundaries
@@ -169,7 +169,7 @@ Step 1只有POM/空进程编译前置，结构验证不触发用户行为；其�
 | 建立SCG OAuth2登录和服务端会话 | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042 | Required — 先确认session encryption/durable authenticated multi-client logout+CSRF/OpenAPI/Gateway route-binding/refresh single-flight/exact held-token session-state的行为RED；按24个有序文件GREEN。 | Step 13 | encrypted issuer-bound session; API-015 current exact token validity; logout requires BFF session+CSRF; scope-protected opt-in OpenAPI; distributed refresh lock; durable logout intents; correct static routes and compile-time Lombok wiring. | Step 15 | Step 14 |
 | 保留玉衡、鉴神与天枢准入链 | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025 | Required — USER refresh-cookie、`SCOPE_*`桥接及Jianshen嵌套tenant恢复先通过目标行为RED；实现后按11个有序文件GREEN，同时保留Tianshu registry/header/HMAC与SERVICE准入合同。 | Step 14 | 失效USER Bearer不再刷新RT；已验证scope与独立RBAC快照同时进入最终认证；嵌套Jianshen tenant scope恢复，外层ThreadLocal与请求属性清理；平台SERVICE和Tianshu registry/HMAC边界保持。 | Step 16 | Step 15 |
 | 迁移共享认证客户端与五个前端消费者 | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026, REQ-043 | Required — 共享Client、Edge OIDC step-up resolver和React认证/角色回归先RED，再按49个路径GREEN；受影响package typecheck/test通过。 | Step 15 | Portal/四Admin只走配置OIDC registration与BFF session/CSRF/logout；无密码/AT/RT浏览器处理；高风险角色使用max_age=0重认证并只重试一次。 | Step 17 | Step 16 |
-| 提供受控数据导入、切流及本地验证入口 | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023 | Required — 迁移测试先对旧JPA/旧登录路径RED；新增Service/脚本/运行手册后静态与单元GREEN，真实导入由用户操作者运行。 | Step 15 | 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收。 | Step 18 | Step 17 |
+| 提供受控数据导入、切流及本地BFF验证入口 | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023, REQ-043, REQ-044 | Required — migration source/runner/checkpoint tests RED first, then migration and local Edge-origin shell checks GREEN; live Edge/import remains operator-run. | Step 16 | per-tenant reports, frozen allowlisted source reads, reviewed digest, restart-safe checkpoint and five local frontend origins use the approved contracts; browser password paths are absent. | Step 18 | Step 17 |
 | 退役旧协议并校验全域回归 | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027 | Required — old token/login controllers still registered produce non410 RED；retirement filter/config GREEN。 | Step 16, Step 17；均GREEN并提交后 | 新部署旧OAuth根协议返回410且无双签发链；所有原消费者已迁出。 | 发布验收 | Step 18 |
 
 ### 4.7 Java, Spring, and Egon-COLA Implementation Standards
@@ -598,10 +598,20 @@ CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/IdentityMigrationDAO.java  # Step 17
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/IdentityMigrationDAO.xml  # Step 17
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java  # Step 17
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunnerTest.java  # Step 17
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunner.java  # Step 17
+CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-oauth-migration.yml  # Step 17
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java  # Step 17
 MODIFY scripts/unified-xingyuan/prepare-local-stack.sh  # Step 17
 MODIFY scripts/unified-xingyuan/test-direct-run-contract.sh  # Step 17
 MODIFY scripts/unified-xingyuan/test-live-frontend-login.sh  # Step 17
 MODIFY docs/runbooks/unified-identity-oauth-client-tenant-cutover.md  # Step 17
+MODIFY scripts/unified-xingyuan/lib/common.sh  # Step 17
+MODIFY scripts/unified-xingyuan/start-local-stack.sh  # Step 17
+MODIFY scripts/unified-xingyuan/status-local-stack.sh  # Step 17
+MODIFY scripts/unified-xingyuan/verify-local-stack.sh  # Step 17
+MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md  # Step 17
+MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md  # Step 17
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java  # Step 18
 CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java  # Step 18
 MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java  # Step 18
@@ -1010,15 +1020,6 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts` | Existing Tianshu session test assumes login accepts tenant/user/password and immediately bootstraps caller-selected tenant | Assert local cache clear and OIDC redirect; after a fresh bootstrap only the verified BFF tenant is installed; logout result is confirmed/pending | Tenant always comes from server bootstrap | Step 16 | REQ-010,REQ-017,REQ-043 | Tianshu AuthContext.test and package typecheck |
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx` | PortalLayout test expects credential modal and old sub/tid user info | Assert OIDC menu redirect, BFF session identity shape, and pending logout state after reload | Host UI has no password form or child auth cache after local logout | Step 16 | REQ-010,REQ-017,REQ-043 | Portal package test |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx` | Tianshu LoginPage test expects tenant/user/password controls | Assert a single OIDC action and no tenant/password/token inputs | Storage tenant comes only from verified bootstrap | Step 16 | REQ-010,REQ-017,REQ-043 | Tianshu package test |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | RED旧Client归属/非数字tenant处理。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/OAuthMigrationCommand.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthMigrationCommand` 在主Spec中的字段/消费依赖。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/result/OAuthMigrationReportResult.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 关闭 `OAuthMigrationReportResult` 在主Spec中的字段/消费依赖。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthMigrationService.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 非自动启动的迁移服务合同。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/IdentityMigrationContractTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 全局目录历史字段与停写导入RED。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/IdentityMigrationRowDTO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 显式保存完整source快照与目标历史列的受控导入输入。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/IdentityMigrationDAO.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 为五种导入写提供参数化XML入口，绕开正常insertFill而不关全局fill。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/IdentityMigrationDAO.xml` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 显式列写历史值，禁止MP save/upsert覆盖历史。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 先剖析/对账后批次写。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md` | Shared README still documents retired password/CSRF login | Document configured Edge OIDC navigation, BFF session/CSRF/logout, and no token persistence | Published behavior description matches the shared client | Step 16 | REQ-043 | Documentation review and diff check |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md` | Yuheng README describes the retired tenant/password cookie API | Document Edge OIDC/BFF login and session behavior | No browser credential submission is documented | Step 16 | REQ-043 | Documentation review and diff check |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md` | Chinese Yuheng README describes the retired tenant/password cookie API | Document Edge OIDC/BFF login and session behavior | Chinese usage contract matches current code | Step 16 | REQ-043 | Documentation review and diff check |
@@ -1034,10 +1035,12 @@ MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubin
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts` | Tianshu Vite dev/preview proxies send auth entry but not BFF or callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream in both modes | Admin API proxy stays unchanged | Step 16 | REQ-043 | Tianshu package typecheck and static proxy review |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts` | Jianshen Vite proxy sends auth paths but not the BFF or authorization callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream | Jianshen API proxy stays unchanged | Step 16 | REQ-043 | Jianshen package typecheck and static proxy review |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts` | Yuheng Vite proxy sends auth paths but not the BFF or authorization callback | Proxy `/oauth2`, `/bff`, and `/login/oauth2` to the same configured Edge auth upstream | Yuheng API proxy stays unchanged | Step 16 | REQ-043 | Yuheng package typecheck and static proxy review |
-| MODIFY | `scripts/unified-xingyuan/prepare-local-stack.sh` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 准备TLS/新入口/独立server paths。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| MODIFY | `scripts/unified-xingyuan/test-direct-run-contract.sh` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 静态和受控环境契约验收。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| MODIFY | `scripts/unified-xingyuan/test-live-frontend-login.sh` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 用户启动的浏览器/HTTP E2E核对。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
-| MODIFY | `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 写真实运维命令、反向证据和前向修复界限。 | Step 17 | REQ-011,REQ-012,REQ-016,REQ-017,REQ-018,REQ-019,REQ-020,REQ-022,REQ-023 | 对应Step精确命令/原回归 |
+| MODIFY | `scripts/unified-xingyuan/lib/common.sh` | Env writer emits tenant prefill and USER-cookie marker | Write required Edge origin only; preserve permissions and unmanaged-file refusal | No browser credential defaults | Step 17 | REQ-043 | Direct-run shell contract |
+| MODIFY | `scripts/unified-xingyuan/start-local-stack.sh` | Launcher probes legacy login and targets Engine for frontends | Preflight Edge OIDC/BFF and route frontend traffic to explicit Edge origin | Engine/MCP service URLs remain separate | Step 17 | REQ-043,REQ-017 | Shell syntax/static contract; no startup by Codex |
+| MODIFY | `scripts/unified-xingyuan/status-local-stack.sh` | Status uses retired password CSRF route | Report Edge BFF CSRF availability without printing token | No authenticated-state inference | Step 17 | REQ-043 | Shell syntax |
+| MODIFY | `scripts/unified-xingyuan/verify-local-stack.sh` | Browser CORS preflight checks legacy login/token routes | Check BFF logout CSRF and preserve machine-token assertions | Browser and service identities remain separate | Step 17 | REQ-043 | Shell syntax; runtime check user-run |
+| MODIFY | `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md` | Review amendment lacks local BFF harness evidence | Add EVD-157/DEC-153/TEST-150 and trace the exact scripts | Status remains Review | Step 17 | REQ-043 | Strict Spec/Plan checks |
+| MODIFY | `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md` | Executable Plan omits shell auth consumers | Make Step17 depend on Step16 and add exact local script paths/commands | Header/tree/inventory/commit match | Step 17 | REQ-043,REQ-022 | Strict Plan/Spec checks |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/LegacyOAuthRetirementTest.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | RED旧Controller还签发/刷新。 | Step 18 | REQ-001,REQ-006,REQ-010,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/controller/filter/LegacyOAuthRetirementFilter.java` | 目标新文件；有效Spec与逐File证据 | 逐File符号与完成态 | 旧固定URL明确410。 | Step 18 | REQ-001,REQ-006,REQ-010,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/security/IdpSecurityConfig.java` | 当前存在；逐文件引用与邻近实现 | 逐File符号与完成态 | 先SAS登录/管理，再旧路径退役。 | Step 18 | REQ-001,REQ-006,REQ-010,REQ-012,REQ-017,REQ-019,REQ-020,REQ-021,REQ-022,REQ-024,REQ-025,REQ-026,REQ-027 | 对应Step精确命令/原回归 |
@@ -12840,13 +12843,13 @@ FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTM
 - Commit: `feat(xingyuan): migrate admin auth to oidc bff`。
 ### Step 17 — 提供受控数据导入、切流及本地验证入口
 
-- Requirements: REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023
-- Dependencies: Step 15
-- Baseline state: 当前HEAD的对应源码/测试如每File的Repository evidence，先前Step已完成并有其focused GREEN；本Step尚不存在dryRunNoPrivilegeExpansion所列新行为。
-- Observable outcome: 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收。
-- End state: 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收；后续Step的Consumer尚未切流，不声明完整生产验收。
-- Test-first gate: Required — 迁移测试先对旧JPA/旧登录路径RED；新增Service/脚本/运行手册后静态与单元GREEN，真实导入由用户操作者运行。
-- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001
+- Requirements: REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023, REQ-043, REQ-044
+- Dependencies: Step 16
+- Baseline state: Step 16 is committed at `e71d00d3826cc96d7c46dbdc485cc972bf330ca5`; no Step17 source edits have started. Current local shell probes still use the retired password route.
+- Observable outcome: per-tenant migration report, freeze/approval/checkpoint state and cutover prerequisites are reviewable; local frontends use the configured Edge BFF origin without password login.
+- End state: one explicitly enabled non-web migration profile can perform a reviewed dry-run/apply from frozen, allowlisted sources with restart-safe file progress; the local Edge BFF verification entry is prepared. This code task performs no import or live OIDC/AS/Redis/browser validation.
+- Test-first gate: Required — run File 1/File 5 migration/source-map tests, File 10 profile/runner test and File 14 static auth contract against current source-reader/runner/ownership-map/tenant-prefill/password-route gaps before production implementation; RED must be target behavior with compiling fixtures.
+- Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
@@ -12855,7 +12858,7 @@ FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTM
 - Purpose: RED旧Client归属/非数字tenant处理。
 - Symbols: `dryRunNoPrivilegeExpansion`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Dependencies and consumers: 输入依赖 Step 16 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 本Step的编译前置/RED契约先锁定； RED旧Client归属/非数字tenant处理在此位置后才可接消费者。
 - Contract/signature changes: dryRunNoPrivilegeExpansion；RED旧Client归属/非数字tenant处理。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: Fake source ID到新Long PK的映射；旧secret hash未传入新注册。
@@ -12865,8 +12868,8 @@ FAIL -> callback Host leaving the frontend origin, callback resolving to SPA HTM
 - Implementation pseudocode:
 
 ```java
-INPUT -> Fake source ID到新Long PK的映射；旧secret hash未传入新注册。
-FLOW -> mock旧表快照：非法tenantId、重复source归属、USER空scope、Argon2旧hash；dryRun只出报告不写新表，apply批次500可重放checkpoint；真实PostgreSQL迁移验收列于§8
+INPUT -> Frozen source snapshot and owner-only client ownership map bound to the same snapshot id.
+FLOW -> mock source rows with nonnumeric tenant, duplicate/unmapped client owner, cross-tenant grant/resource, empty USER scopes, Argon2 hash, same-version hash/settings/audit/resource changes, USER client without PKCE, SERVICE client with refresh TTL, and a valid service Resource/Grant; dryRun writes nothing; apply uses batches <=500 and checkpoint replay.
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> invalid data stops that realm, leaves old source untouched。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -12881,8 +12884,8 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Repository evidence: 当前不存在；主Spec §16.2 命名此对象/字段；现有相邻业务包提供放置证据。
 - Dependencies and consumers: 本Step既有File块调用该类型；数据来源/消费者为主Spec §16.2，不产生新HTTP路由。
 - Why now: 该类型按本Step的测试/编译依赖顺序落位，以免由实现者临时发明。
-- Contract/signature changes: realmKey/sourceSnapshotId/dryRun; internal operator input matches Spec §16.2, @Validated。
-- Input/output and state mapping: 精确字段由主Spec §16.2 指定，realm从签名/注册得出，Instant为UTC，版本单调，秘密字段仅服务器内部。
+- Contract/signature changes: realmKey/sourceSnapshotId/dryRun/freezeMarkerFile/ownershipMapFile/checkpointFile/secretDistributionDirectory/approvedReportSha256; the snapshot-bound client map contains one clientId/realmKey/purpose/approvedScopes row per legacy client; @Validated。
+- Input/output and state mapping: no client realm/purpose/scope default; map and source grants/resources must agree before target writes; report has no secret fields.
 - Error and edge behavior: null/未知字段/跨tenant/重复版本拒绝；不转成宽松缺省或吞异常。
 - Standards impact: MC-ARCH-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-BEAN-001, MC-JSON-001, MC-TIME-001, MC-SCOPE-001, MC-TEST-001；行为Bean使用具名final Qualifier、@RequiredArgsConstructor和@Slf4j，载体遵循四注解与Builder。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11；class按POJO语义命名，边界注解验证，跨层转换只用既有BaseConverter，Jackson和java.time字段明确。
@@ -12927,7 +12930,7 @@ FAIL -> 空值/跨tenant/未知schema/重复版本/外部依赖错误按本Step�
 - Purpose: 非自动启动的迁移服务合同。
 - Symbols: `importRealm(realmKey,sourceSnapshotId,dryRun)`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Dependencies and consumers: 输入依赖 Step 16 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； 非自动启动的迁移服务合同在此位置后才可接消费者。
 - Contract/signature changes: importRealm(realmKey,sourceSnapshotId,dryRun)；非自动启动的迁移服务合同。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: no runtime autostart。
@@ -12979,13 +12982,13 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 
 #### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/IdentityMigrationRowDTO.java`
 
-- Purpose: 显式保存完整source快照与目标历史列的受控导入输入。
+- Purpose: 显式保存完整source快照、owner-map决策和目标历史列的受控导入输入。
 - Symbols: `IdentityMigrationRowDTO`，以下伪代码所列方法与字段。
 - Repository evidence: 当前不存在；同域既有Repository/Entity和修订Spec§8/11定义此文件；传统包结构保持。
 - Dependencies and consumers: Step 16及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
 - Why now: 前序契约/类型已固定，按此文件依赖接入；本Step末统一编译与回归。
-- Contract/signature changes: 显式保存完整source快照与目标历史列的受控导入输入；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 显式保存完整source快照与目标历史列的受控导入输入。
+- Contract/signature changes: Typed source rows cover the four directories/audit, legacy OAuth client/redirect/grant/resource, signing-key metadata and identity-Outbox metadata; `ClientOwnershipMapDTO` binds one clientId/realmKey/purpose/approvedScopes choice to one sourceSnapshotId.
+- Input/output and state mapping: No source password/client-secret hash, signing-key ciphertext or Outbox payload is selected; passwordHash is the sole sensitive typed field and is redacted from serialization/logging.
 - Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
 - Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
@@ -12997,8 +13000,10 @@ class IdentityMigrationRowDTO {
   String sourceSnapshotId, sourceTable, sourceKey, sourceFingerprint;
   Long targetId, directoryPartitionId; long sourceVersion;
   Instant createdAt,updatedAt; String createdBy,updatedBy;
-  // 同文件声明UserRowDTO/CredentialRowDTO/TenantRowDTO/MembershipRowDTO/AuditRowDTO五个static class，均为普通class基础Lombok与@Valid；sourceTable限定五种枚举，payload恰有对应一种非空；，字段逐列取修订§11。
-  // passwordHash排除toString/equals/JSON；不能用任意Map/表名动态SQL。
+  // Typed User/Credential/Tenant/Membership/Audit/Client/Redirect/Grant/Resource/Outbox metadata rows.
+  // ClientOwnershipMapDTO is snapshot-bound and has exactly one explicit realm/purpose/scope row per legacy client.
+  // Old client secrets, signing-key ciphertext and Outbox payloads are never selected; passwordHash is redacted.
+  // No arbitrary Map or table name enters SQL.
 }
 ```
 
@@ -13007,13 +13012,13 @@ class IdentityMigrationRowDTO {
 
 #### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/IdentityMigrationDAO.java`
 
-- Purpose: 为五种导入写提供参数化XML入口，绕开正常insertFill而不关全局fill。
+- Purpose: 固定读取allowlisted旧来源，并为四目录/身份审计显式保存历史值；OAuth目标通过现有MP service边界写入。
 - Symbols: `IdentityMigrationDAO`，以下伪代码所列方法与字段。
 - Repository evidence: 当前不存在；同域既有Repository/Entity和修订Spec§8/11定义此文件；传统包结构保持。
 - Dependencies and consumers: Step 16及本Step前序类型/测试；现有core ports、同域Service/Repository与下游Controller/RPC；不反向依赖admin到Starter。
 - Why now: 前序契约/类型已固定，按此文件依赖接入；本Step末统一编译与回归。
-- Contract/signature changes: 为五种导入写提供参数化XML入口，绕开正常insertFill而不关全局fill；外部合同服从有效Spec，不额外加URL。
-- Input/output and state mapping: 为五种导入写提供参数化XML入口，绕开正常insertFill而不关全局fill。
+- Contract/signature changes: Bounded reads for the exact 13 legacy source routes, with metadata-only key/Outbox/secret inspection and per-client redirect/grant pages capped at 65; explicit history-preserving inserts for four MP directory tables and OAuthAudit.
+- Input/output and state mapping: `@InterceptorIgnore(tenantLine="true")` is method-scoped to this migration DAO; every target statement contains an explicit trusted partition parameter/value; no `ignoredTables` expansion and no generic table selector.
 - Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
 - Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
@@ -13022,12 +13027,12 @@ class IdentityMigrationRowDTO {
 ```java
 @Mapper
 interface IdentityMigrationDAO {
-  int insertUserMigration(@Param("row") @Valid IdentityMigrationRowDTO row);
-  int insertCredentialMigration(@Param("row") @Valid IdentityMigrationRowDTO row);
-  int insertTenantMigration(@Param("row") @Valid IdentityMigrationRowDTO row);
-  int insertMembershipMigration(@Param("row") @Valid IdentityMigrationRowDTO row);
-  int insertIdentityAuditMigration(@Param("row") @Valid IdentityMigrationRowDTO row);
-  // 非EgonModel输入由Service显式完整校验，再DAO执行；禁止外部Controller暴露。
+  List<UserRowDTO> selectUsersAfter(String cursor, int limit); // fixed public.identity_user
+  List<ClientRowDTO> selectClientsAfter(String cursor, int limit); // fixed public.identity_client
+  List<GrantRowDTO> selectGrantsForClient(String clientId, int limit); // max 65
+  int insertUserMigration(@Param("row") IdentityUserPO row); // explicit id/P/history
+  int insertAuditMigration(@Param("row") OAuthAuditPO row); // identity audit only
+  // other table methods have fixed XML and explicit parameters; no JPA writes or external Controller
 }
 ```
 
@@ -13046,15 +13051,16 @@ interface IdentityMigrationDAO {
 - Error and edge behavior: 原权限/错误与expectedVersion语义保留；缺行/冲突不得当成功；源或依赖异常停止，不吞异常。
 - Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；Java普通POJO四基础Lombok注解+Builder/继承PO用SuperBuilder和callSuper，转换继承BaseConverter/Forward；业务类具名Bean、Slf4j、RequiredArgsConstructor及Qualifier；每层分组校验；时间java.time；敏感字段排除输出。非Java文件以Schema/配置/导入边界兑现对应规则。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；语义后缀、分组校验、既有模式/依赖、Jackson及同构配置，严格依修订§6.2/10；不以JPA/私有工具绕过MP。
+- Replay mapping: reuse the existing IdentityTenantDAO.IdentityTenantPOResultMap and OAuthAuditMapper.OAuthAuditPOResultMap for JSONB reads; explicitly CAST the audit payload parameter AS jsonb for the migration insert. The mapper test loads both existing mappings and verifies their handlers.
 - Implementation pseudocode:
 
 ```xml
 <mapper namespace="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.IdentityMigrationDAO">
-  <!-- 五个insert分别列出该表所有列，包括id,P,version,create_time,update_time,create_user_id,update_user_id,deleted_at。 -->
-  insertUserMigration: INSERT INTO oauth_identity_user (id,tenant_id,version,...)
-    VALUES (#{row.targetId},#{row.directoryPartitionId},#{row.sourceVersion},...);
-  <!-- 其他四表同样固定表名/完整列；无${table}，无ON CONFLICT DO UPDATE，无save导致重填。 -->
-  <!-- 幂等由Service先核对external key+fingerprint；冲突停止，不能静默覆盖新安全事实。 -->
+  <!-- 固定来源：四目录/audit、client、redirect、grant、resource、identity_outbox_event；secret/key只查count/status metadata。 -->
+  <!-- 每个旧来源select固定表名、稳定key/order、LIMIT；没有password secret_hash/private-key cipher/outbox payload。 -->
+  <!-- 目录/audit inserts列出id,P,version,timestamps,actors及所有业务列；DAO method显式tenant_line ignore。 -->
+  <!-- OAuth client/resource/grant写由现有MP服务生成同事务安全世代和组件Outbox事件。 -->
+  <!-- 无${table}/sourceTable、ON CONFLICT DO UPDATE、JPA写、save重填或静默冲突覆盖。 -->
 </mapper>
 ```
 
@@ -13066,19 +13072,19 @@ interface IdentityMigrationDAO {
 - Purpose: 先剖析/对账后批次写。
 - Symbols: `oauthMigrationService`。
 - Repository evidence: 当前不存在；Spec §8/§11 明确目标，邻近包可验证；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Dependencies and consumers: 输入依赖 Step 16 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； 先剖析/对账后批次写在此位置后才可接消费者。
 - Contract/signature changes: oauthMigrationService；先剖析/对账后批次写。公开行为只取主Spec §9对应API或§10/11内部合同。
 - Input/output and state mapping: no old RT/code/consent; old client external ID preserved。
 - Error and edge behavior: invalid/ambiguous ownership report, no auto repair。
 - Standards impact: MC-ARCH-001, MC-SCOPE-001, MC-TEST-001, MC-VALID-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 9, Rule 10, Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
-- 本轮修订的强制实现细节: 先全局停写四目录和所有旧身份publisher，source一致快照→dryRun报告→显式审核apply→每批500 IdentityMigrationDAO→逐字段hash/version/PK映射对账→统一切目录权威；然后才按realm导入client/grant和新secret。组件旧public Outbox使用当前OutboxLegacyMigrationService先verifyOnly，旧自有identity_outbox_event单独按修订§16分类，不喂组件迁移器；未知event阻断。legacy如继续服务也必须先接同MP目录，否则维持全局维护。源只读，目标不调用save重填历史字段；新写后只forward-fix。
+- 本轮修订的强制实现细节: 只通过固定IdentityMigrationDAO XML读取source；app-scope `ClientOwnershipMapDTO`绑定snapshot并为每个legacy client明示tenant/platform、purpose和allowedScopes；map必须覆盖每个source client且与grant/resource关联完全一致，否则冲突阻断。source目录/audit按P迁移并逐字段保留外部ID/hash/version/time/actor；report digest绑定每个映射字段，对password hash、tenant settings、audit payload和IP/User-Agent只输入单向hash，不输出原值。OAuth client/resource/grant经现有MP管理用例写入，同事务更新安全世代并enqueue组件Outbox projection；SERVICE `CreateOAuthClientDTO.resourceUris`必须为空，精确的Resource访问只通过Grant行导入。USER空scope不能推导为全部scope，只有owner map明确核准的非空scopes可启用；USER旧client必须已有PKCE，SERVICE旧client refresh TTL必须为0，否则dry-run冲突且不得静默改写。confidential client旧secret_hash不查询、不复制，现有OAuthClientService生成新BCrypt并将原文写owner-only一次性artifact；JWK private ciphertext不读，fresh realm key在报告中列为cutover prerequisite。旧identity_outbox_event只读事件类型/状态分类，不读payload不重放；旧组件public Outbox只用组件OutboxLegacyMigrationService verifyOnly。global freeze marker→dry-run canonical报告→owner map/reviewed SHA→每批≤500目标事务→同目录checkpoint fsync/atomic rename；source/hash/owner/孤儿冲突停写不推进。target旧行只在内容逐字段相等时skip，unknown commit重查；不使用JPA写/MP save重填，不静默覆盖新事实。
 - Implementation pseudocode:
 
 ```java
 INPUT -> no old RT/code/consent; old client external ID preserved。
-FLOW -> @Service("oauthMigrationService") @Slf4j @RequiredArgsConstructor; read old snapshot via legacy read services; validate Long tenant canonical, map only granted issuer, enforce client purpose and bcrypt reissue; 500 rows per local tx, checkpoint lastSourceId, recheck source version before apply
+FLOW -> @Service("oauthMigrationService") @Slf4j @RequiredArgsConstructor; read old snapshot via fixed DAO; bind all mapped source fields in the report digest using hashes for sensitive values; validate canonical tenant, owner map, USER PKCE and zero SERVICE refresh TTL; service clients keep Resource associations only in Grant rows; issue only approved scopes and fresh BCrypt credentials; 500 rows per transaction; checkpoint only after verified target commit
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> invalid/ambiguous ownership report, no auto repair。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
@@ -13086,110 +13092,361 @@ RESULT -> only the named symbol/contract in this File block becomes available; p
 - Verification contribution: 本Step `python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`；此文件负责 oauthMigrationService 的正例与 invalid/ambiguous ownership report, no auto repair 负例。
 - After this file: oauthMigrationService 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
 
-#### File 10 — `MODIFY scripts/unified-xingyuan/prepare-local-stack.sh`
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunnerTest.java`
 
-- Purpose: 准备TLS/新入口/独立server paths。
-- Symbols: `issuer/SCG/secret mount env`。
-- Repository evidence: 当前文件存在：scripts/unified-xingyuan/prepare-local-stack.sh；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 准备TLS/新入口/独立server paths在此位置后才可接消费者。
-- Contract/signature changes: issuer/SCG/secret mount env；准备TLS/新入口/独立server paths。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: same key structure as base/local; no secret echoed。
-- Error and edge behavior: missing cert/secret fails script。
-- Standards impact: MC-SCOPE-001, MC-TEST-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Purpose: Prove the migration entrypoint is profile-only, explicitly enabled and fail-closed.
+- Symbols: `OAuthMigrationRunner` profile and command guards.
+- Repository evidence: `IdpPlatformConfiguration` currently owns normal `ApplicationRunner` and `@EnableScheduling`; no migration runner exists.
+- Dependencies and consumers: Uses the preceding service contract and the migration profile configuration; never starts the application, database or RPC.
+- Why now: A CLI invocation must be testable before adding an operator start path.
+- Contract/signature changes: default profile has no runner; migration profile requires explicit enablement, `web-application-type=none`, disabled RPC/HTTP registration, matching freeze marker, exact realm/snapshot/checkpoint, a new report path in an owner-only directory and an approved digest for apply.
+- Input/output and state mapping: fake service receives exactly one validated command; runner writes a mode-600 redacted JSON report with the digest needed for apply and closes its application context on successful completion.
+- Error and edge behavior: missing/mismatched guard, unsafe web/RPC setting, absent apply digest, reused report path or unprotected output directory fails before service invocation or report overwrite.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-CONFIG-001, MC-TEST-001, MC-SCOPE-001。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 6, Rule 7, Rule 9, Rule 11.
+- Design pattern consideration: N/A; this is a boundary contract test.
 - Implementation pseudocode:
 
-```text
-INPUT -> same key structure as base/local; no secret echoed。
-FLOW -> generate protected local SSL/KEK and env for SA,edge,biz,mcp,tianshu; no new service process started during Plan or code completion
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> missing cert/secret fails script。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+```java
+INPUT -> migration profile environment and synthetic command properties
+FLOW -> validate no-run/default and unsafe/missing inputs, then verify one dry-run or approved apply delegates once and writes a unique protected report
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> reject before service invocation; never fall back to ordinary startup
+RESULT -> explicit guarded invocation contract with no DB, RPC, HTTP server or secret output
 ```
 
-- Verification contribution: 本Step `python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`；此文件负责 issuer/SCG/secret mount env 的正例与 missing cert/secret fails script 负例。
-- After this file: issuer/SCG/secret mount env 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: Step17 focused Maven command; no Spring application runtime is launched by the test.
+- After this file: runner/profile invariants are locked before the new entrypoint is implemented.
 
-#### File 11 — `MODIFY scripts/unified-xingyuan/test-direct-run-contract.sh`
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunner.java`
 
-- Purpose: 静态和受控环境契约验收。
-- Symbols: `new issuer, jwks, wrong tenant/platform checks`。
-- Repository evidence: 当前文件存在：scripts/unified-xingyuan/test-direct-run-contract.sh；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Purpose: Provide the sole operator-invoked migration entrypoint.
+- Symbols: profile-bound `ApplicationRunner` and `OAuthMigrationCommand` construction.
+- Repository evidence: no current importer entrypoint; the existing application runner performs normal tenant bootstrap and user-state reconciliation.
+- Dependencies and consumers: calls only `OAuthMigrationService.importRealm`; Spring `Environment` verifies safety properties and a mounted freeze marker.
+- Why now: The service is not usable by an operator until one explicit, auditable invocation exists.
+- Contract/signature changes: `@Profile("oauth-migration")`; require the explicit enable flag, non-web mode, RPC/HTTP registration disabled, realm/snapshot/dry-run/checkpoint/freeze-marker/snapshot-bound ownership map/protected secret-output directory, a new report file in a mode-700 directory, and approved report SHA-256 for apply.
+- Input/output and state mapping: write the full redacted canonical report JSON atomically at mode 600; logs contain only counts, digest, checkpoint and path. No import occurs in normal application profiles.
+- Error and edge behavior: unsafe or incomplete invocation fails before service work; a reused report path is never overwritten; no broad exception swallowing or automatic default command.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-LOG-001, MC-BEAN-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 4, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11.
+- Design pattern consideration: N/A; one Spring runner directly adapts a CLI boundary to the existing service.
+- Implementation pseudocode:
+
+```java
+INPUT -> explicitly supplied migration-only properties and protected freeze/ownership/checkpoint/secret-output/report files
+FLOW -> verify active profile, non-web mode, disabled RPC/providers, matching snapshot owner map, freeze marker, unique owner-only report destination and apply digest; invoke the service once, persist its redacted JSON result, then close the application context so infrastructure threads stop
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> exit nonzero before any target write or endpoint starts
+RESULT -> owner-only machine-readable count/hash/conflict report plus digest/path log summary; no password/client secret/token
+```
+
+- Verification contribution: `OAuthMigrationRunnerTest` and `IdentityMigrationContractTest`; no real importer invocation.
+- After this file: the approved CLI contract is available only to the dedicated migration profile.
+
+#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-oauth-migration.yml`
+
+- Purpose: Define a non-web, no-provider, disabled-by-default migration-only profile.
+- Symbols: `spring.main.web-application-type`, RPC/provider enablement and migration `enabled`.
+- Repository evidence: no migration profile exists; common application profiles enable managed infrastructure used by ordinary runtime startup.
+- Dependencies and consumers: consumed only when `spring.profiles.active=oauth-migration`; external database credentials remain external deployment configuration.
+- Why now: Command-line flags alone can be accidentally omitted or overridden; the dedicated profile gives reviewers one explicit mode.
+- Contract/signature changes: `spring.main.web-application-type: none`; RPC and Tianshu HTTP registration are false; `egon.tianquan-shoubing.oauth.migration.enabled: false` unless the operator explicitly overrides it.
+- Input/output and state mapping: no secrets, IDs, snapshot names or mounted paths are checked into YAML.
+- Error and edge behavior: runner fails if effective values do not satisfy this profile's safe contract.
+- Standards impact: MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 7, Rule 11.
+- Design pattern consideration: N/A; one profile is simpler than a second application/module.
+- Implementation pseudocode:
+
+```yaml
+spring.main.web-application-type: none
+# exact repository property keys only; no credentials or live paths
+RPC and Tianshu HTTP registration: disabled
+migration enabled by default: false
+```
+
+- Verification contribution: safe key-tree/profile contract in `OAuthMigrationRunnerTest`; YAML values are never printed.
+- After this file: operator mode is isolated and cannot be enabled by ordinary startup defaults.
+
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`
+
+- Purpose: Prevent ordinary recovery/bootstrap/scheduling work in the import profile.
+- Symbols: `IdpPlatformConfiguration` profile condition.
+- Repository evidence: the class unconditionally enables scheduling and runs projection recovery, tenant bootstrap and user-state reconciliation.
+- Dependencies and consumers: normal profiles retain this existing configuration; the Step17 migration profile excludes it entirely.
+- Why now: A one-shot data command must not also start recurring consumers or mutate bootstrapped identity state.
+- Contract/signature changes: gate the entire configuration with `@Profile("!oauth-migration")`; leave normal runtime behavior unchanged.
+- Input/output and state mapping: no change to ordinary readiness/provider beans.
+- Error and edge behavior: migration profile does not expose this configuration's ApplicationRunner or `@EnableScheduling`.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 4, Rule 7, Rule 11.
+- Design pattern consideration: N/A; profile condition reuses Spring's existing composition boundary.
+- Implementation pseudocode:
+
+```java
+INPUT -> spring profile set
+FLOW -> keep the current runtime configuration in every profile except oauth-migration
+OUTPUT -> no scheduled recovery, tenant bootstrap or state reconciliation for a migration command
+FAIL -> unsafe entrypoint remains blocked by OAuthMigrationRunner
+```
+
+- Verification contribution: `OAuthMigrationRunnerTest` / `IdentityMigrationContractTest` profile assertions; no application startup.
+- After this file: normal runtime startup remains unchanged and migration startup is isolated.
+
+#### File 14 — `MODIFY scripts/unified-xingyuan/test-direct-run-contract.sh`
+
+- Purpose: Assert the explicit Edge frontend-origin and passwordless local verification contract statically.
+- Symbols: `unified_xingyuan_write_frontend_login_env`, Edge proxy routing, non-credential BFF preflight。
+- Repository evidence: Existing script tests the generated env and user-run launcher contract with temporary local files and mocked commands.
+- Dependencies and consumers: 输入依赖 Step 16 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； 静态和受控环境契约验收在此位置后才可接消费者。
-- Contract/signature changes: new issuer, jwks, wrong tenant/platform checks；静态和受控环境契约验收。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: expected 401/403/503 distinct。
-- Error and edge behavior: do not treat HTTP200 root as login proof。
+- Contract/signature changes: assert managed `.env.local` uses `VITE_YUHENG_ORIGIN` from explicit `YUHENG_EDGE_BASE_URL`, no browser tenant prefill, Edge auth proxies, Yuheng API proxies, and no credential/cookie flow in the live preflight script.
+- Input/output and state mapping: the test creates only temporary owner-local fixture files and never connects to a service.
+- Error and edge behavior: unmanaged env files remain unchanged; a missing Edge origin or stale password route fails the contract.
 - Standards impact: MC-SCOPE-001, MC-TEST-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
 - Implementation pseudocode:
 
 ```text
-INPUT -> expected 401/403/503 distinct。
-FLOW -> assert role-specific env, public discovery, perissuer JWKS, platform claims, legacy allowlist cutoff; script only invoked by user-run local stack
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> do not treat HTTP200 root as login proof。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> temporary managed frontend directory and static script sources
+FLOW -> verify the Edge origin writer, no tenant-prefill key, explicit auth/API proxy separation, and non-credential CSRF/session/OIDC route assertions
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> fail without starting an app or contacting a live service
+RESULT -> reproducible local BFF contract coverage
 ```
 
-- Verification contribution: 本Step `python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`；此文件负责 new issuer, jwks, wrong tenant/platform checks 的正例与 do not treat HTTP200 root as login proof 负例。
-- After this file: new issuer, jwks, wrong tenant/platform checks 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `scripts/unified-xingyuan/test-direct-run-contract.sh`; no service start or browser.
+- After this file: the local Edge-origin and no-browser-credential behavior is locked by a static contract test.
 
-#### File 12 — `MODIFY scripts/unified-xingyuan/test-live-frontend-login.sh`
+#### File 15 — `MODIFY scripts/unified-xingyuan/lib/common.sh`
+
+- Purpose: Remove browser tenant-prefill from managed frontend environments while keeping the Edge origin explicit.
+- Symbols: `unified_xingyuan_write_frontend_login_env`。
+- Repository evidence: The helper requires a tenant ID and writes `VITE_DEFAULT_TENANT_ID`; its marker still describes USER-cookie login.
+- Dependencies and consumers: Existing start-local-stack callers, five frontend Vite configs, and the direct-run contract.
+- Why now: All browser clients use the Edge OIDC/BFF origin; no page accepts a caller-selected authentication tenant.
+- Contract/signature changes: Accept the web directory, write the managed Edge origin, and preserve private permissions/unmanaged-file refusal; do not write tenant, password, or token.
+- Input/output and state mapping: `.env.local` contains `VITE_YUHENG_ORIGIN` set from the required `YUHENG_EDGE_BASE_URL`; non-browser fixture bootstrap may still discover a tenant independently.
+- Error and edge behavior: Missing/pathful Edge origin or unmanaged `.env.local` fails before overwrite.
+- Standards impact: MC-VALID-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 5, Rule 7, Rule 11; no new dependency or config schema.
+- Design pattern consideration: N/A; keep one direct shell writer.
+- Implementation pseudocode:
+
+```bash
+INPUT -> web_dir and explicit HTTP(S) YUHENG_EDGE_BASE_URL origin without a path
+FLOW -> validate exact origin and managed marker; write VITE_YUHENG_ORIGIN without VITE_DEFAULT_TENANT_ID
+OUTPUT -> all five bundles target Edge without a browser tenant prefill
+FAIL -> missing/pathful origin or unmanaged env file stops before overwrite
+```
+
+- Verification contribution: `test-direct-run-contract.sh` plus `bash -n`; no service is started by Codex.
+- After this file: local browser bundles use the explicit Edge origin.
+
+#### File 16 — `MODIFY scripts/unified-xingyuan/prepare-local-stack.sh`
+
+- Purpose: Require an explicit Edge origin before preparing the user-run local topology, then verify all five managed frontend environments use it.
+- Symbols: `unified_xingyuan_require_edge_origin`, `.env.local` contract。
+- Repository evidence: The current script installs locked Web dependencies, calls the user-run stack initializer, and verifies generated direct-run artifacts.
+- Dependencies and consumers: `YUHENG_EDGE_BASE_URL`, the five Portal/Admin Vite environments and local start script.
+- Why now: Browser auth now belongs to Edge, while the local seed inputs remain server-side.
+- Contract/signature changes: Fail when the explicit origin is missing/pathful; verify `VITE_YUHENG_ORIGIN` equals that origin and no `VITE_DEFAULT_TENANT_ID` is written.
+- Input/output and state mapping: Preserve the existing runtime artifacts and protect generated env files; no service or browser starts during static validation.
+- Error and edge behavior: Missing/mismatched origin or a browser tenant prefill is a preparation failure.
+- Standards impact: MC-VALID-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 7, Rule 11; existing local runtime lifecycle remains user-run.
+- Implementation pseudocode:
+
+```text
+INPUT -> explicit HTTP(S) Edge origin
+FLOW -> run the existing user-driven topology preparation, then inspect each managed frontend environment for the exact Edge origin and absence of tenant prefill
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> stop before declaring direct-run artifacts ready
+RESULT -> preparation validates the five browser origins without changing server-side fixture seeding
+```
+
+- Verification contribution: `bash -n` and the direct-run shell contract; do not invoke `prepare-local-stack.sh` in this coding step.
+- After this file: direct-run preparation validates the explicit Edge browser origin and keeps tenant values out of frontend environments.
+
+#### File 17 — `MODIFY scripts/unified-xingyuan/test-live-frontend-login.sh`
 
 - Purpose: 用户启动的浏览器/HTTP E2E核对。
-- Symbols: `fresh BFF login/code/PKCE/consent/tenant`。
+- Symbols: `Edge OIDC entry, BFF session and CSRF/logout preflight`。
 - Repository evidence: 当前文件存在：scripts/unified-xingyuan/test-live-frontend-login.sh；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
+- Dependencies and consumers: 输入依赖 Step 16 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
 - Why now: 前一文件建立本文件需要的字段或调用契约； 用户启动的浏览器/HTTP E2E核对在此位置后才可接消费者。
-- Contract/signature changes: fresh BFF login/code/PKCE/consent/tenant；用户启动的浏览器/HTTP E2E核对。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: no stale cookie fixture。
+- Contract/signature changes: 检查OIDC注册跳转与BFF CSRF/session端点；真实用户认证由操作者在浏览器完成，不提交密码或读取AT/RT。公开行为只取主Spec §9对应API或§10/11内部合同。
+- Input/output and state mapping: 检查Edge origin、注册跳转、BFF CSRF header与未认证session；不需要本地密码或USER cookie fixture。
 - Error and edge behavior: failure stops release, no auto service startup by Codex。
 - Standards impact: MC-SCOPE-001, MC-TEST-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
 - Literal rule enforcement: Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
 - Implementation pseudocode:
 
 ```text
-INPUT -> no stale cookie fixture。
-FLOW -> fresh session follows explicit redirect, validates cookies+CSRf, userinfo subject, RBAC bootstrap, refresh/new authorization, logout/revocation, four Admin endpoints
+INPUT -> configured Edge origin and non-authenticated BFF probes
+FLOW -> preflight /oauth2/authorization/edge-ui and BFF CSRF/session/logout CORS for each configured frontend; do not attempt password login, userinfo token claims, or refresh-cookie flow
 ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> failure stops release, no auto service startup by Codex。
 RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
 ```
 
-- Verification contribution: 本Step `python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`；此文件负责 fresh BFF login/code/PKCE/consent/tenant 的正例与 failure stops release, no auto service startup by Codex 负例。
-- After this file: fresh BFF login/code/PKCE/consent/tenant 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: `bash -n` and the non-credential Edge OIDC redirect, CSRF/session and five-origin CORS preflight contract; browser login/PKCE/consent remain operator-run.
+- After this file: the user-run live probe checks Edge routes without credentials or cookie persistence.
 
-#### File 13 — `MODIFY docs/runbooks/unified-identity-oauth-client-tenant-cutover.md`
+#### File 18 — `MODIFY scripts/unified-xingyuan/start-local-stack.sh`
 
-- Purpose: 写真实运维命令、反向证据和前向修复界限。
+- Purpose: Keep the local backend topology intact while routing frontend OIDC/BFF/API traffic through a configured Edge.
+- Symbols: `prepare_admin_web_login_environments`, `preflight_edge_bff_routes`, `start_admin_web`, `start_portal_web`。
+- Repository evidence: The launcher probes `/oauth2/login/csrf`, writes a default browser tenant and points auth/API traffic at the Engine route.
+- Dependencies and consumers: User-configured `YUHENG_EDGE_BASE_URL`; Shoubing/Jianshen/Tianshu, Yuheng Engine and MCP keep distinct non-browser origins.
+- Why now: Step16 moved browser login to Edge; startup must reject the legacy route and preserve the callback origin.
+- Contract/signature changes: Preflight `/oauth2/authorization/edge-ui`, `/bff/csrf`, and anonymous `/bff/session`; set each `*_AUTH_PROXY` and `PORTAL_AUTH_PROXY` to Edge; keep `*_ADMIN_PROXY` and `PORTAL_API_PROXY` on Yuheng Engine; persist only the Edge browser origin.
+- Input/output and state mapping: The existing local seed flow may resolve a numeric tenant from a local USER token for non-browser fixture provisioning; it is not written to frontend `.env.local` or browser storage.
+- Error and edge behavior: Missing Edge origin, registration redirect or BFF CSRF JSON stops readiness; do not start Edge or a browser from Codex.
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-VALID-001, MC-CONFIG-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 5, Rule 7, Rule 11; preserve the existing script subsystem and separate non-browser service URLs.
+- Design pattern consideration: N/A; keep the existing explicit startup sequence.
+- Implementation pseudocode:
+
+```bash
+INPUT -> local services and configured Edge BFF origin
+FLOW -> validate Edge OIDC/BFF endpoints; set auth proxies to Edge and API proxies to Yuheng Engine; keep MCP/service URLs distinct
+OUTPUT -> frontends route browser OIDC/BFF through Edge and APIs through Yuheng Engine
+FAIL -> missing Edge BFF prevents the stack from reporting frontend readiness
+```
+
+- Verification contribution: `bash -n` and `test-direct-run-contract.sh`; local startup remains user-run.
+- After this file: local startup no longer points browser authentication at legacy Engine routes.
+
+#### File 19 — `MODIFY scripts/unified-xingyuan/status-local-stack.sh`
+
+- Purpose: Report Edge BFF readiness rather than the retired password-CSRF endpoint.
+- Symbols: `status-local-stack.sh` Edge BFF status。
+- Repository evidence: Current status probes `/oauth2/login/csrf`.
+- Dependencies and consumers: `YUHENG_EDGE_BASE_URL` and `/bff/csrf` contract.
+- Why now: Legacy login CSRF is not the browser-auth readiness signal.
+- Contract/signature changes: Read `/bff/csrf` status without printing its token; preserve backend health checks.
+- Input/output and state mapping: Report only Edge origin and HTTP status.
+- Error and edge behavior: An unavailable Edge HTTP route appears unavailable; CSRF readiness does not imply an authenticated session.
+- Standards impact: MC-SCOPE-001, MC-VALID-001, MC-TEST-001。
+- Literal rule enforcement: Rule 5, Rule 11.
+- Design pattern consideration: N/A; direct read-only status probe.
+- Implementation pseudocode:
+
+```bash
+INPUT -> configured Edge origin
+FLOW -> GET /bff/csrf; report only its HTTP status without reading or printing a token
+OUTPUT -> Edge BFF ready/unavailable status
+FAIL -> never probe a password endpoint or claim authenticated state
+```
+
+- Verification contribution: `bash -n` and the direct-run static contract.
+- After this file: status output reflects the active BFF contract.
+
+#### File 20 — `MODIFY scripts/unified-xingyuan/verify-local-stack.sh`
+
+- Purpose: Keep existing non-browser identity checks while moving browser CORS checks to the BFF.
+- Symbols: `verify_browser_preflight` BFF checks。
+- Repository evidence: Current CORS test preflights `/oauth2/login` and refresh-token routes from browser origins.
+- Dependencies and consumers: Edge origin, five frontend origins and existing non-browser OAuth/MCP fixtures.
+- Why now: Browser login no longer calls username/password/token endpoints; BFF logout is the browser-authenticated write.
+- Contract/signature changes: Preflight `/bff/logout` with `X-CSRF-TOKEN` against Edge for all five frontend origins; preserve server-side service-token/MCP checks where their contract remains unchanged.
+- Input/output and state mapping: Browser origins map to Edge; server-to-server identities remain separate.
+- Error and edge behavior: Missing Edge CORS credential headers fails; preflight does not prove OIDC login or Redis durability.
+- Standards impact: MC-ARCH-001, MC-VALID-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 6, Rule 7, Rule 11; retain jq parsing and no route wildcard.
+- Design pattern consideration: N/A; reuse the existing verifier helper.
+- Implementation pseudocode:
+
+```bash
+INPUT -> Edge origin, frontend origins, existing service tokens
+FLOW -> preflight /bff/logout with X-CSRF-TOKEN; retain backend/MCP checks; remove browser login/token preflights
+OUTPUT -> BFF CORS result and server-token assertions
+FAIL -> stale browser password/token path fails verification
+```
+
+- Verification contribution: `bash -n` and static contract; live verification remains operator-run.
+- After this file: local verification distinguishes browser BFF from machine identity.
+
+#### File 21 — `MODIFY docs/runbooks/unified-identity-oauth-client-tenant-cutover.md`
+
+- Purpose: Replace the stale tenant-login cutover procedure with exact frozen-source importer, Edge BFF, and forward-recovery instructions.
 - Symbols: `per-tenant PREPARED→VERIFIED→CUTOVER→RETIRED`。
-- Repository evidence: 当前文件存在：docs/runbooks/unified-identity-oauth-client-tenant-cutover.md；目标源于主Spec §7–§16。
-- Dependencies and consumers: 输入依赖 Step 15 与本Step此前文件；输出供 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收及后一Step使用；Java Bean/Mapper按模块现有配置发现，前端按现有auth client消费。
-- Why now: 前一文件建立本文件需要的字段或调用契约； 写真实运维命令、反向证据和前向修复界限在此位置后才可接消费者。
-- Contract/signature changes: per-tenant PREPARED→VERIFIED→CUTOVER→RETIRED；写真实运维命令、反向证据和前向修复界限。公开行为只取主Spec §9对应API或§10/11内部合同。
-- Input/output and state mapping: no production credentials or secrets in doc。
-- Error and edge behavior: new grant/consent once written prohibits binary-only rollback。
-- Standards impact: MC-SCOPE-001, MC-TEST-001；按已选传统分层，输入校验与权限先于状态读取，PO不出边界，相关日志脱敏。
-- Literal rule enforcement: Rule 11；此文件直接按所列原始规则落实命名、验证、类型/注入或配置，其他规则由同Step关联文件负责。
+- Repository evidence: The current runbook still describes older V5/V8 identity and password/login procedures; the current Review Spec and runner have a profile-only migration contract.
+- Dependencies and consumers: Step 16 Edge UI contract, this Step's runner properties and shell files; read by operators only.
+- Why now: Operators need exact owner-only inputs, CLI flags, report digest and reconciliation commands for the implemented importer.
+- Contract/signature changes: Document a unique `report-file`, protected freeze/ownership/checkpoint/secret/report paths, per-realm stages and explicit local Edge origin; no production values.
+- Input/output and state mapping: Report, digest, checkpoint, secret delivery and Edge routes match the implementation.
+- Error and edge behavior: Source conflict or uncertain target/report state stops the realm; committed security facts prohibit binary-only rollback.
+- Standards impact: MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 11.
 - Implementation pseudocode:
 
 ```text
-INPUT -> no production credentials or secrets in doc。
-FLOW -> list secret rotation proofs, immutable Flyway B/V, MP manifest checksum/new schema, Redis fenced recovery, legacy issuer allowlist shrink, pertenant signoff and rollback barriers
-ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> new grant/consent once written prohibits binary-only rollback。
-RESULT -> only the named symbol/contract in this File block becomes available; preserve tenant, expectedVersion, scope, UTC time and secret masking stated above.
+INPUT -> current Review Spec, guarded CLI property contract and no real secrets
+FLOW -> document freeze marker, snapshot-bound owner map, owner-only dry-run report/digest, same-snapshot apply, per-realm checkpoint/reconciliation, protected secret distribution, Edge BFF preflight and coordinated rollback barriers
+ON INVALID/CONCURRENT/DEPENDENCY FAILURE -> stop without guessing owners/scopes, skipping conflicts, or restoring an older security generation
+RESULT -> operator can follow one reviewable per-realm sequence with protected evidence
 ```
 
-- Verification contribution: 本Step `python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`；此文件负责 per-tenant PREPARED→VERIFIED→CUTOVER→RETIRED 的正例与 new grant/consent once written prohibits binary-only rollback 负例。
-- After this file: per-tenant PREPARED→VERIFIED→CUTOVER→RETIRED 的字段/入口或注册已落盘；与下一文件组合后本Step才能GREEN，不能把中间状态当完成。
+- Verification contribution: strict Spec/Plan validation and runbook-to-CLI property review; no database or service commands run here.
+- After this file: the runbook matches the guarded migration runner and current Edge BFF.
+
+
+#### File 22 — `MODIFY docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`
+
+- Purpose: Record Step17 local Edge-origin evidence, decision and operator boundary.
+- Symbols: EVD-157/160/161/162/163, DEC-153/159/160/161/162, TEST-150/154/155/156/157, REQ-043/044 trace。
+- Repository evidence: Current shell sources use the legacy password route and tenant-prefill setting; the importer needs a protected report artifact, full source-digest binding, exact PKCE/refresh checks, and purpose-correct service Resource/Grant mapping.
+- Dependencies and consumers: Step17 local shell files; the accepted base Spec stays unchanged.
+- Why now: Source review found local browser-auth call sites outside the Step16 React files.
+- Contract/signature changes: Add source-backed local harness, report-file, full source fingerprint, legacy PKCE/service-refresh and service Resource/Grant evidence, a static shell contract, and exact operator contracts; remain in Review and do not add a new browser protocol.
+- Input/output and state mapping: Explicit Edge origin; no browser password; service tokens remain non-browser inputs.
+- Error and edge behavior: No live OIDC/AS/Redis/browser/data import evidence is claimed.
+- Standards impact: MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 11; only the current Review amendment changes.
+- Design pattern consideration: N/A; no runtime implementation.
+- Implementation pseudocode:
+
+```text
+INPUT -> current local script and migration-runner sources plus REQ-043/REQ-044
+FLOW -> add EVD-157/160/161/162/163, DEC-153/159/160/161/162, TEST-150/154/155/156/157, and exact Step17 paths
+OUTPUT -> review trace matches Edge BFF, protected report digest, full source fingerprint, and purpose-correct client/Grant mapping
+FAIL -> legacy route/password or missing Edge-origin prerequisites remain hidden
+```
+
+- Verification contribution: strict Spec/Plan validation.
+- After this file: Step17's local auth preparation has an explicit review boundary.
+
+#### File 23 — `MODIFY docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+
+- Purpose: Make Step17 depend on committed Step16 and list every direct local auth script consumer.
+- Symbols: Step17 dependency, ordered file list, test-first/static validation and commit paths。
+- Repository evidence: Current launcher/status/live probes call retired login routes and are absent from the allowlist.
+- Dependencies and consumers: Step16 commit `e71d00d3826cc96d7c46dbdc485cc972bf330ca5` and the updated Review Spec.
+- Why now: The Plan must be corrected before Step17 source edits.
+- Contract/signature changes: Add the exact owner-map/secret-artifact/report-file CLI boundary, source fingerprint binding, legacy PKCE/service-refresh and service Resource/Grant gates, local env/start/status/verify owners and the two planning documents; keep Step18 ownership intact.
+- Input/output and state mapping: All 23 file headers, tree rows, inventory and commit paths match the report artifact and local Edge contract.
+- Error and edge behavior: Live Edge/stack/import commands remain user-run.
+- Standards impact: MC-SCOPE-001, MC-TEST-001。
+- Literal rule enforcement: Rule 11; unified-xingyuan remains the local script owner.
+- Design pattern consideration: N/A; this is Plan maintenance.
+- Implementation pseudocode:
+
+```text
+INPUT -> Step16 HEAD and EVD-157–163, DEC-153–162, TEST-150–157
+FLOW -> exact 23 Step17 paths, snapshot-bound client ownership/scope map, protected report file, and user-run runtime gates
+OUTPUT -> unambiguous local BFF/import scope
+FAIL -> omitted local auth script blocks Step17 implementation
+```
+
+- Verification contribution: strict Plan/Spec validation and path parity.
+- After this file: Step17 may proceed only within this corrected 23-path list.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`。
-- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；`python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`仅脚本语法补充。
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest,OAuthMigrationRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test`；`python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`; `bash -n` on seven touched shell files; `scripts/unified-xingyuan/test-direct-run-contract.sh`. Do not invoke local stack, Edge, status, verify, live login, or import scripts.
 - Expected result: 先确认上述RED由缺失目标行为引起，GREEN时命名用例成功、模块编译成功、`git diff --check`零错误；不以不存在依赖/数据库/fixture而失败作为RED。
 - Failure returns to: Step 16 的编译/Schema前置；若需改变外部语义、架构或DDL版本则回主Spec。
 - Completion criteria: 逐租户导入/凭证轮换/切流报告可审，脚本只准备用户发起的运行验收；本Step的所有Manual Checks在实际执行时给出证据，未通过不能提交。
 - Rollback: 提交前仅恢复本Step的精确路径；DDL已对真实数据运行后只forward-fix和新版本，不能编辑既有SQL/历史或恢复旧安全世代。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/OAuthMigrationCommand.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/result/OAuthMigrationReportResult.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthMigrationService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/IdentityMigrationContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/IdentityMigrationRowDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/IdentityMigrationDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/IdentityMigrationDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`, `scripts/unified-xingyuan/prepare-local-stack.sh`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `scripts/unified-xingyuan/test-live-frontend-login.sh`, `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md`。
-- Commit: `docs(xingyuan): prepare oauth migration and cutover verification`。
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationServiceTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/command/OAuthMigrationCommand.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/result/OAuthMigrationReportResult.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/OAuthMigrationService.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/IdentityMigrationContractTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/domain/dto/IdentityMigrationRowDTO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/dao/IdentityMigrationDAO.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/mapper/oauth/IdentityMigrationDAO.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/oauth/service/impl/OAuthMigrationServiceImpl.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunnerTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/migration/OAuthMigrationRunner.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-oauth-migration.yml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan/shoubing/admin/support/runtime/IdpPlatformConfiguration.java`, `scripts/unified-xingyuan/test-direct-run-contract.sh`, `scripts/unified-xingyuan/lib/common.sh`, `scripts/unified-xingyuan/prepare-local-stack.sh`, `scripts/unified-xingyuan/test-live-frontend-login.sh`, `scripts/unified-xingyuan/start-local-stack.sh`, `scripts/unified-xingyuan/status-local-stack.sh`, `scripts/unified-xingyuan/verify-local-stack.sh`, `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md`, `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`, `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`
+- Commit: `feat(xingyuan): add oauth migration and local bff verification`。
 
 ### Step 18 — 退役旧协议并校验全域回归
 
@@ -14188,7 +14445,7 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | Step 14 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 建立SCG OAuth2登录和服务端会话 | 目标行为先RED后GREEN；Edge module compile、profile/OpenAPI/Gateway-prefix/path gates pass | Step 14对应24 Files | REQ-003, REQ-004, REQ-006, REQ-010, REQ-011, REQ-012, REQ-024, REQ-025, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042；Redis/AS runtime另由用户验收 |
 | Step 15 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,Rbac3BearerAuthenticationFilterTest,TenantContextFilterTest,IdpJwtDdcRegistrationCredentialVerifierTest,DdcTenantIsolationTest -Dsurefire.failIfNoSpecifiedTests=false test`。 | 保留玉衡、鉴神与天枢准入链 | Cookie refresh、SCOPE bridge、nested context行为先RED后GREEN；Starter/Tianshu现有验证合同与模块编译通过 | Step 15对应File | REQ-001, REQ-005, REQ-006, REQ-007, REQ-010, REQ-016, REQ-024, REQ-025；真实Redis/AS/HMAC运行证据另列 |
 | Step 16 | /Users/mario/SelfProject/Egon-COLA | Edge `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway -am -Dtest=EdgeLoginContractTest -Dsurefire.failIfNoSpecifiedTests=false test`; shared auth and Portal/four Admin package typecheck/test scripts from §8; targeted Jianshen step-up/shell, Shoubing auth/client/grant/key/resource page tests, Yuheng login/layout tests, and updated OIDC/BFF E2E fixture sources | 迁移共享认证客户端与五个前端消费者及OIDC step-up | RED/GREEN and all affected package checks pass; no app/browser/AS/Redis runtime | Step 16对应47 Files | REQ-003, REQ-004, REQ-010, REQ-017, REQ-026, REQ-043；运行环境证据另列 |
-| Step 17 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest -Dsurefire.failIfNoSpecifiedTests=false test`；`python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`仅脚本语法补充。 | 提供受控数据导入、切流及本地验证入口 | 精确用例先目标RED后GREEN；模块编译通过 | Step 17对应File | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023；运行环境证据另列 |
+| Step 17 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dtest=OAuthMigrationServiceTest,IdentityMigrationContractTest,OAuthMigrationRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test`; `python3 -m py_compile scripts/unified-xingyuan/controller_ui_coverage.py`; `bash -n` on the seven touched shell files; `scripts/unified-xingyuan/test-direct-run-contract.sh`. Do not run prepare/start/status/verify/live-login/import commands. | Controlled migration, cutover and local Edge BFF preparation | Migration/runner tests and static shell contract pass; live Edge/import/browser is operator-run | Step 17对应23 Files | REQ-011, REQ-012, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023, REQ-043, REQ-044；runtime evidence remains user-run |
 | Step 18 | /Users/mario/SelfProject/Egon-COLA | `mvn -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test`；其余受影响consumer门禁按§8。必须无JPA生产引用、无漏迁fixture；不启动应用。 | 退役旧协议并校验全域回归 | 精确用例先目标RED后GREEN；模块编译通过 | Step 18对应File | REQ-001, REQ-006, REQ-010, REQ-012, REQ-017, REQ-019, REQ-020, REQ-021, REQ-022, REQ-024, REQ-025, REQ-026, REQ-027；运行环境证据另列 |
 
 追加消费者门禁（在Step 15接入完成、Step 18最终审核时执行一次；代码不再改变时不重复跑）：
@@ -14262,7 +14519,8 @@ assert boot creates only MP SqlSessionFactory/DataSourceTransactionManager authe
 | REQ-040 | 修订Spec §4/DEC-148/EVD-152 | Step 14 | provided Lombok API and module-local qualifier-copy configuration | EdgeLoginContractTest and exact reactor compile | application compiles with the parent-managed Lombok version and exports no Lombok runtime dependency |
 | REQ-041 | 修订Spec §4/DEC-149/EVD-153 | Step 14 | decorated TokenRelay ReactiveOAuth2AuthorizedClientManager; encrypted repository write inside distributed per-session/client lock | EdgeLoginContractTest TEST-145 | concurrent same-identity calls refresh once and the follower reloads rotated state; lock timeout never retries a consumed RT |
 | REQ-042 | 修订Spec §4/DEC-150/EVD-154 | Step 14 | API-015 matches held token value/JWT issuer/subject to client registration and checks tenant/audience/shared generation | EdgeLoginContractTest TEST-146 | token/issuer/subject/tenant/audience/expiry/revoked mismatch 401; Redis unavailable 503; never refreshes while returning session view |
-| REQ-043 | Current-code amendment §1/§3/§5.3 | Step 16 | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` ; `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`; `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts` | TEST-147/148/149 and all affected package typecheck/test scripts | Passwordless OIDC/BFF login/logout, fixed-registration step-up, one version-bound role-intent retry, no token/password persistence |
+| REQ-043 | Current-code amendment §1/§3/§5.3 | Step 16; Step 17 | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/auth/portalAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/CentralLoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/gatewayAuth.ts`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx`; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java` ; `docs/egon/spec/2026-10-08-10-18-oauth-current-code-alignment.md`; `docs/egon/plan/2026-09-23-10-42-tianquan-oauth-oidc-implementation.md`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/app/PortalLayout.test.tsx`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/LoginPage.test.tsx`; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/e2e/tianshu-admin.spec.ts` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts` ; `scripts/unified-xingyuan/lib/common.sh` ; `scripts/unified-xingyuan/start-local-stack.sh` ; `scripts/unified-xingyuan/status-local-stack.sh` ; `scripts/unified-xingyuan/verify-local-stack.sh` ; `scripts/unified-xingyuan/prepare-local-stack.sh` ; `scripts/unified-xingyuan/test-direct-run-contract.sh` ; `scripts/unified-xingyuan/test-live-frontend-login.sh` ; `docs/runbooks/unified-identity-oauth-client-tenant-cutover.md` | TEST-147/148/149/150 and all affected package typecheck/test scripts | Passwordless OIDC/BFF login/logout, fixed-registration step-up, one version-bound role-intent retry, no token/password persistence |
+| REQ-044 | Current-code amendment §1/§3/§5.3/§16 | Step 17 | OAuthMigrationCommand/OAuthMigrationService/OAuthMigrationRunner; IdentityMigrationDAO exact source readers; profile-only non-web mode; atomic owner-only checkpoint, unique redacted report file, full mapped-source fingerprint, legacy PKCE/service-refresh checks, and purpose-correct service Resource/Grant mapping | OAuthMigrationServiceTest / IdentityMigrationContractTest / OAuthMigrationRunnerTest; Step17 exact Maven command | Explicit freeze marker and reviewed dry-run report SHA required; report file is mode 600 and never overwritten; all mapped source changes alter the digest; legacy USER clients must require PKCE and SERVICE clients must have refresh TTL 0; service-client resourceUris remain empty while Grant rows carry access; batch size ≤500; conflicts do not advance; unknown commit is verified before replay; no startup import or live import evidence claimed |
 
 ## 11. Risks, Blockers, and User Decisions
 

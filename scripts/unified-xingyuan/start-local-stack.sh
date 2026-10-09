@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${script_dir}/lib/common.sh"
+unified_xingyuan_require_edge_origin
 
 legacy_script="${unified_xingyuan_repo_root}/scripts/unified-identity-local.sh"
 release_fixture="${script_dir}/fixtures/unified-xingyuan-release.json"
@@ -94,16 +95,11 @@ prepare_admin_web_login_environments() {
   default_tenant_id="$(jq -er '.tid' <<<"${userinfo}")"
   [[ "${default_tenant_id}" =~ ^[1-9][0-9]*$ ]] \
     || unified_xingyuan_fail "default tenant access token has an invalid tenant ID"
-  unified_xingyuan_write_frontend_login_env \
-    "${idp_web_dir}" "${default_tenant_id}"
-  unified_xingyuan_write_frontend_login_env \
-    "${rbac3_web_dir}" "${default_tenant_id}"
-  unified_xingyuan_write_frontend_login_env \
-    "${gateway_web_dir}" "${default_tenant_id}"
-  unified_xingyuan_write_frontend_login_env \
-    "${ddc_web_dir}" "${default_tenant_id}"
-  unified_xingyuan_write_frontend_login_env \
-    "${portal_web_dir}" "${default_tenant_id}"
+  unified_xingyuan_write_frontend_login_env "${idp_web_dir}"
+  unified_xingyuan_write_frontend_login_env "${rbac3_web_dir}"
+  unified_xingyuan_write_frontend_login_env "${gateway_web_dir}"
+  unified_xingyuan_write_frontend_login_env "${ddc_web_dir}"
+  unified_xingyuan_write_frontend_login_env "${portal_web_dir}"
 }
 
 gateway_api() {
@@ -774,26 +770,33 @@ wait_mcp_endpoint() {
   unified_xingyuan_fail "${name} did not activate the unified MCP release"
 }
 
-preflight_gateway_login_route() {
-  local status
-  status="$(curl --max-time 5 -sS -o /dev/null -w '%{http_code}' \
-    -H "Origin: ${PLATFORM_PORTAL_URL}" \
-    "${YUHENG_BASE_URL}/oauth2/login/csrf" 2>/dev/null || true)"
-  [[ "${status}" == "200" ]] \
-    || unified_xingyuan_fail \
-      "Yuheng Engine login route is ${status:-timeout} at ${YUHENG_BASE_URL}; restart the stack and publish the current release"
-  printf 'Yuheng public origin: %s; advertised host: %s\n' \
-    "${YUHENG_BASE_URL}" "${local_advertised_host}"
+preflight_edge_bff_routes() {
+  local csrf_response session_status authorization_response authorization_status location
+  csrf_response="$(curl --max-time 5 -fsS "${YUHENG_EDGE_BASE_URL}/bff/csrf" 2>/dev/null)" \
+    || unified_xingyuan_fail "Edge BFF CSRF route is unavailable at ${YUHENG_EDGE_BASE_URL}"
+  jq -e '.headerName == "X-CSRF-TOKEN" and (.token | type == "string" and length > 0)' \
+    <<<"${csrf_response}" >/dev/null \
+    || unified_xingyuan_fail "Edge BFF CSRF route returned an invalid contract"
+  session_status="$(curl --max-time 5 -sS -o /dev/null -w '%{http_code}' \
+    "${YUHENG_EDGE_BASE_URL}/bff/session" 2>/dev/null || true)"
+  [[ "${session_status}" == "401" ]] \
+    || unified_xingyuan_fail "anonymous Edge BFF session route is ${session_status:-timeout}"
+  authorization_response="$(curl --max-time 5 -sS -D - -o /dev/null \
+    -w $'\n%{http_code}' "${YUHENG_EDGE_BASE_URL}/oauth2/authorization/edge-ui" 2>/dev/null || true)"
+  authorization_status="${authorization_response##*$'\n'}"
+  [[ "${authorization_status}" == "302" || "${authorization_status}" == "303" ]] \
+    || unified_xingyuan_fail "Edge OIDC authorization route is ${authorization_status:-timeout}"
+  location="$(awk 'BEGIN {IGNORECASE=1} /^Location:/ {sub(/^[^:]*:[[:space:]]*/, ""); gsub(/\r/, ""); print; exit}' \
+    <<<"${authorization_response}")"
+  [[ -n "${location}" ]] \
+    || unified_xingyuan_fail "Edge OIDC authorization route did not return a redirect"
+  printf 'Edge BFF origin: %s; Yuheng API origin: %s; advertised host: %s\n' \
+    "${YUHENG_EDGE_BASE_URL}" "${YUHENG_BASE_URL}" "${local_advertised_host}"
 }
 
 start_admin_web() {
   local name="$1" web_dir="$2" vite="$3" web_url="$4"
-  local web_label="$5" proxy_name="$6" proxy_url="$7" port api_origin
-  if [[ $# -ge 8 ]]; then
-    api_origin="$8"
-  else
-    api_origin="${YUHENG_BASE_URL}"
-  fi
+  local web_label="$5" api_proxy_name="$6" api_proxy_url="$7" auth_proxy_name="$8" port
   if unified_xingyuan_process_running "${name}"; then
     return
   fi
@@ -803,9 +806,9 @@ start_admin_web() {
   port="${web_url##*:}"
   (
     cd "${web_dir}"
-    export "${proxy_name}=${proxy_url}"
-    export VITE_YUHENG_ORIGIN="${api_origin}"
-    export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
+    export "${api_proxy_name}=${api_proxy_url}"
+    export "${auth_proxy_name}=${YUHENG_EDGE_BASE_URL}"
+    export VITE_YUHENG_ORIGIN="${YUHENG_EDGE_BASE_URL}"
     exec nohup "${vite}" \
       --config "${web_dir}/vite.config.ts" \
       --host 127.0.0.1 --port "${port}" --strictPort
@@ -881,15 +884,14 @@ start_portal_web() {
   (
     cd "${portal_web_dir}"
     export PORTAL_PUBLIC_DIR="${unified_xingyuan_runtime_dir}/portal-public"
-    export PORTAL_AUTH_PROXY="${YUHENG_BASE_URL}"
+    export PORTAL_AUTH_PROXY="${YUHENG_EDGE_BASE_URL}"
     export PORTAL_API_PROXY="${YUHENG_BASE_URL}"
-    export VITE_YUHENG_ORIGIN="${YUHENG_BASE_URL}"
+    export VITE_YUHENG_ORIGIN="${YUHENG_EDGE_BASE_URL}"
     export VITE_PORTAL_ALLOW_LOCAL_CHILD_ORIGINS=true
     export VITE_TIANQUAN_SHOUBING_ADMIN_WEB_URL="${TIANQUAN_SHOUBING_ADMIN_WEB_URL}"
     export VITE_TIANQUAN_JIANSHEN_ADMIN_WEB_URL="${TIANQUAN_JIANSHEN_ADMIN_WEB_URL}"
     export VITE_YUHENG_ADMIN_WEB_URL="${YUHENG_ADMIN_WEB_URL}"
     export VITE_TIANSHU_ADMIN_WEB_URL="${TIANSHU_ADMIN_WEB_URL}"
-    export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
     exec nohup "${vite}" \
       --config "${portal_web_dir}/vite.config.ts" \
       --host 127.0.0.1 --port "${PLATFORM_PORTAL_URL##*:}" --strictPort
@@ -928,20 +930,20 @@ if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
     unified_xingyuan_stage "publishing the prepared local Yuheng HTTP catalog"
     "${legacy_script}" publish-yuheng-routes
   fi
-  preflight_gateway_login_route
-  unified_xingyuan_stage "starting four Admin Web applications through Yuheng"
+  preflight_edge_bff_routes
+  unified_xingyuan_stage "starting four Admin Web applications with Edge auth and Yuheng APIs"
   start_admin_web tianquan-shoubing-admin-web "${idp_web_dir}" \
     "${idp_web_dir}/node_modules/.bin/vite" "${TIANQUAN_SHOUBING_ADMIN_WEB_URL}" \
-    tianquan-shoubing-admin-web TIANQUAN_SHOUBING_ADMIN_PROXY "${YUHENG_BASE_URL}"
+    tianquan-shoubing-admin-web TIANQUAN_SHOUBING_ADMIN_PROXY "${YUHENG_BASE_URL}" TIANQUAN_SHOUBING_AUTH_PROXY
   start_admin_web tianquan-jianshen-admin-web "${rbac3_web_dir}" \
     "${rbac3_root_dir}/node_modules/.bin/vite" "${TIANQUAN_JIANSHEN_ADMIN_WEB_URL}" \
-    tianquan-jianshen-admin-web TIANQUAN_JIANSHEN_ADMIN_PROXY "${YUHENG_BASE_URL}"
+    tianquan-jianshen-admin-web TIANQUAN_JIANSHEN_ADMIN_PROXY "${YUHENG_BASE_URL}" TIANQUAN_JIANSHEN_AUTH_PROXY
   start_admin_web yuheng-admin-web "${gateway_web_dir}" \
     "${gateway_web_dir}/node_modules/.bin/vite" "${YUHENG_ADMIN_WEB_URL}" \
-    yuheng-admin-web YUHENG_ADMIN_PROXY "${YUHENG_BASE_URL}"
+    yuheng-admin-web YUHENG_ADMIN_PROXY "${YUHENG_BASE_URL}" YUHENG_AUTH_PROXY
   start_admin_web tianshu-admin-web "${ddc_web_dir}" \
     "${ddc_web_dir}/node_modules/.bin/vite" "${TIANSHU_ADMIN_WEB_URL}" \
-    tianshu-admin-web TIANSHU_ADMIN_PROXY "${YUHENG_BASE_URL}"
+    tianshu-admin-web TIANSHU_ADMIN_PROXY "${YUHENG_BASE_URL}" TIANSHU_AUTH_PROXY
   start_portal_web
   "${script_dir}/test-live-frontend-login.sh"
   printf 'Unified Xingyuan local stack is running in %s.\n' \
@@ -989,21 +991,21 @@ wait_gateway_release_reconciliation "${group_id}"
 publish_mcp_release "${group_id}" "${server_id}"
 wait_mcp_endpoint yuheng-biz-gateway-a "${YUHENG_BASE_URL}"
 wait_mcp_endpoint yuheng-biz-gateway-b "${YUHENG_ENGINE_B_PUBLIC_URL}"
-preflight_gateway_login_route
+preflight_edge_bff_routes
 
 unified_xingyuan_stage "starting four Admin Web applications"
 start_admin_web tianquan-shoubing-admin-web "${idp_web_dir}" \
   "${idp_web_dir}/node_modules/.bin/vite" "${TIANQUAN_SHOUBING_ADMIN_WEB_URL}" \
-  tianquan-shoubing-admin-web TIANQUAN_SHOUBING_ADMIN_PROXY "${YUHENG_BASE_URL}"
+  tianquan-shoubing-admin-web TIANQUAN_SHOUBING_ADMIN_PROXY "${YUHENG_BASE_URL}" TIANQUAN_SHOUBING_AUTH_PROXY
 start_admin_web tianquan-jianshen-admin-web "${rbac3_web_dir}" \
   "${rbac3_root_dir}/node_modules/.bin/vite" "${TIANQUAN_JIANSHEN_ADMIN_WEB_URL}" \
-  tianquan-jianshen-admin-web TIANQUAN_JIANSHEN_ADMIN_PROXY "${YUHENG_BASE_URL}"
+  tianquan-jianshen-admin-web TIANQUAN_JIANSHEN_ADMIN_PROXY "${YUHENG_BASE_URL}" TIANQUAN_JIANSHEN_AUTH_PROXY
 start_admin_web yuheng-admin-web "${gateway_web_dir}" \
   "${gateway_web_dir}/node_modules/.bin/vite" "${YUHENG_ADMIN_WEB_URL}" \
-  yuheng-admin-web YUHENG_ADMIN_PROXY "${YUHENG_BASE_URL}"
+  yuheng-admin-web YUHENG_ADMIN_PROXY "${YUHENG_BASE_URL}" YUHENG_AUTH_PROXY
 start_admin_web tianshu-admin-web "${ddc_web_dir}" \
   "${ddc_web_dir}/node_modules/.bin/vite" "${TIANSHU_ADMIN_WEB_URL}" \
-  tianshu-admin-web TIANSHU_ADMIN_PROXY "${YUHENG_BASE_URL}"
+  tianshu-admin-web TIANSHU_ADMIN_PROXY "${YUHENG_BASE_URL}" TIANSHU_AUTH_PROXY
 start_portal_web
 
 "${script_dir}/test-live-frontend-login.sh"

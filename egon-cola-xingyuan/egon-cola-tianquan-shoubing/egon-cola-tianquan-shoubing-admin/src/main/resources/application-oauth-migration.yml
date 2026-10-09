@@ -1,0 +1,17 @@
+spring:
+  main:
+    web-application-type: none
+
+egon:
+  cola:
+    component:
+      rpc:
+        enabled: false
+      tianshu:
+        registry:
+          http:
+            enabled: false
+  tianquan-shoubing:
+    oauth:
+      migration:
+        enabled: false
