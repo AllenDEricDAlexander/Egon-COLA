@@ -9,6 +9,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Objects;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -24,18 +27,17 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRea
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
 
-@RestController
+@RestController("tenantLoginController")
+@RequiredArgsConstructor
+@Slf4j
 public class TenantLoginController {
 
+    @NonNull
+    @Qualifier("tenantIssuerService")
     private final TenantIssuerService tenantIssuerService;
+    @NonNull
+    @Qualifier("oauthAuthorizationRequestCache")
     private final RequestCache requestCache;
-
-    public TenantLoginController(
-            @Qualifier("tenantIssuerService") TenantIssuerService tenantIssuerService,
-            @Qualifier("oauthAuthorizationRequestCache") RequestCache requestCache) {
-        this.tenantIssuerService = Objects.requireNonNull(tenantIssuerService, "tenantIssuerService");
-        this.requestCache = Objects.requireNonNull(requestCache, "requestCache");
-    }
 
     @GetMapping(value = "/tenants/{tenantId:[1-9][0-9]{0,18}}/login", produces = MediaType.TEXT_HTML_VALUE)
     @Operation(operationId = "oauthSasLoginPage", summary = "Render the exact tenant issuer login form")

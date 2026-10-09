@@ -49,6 +49,17 @@ class IdpPublishedOpenApiContractTest {
                 continue;
             }
             Class<?> controller = Class.forName(name);
+            if (name.endsWith(".TenantLoginController")) {
+                assertThat(controller.getAnnotation(RestController.class).value())
+                        .isEqualTo("tenantLoginController");
+                assertThat(controller.getAnnotation(EgonApiCatalog.class)).isNull();
+                var login = controller.getDeclaredMethod("loginPage", String.class,
+                        jakarta.servlet.http.HttpServletRequest.class);
+                assertThat(AnnotatedElementUtils.findMergedAnnotation(login, RequestMapping.class).value())
+                        .containsExactly("/tenants/{tenantId:[1-9][0-9]{0,18}}/login");
+                assertThat(login.getAnnotation(Operation.class).operationId()).isEqualTo("oauthSasLoginPage");
+                continue;
+            }
             Object instance = mock(controller);
             EgonApiCatalog catalogAnnotation = controller.getAnnotation(EgonApiCatalog.class);
             String expectedGroup = DOMAIN_GROUPS.get(catalogAnnotation.entityDomainCode());
