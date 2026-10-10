@@ -22,6 +22,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -46,6 +47,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.TokenUsageAuditEvent;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.domain.dto.TokenUsageAuditReceiptDTO;
 
 /** Durable, secret-free audit handoff for resource servers that do not own a database. */
@@ -70,12 +73,24 @@ public class TokenUsageAuditComponent {
     private final Clock clock;
     @Qualifier("defaultValidator")
     private final Validator validator;
+    @Qualifier("idpSecurityMetricsRecorder")
+    private final IdpSecurityMetricsRecorder metrics;
+    private final java.util.concurrent.atomic.AtomicBoolean metricFailureLogged = new java.util.concurrent.atomic.AtomicBoolean();
     private String replayCursor = "";
     private final Object spoolLock = new Object();
 
     /** Source-compatible legacy factory adapter; managed hosts use the generated full constructor. */
     public TokenUsageAuditComponent(RedissonClient redisson, ObjectMapper mapper, OAuthAuditProperties properties) {
         this(redisson, mapper, properties, new AuditDeliveryProperties(), Clock.systemUTC(), legacyValidator());
+    }
+
+    /** Preserves the previous configured constructor and its qualified parameter metadata. */
+    public TokenUsageAuditComponent(@Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
+            @Qualifier("jacksonObjectMapper") ObjectMapper mapper,
+            @Qualifier("oauthAuditProperties") OAuthAuditProperties properties,
+            @Qualifier("auditDeliveryProperties") AuditDeliveryProperties delivery,
+            @Qualifier("idpClock") Clock clock, @Qualifier("defaultValidator") Validator validator) {
+        this(redisson, mapper, properties, delivery, clock, validator, IdpSecurityMetricsRecorder.NOOP);
     }
 
     private static volatile Validator compatibilityValidator;
@@ -109,18 +124,23 @@ public class TokenUsageAuditComponent {
         byte[] payload = serialize(value);
         try {
             stage(value.eventId(), payload, true);
+            observeDelivery("STAGED");
         } catch (IOException failure) {
+            observeDelivery("FAILED");
             throw new IllegalStateException("OAUTH_AUDIT_DELIVERY_UNAVAILABLE", failure);
         }
         StreamMessageId messageId;
         try {
             messageId = publish(value);
         } catch (RuntimeException failure) {
+            observeDelivery("FAILED");
             throw new IllegalStateException("OAUTH_AUDIT_STREAM_UNAVAILABLE", failure);
         }
         try {
             markSent(eventPath(value.eventId()), messageId, true);
+            observeDelivery("SENT");
         } catch (IOException failure) {
+            observeDelivery("FAILED");
             throw new IllegalStateException("OAUTH_AUDIT_SPOOL_MARK_FAILED", failure);
         }
         return messageId;
@@ -269,13 +289,16 @@ public class TokenUsageAuditComponent {
                         if (Files.exists(sent) && Files.getLastModifiedTime(sent).toInstant()
                                 .plus(delivery.getConfirmationTimeout()).isAfter(clock.instant())) { continue; }
                         markSent(file, publish(event), true);
+                        observeDelivery("SENT");
                         delivered++;
                     } catch (IOException | RuntimeException failure) {
+                        observeDelivery("FAILED");
                         log.error("OAuth audit spool replay failed; failureType={}", failure.getClass().getSimpleName());
                         if (failed == null) { failed = new IllegalStateException("OAUTH_AUDIT_SPOOL_REPLAY_FAILED", failure); }
                         else { failed.addSuppressed(failure); }
                     }
                 }
+                observeSpool();
                 if (failed != null) { throw failed; }
                 return delivered;
             } catch (IOException failure) {
@@ -331,15 +354,52 @@ public class TokenUsageAuditComponent {
                 if (!receiptMatches(receipt, event)) { return; }
                 if ("DEAD".equals(receipt.getOutcome())) {
                     Path marker = frame.resolveSibling(frame.getFileName() + ".dead");
+                    if (Files.exists(marker) && Files.readString(marker, StandardCharsets.UTF_8).equals(value)) { return; }
                     writeMarker(marker, value.getBytes(StandardCharsets.UTF_8), true);
+                    observeReceipt(receipt, "DEAD");
                     return;
                 }
                 Files.deleteIfExists(frame);
                 Files.deleteIfExists(sentPath(frame));
                 forceDirectory();
+                observeReceipt(receipt, "EXPIRED".equals(receipt.getOutcome()) ? "EXPIRED" : "CONFIRMED");
             } catch (com.fasterxml.jackson.core.JsonProcessingException | ConstraintViolationException | IllegalArgumentException invalid) {
                 log.warn("OAuth receipt rejected; eventId={} failureType={}",eventId, invalid.getClass().getSimpleName());
             } catch (IOException failure) { throw new IllegalStateException("OAUTH_AUDIT_SPOOL_ACK_FAILED", failure); }
+        }
+    }
+
+    private void observeReceipt(TokenUsageAuditReceiptDTO receipt, String outcome) {
+        Duration age = Duration.between(receipt.getConfirmedAt(), clock.instant());
+        observeMetric(SecurityMetricObservationBO.builder().signal("receipt.age").result("CONFIRMED")
+                .duration(age.isNegative() ? Duration.ZERO : age).build());
+        observeDelivery(outcome);
+    }
+
+    private void observeDelivery(String result) {
+        observeMetric(SecurityMetricObservationBO.builder().signal("oauth.audit.delivery").result(result).build());
+        observeSpool();
+    }
+
+    private void observeSpool() {
+        if (metrics == IdpSecurityMetricsRecorder.NOOP) { return; }
+        try {
+            long size = Files.isDirectory(properties.spoolDirectory()) ? spoolBytes() : 0;
+            observeMetric(SecurityMetricObservationBO.builder().signal("spool.bytes").result("CURRENT").value(size).build());
+        } catch (IOException | RuntimeException failure) {
+            if (metricFailureLogged.compareAndSet(false, true)) {
+                log.warn("Audit spool observation unavailable; failureType={}", failure.getClass().getSimpleName());
+            }
+        }
+    }
+
+    private void observeMetric(SecurityMetricObservationBO sample) {
+        if (metrics == IdpSecurityMetricsRecorder.NOOP) { return; }
+        try { metrics.record(sample); }
+        catch (RuntimeException failure) {
+            if (metricFailureLogged.compareAndSet(false, true)) {
+                log.warn("Audit observation unavailable; failureType={}", failure.getClass().getSimpleName());
+            }
         }
     }
 

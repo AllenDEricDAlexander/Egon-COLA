@@ -113,10 +113,8 @@ public class IdpObservedVerificationComponent {
                     .occurredAt(clock.instant()).traceId(trace).build();
             new ValidationUtils(validator).validate(context);
             producer.appendStrict(new ValidationUtils(validator).validate(converter.toTarget(context)));
-            metric("oauth.audit.delivery", "SENT");
             return true;
         } catch (RuntimeException failure) {
-            metric("oauth.audit.delivery", "FAILED");
             if (deliveryFailureLogged.compareAndSet(false, true)) {
                 log.warn("Strict usage handoff unavailable; failureType={}", failure.getClass().getSimpleName());
             }

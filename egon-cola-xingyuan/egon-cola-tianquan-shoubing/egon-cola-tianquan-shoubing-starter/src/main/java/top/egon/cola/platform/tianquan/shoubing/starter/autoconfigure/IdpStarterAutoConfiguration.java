@@ -118,8 +118,10 @@ public class IdpStarterAutoConfiguration {
                 @Qualifier("oauthAuditProperties") OAuthAuditProperties properties,
                 @Qualifier("auditDeliveryProperties") AuditDeliveryProperties delivery,
                 @Qualifier("idpClock") Clock clock,
-                @Qualifier("defaultValidator") jakarta.validation.Validator validator) {
-            return new TokenUsageAuditComponent(redisson, objectMapper, properties, delivery, clock, validator);
+                @Qualifier("defaultValidator") jakarta.validation.Validator validator,
+                @Qualifier("idpSecurityMetricsRecorder") ObjectProvider<IdpSecurityMetricsRecorder> metrics) {
+            return new TokenUsageAuditComponent(redisson, objectMapper, properties, delivery, clock, validator,
+                    metrics.getIfAvailable(() -> IdpSecurityMetricsRecorder.NOOP));
         }
     }
 
