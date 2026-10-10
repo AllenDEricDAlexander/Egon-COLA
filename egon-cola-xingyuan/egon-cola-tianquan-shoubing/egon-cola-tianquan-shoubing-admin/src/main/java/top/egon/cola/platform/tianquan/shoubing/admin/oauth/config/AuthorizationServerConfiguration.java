@@ -1,33 +1,34 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.config;
 
-import lombok.AccessLevel;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.config.ObjectPostProcessor;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
-import org.springframework.security.oauth2.core.OAuth2RefreshToken;
-import org.springframework.web.util.UriComponentsBuilder;
-import java.nio.charset.StandardCharsets;
-import java.net.URLEncoder;
-import jakarta.servlet.http.HttpServletResponseWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.KeySourceException;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
+import jakarta.validation.Validator;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.time.Instant;
-import java.time.Clock;
-import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
+import lombok.AccessLevel;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.client.RedisException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,92 +36,101 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtValidationException;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.oauth2.server.authorization.oidc.authentication.OidcUserInfoAuthenticationProvider;
-import org.springframework.dao.DataAccessException;
-import org.redisson.client.RedisException;
-import com.nimbusds.jose.KeySourceException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
-import com.nimbusds.jose.proc.JWSVerificationKeySelector;
-import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.authentication.ClientSecretAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationValidator;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientCredentialsAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientCredentialsAuthenticationToken;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2RefreshTokenAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2TokenRevocationAuthenticationProvider;
-import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2ErrorAuthenticationFailureHandler;
-import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
+import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContext;
+import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder;
+import org.springframework.security.oauth2.server.authorization.oidc.authentication.OidcUserInfoAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.token.DelegatingOAuth2TokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.JwtGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2AccessTokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2RefreshTokenGenerator;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
-import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
-import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
-import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContext;
-import org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder;
-import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
+import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2ErrorAuthenticationFailureHandler;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
-import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.server.authorization.authentication.ClientSecretAuthenticationProvider;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
-import com.nimbusds.jose.proc.SecurityContext;
-import com.nimbusds.jose.jwk.source.JWKSource;
+import org.springframework.web.util.UriComponentsBuilder;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationAttributesBO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthSecuritySnapshotBO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthRealmBO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthAuthorizationBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthClientBO;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthRealmBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.OAuthSecuritySnapshotBO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasAuthorizationConverter;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TransactionalOAuthAuthenticationProvider;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TransactionalOAuthRevocationAuthenticationProvider;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditContextBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter;
 
+@Slf4j
 @Configuration(value = "authorizationServerConfiguration", proxyBeanMethods = false)
 public class AuthorizationServerConfiguration {
 
@@ -162,11 +172,43 @@ public class AuthorizationServerConfiguration {
     @Primary
     JwtDecoder tenantAuthorizationServerJwtDecoder(
             @Qualifier("tenantJwkSourceComponent") JWKSource<SecurityContext> jwkSource,
-            @Qualifier("tenantIssuerService") TenantIssuerService tenantIssuerService) {
+            @Qualifier("tenantIssuerService") TenantIssuerService tenantIssuerService,
+            @Qualifier("idpSecurityMetricsRecorder") ObjectProvider<IdpSecurityMetricsRecorder> metricProviders) {
+        IdpSecurityMetricsRecorder metrics = metricProviders.getIfAvailable(() -> IdpSecurityMetricsRecorder.NOOP);
         DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
         processor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwkSource));
         processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(new JOSEObjectType("at+jwt")));
         processor.setJWTClaimsSetVerifier((claims, context) -> { });
+        var verifierFactory = processor.getJWSVerifierFactory();
+        var metricFailureLogged = new java.util.concurrent.atomic.AtomicBoolean();
+        processor.setJWSVerifierFactory(new com.nimbusds.jose.proc.JWSVerifierFactory() {
+            @Override
+            public com.nimbusds.jose.JWSVerifier createJWSVerifier(com.nimbusds.jose.JWSHeader header, java.security.Key key)
+                    throws com.nimbusds.jose.JOSEException {
+                var original = verifierFactory.createJWSVerifier(header, key);
+                return new com.nimbusds.jose.JWSVerifier() {
+                    @Override
+                    public boolean verify(com.nimbusds.jose.JWSHeader signatureHeader, byte[] input, com.nimbusds.jose.util.Base64URL signature)
+                            throws com.nimbusds.jose.JOSEException {
+                        long started = System.nanoTime(); String result = "FAILURE";
+                        try { boolean valid = original.verify(signatureHeader, input, signature); result = valid ? "SUCCESS" : "FAILURE"; return valid; }
+                        finally {
+                            java.time.Duration elapsed = java.time.Duration.ofNanos(Math.max(0, System.nanoTime() - started));
+                            try { metrics.record(SecurityMetricObservationBO.builder().signal("jwt.verify.duration").result(result).duration(elapsed).build()); }
+                            catch (RuntimeException metricFailure) {
+                                if (metricFailureLogged.compareAndSet(false, true)) {
+                                    log.warn("Native JWT metric unavailable; failureType={}", metricFailure.getClass().getSimpleName());
+                                }
+                            }
+                        }
+                    }
+                    @Override public java.util.Set<JWSAlgorithm> supportedJWSAlgorithms() { return original.supportedJWSAlgorithms(); }
+                    @Override public com.nimbusds.jose.jca.JCAContext getJCAContext() { return original.getJCAContext(); }
+                };
+            }
+            @Override public java.util.Set<JWSAlgorithm> supportedJWSAlgorithms() { return verifierFactory.supportedJWSAlgorithms(); }
+            @Override public com.nimbusds.jose.jca.JCAContext getJCAContext() { return verifierFactory.getJCAContext(); }
+        });
         JwtDecoder delegate = new NimbusJwtDecoder(processor);
         return token -> {
             Jwt jwt;
@@ -233,7 +275,19 @@ public class AuthorizationServerConfiguration {
             @Qualifier("idpClock") Clock clock,
             @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
             @Qualifier("corsConfigurationSource") ObjectProvider<org.springframework.web.cors.CorsConfigurationSource> corsSources,
-            @Qualifier("oauthNativeCorsProcessor") ObjectProvider<OAuthNativeCorsProcessor> corsProcessors) throws Exception {
+            @Qualifier("oauthNativeCorsProcessor") ObjectProvider<OAuthNativeCorsProcessor> corsProcessors,
+            @Qualifier("oauthUsageObservationProperties") ObjectProvider<OAuthUsageObservationProperties> usageProperties,
+            @Qualifier("tokenUsageAuditComponent") ObjectProvider<TokenUsageAuditComponent> auditProducers,
+            @Qualifier("tokenUsageAuditEventConverterImpl") ObjectProvider<TokenUsageAuditEventConverter> auditConverters,
+            @Qualifier("idpStarterProperties") ObjectProvider<IdpStarterProperties> receiverProperties,
+            @Qualifier("defaultValidator") ObjectProvider<Validator> schemaValidators) throws Exception {
+        OAuthUsageObservationProperties usage = usageProperties.getIfAvailable(OAuthUsageObservationProperties::new);
+        TokenUsageAuditComponent producer = usage.isEnabled() ? auditProducers.getObject() : null;
+        TokenUsageAuditEventConverter converter = usage.isEnabled() ? auditConverters.getObject() : null;
+        IdpStarterProperties receiver = usage.isEnabled() ? receiverProperties.getObject() : null;
+        Validator validator = usage.isEnabled() ? schemaValidators.getObject() : null;
+        AuthenticationFailureHandler userInfoErrors = userInfoFailureHandler(objectMapper, producer, converter, usage,
+                receiver == null ? null : receiver.getResourceUri(), clock, validator);
         OAuth2AuthorizationServerConfigurer authorizationServer =
                 OAuth2AuthorizationServerConfigurer.authorizationServer();
         RequestMatcher endpoints = authorizationServer.getEndpointsMatcher();
@@ -317,8 +371,9 @@ public class AuthorizationServerConfiguration {
                                 }))
                         .oidc(oidc -> oidc.userInfoEndpoint(userinfo -> userinfo
                                 .authenticationProviders(providers -> configureUserInfoProviders(providers,
-                                        tokenIssueServices, transactionManagers, tenantIssuerService))
-                                .errorResponseHandler(userInfoFailureHandler(objectMapper)))
+                                        tokenIssueServices, transactionManagers, tenantIssuerService, producer, converter, usage,
+                                        receiver == null ? null : receiver.getResourceUri(), clock, validator))
+                                .errorResponseHandler(userInfoErrors))
                                 .providerConfigurationEndpoint(metadata -> metadata
                                 .providerConfigurationCustomizer(builder -> {
                                     builder.tokenEndpointAuthenticationMethods(AuthorizationServerConfiguration::metadataAuthenticationMethods);
@@ -327,11 +382,15 @@ public class AuthorizationServerConfiguration {
                                 }))))
                 .oauth2ResourceServer(resource -> resource.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint((request, response, failure) ->
-                                userInfoFailureHandler(objectMapper).onAuthenticationFailure(request, response, failure)))
+                                userInfoErrors.onAuthenticationFailure(request, response, failure)))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(loginRequests).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, failure) -> {
+                    if ("GET".equals(request.getMethod()) && contextPath(request).matches("/tenants/[1-9][0-9]{0,18}/userinfo")) {
+                        userInfoErrors.onAuthenticationFailure(request, response, failure);
+                        return;
+                    }
                     TrustedRealmBO trustedRealm = tenantIssuerService.resolveCurrentIssuer();
                     if (consentPage.matches(request)) {
                         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -453,7 +512,9 @@ public class AuthorizationServerConfiguration {
 
     private static void configureUserInfoProviders(List<AuthenticationProvider> providers,
             ObjectProvider<OAuthTokenIssueService> issueServices,
-            ObjectProvider<PlatformTransactionManager> transactionManagers, TenantIssuerService issuers) {
+            ObjectProvider<PlatformTransactionManager> transactionManagers, TenantIssuerService issuers,
+            TokenUsageAuditComponent producer, TokenUsageAuditEventConverter converter, OAuthUsageObservationProperties properties,
+            URI resource, Clock clock, Validator validator) {
         OAuthTokenIssueService issueService = issueServices.getIfAvailable();
         PlatformTransactionManager transactionManager = transactionManagers.getIfAvailable();
         if (issueService == null || transactionManager == null) {
@@ -465,7 +526,7 @@ public class AuthorizationServerConfiguration {
             AuthenticationProvider provider = providers.get(index);
             if (provider instanceof OidcUserInfoAuthenticationProvider) {
                 providers.set(index, new TransactionalOAuthAuthenticationProvider(provider, transaction,
-                        issueService, issuers, TransactionalOAuthAuthenticationProvider.userInfo()));
+                        issueService, issuers, TransactionalOAuthAuthenticationProvider.userInfo(producer, converter, properties, resource, clock, validator)));
             }
         }
     }
@@ -855,6 +916,31 @@ public class AuthorizationServerConfiguration {
             if (status == 401) { response.setHeader("WWW-Authenticate", "Bearer"); }
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             mapper.writeValue(response.getWriter(), Map.of("error", code, "error_description", "Request rejected"));
+        };
+    }
+
+    private static AuthenticationFailureHandler userInfoFailureHandler(ObjectMapper mapper, TokenUsageAuditComponent producer,
+            TokenUsageAuditEventConverter converter, OAuthUsageObservationProperties properties, URI resource, Clock clock, Validator validator) {
+        return (request, response, failure) -> {
+            Exception outcome = failure;
+            if (properties.isEnabled() && !(failure instanceof TransactionalOAuthAuthenticationProvider.UserInfoUsageUnavailableException)
+                    && request.getAttribute("oauth.userinfo.audit.attempted") == null) {
+                request.setAttribute("oauth.userinfo.audit.attempted", Boolean.TRUE);
+                try {
+                    String trace = org.slf4j.MDC.get("traceId");
+                    if (trace != null && !trace.matches("[A-Za-z0-9._~-]{1,128}")) { trace = null; }
+                    var context = TokenAuditContextBO.builder().eventId(java.util.UUID.randomUUID().toString().replace("-", ""))
+                            .fallbackIssuer(properties.getFallbackIssuer()).resource(resource).result("FAILED")
+                            .reasonCode("AUTHENTICATION_FAILED").occurredAt(clock.instant()).traceId(trace).build();
+                    ValidationUtils schema = new ValidationUtils(validator);
+                    producer.appendStrict(schema.validate(converter.toTarget(schema.validate(context))));
+                } catch (RuntimeException unavailable) {
+                    outcome = new OAuth2AuthenticationException(new OAuth2Error("temporarily_unavailable", "Request temporarily unavailable", null), unavailable);
+                }
+            }
+            userInfoFailureHandler(mapper).onAuthenticationFailure(request, response,
+                    outcome instanceof org.springframework.security.core.AuthenticationException authentication ? authentication
+                            : new AuthenticationServiceException("Request temporarily unavailable", outcome));
         };
     }
 

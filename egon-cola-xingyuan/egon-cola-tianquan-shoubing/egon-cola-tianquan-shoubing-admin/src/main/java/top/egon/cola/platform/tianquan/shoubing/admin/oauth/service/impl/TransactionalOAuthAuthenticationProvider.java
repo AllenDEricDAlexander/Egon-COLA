@@ -1,49 +1,57 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl;
 
+import jakarta.validation.Validator;
 import java.net.URI;
-import java.util.Objects;
-import java.util.Map;
-import java.util.List;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.client.RedisException;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.jwt.JwtEncodingException;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationToken;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
-import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
-import org.redisson.client.RedisException;
-import org.springframework.dao.DataAccessException;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.jwt.JwtEncodingException;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationException;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientCredentialsAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2RefreshTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.crypto.digest.Digests;
-import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.command.ConsumeOAuthTokenCommand;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.command.ConsumeOAuthTokenCommand;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditContextBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -158,6 +166,45 @@ public final class TransactionalOAuthAuthenticationProvider implements Authentic
 
     public static GrantTransaction userInfo() {
         return (authentication, delegate, realm, service) -> delegate.authenticate(authentication);
+    }
+
+    /** Projects only the original SAS-validated JWT after all original authorization guards complete. */
+    public static GrantTransaction userInfo(@Qualifier("tokenUsageAuditComponent") TokenUsageAuditComponent producer,
+            @Qualifier("tokenUsageAuditEventConverterImpl") TokenUsageAuditEventConverter converter,
+            @Qualifier("oauthUsageObservationProperties") OAuthUsageObservationProperties properties, URI resource,
+            @Qualifier("idpClock") Clock clock, @Qualifier("defaultValidator") Validator validator) {
+        if (!properties.isEnabled()) { return userInfo(); }
+        Objects.requireNonNull(producer, "producer"); Objects.requireNonNull(converter, "converter");
+        Objects.requireNonNull(resource, "resource"); Objects.requireNonNull(clock, "clock");
+        ValidationUtils schema = new ValidationUtils(Objects.requireNonNull(validator, "validator"));
+        schema.validate(properties);
+        return (authentication, delegate, realm, service) -> {
+            Authentication result = delegate.authenticate(authentication);
+            if (result == null || !result.isAuthenticated()) { return result; }
+            try {
+                if (!(authentication.getPrincipal() instanceof JwtAuthenticationToken validated)
+                        || !realm.getIssuer().toASCIIString().equals(validated.getToken().getClaimAsString("iss"))) {
+                    throw new IllegalStateException("OAUTH_USERINFO_VERIFIED_FACT_REQUIRED");
+                }
+                var proof = schema.validate(converter.toProof(validated.getToken(), realm.getIssuer(), resource, producer));
+                String trace = MDC.get("traceId");
+                if (trace != null && !trace.matches("[A-Za-z0-9._~-]{1,128}")) { trace = null; }
+                var context = TokenAuditContextBO.builder().proof(proof).fallbackIssuer(properties.getFallbackIssuer())
+                        .resource(resource).eventId(java.util.UUID.randomUUID().toString().replace("-", ""))
+                        .result("SUCCESS").reasonCode("TOKEN_USE_VERIFIED").occurredAt(clock.instant()).traceId(trace).build();
+                producer.appendStrict(schema.validate(converter.toTarget(schema.validate(context))));
+                return result;
+            } catch (RuntimeException unavailable) {
+                throw new UserInfoUsageUnavailableException(unavailable);
+            }
+        };
+    }
+
+    /** Identifies an already-attempted handoff so the error renderer cannot invent a second decision. */
+    public static final class UserInfoUsageUnavailableException extends OAuth2AuthenticationException {
+        public UserInfoUsageUnavailableException(Throwable cause) {
+            super(new OAuth2Error("temporarily_unavailable", "Request temporarily unavailable", null), cause);
+        }
     }
 
     public static GrantTransaction authorizationConsent(OAuth2AuthorizationService authorizations) {

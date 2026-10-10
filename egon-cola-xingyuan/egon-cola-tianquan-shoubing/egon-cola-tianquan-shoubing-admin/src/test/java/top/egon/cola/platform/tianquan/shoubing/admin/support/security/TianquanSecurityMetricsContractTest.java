@@ -222,6 +222,217 @@ class TianquanSecurityMetricsContractTest {
         assertThat(Files.exists(temporary.resolve("spool/metric-failure.evt.sent"))).isTrue();
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void nativeUserInfoCompletesStrictUsageBeforeItsProtocolResponse() throws Exception {
+        var context = new org.springframework.web.context.support.AnnotationConfigWebApplicationContext();
+        context.setServletContext(new org.springframework.mock.web.MockServletContext());
+        var redis = mock(RedissonClient.class);
+        RStream<String, String> stream = mock(RStream.class);
+        doReturn(stream).when(redis).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        java.util.List<Map<String, String>> usage = new java.util.ArrayList<>();
+        when(stream.add(any(StreamAddArgs.class))).thenAnswer(call -> {
+            var attrs = (org.springframework.web.context.request.ServletRequestAttributes)
+                    org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            assertThat(attrs.getResponse().isCommitted()).isFalse();
+            org.redisson.api.stream.StreamAddParams<String, String> fields = call.getArgument(0);
+            usage.add(Map.copyOf(fields.getEntries()));
+            return new StreamMessageId(usage.size(), 1);
+        });
+        var producer = producer(redis, metrics);
+        var props = new OAuthUsageObservationProperties(true, URI.create("https://idp.example.test/tenants/1001"), false);
+        var receiver = new IdpStarterProperties(); receiver.setResourceUri(RESOURCE);
+        var converter = (top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter)
+                Class.forName("top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverterImpl")
+                .getConstructor().newInstance();
+        context.addBeanFactoryPostProcessor(factory -> {
+            factory.registerSingleton("tokenUsageAuditComponent", producer);
+            factory.registerSingleton("oauthUsageObservationProperties", props);
+            factory.registerSingleton("idpStarterProperties", receiver);
+            factory.registerSingleton("tokenUsageAuditEventConverterImpl", converter);
+            factory.registerSingleton("idpSecurityMetricsRecorder", metrics);
+        });
+        context.register(Class.forName("top.egon.cola.platform.tianquan.shoubing.admin.oauth.OAuthConsentRoundTripTest$NativeConfiguration"));
+        context.refresh();
+        Object fixture = context.getBean("fixture");
+        try {
+            Class<?> nativeTest = Class.forName("top.egon.cola.platform.tianquan.shoubing.admin.oauth.OAuthConsentRoundTripTest");
+            var constructor = nativeTest.getDeclaredConstructor(); constructor.setAccessible(true);
+            Object scenario = constructor.newInstance();
+            for (String field : java.util.List.of("context", "fixture")) {
+                var target = nativeTest.getDeclaredField(field); target.setAccessible(true);
+                target.set(scenario, field.equals("context") ? context : fixture);
+            }
+            for (String method : java.util.List.of("prepareNativeFixture", "nativeLoginConsentCodeOidcUserinfoAndRefreshRoundTrip")) {
+                var action = nativeTest.getDeclaredMethod(method); action.setAccessible(true);
+                try { action.invoke(scenario); }
+                catch (java.lang.reflect.InvocationTargetException failure) {
+                    if (failure.getCause() instanceof Error error) { throw error; }
+                    if (failure.getCause() instanceof Exception exception) { throw exception; }
+                    throw failure;
+                }
+            }
+            assertThat(usage).as("native UserInfo must use the real durable producer").hasSize(2);
+            assertThat(usage.getFirst()).containsEntry("reasonCode", "TOKEN_USE_VERIFIED");
+            assertThat(usage.getLast()).containsEntry("reasonCode", "AUTHENTICATION_FAILED")
+                    .doesNotContainKeys("subjectRef", "clientRef", "tokenRef");
+            assertThat(registry.get("jwt.verify.duration").tags("receiver", RECEIVER, "result", "SUCCESS").timer().count()).isEqualTo(1);
+        } finally {
+            context.close(); ((AutoCloseable) fixture).close();
+            org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder.resetContext();
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void nativeUserInfoErrorsAreAnonymousAndStrictFailureNeverReturnsIdentity() throws Exception {
+        var redis = mock(RedissonClient.class);
+        RStream<String, String> stream = mock(RStream.class);
+        doReturn(stream).when(redis).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        java.util.List<Map<String, String>> usage = new java.util.ArrayList<>();
+        when(stream.add(any(StreamAddArgs.class))).thenAnswer(call -> {
+            org.redisson.api.stream.StreamAddParams<String, String> fields = call.getArgument(0);
+            usage.add(Map.copyOf(fields.getEntries())); return new StreamMessageId(usage.size(), 1);
+        });
+        var producer = producer(redis, metrics);
+        var context = nativeContext(producer);
+        Object fixture = context.getBean("fixture");
+        try {
+            Object scenario = nativeScenario(context, fixture);
+            var mvcField = scenario.getClass().getDeclaredField("mvc"); mvcField.setAccessible(true);
+            var mvc = (org.springframework.test.web.servlet.MockMvc) mvcField.get(scenario);
+            var missing = mvc.perform(nativeRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .get("/tenants/1001/userinfo"))).andReturn();
+            assertThat(missing.getResponse().getStatus()).isEqualTo(401);
+            assertThat(missing.getResponse().getHeader("Location")).isNull();
+            assertThat(usage).hasSize(1);
+            invokeNative(scenario, "userInfoDependencyFailuresAreUnavailableAndNeverReturnIdentity");
+            assertThat(usage).hasSize(4).allSatisfy(event -> assertThat(event)
+                    .containsEntry("reasonCode", "AUTHENTICATION_FAILED").doesNotContainKeys("subjectRef", "clientRef", "tokenRef"));
+            invokeNative(scenario, "prepareNativeFixture");
+            invokeNative(scenario, "reducedRefreshScopeCannotRegainOpenidThroughMetadataReload");
+            assertThat(usage).hasSize(5);
+            invokeNative(scenario, "prepareNativeFixture");
+            String access = mintNativeAccess(scenario);
+            var malformed = mvc.perform(nativeRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .get("/tenants/1001/userinfo")).header("Authorization", "Bearer malformed.jwt.value")).andReturn();
+            assertThat(malformed.getResponse().getStatus()).isEqualTo(401);
+            assertThat(usage).hasSize(6);
+            String[] segments = access.split("\\.");
+            byte[] signature = java.util.Base64.getUrlDecoder().decode(segments[2]); signature[0] ^= 1;
+            String forged = segments[0] + "." + segments[1] + "." + java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(signature);
+            var badSignature = mvc.perform(nativeRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .get("/tenants/1001/userinfo")).header("Authorization", "Bearer " + forged)).andReturn();
+            assertThat(badSignature.getResponse().getStatus()).isEqualTo(401);
+            assertThat(usage).hasSize(7);
+            var tokensField = fixture.getClass().getDeclaredField("tokens"); tokensField.setAccessible(true);
+            Map<String, top.egon.cola.platform.tianquan.shoubing.admin.token.domain.po.OAuthTokenPO> stored =
+                    (Map<String, top.egon.cola.platform.tianquan.shoubing.admin.token.domain.po.OAuthTokenPO>) tokensField.get(fixture);
+            stored.values().stream().filter(row -> row.getTokenType() == top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTokenTypeEnum.ACCESS)
+                    .forEach(row -> row.setRevokedAt(Instant.now()));
+            var revoked = mvc.perform(nativeRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .get("/tenants/1001/userinfo")).header("Authorization", "Bearer " + access)).andReturn();
+            assertThat(revoked.getResponse().getStatus()).isEqualTo(401);
+            assertThat(usage).hasSize(8);
+            invokeNative(scenario, "prepareNativeFixture");
+            access = mintNativeAccess(scenario);
+            when(stream.add(any(StreamAddArgs.class))).thenThrow(new org.redisson.client.RedisException("fixture broker failure"));
+            var unavailable = mvc.perform(nativeRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .get("/tenants/1001/userinfo")).header("Authorization", "Bearer " + access)).andReturn();
+            assertThat(unavailable.getResponse().getStatus()).isEqualTo(503);
+            assertThat(unavailable.getResponse().getHeader("Cache-Control")).isEqualTo("no-store");
+            assertThat(unavailable.getResponse().getContentAsString()).contains("temporarily_unavailable")
+                    .doesNotContain("sub", access, "fixture broker failure");
+            assertThat(usage).hasSize(8);
+            try (var files = Files.list(temporary.resolve("spool"))) {
+                assertThat(files.filter(path -> path.toString().endsWith(".evt")).count()).isEqualTo(9);
+            }
+        } finally {
+            context.close(); ((AutoCloseable) fixture).close();
+            org.springframework.security.oauth2.server.authorization.context.AuthorizationServerContextHolder.resetContext();
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void nativeMetricOutageDoesNotChangeTheSuccessfulUserInfoResponse() throws Exception {
+        var redis = mock(RedissonClient.class);
+        RStream<String, String> stream = mock(RStream.class);
+        doReturn(stream).when(redis).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        when(stream.add(any(StreamAddArgs.class))).thenReturn(new StreamMessageId(100, 1));
+        var context = nativeContext(producer(redis, metrics), sample -> { throw new IllegalStateException("metric outage fixture"); });
+        Object fixture = context.getBean("fixture");
+        try {
+            Object scenario = nativeScenario(context, fixture);
+            String access = mintNativeAccess(scenario);
+            var field = scenario.getClass().getDeclaredField("mvc"); field.setAccessible(true);
+            var mvc = (org.springframework.test.web.servlet.MockMvc) field.get(scenario);
+            var response = mvc.perform(nativeRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .get("/tenants/1001/userinfo")).header("Authorization", "Bearer " + access)).andReturn().getResponse();
+            assertThat(response.getStatus()).isEqualTo(200);
+            assertThat(response.getContentAsString()).contains("user-1001").doesNotContain("metric outage fixture", access);
+        } finally { context.close(); ((AutoCloseable) fixture).close(); }
+    }
+
+    private org.springframework.web.context.support.AnnotationConfigWebApplicationContext nativeContext(TokenUsageAuditComponent producer) throws Exception {
+        return nativeContext(producer, metrics);
+    }
+
+    private org.springframework.web.context.support.AnnotationConfigWebApplicationContext nativeContext(TokenUsageAuditComponent producer,
+            top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder nativeMetrics) throws Exception {
+        var context = new org.springframework.web.context.support.AnnotationConfigWebApplicationContext();
+        context.setServletContext(new org.springframework.mock.web.MockServletContext());
+        var props = new OAuthUsageObservationProperties(true, URI.create("https://idp.example.test/tenants/1001"), false);
+        var receiver = new IdpStarterProperties(); receiver.setResourceUri(RESOURCE);
+        var converter = (top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter)
+                Class.forName("top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverterImpl").getConstructor().newInstance();
+        context.addBeanFactoryPostProcessor(factory -> {
+            factory.registerSingleton("tokenUsageAuditComponent", producer);
+            factory.registerSingleton("oauthUsageObservationProperties", props);
+            factory.registerSingleton("idpStarterProperties", receiver);
+            factory.registerSingleton("tokenUsageAuditEventConverterImpl", converter);
+            factory.registerSingleton("idpSecurityMetricsRecorder", nativeMetrics);
+        });
+        context.register(Class.forName("top.egon.cola.platform.tianquan.shoubing.admin.oauth.OAuthConsentRoundTripTest$NativeConfiguration"));
+        context.refresh(); return context;
+    }
+
+    private Object nativeScenario(org.springframework.web.context.support.AnnotationConfigWebApplicationContext context, Object fixture) throws Exception {
+        Class<?> type = Class.forName("top.egon.cola.platform.tianquan.shoubing.admin.oauth.OAuthConsentRoundTripTest");
+        var constructor = type.getDeclaredConstructor(); constructor.setAccessible(true); Object scenario = constructor.newInstance();
+        for (String field : java.util.List.of("context", "fixture")) {
+            var target = type.getDeclaredField(field); target.setAccessible(true); target.set(scenario, field.equals("context") ? context : fixture);
+        }
+        invokeNative(scenario, "prepareNativeFixture"); return scenario;
+    }
+
+    private void invokeNative(Object scenario, String name) throws Exception {
+        var action = scenario.getClass().getDeclaredMethod(name); action.setAccessible(true);
+        try { action.invoke(scenario); }
+        catch (java.lang.reflect.InvocationTargetException failure) {
+            if (failure.getCause() instanceof Error error) { throw error; }
+            if (failure.getCause() instanceof Exception exception) { throw exception; }
+            throw failure;
+        }
+    }
+
+    private String mintNativeAccess(Object scenario) throws Exception {
+        var start = scenario.getClass().getDeclaredMethod("startThroughRealLogin", long.class); start.setAccessible(true);
+        Object pending = start.invoke(scenario, 1001L);
+        var csrf = scenario.getClass().getDeclaredMethod("consentCsrf", pending.getClass()); csrf.setAccessible(true);
+        var approve = scenario.getClass().getDeclaredMethod("approve", pending.getClass(), String.class); approve.setAccessible(true);
+        String code = (String) approve.invoke(scenario, pending, csrf.invoke(scenario, pending));
+        var tokens = scenario.getClass().getDeclaredMethod("token", String.class, String.class); tokens.setAccessible(true);
+        return ((com.fasterxml.jackson.databind.JsonNode) tokens.invoke(scenario, code, "V".repeat(64))).path("access_token").asText();
+    }
+
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder nativeRequest(
+            org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request) {
+        return request.secure(true).with(value -> { value.setScheme("https"); value.setServerName("idp.example.test"); value.setServerPort(443); return value; });
+    }
+
     private TokenUsageAuditComponent producer(RedissonClient redis, top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder recorder) throws Exception {
         Path key = temporary.resolve("audit.key"); Files.writeString(key, "0123456789abcdef0123456789abcdef");
         Files.setPosixFilePermissions(key, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));

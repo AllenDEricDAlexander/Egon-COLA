@@ -43,6 +43,15 @@ public interface TokenUsageAuditEventConverter extends BaseForwardConverter<Toke
     @Mapping(target = "tokenRef", expression = "java(references.reference(verified.getTrustedIssuer().issuer(), verified.getTokenId()))")
     TokenAuditProofBO toProof(VerifiedJwtBO verified, @Context URI resource, @Context TokenUsageAuditComponent references);
 
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "issuer", source = "expectedIssuer")
+    @Mapping(target = "resource", expression = "java(resource)")
+    @Mapping(target = "subjectRef", expression = "java(hash(verifiedJwt.getSubject()))")
+    @Mapping(target = "clientRef", expression = "java(hash(verifiedJwt.getClaimAsString(\"client_id\")))")
+    @Mapping(target = "tokenRef", expression = "java(references.reference(expectedIssuer, verifiedJwt.getClaimAsString(\"jti\")))")
+    TokenAuditProofBO toProof(org.springframework.security.oauth2.jwt.Jwt verifiedJwt, URI expectedIssuer,
+            @Context URI resource, @Context TokenUsageAuditComponent references);
+
     @Named("auditHash")
     default String hash(String value) {
         if (value == null) { return null; }
