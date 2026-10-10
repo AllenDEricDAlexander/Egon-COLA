@@ -31,6 +31,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.tianquan.jianshen.contract.authorization.Decision;
 import top.egon.cola.platform.tianquan.jianshen.contract.authorization.PermissionRequest;
@@ -87,7 +88,8 @@ public class IdpSecurityConfig {
             HttpSecurity http,
             ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
             ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters,
-            @Qualifier("jacksonObjectMapper") com.fasterxml.jackson.databind.ObjectMapper objectMapper)
+            @Qualifier("jacksonObjectMapper") com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            @Qualifier("idpSecurityObservationFilter") ObjectProvider<IdpSecurityObservationFilter> observations)
             throws Exception {
         IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
         Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
@@ -97,11 +99,18 @@ public class IdpSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, failure) -> {
-                    response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
+                    boolean delivered = IdpSecurityObservationFilter.beforeAuthenticationFailure(request);
+                    response.setStatus(delivered ? 401 : 503);
+                    if (delivered) { response.setHeader("WWW-Authenticate", "Bearer"); }
                     response.setContentType("application/json");
                     response.setHeader("Cache-Control", "no-store");
                     objectMapper.writeValue(response.getWriter(), java.util.Map.of(
-                            "error", "invalid_token", "error_description", "Request rejected"));
+                            "error", delivered ? "invalid_token" : "temporarily_unavailable", "error_description", "Request rejected"));
+                }).accessDeniedHandler((request, response, failure) -> {
+                    boolean delivered = IdpSecurityObservationFilter.beforeAuthorizationDenied(request);
+                    response.setStatus(delivered ? 403 : 503); response.setHeader("Cache-Control", "no-store"); response.setContentType("application/json");
+                    objectMapper.writeValue(response.getWriter(), java.util.Map.of("error", delivered ? "access_denied" : "temporarily_unavailable",
+                            "error_description", "Request rejected"));
                 }))
                 .headers(headers -> headers
                         .contentTypeOptions(contentType -> { })
@@ -110,8 +119,11 @@ public class IdpSecurityConfig {
                                         .ReferrerPolicyHeaderWriter.ReferrerPolicy
                                         .NO_REFERRER
                         )));
+        IdpSecurityObservationFilter observation = observations.getIfAvailable();
+        if (idpFilter == null && observation != null) { http.addFilterBefore(observation, AnonymousAuthenticationFilter.class); }
         if (idpFilter != null) {
             http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+            if (observation != null) { http.addFilterBefore(observation, IdpBearerAuthenticationFilter.class); }
             if (rbac3Filter != null) {
                 http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
             }

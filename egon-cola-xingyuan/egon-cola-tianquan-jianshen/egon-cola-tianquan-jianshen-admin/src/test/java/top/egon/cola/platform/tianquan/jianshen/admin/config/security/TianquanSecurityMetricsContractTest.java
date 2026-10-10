@@ -222,6 +222,127 @@ class TianquanSecurityMetricsContractTest {
         assertThat(Files.exists(temporary.resolve("spool/metric-failure.evt.sent"))).isTrue();
     }
 
+    @Test
+    void observedRealPdpPreservesResultsAndAuditsOnlyTokenBoundDenials() throws Exception {
+        var identity = new top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal("identity-1", "10001", "901",
+                Set.of(RESOURCE.toASCIIString()), NOW.minusSeconds(1), NOW.plusSeconds(300),
+                top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext.password());
+        var snapshot = new top.egon.cola.platform.tianquan.jianshen.contract.authorization.SystemAuthorizationSnapshot(
+                "10001", "identity-1", "20001", "finance", 1, 2, java.util.List.of("50001"), null, null,
+                Set.of("finance:payment:read"), Set.of("finance.api.payment.read"), Map.of(), Map.of(),
+                "sha256:snapshot", NOW, NOW.plusSeconds(300));
+        var context = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.RuntimeAuthorizationContext(identity, snapshot, false);
+        var delegate = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.DefaultAuthorizationService(() -> context,
+                request -> top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.OperationSodResult.allowed(),
+                request -> top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.FenceResult.allowed(NOW),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+        var redis = mock(RedissonClient.class);
+        @SuppressWarnings("unchecked") RStream<String, String> stream = mock(RStream.class);
+        doReturn(stream).when(redis).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        java.util.List<Map<String, String>> events = new java.util.ArrayList<>();
+        when(stream.add(any(StreamAddArgs.class))).thenAnswer(call -> {
+            org.redisson.api.stream.StreamAddParams<String, String> fields = call.getArgument(0); events.add(Map.copyOf(fields.getEntries()));
+            return new StreamMessageId(events.size(), 1);
+        });
+        var converter = (top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter)
+                Class.forName("top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverterImpl").getConstructor().newInstance();
+        var observer = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent(producer(redis, metrics),
+                converter, new OAuthUsageObservationProperties(true, ISSUER, false), metrics, Clock.fixed(NOW, ZoneOffset.UTC), validator, RESOURCE);
+        var observed = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.Rbac3ObservedAuthorizationService(delegate, metrics, observer, validator);
+        var request = top.egon.cola.platform.tianquan.jianshen.contract.authorization.PermissionRequest.of("finance:payment:approve");
+        assertThat(observed.requirePermission(request)).isEqualTo(delegate.requirePermission(request));
+        assertThat(events).isEmpty();
+        var read = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.DataScopeRequest("finance:payment:read");
+        assertThat(observed.decideDataScope(read)).isEqualTo(delegate.decideDataScope(read));
+        var fields = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.FieldPolicyRequest("finance:payment:read", "finance", "payment");
+        assertThat(observed.decideFields(fields)).isEqualTo(delegate.decideFields(fields));
+        var operation = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.OperationSodRequest(
+                "finance:payment:read", "finance", "payment", "payment-1", "READ");
+        assertThat(observed.checkParticipation(operation)).isEqualTo(delegate.checkParticipation(operation));
+        var fence = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.AuthorizationFenceRequest(
+                "finance:payment:read", "payment", "payment-1", "pdp-trace");
+        assertThat(observed.verifyFence(fence)).isEqualTo(delegate.verifyFence(fence));
+        assertThat(events).isEmpty();
+        assertThat(registry.find("rbac.authorization").tags("receiver", RECEIVER, "result", "DENY").counter()).isNotNull();
+        var authentication = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpAuthenticationToken(identity);
+        authentication.setDetails(new top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO(
+                ISSUER, RESOURCE, "a".repeat(64), "b".repeat(64), "c".repeat(64)));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+        org.slf4j.MDC.put("traceId", "pdp-trace");
+        try {
+            assertThat(observed.requirePermission(request)).isEqualTo(delegate.requirePermission(request));
+            assertThat(events).hasSize(1);
+            assertThat(events.getFirst()).containsEntry("reasonCode", "AUTHORIZATION_DENIED").containsEntry("traceId", "pdp-trace")
+                    .containsEntry("tokenRef", "c".repeat(64));
+            var servlet = new org.springframework.mock.web.MockHttpServletRequest("GET", "/api/test");
+            var response = new org.springframework.mock.web.MockHttpServletResponse();
+            var policy = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy(java.util.List.of(), java.util.List.of());
+            var filter = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter(observer, policy);
+            org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                    new org.springframework.web.context.request.ServletRequestAttributes(servlet));
+            try {
+                filter.doFilter(servlet, response, (incoming, outgoing) -> {
+                    observed.requirePermission(request);
+                    var rendered = new top.egon.cola.platform.tianquan.jianshen.starter.web.Rbac3AuthorizationExceptionHandler()
+                            .fieldDenied(new org.springframework.security.authorization.AuthorizationDeniedException("FIELD_ACCESS_DENIED"));
+                    assertThat(rendered.getStatusCode().value()).isEqualTo(403);
+                });
+                assertThat(events).hasSize(2);
+                assertThat(events.get(0).get("eventId")).isNotEqualTo(events.get(1).get("eventId"));
+                assertThat(events.get(1)).containsEntry("traceId", "pdp-trace");
+            } finally { org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes(); }
+            when(stream.add(any(StreamAddArgs.class))).thenThrow(new org.redisson.client.RedisException("strict audit offline"));
+            assertThatThrownBy(() -> observed.requirePermission(request))
+                    .isInstanceOf(top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.RuntimeUnavailableException.class)
+                    .hasMessage("OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
+        } finally { org.springframework.security.core.context.SecurityContextHolder.clearContext(); org.slf4j.MDC.clear(); }
+    }
+
+    @Test
+    void observerPreservesTheOriginalExceptionWhenMetricsFail() {
+        var delegate = mock(top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.class);
+        var observer = mock(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class);
+        var identity = new top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal("identity-1", "1001", "901",
+                Set.of(RESOURCE.toASCIIString()), NOW, NOW.plusSeconds(300),
+                top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext.password());
+        var failure = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.RuntimeUnavailableException(
+                "AUTHORIZATION_RUNTIME_UNAVAILABLE", identity);
+        var request = top.egon.cola.platform.tianquan.jianshen.contract.authorization.PermissionRequest.of("finance:payment:read");
+        when(delegate.requirePermission(request)).thenThrow(failure);
+        var observed = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.Rbac3ObservedAuthorizationService(delegate,
+                sample -> { throw new IllegalStateException("metrics offline"); }, observer, validator);
+        assertThatThrownBy(() -> observed.requirePermission(request)).isSameAs(failure);
+        org.mockito.Mockito.verify(delegate, org.mockito.Mockito.times(1)).requirePermission(request);
+        org.mockito.Mockito.verifyNoInteractions(observer);
+    }
+
+    @Test
+    void actualStarterSelectsObservedDefaultAndRetainsConsumerOverride() {
+        var runner = new ApplicationContextRunner().withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(
+                top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterAutoConfiguration.class))
+                .withPropertyValues("egon.cola.platform.tianquan.jianshen.enabled=true")
+                .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
+                .withBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class,
+                        () -> new OAuthUsageObservationProperties(true, ISSUER, false))
+                .withBean("idpSecurityMetricsRecorder", top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder.class, () -> metrics)
+                .withBean("idpObservedVerificationComponent", top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class,
+                        () -> mock(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class));
+        runner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context.getBean(top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.class))
+                    .isInstanceOf(top.egon.cola.platform.tianquan.jianshen.starter.authorization.Rbac3ObservedAuthorizationService.class);
+            assertThat(context.getBean("rbac3AuthorizationDelegate"))
+                    .isInstanceOf(top.egon.cola.platform.tianquan.jianshen.starter.authorization.DefaultAuthorizationService.class);
+        });
+        var custom = mock(top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.class);
+        runner.withBean("consumerAuthorization", top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.class, () -> custom)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.class)).isSameAs(custom);
+                    assertThat(context).doesNotHaveBean("rbac3AuthorizationDelegate");
+                });
+    }
+
     private TokenUsageAuditComponent producer(RedissonClient redis, top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder recorder) throws Exception {
         Path key = temporary.resolve("audit.key"); Files.writeString(key, "0123456789abcdef0123456789abcdef");
         Files.setPosixFilePermissions(key, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));

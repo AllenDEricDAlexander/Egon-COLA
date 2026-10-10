@@ -320,15 +320,36 @@ public class Rbac3StarterAutoConfiguration {
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @Bean
+    @Bean(name = "rbac3AuthorizationDelegate")
     @ConditionalOnMissingBean
-    public AuthorizationService authorizationService(
+    public AuthorizationService rbac3AuthorizationDelegate(
             AuthorizationService.RuntimeContextSource contextSource,
             AuthorizationService.OperationSodEvaluator operationSodEvaluator,
             AuthorizationService.FenceVerifier fenceVerifier,
             @Qualifier("rbac3Clock") Clock clock) {
         return new DefaultAuthorizationService(
                 contextSource, operationSodEvaluator, fenceVerifier, clock);
+    }
+
+    @Bean(name = "authorizationService")
+    @org.springframework.context.annotation.Primary
+    @ConditionalOnBean(name = "rbac3AuthorizationDelegate")
+    @ConditionalOnMissingBean(name = "authorizationService")
+    public AuthorizationService authorizationService(@Qualifier("rbac3AuthorizationDelegate") AuthorizationService delegate,
+            @Qualifier("oauthUsageObservationProperties") org.springframework.beans.factory.ObjectProvider<top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties> properties,
+            @Qualifier("idpSecurityMetricsRecorder") org.springframework.beans.factory.ObjectProvider<top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder> metrics,
+            @Qualifier("idpObservedVerificationComponent") org.springframework.beans.factory.ObjectProvider<top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent> observations,
+            @Qualifier("defaultValidator") org.springframework.beans.factory.ObjectProvider<jakarta.validation.Validator> validators) {
+        var usage = properties.getIfAvailable();
+        if (usage == null || !usage.isEnabled()) { return delegate; }
+        return new top.egon.cola.platform.tianquan.jianshen.starter.authorization.Rbac3ObservedAuthorizationService(delegate,
+                metrics.getObject(), observations.getObject(), validators.getObject());
+    }
+
+    /** Preserves the former direct factory API for existing non-observed callers. */
+    public AuthorizationService authorizationService(AuthorizationService.RuntimeContextSource contextSource,
+            AuthorizationService.OperationSodEvaluator operationSodEvaluator, AuthorizationService.FenceVerifier fenceVerifier, Clock clock) {
+        return new DefaultAuthorizationService(contextSource, operationSodEvaluator, fenceVerifier, clock);
     }
 
     /**

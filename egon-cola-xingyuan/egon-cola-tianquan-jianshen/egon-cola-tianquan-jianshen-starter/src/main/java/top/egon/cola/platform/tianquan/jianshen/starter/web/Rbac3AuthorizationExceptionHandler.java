@@ -1,6 +1,10 @@
 package top.egon.cola.platform.tianquan.jianshen.starter.web;
 
 import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,7 +20,8 @@ import java.util.Map;
  * 语义与用法：将 `Rbac3AuthorizationExceptionHandler` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `Rbac3AuthorizationExceptionHandler` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
-@RestControllerAdvice
+@Slf4j
+@RestControllerAdvice(name = "rbac3AuthorizationExceptionHandler")
 public final class Rbac3AuthorizationExceptionHandler {
 
     /**
@@ -33,7 +38,8 @@ public final class Rbac3AuthorizationExceptionHandler {
     public ResponseEntity<Map<String, Object>> denied(
             AuthorizationDeniedException exception
     ) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+        if (!deniedHandoff()) { return auditUnavailable(); }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).header("Cache-Control", "no-store").body(Map.of(
                 "code", exception.reasonCode(),
                 "message", "Tianquan-Jianshen authorization denied"));
     }
@@ -52,8 +58,25 @@ public final class Rbac3AuthorizationExceptionHandler {
     public ResponseEntity<Map<String, Object>> unavailable(
             AuthorizationService.RuntimeUnavailableException exception
     ) {
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header("Cache-Control", "no-store").body(Map.of(
                 "code", exception.reasonCode(),
                 "message", "Tianquan-Jianshen authorization runtime unavailable"));
+    }
+    @ExceptionHandler(org.springframework.security.authorization.AuthorizationDeniedException.class)
+    public ResponseEntity<Map<String, Object>> fieldDenied(org.springframework.security.authorization.AuthorizationDeniedException exception) {
+        if (!deniedHandoff()) { return auditUnavailable(); }
+        String reason = "FIELD_ACCESS_DENIED".equals(exception.getMessage()) ? "FIELD_ACCESS_DENIED" : "AUTHORIZATION_DENIED";
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).header("Cache-Control", "no-store").body(Map.of(
+                "code", reason, "message", "Tianquan-Jianshen authorization denied"));
+    }
+
+    private boolean deniedHandoff() {
+        return !(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes servlet)
+                || IdpSecurityObservationFilter.beforeAuthorizationDenied(servlet.getRequest());
+    }
+
+    private ResponseEntity<Map<String, Object>> auditUnavailable() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header("Cache-Control", "no-store").body(Map.of(
+                "code", "OAUTH_AUDIT_DELIVERY_UNAVAILABLE", "message", "Tianquan-Jianshen authorization runtime unavailable"));
     }
 }

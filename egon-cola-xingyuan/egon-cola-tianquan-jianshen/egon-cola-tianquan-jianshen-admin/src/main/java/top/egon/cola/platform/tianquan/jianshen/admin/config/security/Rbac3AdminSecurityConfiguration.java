@@ -5,6 +5,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -132,9 +134,14 @@ public class Rbac3AdminSecurityConfiguration {
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain rbac3InternalSecurityFilterChain(
             HttpSecurity http,
-            TenantContextFilter tenantFilter,
-            IdpBearerAuthenticationFilter idpFilter)
+            @org.springframework.beans.factory.annotation.Qualifier("tenantContextFilter") TenantContextFilter tenantFilter,
+            @org.springframework.beans.factory.annotation.Qualifier("idpBearerAuthenticationFilter") IdpBearerAuthenticationFilter idpFilter,
+            @org.springframework.beans.factory.annotation.Qualifier("jacksonObjectMapper") ObjectMapper mapper,
+            @org.springframework.beans.factory.annotation.Qualifier("idpSecurityObservationFilter") org.springframework.beans.factory.ObjectProvider<IdpSecurityObservationFilter> observations)
             throws Exception {
+        http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+        IdpSecurityObservationFilter observation = observations.getIfAvailable();
+        if (observation != null) { http.addFilterBefore(observation, IdpBearerAuthenticationFilter.class); }
         return http
                 .securityMatcher("/internal/**")
                 .csrf(csrf -> csrf.disable())
@@ -142,8 +149,10 @@ public class Rbac3AdminSecurityConfiguration {
                         SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .anyRequest().authenticated())
-                .addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class)
-                .addFilterAfter(tenantFilter, IdpBearerAuthenticationFilter.class)
+                .addFilterAfter(tenantFilter, org.springframework.security.web.access.intercept.AuthorizationFilter.class)
+                .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint((request, response, failure) -> authenticationFailure(request, response, mapper))
+                        .accessDeniedHandler((request, response, failure) -> authorizationFailure(request, response, mapper)))
+                .headers(headers -> headers.addHeaderWriter((request, response) -> { if (response.getStatus() == 401) { response.setHeader("WWW-Authenticate", "Bearer"); } }))
                 .build();
     }
 
@@ -167,9 +176,11 @@ public class Rbac3AdminSecurityConfiguration {
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain rbac3SecurityFilterChain(
             HttpSecurity http,
-            TenantContextFilter tenantFilter,
-            IdpBearerAuthenticationFilter idpFilter,
-            Rbac3BearerAuthenticationFilter rbac3Filter
+            @org.springframework.beans.factory.annotation.Qualifier("tenantContextFilter") TenantContextFilter tenantFilter,
+            @org.springframework.beans.factory.annotation.Qualifier("idpBearerAuthenticationFilter") IdpBearerAuthenticationFilter idpFilter,
+            @org.springframework.beans.factory.annotation.Qualifier("rbac3BearerAuthenticationFilter") Rbac3BearerAuthenticationFilter rbac3Filter,
+            @org.springframework.beans.factory.annotation.Qualifier("jacksonObjectMapper") ObjectMapper mapper,
+            @org.springframework.beans.factory.annotation.Qualifier("idpSecurityObservationFilter") org.springframework.beans.factory.ObjectProvider<IdpSecurityObservationFilter> observations
     ) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -180,9 +191,14 @@ public class Rbac3AdminSecurityConfiguration {
                                 "/actuator/health/readiness")
                         .permitAll()
                         .anyRequest().authenticated());
+        http.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint((request, response, failure) -> authenticationFailure(request, response, mapper))
+                .accessDeniedHandler((request, response, failure) -> authorizationFailure(request, response, mapper)));
+        http.headers(headers -> headers.addHeaderWriter((request, response) -> { if (response.getStatus() == 401) { response.setHeader("WWW-Authenticate", "Bearer"); } }));
         http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+        IdpSecurityObservationFilter observation = observations.getIfAvailable();
+        if (observation != null) { http.addFilterBefore(observation, IdpBearerAuthenticationFilter.class); }
         http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
-        http.addFilterAfter(tenantFilter, Rbac3BearerAuthenticationFilter.class);
+        http.addFilterAfter(tenantFilter, org.springframework.security.web.access.intercept.AuthorizationFilter.class);
         return http.build();
     }
 
@@ -200,4 +216,22 @@ public class Rbac3AdminSecurityConfiguration {
         return builder -> builder.featuresToEnable(
                 DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
+    private static void authenticationFailure(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response,
+            ObjectMapper mapper) throws java.io.IOException {
+        boolean delivered = IdpSecurityObservationFilter.beforeAuthenticationFailure(request);
+        response.setStatus(delivered ? 401 : 503); response.setHeader("Cache-Control", "no-store");
+        if (delivered) { response.setHeader("WWW-Authenticate", "Bearer"); }
+        response.setContentType("application/json");
+        mapper.writeValue(response.getWriter(), java.util.Map.of("code", delivered ? "AUTHENTICATION_REQUIRED" : "OAUTH_AUDIT_DELIVERY_UNAVAILABLE",
+                "message", delivered ? "Tianquan-Shoubing authentication failed" : "Tianquan-Shoubing authentication state is temporarily unavailable"));
+    }
+
+    private static void authorizationFailure(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response,
+            ObjectMapper mapper) throws java.io.IOException {
+        boolean delivered = IdpSecurityObservationFilter.beforeAuthorizationDenied(request);
+        response.setStatus(delivered ? 403 : 503); response.setHeader("Cache-Control", "no-store"); response.setContentType("application/json");
+        mapper.writeValue(response.getWriter(), java.util.Map.of("code", delivered ? "AUTHORIZATION_DENIED" : "OAUTH_AUDIT_DELIVERY_UNAVAILABLE",
+                "message", delivered ? "Tianquan-Jianshen authorization denied" : "Tianquan-Jianshen authorization runtime unavailable"));
+    }
+
 }

@@ -1,6 +1,10 @@
 package top.egon.cola.platform.tianquan.jianshen.starter.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +30,8 @@ import java.util.Objects;
  * Enriches an Tianquan-Shoubing-authenticated user request with this system's Tianquan-Jianshen snapshot while leaving
  * service requests under the Tianquan-Shoubing identity.
  */
+@Slf4j
+@RequiredArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter {
 
     /**
@@ -35,6 +41,7 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
      * 含义与用法：读取、传递或更新 `snapshotLoader` 时应保持 `Rbac3BearerAuthenticationFilter` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `snapshotLoader`, preserve `Rbac3BearerAuthenticationFilter`'s lifecycle, immutability, and thread-safety constraints.
      */
+    @Qualifier("rbac3UserDetailsLoader")
     private final Rbac3UserDetailsLoader userDetailsLoader;
     /**
      * 字段 `objectMapper` 表示 `Rbac3BearerAuthenticationFilter` 中与 `object Mapper` 相关的状态、依赖、配置或结果（声明类型 `ObjectMapper`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -43,6 +50,7 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
      * 含义与用法：读取、传递或更新 `objectMapper` 时应保持 `Rbac3BearerAuthenticationFilter` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `objectMapper`, preserve `Rbac3BearerAuthenticationFilter`'s lifecycle, immutability, and thread-safety constraints.
      */
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
 
     /**
@@ -59,9 +67,8 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
             SingleFlightSnapshotLoader snapshotLoader,
             ObjectMapper objectMapper
     ) {
-        this.userDetailsLoader = new Rbac3UserDetailsLoader(
-                Objects.requireNonNull(snapshotLoader, "snapshotLoader"));
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+        this(new Rbac3UserDetailsLoader(Objects.requireNonNull(snapshotLoader, "snapshotLoader")),
+                Objects.requireNonNull(objectMapper, "objectMapper"));
     }
 
     /**
@@ -117,16 +124,19 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
                             && authority.getAuthority().startsWith("SCOPE_"))
                     .toList();
             var securityContext = SecurityContextHolder.createEmptyContext();
-            securityContext.setAuthentication(new Rbac3AuthenticationToken(
-                    details, verifiedScopeAuthorities));
+            var rbacAuthentication = new Rbac3AuthenticationToken(details, verifiedScopeAuthorities);
+            rbacAuthentication.setDetails(authentication.getDetails());
+            securityContext.setAuthentication(rbacAuthentication);
             SecurityContextHolder.setContext(securityContext);
             filterChain.doFilter(request, response);
         } catch (Rbac3AuthorizationClient.AuthorizationDeniedException exception) {
-            failure(response, HttpServletResponse.SC_FORBIDDEN,
-                    exception.getMessage());
+            boolean delivered = IdpSecurityObservationFilter.beforeAuthorizationDenied(request);
+            failure(response, delivered ? HttpServletResponse.SC_FORBIDDEN : HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    delivered ? exception.getMessage() : "OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
         } catch (Rbac3AuthorizationClient.AuthorizationUnavailableException exception) {
+            boolean delivered = IdpSecurityObservationFilter.beforeAuthorizationDenied(request);
             failure(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    exception.getMessage());
+                    delivered ? exception.getMessage() : "OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -149,6 +159,7 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
             int status,
             String reasonCode)
             throws IOException {
+        response.setHeader("Cache-Control", "no-store");
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), Map.of(
