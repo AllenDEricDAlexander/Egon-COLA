@@ -207,7 +207,8 @@ class OAuthTokenClientCredentialsTest {
     @Configuration(proxyBeanMethods = false)
     @EnableWebSecurity
     @EnableWebMvc
-    @Import({AuthorizationServerConfiguration.class, IdpSecurityConfig.class, LegacyOAuthRetirementFilter.class})
+    @Import({AuthorizationServerConfiguration.class, IdpSecurityConfig.class, LegacyOAuthRetirementFilter.class,
+            org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration.class})
     static class SecurityConfiguration {
 
         @Bean("idpClock")
