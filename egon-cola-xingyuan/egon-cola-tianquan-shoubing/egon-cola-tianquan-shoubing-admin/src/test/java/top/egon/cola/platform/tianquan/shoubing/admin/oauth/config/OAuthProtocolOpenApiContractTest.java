@@ -55,4 +55,27 @@ class OAuthProtocolOpenApiContractTest {
         assertThat(consent.getRequestBody().getContent().get("application/x-www-form-urlencoded")
                 .getSchema().getProperties()).containsKey("consent_action");
     }
+    @Test
+    void publishesBodylessPreflightOperationsWithoutChangingNativeOperations() {
+        OpenAPI api = new OpenAPI().paths(new Paths());
+        new OAuthProtocolOpenApiConfiguration().oauthProtocolOpenApiCustomizer().customise(api);
+        var expected = java.util.Map.of(
+                "oauth2/token", "oauthTenantTokenCorsPreflight", "userinfo", "oauthTenantUserInfoCorsPreflight",
+                ".well-known/openid-configuration", "oauthTenantDiscoveryCorsPreflight", ".well-known/jwks.json", "oauthTenantJwksCorsPreflight");
+        expected.forEach((suffix, id) -> {
+            var path = api.getPaths().get("/tenants/{tenantId}/" + suffix);
+            assertThat(path.getOptions()).as("OPTIONS %s", suffix).isNotNull();
+            var operation = path.getOptions();
+            assertThat(operation.getOperationId()).isEqualTo(id);
+            assertThat(operation.getSecurity()).isEmpty();
+            assertThat(operation.getRequestBody()).isNull();
+            assertThat(operation.getResponses()).containsOnlyKeys("200", "403");
+            operation.getResponses().values().forEach(response -> assertThat(response.getContent()).isNull());
+            assertThat(operation.getParameters().stream().map(p -> p.getName()).toList())
+                    .contains("tenantId", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers");
+            assertThat(suffix.equals("oauth2/token") ? path.getPost() : path.getGet()).isNotNull();
+        });
+        assertThat(api.getPaths().get("/platform/oauth2/token").getOptions()).isNull();
+    }
+
 }

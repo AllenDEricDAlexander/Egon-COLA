@@ -1,5 +1,18 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.support.security;
 
+import jakarta.validation.Validator;
+import java.util.Arrays;
+import org.springframework.core.env.Environment;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.web.cors.CorsProcessor;
+import org.springframework.web.cors.DefaultCorsProcessor;
+import org.springframework.security.web.firewall.RequestRejectedHandler;
+import org.springframework.security.web.firewall.ObservationMarkingRequestRejectedHandler;
+import org.springframework.security.web.firewall.HttpStatusRequestRejectedHandler;
+import io.micrometer.observation.ObservationRegistry;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.config.OAuthCorsProperties;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.config.OAuthNativeCorsProcessor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -32,7 +45,8 @@ import java.util.List;
  * <p>Security wiring for Tianquan-Shoubing administration APIs, OAuth protocol endpoints, and the identity
  * filter chain.</p>
  */
-@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties
+@Configuration(value = "idpSecurityConfig", proxyBeanMethods = false)
 public class IdpSecurityConfig {
 
     /**
@@ -131,37 +145,69 @@ public class IdpSecurityConfig {
         return registration;
     }
 
+    @Bean(name = "oauthCorsProperties")
+    OAuthCorsProperties oauthCorsProperties() {
+        return new OAuthCorsProperties();
+    }
+
+    @Bean(name = "oauthDefaultCorsProcessor")
+    CorsProcessor oauthDefaultCorsProcessor() {
+        return new DefaultCorsProcessor();
+    }
+
+    @Bean(name = "oauthNativeCorsProcessor")
+    OAuthNativeCorsProcessor oauthNativeCorsProcessor(
+            @Qualifier("oauthDefaultCorsProcessor") CorsProcessor delegate) {
+        return new OAuthNativeCorsProcessor(delegate);
+    }
+
     /**
      * 创建 OAuth 浏览器端点使用的精确 CORS 策略。
      *
      * <p>Creates the exact CORS policy used by OAuth browser endpoints.</p>
      *
-     * @param allowedOrigins 明确允许的浏览器 Origin；explicitly allowed browser origins
+     * @param properties 校验后的精确浏览器源；validated exact browser origins
+     * @param validator 既有默认 Jakarta 校验器；existing default Jakarta validator
+     * @param environment 当前部署环境；current deployment environment
      * @return CORS 配置来源；CORS configuration source
      */
     @Bean(name = "corsConfigurationSource")
     CorsConfigurationSource idpCorsConfigurationSource(
-            @org.springframework.beans.factory.annotation.Value(
-                    "${egon.tianquan-shoubing.oauth.allowed-origins:}")
-            List<String> allowedOrigins
-    ) {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(allowedOrigins.stream()
-                .filter(origin -> origin != null && !origin.isBlank())
-                .map(String::trim)
-                .toList());
-        configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "X-TIANQUAN-SHOUBING-CSRF"
-        ));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/oauth2/**", configuration);
+            @Qualifier("oauthCorsProperties") OAuthCorsProperties properties,
+            @Qualifier("defaultValidator") Validator validator,
+            @Qualifier("environment") Environment environment) {
+        new ValidationUtils(validator).validate(properties);
+        boolean localPlaintext = Arrays.asList(environment.getActiveProfiles()).contains("local")
+                && List.of("local", "dev").contains(environment.getProperty("DEPLOYMENT_ENV", ""))
+                && environment.getProperty("egon.cola.platform.tianquan.shoubing.usage-observation.allow-local-plaintext", Boolean.class, false);
+        if (!localPlaintext && properties.getAllowedOrigins().stream().anyMatch(origin -> origin.startsWith("http:"))) {
+            throw new IllegalArgumentException("OAUTH_CORS_PLAINTEXT_ORIGIN_FORBIDDEN");
+        }
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        for (String suffix : List.of("oauth2/token", "userinfo", ".well-known/openid-configuration", ".well-known/jwks.json")) {
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOrigins(properties.getAllowedOrigins());
+            configuration.setAllowedMethods(List.of(suffix.equals("oauth2/token") ? "POST" : "GET"));
+            configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+            configuration.setAllowCredentials(false);
+            configuration.setMaxAge(600L);
+            source.registerCorsConfiguration("/tenants/*/" + suffix, configuration);
+        }
         return source;
+    }
+
+    @Bean(name = "oauthRequestRejectedHandler")
+    RequestRejectedHandler oauthRequestRejectedHandler(
+            @Qualifier("observationRegistry") ObjectProvider<ObservationRegistry> registries) {
+        var observation = new ObservationMarkingRequestRejectedHandler(
+                registries.getIfAvailable(() -> ObservationRegistry.NOOP));
+        var delegate = new HttpStatusRequestRejectedHandler();
+        return (request, response, failure) -> {
+            observation.handle(request, response, failure);
+            if (OAuthNativeCorsProcessor.isNativePreflight(request)) {
+                OAuthNativeCorsProcessor.reject(response);
+            } else { delegate.handle(request, response, failure); }
+        };
     }
 
     /**

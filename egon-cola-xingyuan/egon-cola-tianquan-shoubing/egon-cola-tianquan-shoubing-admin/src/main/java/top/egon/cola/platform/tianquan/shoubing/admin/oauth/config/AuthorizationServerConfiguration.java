@@ -121,7 +121,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.Transac
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.TenantLoginAuthenticationFilter;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.TokenRevocationService;
 
-@Configuration(proxyBeanMethods = false)
+@Configuration(value = "authorizationServerConfiguration", proxyBeanMethods = false)
 public class AuthorizationServerConfiguration {
 
     @Bean("oauthPublicOrigin")
@@ -231,7 +231,9 @@ public class AuthorizationServerConfiguration {
             @Qualifier("oAuthClientRepository") ObjectProvider<OAuthClientRepository> clientRepositories,
             @Qualifier("oauthLoginCsrfTokenRepository") CsrfTokenRepository csrfTokenRepository,
             @Qualifier("idpClock") Clock clock,
-            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper) throws Exception {
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
+            @Qualifier("corsConfigurationSource") ObjectProvider<org.springframework.web.cors.CorsConfigurationSource> corsSources,
+            @Qualifier("oauthNativeCorsProcessor") ObjectProvider<OAuthNativeCorsProcessor> corsProcessors) throws Exception {
         OAuth2AuthorizationServerConfigurer authorizationServer =
                 OAuth2AuthorizationServerConfigurer.authorizationServer();
         RequestMatcher endpoints = authorizationServer.getEndpointsMatcher();
@@ -248,7 +250,12 @@ public class AuthorizationServerConfiguration {
         if (tokenGenerator == null) {
             throw new IllegalStateException("OAUTH_TOKEN_GENERATOR_REQUIRED");
         }
-        http.securityMatcher(protocolAndLogin)
+        org.springframework.web.filter.CorsFilter nativeCors = new org.springframework.web.filter.CorsFilter(
+                corsSources.getIfAvailable(() -> request -> null));
+        nativeCors.setCorsProcessor(corsProcessors.getIfAvailable(() -> new OAuthNativeCorsProcessor(
+                new org.springframework.web.cors.DefaultCorsProcessor())));
+        http.addFilter(nativeCors);
+        http.securityMatcher(new OrRequestMatcher(protocolAndLogin, OAuthNativeCorsProcessor::isNativePreflight))
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
                         .withObjectPostProcessor(new ObjectPostProcessor<CsrfFilter>() {
                             @Override

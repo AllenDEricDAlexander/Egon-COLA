@@ -16,7 +16,7 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 
-@Configuration(proxyBeanMethods = false)
+@Configuration(value = "OAuthProtocolOpenApiConfiguration", proxyBeanMethods = false)
 public class OAuthProtocolOpenApiConfiguration {
 
     private static final String DISCOVERY_PATH = "/tenants/{tenantId}/.well-known/openid-configuration";
@@ -46,7 +46,34 @@ public class OAuthProtocolOpenApiConfiguration {
             login.setPost(loginSubmitOperation());
             openApi.path(LOGIN_PATH, login);
             addNativeProtocolOperations(openApi);
+            addNativePreflightOperations(openApi);
         };
+    }
+
+    private static void addNativePreflightOperations(io.swagger.v3.oas.models.OpenAPI api) {
+        java.util.Map<String, String> operations = java.util.Map.of(
+                "oauth2/token", "oauthTenantTokenCorsPreflight", "userinfo", "oauthTenantUserInfoCorsPreflight",
+                ".well-known/openid-configuration", "oauthTenantDiscoveryCorsPreflight",
+                ".well-known/jwks.json", "oauthTenantJwksCorsPreflight");
+        operations.forEach((suffix, id) -> {
+            String method = suffix.equals("oauth2/token") ? "POST" : "GET";
+            Operation operation = nativeOperation(id, "Negotiate exact-origin tenant OAuth CORS", false)
+                    .security(List.of()).addParametersItem(new Parameter().name("Origin").in("header").required(true)
+                            .schema(new StringSchema().maxLength(2048)))
+                    .addParametersItem(new Parameter().name("Access-Control-Request-Method").in("header").required(true)
+                            .schema(new StringSchema()._enum(List.of(method))))
+                    .addParametersItem(new Parameter().name("Access-Control-Request-Headers").in("header")
+                            .description("Single comma-separated, duplicate-free Authorization/Content-Type subset; at most 16 tokens of 64 characters.")
+                            .schema(new StringSchema()))
+                    .responses(new ApiResponses().addApiResponse("200", new ApiResponse().description("Bodyless preflight allowed")
+                            .addHeaderObject("Access-Control-Allow-Origin", new Header().schema(new StringSchema()))
+                            .addHeaderObject("Access-Control-Allow-Methods", new Header().schema(new StringSchema()._enum(List.of(method))))
+                            .addHeaderObject("Access-Control-Allow-Headers", new Header().schema(new StringSchema()))
+                            .addHeaderObject("Access-Control-Max-Age", new Header().schema(new StringSchema()._enum(List.of("600"))))
+                            .addHeaderObject("Vary", new Header().schema(new StringSchema())))
+                            .addApiResponse("403", new ApiResponse().description("Invalid CORS request; no allow headers")));
+            api.getPaths().get("/tenants/{tenantId}/" + suffix).setOptions(operation);
+        });
     }
 
     private static void addNativeProtocolOperations(io.swagger.v3.oas.models.OpenAPI api) {
