@@ -76,12 +76,19 @@ management:
         include: health,info,metrics
   endpoint:
     health:
+      group:
+        readiness:
+          include: readinessState,ping,tianquanAuditReadiness
       probes:
         enabled: true
 
 egon.cola.platform:
   tianquan:
     shoubing:
+      usage-observation:
+        enabled: true
+        fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+        allow-local-plaintext: false
       enabled: ${UNIFIED_IDENTITY_ENABLED:true}
       register-filter: false
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
@@ -89,8 +96,13 @@ egon.cola.platform:
       resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID}
       resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI}
       revocation:
+        primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
         epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
       audit:
+        delivery:
+          receipt-ttl: PT1H
+          confirmation-timeout: PT30S
+          batch-size: 100
         stream: egon:oauth:audit:v1
         spool-directory: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_DIRECTORY}
         spool-max-bytes: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
@@ -147,7 +159,7 @@ egon:
         consumer:
           enabled: false
         tls:
-          enabled: ${TIANQUAN_SHOUBING_RPC_TLS_ENABLED:false}
+          enabled: ${TIANQUAN_SHOUBING_RPC_TLS_ENABLED:true}
           development-plaintext: ${TIANQUAN_SHOUBING_RPC_DEVELOPMENT_PLAINTEXT:false}
           certificate-chain-path: ${TIANQUAN_SHOUBING_RPC_CERTIFICATE_CHAIN_PATH:}
           private-key-path: ${TIANQUAN_SHOUBING_RPC_PRIVATE_KEY_PATH:}
@@ -210,7 +222,7 @@ egon:
           target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:true}
             development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           auth:
             runtime:

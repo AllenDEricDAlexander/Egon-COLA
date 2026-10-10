@@ -68,7 +68,8 @@ public class IdpPlatformConfiguration {
             @Qualifier("oauthManagementRealmResolver") OAuthManagementRealmResolver realms,
             @Qualifier("oAuthRealmRepository") OAuthRealmRepository realmRepository,
             @Qualifier("tenantJwkSourceComponent") JWKSource<SecurityContext> jwkSource,
-            @Qualifier("authorizationServerSettings") AuthorizationServerSettings settings
+            @Qualifier("authorizationServerSettings") AuthorizationServerSettings settings,
+            @Qualifier("tianquanSecurityAuditReady") ObjectProvider<java.util.function.BooleanSupplier> auditReady
     ) {
         return () -> {
             DdcRuntimeCoordinator coordinator = coordinators.getIfAvailable();
@@ -106,7 +107,8 @@ public class IdpPlatformConfiguration {
             }
             boolean outboxReady = outbox != null
                     && !redisson.isShutdown()
-                    && !redisson.isShuttingDown();
+                    && !redisson.isShuttingDown()
+                    && auditReady.getIfAvailable(() -> () -> true).getAsBoolean();
             return new IdpHttpProviderPublicationGate.ReadinessStatus(
                     ddcReady,
                     oauthReady,

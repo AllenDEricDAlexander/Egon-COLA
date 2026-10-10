@@ -24,15 +24,30 @@ management:
     health:
       group:
         readiness:
-          include: readinessState,ping
+          include: readinessState,ping,tianquanAuditReadiness
 
 egon.cola.platform:
   tianquan:
     shoubing:
+      revocation:
+        primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT:redis://127.0.0.1:6379}
+      usage-observation:
+        enabled: true
+        fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+        allow-local-plaintext: true
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
       jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
       resource-server-id: ${TIANQUAN_JIANSHEN_RESOURCE_SERVER_ID:permission-tianquan-jianshen-local}
       resource-uri: ${TIANQUAN_JIANSHEN_RESOURCE_URI:https://api.egon.internal/local/permission/tianquan-jianshen}
+      audit:
+        delivery:
+          receipt-ttl: PT1H
+          confirmation-timeout: PT30S
+          batch-size: 100
+        stream: egon:oauth:audit:v1
+        spool-directory: ${EGON_TIANQUAN_JIANSHEN_OAUTH_AUDIT_SPOOL_DIRECTORY}
+        spool-max-bytes: ${EGON_TIANQUAN_JIANSHEN_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+        hmac-key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_HMAC_KEY_FILE}
     jianshen:
       runtime:
         redis-address: ${TIANQUAN_JIANSHEN_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
@@ -68,6 +83,12 @@ egon:
     component:
       id:
         machine-id: ${TIANQUAN_JIANSHEN_SNOWFLAKE_MACHINE_ID:0}
+      rpc:
+        tls:
+          enabled: false
+          development-plaintext: true
+        provider:
+          bind-address: 127.0.0.1
       tianshu:
         tenant-id: ${TIANSHU_TENANT_ID:}
         enabled: ${TIANQUAN_JIANSHEN_TIANSHU_ENABLED:false}
@@ -75,6 +96,7 @@ egon:
         rpc:
           target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           tls:
+            enabled: false
             development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
           username: ${TIANSHU_REDIS_USERNAME:}

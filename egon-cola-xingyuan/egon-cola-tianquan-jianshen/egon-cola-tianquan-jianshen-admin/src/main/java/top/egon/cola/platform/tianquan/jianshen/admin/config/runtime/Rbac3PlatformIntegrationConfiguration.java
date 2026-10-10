@@ -345,10 +345,12 @@ public class Rbac3PlatformIntegrationConfiguration {
             DdcProviderLeaseStatusRepository lease,
             ObjectProvider<DdcConfigClientStatusRepository> ddcConfigStatus,
             GatewayDdcRuntimeStatusService runtimeStatus,
-            GatewayReportingProperties reportingProperties) {
+            GatewayReportingProperties reportingProperties,
+            @Qualifier("tianquanSecurityAuditReady") ObjectProvider<java.util.function.BooleanSupplier> auditReady) {
         boolean production = !List.of("local", "test").contains(
                 reportingProperties.getEnv().toLowerCase(java.util.Locale.ROOT));
         return new Rbac3ReadinessIndicator(List.of(
+                new ReadinessCheckVO("oauthAudit", () -> auditReady.getIfAvailable(() -> () -> true).getAsBoolean()),
                 new ReadinessCheckVO(
                         "rbac3Flyway", () -> migrated(rbac3Flyway)),
                 new ReadinessCheckVO(

@@ -16,11 +16,20 @@ spring:
 egon.cola.platform:
   tianquan:
     shoubing:
+      usage-observation:
+        enabled: true
+        fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+        allow-local-plaintext: true
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
       jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
       revocation:
+        primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT:redis://127.0.0.1:6379}
         epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
       audit:
+        delivery:
+          receipt-ttl: PT1H
+          confirmation-timeout: PT30S
+          batch-size: 100
         stream: egon:oauth:audit:v1
         spool-directory: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_DIRECTORY}
         spool-max-bytes: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
@@ -98,13 +107,17 @@ egon:
           business:
             enabled: false
       rpc:
+        provider:
+          bind-address: 127.0.0.1
         tls:
+          enabled: false
           development-plaintext: ${TIANQUAN_SHOUBING_RPC_DEVELOPMENT_PLAINTEXT:true}
       tianshu:
         tenant-id: ${TIANSHU_TENANT_ID:}
         rpc:
           target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           tls:
+            enabled: false
             development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
           username: ${TIANSHU_REDIS_USERNAME:}
@@ -116,3 +129,10 @@ egon:
           namespace: default
           application-code: tianquan-shoubing
           artifact-version: local
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,ping,tianquanAuditReadiness

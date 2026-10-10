@@ -7,7 +7,14 @@ egon:
     component:
       rpc:
         enabled: false
+        tls:
+          enabled: false
+          development-plaintext: false
       tianshu:
+        rpc:
+          tls:
+            enabled: false
+            development-plaintext: false
         registry:
           http:
             enabled: false
@@ -15,3 +22,25 @@ egon:
     oauth:
       migration:
         enabled: false
+
+egon.cola.platform:
+  tianquan:
+    shoubing:
+      revocation:
+        primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
+      usage-observation:
+        enabled: false
+        fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+        allow-local-plaintext: false
+      audit:
+        delivery:
+          receipt-ttl: PT1H
+          confirmation-timeout: PT30S
+          batch-size: 100
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,ping

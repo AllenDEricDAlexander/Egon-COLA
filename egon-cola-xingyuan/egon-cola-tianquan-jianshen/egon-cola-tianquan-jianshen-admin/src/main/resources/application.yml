@@ -57,17 +57,32 @@ management:
         liveness:
           include: livenessState,ping
         readiness:
-          include: readinessState,rbac3Readiness
+          include: readinessState,rbac3Readiness,tianquanAuditReadiness
 
 egon.cola.platform:
   tianquan:
     shoubing:
+      revocation:
+        primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
+      usage-observation:
+        enabled: true
+        fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+        allow-local-plaintext: false
       enabled: ${UNIFIED_IDENTITY_ENABLED:true}
       register-filter: false
       issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
       jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
       resource-server-id: ${TIANQUAN_JIANSHEN_RESOURCE_SERVER_ID}
       resource-uri: ${TIANQUAN_JIANSHEN_RESOURCE_URI}
+      audit:
+        delivery:
+          receipt-ttl: PT1H
+          confirmation-timeout: PT30S
+          batch-size: 100
+        stream: egon:oauth:audit:v1
+        spool-directory: ${EGON_TIANQUAN_JIANSHEN_OAUTH_AUDIT_SPOOL_DIRECTORY}
+        spool-max-bytes: ${EGON_TIANQUAN_JIANSHEN_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+        hmac-key-file: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_HMAC_KEY_FILE}
     jianshen:
       enabled: ${UNIFIED_IDENTITY_ENABLED:true}
       register-filter: false
@@ -113,7 +128,7 @@ egon:
         consumer:
           enabled: ${TIANQUAN_JIANSHEN_RPC_CONSUMER_ENABLED:true}
         tls:
-          enabled: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TLS_ENABLED:false}
+          enabled: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TLS_ENABLED:true}
           development-plaintext: ${TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}}
           certificate-chain-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
           private-key-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_PRIVATE_KEY_PATH:}
@@ -137,7 +152,7 @@ egon:
           target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:true}
             development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           auth:
             runtime:

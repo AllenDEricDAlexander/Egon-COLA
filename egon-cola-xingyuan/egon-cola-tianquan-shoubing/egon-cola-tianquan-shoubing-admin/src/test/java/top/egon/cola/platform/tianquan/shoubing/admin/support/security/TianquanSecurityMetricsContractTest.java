@@ -147,6 +147,8 @@ class TianquanSecurityMetricsContractTest {
         var producer = producer(mock(RedissonClient.class), metrics);
         new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
                 .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true")
+                .withPropertyValues(secureProperties())
+                .withBean("oauthAuditProperties", OAuthAuditProperties.class, this::auditProperties)
                 .withBean("primary", MeterRegistry.class, () -> registry, definition -> definition.setPrimary(true))
                 .withBean("secondary", MeterRegistry.class, () -> secondary)
                 .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
@@ -431,6 +433,143 @@ class TianquanSecurityMetricsContractTest {
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder nativeRequest(
             org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request) {
         return request.secure(true).with(value -> { value.setScheme("https"); value.setServerName("idp.example.test"); value.setServerPort(443); return value; });
+    }
+
+    @Test
+    void ownProfilesDeclareTheSameObservationAndDeliveryLeaves() throws Exception {
+        var loader = new org.springframework.boot.env.YamlPropertySourceLoader();
+        String prefix = "egon.cola.platform.tianquan.shoubing.";
+        for (String profile : java.util.List.of("src/main/resources/application.yml", "src/main/resources/application-local.yml", "src/main/resources/application-oauth-migration.yml")) {
+            var sources = loader.load(profile, new org.springframework.core.io.FileSystemResource(profile));
+            var names = new java.util.HashSet<String>();
+            for (var source : sources) { names.addAll(java.util.List.of(((org.springframework.core.env.EnumerablePropertySource<?>) source).getPropertyNames())); }
+            assertThat(names).as(profile).contains(prefix + "usage-observation.enabled", prefix + "usage-observation.fallback-issuer",
+                    prefix + "usage-observation.allow-local-plaintext", prefix + "audit.delivery.receipt-ttl",
+                    prefix + "audit.delivery.confirmation-timeout", prefix + "audit.delivery.batch-size",
+                    "egon.cola.component.rpc.tls.enabled", "egon.cola.component.rpc.tls.development-plaintext",
+                    "egon.cola.component.tianshu.rpc.tls.enabled", "egon.cola.component.tianshu.rpc.tls.development-plaintext");
+            var environment = new org.springframework.mock.env.MockEnvironment()
+                    .withProperty("TIANQUAN_SHOUBING_OAUTH_ISSUER", ISSUER.toASCIIString());
+            for (var source : sources) { environment.getPropertySources().addLast(source); }
+            var binder = org.springframework.boot.context.properties.bind.Binder.get(environment);
+            var usage = binder.bind(prefix + "usage-observation", OAuthUsageObservationProperties.class).orElseThrow(IllegalStateException::new);
+            var delivery = binder.bind(prefix + "audit.delivery", AuditDeliveryProperties.class).orElseThrow(IllegalStateException::new);
+            assertThat(validator.validate(usage)).isEmpty(); assertThat(validator.validate(delivery)).isEmpty();
+            boolean offline = profile.contains("oauth-migration") || profile.contains("local-it");
+            assertThat(usage.isEnabled()).isEqualTo(!offline);
+            assertThat(usage.isAllowLocalPlaintext()).isEqualTo(profile.endsWith("application-local.yml"));
+            assertThat(delivery.getReceiptTtl()).isEqualTo(Duration.ofHours(1));
+            assertThat(delivery.getConfirmationTimeout()).isEqualTo(Duration.ofSeconds(30));
+            assertThat(delivery.getBatchSize()).isEqualTo(100);
+
+        }
+    }
+
+    @Test
+    void enabledHostRejectsPlaintextProductionInputs() throws Exception {
+        var producer = producer(mock(RedissonClient.class), metrics);
+        new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
+                .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.resource-uri=http://api.example/orders",
+                        "egon.cola.platform.tianquan.shoubing.issuer=" + ISSUER,
+                        "egon.cola.platform.tianquan.shoubing.jwk-set-uri=" + ISSUER + "/.well-known/jwks.json",
+                        "egon.cola.platform.tianquan.shoubing.revocation.primary-endpoint=rediss://redis.example:6379",
+                        "egon.cola.platform.tianquan.jianshen.authorization.endpoint=https://permission.example",
+                        "egon.tianquan-shoubing.oauth.public-origin=https://idp.example",
+                        "egon.cola.component.rpc.enabled=false", "egon.cola.component.tianshu.enabled=false")
+                .withBean("primary", MeterRegistry.class, () -> registry)
+                .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
+                .withBean("tokenUsageAuditComponent", TokenUsageAuditComponent.class, () -> producer)
+                .withBean("oauthAuditProperties", OAuthAuditProperties.class,
+                        () -> new OAuthAuditProperties(STREAM, temporary.resolve("spool"), 1_048_576, temporary.resolve("audit.key")))
+                .withBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class,
+                        () -> new OAuthUsageObservationProperties(true, ISSUER, false))
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void transportGuardAllowsOnlyTheExplicitLocalLoopbackException() throws Exception {
+        secureHostRunner(false).run(context -> assertThat(context).hasNotFailed());
+        for (String invalid : java.util.List.of(
+                "egon.cola.component.rpc.enabled=true",
+                "egon.cola.component.tianshu.enabled=true",
+                "egon.cola.platform.tianquan.shoubing.issuer=http://idp.example/tenants/1001",
+                "egon.cola.platform.tianquan.shoubing.revocation.primary-endpoint=redis://redis.example:6379",
+                "spring.security.oauth2.client.provider.unsafe.token-uri=http://remote.example/token")) {
+            secureHostRunner(false).withPropertyValues(invalid).run(context -> assertThat(context).hasFailed());
+        }
+        String[] loopback = {
+                "DEPLOYMENT_ENV=local", "egon.cola.platform.tianquan.shoubing.resource-uri=http://127.0.0.1/orders",
+                "egon.cola.platform.tianquan.shoubing.revocation.primary-endpoint=redis://127.0.0.1:6379",
+                "egon.cola.platform.tianquan.jianshen.authorization.endpoint=http://localhost:18130" };
+        secureHostRunner(true).withPropertyValues(loopback).withInitializer(context -> context.getEnvironment().setActiveProfiles("local"))
+                .run(context -> assertThat(context).hasNotFailed());
+        secureHostRunner(true).withPropertyValues(loopback).run(context -> assertThat(context).hasFailed());
+        secureHostRunner(true).withPropertyValues(loopback).withPropertyValues("DEPLOYMENT_ENV=prod")
+                .withInitializer(context -> context.getEnvironment().setActiveProfiles("local"))
+                .run(context -> assertThat(context).hasFailed());
+        secureHostRunner(true).withPropertyValues(loopback).withPropertyValues("egon.cola.platform.tianquan.shoubing.resource-uri=http://remote.example/orders")
+                .withInitializer(context -> context.getEnvironment().setActiveProfiles("local"))
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void exclusiveVolumeLeaseAndDynamicAuditReadinessFailClosed() throws Exception {
+        var runner = secureHostRunner(false);
+        runner.run(context -> {
+            assertThat(context).hasNotFailed();
+            var ready = (java.util.function.BooleanSupplier) context.getBean("tianquanSecurityAuditReady");
+            assertThat(ready.getAsBoolean()).isTrue();
+            runner.run(second -> assertThat(second).hasFailed());
+            try {
+                Files.writeString(temporary.resolve("spool/dead.evt.dead"), "retained-dead-marker");
+                assertThat(ready.getAsBoolean()).isFalse();
+                assertThat(context.getBean("tianquanAuditReadiness", org.springframework.boot.actuate.health.HealthIndicator.class)
+                        .health().getStatus()).isEqualTo(org.springframework.boot.actuate.health.Status.DOWN);
+                Files.delete(temporary.resolve("spool/dead.evt.dead"));
+                Files.writeString(temporary.resolve("spool/pending.evt"), "unconfirmed-local-handoff");
+                assertThat(ready.getAsBoolean()).isFalse();
+                Files.delete(temporary.resolve("spool/pending.evt"));
+                Files.write(temporary.resolve("spool/capacity"), new byte[1_048_576]);
+                assertThat(ready.getAsBoolean()).isFalse();
+                Files.delete(temporary.resolve("spool/capacity"));
+                assertThat(ready.getAsBoolean()).isTrue();
+                Files.setPosixFilePermissions(temporary.resolve("audit.key"), Set.of(PosixFilePermission.OWNER_READ,
+                        PosixFilePermission.OWNER_WRITE, PosixFilePermission.GROUP_READ));
+                assertThat(ready.getAsBoolean()).isFalse();
+                Files.setPosixFilePermissions(temporary.resolve("audit.key"), Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+                assertThat(ready.getAsBoolean()).isTrue();
+            } catch (java.io.IOException failure) { throw new java.io.UncheckedIOException(failure); }
+        });
+        runner.run(context -> assertThat(context).hasNotFailed());
+    }
+
+    private String[] secureProperties() {
+        return new String[] {
+                "egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true",
+                "egon.cola.platform.tianquan.shoubing.issuer=" + ISSUER,
+                "egon.cola.platform.tianquan.shoubing.jwk-set-uri=" + ISSUER + "/.well-known/jwks.json",
+                "egon.cola.platform.tianquan.shoubing.resource-uri=" + RESOURCE,
+                "egon.cola.platform.tianquan.shoubing.revocation.primary-endpoint=rediss://redis.example:6379",
+                "egon.cola.platform.tianquan.jianshen.authorization.endpoint=https://permission.example",
+                "egon.tianquan-shoubing.oauth.public-origin=https://idp.example",
+                "egon.cola.component.rpc.enabled=false", "egon.cola.component.tianshu.enabled=false" };
+    }
+
+    private OAuthAuditProperties auditProperties() {
+        return new OAuthAuditProperties(STREAM, temporary.resolve("spool"), 1_048_576, temporary.resolve("audit.key"));
+    }
+
+    private ApplicationContextRunner secureHostRunner(boolean allowLocal) throws Exception {
+        var producer = producer(mock(RedissonClient.class), metrics);
+        return new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
+                .withPropertyValues(secureProperties())
+                .withBean("primary", MeterRegistry.class, () -> registry)
+                .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
+                .withBean("tokenUsageAuditComponent", TokenUsageAuditComponent.class, () -> producer)
+                .withBean("oauthAuditProperties", OAuthAuditProperties.class, this::auditProperties)
+                .withBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class,
+                        () -> new OAuthUsageObservationProperties(true, ISSUER, allowLocal));
     }
 
     private TokenUsageAuditComponent producer(RedissonClient redis, top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder recorder) throws Exception {
