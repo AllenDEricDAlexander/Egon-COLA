@@ -1,5 +1,6 @@
 package top.egon.cola.platform.tianquan.jianshen.starter.authorization;
 
+import jakarta.validation.constraints.NotBlank;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 import top.egon.cola.platform.tianquan.jianshen.contract.authorization.AuthorizationDecision;
 import top.egon.cola.platform.tianquan.jianshen.contract.authorization.AuthorizationFenceDecision;
@@ -129,7 +130,7 @@ public interface AuthorizationService {
              * 含义与用法：读取、传递或更新 `permissionCode` 时应保持 `FieldPolicyRequest` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `permissionCode`, preserve `FieldPolicyRequest`'s lifecycle, immutability, and thread-safety constraints.
              */
-            String permissionCode,
+            @NotBlank String permissionCode,
             /**
              * 字段 `applicationCode` 表示 `FieldPolicyRequest` 中与 `application Code` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `applicationCode` stores the `application Code`-related state, dependency, configuration, or result of `FieldPolicyRequest` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -137,7 +138,7 @@ public interface AuthorizationService {
              * 含义与用法：读取、传递或更新 `applicationCode` 时应保持 `FieldPolicyRequest` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `applicationCode`, preserve `FieldPolicyRequest`'s lifecycle, immutability, and thread-safety constraints.
              */
-            String applicationCode,
+            @NotBlank String applicationCode,
             /**
              * 字段 `resourceCode` 表示 `FieldPolicyRequest` 中与 `resource Code` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `resourceCode` stores the `resource Code`-related state, dependency, configuration, or result of `FieldPolicyRequest` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -145,7 +146,7 @@ public interface AuthorizationService {
              * 含义与用法：读取、传递或更新 `resourceCode` 时应保持 `FieldPolicyRequest` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `resourceCode`, preserve `FieldPolicyRequest`'s lifecycle, immutability, and thread-safety constraints.
              */
-            String resourceCode
+            @NotBlank String resourceCode
     ) {
         /**
          * 构造器 `FieldPolicyRequest` 用于创建并初始化 `FieldPolicyRequest` 实例，建立该类型后续方法所依赖的状态和不变量。

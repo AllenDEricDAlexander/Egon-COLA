@@ -1,5 +1,12 @@
 package top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure;
 
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ComponentScan;
+import jakarta.validation.Validator;
+import top.egon.cola.platform.tianquan.jianshen.starter.field.FieldWriteAuthorizationConverter;
+import top.egon.cola.platform.tianquan.jianshen.starter.field.Rbac3FieldWriteAuthorizationComponent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.redisson.api.RedissonClient;
@@ -53,7 +60,8 @@ import java.util.stream.Collectors;
  * Semantics and usage: use `Rbac3StarterAutoConfiguration` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @AutoConfiguration
-@AutoConfigureAfter(IdpStarterAutoConfiguration.class)
+@AutoConfigureAfter({IdpStarterAutoConfiguration.class, ValidationAutoConfiguration.class})
+@Import(Rbac3StarterAutoConfiguration.FieldWriteConfiguration.class)
 @EnableConfigurationProperties(Rbac3StarterProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.tianquan.jianshen",
@@ -423,6 +431,22 @@ public class Rbac3StarterAutoConfiguration {
         registration.setOrder(-101);
         registration.setEnabled(properties.isRegisterFilter());
         return registration;
+    }
+
+    @Configuration(value = "rbac3FieldWriteConfiguration", proxyBeanMethods = false)
+    @ComponentScan(basePackageClasses = FieldWriteAuthorizationConverter.class)
+    static class FieldWriteConfiguration { }
+
+    @Bean(name = "rbac3FieldWriteAuthorizationComponent")
+    @ConditionalOnBean(name = {"authorizationService", "currentRbac3User", "defaultValidator"})
+    @ConditionalOnMissingBean(Rbac3FieldWriteAuthorizationComponent.class)
+    public Rbac3FieldWriteAuthorizationComponent rbac3FieldWriteAuthorizationComponent(
+            @Qualifier("authorizationService") AuthorizationService authorization,
+            @Qualifier("currentRbac3User") CurrentRbac3User currentUser,
+            @Qualifier("fieldWriteAuthorizationConverterImpl") FieldWriteAuthorizationConverter converter,
+            @Qualifier("defaultValidator") Validator validator) {
+        return new Rbac3FieldWriteAuthorizationComponent(
+                authorization, currentUser, converter, validator);
     }
 
     /**

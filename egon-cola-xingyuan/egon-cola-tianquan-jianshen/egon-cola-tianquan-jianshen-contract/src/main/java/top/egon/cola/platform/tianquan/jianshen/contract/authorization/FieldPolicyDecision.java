@@ -1,23 +1,27 @@
 package top.egon.cola.platform.tianquan.jianshen.contract.authorization;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public record FieldPolicyDecision(
-        Decision decision,
-        String reasonCode,
-        String tenantId,
-        String subjectId,
-        String permissionCode,
-        String applicationCode,
-        String resourceCode,
-        Map<String, FieldAccess> fields,
-        long authVersion,
-        long policyVersion,
-        List<String> evidenceIds,
-        Instant decidedAt
+        @NotNull Decision decision,
+        @NotBlank String reasonCode,
+        @NotBlank String tenantId,
+        @NotBlank String subjectId,
+        @NotBlank String permissionCode,
+        @NotBlank String applicationCode,
+        @NotBlank String resourceCode,
+        @NotNull Map<@NotBlank String, @NotNull @Valid FieldAccess> fields,
+        @PositiveOrZero long authVersion,
+        @PositiveOrZero long policyVersion,
+        @NotNull List<@NotBlank String> evidenceIds,
+        @NotNull Instant decidedAt
 ) {
 
     public FieldPolicyDecision {
@@ -41,7 +45,7 @@ public record FieldPolicyDecision(
     }
 
     public record FieldAccess(
-            FieldAccessLevel level,
+            @NotNull FieldAccessLevel level,
             String maskingStrategy
     ) {
 
