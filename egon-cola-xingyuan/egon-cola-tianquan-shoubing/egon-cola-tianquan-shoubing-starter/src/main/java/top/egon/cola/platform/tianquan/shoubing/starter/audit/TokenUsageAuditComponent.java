@@ -2,6 +2,8 @@ package top.egon.cola.platform.tianquan.shoubing.starter.audit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -38,7 +40,8 @@ import top.egon.cola.platform.tianquan.shoubing.core.audit.TokenUsageAuditEvent;
 /** Durable, secret-free audit handoff for resource servers that do not own a database. */
 @RequiredArgsConstructor
 @Slf4j
-public final class TokenUsageAuditComponent {
+@Validated
+public class TokenUsageAuditComponent {
 
     private static final int MAGIC = 0x4f415531;
     private static final int MAC_BYTES = 32;
@@ -62,6 +65,29 @@ public final class TokenUsageAuditComponent {
                 throw new IllegalStateException("OAUTH_AUDIT_DURABLE_STORE_INVALID", failure);
             }
         }
+    }
+
+    /** Strict handoff requires both durable media before returning to a protected caller. */
+    public StreamMessageId appendStrict(@Valid TokenUsageAuditEvent event) {
+        TokenUsageAuditEvent value = Objects.requireNonNull(event, "event");
+        byte[] payload = serialize(value);
+        try {
+            stage(value.eventId(), payload, true);
+        } catch (IOException failure) {
+            throw new IllegalStateException("OAUTH_AUDIT_DELIVERY_UNAVAILABLE", failure);
+        }
+        StreamMessageId messageId;
+        try {
+            messageId = publish(value);
+        } catch (RuntimeException failure) {
+            throw new IllegalStateException("OAUTH_AUDIT_STREAM_UNAVAILABLE", failure);
+        }
+        try {
+            markSent(eventPath(value.eventId()), messageId, true);
+        } catch (IOException failure) {
+            throw new IllegalStateException("OAUTH_AUDIT_SPOOL_MARK_FAILED", failure);
+        }
+        return messageId;
     }
 
     public StreamMessageId append(TokenUsageAuditEvent event) {
@@ -156,6 +182,10 @@ public final class TokenUsageAuditComponent {
     }
 
     private void stage(String eventId, byte[] payload) throws IOException {
+        stage(eventId, payload, false);
+    }
+
+    private void stage(String eventId, byte[] payload, boolean strict) throws IOException {
         synchronized (spoolLock) {
             prepareSpool();
             Path target = eventPath(eventId);
@@ -165,6 +195,7 @@ public final class TokenUsageAuditComponent {
                         || !java.util.Arrays.equals(payload, serialize(existing))) {
                     throw new IOException("OAUTH_AUDIT_SPOOL_EVENT_CONFLICT");
                 }
+                if (strict) { forceFile(target); forceDirectory(); }
                 return;
             }
             byte[] frame = frame(payload);
@@ -182,7 +213,7 @@ public final class TokenUsageAuditComponent {
                 channel.force(true);
             }
             try {
-                Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE);
+                atomicMove(temporary, target);
             } catch (FileAlreadyExistsException duplicate) {
                 Files.deleteIfExists(temporary);
                 TokenUsageAuditEvent existing = read(target);
@@ -190,10 +221,12 @@ public final class TokenUsageAuditComponent {
                     throw new IOException("OAUTH_AUDIT_SPOOL_EVENT_CONFLICT", duplicate);
                 }
             } catch (AtomicMoveNotSupportedException unsupported) {
+                if (strict) { throw unsupported; }
                 Files.move(temporary, target);
             } finally {
                 Files.deleteIfExists(temporary);
             }
+            if (strict) { forceDirectory(); }
         }
     }
 
@@ -351,8 +384,13 @@ public final class TokenUsageAuditComponent {
     }
 
     private void markSent(Path eventPath, StreamMessageId messageId) throws IOException {
+        markSent(eventPath, messageId, false);
+    }
+
+    private void markSent(Path eventPath, StreamMessageId messageId, boolean strict) throws IOException {
         Path marker = sentPath(eventPath);
         if (Files.exists(marker)) {
+            if (strict) { forceFile(marker); forceDirectory(); }
             return;
         }
         Path temporary = Files.createTempFile(properties.spoolDirectory(), ".audit-sent-", ".tmp");
@@ -366,13 +404,31 @@ public final class TokenUsageAuditComponent {
             channel.force(true);
         }
         try {
-            Files.move(temporary, marker, StandardCopyOption.ATOMIC_MOVE);
+            atomicMove(temporary, marker);
         } catch (FileAlreadyExistsException duplicate) {
             Files.deleteIfExists(temporary);
         } catch (AtomicMoveNotSupportedException unsupported) {
+            if (strict) { throw unsupported; }
             Files.move(temporary, marker);
         } finally {
             Files.deleteIfExists(temporary);
+        }
+        if (strict) { forceDirectory(); }
+    }
+
+    void atomicMove(Path source, Path target) throws IOException {
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+    }
+
+    void forceDirectory() throws IOException {
+        try (FileChannel directory = FileChannel.open(properties.spoolDirectory(), StandardOpenOption.READ)) {
+            directory.force(true);
+        }
+    }
+
+    private void forceFile(Path path) throws IOException {
+        try (FileChannel file = FileChannel.open(path, StandardOpenOption.WRITE)) {
+            file.force(true);
         }
     }
 

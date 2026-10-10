@@ -38,6 +38,72 @@ class TokenUsageAuditComponentTest {
     Path temporary;
 
     @Test
+    void strictAtomicAndDirectoryFailuresNeverPublishAndKeepRecoverableFacts() throws Exception {
+        for (boolean directoryFailure : java.util.List.of(false, true)) {
+            RedissonClient redisson = mock(RedissonClient.class);
+            @SuppressWarnings("unchecked") RStream<String,String> stream = mock(RStream.class);
+            org.mockito.Mockito.doReturn(stream).when(redisson).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+            Path spool = temporary.resolve(directoryFailure ? "directory-failure" : "atomic-failure");
+            TokenUsageAuditComponent component = org.mockito.Mockito.spy(component(redisson, spool, secureKeyFile(), 1_048_576));
+            if (directoryFailure) {
+                org.mockito.Mockito.doThrow(new java.io.IOException("directory force unsupported")).when(component).forceDirectory();
+            } else {
+                org.mockito.Mockito.doThrow(new java.nio.file.AtomicMoveNotSupportedException("fixture", "fixture", "unsupported"))
+                        .when(component).atomicMove(any(Path.class), any(Path.class));
+            }
+            assertThatThrownBy(() -> component.appendStrict(event())).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
+            org.mockito.Mockito.verifyNoInteractions(stream);
+            assertThat(Files.exists(spool.resolve("event-1.evt"))).isEqualTo(directoryFailure);
+        }
+    }
+
+    @Test
+    void strictFileForceFailureCannotUseTheAvailableBroker() throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        @SuppressWarnings("unchecked") RStream<String,String> stream = mock(RStream.class);
+        org.mockito.Mockito.doReturn(stream).when(redisson).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        TokenUsageAuditComponent component = component(redisson, temporary.resolve("file-force"), secureKeyFile(), 1_048_576);
+        java.nio.channels.FileChannel channel = mock(java.nio.channels.FileChannel.class);
+        when(channel.write(any(java.nio.ByteBuffer.class))).thenAnswer(call -> {
+            java.nio.ByteBuffer buffer = call.getArgument(0); int remaining = buffer.remaining(); buffer.position(buffer.limit()); return remaining;
+        });
+        org.mockito.Mockito.doThrow(new java.io.IOException("force failed")).when(channel).force(true);
+        try (var files = org.mockito.Mockito.mockStatic(java.nio.channels.FileChannel.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            files.when(() -> java.nio.channels.FileChannel.open(any(Path.class), any(java.nio.file.OpenOption[].class))).thenReturn(channel);
+            assertThatThrownBy(() -> component.appendStrict(event())).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
+            org.mockito.Mockito.verifyNoInteractions(stream);
+        }
+    }
+
+    @Test
+    void strictHandoffDoesNotFallBackToBrokerOnlyWhenDurableSpoolIsFull() throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        @SuppressWarnings("unchecked") RStream<String,String> stream = mock(RStream.class);
+        org.mockito.Mockito.doReturn(stream).when(redisson).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        when(stream.add(any(StreamAddArgs.class))).thenReturn(new StreamMessageId(9,1));
+        TokenUsageAuditComponent component = component(redisson, temporary.resolve("strict-full"), secureKeyFile(), 1);
+        assertThatThrownBy(() -> component.appendStrict(event())).isInstanceOf(IllegalStateException.class)
+                .hasMessage("OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
+        org.mockito.Mockito.verifyNoInteractions(stream);
+    }
+
+    @Test
+    void strictBrokerFailureKeepsTheSameDurableFactForRecovery() throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        @SuppressWarnings("unchecked") RStream<String,String> stream = mock(RStream.class);
+        org.mockito.Mockito.doReturn(stream).when(redisson).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        when(stream.add(any(StreamAddArgs.class))).thenThrow(new RedisException("offline"));
+        Path spool = temporary.resolve("strict-broker");
+        TokenUsageAuditComponent component = component(redisson, spool, secureKeyFile(), 1_048_576);
+        assertThatThrownBy(() -> component.appendStrict(event())).isInstanceOf(IllegalStateException.class);
+        assertThat(Files.exists(spool.resolve("event-1.evt"))).isTrue();
+        when(stream.add(any(StreamAddArgs.class))).thenReturn(new StreamMessageId(10,1));
+        assertThat(component.appendStrict(event())).isEqualTo(new StreamMessageId(10,1));
+    }
+
+    @Test
     void durablySpoolsBeforePublishingAndDeletesTheSegmentOnlyAfterAcknowledgement() throws Exception {
         Path spool = temporary.resolve("spool");
         Path keyFile = secureKeyFile();
