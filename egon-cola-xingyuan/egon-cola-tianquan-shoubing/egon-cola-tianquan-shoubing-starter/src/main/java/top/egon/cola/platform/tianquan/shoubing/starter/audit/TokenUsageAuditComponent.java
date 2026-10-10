@@ -1,9 +1,13 @@
 package top.egon.cola.platform.tianquan.shoubing.starter.audit;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
-import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Validator;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -16,8 +20,12 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +43,10 @@ import org.redisson.api.stream.StreamAddArgs;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.TokenUsageAuditEvent;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.domain.dto.TokenUsageAuditReceiptDTO;
 
 /** Durable, secret-free audit handoff for resource servers that do not own a database. */
 @RequiredArgsConstructor
@@ -53,7 +64,31 @@ public class TokenUsageAuditComponent {
     private final ObjectMapper objectMapper;
     @Qualifier("oauthAuditProperties")
     private final OAuthAuditProperties properties;
+    @Qualifier("auditDeliveryProperties")
+    private final AuditDeliveryProperties delivery;
+    @Qualifier("idpClock")
+    private final Clock clock;
+    @Qualifier("defaultValidator")
+    private final Validator validator;
+    private String replayCursor = "";
     private final Object spoolLock = new Object();
+
+    /** Source-compatible legacy factory adapter; managed hosts use the generated full constructor. */
+    public TokenUsageAuditComponent(RedissonClient redisson, ObjectMapper mapper, OAuthAuditProperties properties) {
+        this(redisson, mapper, properties, new AuditDeliveryProperties(), Clock.systemUTC(), legacyValidator());
+    }
+
+    private static volatile Validator compatibilityValidator;
+
+    private static synchronized Validator legacyValidator() {
+        if (compatibilityValidator == null) {
+            var bean = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+            bean.afterPropertiesSet();
+            compatibilityValidator = bean;
+        }
+        return compatibilityValidator;
+    }
+
     private volatile byte[] hmacKey;
 
     @PostConstruct
@@ -69,7 +104,8 @@ public class TokenUsageAuditComponent {
 
     /** Strict handoff requires both durable media before returning to a protected caller. */
     public StreamMessageId appendStrict(@Valid TokenUsageAuditEvent event) {
-        TokenUsageAuditEvent value = Objects.requireNonNull(event, "event");
+        TokenUsageAuditEvent value = new ValidationUtils(validator)
+                .validate(Objects.requireNonNull(event, "event"));
         byte[] payload = serialize(value);
         try {
             stage(value.eventId(), payload, true);
@@ -91,7 +127,8 @@ public class TokenUsageAuditComponent {
     }
 
     public StreamMessageId append(TokenUsageAuditEvent event) {
-        TokenUsageAuditEvent value = Objects.requireNonNull(event, "event");
+        TokenUsageAuditEvent value = new ValidationUtils(validator)
+                .validate(Objects.requireNonNull(event, "event"));
         byte[] payload = serialize(value);
         try {
             stage(value.eventId(), payload);
@@ -119,45 +156,176 @@ public class TokenUsageAuditComponent {
         }
     }
 
+    public TokenUsageAuditReceiptDTO createReceipt(@Valid TokenUsageAuditEvent event, String outcome, Instant confirmedAt) {
+        new ValidationUtils(validator).validate(event);
+        if (outcome == null || !Set.of("STORED", "EXPIRED", "DEAD").contains(outcome)) {
+            throw new IllegalArgumentException("OAUTH_AUDIT_RECEIPT_OUTCOME_INVALID");
+        }
+        TokenUsageAuditReceiptDTO receipt = TokenUsageAuditReceiptDTO.builder().schemaVersion(1).eventId(event.eventId())
+                .eventFingerprint(fingerprint(event)).outcome(outcome).confirmedAt(Objects.requireNonNull(confirmedAt)).build();
+        receipt.setSignature(receiptSignature(receipt));
+        return new ValidationUtils(validator).validate(receipt);
+    }
+
+    public String encodeReceipt(@Valid TokenUsageAuditReceiptDTO receipt) {
+        new ValidationUtils(validator).validate(receipt);
+        try {
+            return objectMapper.writeValueAsString(receipt);
+        } catch (IOException failure) {
+            throw new IllegalStateException("OAUTH_AUDIT_RECEIPT_INVALID", failure);
+        }
+    }
+
+    public String fingerprint(@Valid TokenUsageAuditEvent event) {
+        new ValidationUtils(validator).validate(event);
+        try {
+            byte[] bytes = canonical(event.eventId(), Integer.toString(event.schemaVersion()), event.issuer().toASCIIString(),
+                    event.resource(), event.subjectRef(), event.clientRef(), event.tokenRef(), event.result(), event.reasonCode(),
+                    event.occurredAt().toString(), event.traceId());
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (IOException | java.security.NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("OAUTH_AUDIT_FINGERPRINT_UNAVAILABLE", failure);
+        }
+    }
+
+    private static byte[] canonical(String... fields) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (DataOutputStream output = new DataOutputStream(bytes)) {
+            for (String field : fields) {
+                if (field == null) { output.writeInt(-1); continue; }
+                byte[] value = field.getBytes(StandardCharsets.UTF_8);
+                output.writeInt(value.length);
+                output.write(value);
+            }
+        }
+        return bytes.toByteArray();
+    }
+
+    private String receiptSignature(TokenUsageAuditReceiptDTO receipt) {
+        try {
+            byte[] fields = canonical(Integer.toString(receipt.getSchemaVersion()), receipt.getEventId(), receipt.getEventFingerprint(),
+                    receipt.getOutcome(), receipt.getConfirmedAt().toString());
+            byte[] domain = "audit-receipt-v1".getBytes(StandardCharsets.UTF_8);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            bytes.write(domain);
+            bytes.write(fields);
+            return HexFormat.of().formatHex(mac(bytes.toByteArray()));
+        } catch (IOException failure) { throw new IllegalStateException("OAUTH_AUDIT_HMAC_UNAVAILABLE", failure); }
+    }
+
+    private boolean receiptMatches(TokenUsageAuditReceiptDTO receipt, TokenUsageAuditEvent event) {
+        if (receipt == null || receipt.getSchemaVersion() != 1 || receipt.getConfirmedAt() == null
+                || !event.eventId().equals(receipt.getEventId()) || !fingerprint(event).equals(receipt.getEventFingerprint())
+                || receipt.getOutcome() == null || !Set.of("STORED", "EXPIRED", "DEAD").contains(receipt.getOutcome())
+                || receipt.getSignature() == null || !receipt.getSignature().matches("[0-9a-f]{64}")) { return false; }
+        return MessageDigest.isEqual(HexFormat.of().parseHex(receiptSignature(receipt)),
+                HexFormat.of().parseHex(receipt.getSignature()));
+    }
+
     public int replayPending() {
         Path directory = properties.spoolDirectory();
-        if (directory == null || !Files.isDirectory(directory)) {
-            return 0;
-        }
+        if (directory == null || !Files.isDirectory(directory)) { return 0; }
         synchronized (spoolLock) {
-            try (var files = Files.list(directory)) {
-                List<Path> pending = files.filter(path -> path.getFileName().toString().endsWith(".evt"))
-                        .sorted(Comparator.comparing(path -> path.getFileName().toString()))
-                        .toList();
+            new ValidationUtils(validator).validate(delivery);
+            try {
+                List<Path> pending = replayBatch(directory, replayCursor);
+                if (pending.isEmpty()) { pending = replayBatch(directory, ""); }
                 int delivered = 0;
+                RuntimeException failed = null;
                 for (Path file : pending) {
-                    if (Files.exists(sentPath(file))) {
-                        continue;
+                    replayCursor = file.getFileName().toString();
+                    try {
+                        if (!file.getFileName().toString().endsWith(".evt")) {
+                            Path frame = file.resolveSibling(file.getFileName().toString().replaceFirst("\\.sent$", ""));
+                            if (!Files.exists(frame)) { Files.deleteIfExists(file); forceDirectory(); }
+                            continue;
+                        }
+                        TokenUsageAuditEvent event = read(file);
+                        acknowledge(event.eventId());
+                        if (!Files.exists(file)) { continue; }
+                        Path dead = file.resolveSibling(file.getFileName() + ".dead");
+                        if (Files.exists(dead)) {
+                            TokenUsageAuditReceiptDTO receipt = decodeReceipt(Files.readString(dead, StandardCharsets.UTF_8));
+                            if (!receiptMatches(receipt, event) || !"DEAD".equals(receipt.getOutcome())) {
+                                throw new IOException("OAUTH_AUDIT_DEAD_MARKER_INVALID");
+                            }
+                            continue;
+                        }
+                        Path sent = sentPath(file);
+                        if (Files.exists(sent) && Files.getLastModifiedTime(sent).toInstant()
+                                .plus(delivery.getConfirmationTimeout()).isAfter(clock.instant())) { continue; }
+                        markSent(file, publish(event), true);
+                        delivered++;
+                    } catch (IOException | RuntimeException failure) {
+                        log.error("OAuth audit spool replay failed; failureType={}", failure.getClass().getSimpleName());
+                        if (failed == null) { failed = new IllegalStateException("OAUTH_AUDIT_SPOOL_REPLAY_FAILED", failure); }
+                        else { failed.addSuppressed(failure); }
                     }
-                    TokenUsageAuditEvent event = read(file);
-                    StreamMessageId messageId = publish(event);
-                    markSent(file, messageId);
-                    delivered++;
                 }
+                if (failed != null) { throw failed; }
                 return delivered;
-            } catch (IOException | RuntimeException failure) {
-                log.error("OAuth audit spool replay failed; failureType={}", failure.getClass().getSimpleName());
+            } catch (IOException failure) {
                 throw new IllegalStateException("OAUTH_AUDIT_SPOOL_REPLAY_FAILED", failure);
             }
         }
     }
 
-    public void acknowledge(String eventId) {
-        if (eventId == null || !eventId.matches("[A-Za-z0-9._~-]{1,128}")) {
-            throw new IllegalArgumentException("OAUTH_AUDIT_EVENT_ID_INVALID");
-        }
-        synchronized (spoolLock) {
-            try {
-                Files.deleteIfExists(eventPath(eventId));
-                Files.deleteIfExists(sentPath(eventPath(eventId)));
-            } catch (IOException failure) {
-                throw new IllegalStateException("OAUTH_AUDIT_SPOOL_ACK_FAILED", failure);
+    /** Bounded memory and a rotating key cursor keep old unconfirmed frames from starving later ones. */
+    private List<Path> replayBatch(Path directory, String after) throws IOException {
+        Comparator<Path> order = Comparator.comparing(path -> path.getFileName().toString());
+        java.util.PriorityQueue<Path> selected = new java.util.PriorityQueue<>(order.reversed());
+        try (var files = Files.list(directory)) {
+            var iterator = files.iterator();
+            while (iterator.hasNext()) {
+                Path path = iterator.next();
+                String name = path.getFileName().toString();
+                if ((!name.endsWith(".evt") && !name.endsWith(".evt.sent")) || name.compareTo(after) <= 0) { continue; }
+                if (name.endsWith(".evt.sent")
+                        && Files.exists(path.resolveSibling(name.substring(0, name.length() - 5)))) { continue; }
+                selected.offer(path);
+                if (selected.size() > delivery.getBatchSize()) { selected.poll(); }
             }
+        }
+        return selected.stream().sorted(order).toList();
+    }
+
+    private TokenUsageAuditReceiptDTO decodeReceipt(String value) throws IOException {
+        if (value.length() > MAX_EVENT_BYTES) { throw new IOException("OAUTH_AUDIT_RECEIPT_SIZE_INVALID"); }
+        var tree = objectMapper.readTree(value);
+        if (!tree.isObject() || tree.size() != 6 || !tree.path("schemaVersion").isIntegralNumber()
+                || !tree.path("eventId").isTextual() || !tree.path("eventFingerprint").isTextual()
+                || !tree.path("outcome").isTextual() || !tree.path("confirmedAt").isTextual()
+                || !tree.path("signature").isTextual()) {
+            throw new IllegalArgumentException("OAUTH_AUDIT_RECEIPT_SCHEMA_INVALID");
+        }
+        TokenUsageAuditReceiptDTO receipt = objectMapper.readerFor(TokenUsageAuditReceiptDTO.class)
+                .with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .with(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION).readValue(value);
+        return new ValidationUtils(validator).validate(receipt);
+    }
+
+    public void acknowledge(String eventId) {
+        if (eventId == null || !eventId.matches("[A-Za-z0-9._~-]{1,64}")) { throw new IllegalArgumentException("OAUTH_AUDIT_EVENT_ID_INVALID"); }
+        synchronized (spoolLock) {
+            Path frame = eventPath(eventId);
+            if (!Files.exists(frame)) { return; }
+            try {
+                String value = redisson.<String>getBucket(properties.stream() + ":receipt:" + eventId, StringCodec.INSTANCE).get();
+                if (value == null) { return; }
+                TokenUsageAuditReceiptDTO receipt = decodeReceipt(value);
+                TokenUsageAuditEvent event = read(frame);
+                if (!receiptMatches(receipt, event)) { return; }
+                if ("DEAD".equals(receipt.getOutcome())) {
+                    Path marker = frame.resolveSibling(frame.getFileName() + ".dead");
+                    writeMarker(marker, value.getBytes(StandardCharsets.UTF_8), true);
+                    return;
+                }
+                Files.deleteIfExists(frame);
+                Files.deleteIfExists(sentPath(frame));
+                forceDirectory();
+            } catch (com.fasterxml.jackson.core.JsonProcessingException | ConstraintViolationException | IllegalArgumentException invalid) {
+                log.warn("OAuth receipt rejected; eventId={} failureType={}",eventId, invalid.getClass().getSimpleName());
+            } catch (IOException failure) { throw new IllegalStateException("OAUTH_AUDIT_SPOOL_ACK_FAILED", failure); }
         }
     }
 
@@ -168,7 +336,7 @@ public class TokenUsageAuditComponent {
         try {
             byte[] expected = mac((issuer + "\n" + Objects.toString(tokenRef, ""))
                     .getBytes(StandardCharsets.UTF_8));
-            byte[] provided = java.util.HexFormat.of().parseHex(signature);
+            byte[] provided = HexFormat.of().parseHex(signature);
             return java.security.MessageDigest.isEqual(expected, provided);
         } catch (IOException failure) {
             throw new IllegalStateException("OAUTH_AUDIT_HMAC_UNAVAILABLE", failure);
@@ -253,7 +421,8 @@ public class TokenUsageAuditComponent {
         if ((int) crc.getValue() != crcValue || !java.security.MessageDigest.isEqual(storedMac, mac(payload))) {
             throw new IOException("OAUTH_AUDIT_SPOOL_FRAME_AUTHENTICATION_FAILED");
         }
-        return objectMapper.readValue(payload, TokenUsageAuditEvent.class);
+        return new ValidationUtils(validator)
+                .validate(objectMapper.readValue(payload, TokenUsageAuditEvent.class));
     }
 
     private byte[] frame(byte[] payload) throws IOException {
@@ -300,7 +469,7 @@ public class TokenUsageAuditComponent {
         }
         fields.put("auditKind", "OAUTH");
         try {
-            fields.put("signature", java.util.HexFormat.of().formatHex(mac(
+            fields.put("signature", HexFormat.of().formatHex(mac(
                     (event.issuer().toASCIIString() + "\n" + Objects.toString(event.tokenRef(), ""))
                             .getBytes(StandardCharsets.UTF_8))));
         } catch (IOException failure) {
@@ -362,7 +531,7 @@ public class TokenUsageAuditComponent {
 
     private long spoolBytes() throws IOException {
         try (var files = Files.list(properties.spoolDirectory())) {
-            return files.filter(path -> path.getFileName().toString().endsWith(".evt"))
+            return files.filter(Files::isRegularFile)
                     .mapToLong(path -> {
                         try {
                             return Files.size(path);
@@ -388,32 +557,31 @@ public class TokenUsageAuditComponent {
     }
 
     private void markSent(Path eventPath, StreamMessageId messageId, boolean strict) throws IOException {
-        Path marker = sentPath(eventPath);
-        if (Files.exists(marker)) {
-            if (strict) { forceFile(marker); forceDirectory(); }
-            return;
+        writeMarker(sentPath(eventPath), messageId.toString().getBytes(StandardCharsets.US_ASCII), strict);
+    }
+
+    private void writeMarker(Path marker, byte[] bytes, boolean strict) throws IOException {
+        long existing = Files.exists(marker) ? Files.size(marker) : 0;
+        if (spoolBytes() - existing + bytes.length > properties.spoolMaxBytes()) {
+            throw new IOException("OAUTH_AUDIT_SPOOL_FULL");
         }
-        Path temporary = Files.createTempFile(properties.spoolDirectory(), ".audit-sent-", ".tmp");
-        setOwnerOnly(temporary, false);
-        try (FileChannel channel = FileChannel.open(temporary, StandardOpenOption.WRITE,
-                StandardOpenOption.TRUNCATE_EXISTING)) {
-            ByteBuffer bytes = StandardCharsets.US_ASCII.encode(messageId.toString());
-            while (bytes.hasRemaining()) {
-                channel.write(bytes);
-            }
-            channel.force(true);
-        }
+        Path temporary = Files.createTempFile(properties.spoolDirectory(), ".audit-marker-", ".tmp");
         try {
-            atomicMove(temporary, marker);
-        } catch (FileAlreadyExistsException duplicate) {
-            Files.deleteIfExists(temporary);
-        } catch (AtomicMoveNotSupportedException unsupported) {
-            if (strict) { throw unsupported; }
-            Files.move(temporary, marker);
-        } finally {
-            Files.deleteIfExists(temporary);
-        }
-        if (strict) { forceDirectory(); }
+            setOwnerOnly(temporary, false);
+            try (FileChannel channel = FileChannel.open(temporary, StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING)) {
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) { channel.write(buffer); }
+                Files.setLastModifiedTime(temporary, java.nio.file.attribute.FileTime.from(clock.instant()));
+                channel.force(true);
+            }
+            try { atomicMove(temporary, marker); }
+            catch (AtomicMoveNotSupportedException unsupported) {
+                if (strict) { throw unsupported; }
+                Files.move(temporary, marker, StandardCopyOption.REPLACE_EXISTING);
+            }
+            if (strict) { forceDirectory(); }
+        } finally { Files.deleteIfExists(temporary); }
     }
 
     void atomicMove(Path source, Path target) throws IOException {

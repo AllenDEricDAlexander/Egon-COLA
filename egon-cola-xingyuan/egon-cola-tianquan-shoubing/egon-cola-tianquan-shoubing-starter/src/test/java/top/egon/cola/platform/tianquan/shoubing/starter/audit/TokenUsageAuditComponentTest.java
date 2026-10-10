@@ -123,6 +123,7 @@ class TokenUsageAuditComponentTest {
                 .containsExactlyInAnyOrder(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
         assertThat(new String(Files.readAllBytes(segment), java.nio.charset.StandardCharsets.ISO_8859_1))
                 .doesNotContain("raw-token-value");
+        confirmedReceipt(redisson, component, "STORED");
         component.acknowledge("event-1");
         assertThat(Files.exists(segment)).isFalse();
         assertThat(component.verifySignature(ISSUER, TOKEN_REF, signature(ISSUER, TOKEN_REF, Files.readAllBytes(keyFile))))
@@ -146,8 +147,11 @@ class TokenUsageAuditComponentTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OAUTH_AUDIT_STREAM_UNAVAILABLE");
         assertThat(Files.exists(spool.resolve("event-1.evt"))).isTrue();
+        org.mockito.Mockito.doReturn(mock(org.redisson.api.RBucket.class)).when(redisson)
+                .getBucket(any(String.class), eq(StringCodec.INSTANCE));
         assertThat(component.replayPending()).isEqualTo(1);
         assertThat(component.replayPending()).isZero();
+        confirmedReceipt(redisson, component, "STORED");
         component.acknowledge("event-1");
         try (var files = Files.list(spool)) {
             assertThat(files.toList()).isEmpty();
@@ -188,6 +192,11 @@ class TokenUsageAuditComponentTest {
                 .withUserConfiguration(IdpStarterAutoConfiguration.OAuthAuditConfiguration.class)
                 .withBean("rbac3RuntimeRedissonClient", RedissonClient.class, () -> mock(RedissonClient.class))
                 .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
+                .withBean("idpClock", java.time.Clock.class, java.time.Clock::systemUTC)
+                .withBean("defaultValidator", jakarta.validation.Validator.class, () -> {
+                    var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+                    validator.afterPropertiesSet(); return validator;
+                })
                 .withPropertyValues(
                         "egon.cola.platform.tianquan.shoubing.audit.spool-directory=" + configuredSpool,
                         "egon.cola.platform.tianquan.shoubing.audit.hmac-key-file=" + configuredKey)
@@ -215,7 +224,8 @@ class TokenUsageAuditComponentTest {
 
     @Test
     void generatedStarterConstructorRetainsTheRequiredQualifiers() {
-        var constructor = TokenUsageAuditComponent.class.getDeclaredConstructors()[0];
+        var constructor = Arrays.stream(TokenUsageAuditComponent.class.getDeclaredConstructors())
+                .filter(value -> value.getParameterCount() == 6).findFirst().orElseThrow();
         var qualifierValues = Arrays.stream(constructor.getParameterAnnotations())
                 .map(annotations -> Arrays.stream(annotations)
                         .filter(Qualifier.class::isInstance)
@@ -226,7 +236,14 @@ class TokenUsageAuditComponentTest {
                 .toList();
 
         assertThat(qualifierValues).containsExactly(
-                "rbac3RuntimeRedissonClient", "jacksonObjectMapper", "oauthAuditProperties");
+                "rbac3RuntimeRedissonClient", "jacksonObjectMapper", "oauthAuditProperties",
+                "auditDeliveryProperties", "idpClock", "defaultValidator");
+    }
+
+    private static void confirmedReceipt(RedissonClient redis, TokenUsageAuditComponent component, String outcome) {
+        @SuppressWarnings("unchecked") org.redisson.api.RBucket<String> bucket = mock(org.redisson.api.RBucket.class);
+        org.mockito.Mockito.doReturn(bucket).when(redis).getBucket(any(String.class), eq(StringCodec.INSTANCE));
+        when(bucket.get()).thenReturn(component.encodeReceipt(component.createReceipt(event(), outcome, Instant.now())));
     }
 
     private Path secureKeyFile() throws Exception {

@@ -58,6 +58,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityResourceSe
 import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityOAuthClientStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityResourceServerStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
 
 import java.time.Clock;
@@ -98,6 +99,10 @@ public class IdpStarterAutoConfiguration {
             name = {"spool-directory", "hmac-key-file"})
     @EnableConfigurationProperties(OAuthAuditProperties.class)
     public static class OAuthAuditConfiguration {
+        @Bean(name = "auditDeliveryProperties")
+        AuditDeliveryProperties auditDeliveryProperties() {
+            return new AuditDeliveryProperties();
+        }
 
         @Bean
         @ConditionalOnBean({RedissonClient.class, ObjectMapper.class})
@@ -105,8 +110,11 @@ public class IdpStarterAutoConfiguration {
         public TokenUsageAuditComponent tokenUsageAuditComponent(
                 @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
                 @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
-                @Qualifier("oauthAuditProperties") OAuthAuditProperties properties) {
-            return new TokenUsageAuditComponent(redisson, objectMapper, properties);
+                @Qualifier("oauthAuditProperties") OAuthAuditProperties properties,
+                @Qualifier("auditDeliveryProperties") AuditDeliveryProperties delivery,
+                @Qualifier("idpClock") Clock clock,
+                @Qualifier("defaultValidator") jakarta.validation.Validator validator) {
+            return new TokenUsageAuditComponent(redisson, objectMapper, properties, delivery, clock, validator);
         }
     }
 

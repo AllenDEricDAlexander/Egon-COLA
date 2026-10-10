@@ -94,12 +94,13 @@ class OAuthAuditConsumerTest {
         assertThat(audit.getValue().getTargetSub()).isEqualTo("alice-sub");
         assertThat(audit.getValue().getPayload().path("sourceBucket").asText()).isEqualTo("ADMIN_API");
         verify(stream).ack("oauth-audit-persist-v1", id);
-        verify(durableAudit).acknowledge("identity-event-1");
+        verify(durableAudit, never()).acknowledge("identity-event-1");
     }
 
     @Test
     void requiredArgsConstructorRetainsEveryQualifierForTheStreamConsumer() {
-        var constructor = OAuthAuditConsumer.class.getDeclaredConstructors()[0];
+        var constructor = java.util.Arrays.stream(OAuthAuditConsumer.class.getDeclaredConstructors())
+                .filter(value -> value.getParameterCount() == 7).findFirst().orElseThrow();
         var qualifierValues = java.util.Arrays.stream(constructor.getParameterAnnotations())
                 .map(annotations -> java.util.Arrays.stream(annotations)
                         .filter(Qualifier.class::isInstance)
@@ -110,7 +111,7 @@ class OAuthAuditConsumerTest {
                 .toList();
 
         assertThat(qualifierValues).containsExactly("rbac3RuntimeRedissonClient", "oAuthAuditRepository",
-                "tenantIssuerService", "tokenUsageAuditComponent", "oauthAuditProperties", "idpClock");
+                "tenantIssuerService", "tokenUsageAuditComponent", "oauthAuditProperties", "idpClock", "auditDeliveryProperties");
     }
 
     @Test
@@ -127,7 +128,7 @@ class OAuthAuditConsumerTest {
 
         verify(audits, never()).save(any(), any(), anyLong());
         verify(stream).ack("oauth-audit-persist-v1", id);
-        verify(durableAudit).acknowledge("expired-event");
+        verify(durableAudit, never()).acknowledge("expired-event");
     }
 
     @Test
@@ -190,6 +191,187 @@ class OAuthAuditConsumerTest {
 
         verify(stream, never()).ack("oauth-audit-persist-v1", id);
         verify(durableAudit, never()).acknowledge("retry-event");
+    }
+
+    @Test
+    void signedUsageCommitAndReceiptAreConfirmedBeforeXackEvenWithoutTokenReference() {
+        var script = mock(org.redisson.api.RScript.class);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        when(script.eval(any(org.redisson.api.RScript.Mode.class), anyString(), any(org.redisson.api.RScript.ReturnType.class),
+                any(java.util.List.class), anyString(), anyLong(), anyString(), anyString())).thenReturn(1L);
+        var event = new top.egon.cola.platform.tianquan.shoubing.core.audit.TokenUsageAuditEvent("usage-1", 1,
+                PLATFORM.getIssuer(), "https://api.example/resource", null, null, null, "SUCCESS", "TOKEN_USE_VERIFIED", NOW, null);
+        var receipt = top.egon.cola.platform.tianquan.shoubing.starter.audit.domain.dto.TokenUsageAuditReceiptDTO.builder()
+                .schemaVersion(1).eventId("usage-1").eventFingerprint("a".repeat(64)).outcome("STORED")
+                .confirmedAt(NOW).signature("b".repeat(64)).build();
+        when(durableAudit.verifySignature(PLATFORM.getIssuer().toASCIIString(), null, "c".repeat(64))).thenReturn(true);
+        when(durableAudit.createReceipt(event, "STORED", NOW)).thenReturn(receipt);
+        when(durableAudit.encodeReceipt(receipt)).thenReturn("receipt-json");
+        StreamMessageId id = new StreamMessageId(7, 0);
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(id, usageFields("usage-1", NOW)));
+        assertThat(consumer.consumeBatch()).isEqualTo(1);
+        var ordered = org.mockito.Mockito.inOrder(audits, script, stream);
+        ordered.verify(audits).save(eq(PLATFORM), any(OAuthAuditBO.class), eq(0L));
+        ordered.verify(script).eval(eq(org.redisson.api.RScript.Mode.READ_WRITE), anyString(),
+                eq(org.redisson.api.RScript.ReturnType.INTEGER), eq(java.util.List.of(STREAM + ":receipt:usage-1")),
+                eq("receipt-json"), eq(3600000L), eq("usage-1"), eq("a".repeat(64)));
+        ordered.verify(stream).ack("oauth-audit-persist-v1", id);
+        verify(durableAudit, never()).acknowledge(anyString());
+    }
+
+    @Test
+    void unconfirmedReceiptKeepsCommittedUsagePending() {
+        var script = mock(org.redisson.api.RScript.class);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        var receipt = top.egon.cola.platform.tianquan.shoubing.starter.audit.domain.dto.TokenUsageAuditReceiptDTO.builder()
+                .schemaVersion(1).eventId("usage-2").eventFingerprint("a".repeat(64)).build();
+        when(durableAudit.verifySignature(anyString(), org.mockito.ArgumentMatchers.isNull(), anyString())).thenReturn(true);
+        when(durableAudit.createReceipt(any(), eq("STORED"), eq(NOW))).thenReturn(receipt);
+        when(durableAudit.encodeReceipt(receipt)).thenReturn("receipt-json");
+        StreamMessageId id = new StreamMessageId(8, 0);
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(id, usageFields("usage-2", NOW)));
+        assertThat(consumer.consumeBatch()).isZero();
+        verify(audits).save(any(), any(), anyLong());
+        verify(stream, never()).ack(anyString(), any());
+    }
+
+    @Test
+    void signedDatabaseRollbackNeverPublishesReceiptOrXacks() {
+        when(durableAudit.verifySignature(anyString(), org.mockito.ArgumentMatchers.isNull(), anyString())).thenReturn(true);
+        when(audits.save(any(), any(), anyLong())).thenThrow(new IllegalStateException("unknown commit"));
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(new StreamMessageId(9, 0), usageFields("usage-3", NOW)));
+        assertThat(consumer.consumeBatch()).isZero();
+        verify(durableAudit, never()).createReceipt(any(), anyString(), any());
+        verify(redisson, never()).getScript(any(org.redisson.client.codec.Codec.class));
+        verify(stream, never()).ack(anyString(), any());
+    }
+
+    @Test
+    void expiredSignedUsageGetsExpiredReceiptWithoutRecreatingAuditRows() {
+        var script = receiptScript();
+        var receipt = receipt("expired-usage", "EXPIRED");
+        when(durableAudit.verifySignature(anyString(), org.mockito.ArgumentMatchers.isNull(), anyString())).thenReturn(true);
+        when(durableAudit.createReceipt(any(), eq("EXPIRED"), eq(NOW))).thenReturn(receipt);
+        when(durableAudit.encodeReceipt(receipt)).thenReturn("expired-json");
+        StreamMessageId id = new StreamMessageId(10, 0);
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(id, usageFields("expired-usage", NOW.minusSeconds(181 * 86400L))));
+        assertThat(consumer.consumeBatch()).isEqualTo(1);
+        verify(audits, never()).save(any(), any(), anyLong());
+        verify(durableAudit).createReceipt(any(), eq("EXPIRED"), eq(NOW));
+        verify(stream).ack("oauth-audit-persist-v1", id);
+    }
+
+    @Test
+    void lostXackRedeliversTheSameFactAndRenewsReceiptAfterPersistence() {
+        var script = receiptScript();
+        var receipt = receipt("repeat-usage", "STORED");
+        when(durableAudit.verifySignature(anyString(), org.mockito.ArgumentMatchers.isNull(), anyString())).thenReturn(true);
+        when(durableAudit.createReceipt(any(), eq("STORED"), eq(NOW))).thenReturn(receipt);
+        when(durableAudit.encodeReceipt(receipt)).thenReturn("stored-json");
+        StreamMessageId id = new StreamMessageId(11, 0);
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(id, usageFields("repeat-usage", NOW)));
+        when(stream.ack("oauth-audit-persist-v1", id)).thenThrow(new IllegalStateException("unknown XACK")).thenReturn(1L);
+        assertThat(consumer.consumeBatch()).isZero();
+        assertThat(consumer.consumeBatch()).isEqualTo(1);
+        verify(audits, org.mockito.Mockito.times(2)).save(any(), any(), anyLong());
+        verify(durableAudit, org.mockito.Mockito.times(2)).createReceipt(any(), eq("STORED"), eq(NOW));
+    }
+
+    @Test
+    void exhaustedTrustedUsageConfirmsDeadStreamBeforeDeadReceiptAndXack() {
+        var script = receiptScript();
+        var receipt = receipt("dead-usage", "DEAD");
+        when(durableAudit.verifySignature(anyString(), org.mockito.ArgumentMatchers.isNull(), anyString())).thenReturn(true);
+        when(durableAudit.createReceipt(any(), eq("DEAD"), eq(NOW))).thenReturn(receipt);
+        when(durableAudit.encodeReceipt(receipt)).thenReturn("dead-json");
+        when(audits.save(any(), any(), anyLong())).thenThrow(new IllegalStateException("unavailable"));
+        when(attempts.incrementAndGet()).thenReturn(30L);
+        @SuppressWarnings("unchecked") RStream<String, String> dead = mock(RStream.class);
+        doReturn(dead).when(redisson).getStream(eq("egon:oauth:audit:dead:v1"), eq(StringCodec.INSTANCE));
+        when(dead.add(any(StreamAddArgs.class))).thenReturn(new StreamMessageId(21, 0));
+        StreamMessageId id = new StreamMessageId(12, 0);
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(id, usageFields("dead-usage", NOW)));
+        assertThat(consumer.consumeBatch()).isEqualTo(1);
+        var ordered = org.mockito.Mockito.inOrder(dead, durableAudit, script, stream);
+        ordered.verify(dead).add(any(StreamAddArgs.class));
+        ordered.verify(durableAudit).createReceipt(any(), eq("DEAD"), eq(NOW));
+        ordered.verify(durableAudit).encodeReceipt(receipt);
+        ordered.verify(script).eval(any(org.redisson.api.RScript.Mode.class), anyString(),
+                any(org.redisson.api.RScript.ReturnType.class), any(java.util.List.class),
+                anyString(), anyLong(), anyString(), anyString());
+        ordered.verify(stream).ack("oauth-audit-persist-v1", id);
+        verify(durableAudit, never()).acknowledge(anyString());
+    }
+
+    @Test
+    void unconfirmedDeadStreamNeverCreatesReceiptOrXacks() {
+        when(durableAudit.verifySignature(anyString(), org.mockito.ArgumentMatchers.isNull(), anyString())).thenReturn(true);
+        when(audits.save(any(), any(), anyLong())).thenThrow(new IllegalStateException("unavailable"));
+        when(attempts.incrementAndGet()).thenReturn(30L);
+        doReturn(mock(RStream.class)).when(redisson).getStream(eq("egon:oauth:audit:dead:v1"), eq(StringCodec.INSTANCE));
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(new StreamMessageId(13, 0), usageFields("dead-usage", NOW)));
+        consumer.consumeBatch();
+        verify(durableAudit, never()).createReceipt(any(), anyString(), any());
+        verify(stream, never()).ack(anyString(), any());
+    }
+
+    @Test
+    void expiredSignedUsageStillRequiresAnExactTrustedIssuer() {
+        when(durableAudit.verifySignature(anyString(), org.mockito.ArgumentMatchers.isNull(), anyString())).thenReturn(true);
+        when(issuers.resolveExactIssuer(PLATFORM.getIssuer())).thenThrow(new OAuth2AuthenticationException(new OAuth2Error("invalid_request")));
+        @SuppressWarnings("unchecked") RStream<String, String> dead = mock(RStream.class);
+        doReturn(dead).when(redisson).getStream(eq("egon:oauth:audit:dead:v1"), eq(StringCodec.INSTANCE));
+        when(dead.add(any(StreamAddArgs.class))).thenReturn(new StreamMessageId(30, 0));
+        when(stream.readGroup(anyString(), anyString(), any(StreamReadGroupArgs.class)))
+                .thenReturn(Map.of(new StreamMessageId(14, 0), usageFields("expired-untrusted", NOW.minusSeconds(181 * 86400L))));
+        consumer.consumeBatch();
+        verify(audits, never()).save(any(), any(), anyLong());
+        verify(durableAudit, never()).createReceipt(any(), anyString(), any());
+    }
+
+    @Test
+    void managedConsumerSelectsTheQualifiedLombokConstructorAndKeepsLegacyConstructor() {
+        new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                .withBean("rbac3RuntimeRedissonClient", RedissonClient.class, () -> redisson)
+                .withBean("oAuthAuditRepository", OAuthAuditRepository.class, () -> audits)
+                .withBean("tenantIssuerService", TenantIssuerService.class, () -> issuers)
+                .withBean("tokenUsageAuditComponent", TokenUsageAuditComponent.class, () -> durableAudit)
+                .withBean("oauthAuditProperties", OAuthAuditProperties.class, () -> new OAuthAuditProperties(STREAM,
+                        Path.of("/tmp/audit"), 1024, Path.of("/tmp/key")))
+                .withBean("idpClock", Clock.class, () -> Clock.fixed(NOW, ZoneOffset.UTC))
+                .withBean("auditDeliveryProperties", top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties.class,
+                        top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties::new)
+                .withUserConfiguration(OAuthAuditConsumer.class)
+                .run(context -> assertThat(context).hasNotFailed().hasSingleBean(OAuthAuditConsumer.class));
+    }
+
+    private org.redisson.api.RScript receiptScript() {
+        var script = mock(org.redisson.api.RScript.class);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        when(script.eval(any(org.redisson.api.RScript.Mode.class), anyString(), any(org.redisson.api.RScript.ReturnType.class),
+                any(java.util.List.class), anyString(), anyLong(), anyString(), anyString())).thenReturn(1L);
+        return script;
+    }
+
+    private static top.egon.cola.platform.tianquan.shoubing.starter.audit.domain.dto.TokenUsageAuditReceiptDTO receipt(String id, String outcome) {
+        return top.egon.cola.platform.tianquan.shoubing.starter.audit.domain.dto.TokenUsageAuditReceiptDTO.builder()
+                .schemaVersion(1).eventId(id).eventFingerprint("a".repeat(64)).outcome(outcome)
+                .confirmedAt(NOW).signature("b".repeat(64)).build();
+    }
+
+    private static Map<String, String> usageFields(String eventId, Instant occurredAt) {
+        return Map.ofEntries(Map.entry("eventId", eventId), Map.entry("schemaVersion", "1"),
+                Map.entry("issuer", PLATFORM.getIssuer().toASCIIString()), Map.entry("auditKind", "OAUTH"),
+                Map.entry("resource", "https://api.example/resource"), Map.entry("result", "SUCCESS"),
+                Map.entry("reasonCode", "TOKEN_USE_VERIFIED"), Map.entry("occurredAt", occurredAt.toString()),
+                Map.entry("signature", "c".repeat(64)));
     }
 
     private static Map<String, String> identityFields(String eventId) {

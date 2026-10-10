@@ -10,12 +10,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.AutoClaimResult;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RScript;
 import org.redisson.api.RStream;
 import org.redisson.api.RedissonClient;
 import org.redisson.api.StreamMessageId;
@@ -25,20 +26,23 @@ import org.redisson.api.stream.StreamReadGroupArgs;
 import org.redisson.client.RedisException;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.stereotype.Service;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.bo.OAuthAuditBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.repository.OAuthAuditRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTypeEnum;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService;
+import top.egon.cola.platform.tianquan.shoubing.core.audit.TokenUsageAuditEvent;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.domain.dto.TokenUsageAuditReceiptDTO;
 
 @Service("oauthAuditConsumer")
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @org.springframework.beans.factory.annotation.Autowired)
 public class OAuthAuditConsumer {
 
     private static final String GROUP = "oauth-audit-persist-v1";
@@ -62,6 +66,14 @@ public class OAuthAuditConsumer {
     private final OAuthAuditProperties properties;
     @Qualifier("idpClock")
     private final Clock clock;
+    @Qualifier("auditDeliveryProperties")
+    private final AuditDeliveryProperties delivery;
+
+    public OAuthAuditConsumer(RedissonClient redisson, OAuthAuditRepository audits, TenantIssuerService issuers,
+            TokenUsageAuditComponent durableAudit, OAuthAuditProperties properties, Clock clock) {
+        this(redisson, audits, issuers, durableAudit, properties, clock, new AuditDeliveryProperties());
+    }
+
     private final String consumerName = "audit-" + UUID.randomUUID().toString().replace("-", "");
     private volatile boolean groupReady;
 
@@ -107,11 +119,22 @@ public class OAuthAuditConsumer {
             String eventId = message.getValue().get("eventId");
             try {
                 AuditEvent event = parse(message.getValue());
-                if (!event.occurredAt().isBefore(clock.instant().minus(Duration.ofDays(180)))) {
+                if (message.getValue().get("signature") != null) {
+                    try { issuers.resolveExactIssuer(event.issuer()); }
+                    catch (OAuth2AuthenticationException | IllegalArgumentException untrusted) {
+                        throw new InvalidAuditEvent("OAUTH_AUDIT_ISSUER_UNTRUSTED", untrusted);
+                    }
+                }
+                boolean expired = event.occurredAt().isBefore(clock.instant().minus(Duration.ofDays(180)));
+                if (!expired) {
                     persist(event);
                 }
+                if (message.getValue().get("signature") != null) {
+                    TokenUsageAuditEvent usage = usageEvent(event);
+                    String outcome = expired ? "EXPIRED" : "STORED";
+                    publishReceipt(durableAudit.createReceipt(usage, outcome, clock.instant()));
+                }
                 stream.ack(GROUP, message.getKey());
-                durableAudit.acknowledge(event.eventId());
                 attempts(event.eventId()).delete();
                 processed++;
             } catch (InvalidAuditEvent invalid) {
@@ -129,6 +152,33 @@ public class OAuthAuditConsumer {
             }
         }
         return processed;
+    }
+
+    private void publishReceipt(TokenUsageAuditReceiptDTO receipt) {
+        String encoded = durableAudit.encodeReceipt(receipt);
+        // The fingerprint guard and SET PX form one PRIMARY operation, including duplicate TTL renewal.
+        Long confirmed = redisson.getScript(StringCodec.INSTANCE).eval(RScript.Mode.READ_WRITE, """
+                local current = redis.call('GET', KEYS[1])
+                if current then
+                    local ok, previous = pcall(cjson.decode, current)
+                    if not ok or type(previous) ~= 'table' or previous.schemaVersion ~= 1
+                        or previous.eventId ~= ARGV[3] or previous.eventFingerprint ~= ARGV[4] then
+                        return 0
+                    end
+                end
+                redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[2])
+                return 1
+                """, RScript.ReturnType.INTEGER,
+                java.util.List.of(properties.stream() + ":receipt:" + receipt.getEventId()),
+                encoded, delivery.getReceiptTtl().toMillis(), receipt.getEventId(), receipt.getEventFingerprint());
+        if (!Long.valueOf(1).equals(confirmed)) {
+            throw new IllegalStateException("OAUTH_AUDIT_RECEIPT_CONFLICT_OR_UNCONFIRMED");
+        }
+    }
+
+    private TokenUsageAuditEvent usageEvent(AuditEvent event) {
+        return new TokenUsageAuditEvent(event.eventId(), 1, event.issuer(), event.resource(), event.subjectRef(),
+                event.clientRef(), event.tokenRef(), event.result(), event.reasonCode(), event.occurredAt(), event.traceId());
     }
 
     private void persist(AuditEvent event) {
@@ -220,8 +270,8 @@ public class OAuthAuditConsumer {
                     || clientRef != null && !clientRef.matches("[0-9a-f]{64}")
                     || subjectRef != null && !subjectRef.matches("[0-9a-f]{64}")
                     || tokenRef != null && !tokenRef.matches("[0-9a-f]{64}")
-                    || tokenRef != null && (signature == null
-                            || !durableAudit.verifySignature(issuer.toASCIIString(), tokenRef, signature))) {
+                    || (tokenRef != null && signature == null || signature != null
+                            && !durableAudit.verifySignature(issuer.toASCIIString(), tokenRef, signature))) {
                 throw new InvalidAuditEvent("OAUTH_AUDIT_EVENT_REFERENCE_INVALID");
             }
         } else if (signature != null || actorSub == null || targetSub == null || sourceBucket == null
@@ -256,10 +306,20 @@ public class OAuthAuditConsumer {
             if (deadLetterId == null) {
                 throw new IllegalStateException("OAUTH_AUDIT_DEAD_LETTER_NOT_CONFIRMED");
             }
+            if (fields != null && fields.get("signature") != null) {
+                try {
+                    AuditEvent event = parse(fields);
+                    issuers.resolveExactIssuer(event.issuer());
+                    publishReceipt(durableAudit.createReceipt(usageEvent(event), "DEAD", clock.instant()));
+                } catch (InvalidAuditEvent | OAuth2AuthenticationException | IllegalArgumentException invalid) {
+                    // Malformed or untrusted input cannot establish a fact that a producer may confirm.
+                    log.warn("OAuth dead-letter has no reconstructable trusted receipt; failureType={}",
+                            invalid.getClass().getSimpleName());
+                }
+            }
             stream.ack(GROUP, id);
             String eventId = fields == null ? null : fields.get("eventId");
             if (eventId != null && eventId.matches("[A-Za-z0-9._~-]{1,128}")) {
-                durableAudit.acknowledge(eventId);
                 attempts(eventId).delete();
             }
         } catch (RuntimeException failure) {
