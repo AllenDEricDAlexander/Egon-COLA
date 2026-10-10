@@ -16,7 +16,9 @@ public sealed interface AccessTokenVerification<T extends IdpPrincipal>
         AccessTokenVerification.Invalid,
         AccessTokenVerification.Unavailable {
 
-    record Valid<T extends IdpPrincipal>(T principal, Set<String> scopes)
+    record Valid<T extends IdpPrincipal>(T principal, Set<String> scopes,
+            @com.fasterxml.jackson.annotation.JsonIgnore @jakarta.validation.Valid
+            top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO proof)
             implements AccessTokenVerification<T> {
 
         public Valid {
@@ -34,8 +36,10 @@ public sealed interface AccessTokenVerification<T extends IdpPrincipal>
             scopes = Collections.unmodifiableSet(normalized);
         }
 
+        public Valid(T principal, Set<String> scopes) { this(principal, scopes, null); }
+
         public Valid(T principal) {
-            this(principal, Set.of());
+            this(principal, Set.of(), null);
         }
     }
 

@@ -71,6 +71,8 @@ public final class IdpJwtVerifier {
     private final VerifiedPrincipalConverter verifiedPrincipalConverter;
     @Qualifier("legacyIssuerCutoverPolicy")
     private final LegacyIssuerCutoverPolicy legacyIssuerCutoverPolicy;
+    @Qualifier("idpObservedVerificationComponent")
+    private final IdpObservedVerificationComponent observations;
 
     /** Keeps the former stateful constructor as a source-compatible legacy adapter. */
     public IdpJwtVerifier(
@@ -83,7 +85,7 @@ public final class IdpJwtVerifier {
             Clock clock
     ) {
         this(decoder, resourceStates, clientStates, resourceServerId, resourceUri,
-                platformAudience, clock, null, null, null, null);
+                platformAudience, clock, null, null, null, null, null);
         Objects.requireNonNull(decoder, "decoder");
         Objects.requireNonNull(resourceStates, "resourceStates");
         Objects.requireNonNull(clientStates, "clientStates");
@@ -99,7 +101,7 @@ public final class IdpJwtVerifier {
             String platformAudience,
             Clock clock) {
         this(decoder, null, null, null, null, platformAudience, clock,
-                null, null, null, null);
+                null, null, null, null, null);
         Objects.requireNonNull(decoder, "decoder");
         required(platformAudience, "platformAudience");
         Objects.requireNonNull(clock, "clock");
@@ -118,6 +120,16 @@ public final class IdpJwtVerifier {
             OAuthRevocationReader revocationReader,
             VerifiedPrincipalConverter verifiedPrincipalConverter,
             LegacyIssuerCutoverPolicy legacyIssuerCutoverPolicy) {
+        return createConfigured(decoder, resourceStates, clientStates, resourceServerId, resourceUri, platformAudience,
+                clock, tenantIssuerAuthenticationManager, revocationReader, verifiedPrincipalConverter, legacyIssuerCutoverPolicy, null);
+    }
+
+    /** Creates the same single-pass verifier with one optional outer usage observer. */
+    public static IdpJwtVerifier createConfigured(JwtDecoder decoder, IdentityResourceServerStateReader resourceStates,
+            IdentityOAuthClientStateReader clientStates, String resourceServerId, URI resourceUri, String platformAudience,
+            Clock clock, TenantIssuerAuthenticationManagerComponent tenantIssuerAuthenticationManager,
+            OAuthRevocationReader revocationReader, VerifiedPrincipalConverter verifiedPrincipalConverter,
+            LegacyIssuerCutoverPolicy legacyIssuerCutoverPolicy, IdpObservedVerificationComponent observations) {
         Objects.requireNonNull(resourceStates, "resourceStates");
         Objects.requireNonNull(clientStates, "clientStates");
         required(resourceServerId, "resourceServerId");
@@ -133,22 +145,25 @@ public final class IdpJwtVerifier {
         if (!manager.isConfigured() && decoder == null) {
             throw new IllegalStateException("a configured legacy JWT decoder is required");
         }
-        return new IdpJwtVerifier(decoder, resourceStates, clientStates, resourceServerId,
-                resourceUri, platformAudience, clock, manager, revocationReader,
-                verifiedPrincipalConverter, legacyIssuerCutoverPolicy);
+        return new IdpJwtVerifier(decoder, resourceStates, clientStates, resourceServerId, resourceUri, platformAudience,
+                clock, manager, revocationReader, verifiedPrincipalConverter, legacyIssuerCutoverPolicy, observations);
     }
 
-    /**
-     * Verifies a USER token without any Redis or Tianquan-Shoubing-user-state lookup.
-     */
+    /** Verifies USER credentials, completing the enabled usage handoff before returning. */
     public AccessTokenVerification<IdentityPrincipal> verifyUser(String token) {
+        return observations == null ? verifyUserInternal(token, ignored -> { })
+                : observations.observe(capture -> verifyUserInternal(token, capture));
+    }
+
+    private AccessTokenVerification<IdentityPrincipal> verifyUserInternal(String token,
+            java.util.function.Consumer<VerifiedJwtBO> capture) {
         if (multiIssuerConfigured()) {
             if (legacyIssuerCutoverPolicy != null
                     && legacyIssuerCutoverPolicy.isLegacyIssuerHint(token)) {
                 return verifyLegacyUser(token);
             }
             return castVerification(
-                    verifyMultiIssuer(token, PrincipalType.USER), IdentityPrincipal.class);
+                    verifyMultiIssuer(token, PrincipalType.USER, capture), IdentityPrincipal.class);
         }
         return verifyLegacyUser(token);
     }
@@ -172,13 +187,19 @@ public final class IdpJwtVerifier {
      * Verifies a SERVICE token and retains Resource/Client runtime checks.
      */
     public AccessTokenVerification<ServiceIdentityPrincipal> verifyService(String token) {
+        return observations == null ? verifyServiceInternal(token, ignored -> { })
+                : observations.observe(capture -> verifyServiceInternal(token, capture));
+    }
+
+    private AccessTokenVerification<ServiceIdentityPrincipal> verifyServiceInternal(String token,
+            java.util.function.Consumer<VerifiedJwtBO> capture) {
         if (multiIssuerConfigured()) {
             if (legacyIssuerCutoverPolicy != null
                     && legacyIssuerCutoverPolicy.isLegacyIssuerHint(token)) {
                 return verifyLegacyService(token);
             }
             return castVerification(
-                    verifyMultiIssuer(token, PrincipalType.SERVICE), ServiceIdentityPrincipal.class);
+                    verifyMultiIssuer(token, PrincipalType.SERVICE, capture), ServiceIdentityPrincipal.class);
         }
         return verifyLegacyService(token);
     }
@@ -283,7 +304,8 @@ public final class IdpJwtVerifier {
     }
 
     public AccessTokenVerification<IdpPrincipal> verifyAny(String token) {
-        return verifyAnyInternal(token, ignored -> { });
+        return observations == null ? verifyAnyInternal(token, ignored -> { })
+                : observations.observe(capture -> verifyAnyInternal(token, capture));
     }
 
     private AccessTokenVerification<IdpPrincipal> verifyAnyInternal(String token,
@@ -439,7 +461,7 @@ public final class IdpJwtVerifier {
         if (result instanceof AccessTokenVerification.Valid<IdpPrincipal> valid
                 && principalType.isInstance(valid.principal())) {
             return new AccessTokenVerification.Valid<>(
-                    principalType.cast(valid.principal()), valid.scopes());
+                    principalType.cast(valid.principal()), valid.scopes(), valid.proof());
         }
         if (result instanceof AccessTokenVerification.Expired<?>) {
             return new AccessTokenVerification.Expired<>();
@@ -456,7 +478,7 @@ public final class IdpJwtVerifier {
     private static <T extends IdpPrincipal> AccessTokenVerification<IdpPrincipal> copyVerification(
             AccessTokenVerification<T> result) {
         if (result instanceof AccessTokenVerification.Valid<?> valid) {
-            return new AccessTokenVerification.Valid<>((IdpPrincipal) valid.principal(), valid.scopes());
+            return new AccessTokenVerification.Valid<>((IdpPrincipal) valid.principal(), valid.scopes(), valid.proof());
         }
         if (result instanceof AccessTokenVerification.Expired<?>) {
             return new AccessTokenVerification.Expired<>();

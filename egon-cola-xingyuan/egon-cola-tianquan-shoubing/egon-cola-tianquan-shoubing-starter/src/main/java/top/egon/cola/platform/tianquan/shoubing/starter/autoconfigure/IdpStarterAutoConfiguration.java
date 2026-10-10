@@ -59,6 +59,10 @@ import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityOAuth
 import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityResourceServerStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties;
 import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
+import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
 
@@ -116,6 +120,42 @@ public class IdpStarterAutoConfiguration {
                 @Qualifier("idpClock") Clock clock,
                 @Qualifier("defaultValidator") jakarta.validation.Validator validator) {
             return new TokenUsageAuditComponent(redisson, objectMapper, properties, delivery, clock, validator);
+        }
+    }
+
+    @Bean(name = "oauthUsageObservationProperties")
+    OAuthUsageObservationProperties oauthUsageObservationProperties() {
+        return new OAuthUsageObservationProperties();
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "egon.cola.platform.tianquan.shoubing.usage-observation", name = "enabled", havingValue = "true")
+    public static class UsageObservationConfiguration {
+        @Bean(name = "idpObservedVerificationComponent")
+        IdpObservedVerificationComponent idpObservedVerificationComponent(
+                @Qualifier("tokenUsageAuditComponent") TokenUsageAuditComponent producer,
+                @Qualifier("tokenUsageAuditEventConverterImpl") TokenUsageAuditEventConverter converter,
+                @Qualifier("oauthUsageObservationProperties") OAuthUsageObservationProperties properties,
+                @Qualifier("idpSecurityMetricsRecorder") IdpSecurityMetricsRecorder metrics,
+                @Qualifier("idpClock") Clock clock,
+                @Qualifier("defaultValidator") jakarta.validation.Validator validator,
+                @Qualifier("idpStarterProperties") IdpStarterProperties receiver) {
+            return new IdpObservedVerificationComponent(producer, converter, properties, metrics, clock, validator, receiver.getResourceUri());
+        }
+
+        @Bean(name = "idpSecurityObservationFilter")
+        IdpSecurityObservationFilter idpSecurityObservationFilter(
+                @Qualifier("idpObservedVerificationComponent") IdpObservedVerificationComponent observations,
+                @Qualifier("idpEndpointAuthenticationPolicy") IdpEndpointAuthenticationPolicy endpointPolicy) {
+            return new IdpSecurityObservationFilter(observations, endpointPolicy);
+        }
+
+        @Bean(name = "idpSecurityObservationFilterRegistration")
+        org.springframework.boot.web.servlet.FilterRegistrationBean<IdpSecurityObservationFilter> idpSecurityObservationFilterRegistration(
+                @Qualifier("idpSecurityObservationFilter") IdpSecurityObservationFilter filter) {
+            var registration = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(filter);
+            registration.setEnabled(false);
+            return registration;
         }
     }
 
@@ -450,15 +490,16 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnMissingBean
     public IdpJwtVerifier idpJwtVerifier(
             @Qualifier("idpJwtDecoder") ObjectProvider<JwtDecoder> legacyDecoder,
-            IdentityResourceServerStateReader resourceStates,
-            IdentityOAuthClientStateReader clientStates,
+            @Qualifier("identityResourceServerStateReader") IdentityResourceServerStateReader resourceStates,
+            @Qualifier("identityOAuthClientStateReader") IdentityOAuthClientStateReader clientStates,
             @Qualifier("idpStarterProperties") IdpStarterProperties properties,
             @Qualifier("tenantIssuerAuthenticationManagerComponent")
                     TenantIssuerAuthenticationManagerComponent tenantIssuerAuthenticationManager,
-            ObjectProvider<OAuthRevocationReader> revocationReaders,
+            @Qualifier("oauthRevocationReader") ObjectProvider<OAuthRevocationReader> revocationReaders,
             @Qualifier("verifiedPrincipalConverter") VerifiedPrincipalConverter verifiedPrincipalConverter,
-            ObjectProvider<LegacyIssuerCutoverPolicy> legacyIssuerCutoverPolicies,
-            @Qualifier("idpClock") Clock idpClock
+            @Qualifier("legacyIssuerCutoverPolicy") ObjectProvider<LegacyIssuerCutoverPolicy> legacyIssuerCutoverPolicies,
+            @Qualifier("idpClock") Clock idpClock,
+            @Qualifier("idpObservedVerificationComponent") ObjectProvider<IdpObservedVerificationComponent> observations
     ) {
         properties.validate();
         return IdpJwtVerifier.createConfigured(
@@ -472,7 +513,7 @@ public class IdpStarterAutoConfiguration {
                 tenantIssuerAuthenticationManager,
                 revocationReaders.getIfAvailable(),
                 verifiedPrincipalConverter,
-                legacyIssuerCutoverPolicies.getIfAvailable());
+                legacyIssuerCutoverPolicies.getIfAvailable(), observations.getIfAvailable());
     }
 
     /**
@@ -562,12 +603,12 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnBean(IdpJwtVerifier.class)
     @ConditionalOnMissingBean
     public IdpBearerAuthenticationFilter idpBearerAuthenticationFilter(
-            UserAccessTokenVerifier userAccessTokenVerifier,
-            ServiceAccessTokenVerifier serviceAccessTokenVerifier,
-            IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
-            ObjectMapper objectMapper,
-            VerifiedTenantContextFilter verifiedTenantContextFilter,
-            IdpJwtVerifier combinedVerifier
+            @Qualifier("userAccessTokenVerifier") UserAccessTokenVerifier userAccessTokenVerifier,
+            @Qualifier("serviceAccessTokenVerifier") ServiceAccessTokenVerifier serviceAccessTokenVerifier,
+            @Qualifier("idpEndpointAuthenticationPolicy") IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
+            @Qualifier("verifiedTenantContextFilter") VerifiedTenantContextFilter verifiedTenantContextFilter,
+            @Qualifier("idpJwtVerifier") IdpJwtVerifier combinedVerifier
     ) {
         return IdpBearerAuthenticationFilter.create(
                 userAccessTokenVerifier,

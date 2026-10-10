@@ -78,7 +78,7 @@ public final class IdpRpcBearerServerInterceptor
             return reject(call, reason);
         }
         IdentityPrincipal principal = (IdentityPrincipal) valid.principal();
-        Context context = IdpRpcSecurityContext.with(principal, token);
+        Context context = IdpRpcSecurityContext.with(principal, token, valid.proof());
         ServerCall.Listener<RequestT> delegate = Contexts.interceptCall(
                 context,
                 call,
@@ -114,7 +114,7 @@ public final class IdpRpcBearerServerInterceptor
 
             private void run(Runnable callback) {
                 context.run(() -> IdpRpcSecurityContext
-                        .runWithSpringSecurity(principal, callback));
+                        .runWithSpringSecurity(principal, valid.proof(), callback));
             }
         };
     }

@@ -164,7 +164,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
         IdpEndpointAuthenticationPolicy.Requirement requirement =
                 endpointAuthenticationPolicy.requirement(request);
         if (requirement == IdpEndpointAuthenticationPolicy.Requirement.DENY) {
-            unauthorized(response, "ENDPOINT_AUTHENTICATION_POLICY_INVALID");
+            preAuthenticationFailure(request, response, "ENDPOINT_AUTHENTICATION_POLICY_INVALID");
             return;
         }
         if (requirement == IdpEndpointAuthenticationPolicy.Requirement.PUBLIC) {
@@ -177,13 +177,13 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         if (headers.size() != 1 || !isBearer(headers.getFirst())) {
-            unauthorized(response, "AUTHORIZATION_HEADER_INVALID");
+            preAuthenticationFailure(request, response, "AUTHORIZATION_HEADER_INVALID");
             return;
         }
         String token = headers.getFirst().substring("Bearer ".length()).trim();
         if (token.isEmpty() || token.contains(",")
                 || token.length() > MAX_CREDENTIAL_LENGTH) {
-            unauthorized(response, "AUTHORIZATION_HEADER_INVALID");
+            preAuthenticationFailure(request, response, "AUTHORIZATION_HEADER_INVALID");
             return;
         }
         SecurityContext previousContext = null;
@@ -193,6 +193,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             IdpPrincipal principal;
             boolean userToken;
             Set<String> verifiedScopes;
+            top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO proof = null;
             if (requirement
                     == IdpEndpointAuthenticationPolicy.Requirement.USER_OR_SERVICE) {
                 if (combinedVerifier != null) {
@@ -202,6 +203,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                         userToken = principal.principalType()
                                 == top.egon.cola.platform.tianquan.shoubing.contract.PrincipalType.USER;
                         verifiedScopes = valid.scopes();
+                        proof = valid.proof();
                     } else {
                         authenticationFailure(response, verification);
                         return;
@@ -212,12 +214,14 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                         principal = valid.principal();
                         userToken = true;
                         verifiedScopes = valid.scopes();
+                        proof = valid.proof();
                     } else if (principalTypeMismatch(verification)) {
                         var serviceVerification = serviceAccessTokenVerifier.verify(token);
                         if (serviceVerification instanceof AccessTokenVerification.Valid<?> valid) {
                             principal = valid.principal();
                             userToken = false;
                             verifiedScopes = valid.scopes();
+                            proof = valid.proof();
                         } else {
                             authenticationFailure(response, serviceVerification);
                             return;
@@ -234,6 +238,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                     principal = valid.principal();
                     userToken = true;
                     verifiedScopes = valid.scopes();
+                    proof = valid.proof();
                 } else {
                     authenticationFailure(response, verification);
                     return;
@@ -244,6 +249,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                     principal = valid.principal();
                     userToken = false;
                     verifiedScopes = valid.scopes();
+                    proof = valid.proof();
                 } else {
                     authenticationFailure(response, verification);
                     return;
@@ -252,8 +258,9 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             previousContext = SecurityContextHolder.getContext();
             restorePreviousContext = previousContext.getAuthentication() != null;
             var context = SecurityContextHolder.createEmptyContext();
-            context.setAuthentication(new IdpAuthenticationToken(
-                    principal, scopeAuthorities(verifiedScopes)));
+            var authentication = new IdpAuthenticationToken(principal, scopeAuthorities(verifiedScopes));
+            authentication.setDetails(proof);
+            context.setAuthentication(authentication);
             SecurityContextHolder.setContext(context);
             contextInstalled = true;
             if (userToken) {
@@ -276,6 +283,14 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             authorities.add(new SimpleGrantedAuthority("SCOPE_" + scope));
         }
         return List.copyOf(authorities);
+    }
+
+    private void preAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, String reason) throws IOException {
+        if (!IdpSecurityObservationFilter.beforeAuthenticationFailure(request)) {
+            temporarilyUnavailable(response, "OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
+            return;
+        }
+        unauthorized(response, reason);
     }
 
     private void authenticationFailure(
@@ -334,6 +349,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
      */
     private void unauthorized(HttpServletResponse response, String reasonCode)
             throws IOException {
+        response.setHeader("Cache-Control", "no-store");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), Map.of(
@@ -343,6 +359,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
 
     private void temporarilyUnavailable(HttpServletResponse response, String reasonCode)
             throws IOException {
+        response.setHeader("Cache-Control", "no-store");
         response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), Map.of(

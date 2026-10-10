@@ -156,6 +156,20 @@ public class TokenUsageAuditComponent {
         }
     }
 
+    public String reference(@jakarta.validation.constraints.NotNull java.net.URI issuer,
+            @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Pattern(regexp = "[1-9][0-9]{0,18}") String tokenId) {
+        if (issuer == null || !issuer.isAbsolute() || !"https".equalsIgnoreCase(issuer.getScheme())
+                || issuer.getHost() == null || issuer.getUserInfo() != null || issuer.getQuery() != null || issuer.getFragment() != null
+                || tokenId == null || !tokenId.matches("[1-9][0-9]{0,18}")) {
+            throw new IllegalArgumentException("OAUTH_AUDIT_REFERENCE_INVALID");
+        }
+        try {
+            return HexFormat.of().formatHex(mac((issuer.toASCIIString() + "\n" + tokenId).getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException failure) {
+            throw new IllegalStateException("OAUTH_AUDIT_HMAC_UNAVAILABLE", failure);
+        }
+    }
+
     public TokenUsageAuditReceiptDTO createReceipt(@Valid TokenUsageAuditEvent event, String outcome, Instant confirmedAt) {
         new ValidationUtils(validator).validate(event);
         if (outcome == null || !Set.of("STORED", "EXPIRED", "DEAD").contains(outcome)) {

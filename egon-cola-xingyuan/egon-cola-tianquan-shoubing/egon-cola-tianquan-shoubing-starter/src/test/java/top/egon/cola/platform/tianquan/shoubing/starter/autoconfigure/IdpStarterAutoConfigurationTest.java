@@ -55,7 +55,7 @@ class IdpStarterAutoConfigurationTest {
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
                             IdpStarterAutoConfiguration.class))
-                    .withBean(ObjectMapper.class, ObjectMapper::new)
+                    .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
                     .withBean(RedissonClient.class,
                             () -> mock(RedissonClient.class))
                     .withPropertyValues(
@@ -171,7 +171,7 @@ class IdpStarterAutoConfigurationTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         IdpStarterAutoConfiguration.class))
-                .withBean(ObjectMapper.class, ObjectMapper::new)
+                .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
                 .withBean(RedissonClient.class,
                         () -> mock(RedissonClient.class))
                 .withPropertyValues(
@@ -204,7 +204,7 @@ class IdpStarterAutoConfigurationTest {
                 .withConfiguration(AutoConfigurations.of(
                         IdpStarterAutoConfiguration.class,
                         ServiceTokenWebClientConfiguration.class))
-                .withBean(ObjectMapper.class, ObjectMapper::new)
+                .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
                 .withBean(RedissonClient.class,
                         () -> mock(RedissonClient.class))
                 .withBean(ClientRegistrationRepository.class,
