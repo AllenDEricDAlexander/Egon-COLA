@@ -58,6 +58,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.state.IdentityResourceSe
 import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityOAuthClientStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityResourceServerStateReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
 
@@ -166,10 +167,11 @@ public class IdpStarterAutoConfiguration {
     public TenantIssuerAuthenticationManagerComponent tenantIssuerAuthenticationManagerComponent(
             @Qualifier("trustedIssuerRegistry") TrustedIssuerRegistry trustedIssuerRegistry,
             @Qualifier("idpStarterProperties") IdpStarterProperties properties,
-            @Qualifier("idpClock") Clock idpClock) {
+            @Qualifier("idpClock") Clock idpClock,
+            @Qualifier("idpSecurityMetricsRecorder") ObjectProvider<IdpSecurityMetricsRecorder> metrics) {
         TenantIssuerAuthenticationManagerComponent component =
                 new TenantIssuerAuthenticationManagerComponent(
-                        trustedIssuerRegistry, properties, idpClock);
+                        trustedIssuerRegistry, properties, idpClock, metrics.getIfAvailable(() -> IdpSecurityMetricsRecorder.NOOP));
         component.initialize();
         return component;
     }
@@ -298,13 +300,14 @@ public class IdpStarterAutoConfiguration {
             name = {"app-id", "registration-id"}
     )
     public IdpServiceOAuth2Client idpServiceOAuth2Client(
-            OAuth2AuthorizedClientManager manager,
-            IdpClientCredentialsRequestEntityConverter converter,
-            ClientRegistrationRepository registrations,
-            OAuth2AuthorizedClientService authorizedClients,
+            @Qualifier("idpOAuth2AuthorizedClientManager") OAuth2AuthorizedClientManager manager,
+            @Qualifier("idpClientCredentialsRequestEntityConverter") IdpClientCredentialsRequestEntityConverter converter,
+            @Qualifier("clientRegistrationRepository") ClientRegistrationRepository registrations,
+            @Qualifier("idpOAuth2AuthorizedClientService") OAuth2AuthorizedClientService authorizedClients,
             @Qualifier("trustedIssuerRegistry") TrustedIssuerRegistry trustedIssuerRegistry,
             @Qualifier("idpStarterProperties") IdpStarterProperties properties,
-            @Qualifier("idpClock") Clock idpClock
+            @Qualifier("idpClock") Clock idpClock,
+            @Qualifier("idpSecurityMetricsRecorder") ObjectProvider<IdpSecurityMetricsRecorder> metrics
     ) {
         properties.getServiceClient().validate();
         return IdpServiceOAuth2Client.createConfigured(
@@ -315,7 +318,8 @@ public class IdpStarterAutoConfiguration {
                 registrations,
                 authorizedClients,
                 trustedIssuerRegistry,
-                properties
+                properties,
+                metrics.getIfAvailable(() -> IdpSecurityMetricsRecorder.NOOP)
         );
     }
 

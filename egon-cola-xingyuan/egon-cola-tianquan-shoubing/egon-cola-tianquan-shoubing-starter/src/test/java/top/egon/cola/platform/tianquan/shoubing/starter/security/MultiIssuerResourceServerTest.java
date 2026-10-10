@@ -343,9 +343,14 @@ class MultiIssuerResourceServerTest {
         RSAKey keyB = new RSAKeyGenerator(2048).keyID("same-kid").algorithm(JWSAlgorithm.RS256).generate();
         IdpStarterProperties properties = multiIssuerProperties(issuerA, jwksA, issuerB, jwksB, resource);
         TrustedIssuerRegistry registry = new TrustedIssuerRegistry(properties);
+        List<top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO> observations = new ArrayList<>();
+        var failMetrics = new java.util.concurrent.atomic.AtomicBoolean();
         TenantIssuerAuthenticationManagerComponent manager =
                 new TenantIssuerAuthenticationManagerComponent(
-                        registry, properties, java.time.Clock.fixed(now, java.time.ZoneOffset.UTC));
+                        registry, properties, java.time.Clock.fixed(now, java.time.ZoneOffset.UTC), observation -> {
+                            observations.add(observation);
+                            if (failMetrics.get()) { throw new IllegalStateException("metrics down"); }
+                        });
         manager.initialize();
         RestTemplate restTemplate = restOperations(manager);
         MockRestServiceServer server = MockRestServiceServer.bindTo(restTemplate)
@@ -368,7 +373,14 @@ class MultiIssuerResourceServerTest {
         String unknownIssuer = userToken(keyA, "https://evil.example/tenants/1001", "1001", resource, now);
         OAuthRevocationReader revocations = mock(OAuthRevocationReader.class);
         when(revocations.check(org.mockito.ArgumentMatchers.any(VerifiedJwtBO.class)))
-                .thenReturn(OAuthRevocationReader.Result.valid());
+                .thenAnswer(call -> {
+                    var samples = observations.stream().filter(value -> value.getSignal().equals("jwt.verify.duration")).toList();
+                    assertThat(samples).hasSize(1);
+                    java.time.Duration cryptoDuration = samples.getFirst().getDuration();
+                    java.util.concurrent.locks.LockSupport.parkNanos(100_000_000L);
+                    assertThat(samples.getFirst().getDuration()).isEqualTo(cryptoDuration);
+                    return OAuthRevocationReader.Result.valid();
+                });
         IdpJwtVerifier verifier = IdpJwtVerifier.createConfigured(
                 null,
                 mock(IdentityResourceServerStateReader.class),
@@ -382,8 +394,10 @@ class MultiIssuerResourceServerTest {
                 generatedConverter(),
                 null);
 
-        assertThat(verifier.verifyUser(tokenA))
-                .isInstanceOf(AccessTokenVerification.Valid.class);
+        List<VerifiedJwtBO> captured = new ArrayList<>();
+        assertThat(verifier.verifyAny(tokenA, captured::add)).isInstanceOf(AccessTokenVerification.Valid.class);
+        assertThat(captured).hasSize(1);
+        assertThat(captured.getFirst().getTrustedIssuer().issuer()).isEqualTo(URI.create(issuerA));
         VerifiedJwtBO issuerBToken = manager.authenticate(tokenB);
         assertThat(issuerBToken.getTrustedIssuer().issuer()).isEqualTo(URI.create(issuerB));
         String issuerHash = TrustedIssuerRegistry.issuerHash(URI.create(issuerB));
@@ -405,8 +419,10 @@ class MultiIssuerResourceServerTest {
                 .isEqualTo(OAuthRevocationReader.Status.REVOKED);
         assertThatThrownBy(() -> manager.authenticate(wrongKeyForB))
                 .isInstanceOf(RuntimeException.class);
-        assertThat(verifier.verifyUser(wrongAudience))
+        List<VerifiedJwtBO> rejectedCapture = new ArrayList<>();
+        assertThat(verifier.verifyAny(wrongAudience, rejectedCapture::add))
                 .isInstanceOf(AccessTokenVerification.Invalid.class);
+        assertThat(rejectedCapture).isEmpty();
         assertThat(verifier.verifyUser(wrongTenant))
                 .isInstanceOf(AccessTokenVerification.Invalid.class);
         assertThatThrownBy(() -> manager.authenticate(unknownIssuer))
@@ -422,6 +438,15 @@ class MultiIssuerResourceServerTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("trustVersion must not decrease");
         verify(revocations, times(1)).check(org.mockito.ArgumentMatchers.any(VerifiedJwtBO.class));
+        assertThat(observations.stream().filter(value -> value.getSignal().equals("jwt.verify.duration")).toList())
+                .as("only actual cryptographic verification produces duration samples")
+                .hasSize(5).allSatisfy(value -> assertThat(value.getDuration().isNegative()).isFalse());
+        assertThat(observations.stream().filter(value -> value.getSignal().equals("jwks.cache.access"))
+                .map(value -> value.getResult()).toList()).contains("MISS", "HIT");
+        failMetrics.set(true);
+        assertThat(manager.authenticate(tokenB).getSubject()).isEqualTo("subject-1002");
+        assertThatThrownBy(() -> manager.authenticate(wrongKeyForB)).isInstanceOf(RuntimeException.class)
+                .hasMessageNotContaining("metrics down");
         server.verify();
     }
 
@@ -489,6 +514,72 @@ class MultiIssuerResourceServerTest {
         } catch (ClassNotFoundException missing) {
             return Optional.empty();
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void observesTheRealJwkCacheExpiryAndLoaderBranches() throws Exception {
+        URI resource = URI.create("https://api.example/orders");
+        var properties = multiIssuerProperties("https://idp.example/tenants/1001",
+                URI.create("https://idp.example/tenants/1001/.well-known/jwks.json"),
+                "https://idp.example/tenants/1002", URI.create("https://idp.example/tenants/1002/.well-known/jwks.json"), resource);
+        List<top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO> observations = new ArrayList<>();
+        var manager = new TenantIssuerAuthenticationManagerComponent(new TrustedIssuerRegistry(properties), properties,
+                java.time.Clock.systemUTC(), observations::add);
+        manager.initialize();
+        Field field = TenantIssuerAuthenticationManagerComponent.class.getDeclaredField("jwksCache");
+        field.setAccessible(true);
+        org.springframework.cache.Cache cache = (org.springframework.cache.Cache) field.get(manager);
+        assertThat(cache.get("fixture-key")).isNull();
+        cache.put("fixture-key", "{}");
+        assertThat(cache.get("fixture-key").get()).isEqualTo("{}");
+        Map<Object, Object> entries = (Map<Object, Object>) cache.getNativeCache();
+        var constructor = entries.get("fixture-key").getClass().getDeclaredConstructor(Object.class, long.class);
+        constructor.setAccessible(true);
+        entries.put("fixture-key", constructor.newInstance("{}", System.nanoTime() - 1));
+        assertThat(cache.get("fixture-key")).isNull();
+        java.util.concurrent.atomic.AtomicInteger loaded = new java.util.concurrent.atomic.AtomicInteger();
+        assertThat(cache.get("fixture-key", () -> { loaded.incrementAndGet(); return "new-jwks"; })).isEqualTo("new-jwks");
+        assertThat(cache.get("fixture-key", () -> "not-used")).isEqualTo("new-jwks");
+        assertThat(loaded.get()).isEqualTo(1);
+        assertThat(observations.stream().map(value -> value.getResult()).toList())
+                .containsExactly("MISS", "HIT", "EXPIRED", "MISS", "HIT");
+        assertThat(observations).allSatisfy(value -> assertThat(value.getSignal()).isEqualTo("jwks.cache.access"));
+    }
+
+    @Test
+    void metricSchemaRejectsUnsupportedSignalsResultsAndInappropriateValues() throws Exception {
+        var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+        validator.afterPropertiesSet();
+        var valid = top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO.builder()
+                .signal("jwt.verify.duration").result("SUCCESS").duration(java.time.Duration.ZERO).build();
+        assertThat(validator.validate(valid)).isEmpty();
+        var invalid = top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO.builder()
+                .signal("caller.signal").result("tenant-1001").value(-1).build();
+        assertThat(validator.validate(invalid)).isNotEmpty();
+        assertThat(validator.validate(valid.setResult("HIT"))).isNotEmpty();
+        assertThat(validator.validate(valid.setResult("SUCCESS").setDuration(null))).isNotEmpty();
+        assertThat(validator.validate(valid.setDuration(java.time.Duration.ofNanos(-1)))).isNotEmpty();
+        var counter = top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO.builder()
+                .signal("jwks.cache.access").result("HIT").value(1).build();
+        assertThat(validator.validate(counter)).isNotEmpty();
+        var json = new ObjectMapper().findAndRegisterModules().readTree(new ObjectMapper().findAndRegisterModules()
+                .writeValueAsString(valid.setDuration(java.time.Duration.ZERO)));
+        assertThat(json.size()).isEqualTo(4);
+        validator.close();
+    }
+
+    @Test
+    void observedManagerRetainsLegacyConstructorsAndQualifiedGeneratedInjection() {
+        var constructor = Arrays.stream(TenantIssuerAuthenticationManagerComponent.class.getDeclaredConstructors())
+                .filter(value -> value.getParameterCount() == 4).findFirst().orElseThrow();
+        var qualifiers = Arrays.stream(constructor.getParameterAnnotations()).map(values -> Arrays.stream(values)
+                .filter(org.springframework.beans.factory.annotation.Qualifier.class::isInstance)
+                .map(org.springframework.beans.factory.annotation.Qualifier.class::cast)
+                .map(org.springframework.beans.factory.annotation.Qualifier::value).findFirst().orElse("")).toList();
+        assertThat(qualifiers).containsExactly("trustedIssuerRegistry", "idpStarterProperties", "idpClock", "idpSecurityMetricsRecorder");
+        assertThat(Arrays.stream(TenantIssuerAuthenticationManagerComponent.class.getDeclaredConstructors())
+                .map(value -> value.getParameterCount()).toList()).contains(2, 3, 4);
     }
 
     private IdpStarterProperties multiIssuerProperties(

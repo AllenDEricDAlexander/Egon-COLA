@@ -1,5 +1,6 @@
 package top.egon.cola.platform.tianquan.shoubing.starter.client;
 
+import jakarta.annotation.PreDestroy;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -27,16 +28,17 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
-import org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType;
 import org.springframework.util.StringUtils;
-import jakarta.annotation.PreDestroy;
 import top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
-import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry.RealmType;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry.TrustedIssuerVO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry;
 
 /**
  * Narrow Spring Security OAuth2 Client facade for Tianquan-Shoubing SERVICE tokens.
@@ -67,6 +69,8 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
     private final TrustedIssuerRegistry trustedIssuerRegistry;
     @Qualifier("idpStarterProperties")
     private final IdpStarterProperties properties;
+    @Qualifier("idpSecurityMetricsRecorder")
+    private final IdpSecurityMetricsRecorder metrics;
 
     private final Map<ServiceAuthorizationKey, OAuth2AccessToken> cache =
             new ConcurrentHashMap<>();
@@ -84,6 +88,7 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
     private final ScheduledThreadPoolExecutor refreshScheduler = newRefreshScheduler();
     private final AtomicLong refreshGeneration = new AtomicLong();
     private volatile boolean closed;
+    private final java.util.concurrent.atomic.AtomicBoolean metricFailureLogged = new java.util.concurrent.atomic.AtomicBoolean();
 
     /** Keeps the former constructor source-compatible; authorization fails closed without identity config. */
     @Deprecated
@@ -93,7 +98,7 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
             Duration renewalSkew
     ) {
         this(manager, new IdpClientCredentialsRequestEntityConverter(), clock,
-                renewalSkew, null, null, null, null);
+                renewalSkew, null, null, null, null, IdpSecurityMetricsRecorder.NOOP);
     }
 
     /** Keeps the former constructor source-compatible; authorization fails closed without identity config. */
@@ -104,7 +109,7 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
             Clock clock,
             Duration renewalSkew
     ) {
-        this(manager, converter, clock, renewalSkew, null, null, null, null);
+        this(manager, converter, clock, renewalSkew, null, null, null, null, IdpSecurityMetricsRecorder.NOOP);
     }
 
     /** Validates and creates a facade with exact trusted registration identity sources. */
@@ -117,6 +122,15 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
             OAuth2AuthorizedClientService authorizedClients,
             TrustedIssuerRegistry trustedIssuerRegistry,
             IdpStarterProperties properties) {
+        return createConfigured(manager, converter, clock, renewalSkew, registrations, authorizedClients,
+                trustedIssuerRegistry, properties, IdpSecurityMetricsRecorder.NOOP);
+    }
+
+    public static IdpServiceOAuth2Client createConfigured(
+            OAuth2AuthorizedClientManager manager, IdpClientCredentialsRequestEntityConverter converter,
+            Clock clock, Duration renewalSkew, ClientRegistrationRepository registrations,
+            OAuth2AuthorizedClientService authorizedClients, TrustedIssuerRegistry trustedIssuerRegistry,
+            IdpStarterProperties properties, IdpSecurityMetricsRecorder metrics) {
         Objects.requireNonNull(manager, "manager");
         Objects.requireNonNull(converter, "converter");
         Objects.requireNonNull(clock, "clock");
@@ -129,7 +143,7 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
         Objects.requireNonNull(properties, "properties");
         properties.getServiceClient().validate();
         return new IdpServiceOAuth2Client(manager, converter, clock, renewalSkew,
-                registrations, authorizedClients, trustedIssuerRegistry, properties);
+                registrations, authorizedClients, trustedIssuerRegistry, properties, Objects.requireNonNull(metrics, "metrics"));
     }
 
     /** Obtains an access token for exactly one validated authorization key. */
@@ -137,7 +151,9 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
         ServiceAuthorizationKey key = key(request);
         ensureOpen();
         OAuth2AccessToken cached = cache.get(key);
-        if (usable(cached)) {
+        boolean usable = usable(cached);
+        recordMetric("token.cache.access", cached == null ? "MISS" : usable ? "HIT" : "EXPIRED", null);
+        if (usable) {
             touch(key, request, cached);
             return cached;
         }
@@ -176,7 +192,7 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
                     .attribute("egon.tianquan-shoubing.tenant_id", key.tenantId())
                     .attribute("egon.tianquan-shoubing.scopes", key.scopes())
                     .build();
-            OAuth2AuthorizedClient authorized = manager.authorize(authorizeRequest);
+            OAuth2AuthorizedClient authorized = acquire(authorizeRequest);
             OAuth2AccessToken token = authorized == null ? null : authorized.getAccessToken();
             validateToken(authorized, token, key);
             store(key, request, token);
@@ -198,6 +214,30 @@ public class IdpServiceOAuth2Client implements AutoCloseable {
         } finally {
             converter.clear();
             inFlight.remove(key, candidate);
+        }
+    }
+
+    private OAuth2AuthorizedClient acquire(OAuth2AuthorizeRequest request) {
+        long started = System.nanoTime();
+        String result = "FAILURE";
+        try {
+            OAuth2AuthorizedClient authorized = manager.authorize(request);
+            if (authorized != null && authorized.getAccessToken() != null) { result = "SUCCESS"; }
+            return authorized;
+        } finally {
+            recordMetric("token.acquire.duration", result,
+                    Duration.ofNanos(Math.max(0, System.nanoTime() - started)));
+        }
+    }
+
+    private void recordMetric(String signal, String result, Duration elapsed) {
+        if (metrics == IdpSecurityMetricsRecorder.NOOP) { return; }
+        try {
+            metrics.record(SecurityMetricObservationBO.builder().signal(signal).result(result).duration(elapsed).build());
+        } catch (RuntimeException failure) {
+            if (metricFailureLogged.compareAndSet(false, true)) {
+                log.warn("SERVICE token observation unavailable; failureType={}", failure.getClass().getSimpleName());
+            }
         }
     }
 

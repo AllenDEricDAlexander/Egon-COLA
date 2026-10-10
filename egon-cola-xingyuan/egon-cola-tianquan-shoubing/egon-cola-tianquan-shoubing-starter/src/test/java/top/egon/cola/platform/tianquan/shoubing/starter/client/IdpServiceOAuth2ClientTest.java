@@ -277,9 +277,13 @@ class IdpServiceOAuth2ClientTest {
                             now.plusSeconds(300));
                 });
 
-        IdpServiceOAuth2Client client = newClient(
-                manager, authorizedClients, Clock.fixed(now, ZoneOffset.UTC),
-                Duration.ofSeconds(30), serviceProperties(), registrations(registration()));
+        var properties = serviceProperties();
+        List<top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO> observations =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        IdpServiceOAuth2Client client = IdpServiceOAuth2Client.createConfigured(manager,
+                new IdpClientCredentialsRequestEntityConverter(), Clock.fixed(now, ZoneOffset.UTC), Duration.ofSeconds(30),
+                registrations(registration()), authorizedClients, new TrustedIssuerRegistry(properties), properties, observations::add);
+        clients.add(client);
         IdpServiceTokenRequest request = request(
                 "egon-tianquan-shoubing",
                 "orders-app",
@@ -302,6 +306,7 @@ class IdpServiceOAuth2ClientTest {
                         .isEqualTo("fresh-token");
             }
             assertThat(calls).hasValue(1);
+            assertThat(observations.stream().filter(value -> value.getSignal().equals("token.acquire.duration")).toList()).hasSize(1);
         } finally {
             release.countDown();
             executor.shutdownNow();
@@ -665,6 +670,62 @@ class IdpServiceOAuth2ClientTest {
                 .isEqualTo("orders:read orders:write");
         assertThat(body).doesNotContainKey("client_secret")
                 .doesNotContainKey("client_assertion");
+    }
+
+    @Test
+    void observesOnlyActualServiceCacheLookupsAndTokenAcquisitions() {
+        Instant now = Instant.parse("2026-10-10T00:00:00Z");
+        MutableClock clock = new MutableClock(now);
+        var manager = mock(OAuth2AuthorizedClientManager.class);
+        var authorizedClients = mock(OAuth2AuthorizedClientService.class);
+        var properties = serviceProperties();
+        List<top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO> observations = new ArrayList<>();
+        when(manager.authorize(any(OAuth2AuthorizeRequest.class))).thenAnswer(call ->
+                authorizedClient(call.getArgument(0), "observed-token", clock.instant(), clock.instant().plusSeconds(300)));
+        var client = IdpServiceOAuth2Client.createConfigured(manager, new IdpClientCredentialsRequestEntityConverter(),
+                clock, Duration.ofSeconds(60), registrations(registration()), authorizedClients,
+                new TrustedIssuerRegistry(properties), properties, observations::add);
+        clients.add(client);
+        var request = request(REGISTRATION_ID, APP_ID, ServiceTokenContext.TENANT, "1001", Set.of("orders:read"));
+        client.authorize(request);
+        client.authorize(request);
+        clock.advance(Duration.ofSeconds(241));
+        client.authorize(request);
+        assertThat(observations.stream().filter(value -> value.getSignal().equals("token.cache.access"))
+                .map(value -> value.getResult()).toList()).containsExactly("MISS", "HIT", "EXPIRED");
+        assertThat(observations.stream().filter(value -> value.getSignal().equals("token.acquire.duration")).toList())
+                .hasSize(2).allSatisfy(value -> {
+                    assertThat(value.getResult()).isEqualTo("SUCCESS");
+                    assertThat(value.getDuration().isNegative()).isFalse();
+                });
+        verify(manager, times(2)).authorize(any(OAuth2AuthorizeRequest.class));
+        client.invalidate(request);
+        when(manager.authorize(any(OAuth2AuthorizeRequest.class))).thenThrow(new IllegalStateException("endpoint unavailable"));
+        assertThatThrownBy(() -> client.authorize(request)).isInstanceOf(IdpServiceOAuth2Client.IdpServiceAuthorizationException.class);
+        assertThat(observations.getLast().getSignal()).isEqualTo("token.acquire.duration");
+        assertThat(observations.getLast().getResult()).isEqualTo("FAILURE");
+    }
+
+    @Test
+    void unavailableMetricsNeverLoseATokenOrHideAnAuthorizationFailure() {
+        Instant now = Instant.parse("2026-10-10T00:00:00Z");
+        var manager = mock(OAuth2AuthorizedClientManager.class);
+        var authorizedClients = mock(OAuth2AuthorizedClientService.class);
+        var properties = serviceProperties();
+        when(manager.authorize(any(OAuth2AuthorizeRequest.class))).thenAnswer(call ->
+                authorizedClient(call.getArgument(0), "token-stays-private", now, now.plusSeconds(300)));
+        var client = IdpServiceOAuth2Client.createConfigured(manager, new IdpClientCredentialsRequestEntityConverter(),
+                Clock.fixed(now, ZoneOffset.UTC), Duration.ofSeconds(60), registrations(registration()), authorizedClients,
+                new TrustedIssuerRegistry(properties), properties, observation -> { throw new IllegalStateException("metrics down"); });
+        clients.add(client);
+        var request = request(REGISTRATION_ID, APP_ID, ServiceTokenContext.TENANT, "1001", Set.of("orders:read"));
+        assertThat(client.authorize(request).getTokenValue()).isEqualTo("token-stays-private");
+        assertThat(client.authorize(request).getTokenValue()).isEqualTo("token-stays-private");
+        client.invalidate(request);
+        when(manager.authorize(any(OAuth2AuthorizeRequest.class))).thenThrow(new org.springframework.security.oauth2.core.OAuth2AuthorizationException(
+                new org.springframework.security.oauth2.core.OAuth2Error("invalid_client")));
+        assertThatThrownBy(() -> client.authorize(request)).isInstanceOf(IdpServiceOAuth2Client.IdpServiceAuthorizationException.class)
+                .hasMessageContaining("invalid_client").hasMessageNotContaining("token-stays-private");
     }
 
     private static IdpServiceTokenRequest request(

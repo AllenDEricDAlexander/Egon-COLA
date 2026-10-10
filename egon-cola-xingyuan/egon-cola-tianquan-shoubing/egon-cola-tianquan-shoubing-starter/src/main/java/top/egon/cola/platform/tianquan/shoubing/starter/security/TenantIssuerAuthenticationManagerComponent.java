@@ -6,8 +6,8 @@ import com.nimbusds.jwt.SignedJWT;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.time.Duration;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -36,14 +36,16 @@ import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
-import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdpClaimNames;
 import top.egon.cola.platform.tianquan.shoubing.contract.OAuthSecurityVersionBO;
 import top.egon.cola.platform.tianquan.shoubing.contract.PrincipalType;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry.RealmType;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry.TrustedIssuerVO;
@@ -60,6 +62,9 @@ public final class TenantIssuerAuthenticationManagerComponent {
     private final IdpStarterProperties properties;
     @Qualifier("idpClock")
     private final Clock clock;
+    private final java.util.concurrent.atomic.AtomicBoolean metricFailureLogged = new java.util.concurrent.atomic.AtomicBoolean();
+    @Qualifier("idpSecurityMetricsRecorder")
+    private final IdpSecurityMetricsRecorder metrics;
     private final ConcurrentMap<String, CachedIssuerManager> managers = new ConcurrentHashMap<>();
     private volatile BoundedJwkSetCache jwksCache;
     private volatile RestOperations jwksRestOperations;
@@ -72,13 +77,16 @@ public final class TenantIssuerAuthenticationManagerComponent {
         this(trustedIssuerRegistry, properties, Clock.systemUTC());
     }
 
+    public TenantIssuerAuthenticationManagerComponent(TrustedIssuerRegistry registry, IdpStarterProperties properties, Clock clock) {
+        this(registry, properties, clock, IdpSecurityMetricsRecorder.NOOP);
+    }
+
     public synchronized void initialize() {
         if (trustedManagerResolver != null) {
             return;
         }
         if (trustedIssuerRegistry.isEmpty()) {
-            this.jwksCache = new BoundedJwkSetCache(1,
-                    Duration.ofSeconds(300));
+            this.jwksCache = new BoundedJwkSetCache(1, Duration.ofSeconds(300).toNanos(), metrics);
             this.jwksRestOperations = jwksRestOperations(properties.getJwksCache());
             this.trustedManagerResolver = this::resolveTrustedManager;
             this.servletResolver = new JwtIssuerAuthenticationManagerResolver(trustedManagerResolver);
@@ -90,7 +98,7 @@ public final class TenantIssuerAuthenticationManagerComponent {
         }
         this.jwksCache = new BoundedJwkSetCache(
                 properties.getJwksCache().getMaxIssuers(),
-                properties.getJwksCache().getTtl());
+                properties.getJwksCache().getTtl().toNanos(), metrics);
         this.jwksRestOperations = jwksRestOperations(properties.getJwksCache());
         this.trustedManagerResolver = this::resolveTrustedManager;
         this.servletResolver = new JwtIssuerAuthenticationManagerResolver(trustedManagerResolver);
@@ -160,6 +168,26 @@ public final class TenantIssuerAuthenticationManagerComponent {
                 .validateType(false)
                 .restOperations(jwksRestOperations)
                 .cache(jwksCache)
+                .jwtProcessorCustomizer(processor -> {
+                    var delegate = processor.getJWSVerifierFactory();
+                    processor.setJWSVerifierFactory(new com.nimbusds.jose.proc.JWSVerifierFactory() {
+                        @Override
+                        public com.nimbusds.jose.JWSVerifier createJWSVerifier(com.nimbusds.jose.JWSHeader header,
+                                java.security.Key key) throws com.nimbusds.jose.JOSEException {
+                            return new ObservedJwsVerifier(delegate.createJWSVerifier(header, key), metrics, metricFailureLogged);
+                        }
+
+                        @Override
+                        public java.util.Set<com.nimbusds.jose.JWSAlgorithm> supportedJWSAlgorithms() {
+                            return delegate.supportedJWSAlgorithms();
+                        }
+
+                        @Override
+                        public com.nimbusds.jose.jca.JCAContext getJCAContext() {
+                            return delegate.getJCAContext();
+                        }
+                    });
+                })
                 .build();
         JwtTimestampValidator timestamps = new JwtTimestampValidator(properties.getClockSkew());
         timestamps.setClock(clock);
@@ -372,17 +400,60 @@ public final class TenantIssuerAuthenticationManagerComponent {
         }
     }
 
+    /** Decorates only the cryptographic call; key acquisition and claims remain outside the timer. */
+    @Slf4j
+    @RequiredArgsConstructor(access = lombok.AccessLevel.PRIVATE)
+    private static final class ObservedJwsVerifier implements com.nimbusds.jose.JWSVerifier {
+        @Qualifier("jwsVerifier")
+        private final com.nimbusds.jose.JWSVerifier delegate;
+        @Qualifier("idpSecurityMetricsRecorder")
+        private final IdpSecurityMetricsRecorder metrics;
+        private final java.util.concurrent.atomic.AtomicBoolean metricFailureLogged;
+
+        @Override
+        public boolean verify(com.nimbusds.jose.JWSHeader header, byte[] signingInput,
+                com.nimbusds.jose.util.Base64URL signature) throws com.nimbusds.jose.JOSEException {
+            long started = System.nanoTime();
+            String result = "FAILURE";
+            try {
+                boolean valid = delegate.verify(header, signingInput, signature);
+                result = valid ? "SUCCESS" : "FAILURE";
+                return valid;
+            } finally {
+                Duration elapsed = Duration.ofNanos(Math.max(0, System.nanoTime() - started));
+                if (metrics != IdpSecurityMetricsRecorder.NOOP) {
+                    try {
+                        metrics.record(SecurityMetricObservationBO.builder().signal("jwt.verify.duration")
+                                .result(result).duration(elapsed).build());
+                    } catch (RuntimeException failure) {
+                        if (metricFailureLogged.compareAndSet(false, true)) {
+                            log.warn("JWT crypto observation unavailable; failureType={}", failure.getClass().getSimpleName());
+                        }
+                    }
+                }
+            }
+        }
+
+        @Override
+        public java.util.Set<com.nimbusds.jose.JWSAlgorithm> supportedJWSAlgorithms() {
+            return delegate.supportedJWSAlgorithms();
+        }
+
+        @Override
+        public com.nimbusds.jose.jca.JCAContext getJCAContext() { return delegate.getJCAContext(); }
+    }
+
+    @Slf4j
+    @RequiredArgsConstructor(access = lombok.AccessLevel.PRIVATE)
     private static final class BoundedJwkSetCache implements Cache {
 
         private final String name = "tianquanShoubingJwkSetCache";
         private final int maximumEntries;
         private final long ttlNanos;
+        @Qualifier("idpSecurityMetricsRecorder")
+        private final IdpSecurityMetricsRecorder metrics;
+        private final java.util.concurrent.atomic.AtomicBoolean metricFailureLogged = new java.util.concurrent.atomic.AtomicBoolean();
         private final Map<Object, CacheEntry> entries = new LinkedHashMap<>(16, 0.75f, true);
-
-        private BoundedJwkSetCache(int maximumEntries, Duration ttl) {
-            this.maximumEntries = maximumEntries;
-            this.ttlNanos = ttl.toNanos();
-        }
 
         @Override
         public String getName() {
@@ -398,12 +469,15 @@ public final class TenantIssuerAuthenticationManagerComponent {
         public synchronized ValueWrapper get(Object key) {
             CacheEntry entry = entries.get(Objects.requireNonNull(key, "key"));
             if (entry == null) {
+                recordAccess("MISS");
                 return null;
             }
             if (System.nanoTime() - entry.expiresAtNanos() >= 0L) {
                 entries.remove(key);
+                recordAccess("EXPIRED");
                 return null;
             }
+            recordAccess("HIT");
             return entry::value;
         }
 
@@ -454,6 +528,17 @@ public final class TenantIssuerAuthenticationManagerComponent {
         @Override
         public synchronized void clear() {
             entries.clear();
+        }
+
+        private void recordAccess(String result) {
+            if (metrics == IdpSecurityMetricsRecorder.NOOP) { return; }
+            try {
+                metrics.record(SecurityMetricObservationBO.builder().signal("jwks.cache.access").result(result).build());
+            } catch (RuntimeException failure) {
+                if (metricFailureLogged.compareAndSet(false, true)) {
+                    log.warn("JWK cache observation unavailable; failureType={}", failure.getClass().getSimpleName());
+                }
+            }
         }
 
         private record CacheEntry(Object value, long expiresAtNanos) {

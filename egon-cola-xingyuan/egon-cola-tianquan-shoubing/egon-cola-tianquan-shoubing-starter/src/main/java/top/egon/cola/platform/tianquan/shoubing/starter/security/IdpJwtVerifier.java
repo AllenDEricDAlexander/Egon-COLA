@@ -277,13 +277,23 @@ public final class IdpJwtVerifier {
     }
 
     /** Verifies a shared USER-or-SERVICE path with one local decode and one shared-state read. */
+    public AccessTokenVerification<IdpPrincipal> verifyAny(String token, java.util.function.Consumer<VerifiedJwtBO> capture) {
+        Objects.requireNonNull(capture, "capture");
+        return verifyAnyInternal(token, capture);
+    }
+
     public AccessTokenVerification<IdpPrincipal> verifyAny(String token) {
+        return verifyAnyInternal(token, ignored -> { });
+    }
+
+    private AccessTokenVerification<IdpPrincipal> verifyAnyInternal(String token,
+            java.util.function.Consumer<VerifiedJwtBO> capture) {
         if (multiIssuerConfigured()) {
             if (legacyIssuerCutoverPolicy != null
                     && legacyIssuerCutoverPolicy.isLegacyIssuerHint(token)) {
                 return verifyLegacyAny(token);
             }
-            return verifyMultiIssuer(token, null);
+            return verifyMultiIssuer(token, null, capture);
         }
         Jwt jwt;
         try {
@@ -307,6 +317,11 @@ public final class IdpJwtVerifier {
     private AccessTokenVerification<IdpPrincipal> verifyMultiIssuer(
             String token,
             PrincipalType expectedType) {
+        return verifyMultiIssuer(token, expectedType, ignored -> { });
+    }
+
+    private AccessTokenVerification<IdpPrincipal> verifyMultiIssuer(String token, PrincipalType expectedType,
+            java.util.function.Consumer<VerifiedJwtBO> capture) {
         try {
             if (tenantIssuerAuthenticationManager == null
                     || revocationReader == null || verifiedPrincipalConverter == null) {
@@ -360,6 +375,7 @@ public final class IdpJwtVerifier {
             if (result.status() == Status.REVOKED) {
                 return new AccessTokenVerification.Invalid<>(result.reasonCode());
             }
+            capture.accept(verified);
             return new AccessTokenVerification.Valid<>(principal, verifiedScopes);
         } catch (ExpiredTokenException expired) {
             return new AccessTokenVerification.Expired<>();
