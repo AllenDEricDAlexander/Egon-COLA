@@ -41,6 +41,10 @@ import org.redisson.api.StreamMessageId;
 import org.redisson.api.stream.StreamAddArgs;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpSecurityObservationAutoConfiguration;
+import top.egon.cola.platform.tianquan.shoubing.starter.observability.IdpSecurityMetricsComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.observability.IdpSecurityObservationReceiverEnum;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -68,9 +72,9 @@ class TianquanSecurityMetricsContractTest {
     @TempDir Path temporary;
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
     private final LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
-    private TianquanSecurityMetricsComponent metrics;
+    private IdpSecurityMetricsComponent metrics;
 
-    @BeforeEach void prepare() { validator.afterPropertiesSet(); metrics = new TianquanSecurityMetricsComponent(() -> registry, validator); }
+    @BeforeEach void prepare() { validator.afterPropertiesSet(); metrics = new IdpSecurityMetricsComponent(() -> registry, validator, new OAuthUsageObservationProperties(true, ISSUER, false, IdpSecurityObservationReceiverEnum.JIANSHEN)); }
 
     @Test
     void realCryptoAndJwkCacheProduceTheHostMetersWithoutIdentityTags() throws Exception {
@@ -138,14 +142,16 @@ class TianquanSecurityMetricsContractTest {
 
     @Test
     void enabledHostRequiresARegistryAndUsesTheExistingPrimaryWithoutCreatingAnother() throws Exception {
-        new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
+        new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(IdpSecurityObservationAutoConfiguration.class))
+                .withUserConfiguration(TianquanSecurityObservationConfiguration.class)
                 .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true")
                 .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
                 .run(context -> assertThat(context).hasFailed());
         var secondary = new SimpleMeterRegistry();
-        var props = new OAuthUsageObservationProperties(true, ISSUER, false);
+        var props = new OAuthUsageObservationProperties(true, ISSUER, false).setReceiver(IdpSecurityObservationReceiverEnum.JIANSHEN);
         var producer = producer(mock(RedissonClient.class), metrics);
-        new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
+        new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(IdpSecurityObservationAutoConfiguration.class))
+                .withUserConfiguration(TianquanSecurityObservationConfiguration.class)
                 .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true")
                 .withPropertyValues(secureProperties())
                 .withBean("oauthAuditProperties", OAuthAuditProperties.class, this::auditProperties)
@@ -183,7 +189,8 @@ class TianquanSecurityMetricsContractTest {
 
     @Test
     void disabledHostDoesNotRequireDeploymentInputsOrCreateAMetricsRegistry() {
-        new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
+        new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(IdpSecurityObservationAutoConfiguration.class))
+                .withUserConfiguration(TianquanSecurityObservationConfiguration.class)
                 .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=false")
                 .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(MeterRegistry.class)
                         .doesNotHaveBean("idpSecurityMetricsRecorder"));
@@ -249,7 +256,7 @@ class TianquanSecurityMetricsContractTest {
         var converter = (top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter)
                 Class.forName("top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverterImpl").getConstructor().newInstance();
         var observer = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent(producer(redis, metrics),
-                converter, new OAuthUsageObservationProperties(true, ISSUER, false), metrics, Clock.fixed(NOW, ZoneOffset.UTC), validator, RESOURCE);
+                converter, new OAuthUsageObservationProperties(true, ISSUER, false).setReceiver(IdpSecurityObservationReceiverEnum.JIANSHEN), metrics, Clock.fixed(NOW, ZoneOffset.UTC), validator, RESOURCE);
         var observed = new top.egon.cola.platform.tianquan.jianshen.starter.authorization.Rbac3ObservedAuthorizationService(delegate, metrics, observer, validator);
         var request = top.egon.cola.platform.tianquan.jianshen.contract.authorization.PermissionRequest.of("finance:payment:approve");
         assertThat(observed.requirePermission(request)).isEqualTo(delegate.requirePermission(request));
@@ -325,7 +332,7 @@ class TianquanSecurityMetricsContractTest {
                 .withPropertyValues("egon.cola.platform.tianquan.jianshen.enabled=true")
                 .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
                 .withBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class,
-                        () -> new OAuthUsageObservationProperties(true, ISSUER, false))
+                        () -> new OAuthUsageObservationProperties(true, ISSUER, false).setReceiver(IdpSecurityObservationReceiverEnum.JIANSHEN))
                 .withBean("idpSecurityMetricsRecorder", top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder.class, () -> metrics)
                 .withBean("idpObservedVerificationComponent", top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class,
                         () -> mock(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class));
@@ -353,7 +360,7 @@ class TianquanSecurityMetricsContractTest {
             var sources = loader.load(profile, new org.springframework.core.io.FileSystemResource(profile));
             var names = new java.util.HashSet<String>();
             for (var source : sources) { names.addAll(java.util.List.of(((org.springframework.core.env.EnumerablePropertySource<?>) source).getPropertyNames())); }
-            assertThat(names).as(profile).contains(prefix + "usage-observation.enabled", prefix + "usage-observation.fallback-issuer",
+            assertThat(names).as(profile).contains(prefix + "usage-observation.enabled", prefix + "usage-observation.receiver", prefix + "usage-observation.fallback-issuer",
                     prefix + "usage-observation.allow-local-plaintext", prefix + "audit.delivery.receipt-ttl",
                     prefix + "audit.delivery.confirmation-timeout", prefix + "audit.delivery.batch-size",
                     "egon.cola.component.rpc.tls.enabled", "egon.cola.component.rpc.tls.development-plaintext",
@@ -367,6 +374,7 @@ class TianquanSecurityMetricsContractTest {
             assertThat(validator.validate(usage)).isEmpty(); assertThat(validator.validate(delivery)).isEmpty();
             boolean offline = profile.contains("oauth-migration") || profile.contains("local-it");
             assertThat(usage.isEnabled()).isEqualTo(!offline);
+            assertThat(usage.getReceiver()).isEqualTo(IdpSecurityObservationReceiverEnum.JIANSHEN);
             assertThat(usage.isAllowLocalPlaintext()).isEqualTo(profile.endsWith("application-local.yml"));
             assertThat(delivery.getReceiptTtl()).isEqualTo(Duration.ofHours(1));
             assertThat(delivery.getConfirmationTimeout()).isEqualTo(Duration.ofSeconds(30));
@@ -378,7 +386,8 @@ class TianquanSecurityMetricsContractTest {
     @Test
     void enabledHostRejectsPlaintextProductionInputs() throws Exception {
         var producer = producer(mock(RedissonClient.class), metrics);
-        new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
+        new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(IdpSecurityObservationAutoConfiguration.class))
+                .withUserConfiguration(TianquanSecurityObservationConfiguration.class)
                 .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true",
                         "egon.cola.platform.tianquan.shoubing.resource-uri=http://api.example/orders",
                         "egon.cola.platform.tianquan.shoubing.issuer=" + ISSUER,
@@ -393,7 +402,7 @@ class TianquanSecurityMetricsContractTest {
                 .withBean("oauthAuditProperties", OAuthAuditProperties.class,
                         () -> new OAuthAuditProperties(STREAM, temporary.resolve("spool"), 1_048_576, temporary.resolve("audit.key")))
                 .withBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class,
-                        () -> new OAuthUsageObservationProperties(true, ISSUER, false))
+                        () -> new OAuthUsageObservationProperties(true, ISSUER, false).setReceiver(IdpSecurityObservationReceiverEnum.JIANSHEN))
                 .run(context -> assertThat(context).hasFailed());
     }
 
@@ -472,14 +481,15 @@ class TianquanSecurityMetricsContractTest {
 
     private ApplicationContextRunner secureHostRunner(boolean allowLocal) throws Exception {
         var producer = producer(mock(RedissonClient.class), metrics);
-        return new ApplicationContextRunner().withUserConfiguration(TianquanSecurityObservationConfiguration.class)
+        return new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(IdpSecurityObservationAutoConfiguration.class))
+                .withUserConfiguration(TianquanSecurityObservationConfiguration.class)
                 .withPropertyValues(secureProperties())
                 .withBean("primary", MeterRegistry.class, () -> registry)
                 .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
                 .withBean("tokenUsageAuditComponent", TokenUsageAuditComponent.class, () -> producer)
                 .withBean("oauthAuditProperties", OAuthAuditProperties.class, this::auditProperties)
                 .withBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class,
-                        () -> new OAuthUsageObservationProperties(true, ISSUER, allowLocal));
+                        () -> new OAuthUsageObservationProperties(true, ISSUER, allowLocal).setReceiver(IdpSecurityObservationReceiverEnum.JIANSHEN));
     }
 
     private TokenUsageAuditComponent producer(RedissonClient redis, top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder recorder) throws Exception {

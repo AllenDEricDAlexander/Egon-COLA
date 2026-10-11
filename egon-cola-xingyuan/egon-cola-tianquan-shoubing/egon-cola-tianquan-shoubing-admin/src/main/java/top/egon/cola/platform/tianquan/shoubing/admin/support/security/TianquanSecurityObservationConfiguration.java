@@ -2,30 +2,21 @@ package top.egon.cola.platform.tianquan.shoubing.admin.support.security;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
+import lombok.extern.slf4j.Slf4j;
 import java.util.function.Supplier;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
-import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent;
 
 /** Composes host transport and durable-audit checks with the existing security runtime. */
-@Configuration(proxyBeanMethods = false)
+@Slf4j
+@Configuration(value = "tianquanSecurityObservationConfiguration", proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "egon.cola.platform.tianquan.shoubing.usage-observation", name = "enabled", havingValue = "true")
 public class TianquanSecurityObservationConfiguration {
-    @Bean(name = "idpMeterRegistrySupplier")
-    Supplier<MeterRegistry> idpMeterRegistrySupplier(ObjectProvider<MeterRegistry> registries) { return registries::getObject; }
-
-    @Bean(name = "idpSecurityMetricsRecorder")
-    IdpSecurityMetricsRecorder idpSecurityMetricsRecorder(@Qualifier("idpMeterRegistrySupplier") Supplier<MeterRegistry> registries,
-            @Qualifier("defaultValidator") Validator validator) {
-        registries.get();
-        return new TianquanSecurityMetricsComponent(registries, validator);
-    }
     /** Separate from the port factory to avoid a producer-to-recorder initialization cycle. */
     @Bean(name = "tianquanSecurityObservationStartupCheck")
     Object tianquanSecurityObservationStartupCheck(@Qualifier("tokenUsageAuditComponent") TokenUsageAuditComponent producer,
@@ -40,66 +31,6 @@ public class TianquanSecurityObservationConfiguration {
         validateTransport(environment, properties);
         if (!auditReady.getAsBoolean()) { throw new IllegalStateException("OAUTH_AUDIT_NOT_READY"); }
         return new Object();
-    }
-
-    /** Holds an exclusive process lease until the host context is closed. */
-    @Bean(name = "tianquanAuditSpoolLease", destroyMethod = "close")
-    java.nio.channels.FileChannel tianquanAuditSpoolLease(
-            @Qualifier("tokenUsageAuditComponent") TokenUsageAuditComponent producer,
-            @Qualifier("oauthAuditProperties") top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties audit,
-            @Qualifier("defaultValidator") Validator validator) throws java.io.IOException {
-        new ValidationUtils(validator).validate(audit);
-        java.nio.file.Path directory = audit.spoolDirectory();
-        if (java.nio.file.Files.isSymbolicLink(directory)) { throw new IllegalStateException("OAUTH_AUDIT_SPOOL_SYMLINK"); }
-        java.nio.file.Files.createDirectories(directory);
-        var channel = java.nio.channels.FileChannel.open(directory.resolve(".receiver.lock"),
-                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE, java.nio.file.LinkOption.NOFOLLOW_LINKS);
-        try {
-            java.nio.file.Files.setPosixFilePermissions(directory.resolve(".receiver.lock"), java.util.Set.of(
-                    java.nio.file.attribute.PosixFilePermission.OWNER_READ, java.nio.file.attribute.PosixFilePermission.OWNER_WRITE));
-            if (channel.tryLock() == null) { throw new IllegalStateException("OAUTH_AUDIT_SPOOL_IN_USE"); }
-            java.nio.file.Path probe = java.nio.file.Files.createTempFile(directory, ".readiness-", ".tmp");
-            java.nio.file.Path published = probe.resolveSibling(probe.getFileName() + ".published");
-            try {
-                try (var file = java.nio.channels.FileChannel.open(probe, java.nio.file.StandardOpenOption.WRITE)) { file.force(true); }
-                java.nio.file.Files.move(probe, published, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-                try (var parent = java.nio.channels.FileChannel.open(directory, java.nio.file.StandardOpenOption.READ)) { parent.force(true); }
-            } finally {
-                java.nio.file.Files.deleteIfExists(probe); java.nio.file.Files.deleteIfExists(published);
-            }
-            return channel;
-        } catch (java.io.IOException | RuntimeException failure) {
-            try { channel.close(); } catch (java.io.IOException closeFailure) { failure.addSuppressed(closeFailure); }
-            throw failure;
-        }
-    }
-
-    @Bean(name = "tianquanSecurityAuditReady")
-    java.util.function.BooleanSupplier tianquanSecurityAuditReady(
-            @Qualifier("tianquanAuditSpoolLease") java.nio.channels.FileChannel lease,
-            @Qualifier("oauthAuditProperties") top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties audit) {
-        return () -> {
-            try {
-                if (!lease.isOpen() || !java.nio.file.Files.isWritable(audit.spoolDirectory())
-                        || !java.nio.file.Files.isRegularFile(audit.hmacKeyFile(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) { return false; }
-                var permissions = java.nio.file.Files.getPosixFilePermissions(audit.hmacKeyFile());
-                if (permissions.stream().anyMatch(permission -> !permission.name().startsWith("OWNER_"))) { return false; }
-                long keyLength = java.nio.file.Files.size(audit.hmacKeyFile());
-                if (keyLength < 32 || keyLength > 4096) { return false; }
-                long bytes = 0;
-                try (var files = java.nio.file.Files.newDirectoryStream(audit.spoolDirectory())) {
-                    for (var path : files) {
-                        if (!java.nio.file.Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS)) { continue; }
-                        String name = path.getFileName().toString();
-                        if (name.endsWith(".dead") || name.endsWith(".evt")
-                                && !java.nio.file.Files.exists(path.resolveSibling(name + ".sent"))) { return false; }
-                        bytes = Math.addExact(bytes, java.nio.file.Files.size(path));
-                        if (bytes >= audit.spoolMaxBytes()) { return false; }
-                    }
-                }
-                return true;
-            } catch (java.io.IOException | ArithmeticException unavailable) { return false; }
-        };
     }
 
     /** Contributes to the existing Actuator readiness group without replacing other indicators. */

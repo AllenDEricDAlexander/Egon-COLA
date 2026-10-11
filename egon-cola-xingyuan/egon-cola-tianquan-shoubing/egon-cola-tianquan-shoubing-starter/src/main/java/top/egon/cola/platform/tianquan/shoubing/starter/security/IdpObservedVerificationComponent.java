@@ -54,62 +54,78 @@ public class IdpObservedVerificationComponent {
 
     public <P extends IdpPrincipal> AccessTokenVerification<P> observe(
             Function<Consumer<VerifiedJwtBO>, AccessTokenVerification<P>> originalVerification) {
+        return observe(originalVerification, resource, MDC.get("traceId"));
+    }
+
+    public <P extends IdpPrincipal> AccessTokenVerification<P> observe(
+            Function<Consumer<VerifiedJwtBO>, AccessTokenVerification<P>> originalVerification,
+            URI expectedResource, String trace) {
         java.util.Objects.requireNonNull(originalVerification, "originalVerification");
         if (!properties.isEnabled()) { return originalVerification.apply(ignored -> { }); }
         AtomicReference<VerifiedJwtBO> captured = new AtomicReference<>();
         try {
-            AccessTokenVerification<P> result = java.util.Objects.requireNonNull(originalVerification.apply(captured::set), "verification");
-            TokenAuditProofBO proof = null;
-            if (result instanceof AccessTokenVerification.Valid<?>) {
-                if (captured.get() == null) {
-                    result = new AccessTokenVerification.Unavailable<>("OAUTH_AUDIT_PROOF_UNAVAILABLE");
-                } else {
-                    try {
-                        captured.get().validate();
-                        proof = new ValidationUtils(validator).validate(converter.toProof(
-                                new ValidationUtils(validator).validate(captured.get()), resource, producer));
-                    } catch (RuntimeException incomplete) {
-                        if (proofFailureLogged.compareAndSet(false, true)) {
-                            log.warn("Trusted usage proof unavailable; failureType={}", incomplete.getClass().getSimpleName());
-                        }
-                        result = new AccessTokenVerification.Unavailable<>("OAUTH_AUDIT_PROOF_UNAVAILABLE");
+            var result = java.util.Objects.requireNonNull(originalVerification.apply(captured::set), "verification");
+            return observeCompleted(result, captured.get(), expectedResource, trace);
+        } finally { captured.set(null); }
+    }
+
+    /** The caller passes only the capture produced after its full verification pipeline completed. */
+    public <P extends IdpPrincipal> AccessTokenVerification<P> observeCompleted(
+            AccessTokenVerification<P> result, VerifiedJwtBO fullyValidated, URI expectedResource, String trace) {
+        java.util.Objects.requireNonNull(result, "verification");
+        if (!properties.isEnabled()) { return result; }
+        new TokenAuditProofBO(properties.getFallbackIssuer(), expectedResource, null, null, null);
+        TokenAuditProofBO proof = null;
+        if (result instanceof AccessTokenVerification.Valid<?>) {
+            if (fullyValidated == null) {
+                result = new AccessTokenVerification.Unavailable<>("OAUTH_AUDIT_PROOF_UNAVAILABLE");
+            } else {
+                try {
+                    fullyValidated.validate();
+                    proof = new ValidationUtils(validator).validate(converter.toProof(
+                            new ValidationUtils(validator).validate(fullyValidated), expectedResource, producer));
+                } catch (RuntimeException incomplete) {
+                    if (proofFailureLogged.compareAndSet(false, true)) {
+                        log.warn("Trusted usage proof unavailable; failureType={}", incomplete.getClass().getSimpleName());
                     }
+                    result = new AccessTokenVerification.Unavailable<>("OAUTH_AUDIT_PROOF_UNAVAILABLE");
                 }
             }
-            metric("oauth.authentication", category(result));
-            if (!handoff(proof, proof == null ? "FAILED" : "SUCCESS",
-                    proof == null ? "AUTHENTICATION_FAILED" : "TOKEN_USE_VERIFIED")) {
-                return new AccessTokenVerification.Unavailable<>("OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
-            }
-            if (result instanceof AccessTokenVerification.Valid<P> valid) {
-                return new AccessTokenVerification.Valid<>(valid.principal(), valid.scopes(), proof);
-            }
-            return result;
-        } finally {
-            captured.set(null);
         }
+        metric("oauth.authentication", category(result));
+        if (!handoff(proof, proof == null ? "FAILED" : "SUCCESS",
+                proof == null ? "AUTHENTICATION_FAILED" : "TOKEN_USE_VERIFIED", expectedResource, trace)) {
+            return new AccessTokenVerification.Unavailable<>("OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
+        }
+        if (result instanceof AccessTokenVerification.Valid<P> valid) {
+            return new AccessTokenVerification.Valid<>(valid.principal(), valid.scopes(), proof);
+        }
+        return result;
     }
 
     /** Anonymous pre-render decision; no unverified claim is consulted. */
     public boolean authenticationFailure() {
         if (!properties.isEnabled()) { return true; }
         metric("oauth.authentication", "INVALID");
-        return handoff(null, "FAILED", "AUTHENTICATION_FAILED");
+        return handoff(null, "FAILED", "AUTHENTICATION_FAILED", resource, MDC.get("traceId"));
     }
 
     /** A separate authorization decision is emitted only for a proven token-bearing call. */
     public boolean authorizationDenied(@jakarta.validation.Valid TokenAuditProofBO proof) {
-        if (!properties.isEnabled() || proof == null) { return true; }
-        return handoff(new ValidationUtils(validator).validate(proof), "DENIED", "AUTHORIZATION_DENIED");
+        return authorizationDenied(proof, MDC.get("traceId"));
     }
 
-    private boolean handoff(TokenAuditProofBO proof, String result, String reason) {
+    public boolean authorizationDenied(@jakarta.validation.Valid TokenAuditProofBO proof, String trace) {
+        if (!properties.isEnabled() || proof == null) { return true; }
+        return handoff(new ValidationUtils(validator).validate(proof), "DENIED", "AUTHORIZATION_DENIED", proof.resource(), trace);
+    }
+
+    private boolean handoff(TokenAuditProofBO proof, String result, String reason, URI observedResource, String trace) {
         try {
-            String trace = MDC.get("traceId");
             if (trace != null && !trace.matches("[A-Za-z0-9._~-]{1,128}")) { trace = null; }
             TokenAuditContextBO context = TokenAuditContextBO.builder().proof(proof)
                     .eventId(UUID.randomUUID().toString().replace("-", ""))
-                    .fallbackIssuer(properties.getFallbackIssuer()).resource(resource).result(result).reasonCode(reason)
+                    .fallbackIssuer(properties.getFallbackIssuer()).resource(observedResource).result(result).reasonCode(reason)
                     .occurredAt(clock.instant()).traceId(trace).build();
             new ValidationUtils(validator).validate(context);
             producer.appendStrict(new ValidationUtils(validator).validate(converter.toTarget(context)));

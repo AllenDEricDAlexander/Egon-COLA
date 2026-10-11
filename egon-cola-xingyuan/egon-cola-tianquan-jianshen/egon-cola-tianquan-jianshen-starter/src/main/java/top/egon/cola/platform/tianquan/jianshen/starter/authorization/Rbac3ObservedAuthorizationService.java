@@ -79,7 +79,14 @@ public class Rbac3ObservedAuthorizationService implements AuthorizationService {
     private void deniedHandoff() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getDetails() instanceof TokenAuditProofBO proof)) { return; }
-        if (!observations.authorizationDenied(proof)) {
+        boolean confirmed;
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes servlet) {
+            var marker = IdpSecurityObservationFilter.authorizationObservationContext(servlet.getRequest());
+            confirmed = marker != null && marker.denyOnce(() -> observations.authorizationDenied(proof));
+        } else {
+            confirmed = observations.authorizationDenied(proof);
+        }
+        if (!confirmed) {
             IdentityPrincipal identity = authentication instanceof Rbac3ContextAuthentication context
                     ? context.context().identity() : (IdentityPrincipal) authentication.getPrincipal();
             throw new RuntimeUnavailableException("OAUTH_AUDIT_DELIVERY_UNAVAILABLE", identity);

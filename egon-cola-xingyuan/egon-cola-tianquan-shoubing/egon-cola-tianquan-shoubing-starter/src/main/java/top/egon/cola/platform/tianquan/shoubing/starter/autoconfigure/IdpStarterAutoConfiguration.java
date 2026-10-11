@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
@@ -109,11 +110,11 @@ public class IdpStarterAutoConfiguration {
             return new AuditDeliveryProperties();
         }
 
-        @Bean
+        @Bean(name = "tokenUsageAuditComponent")
         @ConditionalOnBean({RedissonClient.class, ObjectMapper.class})
         @ConditionalOnMissingBean(TokenUsageAuditComponent.class)
         public TokenUsageAuditComponent tokenUsageAuditComponent(
-                @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
+                @Qualifier("idpAuditRedissonClient") RedissonClient redisson,
                 @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
                 @Qualifier("oauthAuditProperties") OAuthAuditProperties properties,
                 @Qualifier("auditDeliveryProperties") AuditDeliveryProperties delivery,
@@ -146,6 +147,7 @@ public class IdpStarterAutoConfiguration {
         }
 
         @Bean(name = "idpSecurityObservationFilter")
+        @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
         IdpSecurityObservationFilter idpSecurityObservationFilter(
                 @Qualifier("idpObservedVerificationComponent") IdpObservedVerificationComponent observations,
                 @Qualifier("idpEndpointAuthenticationPolicy") IdpEndpointAuthenticationPolicy endpointPolicy) {
@@ -153,6 +155,7 @@ public class IdpStarterAutoConfiguration {
         }
 
         @Bean(name = "idpSecurityObservationFilterRegistration")
+        @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
         org.springframework.boot.web.servlet.FilterRegistrationBean<IdpSecurityObservationFilter> idpSecurityObservationFilterRegistration(
                 @Qualifier("idpSecurityObservationFilter") IdpSecurityObservationFilter filter) {
             var registration = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(filter);

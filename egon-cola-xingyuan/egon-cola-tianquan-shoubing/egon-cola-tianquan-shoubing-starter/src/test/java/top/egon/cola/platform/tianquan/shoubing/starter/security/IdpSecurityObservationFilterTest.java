@@ -24,7 +24,6 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +71,7 @@ class IdpSecurityObservationFilterTest {
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
-    private final List<Map<String, String>> events = new ArrayList<>();
+    private final List<Map<String, String>> events = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final RedissonClient redis = mock(RedissonClient.class);
     @SuppressWarnings("unchecked") private final RStream<String, String> stream = mock(RStream.class);
     private TokenUsageAuditComponent producer;
@@ -101,6 +100,7 @@ class IdpSecurityObservationFilterTest {
         eventConverter = (TokenUsageAuditEventConverter) Class.forName(TokenUsageAuditEventConverter.class.getName() + "Impl")
                 .getConstructor().newInstance();
         usageProperties = new OAuthUsageObservationProperties(true, ISSUER, false);
+        usageProperties.setReceiver(top.egon.cola.platform.tianquan.shoubing.starter.observability.IdpSecurityObservationReceiverEnum.APPLICATION);
         observations = new IdpObservedVerificationComponent(producer, eventConverter,
                 usageProperties, IdpSecurityMetricsRecorder.NOOP,
                 clock, validator, RESOURCE);
@@ -139,6 +139,134 @@ class IdpSecurityObservationFilterTest {
 
     @AfterEach
     void cleanup() { SecurityContextHolder.clearContext(); org.slf4j.MDC.clear(); validator.close(); }
+
+    @Test
+    void asyncDenialCallbackSurvivesInitialDispatchAndIsRemovedAtCompletion() throws Exception {
+        var request = new MockHttpServletRequest("GET", "/user/orders");
+        request.setAsyncSupported(true);
+        var response = new MockHttpServletResponse();
+        var proof = verifier.verifyAny(token(false));
+        assertThat(proof).isInstanceOf(AccessTokenVerification.Valid.class);
+        var authentication = org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(
+                "controlled-user", "", List.of());
+        authentication.setDetails(((AccessTokenVerification.Valid<?>) proof).proof());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        new IdpSecurityObservationFilter(observations, new IdpEndpointAuthenticationPolicy())
+                .doFilter(request, response, (incoming, outgoing) -> request.startAsync());
+        String deniedCallback = IdpSecurityObservationFilter.class.getName() + ".deniedCallback";
+        assertThat(request.getAttribute(deniedCallback)).as("async render still needs the strict callback").isNotNull();
+        int before = events.size();
+        assertThat(IdpSecurityObservationFilter.beforeAuthorizationDenied(request)).isTrue();
+        assertThat(IdpSecurityObservationFilter.beforeAuthorizationDenied(request)).isTrue();
+        assertThat(events).hasSize(before + 1);
+        request.getAsyncContext().complete();
+        assertThat(request.getAttribute(deniedCallback)).isNull();
+    }
+
+    @Test
+    void standardAsyncRestartErrorAndTimeoutCloseOnlyOwnedAttributes() throws Exception {
+        for (boolean timeout : List.of(false, true)) {
+            var request = new MockHttpServletRequest("GET", "/user/orders");
+            request.setAsyncSupported(true);
+            request.setAttribute("host-owned", "retained");
+            var response = new MockHttpServletResponse();
+            org.slf4j.MDC.put("traceId", "parent-trace");
+            new IdpSecurityObservationFilter(observations, new IdpEndpointAuthenticationPolicy())
+                    .doFilter(request, response, (incoming, outgoing) -> request.startAsync());
+            assertThat(org.slf4j.MDC.get("traceId")).isEqualTo("parent-trace");
+            var marker = IdpSecurityObservationFilter.authorizationObservationContext(request);
+            assertThat(marker).isSameAs(request.getAttribute(IdpSecurityObservationFilter.class.getName() + ".authorizationObservationContext"));
+            var initial = (org.springframework.mock.web.MockAsyncContext) request.getAsyncContext();
+            var listener = initial.getListeners().getFirst();
+            var restarted = new org.springframework.mock.web.MockAsyncContext(request, response);
+            listener.onStartAsync(new jakarta.servlet.AsyncEvent(restarted));
+            assertThat(restarted.getListeners()).containsExactly(listener);
+            if (timeout) { listener.onTimeout(new jakarta.servlet.AsyncEvent(restarted)); }
+            else { listener.onError(new jakarta.servlet.AsyncEvent(restarted, new IllegalStateException("controlled async failure"))); }
+            listener.onComplete(new jakarta.servlet.AsyncEvent(restarted));
+            assertThat(marker.isActive()).isFalse();
+            assertThat(marker.denyOnce(() -> { throw new AssertionError("late handoff must not run"); })).isFalse();
+            assertThat(java.util.Collections.list(request.getAttributeNames())).containsExactly("host-owned");
+            assertThat(events).isEmpty();
+        }
+    }
+
+    @Test
+    void compatibilityRecordedFlagCannotTurnNewOrFailedIntoConfirmation() throws Exception {
+        var request = new MockHttpServletRequest("GET", "/user/orders");
+        var valid = (AccessTokenVerification.Valid<?>) verifier.verifyAny(token(false));
+        var authentication = org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(
+                valid.principal(), "", List.of());
+        authentication.setDetails(valid.proof());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(stream.add(any(StreamAddArgs.class))).thenThrow(new org.redisson.client.RedisException("controlled unavailable"));
+        int initial = events.size();
+        new IdpSecurityObservationFilter(observations, new IdpEndpointAuthenticationPolicy())
+                .doFilter(request, new MockHttpServletResponse(), (incoming, outgoing) -> {
+                    IdpSecurityObservationFilter.authorizationDeniedRecorded(request);
+                    assertThat(IdpSecurityObservationFilter.authorizationObservationContext(request).isConfirmed()).isFalse();
+                    assertThat(IdpSecurityObservationFilter.beforeAuthorizationDenied(request)).isFalse();
+                    IdpSecurityObservationFilter.authorizationDeniedRecorded(request);
+                    assertThat(IdpSecurityObservationFilter.beforeAuthorizationDenied(request)).isFalse();
+                    assertThat(IdpSecurityObservationFilter.authorizationObservationContext(request).isFailed()).isTrue();
+                });
+        assertThat(events).hasSize(initial);
+        try (var frames = Files.list(temporary.resolve("spool"))) {
+            assertThat(frames.filter(path -> path.toString().endsWith(".evt")).count()).isEqualTo(2);
+        }
+    }
+
+    @Test
+    void completedVerificationUsesTheExplicitTrustedResourceAndTraceWithoutAnotherDecode() throws Exception {
+        var captured = new java.util.concurrent.atomic.AtomicReference<top.egon.cola.platform.tianquan.shoubing.starter.security.domain.VerifiedJwtBO>();
+        var result = verifier.verifyAny(token(false), captured::set);
+        URI secondResource = URI.create("https://api.example/permission");
+        org.slf4j.MDC.put("traceId", "caller-thread");
+        var observed = observations.observeCompleted(result, captured.get(), secondResource, "physical-request");
+        assertThat(observed).isInstanceOf(AccessTokenVerification.Valid.class);
+        assertThat(((AccessTokenVerification.Valid<?>) observed).proof().resource()).isEqualTo(secondResource);
+        assertThat(events.getLast()).containsEntry("resource", secondResource.toASCIIString()).containsEntry("traceId", "physical-request");
+        assertThat(org.slf4j.MDC.get("traceId")).isEqualTo("caller-thread");
+        observations.observeCompleted(new AccessTokenVerification.Invalid<>("JWT_AUDIENCE_INVALID"), captured.get(), secondResource, "physical-request");
+        assertThat(events.getLast()).containsEntry("resource", secondResource.toASCIIString()).doesNotContainKeys("subjectRef", "clientRef", "tokenRef");
+        jwks.verify();
+    }
+
+    @Test
+    void listenerAttachmentRaceCleansUpOnlyAfterVerifiedTermination() throws Exception {
+        var finished = new MockHttpServletRequest("GET", "/user/orders") {
+            @Override public jakarta.servlet.AsyncContext getAsyncContext() {
+                setAsyncStarted(false);
+                throw new IllegalStateException("controlled completed race");
+            }
+        };
+        finished.setAsyncSupported(true);
+        var captured = new java.util.concurrent.atomic.AtomicReference<top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO>();
+        var filter = new IdpSecurityObservationFilter(observations, new IdpEndpointAuthenticationPolicy());
+        filter.doFilter(finished, new MockHttpServletResponse(), (incoming, outgoing) -> {
+            captured.set(IdpSecurityObservationFilter.authorizationObservationContext(finished));
+            finished.startAsync();
+        });
+        assertThat(captured.get().isActive()).isFalse();
+        assertThat(java.util.Collections.list(finished.getAttributeNames())).isEmpty();
+        var running = new MockHttpServletRequest("GET", "/user/orders") {
+            @Override public jakarta.servlet.AsyncContext getAsyncContext() {
+                throw new IllegalStateException("controlled active registration failure");
+            }
+        };
+        running.setAsyncSupported(true);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> filter.doFilter(running, new MockHttpServletResponse(),
+                (incoming, outgoing) -> running.startAsync())).isInstanceOf(jakarta.servlet.ServletException.class)
+                .hasMessage("OAUTH_AUDIT_ASYNC_LIFECYCLE_UNAVAILABLE");
+        assertThat(running.isAsyncStarted()).isTrue();
+        assertThat(IdpSecurityObservationFilter.authorizationObservationContext(running)).isNotNull();
+        var primary = new IllegalArgumentException("controlled business failure");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> filter.doFilter(running, new MockHttpServletResponse(),
+                (incoming, outgoing) -> { throw primary; })).isSameAs(primary);
+        assertThat(primary.getSuppressed()).hasSize(1);
+        assertThat(org.slf4j.MDC.get("traceId")).isNull();
+        assertThat(events).isEmpty();
+    }
 
     @Test
     void httpUserAndServiceHandoffBeforeTheBusinessChainWithSecretFreeProof() throws Exception {
@@ -334,7 +462,7 @@ class IdpSecurityObservationFilterTest {
                 .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true")
                 .run(context -> assertThat(context).hasFailed());
         var receiver = new IdpStarterProperties(); receiver.setResourceUri(RESOURCE);
-        new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+        new org.springframework.boot.test.context.runner.WebApplicationContextRunner()
                 .withUserConfiguration(top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterAutoConfiguration.UsageObservationConfiguration.class)
                 .withPropertyValues("egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true")
                 .withBean("tokenUsageAuditComponent", TokenUsageAuditComponent.class, () -> producer)

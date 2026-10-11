@@ -32,6 +32,7 @@ egon.cola.platform:
       revocation:
         primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT:redis://127.0.0.1:6379}
       usage-observation:
+        receiver: JIANSHEN
         enabled: true
         fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
         allow-local-plaintext: true

@@ -1,2 +1,3 @@
+top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpSecurityObservationAutoConfiguration
 top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterAutoConfiguration
 top.egon.cola.platform.tianquan.shoubing.starter.client.ServiceTokenWebClientConfiguration

@@ -43,7 +43,6 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,7 +53,7 @@ class IdpStarterAutoConfigurationTest {
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
-                            IdpStarterAutoConfiguration.class))
+                            IdpStarterAutoConfiguration.class, IdpSecurityObservationAutoConfiguration.class))
                     .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
                     .withBean(RedissonClient.class,
                             () -> mock(RedissonClient.class))
@@ -80,6 +79,38 @@ class IdpStarterAutoConfigurationTest {
         assertThat(order.value()).contains(
                 IdpStarterAutoConfiguration.class,
                 WebClientAutoConfiguration.class);
+    }
+
+    @Test
+    void existingOverloadsAndNamedRedisStayCompatible() throws Exception {
+        var type = top.egon.cola.platform.tianquan.shoubing.starter.audit.TokenUsageAuditComponent.class;
+        var propertiesType = top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthAuditProperties.class;
+        type.getConstructor(RedissonClient.class, ObjectMapper.class, propertiesType);
+        var legacy = type.getConstructor(RedissonClient.class, ObjectMapper.class, propertiesType,
+                top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties.class,
+                java.time.Clock.class, jakarta.validation.Validator.class);
+        var configured = type.getConstructor(RedissonClient.class, ObjectMapper.class, propertiesType,
+                top.egon.cola.platform.tianquan.shoubing.starter.audit.AuditDeliveryProperties.class,
+                java.time.Clock.class, jakarta.validation.Validator.class,
+                top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder.class);
+        assertThat(legacy.getParameters()[0].getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class).value())
+                .isEqualTo("rbac3RuntimeRedissonClient");
+        assertThat(configured.getParameters()[0].getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class).value())
+                .isEqualTo("idpAuditRedissonClient");
+        var disabled = new top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties(false, null, false);
+        assertThat(disabled.isReceiverValid()).isTrue();
+        var primary = mock(RedissonClient.class);
+        contextRunner.withBean("rbac3RuntimeRedissonClient", RedissonClient.class, () -> primary)
+                .run(context -> {
+                    assertThat(context).hasNotFailed().doesNotHaveBean("idpSecurityMetricsRecorder");
+                    assertThat(context.getBean("idpAuditRedissonClient")).isSameAs(primary);
+                });
+        String resource = "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports";
+        try (var input = getClass().getClassLoader().getResourceAsStream(resource)) {
+            assertThat(input).isNotNull();
+            assertThat(new String(input.readAllBytes(), StandardCharsets.UTF_8).lines()
+                    .filter(IdpSecurityObservationAutoConfiguration.class.getName()::equals).count()).isEqualTo(1);
+        }
     }
 
     @Test
@@ -154,7 +185,7 @@ class IdpStarterAutoConfigurationTest {
     void remainsDisabledByDefault() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        IdpStarterAutoConfiguration.class))
+                        IdpStarterAutoConfiguration.class, IdpSecurityObservationAutoConfiguration.class))
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(IdpJwtVerifier.class);
                     assertThat(context).doesNotHaveBean(
@@ -170,7 +201,7 @@ class IdpStarterAutoConfigurationTest {
     void doesNotRequireServiceClientWhenOnlyResourceServerIsEnabled() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        IdpStarterAutoConfiguration.class))
+                        IdpStarterAutoConfiguration.class, IdpSecurityObservationAutoConfiguration.class))
                 .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
                 .withBean(RedissonClient.class,
                         () -> mock(RedissonClient.class))
@@ -203,6 +234,7 @@ class IdpStarterAutoConfigurationTest {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         IdpStarterAutoConfiguration.class,
+                        IdpSecurityObservationAutoConfiguration.class,
                         ServiceTokenWebClientConfiguration.class))
                 .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
                 .withBean(RedissonClient.class,
@@ -237,7 +269,7 @@ class IdpStarterAutoConfigurationTest {
     void rejectsLegacyPrivateKeyAndAdmissionProperties() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        IdpStarterAutoConfiguration.class))
+                        IdpStarterAutoConfiguration.class, IdpSecurityObservationAutoConfiguration.class))
                 .withPropertyValues(
                         "egon.cola.platform.tianquan.shoubing.enabled=true",
                         "egon.cola.platform.tianquan.shoubing.admission.private-key-path=/run/secrets/tianquan-shoubing.pem")
@@ -290,15 +322,9 @@ class IdpStarterAutoConfigurationTest {
                             .type(new JOSEObjectType("at+jwt"))
                             .keyID("tianquan-shoubing-local")
                             .build(),
-                    new JWTClaimsSet.Builder()
-                            .issuer(issuer)
-                            .subject("tianquan-shoubing-service")
-                            .audience(List.of(resource))
-                            .issueTime(Date.from(now))
-                            .notBeforeTime(Date.from(now))
-                            .expirationTime(Date.from(now.plusSeconds(60)))
-                            .jwtID("token-1")
-                            .build()
+                    JWTClaimsSet.parse(java.util.Map.of("iss", issuer, "sub", "tianquan-shoubing-service",
+                            "aud", List.of(resource), "iat", now.getEpochSecond(), "nbf", now.getEpochSecond(),
+                            "exp", now.plusSeconds(60).getEpochSecond(), "jti", "token-1"))
             );
             token.sign(new RSASSASigner(key));
 

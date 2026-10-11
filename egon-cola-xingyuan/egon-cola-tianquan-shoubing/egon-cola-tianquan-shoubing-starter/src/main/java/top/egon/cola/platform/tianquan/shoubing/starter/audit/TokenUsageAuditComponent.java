@@ -61,7 +61,7 @@ public class TokenUsageAuditComponent {
     private static final int MAC_BYTES = 32;
     private static final int MAX_EVENT_BYTES = 16_384;
 
-    @Qualifier("rbac3RuntimeRedissonClient")
+    @Qualifier("idpAuditRedissonClient")
     private final RedissonClient redisson;
     @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;

@@ -29,6 +29,7 @@ egon.cola.platform:
       revocation:
         primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
       usage-observation:
+        receiver: SHOUBING
         enabled: false
         fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
         allow-local-plaintext: false

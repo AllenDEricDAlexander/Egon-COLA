@@ -1,5 +1,7 @@
 package top.egon.cola.platform.tianquan.shoubing.starter.security;
 
+import jakarta.servlet.AsyncEvent;
+import jakarta.servlet.AsyncListener;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +15,7 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO;
 
 /** Request-scoped pre-render audit bridge; it is installed only in the host security chain. */
@@ -26,6 +29,9 @@ public class IdpSecurityObservationFilter extends OncePerRequestFilter {
     private static final String DENIED_CALLBACK = IdpSecurityObservationFilter.class.getName() + ".deniedCallback";
     private static final String AUTH_DONE = IdpSecurityObservationFilter.class.getName() + ".authDone";
     private static final String DENIED_DONE = IdpSecurityObservationFilter.class.getName() + ".deniedDone";
+    private static final String AUTH_STATE = IdpSecurityObservationFilter.class.getName() + ".authState";
+    private static final String DENIED_STATE = IdpSecurityObservationFilter.class.getName() + ".authorizationObservationContext";
+    private static final String ASYNC_LISTENER = IdpSecurityObservationFilter.class.getName() + ".asyncListener";
 
     public static boolean beforeAuthenticationFailure(HttpServletRequest request) {
         return beforeRender(request, AUTH_CALLBACK, AUTH_DONE);
@@ -35,18 +41,26 @@ public class IdpSecurityObservationFilter extends OncePerRequestFilter {
         return beforeRender(request, DENIED_CALLBACK, DENIED_DONE);
     }
 
-    /** Lets the owning PDP renderer avoid repeating a decision that was already handed off. */
+    public static IdpAuthorizationObservationContextBO authorizationObservationContext(HttpServletRequest request) {
+        return request.getAttribute(DENIED_STATE) instanceof IdpAuthorizationObservationContextBO context ? context : null;
+    }
+
+    /** The owning PDP calls this only after a successful strict handoff. */
     public static void authorizationDeniedRecorded(HttpServletRequest request) {
-        request.setAttribute(DENIED_DONE, Boolean.TRUE);
+        var context = authorizationObservationContext(request);
+        if (context != null && context.isConfirmed()) { request.setAttribute(DENIED_DONE, Boolean.TRUE); }
     }
 
     private static boolean beforeRender(HttpServletRequest request, String callbackKey, String doneKey) {
-        if (!(request.getAttribute(callbackKey) instanceof BooleanSupplier callback)) { return true; }
         if (request.getAttribute(doneKey) instanceof Boolean completed) { return completed; }
+        if (!(request.getAttribute(callbackKey) instanceof BooleanSupplier callback)) { return true; }
         boolean completed = callback.getAsBoolean();
         request.setAttribute(doneKey, completed);
         return completed;
     }
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() { return false; }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -61,20 +75,79 @@ public class IdpSecurityObservationFilter extends OncePerRequestFilter {
         if (previousTrace == null || !previousTrace.matches("[A-Za-z0-9._~-]{1,128}")) {
             MDC.put("traceId", UUID.randomUUID().toString().replace("-", ""));
         }
-        request.setAttribute(AUTH_CALLBACK, (BooleanSupplier) observations::authenticationFailure);
-        request.setAttribute(DENIED_CALLBACK, (BooleanSupplier) () -> {
-            var authentication = SecurityContextHolder.getContext().getAuthentication();
-            return authentication == null || !(authentication.getDetails() instanceof TokenAuditProofBO proof)
-                    || observations.authorizationDenied(proof);
-        });
+        if (authorizationObservationContext(request) == null) { installCallbacks(request, MDC.get("traceId")); }
+        Throwable primary = null;
         try {
             chain.doFilter(request, response);
+        } catch (ServletException | IOException | RuntimeException | Error failure) {
+            primary = failure;
+            throw failure;
         } finally {
-            request.removeAttribute(AUTH_CALLBACK);
-            request.removeAttribute(DENIED_CALLBACK);
-            request.removeAttribute(AUTH_DONE);
-            request.removeAttribute(DENIED_DONE);
-            if (previousTrace == null) { MDC.remove("traceId"); } else { MDC.put("traceId", previousTrace); }
+            try {
+                if (request.isAsyncStarted()) { retainForAsyncCompletion(request); }
+                else { closeObservation(request); }
+            } catch (ServletException lifecycleFailure) {
+                if (primary == null) { throw lifecycleFailure; }
+                primary.addSuppressed(lifecycleFailure);
+            } finally {
+                if (previousTrace == null) { MDC.remove("traceId"); } else { MDC.put("traceId", previousTrace); }
+            }
+        }
+    }
+
+    private void installCallbacks(HttpServletRequest request, String trace) {
+        var authenticationState = new IdpAuthorizationObservationContextBO();
+        var deniedState = new IdpAuthorizationObservationContextBO();
+        request.setAttribute(AUTH_STATE, authenticationState);
+        request.setAttribute(DENIED_STATE, deniedState);
+        request.setAttribute(AUTH_CALLBACK, (BooleanSupplier) () -> authenticationState.denyOnce(() -> {
+            String previous = MDC.get("traceId");
+            try { MDC.put("traceId", trace); return observations.authenticationFailure(); }
+            finally { if (previous == null) { MDC.remove("traceId"); } else { MDC.put("traceId", previous); } }
+        }));
+        request.setAttribute(DENIED_CALLBACK, (BooleanSupplier) () -> deniedState.denyOnce(() -> {
+            var authentication = SecurityContextHolder.getContext().getAuthentication();
+            return authentication != null && authentication.getDetails() instanceof TokenAuditProofBO proof
+                    && observations.authorizationDenied(proof, trace);
+        }));
+    }
+
+    private void retainForAsyncCompletion(HttpServletRequest request) throws ServletException {
+        if (request.getAttribute(ASYNC_LISTENER) != null) { return; }
+        AsyncListener listener = new AuthorizationObservationAsyncListener(request);
+        request.setAttribute(ASYNC_LISTENER, listener);
+        try { request.getAsyncContext().addListener(listener); }
+        catch (IllegalStateException unavailable) {
+            if (!request.isAsyncStarted()) { closeObservation(request); }
+            else {
+                request.removeAttribute(ASYNC_LISTENER);
+                throw new ServletException("OAUTH_AUDIT_ASYNC_LIFECYCLE_UNAVAILABLE", unavailable);
+            }
+        }
+    }
+
+    @RequiredArgsConstructor
+    @Slf4j
+    private static class AuthorizationObservationAsyncListener implements AsyncListener {
+        private final HttpServletRequest request;
+
+        @Override public void onComplete(AsyncEvent event) { closeObservation(request); }
+        @Override public void onError(AsyncEvent event) { closeObservation(request); }
+        @Override public void onTimeout(AsyncEvent event) { closeObservation(request); }
+        @Override public void onStartAsync(AsyncEvent event) throws IOException {
+            try { event.getAsyncContext().addListener(this); }
+            catch (IllegalStateException unavailable) {
+                if (!request.isAsyncStarted()) { closeObservation(request); }
+                else { throw new IOException("OAUTH_AUDIT_ASYNC_LIFECYCLE_UNAVAILABLE", unavailable); }
+            }
+        }
+    }
+
+    private static void closeObservation(HttpServletRequest request) {
+        if (request.getAttribute(AUTH_STATE) instanceof IdpAuthorizationObservationContextBO state) { state.close(); }
+        if (request.getAttribute(DENIED_STATE) instanceof IdpAuthorizationObservationContextBO state) { state.close(); }
+        for (String key : new String[] { AUTH_CALLBACK, DENIED_CALLBACK, AUTH_DONE, DENIED_DONE, AUTH_STATE, DENIED_STATE, ASYNC_LISTENER }) {
+            request.removeAttribute(key);
         }
     }
 }

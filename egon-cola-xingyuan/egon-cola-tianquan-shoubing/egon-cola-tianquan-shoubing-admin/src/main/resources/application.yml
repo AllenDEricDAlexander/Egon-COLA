@@ -86,6 +86,7 @@ egon.cola.platform:
   tianquan:
     shoubing:
       usage-observation:
+        receiver: SHOUBING
         enabled: true
         fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
         allow-local-plaintext: false
