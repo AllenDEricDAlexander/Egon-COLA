@@ -790,3 +790,30 @@ DEC-001–006均已明确批准；新确认DEC-007事务兼容及DEC-008按可�
 Verdict: **PASS — Ready for user review**。用户已明确confirmed批准本规范及整份Plan，设计审批完成，状态Accepted；此PASS只表示设计与批准门禁，不表示源码/生成/真实运行通过。
 
 规范协议参考：[RFC 8707 Resource Indicators](https://www.rfc-editor.org/rfc/rfc8707.html)、[Spring Security Reactive Authorized Clients](https://docs.spring.io/spring-security/reference/reactive/oauth2/client/authorized-clients.html)。仅作协议依据，实际装配以当前Security 6.5.11/SCG 4.3.5本地JAR与源码为准，不按网站新版本升级。
+
+### 20.6 Step 3 dependency preflight approval — DEC-009
+
+状态：**Accepted — 用户于2026-10-11本轮回复 confirmed，批准DEC-009的最小依赖与接线补齐**。DEC-001–008及Step1/2提交不变；执行按本修订后的Step3精确34文件及原19Step顺序。此审批只解除设计/依赖门禁，不表示Step3源码、测试或runtime已完成。
+
+执行预检证据（2026-10-11，`main @ 233144d0d14008153c1d244bc3af9878c26d61f9`）：鉴神 Gateway Adapter 当前依赖仅鉴神 Contract/Core、Yuheng Core、Boot/Security/Reactor/Jackson/Redis，无授柄 Starter/Gateway Adapter，也无 Lombok compile API；其 Core/Contract 没有补足这些传递能力。原 `Rbac3GatewayAdapterAutoConfiguration#rbac3BizAppScopeAuthorizationProvider` 只构造 `runtime::authorize`，无法把批准的 shared strict deny handoff 接入运行 Bean。已批准 Step3 File14 的 proof/观察职责因此无法按原清单编译或装配。
+
+推荐最小修订：鉴神 Gateway Adapter 依赖现有 `top.egon:egon-cola-tianquan-shoubing-gateway-adapter`，版本沿既有 Xingyuan dependencyManagement `${project.version}=5.4.1`，不写新版本、不下载新的第三方制品；补 `org.projectlombok:lombok:${lombok.version}=1.18.46`，`provided=true`、`optional=true`（Maven 写 `<scope>provided</scope><optional>true</optional>`），复用父 POM 已有 annotationProcessorPaths，不增加处理器/框架。Lombok 1.18.46 JAR 已在现有本机 Maven 仓库。授柄 adapter 本身只依赖身份 SDK 与 Gateway Core，无鉴神依赖，因此该方向不形成模块循环。普通 Gateway Core 仍不依赖 Tianquan/Jackson/Micrometer，鉴神领域 Core 也不引入身份/Spring。
+
+同时补齐下面四个当前 owner 路径。其它 Plan 内容、授权规则、SQL、HTTP/OAuth 协议、19Step 顺序、部署与隔离运行边界不变。
+
+| Operation | Exact path | Owning change |
+| --- | --- | --- |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/pom.xml` | 仅增加已有授柄 Gateway Adapter compile 依赖及已缓存 Lombok provided/optional 编译依赖；不加框架、不升级 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java` | 将既有 observed proof/metrics/defaultValidator 注入原 BIZ/APP provider；保留具名 Bean、旧直接构造兼容和授权职责 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java` | 原 identity-only 自动装配 fixture 改为断言新增 mandatory scope capability 与严格配置；不把 scope 混入 ordinary ANY/ALL |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java` | 验证实际审计/validator 接线与原授权-only能力、旧构造兼容；防止只改类却未接 Bean factory |
+
+按本轮已批准修订：POM 编译前提在 Step3 原接口前执行；鉴神自动配置在原 File14 行为存在后接线；两个自动配置 fixture 纳入 Step3 组合回归，原 File1–30 对应角色不转移到其它 Step。实际 Step3 清单重编号为34文件，逐文件仍按声明顺序执行；19个 Step 编号不变。
+
+共享审计状态仍按已经批准的 Reactor request scope 生命周期（主Spec §7.3.5.1 / Edge §7.3.7）实现，身份 proof/scopes 的 immutable BO 不包含 mutable marker；Core 只提供标准 Reactor/JDK 的作用域承载及 terminal/cancel cleanup，不引用授柄类型，不使用全局缓存、ThreadLocal、反射或请求头恢复 proof。只有 adapter 使用实际 `IdpAuthorizationObservationContextBO`，同一 physical request 的 mandatory/ordinary DENY 共用同一个严格交付结果。具体 helper 可放在已批准的现 owner 文件内，不能为了避免这项明确依赖而新增平行审计协议或弱化 strict 交付。
+
+备选：保持现依赖并把整个审计职责重新设计为新的跨平台 Core SPI。这会新增公有技术合同与更多 Core/wiring 变化，超过当前最小方案，因此不推荐。只写源码 import、依赖偶然 runtime classpath、反射调用 SDK、或将审计失败改成普通403都不接受。
+
+验证：Step3 原 RED/GREEN 保留，增加 `IdpGatewayAdapterAutoConfigurationTest`、`Rbac3GatewayAdapterAutoConfigurationTest` 到同一选择器；检查实际解析依赖、无循环、一次真实 handoff、strict ERROR/503、Reactor terminal/cancel 清理及 old constructors。原源码仍停在 Step3 预检，不能以本提案或先前 Step2 GREEN 作为 Step3 完成证据。
+
+本增补的设计MC-DEP-001 / MC-BEAN-001 / MC-SCOPE-001 / MC-BLOCKER-001：**PASS — DEC-009已获明确confirmed，精确清单/版本/无循环方案已核对**。实施时须逐Step重新核对真实diff/依赖/行为证据；原runtime许可边界不变。

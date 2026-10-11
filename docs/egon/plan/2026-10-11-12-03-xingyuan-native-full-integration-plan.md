@@ -14,7 +14,7 @@
 | Baseline Revision | `main @ b074c6673`；仅本轮4份Spec文档未提交，无源码变更 |
 | Implements Spec | [星垣完整接入](../spec/2026-10-11-10-26-xingyuan-native-full-integration.md) |
 | Spec Status | `Accepted` |
-| Spec Revision | 用户confirmed批准原完整审查修订（Plan SHA e4371f70，四Spec SHA见§12.6），本次只更新批准元数据 |
+| Spec Revision | 原整文confirmed（Plan SHA e4371f70，四Spec SHA见§12.6）；DEC-009本轮confirmed，精确增补见§12.8与Spec §20.6 |
 | Effective Specs | [主Spec](../spec/2026-10-11-10-26-xingyuan-native-full-integration.md)；[Edge/SDK/宿主附录](../spec/2026-10-11-10-26-xingyuan-native-full-integration-edge.md)；[Native目录/字段/四family附录](../spec/2026-10-11-10-26-xingyuan-native-full-integration-native.md)；[隔离运行附录](../spec/2026-10-11-10-26-xingyuan-native-full-integration-runtime.md)；[自身加固](../spec/2026-10-10-12-36-tianquan-security-self-hardening.md)；[OAuth/OIDC基线](../spec/2026-09-22-17-14-tianquan-multitenant-oauth-oidc-design.md)；[当前代码修订](../spec/2026-10-08-10-18-oauth-current-code-alignment.md)；[原生/Open依赖治理](../spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md)；[Agent研究与知识库](../spec/2026-09-10-11-51-agent-archetype-knowledge-rag.md) |
 | Depends On Plans | [已完成自身加固](2026-10-10-13-45-tianquan-self-security-hardening-plan.md) §13源码审计，仅作为现存依赖，不重做旧Step |
 | Supersedes | None |
@@ -550,7 +550,7 @@ DEC-007新增Step8的9路径已在主Spec§7.0.1完整列明；拒绝双TM/produ
 | MODIFY | `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-native.md` | Step 19: 78atomic/namespaces/fieldrules/source-generatedproof | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, REQ-024, REQ-025, REQ-026, REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042, REQ-043, REQ-044, REQ-045, REQ-046, REQ-047, REQ-048 |
 | MODIFY | `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-runtime.md` | Step 19: 24live/realoracle/unknowncommit/preservationtruth | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, REQ-024, REQ-025, REQ-026, REQ-027, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042, REQ-043, REQ-044, REQ-045, REQ-046, REQ-047, REQ-048 |
 
-共371个去重路径、391个有序File动作；19个逻辑Step各一次focusedcommit。9个直接必要Outbox/JPA路径为DEC-007提案，等待整文批准。
+共374个去重路径、395个有序File动作；19个逻辑Step各一次focusedcommit。DEC-007/008及整文已获confirmed；本轮DEC-009将Step3精确补齐为34个File动作，不改Step编号。
 
 ## 6. Prerequisites, Constraints, and Plan Clarifications
 
@@ -1671,7 +1671,38 @@ assertThat(((GatewayVerifiedIdentityBO) principal.trustedAuthenticationEvidence(
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；每File的具体约束见下面，非统一口号代替验证。
 - Ordered files: 下列编号严格顺序；`red`之前仅compile-required声明；`config`在实际实现后；post-wiring测试补组合覆盖，同文件后续相位符号注明。
 
-#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthenticationProvider.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/pom.xml`
+
+- Purpose: 编译前提；DEC-009精确批准
+- Symbols: dependencies shoubing adapter and lombok
+- Repository evidence: 现真实文件；DEC-009预检与离线dependency:tree证明精确能力缺口。
+- Dependencies and consumers: 原Step3 sharedscope/proof/strictdeny owner；普通Core与鉴神Domain不新增身份依赖。
+- Why now: 编译前提；DEC-009精确批准；完整规范见§12.8与主/Edge Spec §20.6，已获用户confirmed。
+- Contract/signature changes: 仅原factory/compatibleconstructor及现组件扩展；无新HTTP/SQL/权限或运行框架。
+- Input/output and state mapping: currentOwner→具名shared SDK/Validator/Metric；same-request marker与immutable proof/scopes分别承载。
+- Error and edge behavior: 缺strict依赖startup/ERROR failclosed；旧unuseddirectconstructor保留；不以403代替audit503。
+- Standards impact: MC-DEP-001/MC-BEAN-001/MC-VALID-001/MC-SCOPE-001/MC-TEST-001；Lombok1.18.46 provided/optional，内部制品5.4.1，父processor复用。
+- Literal rule enforcement: Rule 1 / Rule 2 / Rule 3 / Rule 4 / Rule 5 / Rule 6 / Rule 9 / Rule 10 / Rule 11；规范语义后缀、校验、具名qualifiedfinal/Lombok/Slf4j、现converter与分层，no token/log/JSON泄露。
+- Implementation pseudocode:
+
+```xml
+<dependency>
+    <groupId>top.egon</groupId>
+    <artifactId>egon-cola-tianquan-shoubing-gateway-adapter</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>${lombok.version}</version>
+    <scope>provided</scope>
+    <optional>true</optional>
+</dependency>
+```
+
+- Verification contribution: 同一Step3 selector包含真实装配断言；依赖/compile失败不当行为RED；ownBean/sharedstate/ABI旧构造正反例。
+- After this file: 仅本Step能力；所有namedtests、Manual/Literal与exactdiff完成后focused commit，后续Step不可先改。
+
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthenticationProvider.java`
 
 - Purpose: defaultJDKAPIcompile前提，旧provider不改
 - Symbols: default requiredAuthorizationProviderIds()
@@ -1697,7 +1728,7 @@ default Set<String> requiredAuthorizationProviderIds() {
 - Verification contribution: 相同Step namedselector观察本file的defaultJDKAPIcompile前提，旧provider不改；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: test依赖声明可编译，runtime仍原行为；不得把此API存在视为GREEN，下一RED断言实际缺口。
 
-#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthorizationProvider.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthorizationProvider.java`
 
 - Purpose: 旧provider defaultfalse不改ordinary语义
 - Symbols: default mandatory()
@@ -1723,7 +1754,7 @@ default boolean mandatory() {
 - Verification contribution: 相同Step namedselector观察本file的旧provider defaultfalse不改ordinary语义；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: test依赖声明可编译，runtime仍原行为；不得把此API存在视为GREEN，下一RED断言实际缺口。
 
-#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewaySecurityPolicy.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewaySecurityPolicy.java`
 
 - Purpose: typed内部Set声明先compile，旧ctor defaultempty只ABIcompat
 - Symbols: requiredOAuthScopes,compat constructors
@@ -1747,7 +1778,7 @@ record GatewaySecurityPolicy(existingFields, Set<String> requiredOAuthScopes) {
 - Verification contribution: 相同Step namedselector观察本file的typed内部Set声明先compile，旧ctor defaultempty只ABIcompat；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: test依赖声明可编译，runtime仍原行为；不得把此API存在视为GREEN，下一RED断言实际缺口。
 
-#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthContext.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthContext.java`
 
 - Purpose: 最终compiledroute typedscopes传provider，noheaderinput
 - Symbols: requiredOAuthScopes,withPrincipal,compat constructors
@@ -1770,7 +1801,7 @@ record GatewayAuthContext(existingFields, Set<String> requiredOAuthScopes) {
 - Verification contribution: 相同Step namedselector观察本file的最终compiledroute typedscopes传provider，noheaderinput；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: test依赖声明可编译，runtime仍原行为；不得把此API存在视为GREEN，下一RED断言实际缺口。
 
-#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayMandatoryScopeContractTest.java`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayMandatoryScopeContractTest.java`
 
 - Purpose: 真registry/chain，而非只mock新provider returnedDENY
 - Symbols: mandatoryDenyRunsBeforeOrdinaryAny,identityProtectedStillEmpty,oldSnapshotMissingRejected
@@ -1794,7 +1825,7 @@ assertCompileFailsForMissingScopeAndMissingMandatoryProvider();
 - Verification contribution: 相同Step namedselector观察本file的真registry/chain，而非只mock新provider returnedDENY；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmSecurityConfigurationTest.java`
+#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmSecurityConfigurationTest.java`
 
 - Purpose: 真正FilterChain+nativeprotocolwriter，缺scope与fine分别负例
 - Symbols: validIdentityMissingInvokeScopeHasNoModelCall
@@ -1818,7 +1849,7 @@ assertRealTokenWithScopeStillNeedsAllowedSubjectAndCapability();
 - Verification contribution: 相同Step namedselector观察本file的真正FilterChain+nativeprotocolwriter，缺scope与fine分别负例；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpOAuthScopeAuthorizationProvider.java`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpOAuthScopeAuthorizationProvider.java`
 
 - Purpose: newadapter provider只读opaqueevidence/finalrequiredscopes
 - Symbols: providerId/mandatory/authorize
@@ -1844,7 +1875,7 @@ Publisher<AuthorizationDecision> authorize(GatewayAuthContext ctx) {
 - Verification contribution: 相同Step namedselector观察本file的newadapter provider只读opaqueevidence/finalrequiredscopes；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`
 
 - Purpose: declaremandatoryID，legacydirectctor remainscompat
 - Symbols: requiredAuthorizationProviderIds() strict factory
@@ -1867,7 +1898,7 @@ oldConstructor retains Set.of();
 - Verification contribution: 相同Step namedselector观察本file的declaremandatoryID，legacydirectctor remainscompat；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`
 
 - Purpose: 注册actualmandatoryprovider与requiredhook
 - Symbols: idpOAuthScopeAuthorizationProvider and strictidentityprovider
@@ -1893,7 +1924,7 @@ public GatewayAuthorizationProvider scopeProvider(/* existing qualified observat
 - Verification contribution: 相同Step namedselector观察本file的注册actualmandatoryprovider与requiredhook；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 具名入口已连接；此Step尚须profiles/组合tests/同selector验证再commit。
 
-#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistry.java`
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistry.java`
 
 - Purpose: 用existingvalidate hook解析requiredIDs，无CoreTianquan字符串
 - Symbols: validate(policy,protocols),requiredprovider resolution
@@ -1919,7 +1950,7 @@ rejectBusinessPolicyWithoutDeclaredSupportedRequiredScopes();
 - Verification contribution: 相同Step namedselector观察本file的用existingvalidate hook解析requiredIDs，无CoreTianquan字符串；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompiler.java`
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompiler.java`
 
 - Purpose: typedrequiredscopes来自现signedconfiguration，missingstrict失败
 - Symbols: policy(GatewayRuntimePolicy),compile
@@ -1943,7 +1974,7 @@ return compiled;
 - Verification contribution: 相同Step namedselector观察本file的typedrequiredscopes来自现signedconfiguration，missingstrict失败；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChain.java`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChain.java`
 
 - Purpose: mandatory全ALLOW然后原ordinaryANY/ALL，Identity模式原空ordinary合法
 - Symbols: authorizeAndMap/context construction
@@ -1966,7 +1997,7 @@ return executeMandatoryProviders(resolvedRequiredProviders, authenticatedContext
 - Verification contribution: 相同Step namedselector观察本file的mandatory全ALLOW然后原ordinaryANY/ALL，Identity模式原空ordinary合法；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/rule/adapter/json/GatewayRuleJsonCodec.java`
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/rule/adapter/json/GatewayRuleJsonCodec.java`
 
 - Purpose: 保证newkey现Map流入hash/signature，无新DTOtopfield
 - Symbols: runtimePolicy configuration encode/hash
@@ -1989,7 +2020,7 @@ decodePreservesArrayAndRejectsInvalidPublishedScopeShape();
 - Verification contribution: 相同Step namedselector观察本file的保证newkey现Map流入hash/signature，无新DTOtopfield；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/Rbac3BizAppScopeAuthorizationProvider.java`
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/Rbac3BizAppScopeAuthorizationProvider.java`
 
 - Purpose: scope与原BIZ/APP/PDP各自独立；sharedDENYhandoff
 - Symbols: authorize(context)
@@ -2012,7 +2043,30 @@ if (decision != ALLOW) sharedRequestMarker.denyOnce(() -> observations.authoriza
 - Verification contribution: 相同Step namedselector观察本file的scope与原BIZ/APP/PDP各自独立；sharedDENYhandoff；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 15 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmSecurityConfiguration.java`
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`
+
+- Purpose: 已有provider行为后接具名qualified observer/metrics/defaultValidator；旧constructor保留
+- Symbols: rbac3BizAppScopeAuthorizationProvider observation wiring
+- Repository evidence: 现真实文件；DEC-009预检与离线dependency:tree证明精确能力缺口。
+- Dependencies and consumers: 原Step3 sharedscope/proof/strictdeny owner；普通Core与鉴神Domain不新增身份依赖。
+- Why now: 已有provider行为后接具名qualified observer/metrics/defaultValidator；旧constructor保留；完整规范见§12.8与主/Edge Spec §20.6，已获用户confirmed。
+- Contract/signature changes: 仅原factory/compatibleconstructor及现组件扩展；无新HTTP/SQL/权限或运行框架。
+- Input/output and state mapping: currentOwner→具名shared SDK/Validator/Metric；same-request marker与immutable proof/scopes分别承载。
+- Error and edge behavior: 缺strict依赖startup/ERROR failclosed；旧unuseddirectconstructor保留；不以403代替audit503。
+- Standards impact: MC-DEP-001/MC-BEAN-001/MC-VALID-001/MC-SCOPE-001/MC-TEST-001；Lombok1.18.46 provided/optional，内部制品5.4.1，父processor复用。
+- Literal rule enforcement: Rule 1 / Rule 2 / Rule 3 / Rule 4 / Rule 5 / Rule 6 / Rule 9 / Rule 10 / Rule 11；规范语义后缀、校验、具名qualifiedfinal/Lombok/Slf4j、现converter与分层，no token/log/JSON泄露。
+- Implementation pseudocode:
+
+```java
+@Bean("rbac3BizAppScopeAuthorizationProvider")
+provider(qualifiedRuntime, optionalQualifiedObserver, optionalQualifiedMetrics, qualifiedValidator);
+// shared physical-request Reactor marker; no new authentication or scope widening
+```
+
+- Verification contribution: 同一Step3 selector包含真实装配断言；依赖/compile失败不当行为RED；ownBean/sharedstate/ABI旧构造正反例。
+- After this file: 仅本Step能力；所有namedtests、Manual/Literal与exactdiff完成后focused commit，后续Step不可先改。
+
+#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmSecurityConfiguration.java`
 
 - Purpose: native四invoke+models用actualIdp chain，不重构模型业务
 - Symbols: llmSecurityFilterChain/idpEndpointAuthenticationPolicy
@@ -2037,7 +2091,7 @@ write original OpenAI/Anthropic safe error shape before model dispatch;
 - Verification contribution: 相同Step namedselector观察本file的native四invoke+models用actualIdp chain，不重构模型业务；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application.yml`
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application.yml`
 
 - Purpose: ownIdp/resource/usage/TLS policy and modelscope
 - Symbols: YAML keys：ownIdp/resource/usage/TLS policy and modelscope
@@ -2080,7 +2134,7 @@ server.ssl.enabled: true
 - Verification contribution: 相同Step namedselector观察本file的ownIdp/resource/usage/TLS policy and modelscope；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 全部listed profile新key一致、values有真实来源；待sameGREEN与MC-CONFIG逐key核。
 
-#### File 17 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application-local.yml`
+#### File 19 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application-local.yml`
 
 - Purpose: ownIdp/resource/usage/TLS policy and modelscope
 - Symbols: YAML keys：ownIdp/resource/usage/TLS policy and modelscope
@@ -2123,7 +2177,7 @@ server.ssl.enabled: true
 - Verification contribution: 相同Step namedselector观察本file的ownIdp/resource/usage/TLS policy and modelscope；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 全部listed profile新key一致、values有真实来源；待sameGREEN与MC-CONFIG逐key核。
 
-#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`
 
 - Purpose: strictgateway hostusage/PRIMARY/TLS
 - Symbols: YAML keys：strictgateway hostusage/PRIMARY/TLS
@@ -2146,7 +2200,7 @@ revocation: {mode: STRICT_SHARED, primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATI
 - Verification contribution: 相同Step namedselector观察本file的strictgateway hostusage/PRIMARY/TLS；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 全部listed profile新key一致、values有真实来源；待sameGREEN与MC-CONFIG逐key核。
 
-#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`
+#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`
 
 - Purpose: strictgateway hostusage/PRIMARY/TLS
 - Symbols: YAML keys：strictgateway hostusage/PRIMARY/TLS
@@ -2169,7 +2223,7 @@ revocation: {mode: STRICT_SHARED, primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATI
 - Verification contribution: 相同Step namedselector观察本file的strictgateway hostusage/PRIMARY/TLS；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 全部listed profile新key一致、values有真实来源；待sameGREEN与MC-CONFIG逐key核。
 
-#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`
+#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`
 
 - Purpose: strictgateway hostusage/PRIMARY/TLS
 - Symbols: YAML keys：strictgateway hostusage/PRIMARY/TLS
@@ -2192,7 +2246,7 @@ revocation: {mode: STRICT_SHARED, primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATI
 - Verification contribution: 相同Step namedselector观察本file的strictgateway hostusage/PRIMARY/TLS；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 全部listed profile新key一致、values有真实来源；待sameGREEN与MC-CONFIG逐key核。
 
-#### File 21 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`
+#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`
 
 - Purpose: strictgateway hostusage/PRIMARY/TLS
 - Symbols: YAML keys：strictgateway hostusage/PRIMARY/TLS
@@ -2215,7 +2269,7 @@ revocation: {mode: STRICT_SHARED, primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATI
 - Verification contribution: 相同Step namedselector观察本file的strictgateway hostusage/PRIMARY/TLS；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 全部listed profile新key一致、values有真实来源；待sameGREEN与MC-CONFIG逐key核。
 
-#### File 22 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompilerTest.java`
+#### File 24 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompilerTest.java`
 
 - Purpose: 该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime
 - Symbols: requiredScopeValidation
@@ -2238,7 +2292,7 @@ assertProtocolStatusAndExistingSuccessJsonUnchanged();
 - Verification contribution: 相同Step namedselector观察本file的该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 23 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistryTest.java`
+#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistryTest.java`
 
 - Purpose: 该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime
 - Symbols: requiredProviderDefaultCompatibility
@@ -2261,7 +2315,7 @@ assertProtocolStatusAndExistingSuccessJsonUnchanged();
 - Verification contribution: 相同Step namedselector观察本file的该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 24 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChainTest.java`
+#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChainTest.java`
 
 - Purpose: 该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime
 - Symbols: mandatoryAndOrdinarySemantics
@@ -2284,7 +2338,7 @@ assertProtocolStatusAndExistingSuccessJsonUnchanged();
 - Verification contribution: 相同Step namedselector观察本file的该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 25 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayIdentityOnlySecurityTest.java`
+#### File 27 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayIdentityOnlySecurityTest.java`
 
 - Purpose: 该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime
 - Symbols: ordinaryEmptyStillLegal
@@ -2307,7 +2361,7 @@ assertProtocolStatusAndExistingSuccessJsonUnchanged();
 - Verification contribution: 相同Step namedselector观察本file的该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 26 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/GatewayFailClosedSecurityMatrixTest.java`
+#### File 28 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/GatewayFailClosedSecurityMatrixTest.java`
 
 - Purpose: 该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime
 - Symbols: scopeAndBizRangeSeparate
@@ -2330,7 +2384,7 @@ assertProtocolStatusAndExistingSuccessJsonUnchanged();
 - Verification contribution: 相同Step namedselector观察本file的该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 27 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmProtocolContractTest.java`
+#### File 29 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmProtocolContractTest.java`
 
 - Purpose: 该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime
 - Symbols: nativeProtocolSuccessAndDeniedBody
@@ -2353,7 +2407,7 @@ assertProtocolStatusAndExistingSuccessJsonUnchanged();
 - Verification contribution: 相同Step namedselector观察本file的该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 28 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmApiOpenApiContractTest.java`
+#### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmApiOpenApiContractTest.java`
 
 - Purpose: 该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime
 - Symbols: scopeAndErrorDocumentation
@@ -2376,7 +2430,7 @@ assertProtocolStatusAndExistingSuccessJsonUnchanged();
 - Verification contribution: 相同Step namedselector观察本file的该现fixture closes实际compiler/registry/chain/协议/OAS，非新外部runtime；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 29 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/bootstrap/config/GatewayEngineManagementSecurityConfiguration.java`
+#### File 31 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/bootstrap/config/GatewayEngineManagementSecurityConfiguration.java`
 
 - Purpose: actualmanagementchain观察/strictscope兼容、no rawheadertrust
 - Symbols: GatewayEngineManagementSecurityConfiguration
@@ -2399,7 +2453,7 @@ PUBLIChealth remains public; no Servletfilter indataReactorchain;
 - Verification contribution: 相同Step namedselector观察本file的actualmanagementchain观察/strictscope兼容、no rawheadertrust；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 具名入口已连接；此Step尚须profiles/组合tests/同selector验证再commit。
 
-#### File 30 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/bootstrap/config/McpGatewayManagementSecurityConfiguration.java`
+#### File 32 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/bootstrap/config/McpGatewayManagementSecurityConfiguration.java`
 
 - Purpose: actualmanagementchain观察/strictscope兼容、no rawheadertrust
 - Symbols: McpGatewayManagementSecurityConfiguration
@@ -2422,17 +2476,63 @@ PUBLIChealth remains public; no Servletfilter indataReactorchain;
 - Verification contribution: 相同Step namedselector观察本file的actualmanagementchain观察/strictscope兼容、no rawheadertrust；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 具名入口已连接；此Step尚须profiles/组合tests/同selector验证再commit。
 
-- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway -am -Dtest=GatewayMandatoryScopeContractTest,GatewaySecurityPolicyCompilerTest,GatewaySecurityCapabilityRegistryTest,GatewaySecurityChainTest,GatewayIdentityOnlySecurityTest,GatewayFailClosedSecurityMatrixTest,LlmSecurityConfigurationTest,LlmProtocolContractTest,LlmApiOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`
+#### File 33 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java`
+
+- Purpose: 原identity-only fixture更新为mandatory阶段接线；保留ordinary业务授权边界
+- Symbols: configuredMandatoryProviderWiring
+- Repository evidence: 现真实文件；DEC-009预检与离线dependency:tree证明精确能力缺口。
+- Dependencies and consumers: 原Step3 sharedscope/proof/strictdeny owner；普通Core与鉴神Domain不新增身份依赖。
+- Why now: 原identity-only fixture更新为mandatory阶段接线；保留ordinary业务授权边界；完整规范见§12.8与主/Edge Spec §20.6，已获用户confirmed。
+- Contract/signature changes: 仅原factory/compatibleconstructor及现组件扩展；无新HTTP/SQL/权限或运行框架。
+- Input/output and state mapping: currentOwner→具名shared SDK/Validator/Metric；same-request marker与immutable proof/scopes分别承载。
+- Error and edge behavior: 缺strict依赖startup/ERROR failclosed；旧unuseddirectconstructor保留；不以403代替audit503。
+- Standards impact: MC-DEP-001/MC-BEAN-001/MC-VALID-001/MC-SCOPE-001/MC-TEST-001；Lombok1.18.46 provided/optional，内部制品5.4.1，父processor复用。
+- Literal rule enforcement: Rule 1 / Rule 2 / Rule 3 / Rule 4 / Rule 5 / Rule 6 / Rule 9 / Rule 10 / Rule 11；规范语义后缀、校验、具名qualifiedfinal/Lombok/Slf4j、现converter与分层，no token/log/JSON泄露。
+- Implementation pseudocode:
+
+```java
+assertConfiguredAuthenticationRequiresActualMandatoryScopeProvider();
+assertOldDirectConstructorKeepsEmptyRequiredIds();
+assertObserverAndValidatorAreSameConfiguredInstances();
+```
+
+- Verification contribution: 同一Step3 selector包含真实装配断言；依赖/compile失败不当行为RED；ownBean/sharedstate/ABI旧构造正反例。
+- After this file: 仅本Step能力；所有namedtests、Manual/Literal与exactdiff完成后focused commit，后续Step不可先改。
+
+#### File 34 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
+
+- Purpose: 检查当前真实factory接线及非Servlet Reactor共享状态；旧legacy fixture保持明确
+- Symbols: configuredObservedDenialWiring
+- Repository evidence: 现真实文件；DEC-009预检与离线dependency:tree证明精确能力缺口。
+- Dependencies and consumers: 原Step3 sharedscope/proof/strictdeny owner；普通Core与鉴神Domain不新增身份依赖。
+- Why now: 检查当前真实factory接线及非Servlet Reactor共享状态；旧legacy fixture保持明确；完整规范见§12.8与主/Edge Spec §20.6，已获用户confirmed。
+- Contract/signature changes: 仅原factory/compatibleconstructor及现组件扩展；无新HTTP/SQL/权限或运行框架。
+- Input/output and state mapping: currentOwner→具名shared SDK/Validator/Metric；same-request marker与immutable proof/scopes分别承载。
+- Error and edge behavior: 缺strict依赖startup/ERROR failclosed；旧unuseddirectconstructor保留；不以403代替audit503。
+- Standards impact: MC-DEP-001/MC-BEAN-001/MC-VALID-001/MC-SCOPE-001/MC-TEST-001；Lombok1.18.46 provided/optional，内部制品5.4.1，父processor复用。
+- Literal rule enforcement: Rule 1 / Rule 2 / Rule 3 / Rule 4 / Rule 5 / Rule 6 / Rule 9 / Rule 10 / Rule 11；规范语义后缀、校验、具名qualifiedfinal/Lombok/Slf4j、现converter与分层，no token/log/JSON泄露。
+- Implementation pseudocode:
+
+```java
+assertActualRbacScopeProviderReceivesSameObserverMetricsValidator();
+assertLegacyConstructorAndAuthorizationOnlyResponsibilities();
+assertStrictDenialFailureIsErrorAndCannotFakeConfirmed();
+```
+
+- Verification contribution: 同一Step3 selector包含真实装配断言；依赖/compile失败不当行为RED；ownBean/sharedstate/ABI旧构造正反例。
+- After this file: 仅本Step能力；所有namedtests、Manual/Literal与exactdiff完成后focused commit，后续Step不可先改。
+
+- Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway -am -Dtest=GatewayMandatoryScopeContractTest,GatewaySecurityPolicyCompilerTest,GatewaySecurityCapabilityRegistryTest,GatewaySecurityChainTest,GatewayIdentityOnlySecurityTest,GatewayFailClosedSecurityMatrixTest,LlmSecurityConfigurationTest,LlmProtocolContractTest,LlmApiOpenApiContractTest,IdpGatewayAdapterAutoConfigurationTest,Rbac3GatewayAdapterAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: GREEN exits 0 and every named selector in this Step runs its real behavioral assertions; initial RED exits nonzero for the specific missing behavior stated above, not compile/setup/no-tests failure. No external services or browser are started.
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`（每一行相同，不在其它checkout运行）。
-- RED verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway -am -Dtest=GatewayMandatoryScopeContractTest,GatewaySecurityPolicyCompilerTest,GatewaySecurityCapabilityRegistryTest,GatewaySecurityChainTest,GatewayIdentityOnlySecurityTest,GatewayFailClosedSecurityMatrixTest,LlmSecurityConfigurationTest,LlmProtocolContractTest,LlmApiOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- RED verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway -am -Dtest=GatewayMandatoryScopeContractTest,GatewaySecurityPolicyCompilerTest,GatewaySecurityCapabilityRegistryTest,GatewaySecurityChainTest,GatewayIdentityOnlySecurityTest,GatewayFailClosedSecurityMatrixTest,LlmSecurityConfigurationTest,LlmProtocolContractTest,LlmApiOpenApiContractTest,IdpGatewayAdapterAutoConfigurationTest,Rbac3GatewayAdapterAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected RED behavior: missing requiredOAuthScopes现仍编译；IDENTITY_PROTECTED无ordinaryprovider时scope阶段未执行；LLMownapp只有依赖/无安全chain且默认SDKoff；至少命名test实际执行且assertfail；0test/compile/setupfail禁止当RED。
-- GREEN verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway -am -Dtest=GatewayMandatoryScopeContractTest,GatewaySecurityPolicyCompilerTest,GatewaySecurityCapabilityRegistryTest,GatewaySecurityChainTest,GatewayIdentityOnlySecurityTest,GatewayFailClosedSecurityMatrixTest,LlmSecurityConfigurationTest,LlmProtocolContractTest,LlmApiOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`（最小implementation/wiring/config后同命令，未来执行，非既有PASS声明）。
+- GREEN verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway -am -Dtest=GatewayMandatoryScopeContractTest,GatewaySecurityPolicyCompilerTest,GatewaySecurityCapabilityRegistryTest,GatewaySecurityChainTest,GatewayIdentityOnlySecurityTest,GatewayFailClosedSecurityMatrixTest,LlmSecurityConfigurationTest,LlmProtocolContractTest,LlmApiOpenApiContractTest,IdpGatewayAdapterAutoConfigurationTest,Rbac3GatewayAdapterAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`（最小implementation/wiring/config后同命令，未来执行，非既有PASS声明）。
 - Regression gate: `git diff --check`；同module对应已列existingregression在selector内。读取每模块surefire XML核所有selectedtest实际执行、fail/error/skip均0，JUnit命名行为完整；新增fail/疑点才扩大，不启动外部IT。
 - Failure returns to: REDfile fixture错回该File；行为错回该File所指owner；symbol/Spec新语义冲突回主Spec，不改设计来迎合test。
 - Completion criteria: sameGREEN实际exit0+selectedXML zero failures/errors/skips、oldoverload/qualifier/shape/policynegative证明、此Step17MC和10literal逐项证据、diff只下列paths、source/no secrets/namespace边界；runtime仍以后续gate为准。
 - Rollback: code-only本Step exactpaths的focusedrevert/forwardfix；不改已有commit历史、不drop库、不repairDDL、不删除旧Redis/namespaces；未数据/运行切换前可恢复baseline。Step7只旧state隔离不能用source回退把新v2会话当老宽权限，pendingintent/key保留。
-- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthorizationProvider.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewaySecurityPolicy.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthContext.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayMandatoryScopeContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmSecurityConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpOAuthScopeAuthorizationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistry.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompiler.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChain.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/rule/adapter/json/GatewayRuleJsonCodec.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/Rbac3BizAppScopeAuthorizationProvider.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompilerTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistryTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChainTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayIdentityOnlySecurityTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/GatewayFailClosedSecurityMatrixTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmProtocolContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmApiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/bootstrap/config/GatewayEngineManagementSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/bootstrap/config/McpGatewayManagementSecurityConfiguration.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthorizationProvider.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewaySecurityPolicy.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/security/GatewayAuthContext.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayMandatoryScopeContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmSecurityConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpOAuthScopeAuthorizationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistry.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompiler.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChain.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/yuheng/runtime/rule/adapter/json/GatewayRuleJsonCodec.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/Rbac3BizAppScopeAuthorizationProvider.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/java/top/egon/cola/component/yuheng/llm/config/LlmSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/main/resources/application-local.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityPolicyCompilerTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityCapabilityRegistryTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewaySecurityChainTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/yuheng/runtime/security/service/GatewayIdentityOnlySecurityTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/security/GatewayFailClosedSecurityMatrixTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmProtocolContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-llm-gateway/src/test/java/top/egon/cola/component/yuheng/llm/integration/LlmApiOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/bootstrap/config/GatewayEngineManagementSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/yuheng/mcp/engine/bootstrap/config/McpGatewayManagementSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
 - Commit: `feat(yuheng): enforce signed mandatory scopes across data planes`；仅上述完整path-set精确stage，一条本Stepsemanticcommit；记录实际git rev-parse HEAD再继续。不要stage/commit他人文件或未来Step符号。
 
 ### Step 4 — 以可信本地目标取得SERVICE RPC令牌并强制提供方受控准入
@@ -11453,3 +11553,30 @@ Verdict: **PASS — Ready for user review**。本轮confirmed已完成整份Spec
 用户于 `2026-10-11 15:17 Asia/Shanghai` 回复 **confirmed**，针对现有集中审批批准DEC-007同数据源JPA/MP Outbox与DEC-008可信issuer资源alias方案，并批准整份19Step Plan和四份Spec。审查Plan原SHA-256 `e4371f70f7910c1a08c2aa73f9a259777ef903b90444af7d9dd492848e00fe69`；§12.6四Spec原SHA作为被批准的内容证据保留，本次只更新审批状态/元数据，不改变技术合同。
 
 只读实施前预检的52个既有测试已通过（14+8+15+15，均0fail/error/skip；详见/tmp/xingyuan-step1-preflight.md）；这是baseline，不是新功能GREEN或真实联调结果。当前source仍b074c6673，先对批准文档做单一focusedcommit，随后仅Step1 In Progress；完成其RED/GREEN/Manual/Literal和commit后再Step2。
+
+### 12.8 Step 3 dependency and wiring preflight approval — DEC-009
+
+状态：**Accepted — 用户于2026-10-11本轮回复 confirmed，批准DEC-009的最小依赖与接线补齐**。DEC-001–008及Step1/2提交不变；执行按本修订后的Step3精确34文件及原19Step顺序。此审批只解除设计/依赖门禁，不表示Step3源码、测试或runtime已完成。
+
+执行预检证据（2026-10-11，`main @ 233144d0d14008153c1d244bc3af9878c26d61f9`）：鉴神 Gateway Adapter 当前依赖仅鉴神 Contract/Core、Yuheng Core、Boot/Security/Reactor/Jackson/Redis，无授柄 Starter/Gateway Adapter，也无 Lombok compile API；其 Core/Contract 没有补足这些传递能力。原 `Rbac3GatewayAdapterAutoConfiguration#rbac3BizAppScopeAuthorizationProvider` 只构造 `runtime::authorize`，无法把批准的 shared strict deny handoff 接入运行 Bean。已批准 Step3 File14 的 proof/观察职责因此无法按原清单编译或装配。
+
+推荐最小修订：鉴神 Gateway Adapter 依赖现有 `top.egon:egon-cola-tianquan-shoubing-gateway-adapter`，版本沿既有 Xingyuan dependencyManagement `${project.version}=5.4.1`，不写新版本、不下载新的第三方制品；补 `org.projectlombok:lombok:${lombok.version}=1.18.46`，`provided=true`、`optional=true`（Maven 写 `<scope>provided</scope><optional>true</optional>`），复用父 POM 已有 annotationProcessorPaths，不增加处理器/框架。Lombok 1.18.46 JAR 已在现有本机 Maven 仓库。授柄 adapter 本身只依赖身份 SDK 与 Gateway Core，无鉴神依赖，因此该方向不形成模块循环。普通 Gateway Core 仍不依赖 Tianquan/Jackson/Micrometer，鉴神领域 Core 也不引入身份/Spring。
+
+同时补齐下面四个当前 owner 路径。其它 Plan 内容、授权规则、SQL、HTTP/OAuth 协议、19Step 顺序、部署与隔离运行边界不变。
+
+| Operation | Exact path | Owning change |
+| --- | --- | --- |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/pom.xml` | 仅增加已有授柄 Gateway Adapter compile 依赖及已缓存 Lombok provided/optional 编译依赖；不加框架、不升级 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java` | 将既有 observed proof/metrics/defaultValidator 注入原 BIZ/APP provider；保留具名 Bean、旧直接构造兼容和授权职责 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java` | 原 identity-only 自动装配 fixture 改为断言新增 mandatory scope capability 与严格配置；不把 scope 混入 ordinary ANY/ALL |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan/jianshen/yuheng/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java` | 验证实际审计/validator 接线与原授权-only能力、旧构造兼容；防止只改类却未接 Bean factory |
+
+按本轮已批准修订：POM 编译前提在 Step3 原接口前执行；鉴神自动配置在原 File14 行为存在后接线；两个自动配置 fixture 纳入 Step3 组合回归，原 File1–30 对应角色不转移到其它 Step。实际 Step3 清单重编号为34文件，逐文件仍按声明顺序执行；19个 Step 编号不变。
+
+共享审计状态仍按已经批准的 Reactor request scope 生命周期（主Spec §7.3.5.1 / Edge §7.3.7）实现，身份 proof/scopes 的 immutable BO 不包含 mutable marker；Core 只提供标准 Reactor/JDK 的作用域承载及 terminal/cancel cleanup，不引用授柄类型，不使用全局缓存、ThreadLocal、反射或请求头恢复 proof。只有 adapter 使用实际 `IdpAuthorizationObservationContextBO`，同一 physical request 的 mandatory/ordinary DENY 共用同一个严格交付结果。具体 helper 可放在已批准的现 owner 文件内，不能为了避免这项明确依赖而新增平行审计协议或弱化 strict 交付。
+
+备选：保持现依赖并把整个审计职责重新设计为新的跨平台 Core SPI。这会新增公有技术合同与更多 Core/wiring 变化，超过当前最小方案，因此不推荐。只写源码 import、依赖偶然 runtime classpath、反射调用 SDK、或将审计失败改成普通403都不接受。
+
+验证：Step3 原 RED/GREEN 保留，增加 `IdpGatewayAdapterAutoConfigurationTest`、`Rbac3GatewayAdapterAutoConfigurationTest` 到同一选择器；检查实际解析依赖、无循环、一次真实 handoff、strict ERROR/503、Reactor terminal/cancel 清理及 old constructors。原源码仍停在 Step3 预检，不能以本提案或先前 Step2 GREEN 作为 Step3 完成证据。
+
+本增补的设计MC-DEP-001 / MC-BEAN-001 / MC-SCOPE-001 / MC-BLOCKER-001：**PASS — DEC-009已获明确confirmed，精确清单/版本/无循环方案已核对**。实施时须逐Step重新核对真实diff/依赖/行为证据；原runtime许可边界不变。
