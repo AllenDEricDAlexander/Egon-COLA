@@ -1547,11 +1547,11 @@ Relational model change: No — `SA/java/audit/service/impl/OAuthAuditConsumer.j
 
 本轮无新增或改变的关系表；以下为受影响Redis/file技术状态设计，不是关系表inventory。
 
--  原Stream/PEL；`egon:oauth:audit:v1`；`oauth-audit-persist-v1`；原MQ/consumer；DB审计为权威；原batch100/attempt30/180天规则保持；原pending/dead恢复；不删除失败记录 
--  新receipt key；`<configured audit stream>:receipt:<eventId>`；严格JSON DTO；只有consumer写，producer只读；是已处理事实短期副本；TTL默认PT1H，范围PT1M–PT24H；批量读取≤1000；missing/expiry不能证明失败或成功；原id重投可再生成 
--  `.evt`；原eventId文件+schema1帧/CRC/MAC；对应producer独占目录；原spool上限1GiB；单event≤16KiB；fsync/atomic rename/目录durability；不支持即不放行 
--  `.sent`；原event与StreamMessageId+sent time；仅本地handoff marker；confirmation-timeout默认PT30S；无receipt且过期重投；不是cleanup依据 
--  `.dead`；有验证签名的DEAD receipt及原帧；本地隔离事实，不是STORED；计入spool限额，人工处理；不自动编辑payload或改id，不凭DEAD删事件 
+-  原Stream/PEL；`egon:oauth:audit:v1`；`oauth-audit-persist-v1`；原MQ/consumer；DB审计为权威；原batch100/attempt30/180天规则保持；原pending/dead恢复；不删除失败记录
+-  新receipt key；`<configured audit stream>:receipt:<eventId>`；严格JSON DTO；只有consumer写，producer只读；是已处理事实短期副本；TTL默认PT1H，范围PT1M–PT24H；批量读取≤1000；missing/expiry不能证明失败或成功；原id重投可再生成
+-  `.evt`；原eventId文件+schema1帧/CRC/MAC；对应producer独占目录；原spool上限1GiB；单event≤16KiB；fsync/atomic rename/目录durability；不支持即不放行
+-  `.sent`；原event与StreamMessageId+sent time；仅本地handoff marker；confirmation-timeout默认PT30S；无receipt且过期重投；不是cleanup依据
+-  `.dead`；有验证签名的DEAD receipt及原帧；本地隔离事实，不是STORED；计入spool限额，人工处理；不自动编辑payload或改id，不凭DEAD删事件
 
 
 跨进程ACK追加能力通过TokenUsageAuditComponent的新strict/helper入口及既有job拥有，不新增业务API；其基础设施Lombok构造的必要参数由本平台factory/已定位直接构造测试一起适配。TenantIssuerAuthenticationManagerComponent的既有2/3参数构造、Edge既有调用必须保持；新增观察采用方法overload/组合上下文，不强迫修改Edge。

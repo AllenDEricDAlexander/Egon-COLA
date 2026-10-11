@@ -4667,3 +4667,8 @@ jsdom `getComputedStyle` pseudo-element提示与原deprecated/unchecked编译提
 - 未改/清理其他用户文件或既有untracked脚本、未重写Git历史；源码工作树clean，最终仅本任务Spec/Plan两文档待独立路径限定文档commit。编译dist/target/node_modules/tsbuildinfo/favicon输出为原ignored构建产物，不提交。
 - 已执行的外部不可逆动作只有用户明确授权的npmjs 0.2.5发布；没有启动项目/服务/数据库/Redis/browser、没有执行实际migration/部署/push/PR。npm二次认证由用户完成/提供，密码/token/验证码未写入交付文件。
 - **Final verdict: PARTIAL — Spec requirements are unmet or unverified.** 本轮实现、11Step与正式审计已完成，所有source/controlled门禁通过；REQ-016/019及RUNTIME-001–009真实部署证据尚未验证。不得把该PARTIAL转述为生产Ready或其他平台/模板已接入。
+
+
+### Final documentation whitespace corrective gate
+
+文档提交 `c88d57be5` 的首次cached diff检查实际发现主Spec1550–1554五行尾部空格；该shell序列未在检查失败后停止，因而仍完成首次文档提交。明确记录此执行偏差，不将该检查假报成功、不改写历史。随后独立机械修正这五处尾空格，以路径限定格式纠正提交关闭文档gate；只重新运行strict Plan validator/diff checks，未修改任何已冻结源码、协议、验收条款或发布产物，不重复运行无关测试。最终源码基线仍920e7099b，Step11及PARTIAL结论保持，文档/源码最终worktree须clean。
