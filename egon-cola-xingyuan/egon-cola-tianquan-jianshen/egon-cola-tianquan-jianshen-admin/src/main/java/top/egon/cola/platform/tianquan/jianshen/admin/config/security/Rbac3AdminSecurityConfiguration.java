@@ -31,7 +31,8 @@ import java.util.List;
  * 语义与用法：将 `Rbac3AdminSecurityConfiguration` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `Rbac3AdminSecurityConfiguration` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
-@Configuration(proxyBeanMethods = false)
+@lombok.extern.slf4j.Slf4j
+@Configuration(value = "rbac3AdminSecurityConfiguration", proxyBeanMethods = false)
 @EnableMethodSecurity
 public class Rbac3AdminSecurityConfiguration {
 
@@ -190,6 +191,11 @@ public class Rbac3AdminSecurityConfiguration {
                         .requestMatchers("/actuator/health/liveness",
                                 "/actuator/health/readiness")
                         .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/auth/about").hasAuthority("SCOPE_system:about:read")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/tianquan-jianshen/v1/auth/role-activation-candidates",
+                                "/api/tianquan-jianshen/v1/auth/role-activations").hasAuthority("SCOPE_system:role-activation:read")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/tianquan-jianshen/v1/auth/role-activations")
+                                .hasAuthority("SCOPE_system:role-activation:use")
                         .anyRequest().authenticated());
         http.exceptionHandling(exceptions -> exceptions.authenticationEntryPoint((request, response, failure) -> authenticationFailure(request, response, mapper))
                 .accessDeniedHandler((request, response, failure) -> authorizationFailure(request, response, mapper)));

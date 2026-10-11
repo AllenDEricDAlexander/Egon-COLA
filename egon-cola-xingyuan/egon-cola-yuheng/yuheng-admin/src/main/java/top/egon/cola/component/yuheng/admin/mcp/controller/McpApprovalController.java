@@ -38,7 +38,7 @@ import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 @Validated
 @RestController
 @RequestMapping("/api/v1/yuheng/admin/mcp/approvals")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:approve','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:mcp:approve') and (hasAnyAuthority('CAP_yuheng:mcp:approve','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",

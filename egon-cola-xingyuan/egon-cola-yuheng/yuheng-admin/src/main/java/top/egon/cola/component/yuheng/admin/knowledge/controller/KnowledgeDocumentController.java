@@ -82,7 +82,7 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 @Validated
 @RestController("knowledgeDocumentController")
 @RequestMapping("/api/v1/yuheng/admin")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:read') and (hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",
@@ -183,7 +183,7 @@ public class KnowledgeDocumentController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     @PostMapping(value = "/knowledge-bases/{kbId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     public ResponseEntity<KnowledgeUploadReceiptVO> uploadKnowledgeDocument(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")
@@ -303,7 +303,7 @@ public class KnowledgeDocumentController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/knowledge-bases/{kbId}/documents/{documentId}")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     public ResponseEntity<Void> deleteKnowledgeDocument(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")
@@ -361,7 +361,7 @@ public class KnowledgeDocumentController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     @PostMapping("/knowledge-bases/{kbId}/documents/{documentId}/reindex-jobs")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     public ResponseEntity<KnowledgeJobVO> createKnowledgeReindexJob(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")

@@ -112,6 +112,30 @@ egon.cola.platform:
         replay-initial-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_REPLAY_INITIAL_DELAY:5000}
         replay-delay: ${EGON_TIANQUAN_SHOUBING_OAUTH_AUDIT_REPLAY_DELAY:5000}
     jianshen:
+      user-scope-policy:
+        enabled: true
+        permission-scopes:
+          "[tianquan-shoubing:audit:read]": ["tianquan-shoubing:audit:read"]
+          "[tianquan-shoubing:bootstrap:read]": ["tianquan-shoubing:bootstrap:read"]
+          "[tianquan-shoubing:identity-user:create]": ["tianquan-shoubing:identity-user:create"]
+          "[tianquan-shoubing:identity-user:password-reset]": ["tianquan-shoubing:identity-user:password-reset"]
+          "[tianquan-shoubing:identity-user:read]": ["tianquan-shoubing:identity-user:read"]
+          "[tianquan-shoubing:identity-user:revoke-all]": ["tianquan-shoubing:identity-user:revoke-all"]
+          "[tianquan-shoubing:identity-user:update]": ["tianquan-shoubing:identity-user:update"]
+          "[tianquan-shoubing:identity:self:read]": ["tianquan-shoubing:identity:self:read"]
+          "[tianquan-shoubing:oauth-client:create]": ["tianquan-shoubing:oauth-client:create"]
+          "[tianquan-shoubing:oauth-client:read]": ["tianquan-shoubing:oauth-client:read"]
+          "[tianquan-shoubing:oauth-client:update]": ["tianquan-shoubing:oauth-client:update"]
+          "[tianquan-shoubing:resource-server:create]": ["tianquan-shoubing:resource-server:create"]
+          "[tianquan-shoubing:resource-server:grant]": ["tianquan-shoubing:resource-server:grant"]
+          "[tianquan-shoubing:resource-server:read]": ["tianquan-shoubing:resource-server:read"]
+          "[tianquan-shoubing:resource-server:status]": ["tianquan-shoubing:resource-server:status"]
+          "[tianquan-shoubing:signing-key:activate]": ["tianquan-shoubing:signing-key:activate"]
+          "[tianquan-shoubing:signing-key:publish]": ["tianquan-shoubing:signing-key:publish"]
+          "[tianquan-shoubing:signing-key:read]": ["tianquan-shoubing:signing-key:read"]
+          "[tianquan-shoubing:signing-key:retire]": ["tianquan-shoubing:signing-key:retire"]
+          "[tianquan-shoubing:tenant:manage]": ["tianquan-shoubing:tenant:manage"]
+          "[tianquan-shoubing:tenant:read]": ["tianquan-shoubing:tenant:read"]
       enabled: ${UNIFIED_IDENTITY_ENABLED:true}
       register-filter: false
       system-code: tianquan-shoubing-admin

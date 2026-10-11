@@ -68,7 +68,7 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 @Validated
 @RestController("knowledgeJobController")
 @RequestMapping("/api/v1/yuheng/admin")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:read') and (hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",
@@ -200,7 +200,7 @@ public class KnowledgeJobController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     @PostMapping("/knowledge-jobs/{jobId}/retries")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     public ResponseEntity<KnowledgeJobVO> retryKnowledgeJob(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")

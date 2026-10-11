@@ -16,6 +16,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
 
 /**
  * 中文说明：{@code GatewayPersistenceContextFilter} 是管理面 HTTP 请求线程上的持久化身份入口过滤器。它注册在 Spring Security
@@ -123,11 +127,17 @@ public final class GatewayPersistenceContextFilter extends OncePerRequestFilter 
      */
     private String verifiedIdentityTenantId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (!(authentication instanceof JwtAuthenticationToken jwt)
-                || !authentication.isAuthenticated()
+        if (authentication == null || !authentication.isAuthenticated()
                 || "anonymousUser".equals(authentication.getPrincipal())) {
             return null;
         }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof Rbac3UserDetails user) { return user.tenantId(); }
+        if (principal instanceof IdentityPrincipal user) { return user.tenantId(); }
+        if (principal instanceof ServiceIdentityPrincipal service) {
+            return service.scopeContext() == ServiceTokenContext.TENANT ? service.tenantId() : null;
+        }
+        if (!(authentication instanceof JwtAuthenticationToken jwt)) { return null; }
         return TENANT_CLAIMS.stream()
                 .map(claim -> jwt.getToken().getClaim(claim))
                 .filter(Objects::nonNull)

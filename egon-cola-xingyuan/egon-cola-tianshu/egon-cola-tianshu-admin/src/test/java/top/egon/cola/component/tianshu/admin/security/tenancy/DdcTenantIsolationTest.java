@@ -26,6 +26,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcTenantIsolationTest {
+    @Test
+    void tenantContextStillRestoresWithOAuthScopedUsers() throws Exception {
+        var base = authentication("tenant-a", "admin-a");
+        var scoped = new Rbac3AuthenticationToken(base.getPrincipal(), List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("SCOPE_TIANSHU_READ")));
+        SecurityContextHolder.getContext().setAuthentication(scoped);
+        MDC.put("tenantId", "outer-tenant"); MDC.put("userId", "outer-user");
+        var denied = new MockHttpServletResponse();
+        filter().doFilter(request("/api/v1/tianshu/configs", "foreign-tenant"), denied,
+                (incoming, outgoing) -> { throw new AssertionError("foreign expected tenant must not reach a mapper"); });
+        assertThat(denied.getStatus()).isEqualTo(403);
+        assertThat(MDC.get("tenantId")).isEqualTo("outer-tenant"); assertThat(MDC.get("userId")).isEqualTo("outer-user");
+        SecurityContextHolder.getContext().setAuthentication(scoped);
+        assertThatThrownBy(() -> filter().doFilter(request("/api/v1/tianshu/configs", "tenant-a"), new MockHttpServletResponse(),
+                (incoming, outgoing) -> { assertThat(MDC.get("tenantId")).isEqualTo("101"); throw new IllegalStateException("controlled callback failure"); }))
+                .hasMessage("controlled callback failure");
+        assertThat(MDC.get("tenantId")).isEqualTo("outer-tenant"); assertThat(MDC.get("userId")).isEqualTo("outer-user");
+    }
+
 
     private final DdcTenantRegistry registry = registry();
     private final DdcTenantContextExecutor executor = new DdcTenantContextExecutor();

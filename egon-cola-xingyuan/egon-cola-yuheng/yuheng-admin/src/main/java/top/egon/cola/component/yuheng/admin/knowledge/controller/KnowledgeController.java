@@ -73,7 +73,7 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 @Validated
 @RestController("knowledgeController")
 @RequestMapping("/api/v1/yuheng/admin")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:read') and (hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",
@@ -161,7 +161,7 @@ public class KnowledgeController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     @PostMapping("/knowledge-bases")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     public ResponseEntity<KnowledgeBaseVO> createKnowledgeBase(
             @Valid @RequestBody KnowledgeBaseCommandDTO command,
             AdminActor actor,
@@ -234,7 +234,7 @@ public class KnowledgeController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/knowledge-bases/{kbId}")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:admin','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:admin') and (hasAnyAuthority('CAP_yuheng:knowledge:admin','CAP_*'))")
     public KnowledgeBaseVO replaceKnowledgeBase(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")
@@ -297,7 +297,7 @@ public class KnowledgeController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/knowledge-bases/{kbId}/members")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:admin','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:admin') and (hasAnyAuthority('CAP_yuheng:knowledge:admin','CAP_*'))")
     public KnowledgeMembersVO replaceKnowledgeMembers(
             @NotBlank
             @Pattern(regexp = "^[1-9][0-9]{0,19}$")

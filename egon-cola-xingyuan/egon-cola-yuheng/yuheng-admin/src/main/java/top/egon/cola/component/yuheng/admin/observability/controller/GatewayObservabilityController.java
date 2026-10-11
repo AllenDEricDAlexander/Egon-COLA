@@ -17,9 +17,11 @@ import top.egon.cola.component.yuheng.admin.observability.service.GatewayObserva
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@RestController
+@lombok.extern.slf4j.Slf4j
+@lombok.RequiredArgsConstructor
+@RestController("gatewayObservabilityController")
 @RequestMapping("/api/v1/yuheng/admin")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:read') and (hasAnyAuthority('CAP_yuheng:read','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",
@@ -35,19 +37,9 @@ public class GatewayObservabilityController {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayObservabilityController} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayObservabilityController}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @org.springframework.beans.factory.annotation.Qualifier("gatewayObservabilityQueryService")
     private final GatewayObservabilityQueryService service;
 
-    /**
-     * 中文说明：创建 {@code GatewayObservabilityController} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewayObservabilityController} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param service 参数 服务；parameter service。
-     */
-    public GatewayObservabilityController(
-            GatewayObservabilityQueryService service) {
-        this.service = service;
-    }
 
     /**
      * 中文说明：执行 dashboard 操作；该方法是 {@code GatewayObservabilityController} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

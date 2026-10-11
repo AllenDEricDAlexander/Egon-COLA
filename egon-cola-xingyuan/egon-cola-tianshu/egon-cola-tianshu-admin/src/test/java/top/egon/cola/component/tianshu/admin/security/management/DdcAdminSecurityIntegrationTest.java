@@ -39,6 +39,9 @@ import top.egon.cola.platform.tianquan.jianshen.contract.authorization.SystemAut
 import top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3AuthenticationToken;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3BearerAuthenticationFilter;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.time.Instant;
 import java.util.List;
@@ -69,12 +72,54 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({DdcAdminSecurityConfiguration.class, DdcTenantRegistry.class,
         DdcTenantContextExecutor.class})
 @TestPropertySource(properties = {
+        "egon.cola.platform.tianquan.shoubing.usage-observation.enabled=false",
         "egon.cola.component.tianshu.admin.security.local-dev=true",
         "egon.cola.component.tianshu.admin.tenancy.bindings[0].tenant-id=101",
         "egon.cola.component.tianshu.admin.tenancy.bindings[0].identity-tenant-id=tenant-a",
         "egon.cola.component.tianshu.admin.tenancy.bindings[0].enabled=true"
 })
 class DdcAdminSecurityIntegrationTest {
+    @Test
+    void aiScopeDenialCannotSkipItsStrictRequestHandoff() {
+        var namespaceRepository = org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository.class);
+        var bindings = org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository.class);
+        var namespace = new top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceBO(); namespace.setPublicId("namespace-1"); namespace.setId(1L);
+        when(namespaceRepository.findByBizCodeAndNamespaceCode("biz-a", "orders" )).thenReturn(java.util.Optional.of(namespace));
+        var binding = new top.egon.cola.component.tianshu.admin.model.bo.DdcNamespaceEnvAppBindingBO(); binding.setEnabled(true);
+        when(bindings.findAll("biz-a", "orders", "dev", "app-a")).thenReturn(List.of(binding));
+        var validator = new top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiScopeValidator(
+                org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate.class),
+                org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.repository.DdcAiResourceRepository.class), namespaceRepository, bindings);
+        var authentication = unscoped("TIANSHU_AI_READ:namespace-1", "scope-fixture");
+        authentication.setDetails(new top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO(
+                java.net.URI.create("https://idp.example/tenants/1001"), java.net.URI.create("https://api.example/tianshu"), "a".repeat(64), "b".repeat(64), "c".repeat(64)));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> validator.resolveNamespaceIdForRead(new top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO("biz-a", "orders", "dev", "app-a")))
+                    .isInstanceOfSatisfying(top.egon.cola.component.common.core.exception.CommonException.class, failure -> {
+                        assertThat(failure.getCode()).isEqualTo(56310); assertThat(failure.getStatus()).isEqualTo("OAUTH_AUDIT_DELIVERY_UNAVAILABLE");
+                    });
+        } finally { org.springframework.security.core.context.SecurityContextHolder.clearContext(); org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes(); }
+    }
+
+    @Test
+    void scopeAndCapabilityForSixIntents() throws Exception {
+        mockMvc.perform(get("/api/v1/tianshu/configs").with(authentication(unscoped("TIANSHU_READ", "scope-fixture"))))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/tianshu/configs").with(authentication(unscoped("TIANSHU_WRITE", "scope-fixture")))
+                        .contentType(MediaType.APPLICATION_JSON).content(configBody()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/tianshu/configs/config-1/publish").with(authentication(unscoped("TIANSHU_PUBLISH", "scope-fixture")))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/tianshu/cache/check").param("appCode", "app-a").param("env", "dev").param("bizCode", "biz-a")
+                        .with(authentication(unscoped("TIANSHU_CACHE", "scope-fixture"))))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(configService, publishService, cacheService);
+        when(configService.list(any())).thenReturn(List.of());
+        mockMvc.perform(get("/api/v1/tianshu/configs").with(authentication(rbac3("TIANSHU_READ"))))
+                .andExpect(status().isOk());
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -348,6 +393,17 @@ class DdcAdminSecurityIntegrationTest {
     }
 
     private Rbac3AuthenticationToken rbac3(String permission, String subject) {
+        var token = unscoped(permission, subject);
+        String scope = permission.startsWith("TIANSHU_AI_READ") ? "TIANSHU_AI_READ"
+                : permission.startsWith("TIANSHU_AI_WRITE") ? "TIANSHU_AI_WRITE" : permission;
+        List<SimpleGrantedAuthority> scopes = "*".equals(permission)
+                ? List.of("TIANSHU_READ", "TIANSHU_WRITE", "TIANSHU_PUBLISH", "TIANSHU_CACHE", "TIANSHU_AI_READ", "TIANSHU_AI_WRITE")
+                        .stream().map(value -> new SimpleGrantedAuthority("SCOPE_" + value)).toList()
+                : List.of(new SimpleGrantedAuthority("SCOPE_" + scope));
+        return new Rbac3AuthenticationToken(token.getPrincipal(), scopes);
+    }
+
+    private Rbac3AuthenticationToken unscoped(String permission, String subject) {
         Instant now = Instant.parse("2026-08-02T04:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
                 subject, "tenant-a", "token-1",
@@ -357,9 +413,7 @@ class DdcAdminSecurityIntegrationTest {
                 "tenant-a", subject, "101", "tianshu-admin",
                 3, 4, List.of("tianshu-reader"), java.util.Set.of(permission),
                 Map.of(), Map.of(), "sha256:ddc", now, now.plusSeconds(900));
-        return new Rbac3AuthenticationToken(
-                new AuthorizationService.RuntimeAuthorizationContext(
-                        identity, snapshot, false));
+        return new Rbac3AuthenticationToken(new Rbac3UserDetails(identity, snapshot));
     }
 
     private String configBody() {

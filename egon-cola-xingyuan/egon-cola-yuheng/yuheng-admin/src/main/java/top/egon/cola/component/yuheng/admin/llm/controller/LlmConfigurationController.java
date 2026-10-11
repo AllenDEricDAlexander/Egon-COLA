@@ -56,7 +56,7 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 @Validated
 @RestController("llmConfigurationController")
 @RequestMapping("/api/v1/yuheng/admin/llm")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:llm:read','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:llm:read') and (hasAnyAuthority('CAP_yuheng:llm:read','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",
@@ -125,7 +125,7 @@ public class LlmConfigurationController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/channels/{channelKey}")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:llm:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:llm:write') and (hasAnyAuthority('CAP_yuheng:llm:write','CAP_*'))")
     public ResponseEntity<LlmChannelVO> replaceLlmChannel(
             @PathVariable String channelKey,
             @Valid @RequestBody LlmChannelCommandDTO command,
@@ -182,7 +182,7 @@ public class LlmConfigurationController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/models/{modelKey}")
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:llm:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:llm:write') and (hasAnyAuthority('CAP_yuheng:llm:write','CAP_*'))")
     public ResponseEntity<LlmModelVO> replaceLlmModel(
             @PathVariable String modelKey,
             @Valid @RequestBody LlmModelCommandDTO command,

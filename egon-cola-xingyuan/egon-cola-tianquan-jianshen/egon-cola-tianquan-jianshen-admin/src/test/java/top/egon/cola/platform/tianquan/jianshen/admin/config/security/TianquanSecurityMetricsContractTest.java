@@ -64,6 +64,70 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRe
 
 /** Actual SDK emitters and host registry wiring, with controlled infrastructure and time. */
 class TianquanSecurityMetricsContractTest {
+    @Test
+    @SuppressWarnings("unchecked")
+    void scopeDenyOnceAndMetricsOnTheActualMethodManager() throws Exception {
+        var redis = mock(RedissonClient.class); RStream<String, String> stream = mock(RStream.class);
+        doReturn(stream).when(redis).getStream(eq(STREAM), eq(StringCodec.INSTANCE));
+        var events = new java.util.ArrayList<Map<String, String>>();
+        when(stream.add(any(StreamAddArgs.class))).thenAnswer(call -> {
+            org.redisson.api.stream.StreamAddParams<String, String> fields = call.getArgument(0);
+            events.add(Map.copyOf(fields.getEntries())); return new StreamMessageId(events.size(), 1);
+        });
+        var converter = (top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter)
+                Class.forName("top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverterImpl").getConstructor().newInstance();
+        var observer = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent(producer(redis, metrics), converter,
+                new OAuthUsageObservationProperties(true, ISSUER, false, IdpSecurityObservationReceiverEnum.JIANSHEN), metrics, Clock.fixed(NOW, ZoneOffset.UTC), validator, RESOURCE);
+        var identity = new top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal("10001", "1001", "901", Set.of(RESOURCE.toASCIIString()),
+                NOW, NOW.plusSeconds(300), top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext.password());
+        var snapshot = new top.egon.cola.platform.tianquan.jianshen.contract.authorization.SystemAuthorizationSnapshot("1001", "10001", "20001", "jianshen", 1, 2,
+                java.util.List.of("50001"), null, null, Set.of("fixture:read"), Set.of(), Map.of(), Map.of(), "sha256:scope", NOW, NOW.plusSeconds(300));
+        var fine = org.mockito.Mockito.spy(new top.egon.cola.platform.tianquan.jianshen.starter.authorization.DefaultAuthorizationService(
+                () -> new top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.RuntimeAuthorizationContext(identity, snapshot, false),
+                request -> top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.OperationSodResult.allowed(),
+                request -> top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.FenceResult.allowed(NOW), Clock.fixed(NOW, ZoneOffset.UTC)));
+        var policy = new top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties.UserScopePolicyProperties()
+                .setEnabled(true).setPermissionScopes(Map.of("fixture:read", Set.of("fixture:read")));
+        var manager = top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3MethodAuthorizationManager.createConfigured(fine, policy, observer, metrics, validator);
+        var invocation = mock(org.aopalliance.intercept.MethodInvocation.class);
+        when(invocation.getMethod()).thenReturn(ScopeMethodFixture.class.getMethod("read")); when(invocation.getThis()).thenReturn(new ScopeMethodFixture());
+        var proof = new top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO(ISSUER, RESOURCE, "a".repeat(64), "b".repeat(64), "c".repeat(64));
+        var request = new org.springframework.mock.web.MockHttpServletRequest("GET", "/api/tianquan-jianshen/v1/fixture");
+        var authentication = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpAuthenticationToken(identity); authentication.setDetails(proof);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter(observer,
+                    new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy())
+                    .doFilter(request, new org.springframework.mock.web.MockHttpServletResponse(), (incoming, outgoing) -> {
+                        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(new org.springframework.web.context.request.ServletRequestAttributes(request));
+                        assertThat(manager.check(() -> authentication, invocation).isGranted()).isFalse();
+                        assertThat(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter.beforeAuthorizationDenied(request)).isTrue();
+                    });
+        } finally { org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes(); org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
+        assertThat(events).hasSize(1).allSatisfy(event -> assertThat(event).containsEntry("result", "DENIED"));
+        org.mockito.Mockito.verify(fine, org.mockito.Mockito.never()).requirePermission(any());
+        assertThat(registry.get("rbac.authorization").tags("receiver", RECEIVER, "result", "DENY").counter().count()).isEqualTo(1);
+        when(stream.add(any(StreamAddArgs.class))).thenThrow(new org.redisson.client.RedisException("controlled unavailable"));
+        var failedRequest = new org.springframework.mock.web.MockHttpServletRequest("GET", "/scope-failure-fixture");
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter(observer,
+                    new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy())
+                    .doFilter(failedRequest, new org.springframework.mock.web.MockHttpServletResponse(), (incoming, outgoing) -> {
+                        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(new org.springframework.web.context.request.ServletRequestAttributes(failedRequest));
+                        assertThatThrownBy(() -> manager.check(() -> authentication, invocation)).isInstanceOfSatisfying(
+                                top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.RuntimeUnavailableException.class,
+                                failure -> assertThat(failure.reasonCode()).isEqualTo("OAUTH_AUDIT_DELIVERY_UNAVAILABLE"));
+                        assertThat(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter.authorizationObservationContext(failedRequest).isFailed()).isTrue();
+                        assertThat(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter.beforeAuthorizationDenied(failedRequest)).isFalse();
+                    });
+        } finally { org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes(); org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
+
+    }
+
+    public static class ScopeMethodFixture {
+        @top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermission("fixture:read") public void read() { }
+    }
     private static final String RECEIVER = "JIANSHEN";
     private static final URI ISSUER = URI.create("https://idp.example/tenants/1001");
     private static final URI RESOURCE = URI.create("https://api.example/orders");

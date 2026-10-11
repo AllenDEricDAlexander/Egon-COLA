@@ -376,12 +376,32 @@ public class Rbac3StarterAutoConfiguration {
      * Registers the single Spring Method Security interceptor for Tianquan-Jianshen declarations.
      */
     @Bean(name = "rbac3MethodAuthorizationInterceptor")
+    @org.springframework.context.annotation.Role(org.springframework.beans.factory.config.BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(name = "rbac3MethodAuthorizationInterceptor")
     public AuthorizationManagerBeforeMethodInterceptor
             rbac3MethodAuthorizationInterceptor(
-                    AuthorizationService authorizationService) {
-        Rbac3MethodAuthorizationManager manager =
-                new Rbac3MethodAuthorizationManager(authorizationService);
+                    AuthorizationService authorizationService,
+                    @org.springframework.beans.factory.annotation.Qualifier("egon.cola.platform.tianquan.jianshen-top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties") Rbac3StarterProperties properties,
+                    @org.springframework.beans.factory.annotation.Qualifier("idpObservedVerificationComponent")
+                    org.springframework.beans.factory.ObjectProvider<top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent> observations,
+                    @org.springframework.beans.factory.annotation.Qualifier("idpSecurityMetricsRecorder")
+                    org.springframework.beans.factory.ObjectProvider<top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder> metrics,
+                    @org.springframework.beans.factory.annotation.Qualifier("defaultValidator")
+                    org.springframework.beans.factory.ObjectProvider<jakarta.validation.Validator> validators) {
+        var policy = properties.getUserScopePolicy();
+        Rbac3MethodAuthorizationManager manager = policy.isEnabled()
+                ? Rbac3MethodAuthorizationManager.createConfigured(authorizationService, policy, observations.getIfAvailable(),
+                        metrics.getIfAvailable(() -> top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder.NOOP), validators.getObject())
+                : new Rbac3MethodAuthorizationManager(authorizationService);
+        return methodAuthorizationInterceptor(manager);
+    }
+
+    /** Keeps the former direct factory call with its permission-only compatibility policy. */
+    public AuthorizationManagerBeforeMethodInterceptor rbac3MethodAuthorizationInterceptor(AuthorizationService authorizationService) {
+        return methodAuthorizationInterceptor(new Rbac3MethodAuthorizationManager(authorizationService));
+    }
+
+    private AuthorizationManagerBeforeMethodInterceptor methodAuthorizationInterceptor(Rbac3MethodAuthorizationManager manager) {
         StaticMethodMatcherPointcut pointcut = new StaticMethodMatcherPointcut() {
             @Override
             public boolean matches(
@@ -390,7 +410,9 @@ public class Rbac3StarterAutoConfiguration {
                 return manager.supports(method, targetClass);
             }
         };
-        return new AuthorizationManagerBeforeMethodInterceptor(pointcut, manager);
+        AuthorizationManagerBeforeMethodInterceptor interceptor = new AuthorizationManagerBeforeMethodInterceptor(pointcut, manager);
+        interceptor.setOrder(org.springframework.security.authorization.method.AuthorizationInterceptorsOrder.PRE_AUTHORIZE.getOrder() + 1);
+        return interceptor;
     }
 
     /**

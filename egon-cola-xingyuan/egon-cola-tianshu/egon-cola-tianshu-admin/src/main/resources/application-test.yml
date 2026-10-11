@@ -45,3 +45,13 @@ egon:
           port: 0
         tls:
           development-plaintext: true
+
+egon.cola.platform.tianquan.jianshen.user-scope-policy:
+  enabled: false
+  permission-scopes: {}
+
+egon.cola.platform.tianquan.shoubing.usage-observation:
+  enabled: false
+  receiver: TIANSHU
+  fallback-issuer: https://idp.invalid/tenants/1
+  allow-local-plaintext: false

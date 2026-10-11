@@ -3,6 +3,10 @@ package top.egon.cola.component.yuheng.admin.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +23,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3BearerAuth
 
 import java.io.IOException;
 import java.time.Instant;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -28,12 +33,13 @@ import java.util.Map;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@Configuration(proxyBeanMethods = false)
+@Slf4j
+@Configuration(value = "gatewayAdminSecurityConfiguration", proxyBeanMethods = false)
 @EnableMethodSecurity
 public class GatewayAdminSecurityConfiguration {
 
     /** Allows the management API to serve both Tianquan-Jianshen users and scoped publishers. */
-    @Bean
+    @Bean("gatewayAdminEndpointAuthenticationPolicy")
     public IdpEndpointAuthenticationPolicy
             gatewayAdminEndpointAuthenticationPolicy() {
         return new IdpEndpointAuthenticationPolicy(
@@ -49,7 +55,7 @@ public class GatewayAdminSecurityConfiguration {
      *
      * @return service-scope authority adapter
      */
-    @Bean
+    @Bean("gatewayAdminServiceAuthorityFilter")
     public GatewayAdminServiceAuthorityFilter gatewayAdminServiceAuthorityFilter() {
         return new GatewayAdminServiceAuthorityFilter();
     }
@@ -65,13 +71,14 @@ public class GatewayAdminSecurityConfiguration {
      * @param rbac3Filters 参数 rbac3Filters；parameter rbac3 filters。
      * @return 返回 网关管理端安全过滤器Chain 的处理结果；returns the result of the operation.
      */
-    @Bean
+    @Bean("gatewayAdminSecurityFilterChain")
     public SecurityFilterChain gatewayAdminSecurityFilterChain(
             HttpSecurity http,
-            ObjectMapper objectMapper,
-            ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
-            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters,
-            ObjectProvider<GatewayAdminServiceAuthorityFilter> serviceAuthorityFilters)
+            @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
+            @Qualifier("idpBearerAuthenticationFilter") ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
+            @Qualifier("rbac3BearerAuthenticationFilter") ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters,
+            @Qualifier("gatewayAdminServiceAuthorityFilter") ObjectProvider<GatewayAdminServiceAuthorityFilter> serviceAuthorityFilters,
+            @Qualifier("idpSecurityObservationFilter") ObjectProvider<IdpSecurityObservationFilter> observations)
             throws Exception {
         IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
         Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
@@ -93,16 +100,18 @@ public class GatewayAdminSecurityConfiguration {
                 )
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, error) ->
-                                writeSecurityError(response, objectMapper,
+                                writeSecurityError(request, response, objectMapper,
                                         HttpServletResponse.SC_UNAUTHORIZED,
                                         "YUHENG_ADMIN_AUTHENTICATION_REQUIRED"))
                         .accessDeniedHandler((request, response, error) ->
-                                writeSecurityError(response, objectMapper,
+                                writeSecurityError(request, response, objectMapper,
                                         HttpServletResponse.SC_FORBIDDEN,
                                         "YUHENG_ADMIN_CAPABILITY_REQUIRED")));
         if (idpFilter != null && rbac3Filter != null
                 && serviceAuthorityFilter != null) {
             http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+            var observation = observations.getIfAvailable();
+            if (observation != null) { http.addFilterBefore(observation, IdpBearerAuthenticationFilter.class); }
             http.addFilterAfter(
                     serviceAuthorityFilter,
                     IdpBearerAuthenticationFilter.class);
@@ -127,16 +136,53 @@ public class GatewayAdminSecurityConfiguration {
      * @param code 参数 code；parameter code。
      */
     private void writeSecurityError(
+            HttpServletRequest request,
             HttpServletResponse response,
             ObjectMapper objectMapper,
             int status,
             String code) throws IOException {
-        response.setStatus(status);
+        boolean delivered = status == HttpServletResponse.SC_UNAUTHORIZED
+                ? IdpSecurityObservationFilter.beforeAuthenticationFailure(request) : IdpSecurityObservationFilter.beforeAuthorizationDenied(request);
+        response.setStatus(delivered ? status : HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        response.setHeader("Cache-Control", "no-store");
+        if (delivered && status == HttpServletResponse.SC_UNAUTHORIZED) { response.setHeader("WWW-Authenticate", "Bearer"); }
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), Map.of(
-                "code", code,
-                "message", code,
+                "code", delivered ? code : "OAUTH_AUDIT_DELIVERY_UNAVAILABLE",
+                "message", delivered ? code : "OAUTH_AUDIT_DELIVERY_UNAVAILABLE",
                 "timestamp", Instant.now().toString()
         ));
     }
+    @Bean("gatewayAdminAuditReadinessHealthIndicator")
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "egon.cola.platform.tianquan.shoubing.usage-observation", name = "enabled", havingValue = "true")
+    org.springframework.boot.actuate.health.HealthIndicator gatewayAdminAuditReadinessHealthIndicator(
+            @Qualifier("idpSecurityAuditReady") java.util.function.BooleanSupplier ready) {
+        return () -> ready.getAsBoolean() ? org.springframework.boot.actuate.health.Health.up().build()
+                : org.springframework.boot.actuate.health.Health.down().build();
+    }
+
+    @Bean("gatewayAdminIdentityStartupGuard")
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "egon.cola.platform.tianquan.shoubing.usage-observation", name = "enabled", havingValue = "true")
+    Object gatewayAdminIdentityStartupGuard(@Qualifier("environment") org.springframework.core.env.Environment environment,
+            @Qualifier("idpStarterProperties") top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties properties,
+            @Qualifier("idpSecurityAuditReady") java.util.function.BooleanSupplier ready) {
+        properties.validate();
+        if (!ready.getAsBoolean() || !properties.isMultiIssuerConfigured() || !environment.getProperty("server.ssl.enabled", Boolean.class, false)) {
+            throw new IllegalStateException("OAUTH_HOST_SECURITY_NOT_READY");
+        }
+        if (properties.getTrustedIssuers().values().stream().anyMatch(issuer -> !issuer.getIssuer().startsWith("https://") || !issuer.getJwksUri().startsWith("https://"))
+                || !"https".equalsIgnoreCase(properties.getResourceUri().getScheme())
+                || !environment.getProperty("egon.cola.platform.tianquan.jianshen.authorization.endpoint", "").startsWith("https://")) {
+            throw new IllegalStateException("OAUTH_HOST_TLS_REQUIRED");
+        }
+        boolean localRedis = environment.getProperty("egon.cola.platform.tianquan.shoubing.usage-observation.allow-local-plaintext", Boolean.class, false)
+                && java.util.Arrays.asList(environment.getActiveProfiles()).contains("local") && "local".equals(environment.getProperty("DEPLOYMENT_ENV"));
+        URI redis = URI.create(properties.getRevocation().getPrimaryEndpoint());
+        if (!"rediss".equalsIgnoreCase(redis.getScheme()) && !(localRedis && "redis".equalsIgnoreCase(redis.getScheme())
+                && java.util.Set.of("127.0.0.1", "localhost", "::1", "[::1]").contains(redis.getHost()))) {
+            throw new IllegalStateException("OAUTH_PRIMARY_TLS_REQUIRED");
+        }
+        return Boolean.TRUE;
+    }
+
 }

@@ -20,6 +20,11 @@ spring:
     locations: classpath:db/migration
 
 server:
+  ssl:
+    enabled: true
+    key-store: ${YUHENG_ADMIN_TLS_KEY_STORE}
+    key-store-type: PKCS12
+    key-store-password: ${YUHENG_ADMIN_TLS_KEY_STORE_PASSWORD}
   address: 0.0.0.0
   port: ${YUHENG_ADMIN_PORT:8080}
   shutdown: graceful
@@ -51,7 +56,7 @@ yuheng:
     mcp:
       artifact-root: ${YUHENG_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/yuheng-mcp-artifacts}
     transport-security:
-      mode: DEVELOPMENT_PLAINTEXT
+      mode: MTLS
     tianshu:
       enabled: false
       api-rpc-biz-code: ${YUHENG_ADMIN_TIANSHU_API_RPC_BIZ_CODE:infra}
@@ -90,6 +95,49 @@ egon:
     platform:
       tianquan:
         shoubing:
+          usage-observation:
+            enabled: true
+            receiver: YUHENG_ADMIN
+            fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+            allow-local-plaintext: false
+          trusted-issuers:
+            tenant-a:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_A_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_A_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_A_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_A_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_A_TRUST_VERSION}
+            tenant-b:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_B_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_B_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_B_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_B_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_B_TRUST_VERSION}
+            platform:
+              issuer: ${TIANQUAN_SHOUBING_PLATFORM_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_PLATFORM_JWKS_URI}
+              realm-key: platform
+              realm-type: PLATFORM
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_PLATFORM_TRUST_VERSION}
+          revocation:
+            primary-endpoint: ${YUHENG_ADMIN_OAUTH_PRIMARY_REDIS_ADDRESS}
+            mode: STRICT_SHARED
+            timeout: PT0.5S
+            epoch: ${YUHENG_ADMIN_OAUTH_REVOCATION_EPOCH}
+          audit:
+            stream: ${YUHENG_ADMIN_OAUTH_AUDIT_STREAM}
+            spool-directory: ${YUHENG_ADMIN_OAUTH_AUDIT_SPOOL_DIRECTORY}
+            spool-max-bytes: ${YUHENG_ADMIN_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+            hmac-key-file: ${YUHENG_ADMIN_OAUTH_AUDIT_HMAC_KEY_FILE}
+            delivery:
+              receipt-ttl: PT1H
+              confirmation-timeout: PT30S
+              batch-size: 100
           enabled: ${UNIFIED_IDENTITY_ENABLED:true}
           register-filter: false
           issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
@@ -97,6 +145,26 @@ egon:
           resource-server-id: ${YUHENG_ADMIN_RESOURCE_SERVER_ID}
           resource-uri: ${YUHENG_ADMIN_RESOURCE_URI}
         jianshen:
+          user-scope-policy:
+            enabled: true
+            permission-scopes:
+              "[yuheng:applications:write]": ["yuheng:applications:write"]
+              "[yuheng:catalog:write]": ["yuheng:catalog:write"]
+              "[yuheng:credentials:write]": ["yuheng:credentials:write"]
+              "[yuheng:drafts:write]": ["yuheng:drafts:write"]
+              "[yuheng:groups:write]": ["yuheng:groups:write"]
+              "[yuheng:knowledge:admin]": ["yuheng:knowledge:admin"]
+              "[yuheng:knowledge:read]": ["yuheng:knowledge:read"]
+              "[yuheng:knowledge:write]": ["yuheng:knowledge:write"]
+              "[yuheng:llm:read]": ["yuheng:llm:read"]
+              "[yuheng:llm:write]": ["yuheng:llm:write"]
+              "[yuheng:mcp:approve]": ["yuheng:mcp:approve"]
+              "[yuheng:mcp:read]": ["yuheng:mcp:read"]
+              "[yuheng:mcp:runtime:read]": ["yuheng:mcp:runtime:read"]
+              "[yuheng:mcp:test]": ["yuheng:mcp:test"]
+              "[yuheng:mcp:write]": ["yuheng:mcp:write"]
+              "[yuheng:read]": ["yuheng:read"]
+              "[yuheng:releases:write]": ["yuheng:releases:write"]
           enabled: ${UNIFIED_IDENTITY_ENABLED:true}
           register-filter: false
           system-code: yuheng-admin
@@ -129,7 +197,7 @@ egon:
           target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:true}
             development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           auth:
             runtime:
@@ -186,3 +254,5 @@ egon:
           access-key: ${YUHENG_REPORT_ACCESS_KEY:}
           secret-key: ${YUHENG_REPORT_SECRET_KEY:}
           state-file: ${YUHENG_REPORT_STATE_FILE:}
+
+management.endpoint.health.group.readiness.include: ["readinessState", "gatewayAdminAuditReadiness"]

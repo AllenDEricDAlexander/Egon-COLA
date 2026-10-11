@@ -1,6 +1,14 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.support.security;
 
 import jakarta.validation.Validator;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
 import java.util.Arrays;
 import org.springframework.core.env.Environment;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -47,8 +55,11 @@ import java.util.List;
  * filter chain.</p>
  */
 @EnableConfigurationProperties
+@Slf4j
 @Configuration(value = "idpSecurityConfig", proxyBeanMethods = false)
 public class IdpSecurityConfig {
+
+    private final java.util.concurrent.atomic.AtomicBoolean scopeMetricFailureLogged = new java.util.concurrent.atomic.AtomicBoolean();
 
     /**
      * 仅将健康检查标记为 PUBLIC；管理 API 默认使用 USER，新协议与旧协议退役分别由有序安全链处理。
@@ -232,8 +243,6 @@ public class IdpSecurityConfig {
      * candidate
      * @return Tianquan-Shoubing 管理权限端口；Tianquan-Shoubing administration authorization port
      */
-    @Bean
-    @ConditionalOnMissingBean(IdpAdminAuthorizationPort.class)
     IdpAdminAuthorizationPort idpAdminAuthorizationPort(
             ObjectProvider<AuthorizationService> authorizationServices) {
         return (principal, permission) -> {
@@ -248,5 +257,69 @@ public class IdpSecurityConfig {
                 throw new AccessDeniedException(decision.reasonCode());
             }
         };
+    }
+
+    /** Configured scope policy adapter; the original factory call remains available. */
+    IdpAdminAuthorizationPort idpAdminAuthorizationPort(ObjectProvider<AuthorizationService> authorizationServices,
+            top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties properties,
+            top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent observations,
+            top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder metrics, Validator validator) {
+        var policy = properties.getUserScopePolicy();
+        new ValidationUtils(validator).validate(policy);
+        var scopeMap = policy.getPermissionScopes().entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
+                java.util.Map.Entry::getKey, entry -> java.util.Set.copyOf(entry.getValue())));
+        boolean enabled = policy.isEnabled();
+        var original = idpAdminAuthorizationPort(authorizationServices);
+        return (principal, permission) -> {
+            if (enabled) {
+                new ValidationUtils(validator).validate(PermissionRequest.of(permission));
+                var authentication = SecurityContextHolder.getContext().getAuthentication();
+                IdentityPrincipal verified = authentication == null ? null : authentication.getPrincipal() instanceof IdentityPrincipal user ? user
+                        : authentication.getPrincipal() instanceof Rbac3UserDetails user ? user.identity() : null;
+                var required = scopeMap.get(permission);
+                var scopes = authentication == null ? java.util.Set.<String>of() : authentication.getAuthorities().stream()
+                        .map(org.springframework.security.core.GrantedAuthority::getAuthority).filter(java.util.Objects::nonNull)
+                        .filter(value -> value.startsWith("SCOPE_")).map(value -> value.substring(6)).collect(java.util.stream.Collectors.toSet());
+                if (authentication == null || !authentication.isAuthenticated() || verified == null || !verified.equals(principal)
+                        || required == null || !scopes.containsAll(required)) {
+                    try { metrics.record(top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO.builder()
+                            .signal("rbac.authorization").result("DENY").build()); }
+                    catch (RuntimeException failure) {
+                        if (scopeMetricFailureLogged.compareAndSet(false, true)) { log.warn("Authorization metric unavailable; failureType={}", failure.getClass().getSimpleName()); }
+                    }
+                    if (verified != null && observations != null && observations.enabled()) {
+                        if (!(authentication.getDetails() instanceof TokenAuditProofBO proof)) {
+                            throw new AuthorizationService.RuntimeUnavailableException("OAUTH_AUDIT_DELIVERY_UNAVAILABLE", verified);
+                        }
+                        boolean delivered;
+                        var attrs = RequestContextHolder.getRequestAttributes();
+                        if (attrs instanceof ServletRequestAttributes servlet) {
+                            var marker = IdpSecurityObservationFilter.authorizationObservationContext(servlet.getRequest());
+                            delivered = marker != null && marker.denyOnce(() -> observations.authorizationDenied(proof));
+                        } else if (IdpRpcSecurityContext.currentProofOrNull() != null) {
+                            var marker = IdpRpcSecurityContext.currentAuthorizationObservationContext();
+                            delivered = marker != null && marker.denyOnce(() -> observations.authorizationDenied(proof));
+                        } else { delivered = observations.authorizationDenied(proof); }
+                        if (!delivered) { throw new AuthorizationService.RuntimeUnavailableException("OAUTH_AUDIT_DELIVERY_UNAVAILABLE", verified); }
+                    }
+                    throw new AccessDeniedException("OAuth scope is required");
+                }
+            }
+            original.require(principal, permission);
+        };
+    }
+
+    @Bean("idpAdminAuthorizationPort")
+    @ConditionalOnMissingBean(IdpAdminAuthorizationPort.class)
+    IdpAdminAuthorizationPort idpAdminAuthorizationPort(
+            ObjectProvider<AuthorizationService> authorization,
+            @Qualifier("egon.cola.platform.tianquan.jianshen-top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties") ObjectProvider<top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties> properties,
+            @Qualifier("idpObservedVerificationComponent") ObjectProvider<top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent> observations,
+            @Qualifier("idpSecurityMetricsRecorder") ObjectProvider<top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder> metrics,
+            @Qualifier("defaultValidator") ObjectProvider<Validator> validators) {
+        var configured = properties.getIfAvailable();
+        if (configured == null || !configured.getUserScopePolicy().isEnabled()) { return idpAdminAuthorizationPort(authorization); }
+        return idpAdminAuthorizationPort(authorization, configured, observations.getIfAvailable(), metrics.getIfAvailable(
+                () -> top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder.NOOP), validators.getObject());
     }
 }

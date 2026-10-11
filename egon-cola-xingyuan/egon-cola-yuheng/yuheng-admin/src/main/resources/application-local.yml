@@ -36,9 +36,72 @@ egon:
     platform:
       tianquan:
         shoubing:
+          usage-observation:
+            enabled: true
+            receiver: YUHENG_ADMIN
+            fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+            allow-local-plaintext: true
+          trusted-issuers:
+            tenant-a:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_A_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_A_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_A_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_A_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_A_TRUST_VERSION}
+            tenant-b:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_B_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_B_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_B_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_B_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_B_TRUST_VERSION}
+            platform:
+              issuer: ${TIANQUAN_SHOUBING_PLATFORM_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_PLATFORM_JWKS_URI}
+              realm-key: platform
+              realm-type: PLATFORM
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_PLATFORM_TRUST_VERSION}
+          revocation:
+            primary-endpoint: ${YUHENG_ADMIN_OAUTH_PRIMARY_REDIS_ADDRESS}
+            mode: STRICT_SHARED
+            timeout: PT0.5S
+            epoch: ${YUHENG_ADMIN_OAUTH_REVOCATION_EPOCH}
+          audit:
+            stream: ${YUHENG_ADMIN_OAUTH_AUDIT_STREAM}
+            spool-directory: ${YUHENG_ADMIN_OAUTH_AUDIT_SPOOL_DIRECTORY}
+            spool-max-bytes: ${YUHENG_ADMIN_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+            hmac-key-file: ${YUHENG_ADMIN_OAUTH_AUDIT_HMAC_KEY_FILE}
+            delivery:
+              receipt-ttl: PT1H
+              confirmation-timeout: PT30S
+              batch-size: 100
           issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
           jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
         jianshen:
+          user-scope-policy:
+            enabled: true
+            permission-scopes:
+              "[yuheng:applications:write]": ["yuheng:applications:write"]
+              "[yuheng:catalog:write]": ["yuheng:catalog:write"]
+              "[yuheng:credentials:write]": ["yuheng:credentials:write"]
+              "[yuheng:drafts:write]": ["yuheng:drafts:write"]
+              "[yuheng:groups:write]": ["yuheng:groups:write"]
+              "[yuheng:knowledge:admin]": ["yuheng:knowledge:admin"]
+              "[yuheng:knowledge:read]": ["yuheng:knowledge:read"]
+              "[yuheng:knowledge:write]": ["yuheng:knowledge:write"]
+              "[yuheng:llm:read]": ["yuheng:llm:read"]
+              "[yuheng:llm:write]": ["yuheng:llm:write"]
+              "[yuheng:mcp:approve]": ["yuheng:mcp:approve"]
+              "[yuheng:mcp:read]": ["yuheng:mcp:read"]
+              "[yuheng:mcp:runtime:read]": ["yuheng:mcp:runtime:read"]
+              "[yuheng:mcp:test]": ["yuheng:mcp:test"]
+              "[yuheng:mcp:write]": ["yuheng:mcp:write"]
+              "[yuheng:read]": ["yuheng:read"]
+              "[yuheng:releases:write]": ["yuheng:releases:write"]
           runtime:
             redis-address: ${YUHENG_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
             password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
@@ -54,7 +117,7 @@ egon:
         rpc:
           target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           tls:
-            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
         redis:
           username: ${TIANSHU_REDIS_USERNAME:}
           password: ${TIANSHU_REDIS_PASSWORD:HomeLab666}
@@ -65,3 +128,12 @@ egon:
           namespace: default
           application-code: yuheng-admin
           artifact-version: local
+
+server:
+  ssl:
+    enabled: true
+    key-store: ${YUHENG_ADMIN_TLS_KEY_STORE}
+    key-store-type: PKCS12
+    key-store-password: ${YUHENG_ADMIN_TLS_KEY_STORE_PASSWORD}
+
+management.endpoint.health.group.readiness.include: ["readinessState", "gatewayAdminAuditReadiness"]

@@ -9,10 +9,23 @@ import top.egon.cola.component.tianshu.error.DdcClientTransportException;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 import top.egon.cola.component.tianshu.error.management.DdcManagementErrorCode;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcRpcStatusExceptionMapper;
+import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationAuthenticationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DdcRpcProviderExceptionMapperTest {
+
+    @Test
+    void admissionUnavailableMapsUnavailableAndSanitizedDetail() {
+        var failure = new DdcRegistrationAuthenticationException(DdcErrorStatus.RESOURCE_ADMISSION_UNAVAILABLE,
+                new IllegalStateException("credential-secret"));
+        var result = mapper.map(failure).orElseThrow();
+        assertThat(result.getStatus().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
+        var detail = result.getTrailers().get(DdcRpcStatusExceptionMapper.ERROR_DETAIL);
+        assertThat(detail.getCode()).isEqualTo("TIANSHU_RESOURCE_ADMISSION_UNAVAILABLE"); assertThat(detail.getRetryable()).isTrue();
+        assertThat(result.getStatus().getDescription()).doesNotContain("credential-secret");
+        assertThat(detail.getMessage()).doesNotContain("credential-secret");
+    }
 
     private final DdcRpcProviderExceptionMapper mapper =
             new DdcRpcProviderExceptionMapper();

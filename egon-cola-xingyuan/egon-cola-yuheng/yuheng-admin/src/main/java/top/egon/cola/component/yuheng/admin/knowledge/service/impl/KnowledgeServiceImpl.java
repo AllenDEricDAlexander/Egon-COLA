@@ -871,6 +871,12 @@ public class KnowledgeServiceImpl implements KnowledgeService {
      * @param actor 参数 已验证的管理身份；parameter the verified management actor.
      */
     private static void assertCreateAuthority(AdminActor actor) {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getAuthorities().stream()
+                .noneMatch(authority -> "SCOPE_yuheng:knowledge:write".equals(authority.getAuthority()))) {
+            throw new CommonException(403, "KNOWLEDGE_FORBIDDEN", "creating a knowledge base requires the OAuth knowledge write scope");
+        }
+
         Set<String> granted = new LinkedHashSet<>(actor.scopes());
         granted.addAll(actor.roles());
         for (String authority : CREATE_AUTHORITIES) {

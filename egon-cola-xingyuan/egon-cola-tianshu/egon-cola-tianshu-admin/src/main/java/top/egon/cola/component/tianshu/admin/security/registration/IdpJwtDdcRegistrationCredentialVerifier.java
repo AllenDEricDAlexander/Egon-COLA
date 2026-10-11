@@ -9,6 +9,10 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.ServiceAccessTo
 import java.net.URI;
 import java.time.Clock;
 import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * Verifies Tianshu registration credentials through the shared Tianquan-Shoubing SERVICE-token verifier.
@@ -17,21 +21,17 @@ import java.util.Objects;
  * projection checks. This adapter adds the Tianshu-specific PLATFORM context, audience, scope and
  * physical request binding checks before a lease service can persist the identity.</p>
  */
+@Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class IdpJwtDdcRegistrationCredentialVerifier
         implements DdcRegistrationCredentialVerifier {
 
     /** Least-privilege scope required for register and heartbeat mutations. */
     public static final String REGISTRATION_SCOPE = "tianshu:registration:write";
 
-    private final ServiceAccessTokenVerifier serviceTokens;
-
-    private final String resourceServerId;
-
-    private final URI resourceUri;
-
-    private final String requiredScope;
-
-    private final Clock clock;
+    @Qualifier("serviceAccessTokenVerifier") private final ServiceAccessTokenVerifier serviceTokens;
+    private final DdcRegistrationPolicyBO policy;
+    @Qualifier("idpClock") private final Clock clock;
 
     /** Creates the production Tianshu registration verifier. */
     public IdpJwtDdcRegistrationCredentialVerifier(
@@ -69,14 +69,8 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
             URI resourceUri,
             String requiredScope,
             Clock clock) {
-        this.serviceTokens = Objects.requireNonNull(
-                serviceTokens,
-                "serviceTokens"
-        );
-        this.resourceServerId = required(resourceServerId, "resourceServerId");
-        this.resourceUri = validResource(resourceUri);
-        this.requiredScope = required(requiredScope, "requiredScope");
-        this.clock = Objects.requireNonNull(clock, "clock");
+        this(Objects.requireNonNull(serviceTokens, "serviceTokens"), new DdcRegistrationPolicyBO(
+                required(resourceServerId, "resourceServerId"), validResource(resourceUri), required(requiredScope, "requiredScope")), Objects.requireNonNull(clock, "clock"));
     }
 
     @Override
@@ -92,6 +86,9 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
         try {
             AccessTokenVerification<ServiceIdentityPrincipal> result =
                     serviceTokens.verify(registrationToken);
+            if (result instanceof AccessTokenVerification.Unavailable<?>) {
+                throw failure(DdcErrorStatus.RESOURCE_ADMISSION_UNAVAILABLE);
+            }
             if (result instanceof AccessTokenVerification.Expired<?>) {
                 throw failure(DdcErrorStatus.RESOURCE_ADMISSION_EXPIRED);
             }
@@ -109,7 +106,7 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
             return new VerifiedDdcRegistrationIdentity(
                     principal.appId(),
                     principal.clientId(),
-                    resourceServerId,
+                    policy.resourceServerId(),
                     principal.resourceUri().toString(),
                     principal.resourceVersion(),
                     principal.sourceBizCode(),
@@ -132,8 +129,8 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
     private void validateToken(ServiceIdentityPrincipal principal) {
         if (principal.scopeContext() != ServiceTokenContext.PLATFORM
                 || principal.tenantId() != null
-                || !resourceUri.equals(principal.resourceUri())
-                || !principal.scopes().contains(requiredScope)
+                || !policy.resourceUri().equals(principal.resourceUri())
+                || !principal.scopes().contains(policy.requiredScope())
                 || !principal.expiresAt().isAfter(clock.instant())
                 || !principal.expiresAt().isAfter(principal.issuedAt())) {
             throw failure(DdcErrorStatus.RESOURCE_ADMISSION_INVALID);
@@ -181,4 +178,7 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
         }
         return value;
     }
+
+    /** Immutable local construction settings keep all former public overloads unchanged. */
+    private record DdcRegistrationPolicyBO(String resourceServerId, URI resourceUri, String requiredScope) { }
 }

@@ -48,6 +48,14 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.test.util.ReflectionTestUtils;
+import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext;
+import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpAuthenticationToken;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3AuthenticationToken;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfigurationException;
 import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceConfiguration;
@@ -129,6 +137,43 @@ class GatewayPersistenceContextTest {
     void releaseThreadLocals() {
         MDC.clear();
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void actualIdpRbacAndServiceTenantBindings() throws Exception {
+        var foreign = identity(FOREIGN_TENANT_ID);
+        var snapshot = new SystemAuthorizationSnapshot(FOREIGN_TENANT_ID, foreign.subject(), "20001", "yuheng", 1, 2,
+                List.of("50001"), null, null, Set.of("yuheng:read"), Set.of(), Map.of(), Map.of(), "sha256:persistence-fixture",
+                TOKEN_ISSUED_AT, TOKEN_ISSUED_AT.plusSeconds(300));
+        for (var authentication : List.of(new IdpAuthenticationToken(foreign), new Rbac3AuthenticationToken(new Rbac3UserDetails(foreign, snapshot)),
+                new IdpAuthenticationToken(service(ServiceTokenContext.TENANT, FOREIGN_TENANT_ID)))) {
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            var called = new AtomicBoolean();
+            MDC.put(tenantKey(), "previous-tenant"); MDC.put(userKey(), "previous-user");
+            assertThatThrownBy(() -> new GatewayPersistenceContextFilter(context).doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(),
+                    (request, response) -> called.set(true))).isInstanceOf(RuntimeException.class);
+            assertThat(called).isFalse();
+            assertThat(MDC.get(tenantKey())).isEqualTo("previous-tenant"); assertThat(MDC.get(userKey())).isEqualTo("previous-user");
+        }
+        for (var authentication : List.of(new IdpAuthenticationToken(identity(String.valueOf(TRUSTED_IDENTITY_TENANT_ID))),
+                new IdpAuthenticationToken(service(ServiceTokenContext.PLATFORM, null)))) {
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            var called = new AtomicBoolean();
+            new GatewayPersistenceContextFilter(context).doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), (request, response) -> {
+                called.set(true); assertThat(MDC.get(tenantKey())).isEqualTo(String.valueOf(INSTALLATION_TENANT_ID));
+            });
+            assertThat(called).isTrue();
+        }
+    }
+
+    private IdentityPrincipal identity(String tenant) {
+        return new IdentityPrincipal("10001", tenant, "jti-1", Set.of("https://api.example/yuheng"), TOKEN_ISSUED_AT,
+                TOKEN_ISSUED_AT.plusSeconds(300), AuthenticationContext.password());
+    }
+
+    private ServiceIdentityPrincipal service(ServiceTokenContext kind, String tenant) {
+        return new ServiceIdentityPrincipal("publisher", tenant, "publisher", "jti-1", java.net.URI.create("https://api.example/yuheng"), 7,
+                Set.of("yuheng:read"), "biz", "publisher", "test", "credential-1", TOKEN_ISSUED_AT, TOKEN_ISSUED_AT.plusSeconds(300), "publisher-app", kind);
     }
 
     @Test

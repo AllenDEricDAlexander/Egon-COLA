@@ -29,9 +29,11 @@ import java.util.List;
  * 暴露给调用方。</p>
  */
 @Validated
-@RestController
+@lombok.extern.slf4j.Slf4j
+@lombok.RequiredArgsConstructor
+@RestController("gatewayOpenApiController")
 @RequestMapping("/api/v1/yuheng/admin")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:read') and (hasAnyAuthority('CAP_yuheng:read','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",
@@ -41,12 +43,9 @@ import java.util.List;
         interfaceGroupCode = "yuheng-admin")
 public class GatewayOpenApiController {
 
+    @org.springframework.beans.factory.annotation.Qualifier("gatewayOpenApiQueryService")
     private final GatewayOpenApiQueryService queryService;
 
-    /** Creates the controller with the read-only query facade. */
-    public GatewayOpenApiController(GatewayOpenApiQueryService queryService) {
-        this.queryService = queryService;
-    }
 
     /** Returns filtered OpenAPI synchronization state rows. */
     @Operation(operationId = "admin.gatewayOpenApiController.listSyncStates")

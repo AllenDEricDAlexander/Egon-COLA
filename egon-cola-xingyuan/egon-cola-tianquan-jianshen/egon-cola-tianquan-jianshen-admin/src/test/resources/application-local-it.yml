@@ -45,3 +45,7 @@ egon.cola.component:
       tls:
         enabled: false
         development-plaintext: false
+
+egon.cola.platform.tianquan.jianshen.user-scope-policy:
+  enabled: false
+  permission-scopes: {}

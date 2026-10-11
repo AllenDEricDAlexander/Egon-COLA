@@ -1,4 +1,9 @@
 server:
+  ssl:
+    enabled: true
+    key-store: ${TIANSHU_TLS_KEY_STORE}
+    key-store-type: PKCS12
+    key-store-password: ${TIANSHU_TLS_KEY_STORE_PASSWORD}
   port: 18080
 
 springdoc:
@@ -55,6 +60,49 @@ egon:
     platform:
       tianquan:
         shoubing:
+          usage-observation:
+            enabled: true
+            receiver: TIANSHU
+            fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+            allow-local-plaintext: false
+          trusted-issuers:
+            tenant-a:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_A_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_A_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_A_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_A_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_A_TRUST_VERSION}
+            tenant-b:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_B_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_B_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_B_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_B_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_B_TRUST_VERSION}
+            platform:
+              issuer: ${TIANQUAN_SHOUBING_PLATFORM_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_PLATFORM_JWKS_URI}
+              realm-key: platform
+              realm-type: PLATFORM
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_PLATFORM_TRUST_VERSION}
+          revocation:
+            primary-endpoint: ${TIANSHU_OAUTH_PRIMARY_REDIS_ADDRESS}
+            mode: STRICT_SHARED
+            timeout: PT0.5S
+            epoch: ${TIANSHU_OAUTH_REVOCATION_EPOCH}
+          audit:
+            stream: ${TIANSHU_OAUTH_AUDIT_STREAM}
+            spool-directory: ${TIANSHU_OAUTH_AUDIT_SPOOL_DIRECTORY}
+            spool-max-bytes: ${TIANSHU_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+            hmac-key-file: ${TIANSHU_OAUTH_AUDIT_HMAC_KEY_FILE}
+            delivery:
+              receipt-ttl: PT1H
+              confirmation-timeout: PT30S
+              batch-size: 100
           enabled: ${UNIFIED_IDENTITY_ENABLED:true}
           register-filter: false
           issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:}
@@ -62,6 +110,15 @@ egon:
           resource-server-id: ${TIANSHU_RESOURCE_SERVER_ID:}
           resource-uri: ${TIANSHU_RESOURCE_URI:}
         jianshen:
+          user-scope-policy:
+            enabled: true
+            permission-scopes:
+              "TIANSHU_READ": ["TIANSHU_READ"]
+              "TIANSHU_WRITE": ["TIANSHU_WRITE"]
+              "TIANSHU_PUBLISH": ["TIANSHU_PUBLISH"]
+              "TIANSHU_CACHE": ["TIANSHU_CACHE"]
+              "TIANSHU_AI_READ": ["TIANSHU_AI_READ"]
+              "TIANSHU_AI_WRITE": ["TIANSHU_AI_WRITE"]
           enabled: ${UNIFIED_IDENTITY_ENABLED:true}
           register-filter: false
           system-code: tianshu-admin
@@ -124,7 +181,7 @@ egon:
               audience: ${TIANSHU_ADMIN_JWT_AUDIENCE:}
               jwk-set-uri: ${TIANSHU_ADMIN_JWT_JWK_SET_URI:}
           transport-security:
-            mode: DEVELOPMENT_PLAINTEXT
+            mode: MTLS
           max-config-bytes: ${TIANSHU_MAX_CONFIG_BYTES:1048576}
           registration:
             resource-server-id: ${TIANSHU_RESOURCE_SERVER_ID:}
@@ -232,8 +289,10 @@ egon:
         consumer:
           enabled: false
         tls:
-          enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+          enabled: ${TIANSHU_RPC_TLS_ENABLED:true}
           development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           certificate-chain-path: ${TIANSHU_RPC_CERTIFICATE_CHAIN_PATH:}
           private-key-path: ${TIANSHU_RPC_PRIVATE_KEY_PATH:}
           trust-certificate-collection-path: ${TIANSHU_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+
+management.endpoint.health.group.readiness.include: ["readinessState", "ddcAuditReadiness"]

@@ -28,6 +28,13 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
     );
 
     @Test
+    void unavailableIsDependencyNotInvalid() {
+        assertFailure(() -> verifier(new AccessTokenVerification.Unavailable<>("OAUTH_SECURITY_STATE_UNAVAILABLE"))
+                        .verify("token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
+                DdcErrorStatus.RESOURCE_ADMISSION_UNAVAILABLE);
+    }
+
+    @Test
     void acceptsAValidPlatformServiceTokenAndReturnsFullIdentity() {
         ServiceIdentityPrincipal principal = principal(
                 ServiceTokenContext.PLATFORM,

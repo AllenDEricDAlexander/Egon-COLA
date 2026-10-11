@@ -715,6 +715,12 @@ public class WikiServiceImpl implements WikiService {
 
     /** 中文说明：下线额外要求的功能能力；成员角色不足以收缩公开面时按 403 拒绝。 English summary: The extra capability an unpublish needs: membership alone cannot shrink the public face, so lacking it answers 403. */
     private static void assertWriteAuthority(KnowledgeBaseBO base, AdminActor actor) {
+        var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getAuthorities().stream()
+                .noneMatch(authority -> "SCOPE_yuheng:knowledge:write".equals(authority.getAuthority()))) {
+            throw new CommonException(403, "KNOWLEDGE_FORBIDDEN", "withdrawing a wiki publication requires the OAuth knowledge write scope");
+        }
+
         Set<String> granted = new LinkedHashSet<>(actor.scopes());
         granted.addAll(actor.roles());
         for (String authority : KNOWLEDGE_WRITE_AUTHORITIES) {

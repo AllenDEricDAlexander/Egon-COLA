@@ -1,7 +1,7 @@
 package top.egon.cola.component.tianshu.admin.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -13,14 +13,19 @@ import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
-@RestControllerAdvice
+@Slf4j
+@RestControllerAdvice(name = "ddcGlobalExceptionHandler")
 public class DdcGlobalExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(
-            DdcGlobalExceptionHandler.class
-    );
-
     @ExceptionHandler(CommonException.class)
+    public ResultRecord<Void> handleCommon(CommonException exception, HttpServletResponse response) {
+        if (DdcErrorStatus.RESOURCE_ADMISSION_UNAVAILABLE.getStatus().equals(exception.getStatus())) {
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        }
+        return handleCommon(exception);
+    }
+
+    /** Retains the original direct Java error projection. */
     public ResultRecord<Void> handleCommon(CommonException exception) {
         return ResultRecord.failure(exception);
     }

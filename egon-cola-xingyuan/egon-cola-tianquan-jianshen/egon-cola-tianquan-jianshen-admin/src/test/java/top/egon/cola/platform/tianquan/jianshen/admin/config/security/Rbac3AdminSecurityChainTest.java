@@ -22,6 +22,33 @@ import top.egon.cola.platform.tianquan.jianshen.starter.cache.SingleFlightSnapsh
 /** Tests the two real host chains without booting an application or infrastructure. */
 class Rbac3AdminSecurityChainTest {
     @Test
+    void scopeAndIdentityErrorFamiliesOnTheActualProfileAboutAndActivationPaths() throws Exception {
+        var context = new AnnotationConfigWebApplicationContext(); context.setServletContext(new MockServletContext());
+        context.register(Rbac3AdminSecurityConfiguration.class, FixtureConfiguration.class); context.refresh();
+        try {
+            var now = java.time.Instant.parse("2026-10-12T00:00:00Z");
+            var identity = new top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal("identity-1", "1001", "901",
+                    java.util.Set.of("resource"), now, now.plusSeconds(300), top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext.password());
+            var snapshot = new top.egon.cola.platform.tianquan.jianshen.contract.authorization.SystemAuthorizationSnapshot("1001", "identity-1", "2001",
+                    "app", 1, 2, java.util.List.of(), null, null, java.util.Set.of("system:about:read", "system:role-activation:read", "system:role-activation:use"),
+                    java.util.Set.of(), java.util.Map.of(), java.util.Map.of(), "sha256:scope-snapshot", now, now.plusSeconds(300));
+            var users = context.getBean(UserAccessTokenVerifier.class);
+            org.mockito.Mockito.when(users.verify("scopeless")).thenReturn(new top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification.Valid<>(identity, java.util.Set.of()));
+            org.mockito.Mockito.when(context.getBean(SingleFlightSnapshotLoader.class).load(identity)).thenReturn(snapshot);
+            var mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+            for (String path : java.util.List.of("/api/v1/auth/about", "/api/tianquan-jianshen/v1/auth/role-activation-candidates", "/api/tianquan-jianshen/v1/auth/role-activations")) {
+                var response = mvc.perform(get(path).header("Authorization", "Bearer scopeless")).andReturn().getResponse();
+                assertThat(response.getStatus()).isEqualTo(403); assertThat(response.getHeader("Cache-Control")).contains("no-store");
+                assertThat(response.getContentAsString()).contains("AUTHORIZATION_DENIED");
+            }
+            var response = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/tianquan-jianshen/v1/auth/role-activations")
+                    .header("Authorization", "Bearer scopeless").contentType("application/json").content("{}")) .andReturn().getResponse();
+            assertThat(response.getStatus()).isEqualTo(403);
+            assertThat(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()).isNull();
+        } finally { context.close(); }
+    }
+
+    @Test
     void missingBearerUsesOwn401FamilyWithoutRedirectOrBusiness() throws Exception {
         var context = new AnnotationConfigWebApplicationContext();
         context.setServletContext(new MockServletContext());

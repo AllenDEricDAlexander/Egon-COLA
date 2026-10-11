@@ -10,9 +10,61 @@ egon:
     platform:
       tianquan:
         shoubing:
+          usage-observation:
+            enabled: true
+            receiver: TIANSHU
+            fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+            allow-local-plaintext: true
+          trusted-issuers:
+            tenant-a:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_A_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_A_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_A_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_A_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_A_TRUST_VERSION}
+            tenant-b:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_B_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_B_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_B_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_B_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_B_TRUST_VERSION}
+            platform:
+              issuer: ${TIANQUAN_SHOUBING_PLATFORM_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_PLATFORM_JWKS_URI}
+              realm-key: platform
+              realm-type: PLATFORM
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_PLATFORM_TRUST_VERSION}
+          revocation:
+            primary-endpoint: ${TIANSHU_OAUTH_PRIMARY_REDIS_ADDRESS}
+            mode: STRICT_SHARED
+            timeout: PT0.5S
+            epoch: ${TIANSHU_OAUTH_REVOCATION_EPOCH}
+          audit:
+            stream: ${TIANSHU_OAUTH_AUDIT_STREAM}
+            spool-directory: ${TIANSHU_OAUTH_AUDIT_SPOOL_DIRECTORY}
+            spool-max-bytes: ${TIANSHU_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+            hmac-key-file: ${TIANSHU_OAUTH_AUDIT_HMAC_KEY_FILE}
+            delivery:
+              receipt-ttl: PT1H
+              confirmation-timeout: PT30S
+              batch-size: 100
           issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
           jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
         jianshen:
+          user-scope-policy:
+            enabled: true
+            permission-scopes:
+              "TIANSHU_READ": ["TIANSHU_READ"]
+              "TIANSHU_WRITE": ["TIANSHU_WRITE"]
+              "TIANSHU_PUBLISH": ["TIANSHU_PUBLISH"]
+              "TIANSHU_CACHE": ["TIANSHU_CACHE"]
+              "TIANSHU_AI_READ": ["TIANSHU_AI_READ"]
+              "TIANSHU_AI_WRITE": ["TIANSHU_AI_WRITE"]
           runtime:
             redis-address: ${TIANSHU_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
             password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
@@ -58,3 +110,12 @@ egon:
           namespace: default
           application-code: tianshu
           artifact-version: local
+
+server:
+  ssl:
+    enabled: true
+    key-store: ${TIANSHU_TLS_KEY_STORE}
+    key-store-type: PKCS12
+    key-store-password: ${TIANSHU_TLS_KEY_STORE_PASSWORD}
+
+management.endpoint.health.group.readiness.include: ["readinessState", "ddcAuditReadiness"]

@@ -68,7 +68,7 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 @Validated
 @RestController("wikiController")
 @RequestMapping("/api/v1/yuheng/admin")
-@PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*')")
+@PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:read') and (hasAnyAuthority('CAP_yuheng:knowledge:read','CAP_*'))")
 @Tag(name = "yuheng-admin")
 @EgonApiCatalog(
         businessDomainCode = "xingyuan",
@@ -164,7 +164,7 @@ public class WikiController {
     @Operation(operationId = "createWikiGenerationJob")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     @PostMapping("/knowledge-bases/{kbId}/wiki/generation-jobs")
     public ResponseEntity<KnowledgeJobVO> createWikiGenerationJob(
             AdminActor actor,
@@ -230,7 +230,7 @@ public class WikiController {
     @Operation(operationId = "replaceWikiDraft")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     @PutMapping("/knowledge-bases/{kbId}/wiki/pages/{pageId}/draft")
     public WikiPageVO replaceWikiDraft(
             AdminActor actor,
@@ -265,7 +265,7 @@ public class WikiController {
     @Operation(operationId = "publishWikiRevision")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     @PostMapping("/knowledge-bases/{kbId}/wiki/pages/{pageId}/publications")
     public WikiPageVO publishWikiRevision(
             AdminActor actor,
@@ -328,7 +328,7 @@ public class WikiController {
     @Operation(operationId = "unpublishWikiPage")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @PreAuthorize("hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*')")
+    @PreAuthorize("hasAuthority('SCOPE_yuheng:knowledge:write') and (hasAnyAuthority('CAP_yuheng:knowledge:write','CAP_*'))")
     @DeleteMapping("/knowledge-bases/{kbId}/wiki/pages/{pageId}/publications/current")
     public ResponseEntity<Void> unpublishWikiPage(
             AdminActor actor,

@@ -1,6 +1,21 @@
 package top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.experimental.Accessors;
+import java.util.Map;
+import java.util.Set;
+import java.util.LinkedHashMap;
 
 import java.time.Duration;
 
@@ -11,6 +26,7 @@ import java.time.Duration;
  * 语义与用法：将 `Rbac3StarterProperties` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `Rbac3StarterProperties` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
+@Validated
 @ConfigurationProperties("egon.cola.platform.tianquan.jianshen")
 public class Rbac3StarterProperties {
 
@@ -38,6 +54,32 @@ public class Rbac3StarterProperties {
      * Meaning and usage: when reading, passing, or updating `systemCode`, preserve `Rbac3StarterProperties`'s lifecycle, immutability, and thread-safety constraints.
      */
     private String systemCode;
+
+    /** Explicit USER scope policy; disabled only for the retained legacy integration. */
+    @Valid
+    @NotNull
+    private final UserScopePolicyProperties userScopePolicy = new UserScopePolicyProperties();
+
+    public UserScopePolicyProperties getUserScopePolicy() { return userScopePolicy; }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
+    public static class UserScopePolicyProperties {
+        private boolean enabled;
+        @NotNull
+        @Size(max = 128)
+        @Builder.Default
+        private Map<@NotNull @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String,
+                @NotEmpty @Size(max = 64) Set<@NotNull @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String>> permissionScopes = new LinkedHashMap<>();
+
+        @AssertTrue
+        public boolean isConfigurationValid() {
+            return !enabled || permissionScopes != null && !permissionScopes.isEmpty();
+        }
+    }
     /**
      * 字段 `runtime` 表示 `Rbac3StarterProperties` 中与 `runtime` 相关的状态、依赖、配置或结果（声明类型 `Runtime`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `runtime` stores the `runtime`-related state, dependency, configuration, or result of `Rbac3StarterProperties` (declared type `Runtime`); its lifecycle and value semantics are defined by its declared type and owning object.

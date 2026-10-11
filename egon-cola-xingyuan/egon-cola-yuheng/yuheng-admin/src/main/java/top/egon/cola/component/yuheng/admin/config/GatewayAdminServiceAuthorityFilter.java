@@ -14,6 +14,10 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpAuthenticati
 
 import java.io.IOException;
 import java.util.List;
+import java.util.ArrayList;
+import org.springframework.security.core.GrantedAuthority;
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Converts Tianquan-Shoubing-signed Gateway Admin Service scopes into local method-security capabilities.
@@ -23,6 +27,8 @@ import java.util.List;
  * the existing {@code CAP_...} method-security vocabulary. USER identities are left to the
  * Tianquan-Jianshen snapshot filter.</p>
  */
+@Slf4j
+@RequiredArgsConstructor
 public final class GatewayAdminServiceAuthorityFilter
         extends OncePerRequestFilter {
 
@@ -55,17 +61,20 @@ public final class GatewayAdminServiceAuthorityFilter
                 .getAuthentication();
         if (authentication instanceof IdpAuthenticationToken idp
                 && idp.getPrincipal() instanceof ServiceIdentityPrincipal service) {
-            List<SimpleGrantedAuthority> authorities = service.scopes().stream()
+            List<GrantedAuthority> authorities = new ArrayList<>(authentication.getAuthorities().stream()
+                    .filter(authority -> authority.getAuthority() != null && authority.getAuthority().startsWith("SCOPE_")).toList());
+            authorities.addAll(service.scopes().stream()
                     .filter(scope -> scope.startsWith(YUHENG_SCOPE_PREFIX))
                     .sorted()
                     .map(scope -> new SimpleGrantedAuthority(
                             CAPABILITY_PREFIX + scope))
-                    .toList();
-            SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(
+                    .toList());
+            var replacement = new UsernamePasswordAuthenticationToken(
                             service,
                             "",
-                            authorities));
+                            authorities);
+            replacement.setDetails(authentication.getDetails());
+            SecurityContextHolder.getContext().setAuthentication(replacement);
         }
         filterChain.doFilter(request, response);
     }

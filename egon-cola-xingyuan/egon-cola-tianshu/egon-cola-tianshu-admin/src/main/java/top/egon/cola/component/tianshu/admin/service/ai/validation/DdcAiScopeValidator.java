@@ -116,6 +116,10 @@ public class DdcAiScopeValidator {
                 throw scopeForbidden();
             }
             String basePermission = "TIANSHU_AI_" + permission.name();
+            String oauthScope = permission == Permission.READ ? "TIANSHU_AI_READ" : "TIANSHU_AI_WRITE";
+            if (authentication.getAuthorities().stream().noneMatch(authority -> ("SCOPE_" + oauthScope).equals(authority.getAuthority()))) {
+                throw scopeForbidden();
+            }
             if (!user.permissions().contains(basePermission)
                     && !user.permissions().contains(basePermission + ":*")
                     && !user.permissions().contains(basePermission + ":" + namespacePublicId)) {
@@ -145,6 +149,18 @@ public class DdcAiScopeValidator {
     }
 
     private static CommonException scopeForbidden() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getDetails()
+                instanceof top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO) {
+            var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            boolean delivered = attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet
+                    && top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter.authorizationObservationContext(servlet.getRequest()) != null
+                    && top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter.beforeAuthorizationDenied(servlet.getRequest());
+            if (!delivered) {
+                // Existing AI advice maps this dependency category to 503 with its unchanged ResultRecord shape.
+                return new CommonException(56310, "OAUTH_AUDIT_DELIVERY_UNAVAILABLE", "OAuth authorization audit is unavailable");
+            }
+        }
         return new CommonException(56307, "TIANSHU_AI_SCOPE_FORBIDDEN",
                 "AI permission is required for the requested namespace");
     }

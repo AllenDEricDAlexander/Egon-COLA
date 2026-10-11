@@ -15,11 +15,15 @@ import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
 import java.util.Arrays;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 将 Admin 领域失败映射为稳定且脱敏的 Tianshu RPC 状态。
  * / Maps Admin domain failures to stable, sanitized Tianshu RPC statuses.
  */
+@Slf4j
+@RequiredArgsConstructor
 public final class DdcRpcProviderExceptionMapper
         implements RpcProviderExceptionMapper {
 
@@ -29,11 +33,12 @@ public final class DdcRpcProviderExceptionMapper
     @Override
     public Optional<StatusRuntimeException> map(Throwable throwable) {
         if (throwable instanceof DdcAdminException admin) {
+            boolean unavailable = DdcErrorStatus.RESOURCE_ADMISSION_UNAVAILABLE.getStatus().equals(admin.getStatus());
             return Optional.of(status(
-                    grpcStatus(admin.getStatus()),
+                    unavailable ? Status.UNAVAILABLE : grpcStatus(admin.getStatus()),
                     admin.getStatus(),
                     message(admin.getStatus()),
-                    admin.isRetryable()
+                    unavailable || admin.isRetryable()
             ));
         }
         if (throwable instanceof IllegalArgumentException) {

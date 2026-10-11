@@ -91,6 +91,12 @@ public enum DdcErrorStatus implements ErrorStatus {
             "TIANSHU_RESOURCE_ADMISSION_BINDING_MISMATCH",
             "resource admission binding mismatch"
     ),
+    /** Resource admission cannot decide while its identity dependency is unavailable. */
+    RESOURCE_ADMISSION_UNAVAILABLE(
+            56028,
+            "TIANSHU_RESOURCE_ADMISSION_UNAVAILABLE",
+            "resource admission dependency unavailable"
+    ),
     /**
      * 指定业务不存在。 The requested business does not exist.
      */
