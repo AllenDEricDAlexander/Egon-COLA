@@ -1,6 +1,6 @@
 {
-  "name": "@egon-cola/xingyuan-admin-web-shared",
-  "version": "0.2.4",
+  "name": "@egon-cola/admin-web-shared",
+  "version": "0.2.5",
   "type": "module",
   "files": [
     "dist",

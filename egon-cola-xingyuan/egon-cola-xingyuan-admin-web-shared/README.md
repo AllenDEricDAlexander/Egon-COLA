@@ -1,4 +1,4 @@
-# @egon-cola/xingyuan-admin-web-shared
+# @egon-cola/admin-web-shared
 
 Egon COLA 平台前端公共层，供四个管理控制台（Tianshu / Yuheng / Tianquan-Shoubing /
 Tianquan-Jianshen）以及 `egon-cola-xingyuan-admin-portal` 微前端宿主共享。
@@ -33,6 +33,12 @@ const config: EnterpriseLayoutConfig = {
 
 ## 发布
 
+实际 npm 发布包为 `@egon-cola/admin-web-shared`；控制台保留
+`@egon-cola/xingyuan-admin-web-shared` 源码 import，通过 npm alias 指向此制品。
+`0.2.5` 包含当前源码的无密码 OIDC 导航、CSRF logout 与 `remoteState` 契约；
+发布前须验证源码测试和实际打包产物，不能仅检查版本号。
+
+
 ```bash
 npm run release:patch   # 0.1.x 补丁版本：自动升版本号（不打 git tag）+ 构建 + npm publish
 npm run release:minor   # 次版本
@@ -41,4 +47,4 @@ npm run release:minor   # 次版本
 注意事项：
 
 - `build` 的 `prebuild` 会从仓库根复制 `favicon.png` 进包内，`postbuild` 会删除 `node_modules`（如需继续本地开发请重新 `npm install --legacy-peer-deps`）。
-- 发布后，四个业务 Web 需执行 `rm -rf node_modules/@egon-cola/xingyuan-admin-web-shared && npm install --legacy-peer-deps` 切换到 registry 版本。
+- 发布后，获准接入的业务 Web 按现有 npm alias 和锁文件安装 registry 制品。本轮 `0.2.5` 只更新授柄、鉴神自身；其他平台和模板接入另行安排。
