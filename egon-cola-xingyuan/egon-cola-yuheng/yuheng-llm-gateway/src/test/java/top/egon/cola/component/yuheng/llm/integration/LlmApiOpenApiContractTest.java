@@ -178,6 +178,52 @@ class LlmApiOpenApiContractTest {
     private static final ObjectMapper JSON = Jackson2ObjectMapperBuilder.json().build();
 
     @Test
+    void generatedOpenApiDocumentsActualScopeAndNativeSecurityFailures() throws Exception {
+        var properties = gatewayProperties();
+        var fixture = fixture(properties, realFaces(properties));
+        var context = new org.springframework.web.context.support.AnnotationConfigWebApplicationContext();
+        context.setServletContext(new org.springframework.mock.web.MockServletContext());
+        context.setEnvironment(new org.springframework.mock.env.MockEnvironment()
+                .withProperty("springdoc.api-docs.enabled", "true").withProperty("springdoc.api-docs.version", "OPENAPI_3_1"));
+        var method = top.egon.cola.component.yuheng.llm.config.LlmSecurityConfiguration.class.getDeclaredMethod("llmSecurityOpenApiCustomizer");
+        method.setAccessible(true);
+        var customizer = (org.springdoc.core.customizers.GlobalOpenApiCustomizer) method.invoke(
+                new top.egon.cola.component.yuheng.llm.config.LlmSecurityConfiguration());
+        context.addBeanFactoryPostProcessor(factory -> {
+            factory.registerSingleton("llmApiController", fixture.controller);
+            factory.registerSingleton("llmSecurityOpenApiCustomizer", customizer);
+        });
+        context.register(GeneratedDocumentConfiguration.class);
+        context.refresh();
+        try {
+            var mvc = MockMvcBuilders.webAppContextSetup(context).build();
+            var response = mvc.perform(get("/v3/api-docs")).andReturn().getResponse();
+            assertThat(response.getStatus()).isEqualTo(200);
+            JsonNode document = JSON.readTree(response.getContentAsString());
+            assertThat(document.path("openapi").asText()).startsWith("3.1.");
+            for (String path : List.of("/v1/chat/completions", "/v1/embeddings", "/v1/responses", "/v1/messages")) {
+                var operation = document.path("paths").path(path).path("post");
+                assertThat(operation.path("x-required-oauth-scopes").get(0).asText()).isEqualTo("yuheng:llm:invoke");
+                assertThat(operation.path("responses").has("401")).isTrue();
+                assertThat(operation.path("responses").has("403")).isTrue();
+                assertThat(operation.path("responses").has("503")).isTrue();
+                assertThat(operation.path("description").asText()).contains("USER or SERVICE", "audit failure");
+            }
+            assertThat(document.path("paths").path("/v1/models").path("get").path("x-required-oauth-scopes").get(0).asText())
+                    .isEqualTo("yuheng:llm:read");
+        } finally { context.close(); }
+    }
+
+    @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+    @org.springframework.web.servlet.config.annotation.EnableWebMvc
+    @org.springframework.boot.context.properties.EnableConfigurationProperties(org.springdoc.core.properties.SpringDocConfigProperties.class)
+    @org.springframework.context.annotation.Import({org.springdoc.core.configuration.SpringDocConfiguration.class,
+            org.springdoc.webmvc.core.configuration.SpringDocWebMvcConfiguration.class,
+            org.springdoc.core.configuration.SpringDocSpecPropertiesConfiguration.class,
+            top.egon.cola.component.yuheng.llm.config.LlmOpenApiConfiguration.class})
+    static class GeneratedDocumentConfiguration { }
+
+    @Test
     @DisplayName("原生面恰是五个「方法+路径+operationId」三元组：无第六入口，也无一落在 admin 前缀下")
     void theNativeSurfaceIsExactlyTheFiveContractEntriesAndNoneSitsUnderTheAdminPrefix() {
         Map<String, String> annotated = annotatedEntries();

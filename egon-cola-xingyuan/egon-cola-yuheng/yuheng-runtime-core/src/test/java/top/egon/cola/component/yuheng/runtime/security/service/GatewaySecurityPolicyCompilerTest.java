@@ -50,6 +50,18 @@ class GatewaySecurityPolicyCompilerTest {
                 failure.getMessage());
     }
 
+    @Test
+    void changingRequiredScopeChangesTheCanonicalSignedPolicyBytes() throws Exception {
+        var codec = new top.egon.cola.component.yuheng.runtime.rule.adapter.json.GatewayRuleJsonCodec();
+        byte[] read = codec.write(policy(Map.of("requiredOAuthScopes", List.of("orders:read"))));
+        byte[] write = codec.write(policy(Map.of("requiredOAuthScopes", List.of("orders:write"))));
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                top.egon.cola.component.yuheng.runtime.rule.adapter.json.GatewayRuleJsonCodec.sha256(read),
+                top.egon.cola.component.yuheng.runtime.rule.adapter.json.GatewayRuleJsonCodec.sha256(write));
+        var decoded = new com.fasterxml.jackson.databind.ObjectMapper().readValue(read, GatewayRuntimePolicy.class);
+        assertEquals(List.of("orders:read"), decoded.configuration().get("requiredOAuthScopes"));
+    }
+
     private GatewayRuntimePolicy policy(Map<String, Object> configuration) {
         Map<String, Object> effective = new LinkedHashMap<>();
         effective.put("routeSecurityType", "PUBLIC_PROTOCOL");

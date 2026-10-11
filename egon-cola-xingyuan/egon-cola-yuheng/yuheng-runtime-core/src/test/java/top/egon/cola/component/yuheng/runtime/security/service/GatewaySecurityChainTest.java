@@ -1,5 +1,6 @@
 package top.egon.cola.component.yuheng.runtime.security.service;
 
+import static org.junit.jupiter.api.Assertions.assertSame;
 import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
 
 import org.junit.jupiter.api.Test;
@@ -322,6 +323,39 @@ class GatewaySecurityChainTest {
                 .assertNext(ignored -> { })
                 .verifyComplete();
         assertEquals(List.of("refresh", "status"), events);
+    }
+
+    @Test
+    void requestScopeClosesOnCompletionErrorAndCancelAndCannotBeRevived() throws Exception {
+        for (String terminal : List.of("complete", "error", "cancel")) {
+            var closed = new java.util.concurrent.CountDownLatch(1);
+            var entered = new java.util.concurrent.CountDownLatch(1);
+            var calls = new AtomicInteger();
+            var scope = new java.util.concurrent.atomic.AtomicReference<java.util.function.BiFunction<Object,
+                    java.util.function.Supplier<Map.Entry<Object, Runnable>>, Object>>();
+            Mono<AuthorizationDecision> authorization = Mono.deferContextual(context -> {
+                @SuppressWarnings("unchecked") var owner = (java.util.function.BiFunction<Object,
+                        java.util.function.Supplier<Map.Entry<Object, Runnable>>, Object>) context.get((Object) GatewayAuthContext.class);
+                scope.set(owner);
+                Object first = owner.apply("fixture", () -> new java.util.AbstractMap.SimpleImmutableEntry<Object, Runnable>(new Object(), () -> {
+                    calls.incrementAndGet(); closed.countDown();
+                }));
+                assertSame(first, owner.apply("fixture", () -> { throw new AssertionError("must reuse the request state"); }));
+                entered.countDown();
+                if (terminal.equals("cancel")) { return Mono.never(); }
+                return Mono.just(terminal.equals("error") ? AuthorizationDecision.error("CONTROLLED") : AuthorizationDecision.allow());
+            });
+            var guarded = chain(credential(), Mono.just(AuthenticationDecision.allow(principal())), authorization)
+                    .execute(exchange(), context(), policy(AuthenticationMode.REQUIRED), GatewayProtocol.HTTP);
+            if (terminal.equals("cancel")) {
+                var subscription = guarded.subscribe();
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS)); subscription.dispose();
+            } else if (terminal.equals("error")) { StepVerifier.create(guarded).expectError(GatewaySecurityException.class).verify(); }
+            else { StepVerifier.create(guarded).expectNextCount(1).verifyComplete(); }
+            assertTrue(closed.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(1, calls.get());
+            assertEquals(null, scope.get().apply("late", () -> { throw new AssertionError("closed request must not allocate another marker"); }));
+        }
     }
 
     private GatewaySecurityChain chain(

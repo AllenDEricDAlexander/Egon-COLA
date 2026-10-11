@@ -3,6 +3,7 @@ package top.egon.cola.component.yuheng.core.security;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public record GatewaySecurityPolicy(
         String policyId,
@@ -16,7 +17,8 @@ public record GatewaySecurityPolicy(
         SecurityFailureMode failureMode,
         CredentialForwardingMode credentialForwardingMode,
         GatewayRouteSecurityType routeSecurityType,
-        String credentialRecoveryProviderId
+        String credentialRecoveryProviderId,
+        Set<String> requiredOAuthScopes
 ) {
 
     public GatewaySecurityPolicy {
@@ -53,6 +55,12 @@ public record GatewaySecurityPolicy(
                 "routeSecurityType"
         );
         credentialRecoveryProviderId = optional(credentialRecoveryProviderId);
+        Objects.requireNonNull(requiredOAuthScopes, "requiredOAuthScopes");
+        if (requiredOAuthScopes.size() > 64 || requiredOAuthScopes.stream().anyMatch(scope -> scope == null
+                || !scope.matches("[A-Za-z0-9._:-]{1,128}"))) {
+            throw new IllegalArgumentException("GATEWAY_OAUTH_SCOPE_CONFIGURATION_INVALID");
+        }
+        requiredOAuthScopes = Set.copyOf(requiredOAuthScopes);
         if (providerTimeout.isNegative()
                 || providerTimeout.isZero()
                 || providerTimeout.compareTo(Duration.ofSeconds(30)) > 0) {
@@ -102,6 +110,16 @@ public record GatewaySecurityPolicy(
                 }
             }
         }
+    }
+
+    public GatewaySecurityPolicy(String policyId, AuthenticationMode authenticationMode, List<String> credentialExtractorIds,
+            List<String> authenticationProviderIds, List<String> authorizationProviderIds, AuthorizationDecisionMode decisionMode,
+            String identityMapperId, Duration providerTimeout, SecurityFailureMode failureMode,
+            CredentialForwardingMode credentialForwardingMode, GatewayRouteSecurityType routeSecurityType,
+            String credentialRecoveryProviderId) {
+        this(policyId, authenticationMode, credentialExtractorIds, authenticationProviderIds, authorizationProviderIds,
+                decisionMode, identityMapperId, providerTimeout, failureMode, credentialForwardingMode, routeSecurityType,
+                credentialRecoveryProviderId, Set.of());
     }
 
     /**

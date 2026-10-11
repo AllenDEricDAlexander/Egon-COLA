@@ -40,6 +40,8 @@ import static org.mockito.Mockito.when;
 
 class IdpGatewayAdapterAutoConfigurationTest {
 
+    private final top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent observer = mock(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class);
+
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
                     IdpGatewayAdapterAutoConfiguration.class))
@@ -60,6 +62,8 @@ class IdpGatewayAdapterAutoConfigurationTest {
                     throw new AssertionError("Generated shared principal converter is required", failure);
                 }
             })
+            .withBean("idpObservedVerificationComponent", top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class, () -> observer)
+            .withBean("idpSecurityMetricsRecorder", top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder.class, () -> sample -> { })
             .withBean("idpClock", Clock.class, Clock::systemUTC)
             .withBean("defaultValidator", jakarta.validation.Validator.class, () -> {
                 var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
@@ -86,7 +90,7 @@ class IdpGatewayAdapterAutoConfigurationTest {
     }
 
     @Test
-    void registersOnlyIdentityCapabilitiesWhenRedisIsAvailable() {
+    void registersMandatoryScopeSeparatelyFromOrdinaryAuthorization() {
         runner.withPropertyValues(
                         "egon.cola.platform.tianquan.shoubing.yuheng.enabled=true",
                         "egon.cola.platform.tianquan.shoubing.yuheng.issuer=https://tianquan-shoubing.local",
@@ -100,8 +104,10 @@ class IdpGatewayAdapterAutoConfigurationTest {
                     assertThat(context).hasSingleBean(GatewayCredentialExtractor.class);
                     assertThat(context).hasSingleBean(GatewayAuthenticationProvider.class);
                     assertThat(context).hasSingleBean(GatewayIdentityMapper.class);
-                    assertThat(context).doesNotHaveBean(
-                            GatewayAuthorizationProvider.class);
+                    assertThat(context).hasSingleBean(GatewayAuthorizationProvider.class);
+                    assertThat(context.getBean(GatewayAuthorizationProvider.class).mandatory()).isTrue();
+                    assertThat(context.getBean(GatewayAuthenticationProvider.class).requiredAuthorizationProviderIds())
+                            .containsExactly(top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpOAuthScopeAuthorizationProvider.PROVIDER_ID);
                     assertThat(context.getBean(GatewayCredentialExtractor.class)
                             .extractorId()).isEqualTo("tianquan-shoubing-user-cookie");
                     assertThat(context.getBean(GatewayAuthenticationProvider.class)
@@ -130,14 +136,11 @@ class IdpGatewayAdapterAutoConfigurationTest {
 
     @Test
     void observerIsInjectedAndOldFactoriesAndProviderConstructorStayAvailable() throws Exception {
-        var observer = mock(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class);
         runner.withPropertyValues("egon.cola.platform.tianquan.shoubing.yuheng.enabled=true",
                         "egon.cola.platform.tianquan.shoubing.yuheng.issuer=https://idp.example/platform",
                         "egon.cola.platform.tianquan.shoubing.yuheng.jwk-set-uri=https://idp.example/platform/.well-known/jwks.json",
                         "egon.cola.platform.tianquan.shoubing.yuheng.runtime.redis-enabled=false")
                 .withBean("idpGatewayRedissonClient", RedissonClient.class, () -> mock(RedissonClient.class))
-                .withBean("idpObservedVerificationComponent", top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class,
-                        () -> observer)
                 .run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(GatewayAuthenticationProvider.class);
                     var verifier = context.getBean("idpGatewayJwtVerifier", top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpGatewayJwtVerifier.class);
@@ -151,6 +154,27 @@ class IdpGatewayAdapterAutoConfigurationTest {
                 .containsExactlyInAnyOrder(10, 11);
         top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpIdentityAuthenticationProvider.class
                 .getConstructor(top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpIdentityAuthenticationProvider.TokenVerifier.class);
+    }
+
+    @Test
+    void strictAuditAndStateBindingsUseOAuthPrimaryRatherThanRbacProjectionRedis() {
+        var oauthPrimary = mock(RedissonClient.class);
+        var rbacProjection = mock(RedissonClient.class);
+        runner.withPropertyValues("egon.cola.platform.tianquan.shoubing.yuheng.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.issuer=https://idp.example/tenants/1001",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.jwk-set-uri=https://idp.example/tenants/1001/.well-known/jwks.json",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.runtime.redis-enabled=false",
+                        "egon.cola.platform.tianquan.shoubing.usage-observation.enabled=true")
+                .withBean("idpGatewayRedissonClient", RedissonClient.class, () -> oauthPrimary)
+                .withBean("rbac3RuntimeRedissonClient", RedissonClient.class, () -> rbacProjection)
+                .withBean("idpStarterProperties", top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.class,
+                        top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties::new)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean("idpAuditRedissonClient")).isSameAs(oauthPrimary).isNotSameAs(rbacProjection);
+                    assertThat(context.getBean("identityResourceServerStateReader")).isSameAs(context.getBean("idpGatewayResourceServerStateReader"));
+                    assertThat(context.getBean("identityOAuthClientStateReader")).isSameAs(context.getBean("idpGatewayOAuthClientStateReader"));
+                });
     }
 
     @Test

@@ -1,0 +1,90 @@
+springdoc:
+  api-docs:
+    enabled: ${YUHENG_LLM_OPENAPI_ENABLED:false}
+    version: OPENAPI_3_1
+  group-configs:
+    - group: yuheng-llm
+      paths-to-match:
+        - /v1/**
+
+egon:
+  cola:
+    platform:
+      tianquan:
+        shoubing:
+          enabled: true
+          register-filter: false
+          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+          resource-server-id: ${YUHENG_LLM_RESOURCE_SERVER_ID}
+          resource-uri: ${YUHENG_LLM_RESOURCE_URI}
+          trusted-issuers:
+            platform:
+              issuer: ${TIANQUAN_SHOUBING_PLATFORM_OAUTH_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_PLATFORM_JWK_SET_URI}
+              realm-key: platform
+              realm-type: PLATFORM
+              status: ACTIVE
+              trust-version: 1
+            tenant-a:
+              issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANSHU_TENANT_ID}
+              status: ACTIVE
+              trust-version: 1
+          revocation:
+            mode: STRICT_SHARED
+            primary-endpoint: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
+            epoch: ${EGON_TIANQUAN_SHOUBING_REVOCATION_EPOCH}
+          usage-observation:
+            enabled: true
+            receiver: LLM
+            fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+            allow-local-plaintext: false
+          audit:
+            stream-key: ${OAUTH_AUDIT_STREAM_KEY:egon:oauth:audit:v1}
+            spool-directory: ${YUHENG_LLM_OAUTH_AUDIT_SPOOL_DIRECTORY}
+            spool-max-bytes: ${OAUTH_AUDIT_SPOOL_MAX_BYTES:104857600}
+            hmac-key-file: ${OAUTH_AUDIT_HMAC_KEY_FILE}
+            delivery:
+              receipt-ttl: 1h
+              confirmation-timeout: 30s
+              batch-size: 100
+        jianshen:
+          enabled: false
+          register-filter: false
+          runtime:
+            redis-enabled: true
+            redis-address: ${TIANQUAN_SHOUBING_REVOCATION_PRIMARY_ENDPOINT}
+            database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
+            password-file: ${TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE:}
+            timeout: 2s
+    component:
+      yuheng:
+        openapi:
+          enabled: ${YUHENG_LLM_OPENAPI_ENABLED:false}
+          publish-to-ddc: false
+          published-groups:
+            - yuheng-llm
+          biz-code: ${YUHENG_LLM_OPENAPI_BIZ_CODE:}
+          application-code: ${YUHENG_LLM_OPENAPI_APPLICATION_CODE:}
+          resource-uri: ${YUHENG_LLM_OPENAPI_RESOURCE_URI:}
+          artifact-version: ${YUHENG_LLM_OPENAPI_ARTIFACT_VERSION:}
+          build-id: ${YUHENG_LLM_OPENAPI_BUILD_ID:}
+
+server:
+  ssl:
+    enabled: true
+    key-store: ${YUHENG_LLM_TLS_KEY_STORE}
+    key-store-password: ${YUHENG_LLM_TLS_KEY_STORE_PASSWORD}
+    key-store-type: PKCS12
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,llmAuditReadiness

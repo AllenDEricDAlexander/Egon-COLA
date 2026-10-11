@@ -109,6 +109,25 @@ class LlmProtocolContractTest {
         assertThat(declared).doesNotHaveDuplicates();
     }
 
+    @Test
+    void securityErrorCodesKeepTheNativeProtocolShapesWithoutCredentialDetails() {
+        for (int status : List.of(401, 403, 503)) {
+            String code = status == 401 ? "authentication_error" : status == 403 ? "permission_denied" : "service_unavailable";
+            var error = new top.egon.cola.component.yuheng.llm.proxy.domain.exception.LlmInvocationException(status, code, null,
+                    "A verified identity or permission is unavailable", status == 503);
+            for (var face : List.of(chatFace(), embeddingsFace(), responsesFace())) {
+                var nativeError = face.encodeError(error);
+                assertThat(nativeError.size()).isEqualTo(1);
+                assertThat(nativeError.path("error").path("param").isNull()).isTrue();
+                assertThat(nativeError.toString()).doesNotContain("proof", "tokenRef", "secretRef");
+            }
+            var message = messagesFace().encodeError(error);
+            assertThat(message.path("type").asText()).isEqualTo("error");
+            assertThat(message.path("error").has("code")).isFalse();
+            assertThat(message.path("error").has("param")).isFalse();
+        }
+    }
+
     @Nested
     @DisplayName("OPENAI_CHAT：choices/delta.tool_calls/[DONE] 保真")
     class ChatFace {

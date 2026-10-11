@@ -24,7 +24,8 @@ public record GatewayAuthContext(
         String requestId,
         Instant deadline,
         String releaseId,
-        Map<String, String> attributes
+        Map<String, String> attributes,
+        Set<String> requiredOAuthScopes
 ) {
 
     public GatewayAuthContext {
@@ -49,6 +50,20 @@ public record GatewayAuthContext(
         if (attributes.size() > 16) {
             throw new IllegalArgumentException("attribute count exceeds 16");
         }
+        Objects.requireNonNull(requiredOAuthScopes, "requiredOAuthScopes");
+        if (requiredOAuthScopes.size() > 64 || requiredOAuthScopes.stream().anyMatch(scope -> scope == null
+                || !scope.matches("[A-Za-z0-9._:-]{1,128}"))) {
+            throw new IllegalArgumentException("GATEWAY_OAUTH_SCOPE_CONFIGURATION_INVALID");
+        }
+        requiredOAuthScopes = Set.copyOf(requiredOAuthScopes);
+    }
+
+    public GatewayAuthContext(AccessZone accessZone, GatewayProtocol protocol, String operationId, String routeId,
+            String policyId, String requestTarget, String method, Set<String> credentialTypes, GatewayPrincipal principal,
+            String remoteAddress, String traceId, String requestId, Instant deadline, String releaseId,
+            Map<String, String> attributes) {
+        this(accessZone, protocol, operationId, routeId, policyId, requestTarget, method, credentialTypes, principal,
+                remoteAddress, traceId, requestId, deadline, releaseId, attributes, Set.of());
     }
 
     public GatewayAuthContext withPrincipal(
@@ -68,7 +83,8 @@ public record GatewayAuthContext(
                 requestId,
                 deadline,
                 releaseId,
-                attributes
+                attributes,
+                requiredOAuthScopes
         );
     }
 

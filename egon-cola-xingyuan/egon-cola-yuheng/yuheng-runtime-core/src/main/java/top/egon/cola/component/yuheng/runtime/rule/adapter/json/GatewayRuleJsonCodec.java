@@ -1,5 +1,6 @@
 package top.egon.cola.component.yuheng.runtime.rule.adapter.json;
 
+import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -23,6 +24,7 @@ import java.util.Map;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
 public final class GatewayRuleJsonCodec {
 
     /**
@@ -74,6 +76,7 @@ public final class GatewayRuleJsonCodec {
      */
     public byte[] write(Object value) {
         try {
+            // Signed policy configuration includes requiredOAuthScopes; do not project it into a separate unsigned field.
             return objectMapper.writeValueAsBytes(value);
         } catch (JsonProcessingException failure) {
             throw new IllegalArgumentException(

@@ -61,6 +61,13 @@ class GatewayIdentityOnlySecurityTest {
                 .verifyComplete();
     }
 
+    @Test
+    void oldIdentityPolicyKeepsItsEmptyOrdinaryListAndEmptyScopeDefault() {
+        org.junit.jupiter.api.Assertions.assertTrue(policy().authorizationProviderIds().isEmpty());
+        org.junit.jupiter.api.Assertions.assertTrue(policy().requiredOAuthScopes().isEmpty());
+        org.junit.jupiter.api.Assertions.assertTrue(new Authentication().requiredAuthorizationProviderIds().isEmpty());
+    }
+
     private GatewaySecurityPolicy policy() {
         return new GatewaySecurityPolicy(
                 "security", AuthenticationMode.REQUIRED, List.of("tianquan-shoubing-bearer"),

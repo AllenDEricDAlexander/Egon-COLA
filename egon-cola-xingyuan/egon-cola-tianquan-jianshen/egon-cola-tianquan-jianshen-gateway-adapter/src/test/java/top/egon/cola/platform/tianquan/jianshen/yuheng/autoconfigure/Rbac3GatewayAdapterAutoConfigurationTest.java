@@ -52,4 +52,28 @@ class Rbac3GatewayAdapterAutoConfigurationTest {
                             .providerId()).isEqualTo("tianquan-jianshen-biz-app-scope");
                 });
     }
+
+    @Test
+    void configuredProviderReceivesTheExistingObserverMetricsAndValidator() {
+        var observer = mock(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class);
+        top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder metrics = sample -> { };
+        var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean(); validator.afterPropertiesSet();
+        runner.withPropertyValues("egon.cola.platform.tianquan.jianshen.yuheng.enabled=true")
+                .withBean("rbac3RuntimeRedissonClient", RedissonClient.class, () -> mock(RedissonClient.class))
+                .withBean("idpObservedVerificationComponent", top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class, () -> observer)
+                .withBean("idpSecurityMetricsRecorder", top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder.class, () -> metrics)
+                .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
+                .run(context -> {
+                    assertThat(context).hasNotFailed().hasSingleBean(Rbac3BizAppScopeAuthorizationProvider.class);
+                    var provider = context.getBean(Rbac3BizAppScopeAuthorizationProvider.class);
+                    for (var dependency : java.util.Map.of("observations", observer, "metrics", metrics, "validator", validator).entrySet()) {
+                        try {
+                            var field = provider.getClass().getDeclaredField(dependency.getKey()); field.setAccessible(true);
+                            assertThat(field.get(provider)).isSameAs(dependency.getValue());
+                        } catch (ReflectiveOperationException failure) { throw new AssertionError(failure); }
+                    }
+                    assertThat(provider.mandatory()).isFalse();
+                });
+        validator.close();
+    }
 }

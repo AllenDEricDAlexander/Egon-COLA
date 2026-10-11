@@ -76,6 +76,19 @@ class GatewaySecurityCapabilityRegistryTest {
         ));
     }
 
+    @Test
+    void oldProvidersHaveNoImplicitMandatoryDependency() {
+        org.junit.jupiter.api.Assertions.assertTrue(authentication("legacy", Set.of("bearer")).requiredAuthorizationProviderIds().isEmpty());
+        var ordinary = new top.egon.cola.component.yuheng.core.security.GatewayAuthorizationProvider() {
+            @Override public String providerId() { return "ordinary"; }
+            @Override public org.reactivestreams.Publisher<top.egon.cola.component.yuheng.core.security.AuthorizationDecision> authorize(
+                    top.egon.cola.component.yuheng.core.security.GatewayAuthContext context) {
+                return Mono.just(top.egon.cola.component.yuheng.core.security.AuthorizationDecision.allow());
+            }
+        };
+        org.junit.jupiter.api.Assertions.assertFalse(ordinary.mandatory());
+    }
+
     private GatewaySecurityPolicy policy() {
         return new GatewaySecurityPolicy(
                 "security",

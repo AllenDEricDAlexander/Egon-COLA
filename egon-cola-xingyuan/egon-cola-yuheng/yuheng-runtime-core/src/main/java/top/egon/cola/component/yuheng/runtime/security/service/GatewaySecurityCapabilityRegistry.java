@@ -1,5 +1,9 @@
 package top.egon.cola.component.yuheng.runtime.security.service;
 
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import lombok.AccessLevel;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.yuheng.core.security.GatewayAuthenticationProvider;
 import top.egon.cola.component.yuheng.core.security.GatewayAuthorizationProvider;
@@ -20,6 +24,8 @@ import java.util.function.Function;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GatewaySecurityCapabilityRegistry {
 
     /**
@@ -72,31 +78,11 @@ public final class GatewaySecurityCapabilityRegistry {
             Collection<GatewayAuthorizationProvider> authorizations,
             Collection<GatewayIdentityMapper> identityMappers,
             Collection<GatewayCredentialRecoveryProvider> recoveries) {
-        this.extractors = index(
-                extractors,
-                GatewayCredentialExtractor::extractorId,
-                "credential extractor"
-        );
-        this.authentications = index(
-                authentications,
-                GatewayAuthenticationProvider::providerId,
-                "authentication provider"
-        );
-        this.authorizations = index(
-                authorizations,
-                GatewayAuthorizationProvider::providerId,
-                "authorization provider"
-        );
-        this.identityMappers = index(
-                identityMappers,
-                GatewayIdentityMapper::mapperId,
-                "identity mapper"
-        );
-        this.recoveries = index(
-                recoveries,
-                GatewayCredentialRecoveryProvider::providerId,
-                "credential recovery provider"
-        );
+        this(index(extractors, GatewayCredentialExtractor::extractorId, "credential extractor"),
+                index(authentications, GatewayAuthenticationProvider::providerId, "authentication provider"),
+                index(authorizations, GatewayAuthorizationProvider::providerId, "authorization provider"),
+                index(identityMappers, GatewayIdentityMapper::mapperId, "identity mapper"),
+                index(recoveries, GatewayCredentialRecoveryProvider::providerId, "credential recovery provider"));
     }
 
     /**
@@ -153,6 +139,22 @@ public final class GatewaySecurityCapabilityRegistry {
             }
         }
         policy.authorizationProviderIds().forEach(this::authorization);
+        var mandatory = requiredAuthorizations(policy);
+        for (String id : mandatory) {
+            if (!authorization(id).mandatory()) { throw new IllegalArgumentException("GATEWAY_MANDATORY_PROVIDER_REQUIRED"); }
+        }
+        if (!mandatory.isEmpty() && policy.requiredOAuthScopes().isEmpty()
+                || !policy.requiredOAuthScopes().isEmpty() && mandatory.isEmpty()) {
+            throw new IllegalArgumentException("GATEWAY_OAUTH_SCOPE_CONFIGURATION_REQUIRED");
+        }
+        if (policy.requiredOAuthScopes().stream().anyMatch(Set.of("openid", "profile", "email", "phone", "address", "offline_access")::contains)
+                || policy.routeSecurityType() == top.egon.cola.component.yuheng.core.security.GatewayRouteSecurityType.PUBLIC_PROTOCOL
+                && !policy.requiredOAuthScopes().isEmpty()) {
+            throw new IllegalArgumentException("GATEWAY_OAUTH_BUSINESS_SCOPE_REQUIRED");
+        }
+        if (policy.authorizationProviderIds().stream().anyMatch(id -> authorization(id).mandatory())) {
+            throw new IllegalArgumentException("GATEWAY_MANDATORY_PROVIDER_NOT_ORDINARY");
+        }
         if (policy.identityMapperId() != null) {
             GatewayIdentityMapper mapper = identityMapper(
                     policy.identityMapperId()
@@ -207,6 +209,20 @@ public final class GatewaySecurityCapabilityRegistry {
         return required(authorizations, id, "authorization provider");
     }
 
+    /** Dependencies come from installed authentication strategies and cannot be removed by policy JSON. */
+    public java.util.List<String> requiredAuthorizations(GatewaySecurityPolicy policy) {
+        var ids = new java.util.TreeSet<String>();
+        for (String id : policy.authenticationProviderIds()) {
+            Set<String> required = java.util.Objects.requireNonNull(authentication(id).requiredAuthorizationProviderIds(), "required providers");
+            if (required.size() > 64 || required.stream().anyMatch(value -> value == null || !value.matches("[A-Za-z0-9._:-]{1,128}"))) {
+                throw new IllegalArgumentException("GATEWAY_MANDATORY_PROVIDER_INVALID");
+            }
+            ids.addAll(required);
+        }
+        if (ids.size() > 64) { throw new IllegalArgumentException("GATEWAY_MANDATORY_PROVIDER_LIMIT"); }
+        return java.util.List.copyOf(ids);
+    }
+
     /**
      * 中文说明：执行 身份映射器 操作；该方法是 {@code GatewaySecurityCapabilityRegistry} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the identity mapper operation; this method is the invocation entry point on {@code GatewaySecurityCapabilityRegistry} and performs the corresponding runtime, management, or protocol work.
@@ -233,7 +249,7 @@ public final class GatewaySecurityCapabilityRegistry {
      * @param type 参数 type；parameter type。
      * @return 返回 索引 的处理结果；returns the result of the operation.
      */
-    private <T> Map<String, T> index(
+    private static <T> Map<String, T> index(
             Collection<T> values,
             Function<T, String> identifier,
             String type) {

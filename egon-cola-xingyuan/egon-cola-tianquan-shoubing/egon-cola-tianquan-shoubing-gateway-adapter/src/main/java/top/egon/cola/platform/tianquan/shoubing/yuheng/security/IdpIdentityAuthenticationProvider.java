@@ -57,9 +57,18 @@ public final class IdpIdentityAuthenticationProvider
     @NonNull
     @Qualifier("defaultValidator")
     private final Validator validator;
+    private final Set<String> configuredRequiredIds;
 
     /** Source/binary compatibility for unmanaged callers; managed hosts inject their existing validator. */
-    public IdpIdentityAuthenticationProvider(TokenVerifier verifier) { this(verifier, CompatibilityValidatorHolder.VALIDATOR); }
+    public IdpIdentityAuthenticationProvider(TokenVerifier verifier) { this(verifier, CompatibilityValidatorHolder.VALIDATOR, Set.of()); }
+
+    public IdpIdentityAuthenticationProvider(TokenVerifier verifier, Validator validator) { this(verifier, validator, Set.of()); }
+
+    public static IdpIdentityAuthenticationProvider createConfigured(TokenVerifier verifier, Validator validator) {
+        return new IdpIdentityAuthenticationProvider(verifier, validator, Set.of(IdpOAuthScopeAuthorizationProvider.PROVIDER_ID));
+    }
+
+    @Override public Set<String> requiredAuthorizationProviderIds() { return Set.copyOf(configuredRequiredIds); }
 
     private static class CompatibilityValidatorHolder {
         private static final Validator VALIDATOR = create();

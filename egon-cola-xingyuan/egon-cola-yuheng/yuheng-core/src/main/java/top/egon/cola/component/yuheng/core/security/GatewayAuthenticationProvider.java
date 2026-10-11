@@ -10,6 +10,9 @@ public interface GatewayAuthenticationProvider {
 
     Set<String> supportedCredentialTypes();
 
+    /** Mandatory authorization dependencies are declared by the configured authentication owner. */
+    default Set<String> requiredAuthorizationProviderIds() { return Set.of(); }
+
     Publisher<AuthenticationDecision> authenticate(
             GatewayAuthContext context,
             GatewayCredential credential);

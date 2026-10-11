@@ -1,6 +1,10 @@
 package top.egon.cola.platform.tianquan.jianshen.yuheng.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -26,7 +30,8 @@ import java.time.Clock;
  * {@code GatewayPrincipal}; this adapter only reads Tianquan-Jianshen's published runtime
  * authorization scope projection and evaluates the target BIZ and APP.</p>
  */
-@AutoConfiguration
+@Slf4j
+@AutoConfiguration("rbac3GatewayAdapterAutoConfiguration")
 @EnableConfigurationProperties(Rbac3GatewayAdapterProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.tianquan.jianshen.yuheng",
@@ -66,13 +71,19 @@ public class Rbac3GatewayAdapterAutoConfiguration {
                 redisson, objectMapper, keyFactory, clock);
     }
 
-    @Bean
+    @Bean(name = "rbac3BizAppScopeAuthorizationProvider")
     @ConditionalOnBean(Rbac3GatewayScopeSnapshotReader.class)
     @ConditionalOnMissingBean
     public Rbac3BizAppScopeAuthorizationProvider
             rbac3BizAppScopeAuthorizationProvider(
-                    Rbac3GatewayScopeSnapshotReader runtime
+                    @Qualifier("rbac3GatewayScopeSnapshotReader") Rbac3GatewayScopeSnapshotReader runtime,
+                    @Qualifier("idpObservedVerificationComponent") ObjectProvider<IdpObservedVerificationComponent> observations,
+                    @Qualifier("idpSecurityMetricsRecorder") ObjectProvider<IdpSecurityMetricsRecorder> metrics,
+                    @Qualifier("defaultValidator") ObjectProvider<jakarta.validation.Validator> validators
             ) {
-        return new Rbac3BizAppScopeAuthorizationProvider(runtime::authorize);
+        var observer = observations.getIfAvailable();
+        if (observer == null) { return new Rbac3BizAppScopeAuthorizationProvider(runtime::authorize); }
+        return new Rbac3BizAppScopeAuthorizationProvider(runtime::authorize, observer,
+                metrics.getObject(), validators.getObject());
     }
 }

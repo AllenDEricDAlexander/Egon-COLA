@@ -1,5 +1,10 @@
 package top.egon.cola.component.yuheng.runtime.security.service;
 
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import reactor.core.scheduler.Schedulers;
 import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityResult;
 
@@ -38,6 +43,8 @@ import java.util.concurrent.TimeoutException;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
+@RequiredArgsConstructor
 public final class GatewaySecurityChain {
 
     /**
@@ -46,22 +53,9 @@ public final class GatewaySecurityChain {
      *
      * 用法 / Usage: 该字段通过 {@code GatewaySecurityChain} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewaySecurityChain}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewaySecurityCapabilityRegistry")
     private final GatewaySecurityCapabilityRegistry capabilities;
-
-    /**
-     * 中文说明：创建 {@code GatewaySecurityChain} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewaySecurityChain} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param capabilities 参数 capabilities；parameter capabilities。
-     */
-    public GatewaySecurityChain(
-            GatewaySecurityCapabilityRegistry capabilities) {
-        this.capabilities = Objects.requireNonNull(
-                capabilities,
-                "capabilities"
-        );
-    }
 
     /**
      * 中文说明：执行 execute 操作；该方法是 {@code GatewaySecurityChain} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -89,11 +83,16 @@ public final class GatewaySecurityChain {
         if (timeout.isZero() || timeout.isNegative()) {
             return Mono.error(GatewaySecurityException.providerTimeout());
         }
+        GatewayAuthContext policyContext = new GatewayAuthContext(initialContext.accessZone(), initialContext.protocol(),
+                initialContext.operationId(), initialContext.routeId(), initialContext.policyId(), initialContext.requestTarget(),
+                initialContext.method(), initialContext.credentialTypes(), initialContext.principal(), initialContext.remoteAddress(),
+                initialContext.traceId(), initialContext.requestId(), initialContext.deadline(), initialContext.releaseId(),
+                initialContext.attributes(), policy.requiredOAuthScopes());
         Mono<GatewaySecurityResult> execution = Mono.defer(() -> {
             capabilities.validate(policy, Set.of(protocol));
             return policy.authenticationMode() == AuthenticationMode.NONE
                     ? authorizeAndMap(
-                    initialContext.withPrincipal(
+                    policyContext.withPrincipal(
                             GatewayPrincipal.anonymous()
                     ),
                     policy,
@@ -101,9 +100,9 @@ public final class GatewaySecurityChain {
                     null,
                     Map.of()
             )
-                    : extract(exchange, initialContext, policy)
+                    : extract(exchange, policyContext, policy)
                     .flatMap(extraction -> authenticate(
-                            initialContext,
+                            policyContext,
                             policy,
                             extraction,
                             exchange,
@@ -111,7 +110,7 @@ public final class GatewaySecurityChain {
                             Map.of()
                     ));
         });
-        return execution.timeout(timeout)
+        Mono<GatewaySecurityResult> guarded = execution.timeout(timeout)
                 .onErrorMap(
                         TimeoutException.class,
                         ignored -> GatewaySecurityException.providerTimeout()
@@ -120,6 +119,11 @@ public final class GatewaySecurityChain {
                         error -> !(error instanceof GatewaySecurityException),
                         error -> GatewaySecurityException.providerError()
                 );
+        return Mono.usingWhen(Mono.fromSupplier(AuthorizationObservationScope::new),
+                scope -> guarded.contextWrite(reactor -> reactor.put(GatewayAuthContext.class, scope)),
+                scope -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()),
+                (scope, error) -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()),
+                scope -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()));
     }
 
     /**
@@ -235,7 +239,8 @@ public final class GatewaySecurityChain {
                 initialContext.requestId(),
                 initialContext.deadline(),
                 initialContext.releaseId(),
-                initialContext.attributes()
+                initialContext.attributes(),
+                policy.requiredOAuthScopes()
         );
         return Flux.fromIterable(extraction.credentials())
                 .concatMap(credential -> Flux.fromIterable(
@@ -435,12 +440,17 @@ public final class GatewaySecurityChain {
             Set<String> removals,
             GatewayCredential forwardingCredential,
             Map<String, List<String>> responseHeaders) {
-        return Flux.fromIterable(policy.authorizationProviderIds())
+        Mono<Void> mandatory = Flux.fromIterable(capabilities.requiredAuthorizations(policy))
+                .concatMap(id -> Mono.from(capabilities.authorization(id).authorize(context))
+                        .switchIfEmpty(Mono.error(GatewaySecurityException.providerError()))
+                        .doOnNext(decision -> validateAuthorization(AuthorizationDecisionMode.ALL_ALLOW, List.of(decision))))
+                .then();
+        return mandatory.thenMany(Flux.fromIterable(policy.authorizationProviderIds())
                 .concatMap(id -> Mono.from(
                         capabilities.authorization(id).authorize(context)
                 ).switchIfEmpty(Mono.error(
                         GatewaySecurityException.providerError()
-                )))
+                ))))
                 .collectList()
                 .flatMap(decisions -> {
                     validateAuthorization(policy.decisionMode(), decisions);
@@ -454,6 +464,44 @@ public final class GatewaySecurityChain {
                                     , policy.routeSecurityType()
                             ));
                 });
+    }
+
+    /** Standard Reactor scope owns callbacks independently of the immutable identity/context snapshot. */
+    @Slf4j
+    @RequiredArgsConstructor
+    private static class AuthorizationObservationScope implements
+            java.util.function.BiFunction<Object, java.util.function.Supplier<Map.Entry<Object, Runnable>>, Object>, AutoCloseable {
+        private final Map<Object, Map.Entry<Object, Runnable>> states = new java.util.LinkedHashMap<>();
+        private boolean closed;
+
+        @Override
+        public synchronized Object apply(Object key, java.util.function.Supplier<Map.Entry<Object, Runnable>> factory) {
+            Objects.requireNonNull(key, "observation key"); Objects.requireNonNull(factory, "observation factory");
+            if (closed) { return null; }
+            if (!states.containsKey(key) && states.size() >= 64) { throw new IllegalStateException("GATEWAY_OBSERVATION_SCOPE_LIMIT"); }
+            var entry = states.computeIfAbsent(key, ignored -> {
+                var created = Objects.requireNonNull(factory.get(), "observation entry");
+                Objects.requireNonNull(created.getKey(), "observation state");
+                Objects.requireNonNull(created.getValue(), "observation close");
+                return created;
+            });
+            return entry.getKey();
+        }
+
+        @Override
+        public void close() {
+            List<Runnable> cleanup;
+            synchronized (this) {
+                if (closed) { return; }
+                closed = true; cleanup = states.values().stream().map(Map.Entry::getValue).toList(); states.clear();
+            }
+            RuntimeException primary = null;
+            for (Runnable callback : cleanup) {
+                try { callback.run(); }
+                catch (RuntimeException failure) { if (primary == null) { primary = failure; } else { primary.addSuppressed(failure); } }
+            }
+            if (primary != null) { throw primary; }
+        }
     }
 
     /**

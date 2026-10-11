@@ -1,5 +1,9 @@
 package top.egon.cola.component.yuheng.runtime.security.service;
 
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.yuheng.core.security.AuthenticationMode;
@@ -22,6 +26,8 @@ import java.util.Set;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
+@RequiredArgsConstructor
 public final class GatewaySecurityPolicyCompiler {
 
     /**
@@ -30,19 +36,9 @@ public final class GatewaySecurityPolicyCompiler {
      *
      * 用法 / Usage: 该字段通过 {@code GatewaySecurityPolicyCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewaySecurityPolicyCompiler}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewaySecurityCapabilityRegistry")
     private final GatewaySecurityCapabilityRegistry capabilities;
-
-    /**
-     * 中文说明：创建 {@code GatewaySecurityPolicyCompiler} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewaySecurityPolicyCompiler} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param capabilities 参数 capabilities；parameter capabilities。
-     */
-    public GatewaySecurityPolicyCompiler(
-            GatewaySecurityCapabilityRegistry capabilities) {
-        this.capabilities = capabilities;
-    }
 
     /**
      * 中文说明：执行 compile 操作；该方法是 {@code GatewaySecurityPolicyCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -127,8 +123,21 @@ public final class GatewaySecurityPolicyCompiler {
                                 ? "PUBLIC_PROTOCOL"
                                 : "BUSINESS_PROTECTED"
                 )),
-                string(config, "credentialRecoveryProviderId", null)
+                string(config, "credentialRecoveryProviderId", null),
+                scopes(config.get("requiredOAuthScopes"))
         );
+    }
+
+    private Set<String> scopes(Object value) {
+        if (value == null) { return Set.of(); }
+        if (!(value instanceof List<?> list) || list.size() > 64) { throw new IllegalArgumentException("GATEWAY_OAUTH_SCOPE_CONFIGURATION_INVALID"); }
+        var scopes = new java.util.LinkedHashSet<String>();
+        for (Object scope : list) {
+            if (!(scope instanceof String text) || !text.matches("[A-Za-z0-9._:-]{1,128}") || !scopes.add(text)) {
+                throw new IllegalArgumentException("GATEWAY_OAUTH_SCOPE_CONFIGURATION_INVALID");
+            }
+        }
+        return Set.copyOf(scopes);
     }
 
     /**

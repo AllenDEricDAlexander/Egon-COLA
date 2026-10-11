@@ -12,6 +12,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Configuration;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpSecurityObservationAutoConfiguration;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
 import java.time.Clock;
@@ -25,6 +27,8 @@ import top.egon.cola.platform.tianquan.shoubing.yuheng.runtime.IdpGatewayRedisso
 import top.egon.cola.platform.tianquan.shoubing.yuheng.security.GatewayResourceServerResolver;
 import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpGatewayJwtVerifier;
 import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpIdentityAuthenticationProvider;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpOAuthScopeAuthorizationProvider;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
 import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpReservedHeaderSanitizer;
 import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpTrustedIdentityMapper;
 import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpUserCookieCredentialExtractor;
@@ -49,7 +53,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityResou
  * only and does not decide whether that identity may access a route.</p>
  */
 @Slf4j
-@AutoConfiguration(value = "idpGatewayAdapterAutoConfiguration", before = IdpStarterAutoConfiguration.class)
+@AutoConfiguration(value = "idpGatewayAdapterAutoConfiguration", before = {IdpStarterAutoConfiguration.class, IdpSecurityObservationAutoConfiguration.class})
 @EnableConfigurationProperties(IdpGatewayAdapterProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.tianquan.shoubing.yuheng",
@@ -57,6 +61,39 @@ import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityResou
         havingValue = "true")
 @Import(IdpGatewayRedissonConfiguration.class)
 public class IdpGatewayAdapterAutoConfiguration {
+
+    /** OAuth security state and audit use the existing OAuth PRIMARY client, independently of RBAC projection Redis. */
+    @Configuration(value = "idpGatewayPrimaryObservationConfiguration", proxyBeanMethods = false)
+    @ConditionalOnProperty(prefix = "egon.cola.platform.tianquan.shoubing.usage-observation", name = "enabled", havingValue = "true")
+    static class PrimaryObservationConfiguration {
+        @Bean(name = "idpAuditRedissonClient", destroyMethod = "")
+        @ConditionalOnMissingBean(name = "idpAuditRedissonClient")
+        RedissonClient auditPrimary(@Qualifier("idpGatewayRedissonClient") RedissonClient primary) { return primary; }
+
+        @Bean(name = "identityResourceServerStateReader")
+        @ConditionalOnMissingBean(name = "identityResourceServerStateReader")
+        IdentityResourceServerStateReader resourceReader(@Qualifier("idpGatewayResourceServerStateReader") IdentityResourceServerStateReader reader) { return reader; }
+
+        @Bean(name = "identityOAuthClientStateReader")
+        @ConditionalOnMissingBean(name = "identityOAuthClientStateReader")
+        IdentityOAuthClientStateReader clientReader(@Qualifier("idpGatewayOAuthClientStateReader") IdentityOAuthClientStateReader reader) { return reader; }
+
+        @Bean(name = "oauthRevocationReader")
+        @ConditionalOnMissingBean(OAuthRevocationReader.class)
+        OAuthRevocationReader revocations(@Qualifier("idpGatewayRedissonClient") RedissonClient primary,
+                @Qualifier("trustedIssuerRegistry") top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry issuers,
+                @Qualifier("jacksonObjectMapper") ObjectMapper mapper,
+                @Qualifier("idpStarterProperties") top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties properties) {
+            return new top.egon.cola.platform.tianquan.shoubing.starter.security.impl.RedisOAuthRevocationReader(primary, issuers, mapper, properties);
+        }
+
+        @Bean(name = "legacyIssuerCutoverPolicy")
+        @ConditionalOnMissingBean(name = "legacyIssuerCutoverPolicy")
+        LegacyIssuerCutoverPolicy cutover(@Qualifier("idpGatewayRedissonClient") RedissonClient primary,
+                @Qualifier("idpStarterProperties") top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties properties) {
+            return new LegacyIssuerCutoverPolicy(primary, properties);
+        }
+    }
 
     /**
      * 创建 Gateway Tianquan-Shoubing 自动配置实例。
@@ -238,7 +275,16 @@ public class IdpGatewayAdapterAutoConfiguration {
                     @Qualifier("idpGatewayJwtVerifier") IdpGatewayJwtVerifier verifier,
                     @Qualifier("defaultValidator") jakarta.validation.Validator validator
             ) {
-        return new IdpIdentityAuthenticationProvider(verifier, validator);
+        return IdpIdentityAuthenticationProvider.createConfigured(verifier, validator);
+    }
+
+    @Bean(name = "idpOAuthScopeAuthorizationProvider")
+    @ConditionalOnMissingBean(name = "idpOAuthScopeAuthorizationProvider")
+    IdpOAuthScopeAuthorizationProvider idpOAuthScopeAuthorizationProvider(
+            @Qualifier("idpObservedVerificationComponent") IdpObservedVerificationComponent observations,
+            @Qualifier("idpSecurityMetricsRecorder") IdpSecurityMetricsRecorder metrics,
+            @Qualifier("defaultValidator") jakarta.validation.Validator validator) {
+        return new IdpOAuthScopeAuthorizationProvider(observations, metrics, validator);
     }
 
     /**
