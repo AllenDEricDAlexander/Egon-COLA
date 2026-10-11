@@ -1,10 +1,12 @@
 package top.egon.cola.platform.tianquan.shoubing.yuheng.security;
 
+import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.yuheng.core.context.GatewayPrincipal;
 import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
 import top.egon.cola.component.yuheng.core.security.GatewayIdentityMapper;
 import top.egon.cola.component.yuheng.core.security.TrustedIdentity;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.domain.GatewayVerifiedIdentityBO;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -20,6 +22,7 @@ import java.util.Set;
  * emit subject, an optional tenant (PLATFORM tokens omit it), token and verified machine
  * attributes. User profile data and authorities are not propagated.</p>
  */
+@Slf4j
 public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
 
     /**
@@ -107,8 +110,14 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
                     attributes, "tianquan-shoubing.source-app"));
             headers.put("X-Egon-Source-Env", required(
                     attributes, "tianquan-shoubing.source-env"));
-            headers.put("X-Egon-Service-Scopes", required(
-                    attributes, "tianquan-shoubing.service-scopes"));
+            // The legacy bounded summary is descriptive; full verified scopes stay inside this receiver.
+            String scopeSummary = attributes.get("tianquan-shoubing.service-scopes");
+            if (scopeSummary != null && !scopeSummary.isBlank()) {
+                headers.put("X-Egon-Service-Scopes", scopeSummary);
+            } else if (!(principal.trustedAuthenticationEvidence() instanceof GatewayVerifiedIdentityBO evidence)
+                    || evidence.verifiedScopes().isEmpty()) {
+                throw new IllegalArgumentException("missing verified claim tianquan-shoubing.service-scopes");
+            }
             headers.put("X-Egon-Credential-Id", required(
                     attributes, "tianquan-shoubing.credential-id"));
         } else {

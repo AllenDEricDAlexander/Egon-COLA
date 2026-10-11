@@ -1,6 +1,11 @@
 package top.egon.cola.platform.tianquan.shoubing.yuheng.security;
 
 import org.reactivestreams.Publisher;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import jakarta.validation.Validator;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import top.egon.cola.component.yuheng.core.context.GatewayPrincipal;
@@ -12,10 +17,11 @@ import top.egon.cola.component.yuheng.core.security.GatewayCredential;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdpPrincipal;
 import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.domain.GatewayVerifiedIdentityBO;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -28,6 +34,8 @@ import java.util.Set;
  * verification exception is converted into a denial without exposing internal failure details
  * downstream.</p>
  */
+@Slf4j
+@RequiredArgsConstructor
 public final class IdpIdentityAuthenticationProvider
         implements GatewayAuthenticationProvider {
 
@@ -43,17 +51,24 @@ public final class IdpIdentityAuthenticationProvider
      *
      * <p>Access-token verification port.</p>
      */
+    @NonNull
+    @Qualifier("idpGatewayJwtVerifier")
     private final TokenVerifier verifier;
+    @NonNull
+    @Qualifier("defaultValidator")
+    private final Validator validator;
 
-    /**
-     * 创建 Tianquan-Shoubing 身份认证提供者。
-     *
-     * <p>Creates the Tianquan-Shoubing identity authentication provider.</p>
-     *
-     * @param verifier 访问令牌验证端口；access-token verification port
-     */
-    public IdpIdentityAuthenticationProvider(TokenVerifier verifier) {
-        this.verifier = Objects.requireNonNull(verifier, "verifier");
+    /** Source/binary compatibility for unmanaged callers; managed hosts inject their existing validator. */
+    public IdpIdentityAuthenticationProvider(TokenVerifier verifier) { this(verifier, CompatibilityValidatorHolder.VALIDATOR); }
+
+    private static class CompatibilityValidatorHolder {
+        private static final Validator VALIDATOR = create();
+
+        private static Validator create() {
+            var factory = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean();
+            factory.afterPropertiesSet();
+            return factory;
+        }
     }
 
     /**
@@ -115,7 +130,7 @@ public final class IdpIdentityAuthenticationProvider
      * isolation; SERVICE principals additionally retain client and resource attributes for
      * trusted machine-identity mapping and auditing.</p>
      *
-     * @param principal 已验证的统一身份主体；validated unified identity principal
+     * @param verification 同次完整验证结果；the same completed verification outcome
      * @return 允许访问认证链后续阶段的决策；decision allowing the next authentication stage
      */
     private AuthenticationDecision decision(IdpGatewayJwtVerifier.Verification verification) {
@@ -145,8 +160,8 @@ public final class IdpIdentityAuthenticationProvider
             attributes.put("tianquan-shoubing.source-biz", service.sourceBizCode());
             attributes.put("tianquan-shoubing.source-app", service.sourceAppCode());
             attributes.put("tianquan-shoubing.source-env", service.sourceEnvironment());
-            attributes.put("tianquan-shoubing.service-scopes", String.join(
-                    " ", new java.util.TreeSet<>(service.scopes())));
+            String scopeSummary = String.join(" ", new java.util.TreeSet<>(verification.scopes()));
+            if (scopeSummary.length() <= 512) { attributes.put("tianquan-shoubing.service-scopes", scopeSummary); }
             attributes.put("tianquan-shoubing.credential-id", service.credentialId());
         }
         return AuthenticationDecision.allow(new GatewayPrincipal(
@@ -155,7 +170,8 @@ public final class IdpIdentityAuthenticationProvider
                 principal.tenantId(),
                 null,
                 true,
-                attributes));
+                attributes,
+                new ValidationUtils(validator).validate(new GatewayVerifiedIdentityBO(verification.proof(), verification.scopes()))));
     }
 
     /**

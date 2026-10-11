@@ -1,6 +1,7 @@
 package top.egon.cola.platform.tianquan.shoubing.yuheng.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,6 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
 import java.time.Clock;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.TenantIssuerAuthenticationManagerComponent;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.OAuthRevocationReader;
@@ -46,7 +48,8 @@ import top.egon.cola.platform.tianquan.shoubing.starter.state.RedisIdentityResou
  * verification, Gateway authentication, and trusted-identity mapping. It confirms caller identity
  * only and does not decide whether that identity may access a route.</p>
  */
-@AutoConfiguration(before = IdpStarterAutoConfiguration.class)
+@Slf4j
+@AutoConfiguration(value = "idpGatewayAdapterAutoConfiguration", before = IdpStarterAutoConfiguration.class)
 @EnableConfigurationProperties(IdpGatewayAdapterProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.tianquan.shoubing.yuheng",
@@ -194,18 +197,20 @@ public class IdpGatewayAdapterAutoConfiguration {
             IdentityResourceServerStateReader resourceStates,
             @Qualifier("idpGatewayOAuthClientStateReader")
             IdentityOAuthClientStateReader clientStates,
-            GatewayResourceServerResolver resources,
+            @Qualifier("gatewayResourceServerResolver") GatewayResourceServerResolver resources,
+            @Qualifier("egon.cola.platform.tianquan.shoubing.yuheng-top.egon.cola.platform.tianquan.shoubing.yuheng.autoconfigure.IdpGatewayAdapterProperties")
             IdpGatewayAdapterProperties properties,
             @Qualifier("tenantIssuerAuthenticationManagerComponent") TenantIssuerAuthenticationManagerComponent issuerManager,
             @Qualifier("oauthRevocationReader") ObjectProvider<OAuthRevocationReader> revocationReaders,
             @Qualifier("verifiedPrincipalConverter") VerifiedPrincipalConverter principalConverter,
-            ObjectProvider<LegacyIssuerCutoverPolicy> legacyIssuerCutoverPolicies,
-            @Qualifier("idpClock") Clock clock
+            @Qualifier("legacyIssuerCutoverPolicy") ObjectProvider<LegacyIssuerCutoverPolicy> legacyIssuerCutoverPolicies,
+            @Qualifier("idpClock") Clock clock,
+            @Qualifier("idpObservedVerificationComponent") ObjectProvider<IdpObservedVerificationComponent> observations
     ) {
         properties.validate();
         return IdpGatewayJwtVerifier.createConfigured(decoder, resourceStates, clientStates, resources,
                 properties.getPlatformAudience(), clock, issuerManager, revocationReaders.getIfAvailable(),
-                principalConverter, legacyIssuerCutoverPolicies.getIfAvailable());
+                principalConverter, legacyIssuerCutoverPolicies.getIfAvailable(), observations.getIfAvailable());
     }
 
     @Bean("idpUserCredentialRecoveryProvider")
@@ -225,14 +230,15 @@ public class IdpGatewayAdapterAutoConfiguration {
      * @param verifier Gateway JWT 验证端口；Gateway JWT verification port
      * @return Tianquan-Shoubing 身份认证提供者；Tianquan-Shoubing identity authentication provider
      */
-    @Bean
+    @Bean(name = "idpIdentityAuthenticationProvider")
     @ConditionalOnBean(IdpGatewayJwtVerifier.class)
     @ConditionalOnMissingBean
     public IdpIdentityAuthenticationProvider
             idpIdentityAuthenticationProvider(
-                    IdpGatewayJwtVerifier verifier
+                    @Qualifier("idpGatewayJwtVerifier") IdpGatewayJwtVerifier verifier,
+                    @Qualifier("defaultValidator") jakarta.validation.Validator validator
             ) {
-        return new IdpIdentityAuthenticationProvider(verifier);
+        return new IdpIdentityAuthenticationProvider(verifier, validator);
     }
 
     /**
@@ -242,7 +248,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      *
      * @return Tianquan-Shoubing 可信身份映射器；Tianquan-Shoubing trusted-identity mapper
      */
-    @Bean
+    @Bean(name = "idpTrustedIdentityMapper")
     @ConditionalOnMissingBean
     public IdpTrustedIdentityMapper idpTrustedIdentityMapper() {
         return new IdpTrustedIdentityMapper();

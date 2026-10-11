@@ -9,7 +9,8 @@ public record GatewayPrincipal(
         String tenantId,
         String displayName,
         boolean authenticated,
-        Map<String, String> attributes
+        Map<String, String> attributes,
+        Object trustedAuthenticationEvidence
 ) {
 
     public GatewayPrincipal {
@@ -22,6 +23,22 @@ public record GatewayPrincipal(
         bounded(tenantId, 256, "tenantId");
         bounded(displayName, 256, "displayName");
         attributes = immutableMap(attributes, "principal attribute");
+    }
+
+    /** Opaque server-owned evidence; Core has no dependency on its concrete identity adapter. */
+    @java.beans.Transient
+    public Object trustedAuthenticationEvidence() { return trustedAuthenticationEvidence; }
+
+    public GatewayPrincipal(String principalId, String principalType, String tenantId, String displayName,
+            boolean authenticated, Map<String, String> attributes) {
+        this(principalId, principalType, tenantId, displayName, authenticated, attributes, null);
+    }
+
+    @Override
+    public String toString() {
+        return "GatewayPrincipal[principalId=" + principalId + ", principalType=" + principalType
+                + ", tenantId=" + tenantId + ", displayName=" + displayName + ", authenticated=" + authenticated
+                + ", attributes=" + attributes + "]";
     }
 
     public GatewayPrincipal(

@@ -182,6 +182,32 @@ class IdpGatewaySecurityProviderTest {
     }
 
     @Test
+    void sameTrustedEvidenceSurvivesPrincipalFlowWithoutBecomingIdentityHeaders() {
+        var scopes = new java.util.HashSet<String>();
+        for (int index = 0; index < 64; index++) { scopes.add("finance:" + index + ":" + "r".repeat(110)); }
+        var service = new ServiceIdentityPrincipal("finance-service", "1001", "finance-service", "service-jti",
+                URI.create("https://api.example/resource"), 12L, scopes, "finance", "finance-web", "prod", "credential-1", NOW, NOW.plusSeconds(300));
+        var proof = new top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO(
+                URI.create("https://idp.example/tenants/1001"), service.resourceUri(), null, "a".repeat(64), "b".repeat(64));
+        var provider = new IdpIdentityAuthenticationProvider((context, token) -> new IdpGatewayJwtVerifier.Verification(
+                service, AuthenticationFailure.NONE, null, scopes, proof));
+        var decision = Mono.from(provider.authenticate(context(GatewayPrincipal.anonymous()),
+                new GatewayCredential("bearer", "original-bearer", Map.of()))).block();
+        assertThat(decision.decision()).isEqualTo(SecurityDecision.ALLOW);
+        var principal = decision.principal();
+        var evidence = (top.egon.cola.platform.tianquan.shoubing.yuheng.security.domain.GatewayVerifiedIdentityBO)
+                principal.trustedAuthenticationEvidence();
+        assertThat(evidence.proof()).isSameAs(proof);
+        assertThat(evidence.verifiedScopes()).containsExactlyInAnyOrderElementsOf(scopes);
+        assertThat(context(GatewayPrincipal.anonymous()).withPrincipal(principal).principal().trustedAuthenticationEvidence()).isSameAs(evidence);
+        assertThat(principal.attributes()).doesNotContainKey("tianquan-shoubing.service-scopes");
+        var identity = new IdpTrustedIdentityMapper().map(context(principal));
+        assertThat(identity.httpHeaders()).doesNotContainKeys("Authorization", "scope", "proof", "trustedAuthenticationEvidence", "X-Egon-Service-Scopes");
+        assertThat(identity.httpHeaders().values()).doesNotContain("original-bearer", proof.tokenRef(), proof.clientRef());
+        assertThat(identity.rpcMetadata().values()).doesNotContain("original-bearer", proof.tokenRef(), proof.clientRef());
+    }
+
+    @Test
     void validatesRefreshTokenOnlineStateAndMatchesAuthenticatedUser() {
         IdpRefreshTokenStatusClient client = token -> Mono.just(
                 new IdpRefreshTokenStatusClient.Response(
