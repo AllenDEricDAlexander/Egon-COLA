@@ -13,6 +13,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.bind.BindHandler;
+import org.springframework.boot.context.properties.bind.handler.NoUnboundElementsBindHandler;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -532,7 +536,7 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * Relays an already verified USER token from HTTP or RPC request context to downstream RPC.
+     * Creates the trusted local RPC credential selector, retaining USER relay when disabled.
      *
      * @return trusted RPC USER credential relay
      */
@@ -540,12 +544,22 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnBean(UserAccessTokenVerifier.class)
     @ConditionalOnMissingBean
     public IdpRpcClientCredentialInterceptorFactory
-            idpRpcClientCredentialInterceptorFactory() {
+            idpRpcClientCredentialInterceptorFactory(
+                    @Qualifier("idpStarterProperties") IdpStarterProperties properties,
+                    @Qualifier("idpServiceOAuth2Client") ObjectProvider<IdpServiceOAuth2Client> clients,
+                    @Qualifier("defaultValidator") ObjectProvider<jakarta.validation.Validator> validators,
+                    Environment environment) {
+        validateRpcBindings(properties, validators.getIfAvailable(), environment);
+        return IdpRpcClientCredentialInterceptorFactory.createConfigured(clients.getIfAvailable(), properties, validators.getIfAvailable());
+    }
+
+    /** Preserves the former direct factory call for USER-only consumers. */
+    public IdpRpcClientCredentialInterceptorFactory idpRpcClientCredentialInterceptorFactory() {
         return new IdpRpcClientCredentialInterceptorFactory();
     }
 
     /**
-     * Verifies an optional USER Bearer credential on RPC provider calls.
+     * Creates the RPC provider policy chain with the existing single-pass JWT verifier.
      *
      * @param verifier shared USER access-token verifier
      * @return RPC USER Bearer server interceptor
@@ -554,9 +568,30 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnBean(UserAccessTokenVerifier.class)
     @ConditionalOnMissingBean
     public IdpRpcBearerServerInterceptor idpRpcBearerServerInterceptor(
-            UserAccessTokenVerifier verifier
+            @Qualifier("userAccessTokenVerifier") UserAccessTokenVerifier verifier,
+            @Qualifier("idpJwtVerifier") IdpJwtVerifier combinedVerifier,
+            @Qualifier("idpStarterProperties") IdpStarterProperties properties,
+            @Qualifier("idpObservedVerificationComponent") ObjectProvider<IdpObservedVerificationComponent> observations,
+            @Qualifier("defaultValidator") ObjectProvider<jakarta.validation.Validator> validators,
+            Environment environment
     ) {
+        validateRpcBindings(properties, validators.getIfAvailable(), environment);
+        return IdpRpcBearerServerInterceptor.createConfigured(verifier, combinedVerifier, properties, observations.getIfAvailable(), validators.getIfAvailable());
+    }
+
+    /** Preserves the former direct factory call for optional USER-only providers. */
+    public IdpRpcBearerServerInterceptor idpRpcBearerServerInterceptor(UserAccessTokenVerifier verifier) {
         return new IdpRpcBearerServerInterceptor(verifier);
+    }
+
+    private void validateRpcBindings(IdpStarterProperties properties, jakarta.validation.Validator validator, Environment environment) {
+        // Limit strict binding to RPC: unrelated opt-in observation configuration owns its own keys.
+        Binder.get(environment).bind("egon.cola.platform.tianquan.shoubing.rpc", Bindable.ofInstance(properties.getRpc()),
+                new NoUnboundElementsBindHandler(BindHandler.DEFAULT));
+        if (properties.getRpc().isEnabled()) {
+            new top.egon.cola.component.common.core.validation.ValidationUtils(
+                    java.util.Objects.requireNonNull(validator, "defaultValidator")).validate(properties.getRpc());
+        }
     }
 
     /**

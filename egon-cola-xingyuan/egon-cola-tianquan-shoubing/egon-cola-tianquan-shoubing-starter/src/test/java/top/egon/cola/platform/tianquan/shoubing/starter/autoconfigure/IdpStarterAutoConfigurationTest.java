@@ -11,6 +11,19 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
 import io.grpc.ServerInterceptor;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
+import io.grpc.Status;
+import java.util.concurrent.atomic.AtomicReference;
+import jakarta.validation.Validator;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import top.egon.cola.component.rpc.annotation.FailStrategy;
+import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.consumer.generic.RpcGenericInvocation;
+import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInvocation;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -46,7 +59,12 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 
 class IdpStarterAutoConfigurationTest {
 
@@ -63,6 +81,89 @@ class IdpStarterAutoConfigurationTest {
                             "egon.cola.platform.tianquan.shoubing.jwk-set-uri=https://tianquan-shoubing.local/oauth2/jwks",
                             "egon.cola.platform.tianquan.shoubing.resource-server-id=resource-tianquan-jianshen-prod",
                             "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/prod/permission/tianquan-jianshen");
+
+    @Test
+    void configuredRpcAndOldOverloadsUseNamedDependenciesWithoutAServiceClientForProviders() throws Exception {
+        IdpRpcClientCredentialInterceptorFactory.class.getConstructor();
+        IdpRpcBearerServerInterceptor.class.getConstructor(UserAccessTokenVerifier.class);
+        var compatibility = new IdpStarterAutoConfiguration();
+        assertThat(compatibility.idpRpcClientCredentialInterceptorFactory()).isNotNull();
+        assertThat(compatibility.idpRpcBearerServerInterceptor(mock(UserAccessTokenVerifier.class))).isNotNull();
+        contextRunner.withBean("defaultValidator", Validator.class, LocalValidatorFactoryBean::new)
+                .withPropertyValues(providerSettings()).run(context -> {
+                    assertThat(context).hasNotFailed().doesNotHaveBean(IdpServiceOAuth2Client.class);
+                    var interceptor = context.getBean("idpRpcBearerServerInterceptor", IdpRpcBearerServerInterceptor.class);
+                    @SuppressWarnings("unchecked") ServerCall<String, String> call = mock(ServerCall.class);
+                    var method = MethodDescriptor.<String, String>newBuilder().setType(MethodDescriptor.MethodType.UNARY)
+                            .setFullMethodName("example.Inventory/Read").setRequestMarshaller(mock(MethodDescriptor.Marshaller.class))
+                            .setResponseMarshaller(mock(MethodDescriptor.Marshaller.class)).build();
+                    when(call.getMethodDescriptor()).thenReturn(method);
+                    @SuppressWarnings("unchecked") ServerCallHandler<String, String> next = mock(ServerCallHandler.class);
+                    interceptor.interceptCall(call, new Metadata(), next);
+                    verifyNoInteractions(next);
+                    verify(call).close(org.mockito.ArgumentMatchers.argThat(status -> status.getCode() == Status.Code.UNAUTHENTICATED), any());
+                });
+    }
+
+    @Test
+    void configuredConsumerRejectsWrongApplicationOrEnvironmentBeforeTokenAcquisition() {
+        var client = mock(IdpServiceOAuth2Client.class);
+        contextRunner.withBean("defaultValidator", Validator.class, LocalValidatorFactoryBean::new)
+                .withBean("idpServiceOAuth2Client", IdpServiceOAuth2Client.class, () -> client)
+                .withPropertyValues(consumerSettings()).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    var factory = context.getBean("idpRpcClientCredentialInterceptorFactory", IdpRpcClientCredentialInterceptorFactory.class);
+                    var generic = RpcGenericInvocation.gateway("example.Inventory", "internal", "v1", "example.Inventory/Read",
+                            new byte[]{1}, 1000, 0, LoadBalance.ROUND_ROBIN, FailStrategy.FAIL_CLOSED, null);
+                    for (RpcProcessIdentity process : List.of(new RpcProcessIdentity("wrong-app", "test", "orders", 1, "test"),
+                            new RpcProcessIdentity("orders", "wrong-env", "test", 1, "test"))) {
+                        assertThatThrownBy(() -> factory.create(RpcClientInvocation.generic(generic, process, "call-1")))
+                                .isInstanceOf(IllegalStateException.class);
+                    }
+                    verifyNoInteractions(client);
+                });
+    }
+
+    @Test
+    void enabledServiceConsumerNeedsItsActualOAuthClientAndValidatedBindings() {
+        contextRunner.withBean("defaultValidator", Validator.class, LocalValidatorFactoryBean::new)
+                .withPropertyValues(consumerSettings()).run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("SERVICE RPC requires idpServiceOAuth2Client");
+                });
+        contextRunner.withBean("defaultValidator", Validator.class, LocalValidatorFactoryBean::new)
+                .withBean("idpServiceOAuth2Client", IdpServiceOAuth2Client.class, () -> mock(IdpServiceOAuth2Client.class))
+                .withPropertyValues(consumerSettings()).withPropertyValues("egon.cola.platform.tianquan.shoubing.rpc.consumer.bindings.inventory.scopes[0]=*")
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void rpcUnknownKeysFailStrictBindingWithoutChangingObservationBinding() {
+        contextRunner.withBean("defaultValidator", Validator.class, LocalValidatorFactoryBean::new)
+                .withBean("idpServiceOAuth2Client", IdpServiceOAuth2Client.class, () -> mock(IdpServiceOAuth2Client.class))
+                .withPropertyValues(consumerSettings())
+                .withPropertyValues("egon.cola.platform.tianquan.shoubing.rpc.consumer.bindings.inventory.unknown-authority=grant")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("unknown-authority");
+                });
+    }
+
+    private String[] consumerSettings() {
+        String prefix = "egon.cola.platform.tianquan.shoubing.rpc.consumer.bindings.inventory.";
+        return new String[]{"egon.cola.platform.tianquan.shoubing.rpc.enabled=true", "egon.cola.platform.tianquan.shoubing.rpc.consumer.enabled=true",
+                prefix + "service-name=example.Inventory", prefix + "group=internal", prefix + "version=v1", prefix + "full-method-name=example.Inventory/Read",
+                prefix + "process-identity.applicationName=orders", prefix + "process-identity.env=test", prefix + "mode=SERVICE",
+                prefix + "registration-id=inventory-client", prefix + "app-id=orders-app", prefix + "resource-uri=https://api.example/inventory",
+                prefix + "scope-context=PLATFORM", prefix + "scopes[0]=inventory:read"};
+    }
+
+    private String[] providerSettings() {
+        String prefix = "egon.cola.platform.tianquan.shoubing.rpc.provider.methods[example.Inventory/Read].";
+        return new String[]{"egon.cola.platform.tianquan.shoubing.rpc.enabled=true", "egon.cola.platform.tianquan.shoubing.rpc.provider.enabled=true",
+                prefix + "required=true", prefix + "principal-kind=SERVICE", prefix + "scope-context=TENANT", prefix + "required-scopes[0]=inventory:read",
+                prefix + "expected-resource-uri=https://api.example/inventory"};
+    }
 
     @Test
     void registersServiceTokenConfigurationAfterItsBeanDependencies() throws IOException {

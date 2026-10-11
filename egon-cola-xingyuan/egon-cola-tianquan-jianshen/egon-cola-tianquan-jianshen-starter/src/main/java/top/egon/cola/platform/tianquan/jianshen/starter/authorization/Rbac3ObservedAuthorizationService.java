@@ -25,6 +25,7 @@ import top.egon.cola.platform.tianquan.jianshen.contract.authorization.Operation
 import top.egon.cola.platform.tianquan.jianshen.contract.authorization.PermissionRequest;
 import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
 
 /** Observes the original PDP once without changing its policy results or exception contract. */
 @Slf4j
@@ -83,6 +84,10 @@ public class Rbac3ObservedAuthorizationService implements AuthorizationService {
         if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes servlet) {
             var marker = IdpSecurityObservationFilter.authorizationObservationContext(servlet.getRequest());
             confirmed = marker != null && marker.denyOnce(() -> observations.authorizationDenied(proof));
+        } else if (IdpRpcSecurityContext.currentProofOrNull() != null) {
+            var marker = IdpRpcSecurityContext.currentAuthorizationObservationContext();
+            confirmed = marker != null && marker.denyOnce(() -> observations.authorizationDenied(proof));
+            if (marker != null && marker.isFailed()) { confirmed = false; }
         } else {
             confirmed = observations.authorizationDenied(proof);
         }

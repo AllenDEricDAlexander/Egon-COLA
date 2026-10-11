@@ -10,21 +10,38 @@ import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Validator;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.contract.IdpPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.UserAccessTokenVerifier;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpJwtVerifier;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.RpcPrincipalKindEnum;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.RpcProviderMethodProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO;
+import org.slf4j.MDC;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Verifies an optional RPC USER Bearer token before invoking provider callbacks. Anonymous calls
- * remain anonymous; malformed, duplicate, expired, or invalid credentials fail closed.
+ * Applies a fixed provider-method policy before any callback. The original optional USER adapter
+ * stays available when RPC policies are disabled; configured calls verify USER or SERVICE once.
  */
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(staticName = "createConfigured")
 public final class IdpRpcBearerServerInterceptor
         implements ServerInterceptor {
 
@@ -33,14 +50,26 @@ public final class IdpRpcBearerServerInterceptor
 
     @Qualifier("userAccessTokenVerifier")
     private final UserAccessTokenVerifier verifier;
+    @Qualifier("idpJwtVerifier") private final IdpJwtVerifier combinedVerifier;
+    @Qualifier("idpStarterProperties") private final IdpStarterProperties properties;
+    @Qualifier("idpObservedVerificationComponent") private final IdpObservedVerificationComponent observations;
+    @Qualifier("defaultValidator") private final Validator validator;
+
+    /** Preserves the existing optional USER-only adapter. */
+    public IdpRpcBearerServerInterceptor(UserAccessTokenVerifier verifier) {
+        this(verifier, null, new IdpStarterProperties(), null, null);
+    }
+
+    @PostConstruct
+    public void validateConfiguration() {
+        if (configured()) {
+            new ValidationUtils(Objects.requireNonNull(validator, "defaultValidator")).validate(properties.getRpc());
+            Objects.requireNonNull(combinedVerifier, "idpJwtVerifier");
+        }
+    }
 
     /**
-     * Creates the interceptor with the shared USER-token verifier.
-     *
-     * @param verifier USER access-token verifier
-     */
-    /**
-     * Verifies one optional USER Bearer credential and scopes identity state to every callback.
+     * Verifies the method-bound credential and scopes identity state to every callback.
      *
      * @param call current server call
      * @param headers incoming metadata
@@ -53,21 +82,35 @@ public final class IdpRpcBearerServerInterceptor
             Metadata headers,
             ServerCallHandler<RequestT, ResponseT> next
     ) {
+        RpcProviderMethodProperties policy = null;
+        if (configured()) {
+            new ValidationUtils(Objects.requireNonNull(validator, "defaultValidator")).validate(properties.getRpc());
+            String method = call.getMethodDescriptor() == null ? null : call.getMethodDescriptor().getFullMethodName();
+            policy = properties.getRpc().getProvider().getMethods().get(method);
+            if (policy == null) { return beforeVerificationReject(call, Status.PERMISSION_DENIED, "rpc_method_policy_missing"); }
+        }
         List<String> authorization = values(
                 headers.getAll(RpcMetadataKeys.AUTHORIZATION)
         );
         if (authorization.isEmpty()) {
+            if (policy != null && policy.isRequired()) { return beforeVerificationReject(call, Status.UNAUTHENTICATED, "authorization_required"); }
             return next.startCall(call, headers);
         }
         if (authorization.size() != 1) {
-            return reject(call, "authorization_header_invalid");
+            return beforeVerificationReject(call, Status.UNAUTHENTICATED, "authorization_header_invalid");
         }
         String token = token(authorization.getFirst());
         if (token == null) {
-            return reject(call, "authorization_header_invalid");
+            return beforeVerificationReject(call, Status.UNAUTHENTICATED, "authorization_header_invalid");
         }
-        AccessTokenVerification<IdentityPrincipal> verification =
-                verifier.verify(token);
+        AccessTokenVerification<?> verification;
+        if (policy == null) { verification = verifier.verify(token); }
+        else if (combinedVerifier == null) { return reject(call, Status.UNAVAILABLE, "oauth_security_state_unavailable"); }
+        else {
+            RpcProviderMethodProperties target = policy;
+            verification = observations == null ? combinedVerifier.verifyAny(token)
+                    : observations.observe(capture -> combinedVerifier.verifyAny(token, capture), target.getExpectedResourceUri(), MDC.get("traceId"));
+        }
         if (verification instanceof AccessTokenVerification.Unavailable<?>) {
             return reject(call, Status.UNAVAILABLE, "oauth_security_state_unavailable");
         }
@@ -77,14 +120,32 @@ public final class IdpRpcBearerServerInterceptor
                     : "jwt_invalid";
             return reject(call, reason);
         }
-        IdentityPrincipal principal = (IdentityPrincipal) valid.principal();
-        Context context = IdpRpcSecurityContext.with(principal, token, valid.proof());
-        ServerCall.Listener<RequestT> delegate = Contexts.interceptCall(
-                context,
-                call,
-                headers,
-                next
-        );
+        IdpPrincipal principal = valid.principal();
+        IdpAuthorizationObservationContextBO marker = new IdpAuthorizationObservationContextBO();
+        if (observations != null && observations.enabled() && valid.proof() == null) {
+            marker.close();
+            return reject(call, Status.UNAVAILABLE, "oauth_security_state_unavailable");
+        }
+        if (valid.proof() != null && validator != null) { new ValidationUtils(validator).validate(valid.proof()); }
+        if (policy != null && !allows(policy, principal, valid.scopes())) {
+            try {
+                boolean confirmed = marker.denyOnce(() -> observations == null || observations.authorizationDenied(valid.proof()));
+                return reject(call, confirmed ? Status.PERMISSION_DENIED : Status.UNAVAILABLE,
+                        confirmed ? "rpc_authorization_denied" : "oauth_security_state_unavailable");
+            } finally { marker.close(); }
+        }
+        Context context = IdpRpcSecurityContext.with(principal, token, valid.proof(), marker, valid.scopes());
+        ServerCall.Listener<RequestT> delegate;
+        try {
+            delegate = Contexts.interceptCall(context, call, headers, (scopedCall, scopedHeaders) -> {
+                var accepted = new AtomicReference<ServerCall.Listener<RequestT>>();
+                IdpRpcSecurityContext.runWithSpringSecurity(principal, valid.scopes(), valid.proof(),
+                        () -> accepted.set(next.startCall(scopedCall, scopedHeaders)));
+                return Objects.requireNonNull(accepted.get(), "provider listener");
+            });
+        } catch (RuntimeException | Error providerFailure) { marker.close(); throw providerFailure; }
+        boolean policyEnabled = policy != null;
+        AtomicBoolean terminated = new AtomicBoolean();
         return new ForwardingServerCallListener
                 .SimpleForwardingServerCallListener<>(delegate) {
             @Override
@@ -99,12 +160,12 @@ public final class IdpRpcBearerServerInterceptor
 
             @Override
             public void onCancel() {
-                run(super::onCancel);
+                finish(super::onCancel);
             }
 
             @Override
             public void onComplete() {
-                run(super::onComplete);
+                finish(super::onComplete);
             }
 
             @Override
@@ -113,16 +174,54 @@ public final class IdpRpcBearerServerInterceptor
             }
 
             private void run(Runnable callback) {
-                context.run(() -> IdpRpcSecurityContext
-                        .runWithSpringSecurity(principal, valid.proof(), callback));
+                if (terminated.get() && policyEnabled) { return; }
+                try {
+                    context.run(() -> IdpRpcSecurityContext.runWithSpringSecurity(principal, valid.scopes(), valid.proof(), callback));
+                } catch (RuntimeException | Error providerFailure) {
+                    terminated.set(true);
+                    marker.close();
+                    throw providerFailure;
+                }
+            }
+
+            private void finish(Runnable callback) {
+                // Keep the former optional USER adapter's callback contract; its marker stays closed.
+                if (!terminated.compareAndSet(false, true) && policyEnabled) { return; }
+                try { context.run(() -> IdpRpcSecurityContext.runWithSpringSecurity(principal, valid.scopes(), valid.proof(), callback)); }
+                finally { marker.close(); }
             }
         };
+    }
+
+    private boolean configured() {
+        return properties != null && properties.getRpc().isEnabled() && properties.getRpc().getProvider().isEnabled();
+    }
+
+    private boolean allows(RpcProviderMethodProperties policy, IdpPrincipal principal, Set<String> scopes) {
+        boolean kind = policy.getPrincipalKind() == RpcPrincipalKindEnum.USER_OR_SERVICE
+                || policy.getPrincipalKind() == RpcPrincipalKindEnum.USER && principal instanceof IdentityPrincipal
+                || policy.getPrincipalKind() == RpcPrincipalKindEnum.SERVICE && principal instanceof ServiceIdentityPrincipal;
+        if (!kind || !scopes.containsAll(policy.getRequiredScopes())) { return false; }
+        if (principal instanceof ServiceIdentityPrincipal service) {
+            return service.scopeContext() == policy.getScopeContext() && service.resourceUri().equals(policy.getExpectedResourceUri())
+                    && (service.scopeContext() == ServiceTokenContext.PLATFORM ? service.tenantId() == null : service.tenantId() != null);
+        }
+        return principal instanceof IdentityPrincipal user && policy.getScopeContext() == ServiceTokenContext.TENANT
+                && user.tenantId() != null && user.audience().equals(Set.of(policy.getExpectedResourceUri().toASCIIString()));
+    }
+
+    private <RequestT, ResponseT> ServerCall.Listener<RequestT> beforeVerificationReject(
+            ServerCall<RequestT, ResponseT> call, Status status, String reason) {
+        if (observations != null && !observations.authenticationFailure()) {
+            return reject(call, Status.UNAVAILABLE, "oauth_security_state_unavailable");
+        }
+        return reject(call, status, reason);
     }
 
     private List<String> values(Iterable<String> values) {
         if (values == null) return List.of();
         List<String> result = new ArrayList<>();
-        values.forEach(result::add);
+        for (String value : values) { result.add(value); if (result.size() == 2) { break; } }
         return List.copyOf(result);
     }
 

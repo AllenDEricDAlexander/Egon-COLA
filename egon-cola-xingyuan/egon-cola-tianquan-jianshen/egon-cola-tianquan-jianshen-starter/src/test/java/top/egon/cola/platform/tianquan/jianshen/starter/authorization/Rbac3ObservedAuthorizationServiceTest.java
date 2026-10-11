@@ -36,6 +36,8 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuth
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
 
 class Rbac3ObservedAuthorizationServiceTest {
     private static final Instant NOW = Instant.parse("2026-10-11T00:00:00Z");
@@ -78,6 +80,89 @@ class Rbac3ObservedAuthorizationServiceTest {
         assertEquals(Decision.DENY, service.requirePermission(PermissionRequest.of("finance:payment:approve")).decision());
         assertEquals(Decision.DENY, service.requirePermission(PermissionRequest.of("finance:payment:approve")).decision());
         verify(observations, times(2)).authorizationDenied(proof);
+    }
+
+    @Test
+    void twoRpcPdpDenialsShareOneStrictHandoff() {
+        var service = service();
+        var marker = new IdpAuthorizationObservationContextBO();
+        when(observations.authorizationDenied(proof)).thenReturn(true);
+        rpc(marker, () -> {
+            for (int call = 0; call < 2; call++) {
+                assertEquals(Decision.DENY, service.requirePermission(PermissionRequest.of("finance:payment:approve")).decision());
+            }
+        });
+        assertTrue(marker.isConfirmed());
+        verify(observations, times(1)).authorizationDenied(proof);
+        marker.close();
+        rpc(marker, () -> assertEquals(Decision.DENY, service.requirePermission(PermissionRequest.of("finance:payment:approve")).decision()));
+        verify(observations, times(1)).authorizationDenied(proof);
+    }
+
+    @Test
+    void closedFailedOrMissingRpcMarkerIsUnavailable() {
+        var service = service();
+        when(observations.authorizationDenied(proof)).thenReturn(true);
+        var closed = new IdpAuthorizationObservationContextBO(); closed.close();
+        var failed = new IdpAuthorizationObservationContextBO(); assertFalse(failed.denyOnce(() -> false));
+        for (IdpAuthorizationObservationContextBO marker : java.util.Arrays.asList(null, closed, failed)) {
+            rpc(marker, () -> {
+                var unavailable = assertThrows(AuthorizationService.RuntimeUnavailableException.class,
+                        () -> service.requirePermission(PermissionRequest.of("finance:payment:approve")));
+                assertEquals("OAUTH_AUDIT_DELIVERY_UNAVAILABLE", unavailable.reasonCode());
+            });
+        }
+        verify(observations, times(0)).authorizationDenied(proof);
+        var sticky = new IdpAuthorizationObservationContextBO();
+        when(observations.authorizationDenied(proof)).thenReturn(false);
+        rpc(sticky, () -> {
+            for (int call = 0; call < 2; call++) {
+                assertThrows(AuthorizationService.RuntimeUnavailableException.class,
+                        () -> service.requirePermission(PermissionRequest.of("finance:payment:approve")));
+            }
+        });
+        assertTrue(sticky.isFailed());
+        verify(observations, times(1)).authorizationDenied(proof);
+    }
+
+    @Test
+    void rpcAllowThenDenyAndConcurrentConfirmation() throws Exception {
+        var service = service(observations, Set.of("finance:payment:read"));
+        var marker = new IdpAuthorizationObservationContextBO();
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var secondStarted = new java.util.concurrent.CountDownLatch(1);
+        when(observations.authorizationDenied(proof)).thenAnswer(call -> {
+            entered.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS)); return true;
+        });
+        rpc(marker, () -> assertEquals(Decision.ALLOW, service.requirePermission(PermissionRequest.of("finance:payment:read")).decision()));
+        assertFalse(marker.isConfirmed());
+        verify(observations, times(0)).authorizationDenied(proof);
+        java.util.concurrent.Callable<Decision> denial = () -> {
+            var decision = new java.util.concurrent.atomic.AtomicReference<Decision>();
+            rpc(marker, () -> decision.set(service.requirePermission(PermissionRequest.of("finance:payment:approve")).decision()));
+            assertTrue(SecurityContextHolder.getContext().getAuthentication() == null);
+            return decision.get();
+        };
+        try (var workers = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var first = workers.submit(denial);
+            try {
+                assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+                var second = workers.submit(() -> { secondStarted.countDown(); return denial.call(); });
+                assertTrue(secondStarted.await(5, java.util.concurrent.TimeUnit.SECONDS));
+                assertFalse(first.isDone()); assertFalse(second.isDone());
+                release.countDown();
+                assertEquals(Decision.DENY, first.get(5, java.util.concurrent.TimeUnit.SECONDS));
+                assertEquals(Decision.DENY, second.get(5, java.util.concurrent.TimeUnit.SECONDS));
+            } finally { release.countDown(); }
+        }
+        verify(observations, times(1)).authorizationDenied(proof);
+        assertTrue(marker.isConfirmed());
+    }
+
+    private void rpc(IdpAuthorizationObservationContextBO marker, Runnable callback) {
+        IdpRpcSecurityContext.with(identity(), "verified-user", proof, marker).run(
+                () -> IdpRpcSecurityContext.runWithSpringSecurity(identity(), proof, callback));
     }
 
     @Test
@@ -173,9 +258,13 @@ class Rbac3ObservedAuthorizationServiceTest {
     }
 
     private Rbac3ObservedAuthorizationService service(IdpObservedVerificationComponent boundary) {
+        return service(boundary, Set.of());
+    }
+
+    private Rbac3ObservedAuthorizationService service(IdpObservedVerificationComponent boundary, Set<String> permissions) {
         validator.afterPropertiesSet();
         var snapshot = new SystemAuthorizationSnapshot("10001", "identity-1", "20001", "finance", 1, 2,
-                List.of("50001"), null, null, Set.of(), Set.of(), Map.of(), Map.of(),
+                List.of("50001"), null, null, permissions, Set.of(), Map.of(), Map.of(),
                 "sha256:controlled-snapshot", NOW, NOW.plusSeconds(300));
         var delegate = new DefaultAuthorizationService(
                 () -> new AuthorizationService.RuntimeAuthorizationContext(identity(), snapshot, false),

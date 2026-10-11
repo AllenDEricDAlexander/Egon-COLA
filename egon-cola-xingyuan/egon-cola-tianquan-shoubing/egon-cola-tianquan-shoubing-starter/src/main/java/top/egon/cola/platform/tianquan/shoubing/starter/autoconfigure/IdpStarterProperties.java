@@ -1,6 +1,20 @@
 package top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.experimental.Accessors;
+import org.springframework.validation.annotation.Validated;
+import java.util.Set;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext;
 
 import java.net.URI;
 import java.time.Duration;
@@ -16,6 +30,7 @@ import java.util.Objects;
  * the unified Tianquan-Shoubing. The settings define the trusted issuer, public-key source, exact current
  * Resource, and Redis key spaces containing current identity runtime state.</p>
  */
+@Validated
 @ConfigurationProperties("egon.cola.platform.tianquan.shoubing")
 public class IdpStarterProperties {
 
@@ -97,6 +112,19 @@ public class IdpStarterProperties {
 
     /** Standard Spring OAuth2 Client machine-token settings. */
     private ServiceClient serviceClient = new ServiceClient();
+
+    /** Local RPC selectors and provider policies; credentials never come from request metadata. */
+    @Valid
+    @NotNull
+    private RpcProperties rpc = new RpcProperties();
+
+    public RpcProperties getRpc() {
+        return rpc;
+    }
+
+    public void setRpc(RpcProperties rpc) {
+        this.rpc = Objects.requireNonNull(rpc, "rpc");
+    }
 
     /**
      * 创建使用默认值初始化的 Tianquan-Shoubing Starter 配置。
@@ -867,5 +895,142 @@ public class IdpStarterProperties {
                 }
             });
         }
+    }
+
+    public enum RpcConsumerModeEnum {
+        USER_RELAY("USER_RELAY"), SERVICE("SERVICE");
+        private final String code;
+        RpcConsumerModeEnum(String code) { this.code = code; }
+        public String getCode() { return code; }
+    }
+
+    public enum RpcPrincipalKindEnum {
+        USER("USER"), SERVICE("SERVICE"), USER_OR_SERVICE("USER_OR_SERVICE");
+        private final String code;
+        RpcPrincipalKindEnum(String code) { this.code = code; }
+        public String getCode() { return code; }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
+    public static class RpcProperties {
+        private boolean enabled;
+        @Valid @NotNull @Builder.Default
+        private RpcConsumerProperties consumer = new RpcConsumerProperties();
+        @Valid @NotNull @Builder.Default
+        private RpcProviderProperties provider = new RpcProviderProperties();
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
+    public static class RpcConsumerProperties {
+        private boolean enabled;
+        @Valid @NotNull @Size(max = 64) @Builder.Default
+        private Map<@NotNull @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String, @NotNull @Valid RpcConsumerBindingProperties> bindings = new LinkedHashMap<>();
+
+        @AssertTrue
+        public boolean isConfigurationValid() {
+            if (!enabled) { return true; }
+            if (bindings == null || bindings.isEmpty()) { return false; }
+            var selectors = new java.util.HashSet<String>();
+            for (var binding : bindings.values()) {
+                if (binding == null || !selectors.add(binding.getServiceName() + "|" + binding.getGroup() + "|" + binding.getVersion()
+                        + "|" + binding.getFullMethodName() + "|" + (binding.getProcessIdentity() == null ? null
+                        : binding.getProcessIdentity().get("applicationName") + "|" + binding.getProcessIdentity().get("env")))) { return false; }
+            }
+            return true;
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
+    public static class RpcConsumerBindingProperties {
+        @NotBlank @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}")
+        private String serviceName;
+        @NotBlank @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}")
+        private String group;
+        @NotBlank @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}")
+        private String version;
+        @NotBlank @Pattern(regexp = "[A-Za-z_][A-Za-z0-9_.]{0,127}/[A-Za-z_][A-Za-z0-9_]{0,127}")
+        private String fullMethodName;
+        @NotNull @Size(min = 2, max = 2) @Builder.Default
+        private Map<String, String> processIdentity = new LinkedHashMap<>();
+        @NotNull @Builder.Default
+        private RpcConsumerModeEnum mode = RpcConsumerModeEnum.USER_RELAY;
+        @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}")
+        private String registrationId;
+        @NotNull @Size(max = 64) @Builder.Default
+        private Map<@NotNull @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String, @NotNull @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String> tenantRegistrationIds = new LinkedHashMap<>();
+        @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}")
+        private String appId;
+        private URI resourceUri;
+        private ServiceTokenContext scopeContext;
+        @NotNull @Size(max = 64) @Builder.Default
+        private Set<@NotNull @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String> scopes = Set.of();
+
+        @AssertTrue
+        public boolean isSelectorValid() {
+            return processIdentity != null && processIdentity.keySet().equals(Set.of("applicationName", "env"))
+                    && processIdentity.values().stream().allMatch(value -> value != null && value.matches("[A-Za-z0-9._:-]{1,128}"));
+        }
+
+        @AssertTrue
+        public boolean isServiceRequestValid() {
+            if (mode == RpcConsumerModeEnum.USER_RELAY) { return true; }
+            if (mode != RpcConsumerModeEnum.SERVICE || appId == null || scopes == null || scopes.isEmpty() || !rpcHttps(resourceUri)) { return false; }
+            if (scopeContext == ServiceTokenContext.PLATFORM) { return registrationId != null && !registrationId.isBlank()
+                    && tenantRegistrationIds != null && tenantRegistrationIds.isEmpty(); }
+            return scopeContext == ServiceTokenContext.TENANT && registrationId == null && tenantRegistrationIds != null && !tenantRegistrationIds.isEmpty();
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
+    public static class RpcProviderProperties {
+        private boolean enabled;
+        @Valid @NotNull @Size(max = 256) @Builder.Default
+        private Map<@NotNull @Pattern(regexp = "[A-Za-z_][A-Za-z0-9_.]{0,127}/[A-Za-z_][A-Za-z0-9_]{0,127}") String, @NotNull @Valid RpcProviderMethodProperties> methods = new LinkedHashMap<>();
+        @AssertTrue
+        public boolean isConfigurationValid() { return !enabled || methods != null && !methods.isEmpty(); }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
+    public static class RpcProviderMethodProperties {
+        @Builder.Default
+        private boolean required = true;
+        @NotNull @Builder.Default
+        private RpcPrincipalKindEnum principalKind = RpcPrincipalKindEnum.USER_OR_SERVICE;
+        private ServiceTokenContext scopeContext;
+        @NotNull @Size(max = 64) @Builder.Default
+        private Set<@NotNull @Pattern(regexp = "[A-Za-z0-9._:-]{1,128}") String> requiredScopes = Set.of();
+        private URI expectedResourceUri;
+        @AssertTrue
+        public boolean isRequestValid() {
+            return rpcHttps(expectedResourceUri) && scopeContext != null && requiredScopes != null && !requiredScopes.isEmpty()
+                    && !(principalKind == RpcPrincipalKindEnum.USER && scopeContext == ServiceTokenContext.PLATFORM);
+        }
+    }
+
+
+    private static boolean rpcHttps(URI value) {
+        return value != null && value.isAbsolute() && "https".equals(value.getScheme()) && value.getHost() != null
+                && value.getUserInfo() == null && value.getQuery() == null && value.getFragment() == null
+                && value.normalize().equals(value) && value.toASCIIString().length() <= 512;
     }
 }
