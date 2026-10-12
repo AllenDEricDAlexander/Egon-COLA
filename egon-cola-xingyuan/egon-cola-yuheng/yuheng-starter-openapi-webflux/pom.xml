@@ -18,6 +18,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>top.egon</groupId>
             <artifactId>yuheng-starter-openapi</artifactId>
         </dependency>

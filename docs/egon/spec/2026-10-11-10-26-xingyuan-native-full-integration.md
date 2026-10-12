@@ -817,3 +817,25 @@ Verdict: **PASS — Ready for user review**。用户已明确confirmed批准本�
 验证：Step3 原 RED/GREEN 保留，增加 `IdpGatewayAdapterAutoConfigurationTest`、`Rbac3GatewayAdapterAutoConfigurationTest` 到同一选择器；检查实际解析依赖、无循环、一次真实 handoff、strict ERROR/503、Reactor terminal/cancel 清理及 old constructors。原源码仍停在 Step3 预检，不能以本提案或先前 Step2 GREEN 作为 Step3 完成证据。
 
 本增补的设计MC-DEP-001 / MC-BEAN-001 / MC-SCOPE-001 / MC-BLOCKER-001：**PASS — DEC-009已获明确confirmed，精确清单/版本/无循环方案已核对**。实施时须逐Step重新核对真实diff/依赖/行为证据；原runtime许可边界不变。
+
+### 20.7 Step 6 docs compile prerequisite approval — DEC-010
+
+状态：**Accepted — 用户于2026-10-12明确批准“最小 POM 修订并继续”**。Step6 的两文档适配器已经通过 `yuheng-starter-openapi → egon-cola-tianshu-http-registration-starter` 取得授柄 Starter 5.4.1；该中间 Starter 的 optional Lombok 不传递给叶子模块。只补两个叶子 POM 的现有 `org.projectlombok:lombok`，沿父级 `${lombok.version}=1.18.46`，`provided`、`optional=true`，复用当前处理器及 `lombok.config` 的 Qualifier 传播。既有 JAR 已缓存，不升级版本、不下载制品、不新增运行框架、身份 SDK 或测试依赖。
+
+| Operation | Exact path | Responsibility |
+| --- | --- | --- |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/pom.xml` | 仅补父级管理的 Lombok provided/optional 编译依赖；原依赖、模块边界及默认关闭行为保持 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/pom.xml` | 仅补父级管理的 Lombok provided/optional 编译依赖；原依赖、模块边界及默认关闭行为保持 |
+
+批准范围只解除本次编译前提与文件清单遗漏。Step6 仍实现原完整 SERVICE 验证、撤销、严格使用/拒绝审计和 `yuheng.openapi.read`，MVC 只在窄链内加实际 SDK filter，Reactive 复用实际 SDK 验证及 reactive Redis、阻塞工作移出事件线程。保留原四个源码/测试路径、19Step 顺序、SQL/协议和运行许可边界；本阶段不启动服务、浏览器、部署或 Docker。
+
+原 MVC File1 在批准前已用现有依赖独立完成 RED：10 个真实窄链测试、5 个预期行为失败、0 error/skip，错误资源/ID token/已撤销 token/状态不可用/审计不可用实际返回200。这是缺口证据，不能冒充实现完成。两个 POM 前提先于生产实现；随后按原 MVC 测试→MVC 实现→WebFlux 测试→WebFlux 实现顺序继续，同一选择器必须实际 GREEN。17项 MC 和10条 Literal Rule 仍逐项执行；本修订与两个 POM 纳入 Step6 单一 focused commit。
+
+### 20.8 Step 6 affected Springdoc test coverage clarification
+
+按已授权“小问题探索推荐方案改造”的范围补 Step6 测试清单遗漏：两个现有 Springdoc ContractTest 仍使用 `alg=none` 的整体验证替身，且 Reactive 用 RANDOM_PORT 启服务器。它们不能消费已经批准的完整 SERVICE 链。仅更新这两个现有测试，复用当前 SecurityAutoConfigurationTest 的真实 RSA/可信 issuer/状态/严格审计夹具；保留原真实 Springdoc 3.1、scope 拒绝和分组治理断言，改为内存 Servlet/Reactive context，不启动服务。无生产行为、协议、API、依赖、SQL、19Step顺序或运行许可变化；不记新的用户决定。旧 metadata/依赖契约也纳入本Step受影响模块回归。此为必要的测试配置与清单补齐，不能弱化生产验证来迎合旧假令牌。
+
+| Operation | Exact path | Responsibility |
+| --- | --- | --- |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |

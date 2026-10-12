@@ -4598,7 +4598,59 @@ assertAuditFailureRecordsUnavailableWithoutSensitiveOrDynamicTags();
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；每File的具体约束见下面，非统一口号代替验证。
 - Ordered files: 下列编号严格顺序；`red`之前仅compile-required声明；`config`在实际实现后；post-wiring测试补组合覆盖，同文件后续相位符号注明。
 
-#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfigurationTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/pom.xml`
+
+- Purpose: 已批准的 DEC-010 叶子编译前提；授柄身份 SDK 已传递，无新运行框架。
+- Symbols: `dependencies/org.projectlombok:lombok`
+- Repository evidence: 本 POM 当前没有 Lombok；shared OpenAPI 的 optional Lombok 不传递；父级版本1.18.46、处理器及 qualifier copy 已存在。
+- Dependencies and consumers: 当前父 POM、已缓存 Lombok JAR；仅本叶子编译与现有自动配置消费者。
+- Why now: 原独立 MVC RED已完成；生产实现需要标准 Slf4j/qualified Lombok constructor，先补获准编译前提。
+- Contract/signature changes: 无公有 API/运行依赖变化；provided、optional保持消费者依赖边界。
+- Input/output and state mapping: 原依赖清单→仅增加父级管理的现有 Lombok。
+- Error and edge behavior: 离线解析失败则返回本编译前提，不能下载替代版本或把编译失败当 RED。
+- Standards impact: MC-DEP-001/MC-BEAN-001/MC-SCOPE-001；显式人类批准、既有 processor与Qualifier传播，无新框架。
+- Literal rule enforcement: Rule 4/Rule 5/Rule 11；标准注解能力、现有模块树与版本不变。
+- Implementation pseudocode:
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <scope>provided</scope>
+    <optional>true</optional>
+</dependency>
+```
+
+- Verification contribution: 同Step离线Maven实际解析1.18.46并编译；核对依赖diff只有批准项。
+- After this file: 编译前提可用；继续原测试与生产实现，不声明行为已完成。
+
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/pom.xml`
+
+- Purpose: 已批准的 DEC-010 叶子编译前提；授柄身份 SDK 已传递，无新运行框架。
+- Symbols: `dependencies/org.projectlombok:lombok`
+- Repository evidence: 本 POM 当前没有 Lombok；shared OpenAPI 的 optional Lombok 不传递；父级版本1.18.46、处理器及 qualifier copy 已存在。
+- Dependencies and consumers: 当前父 POM、已缓存 Lombok JAR；仅本叶子编译与现有自动配置消费者。
+- Why now: 原独立 MVC RED已完成；生产实现需要标准 Slf4j/qualified Lombok constructor，先补获准编译前提。
+- Contract/signature changes: 无公有 API/运行依赖变化；provided、optional保持消费者依赖边界。
+- Input/output and state mapping: 原依赖清单→仅增加父级管理的现有 Lombok。
+- Error and edge behavior: 离线解析失败则返回本编译前提，不能下载替代版本或把编译失败当 RED。
+- Standards impact: MC-DEP-001/MC-BEAN-001/MC-SCOPE-001；显式人类批准、既有 processor与Qualifier传播，无新框架。
+- Literal rule enforcement: Rule 4/Rule 5/Rule 11；标准注解能力、现有模块树与版本不变。
+- Implementation pseudocode:
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <scope>provided</scope>
+    <optional>true</optional>
+</dependency>
+```
+
+- Verification contribution: 同Step离线Maven实际解析1.18.46并编译；核对依赖diff只有批准项。
+- After this file: 编译前提可用；继续原测试与生产实现，不声明行为已完成。
+
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfigurationTest.java`
 
 - Purpose: 两framework实际fullpipeline，Mockbroker不替wholeauth
 - Symbols: wrongAudienceIdTokenRevokedAndUnavailable
@@ -4623,7 +4675,7 @@ assertDocsDisabledNoExposureAndBusinessPathUntouched();
 - Verification contribution: 相同Step namedselector观察本file的两framework实际fullpipeline，Mockbroker不替wholeauth；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/main/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/main/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`
 
 - Purpose: 只/v3/api-docs/**的完整SERVICEpipeline+precisescope
 - Symbols: existing narrow docs chain
@@ -4648,7 +4700,7 @@ strict usage before handler; deny/status originalprotocol + noStore;
 - Verification contribution: 相同Step namedselector观察本file的只/v3/api-docs/**的完整SERVICEpipeline+precisescope；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
-#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfigurationTest.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfigurationTest.java`
 
 - Purpose: 两framework实际fullpipeline，Mockbroker不替wholeauth
 - Symbols: wrongAudienceIdTokenRevokedAndUnavailable
@@ -4673,7 +4725,7 @@ assertDocsDisabledNoExposureAndBusinessPathUntouched();
 - Verification contribution: 相同Step namedselector观察本file的两framework实际fullpipeline，Mockbroker不替wholeauth；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 所列test可编译并因Step缺行为失败；若setup/import/资源失败先repairfixture，不继续实现或记RED。
 
-#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/main/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/main/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`
 
 - Purpose: 只/v3/api-docs/**的完整SERVICEpipeline+precisescope
 - Symbols: existing narrow docs chain
@@ -4698,17 +4750,65 @@ strict usage before handler; deny/status originalprotocol + noStore;
 - Verification contribution: 相同Step namedselector观察本file的只/v3/api-docs/**的完整SERVICEpipeline+precisescope；gate对原契约/negative/副作用count闭合，不仅文字/源码搜索。
 - After this file: 本file最小行为到位；原constructor/mapper/框架variant保持；剩余本Stepwire/config后才完整GREEN。
 
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java`
+
+- Purpose: post-wiring 真实 Springdoc 格式/分组治理回归；移除旧整体验证替身与启动服务器的夹具。
+- Symbols: `servesAGroupedOpenApi31DocumentOnlyForTheRequiredScope`、`deniesAnonymousGroupedDocumentRequests`、`deniesJwtWithoutTheRequiredScope`。
+- Repository evidence: 本现有测试仍生成 alg=none JWT，不能消费完整 SERVICE 链；Reactive 原 RANDOM_PORT 不符合本阶段不启动服务。
+- Dependencies and consumers: File3/5已具备真实RSA/issuer/状态/审计夹具及本Step production chain；原GatewayOpenApiAutoConfiguration与Springdoc。
+- Why now: 两framework行为GREEN后补真正生成文档与原governance回归，避免只靠静态假文档代替契约验证。
+- Contract/signature changes: 仅测试中package-local fixture接入；原测试名称和文档协议保持，无生产公有API。
+- Input/output and state mapping: SDK真实签名token→内存真实Springdoc入口→OpenAPI3.1与原group/operation治理断言。
+- Error and edge behavior: anonymous401、实际完整验证后缺scope403；默认禁所有外部设施，原分组发布边界保持。
+- Standards impact: MC-TEST-001/MC-CONVERT-001/MC-JSON-001/MC-SCOPE-001；mock仅外部JWK/Redis，复用原MapStruct SDK链，不mock全安全结论。
+- Literal rule enforcement: Rule 2/Rule 3/Rule 4/Rule 6/Rule 10/Rule 11；validated SDK handoff、具名测试Bean、qualified Lombok、Jackson/java.time及现有测试树。
+- Implementation pseudocode:
+
+```java
+fixture.setupPipeline(ownResource, originalOpenApiProperties, TestApplication.class);
+requestActualSpringdocGroupWithRealSignedServiceToken();
+assertOriginalOpenApi31GovernanceAndExactScope();
+fixture.cleanup(); // memory contexts only, no socket/server
+```
+
+- Verification contribution: 追加原Contract与DependencyContract选择器到同Step受影响模块回归，真实断言实际执行。
+- After this file: 原格式/治理回归通过且无服务器启动；全部MC/Literal关闭后才能提交本Step。
+
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxContractTest.java`
+
+- Purpose: post-wiring 真实 Springdoc 格式/分组治理回归；移除旧整体验证替身与启动服务器的夹具。
+- Symbols: `servesAGroupedOpenApi31DocumentOnlyForTheRequiredScope`、`deniesAnonymousGroupedDocumentRequests`、`deniesJwtWithoutTheRequiredScope`。
+- Repository evidence: 本现有测试仍生成 alg=none JWT，不能消费完整 SERVICE 链；Reactive 原 RANDOM_PORT 不符合本阶段不启动服务。
+- Dependencies and consumers: File3/5已具备真实RSA/issuer/状态/审计夹具及本Step production chain；原GatewayOpenApiAutoConfiguration与Springdoc。
+- Why now: 两framework行为GREEN后补真正生成文档与原governance回归，避免只靠静态假文档代替契约验证。
+- Contract/signature changes: 仅测试中package-local fixture接入；原测试名称和文档协议保持，无生产公有API。
+- Input/output and state mapping: SDK真实签名token→内存真实Springdoc入口→OpenAPI3.1与原group/operation治理断言。
+- Error and edge behavior: anonymous401、实际完整验证后缺scope403；默认禁所有外部设施，原分组发布边界保持。
+- Standards impact: MC-TEST-001/MC-CONVERT-001/MC-JSON-001/MC-SCOPE-001；mock仅外部JWK/Redis，复用原MapStruct SDK链，不mock全安全结论。
+- Literal rule enforcement: Rule 2/Rule 3/Rule 4/Rule 6/Rule 10/Rule 11；validated SDK handoff、具名测试Bean、qualified Lombok、Jackson/java.time及现有测试树。
+- Implementation pseudocode:
+
+```java
+fixture.setupPipeline(ownResource, originalOpenApiProperties, TestApplication.class);
+requestActualSpringdocGroupWithRealSignedServiceToken();
+assertOriginalOpenApi31GovernanceAndExactScope();
+fixture.cleanup(); // memory contexts only, no socket/server
+```
+
+- Verification contribution: 追加原Contract与DependencyContract选择器到同Step受影响模块回归，真实断言实际执行。
+- After this file: 原格式/治理回归通过且无服务器启动；全部MC/Literal关闭后才能提交本Step。
+
 - Verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux -am -Dtest=GatewayOpenApiWebMvcSecurityAutoConfigurationTest,GatewayOpenApiWebFluxSecurityAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: GREEN exits 0 and every named selector in this Step runs its real behavioral assertions; initial RED exits nonzero for the specific missing behavior stated above, not compile/setup/no-tests failure. No external services or browser are started.
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`（每一行相同，不在其它checkout运行）。
 - RED verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux -am -Dtest=GatewayOpenApiWebMvcSecurityAutoConfigurationTest,GatewayOpenApiWebFluxSecurityAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected RED behavior: 现docs链只有默认JWTdecoder+scope，可绕过ownresource/trustedissuer/sharedrevocation/strictusage；scope存在但badresource/IDtoken必须拒绝；至少命名test实际执行且assertfail；0test/compile/setupfail禁止当RED。
 - GREEN verification command: `mvn -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux -am -Dtest=GatewayOpenApiWebMvcSecurityAutoConfigurationTest,GatewayOpenApiWebFluxSecurityAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`（最小implementation/wiring/config后同命令，未来执行，非既有PASS声明）。
-- Regression gate: `git diff --check`；同module对应已列existingregression在selector内。读取每模块surefire XML核所有selectedtest实际执行、fail/error/skip均0，JUnit命名行为完整；新增fail/疑点才扩大，不启动外部IT。
+- Regression gate: `git diff --check`；上述exact selector先通过，再同module以 `GatewayOpenApiWebMvcSecurityAutoConfigurationTest,GatewayOpenApiWebFluxSecurityAutoConfigurationTest,GatewayOpenApiWebMvcContractTest,GatewayOpenApiWebFluxContractTest,GatewayOpenApiWebMvcDependencyContractTest,GatewayOpenApiWebFluxDependencyContractTest` 运行受影响真实文档/依赖契约。读取每模块surefire XML核所有selectedtest实际执行、fail/error/skip均0，JUnit命名行为完整；新增fail/疑点才扩大，不启动外部IT。
 - Failure returns to: REDfile fixture错回该File；行为错回该File所指owner；symbol/Spec新语义冲突回主Spec，不改设计来迎合test。
 - Completion criteria: sameGREEN实际exit0+selectedXML zero failures/errors/skips、oldoverload/qualifier/shape/policynegative证明、此Step17MC和10literal逐项证据、diff只下列paths、source/no secrets/namespace边界；runtime仍以后续gate为准。
 - Rollback: code-only本Step exactpaths的focusedrevert/forwardfix；不改已有commit历史、不drop库、不repairDDL、不删除旧Redis/namespaces；未数据/运行切换前可恢复baseline。Step7只旧state隔离不能用source回退把新v2会话当老宽权限，pendingintent/key保留。
-- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/main/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/main/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/main/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/main/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`, `docs/egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md`, `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration.md`, `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-edge.md`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxContractTest.java`
 - Commit: `fix(yuheng): verify documentation service tokens with full security pipeline`；仅上述完整path-set精确stage，一条本Stepsemanticcommit；记录实际git rev-parse HEAD再继续。不要stage/commit他人文件或未来Step符号。
 
 ### Step 7 — 建立可线性化的同身份多资源BFF并对全部授权族退出
@@ -11632,3 +11732,25 @@ Verdict: **PASS — Ready for user review**。本轮confirmed已完成整份Spec
 ### 12.9 Step 4 focused coverage clarification
 
 按用户已授权“小问题探索推荐方案改造”的范围补原文件清单遗漏：Step4 File9已要求RPC marker fallback及其负例，但旧十文件清单/selector未列现有 `Rbac3ObservedAuthorizationServiceTest` 的RPC覆盖。新增File11 MODIFY同一测试，并将本Plan修订纳入Step4单一提交；无架构、API、授权规则、依赖、SQL、Step顺序或runtime许可变化。其原Step1 HTTP/direct兼容用例保留。此为测试与文档的局部清单补齐，不记新的用户决定或新的设计审批。
+
+### 12.10 Step 6 docs compile prerequisite approval — DEC-010
+
+状态：**Accepted — 用户于2026-10-12明确批准“最小 POM 修订并继续”**。Step6 的两文档适配器已经通过 `yuheng-starter-openapi → egon-cola-tianshu-http-registration-starter` 取得授柄 Starter 5.4.1；该中间 Starter 的 optional Lombok 不传递给叶子模块。只补两个叶子 POM 的现有 `org.projectlombok:lombok`，沿父级 `${lombok.version}=1.18.46`，`provided`、`optional=true`，复用当前处理器及 `lombok.config` 的 Qualifier 传播。既有 JAR 已缓存，不升级版本、不下载制品、不新增运行框架、身份 SDK 或测试依赖。
+
+| Operation | Exact path | Responsibility |
+| --- | --- | --- |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/pom.xml` | 仅补父级管理的 Lombok provided/optional 编译依赖；原依赖、模块边界及默认关闭行为保持 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/pom.xml` | 仅补父级管理的 Lombok provided/optional 编译依赖；原依赖、模块边界及默认关闭行为保持 |
+
+批准范围只解除本次编译前提与文件清单遗漏。Step6 仍实现原完整 SERVICE 验证、撤销、严格使用/拒绝审计和 `yuheng.openapi.read`，MVC 只在窄链内加实际 SDK filter，Reactive 复用实际 SDK 验证及 reactive Redis、阻塞工作移出事件线程。保留原四个源码/测试路径、19Step 顺序、SQL/协议和运行许可边界；本阶段不启动服务、浏览器、部署或 Docker。
+
+原 MVC File1 在批准前已用现有依赖独立完成 RED：10 个真实窄链测试、5 个预期行为失败、0 error/skip，错误资源/ID token/已撤销 token/状态不可用/审计不可用实际返回200。这是缺口证据，不能冒充实现完成。两个 POM 前提先于生产实现；随后按原 MVC 测试→MVC 实现→WebFlux 测试→WebFlux 实现顺序继续，同一选择器必须实际 GREEN。17项 MC 和10条 Literal Rule 仍逐项执行；本修订与两个 POM 纳入 Step6 单一 focused commit。
+
+### 12.11 Step 6 affected Springdoc test coverage clarification
+
+按已授权“小问题探索推荐方案改造”的范围补 Step6 测试清单遗漏：两个现有 Springdoc ContractTest 仍使用 `alg=none` 的整体验证替身，且 Reactive 用 RANDOM_PORT 启服务器。它们不能消费已经批准的完整 SERVICE 链。仅更新这两个现有测试，复用当前 SecurityAutoConfigurationTest 的真实 RSA/可信 issuer/状态/严格审计夹具；保留原真实 Springdoc 3.1、scope 拒绝和分组治理断言，改为内存 Servlet/Reactive context，不启动服务。无生产行为、协议、API、依赖、SQL、19Step顺序或运行许可变化；不记新的用户决定。旧 metadata/依赖契约也纳入本Step受影响模块回归。此为必要的测试配置与清单补齐，不能弱化生产验证来迎合旧假令牌。
+
+| Operation | Exact path | Responsibility |
+| --- | --- | --- |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |
