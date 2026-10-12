@@ -46,14 +46,14 @@ public class EdgeLogoutService {
         if (!(principal instanceof OAuth2AuthenticationToken) || !principal.isAuthenticated()) {
             return Mono.error(new IllegalArgumentException("Authenticated BFF session is required for logout"));
         }
-        return authorizedClients.loadAll(principal, exchange)
-                .flatMap(clients -> persistInvalidateAndRevoke(clients, principal, exchange))
-                .onErrorResume(exception -> {
-                    log.warn("BFF AuthorizedClient state could not be loaded; clearing the local session");
-                    return clearLocally(principal, exchange)
-                            .onErrorResume(clearException -> Mono.empty())
-                            .thenReturn(RemoteState.UNKNOWN);
-                });
+        var bindings = authorizedClients.bindingComponent();
+        return bindings.withLifecycle(exchange, lease -> authorizedClients.loadAll(principal, exchange)
+                .flatMap(clients -> persistAndClose(clients, principal, exchange, bindings, lease)))
+                .onErrorResume(failure -> {
+                    log.warn("BFF lifecycle could not be closed; failureType={}", failure.getClass().getSimpleName());
+                    return invalidateLocalSession(exchange).thenReturn(new CompletedLocalLogoutVO(List.of(), List.of(), RemoteState.UNKNOWN));
+                })
+                .flatMap(local -> local.state() != null ? Mono.just(local.state()) : revokeAndAcknowledge(local.intents(), local.messageIds()));
     }
 
     public Mono<Void> process(PendingIntent pending) {
@@ -63,32 +63,28 @@ public class EdgeLogoutService {
                         pending.intent().intentId()));
     }
 
-    private Mono<RemoteState> persistInvalidateAndRevoke(
-            List<OAuth2AuthorizedClient> clients,
-            Authentication principal,
-            ServerWebExchange exchange) {
-        if (clients.isEmpty()) {
-            return invalidateLocalSession(exchange).thenReturn(RemoteState.CONFIRMED);
-        }
+    private Mono<CompletedLocalLogoutVO> persistAndClose(List<OAuth2AuthorizedClient> clients, Authentication principal,
+            ServerWebExchange exchange, top.egon.cola.component.yuheng.edge.service.impl.EdgeSessionBindingComponent bindings,
+            top.egon.cola.component.yuheng.edge.service.impl.EdgeSessionBindingComponent.LifecycleLease lease) {
         if (clients.stream().anyMatch(client -> client.getRefreshToken() == null)) {
-            return clearLocally(principal, exchange)
-                    .thenReturn(RemoteState.UNKNOWN);
+            return bindings.beginClosing(lease).then(clearLocally(principal, exchange)).then(bindings.finishClosing(lease))
+                    .thenReturn(new CompletedLocalLogoutVO(List.of(), List.of(), RemoteState.UNKNOWN));
         }
+        List<EdgeLogoutRevocationIntent> intents = clients.stream().map(this::intent).toList();
+        Mono<CompletedLocalLogoutVO> persisted = intents.isEmpty()
+                ? Mono.just(new CompletedLocalLogoutVO(List.of(), List.of(), RemoteState.CONFIRMED))
+                : intentStore.enqueueAll(intents).map(ids -> new CompletedLocalLogoutVO(intents, ids,
+                        ids.size() == intents.size() ? null : RemoteState.UNKNOWN));
+        return persisted.onErrorResume(failure -> {
+                    log.error("BFF revocation intent batch could not be persisted; failureType={}", failure.getClass().getSimpleName());
+                    return Mono.just(new CompletedLocalLogoutVO(List.of(), List.of(), RemoteState.UNKNOWN));
+                })
+                .flatMap(local -> bindings.beginClosing(lease).then(clearLocally(principal, exchange)).then(bindings.finishClosing(lease)).thenReturn(local));
+    }
 
-        List<EdgeLogoutRevocationIntent> intents = clients.stream()
-                .map(this::intent)
-                .toList();
-        return intentStore.enqueueAll(intents)
-                .flatMap(messageIds -> clearLocally(principal, exchange)
-                        .then(revokeAndAcknowledge(intents, messageIds))
-                        .onErrorResume(exception -> {
-                            log.warn("BFF remote revocation remains pending; intent batch is durable");
-                            return Mono.just(RemoteState.PENDING);
-                        }))
-                .onErrorResume(exception -> clearLocally(principal, exchange)
-                        .then(Mono.fromRunnable(() -> log.error(
-                                "BFF revocation intent batch could not be persisted; remote state is unknown")))
-                        .thenReturn(RemoteState.UNKNOWN));
+    private record CompletedLocalLogoutVO(List<EdgeLogoutRevocationIntent> intents, List<String> messageIds, RemoteState state) {
+        private CompletedLocalLogoutVO { intents = List.copyOf(intents); messageIds = List.copyOf(messageIds); }
+        @Override public String toString() { return "CompletedLocalLogoutVO[state=" + state + ", familyCount=" + intents.size() + "]"; }
     }
 
     private Mono<RemoteState> revokeAndAcknowledge(
@@ -129,10 +125,7 @@ public class EdgeLogoutService {
 
     private Mono<Void> clearLocally(Authentication principal, ServerWebExchange exchange) {
         return removeAll(principal, exchange)
-                .onErrorResume(exception -> {
-                    log.warn("BFF AuthorizedClient cleanup remains pending");
-                    return Mono.empty();
-                })
+                .doOnError(exception -> log.warn("BFF terminal AuthorizedClient cleanup failed; failureType={}", exception.getClass().getSimpleName()))
                 .then(invalidateLocalSession(exchange));
     }
 
@@ -172,6 +165,6 @@ public class EdgeLogoutService {
         if (issuer == null || issuer.isBlank()) {
             throw new IllegalStateException("Edge issuer is unavailable for logout");
         }
-        return URI.create(issuer).normalize().toString().replaceAll("/$", "");
+        return URI.create(issuer).toASCIIString();
     }
 }

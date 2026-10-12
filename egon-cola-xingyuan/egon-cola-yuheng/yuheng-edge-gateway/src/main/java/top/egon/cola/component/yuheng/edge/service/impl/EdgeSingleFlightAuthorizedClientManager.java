@@ -1,10 +1,12 @@
 package top.egon.cola.component.yuheng.edge.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.AccessLevel;
+import org.springframework.beans.factory.annotation.Qualifier;
+import top.egon.cola.component.yuheng.edge.service.domain.enums.EdgeSessionBindingStateEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLockReactive;
 import org.redisson.api.RedissonReactiveClient;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -16,29 +18,37 @@ import org.springframework.web.filter.reactive.ServerWebExchangeContextFilter;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.yuheng.edge.config.EdgeOAuthProperties;
 
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-@RequiredArgsConstructor
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
 public class EdgeSingleFlightAuthorizedClientManager implements ReactiveOAuth2AuthorizedClientManager {
-    private static final String LOCK_PREFIX = "egon:bff:oauth-refresh:v1:";
+    private static final String LOCK_PREFIX = "egon:bff:oauth-refresh:v2:";
     private static final String TEMPORARILY_UNAVAILABLE = "temporarily_unavailable";
 
-    private final ReactiveOAuth2AuthorizedClientManager delegate;
-    private final ReactiveClientRegistrationRepository registrations;
-    private final RedissonReactiveClient redisson;
-    private final EdgeOAuthProperties properties;
+    @Qualifier("edgeDefaultAuthorizedClientManager") private final ReactiveOAuth2AuthorizedClientManager delegate;
+    @Qualifier("clientRegistrationRepository") private final ReactiveClientRegistrationRepository registrations;
+    @Qualifier("redissonReactiveClient") private final RedissonReactiveClient redisson;
+    @Qualifier("edgeOAuthProperties") private final EdgeOAuthProperties properties;
+    @Qualifier("edgeSessionBindingComponent") private final EdgeSessionBindingComponent bindings;
+    @Qualifier("edgeAuthorizedClientRepository") private final EdgeAuthorizedClientRepository clients;
+
+    public EdgeSingleFlightAuthorizedClientManager(ReactiveOAuth2AuthorizedClientManager delegate,
+            ReactiveClientRegistrationRepository registrations, RedissonReactiveClient redisson, EdgeOAuthProperties properties) {
+        this(delegate, registrations, redisson, properties, null, null);
+    }
+
+    public static EdgeSingleFlightAuthorizedClientManager createConfigured(ReactiveOAuth2AuthorizedClientManager delegate,
+            ReactiveClientRegistrationRepository registrations, RedissonReactiveClient redisson, EdgeOAuthProperties properties,
+            EdgeSessionBindingComponent bindings, EdgeAuthorizedClientRepository clients) {
+        return new EdgeSingleFlightAuthorizedClientManager(java.util.Objects.requireNonNull(delegate), java.util.Objects.requireNonNull(registrations),
+                java.util.Objects.requireNonNull(redisson), java.util.Objects.requireNonNull(properties), java.util.Objects.requireNonNull(bindings), java.util.Objects.requireNonNull(clients));
+    }
 
     @Override
     public Mono<org.springframework.security.oauth2.client.OAuth2AuthorizedClient> authorize(
             OAuth2AuthorizeRequest authorizeRequest) {
+        if (bindings == null || clients == null) { return Mono.error(unavailable("Edge authoritative refresh adapter is required")); }
         if (authorizeRequest == null
                 || authorizeRequest.getClientRegistrationId() == null
                 || authorizeRequest.getPrincipal() == null) {
@@ -58,32 +68,35 @@ public class EdgeSingleFlightAuthorizedClientManager implements ReactiveOAuth2Au
     }
 
     private Mono<org.springframework.security.oauth2.client.OAuth2AuthorizedClient> withSessionLock(
-            OAuth2AuthorizeRequest request,
-            ServerWebExchange exchange,
-            ClientRegistration registration) {
-        Authentication principal = request.getPrincipal();
-        return exchange.getSession().flatMap(session -> {
-            Object binding = session.getAttribute(EdgeAuthorizedClientRepository.SESSION_BINDING_ATTRIBUTE);
-            if (!(binding instanceof String bindingId) || bindingId.isBlank()) {
-                return Mono.error(unavailable("Edge session binding is unavailable"));
+            OAuth2AuthorizeRequest request, ServerWebExchange exchange, ClientRegistration registration) {
+        return bindings.withLifecycle(exchange, lifecycle -> bindings.state(lifecycle).flatMap(binding -> {
+            String alias = bindings.aliasForRegistration(registration.getRegistrationId());
+            if (binding.getState() != EdgeSessionBindingStateEnum.ACTIVE || !binding.getSubject().equals(request.getPrincipal().getName())
+                    || !registration.getRegistrationId().equals(bindings.resolveRegistration(alias, binding.getIssuer()))) {
+                return Mono.error(unavailable("Edge refresh does not match the active canonical resource tuple"));
             }
-            String lockName = LOCK_PREFIX + digest(
-                    bindingId,
-                    issuer(registration),
-                    tenantId(registration),
-                    registration.getClientId(),
-                    registration.getRegistrationId(),
-                    principal.getName());
-            return Mono.usingWhen(
-                    acquire(lockName),
-                    lease -> delegate.authorize(request)
+            String selected = exchange.getAttribute(EdgeSessionBindingComponent.REGISTRATION_ID);
+            if (selected != null && !selected.equals(registration.getRegistrationId())) {
+                return Mono.error(unavailable("Edge refresh selection has changed"));
+            }
+            exchange.getAttributes().put(EdgeSessionBindingComponent.REGISTRATION_ID, registration.getRegistrationId());
+            exchange.getAttributes().put(EdgeSessionBindingComponent.RESOURCE_ALIAS, alias);
+            String lockName = LOCK_PREFIX + "{" + binding.getBindingId() + "}:" + EdgeSessionBindingComponent.digest(binding.getBindingId(), binding.getIssuer().toASCIIString(),
+                    binding.getTenantId(), registration.getClientId(), registration.getRegistrationId(), bindings.resource(alias).getResourceUri().toASCIIString(), binding.getSubject());
+            var nativeRequest = OAuth2AuthorizeRequest.withClientRegistrationId(request.getClientRegistrationId()).principal(request.getPrincipal())
+                    .attributes(attributes -> { attributes.putAll(request.getAttributes()); attributes.put(ServerWebExchange.class.getName(), exchange); }).build();
+            return Mono.usingWhen(acquire(lockName), lease -> delegate.authorize(nativeRequest)
                             .timeout(properties.getRefresh().getTokenTimeout())
-                            .onErrorMap(TimeoutException.class,
-                                    exception -> unavailable("Edge token refresh timed out")),
+                            .switchIfEmpty(Mono.error(unavailable("Edge resource authorization is required")))
+                            .onErrorResume(failure -> {
+                                if (failure instanceof OAuth2AuthorizationException known && "invalid_grant".equals(known.getError().getErrorCode())) { return Mono.error(failure); }
+                                return clients.closeUnknown(request.getPrincipal(), exchange, lifecycle)
+                                        .then(Mono.error(unavailable("Edge token refresh outcome is unknown")));
+                            }),
                     LockLease::release,
-                    (lease, exception) -> lease.release(),
+                    (lease, failure) -> lease.release(),
                     LockLease::release);
-        });
+        }), lifecycle -> clients.closeUnknown(request.getPrincipal(), exchange, lifecycle));
     }
 
     private Mono<LockLease> acquire(String lockName) {
@@ -109,43 +122,6 @@ public class EdgeSingleFlightAuthorizedClientManager implements ReactiveOAuth2Au
         return Mono.deferContextual(context -> ServerWebExchangeContextFilter.getExchange(context)
                 .map(Mono::just)
                 .orElseGet(() -> Mono.error(unavailable("Edge request context is unavailable"))));
-    }
-
-    private static String issuer(ClientRegistration registration) {
-        String value = registration.getProviderDetails().getIssuerUri();
-        if (value == null) {
-            Object metadataIssuer = registration.getProviderDetails().getConfigurationMetadata().get("issuer");
-            value = metadataIssuer instanceof String issuer ? issuer : null;
-        }
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Edge refresh issuer is unavailable");
-        }
-        return URI.create(value).normalize().toString().replaceAll("/$", "");
-    }
-
-    private static String tenantId(ClientRegistration registration) {
-        String path = URI.create(issuer(registration)).getPath();
-        if ("/platform".equals(path)) {
-            return "PLATFORM";
-        }
-        if (path != null && path.matches("/tenants/[1-9][0-9]*")) {
-            return path.substring("/tenants/".length());
-        }
-        throw new IllegalArgumentException("Edge refresh issuer tenant path is invalid");
-    }
-
-    private static String digest(String... fields) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            for (String field : fields) {
-                byte[] encoded = field.getBytes(StandardCharsets.UTF_8);
-                digest.update(ByteBuffer.allocate(Integer.BYTES).putInt(encoded.length).array());
-                digest.update(encoded);
-            }
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
-        }
     }
 
     private static OAuth2AuthorizationException unavailable(String message) {

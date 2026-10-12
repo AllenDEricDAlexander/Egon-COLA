@@ -1,32 +1,46 @@
 package top.egon.cola.component.yuheng.edge.config;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import top.egon.cola.component.yuheng.edge.config.domain.bo.EdgeRegistrationResourceBindingBO;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
+@Builder
+@lombok.extern.slf4j.Slf4j
+@org.springframework.validation.annotation.Validated
 @Component("edgeOAuthProperties")
 @ConfigurationProperties(prefix = "egon.yuheng.edge")
 public class EdgeOAuthProperties {
-    private Upstreams upstreams = new Upstreams();
-    private Session session = new Session();
-    private Logout logout = new Logout();
-    private Refresh refresh = new Refresh();
-    private URI publicOrigin;
-    private String defaultRegistrationId;
-    private List<String> allowedReturnPaths = new ArrayList<>(List.of("/"));
+    @Valid @NotNull @Builder.Default private Upstreams upstreams = new Upstreams();
+    @Valid @NotNull @Builder.Default private Session session = new Session();
+    @Valid @NotNull @Builder.Default private Logout logout = new Logout();
+    @Valid @NotNull @Builder.Default private Refresh refresh = new Refresh();
+    @NotNull private URI publicOrigin;
+    @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{1,128}") private String defaultRegistrationId;
+    @NotNull @Size(min = 1, max = 64) @Builder.Default private List<String> allowedReturnPaths = new ArrayList<>(List.of("/"));
+    @Valid @NotNull @Size(min = 1, max = 64) @Builder.Default
+    private Map<@NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{1,128}") String, @NotNull @Valid EdgeRegistrationResourceBindingBO> resources = new LinkedHashMap<>();
 
     @PostConstruct
     public void validate() {
@@ -37,7 +51,7 @@ public class EdgeOAuthProperties {
         if (publicOrigin.getPath() != null && !publicOrigin.getPath().isEmpty()) {
             throw new IllegalStateException("Edge public-origin must not contain a path");
         }
-        if (blank(defaultRegistrationId)) {
+        if (blank(defaultRegistrationId) || !defaultRegistrationId.matches("[A-Za-z0-9_-]{1,128}")) {
             throw new IllegalStateException("Edge default OAuth registration id is required");
         }
 
@@ -74,10 +88,15 @@ public class EdgeOAuthProperties {
                 || !boundedPositive(refresh.getLockWait(), Duration.ofSeconds(30))
                 || !boundedPositive(refresh.getLockLease(), Duration.ofSeconds(60))
                 || !boundedPositive(refresh.getTokenTimeout(), Duration.ofSeconds(30))
-                || refresh.getLockLease().compareTo(refresh.getTokenTimeout()) <= 0) {
+                || refresh.getLockLease().compareTo(refresh.getTokenTimeout().plusSeconds(2)) <= 0) {
             throw new IllegalStateException("Edge refresh lock and token timeout settings are invalid");
         }
-        if (allowedReturnPaths == null || allowedReturnPaths.isEmpty()
+        if (resources == null || resources.isEmpty() || resources.size() > 64 || !resources.containsKey(defaultRegistrationId)
+                || resources.entrySet().stream().anyMatch(entry -> entry.getKey() == null || !entry.getKey().matches("[A-Za-z0-9_-]{1,128}")
+                        || entry.getValue() == null || !entry.getValue().isBindingValid() || blank(entry.getValue().getResourceServerId()))) {
+            throw new IllegalStateException("Edge deployment resource catalog is required and must be valid");
+        }
+        if (allowedReturnPaths == null || allowedReturnPaths.isEmpty() || allowedReturnPaths.size() > 64
                 || allowedReturnPaths.stream().anyMatch(path -> !safeReturnPath(path))) {
             throw new IllegalStateException("Edge allowed return paths must be safe local paths");
         }
@@ -105,6 +124,8 @@ public class EdgeOAuthProperties {
         return path != null
                 && path.startsWith("/")
                 && !path.startsWith("//")
+                && path.length() <= 2048 && !path.contains("%") && !path.contains("?") && !path.contains("#")
+                && java.util.Arrays.stream(path.split("/", -1)).noneMatch(segment -> segment.equals(".") || segment.equals(".."))
                 && !path.contains("\\")
                 && path.indexOf('\r') < 0
                 && path.indexOf('\n') < 0;
@@ -126,30 +147,33 @@ public class EdgeOAuthProperties {
     @NoArgsConstructor
     @AllArgsConstructor
     @Accessors(chain = true)
+    @Builder
     public static class Upstreams {
-        private URI authorizationServer;
-        private URI bizGateway;
-        private URI mcpGateway;
+        @NotNull private URI authorizationServer;
+        @NotNull private URI bizGateway;
+        @NotNull private URI mcpGateway;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Accessors(chain = true)
+    @Builder
     public static class Session {
-        private Duration idleTimeout = Duration.ofMinutes(30);
-        private Duration absoluteTimeout = Duration.ofHours(8);
-        private int maxAuthorizedClients = 100;
-        private Encryption encryption = new Encryption();
+        @Builder.Default private Duration idleTimeout = Duration.ofMinutes(30);
+        @Builder.Default private Duration absoluteTimeout = Duration.ofHours(8);
+        @Builder.Default private int maxAuthorizedClients = 100;
+        @Valid @NotNull @Builder.Default private Encryption encryption = new Encryption();
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Accessors(chain = true)
+    @Builder
     public static class Encryption {
-        private String keyId;
-        private String keyFile;
+        @NotBlank @Pattern(regexp = "[A-Za-z0-9._-]{1,64}") private String keyId;
+        @NotBlank private String keyFile;
 
         @Override
         public String toString() {
@@ -161,22 +185,24 @@ public class EdgeOAuthProperties {
     @NoArgsConstructor
     @AllArgsConstructor
     @Accessors(chain = true)
+    @Builder
     public static class Logout {
-        private String stream = "egon:bff:logout-revocation:v1";
-        private String consumerGroup = "bff-revocation-v1";
-        private int maxPending = 10_000;
-        private Duration pollInterval = Duration.ofSeconds(5);
-        private Duration claimIdle = Duration.ofSeconds(30);
-        private Duration timeout = Duration.ofSeconds(5);
+        @Builder.Default private String stream = "egon:bff:logout-revocation:v1";
+        @Builder.Default private String consumerGroup = "bff-revocation-v1";
+        @Builder.Default private int maxPending = 10_000;
+        @Builder.Default private Duration pollInterval = Duration.ofSeconds(5);
+        @Builder.Default private Duration claimIdle = Duration.ofSeconds(30);
+        @Builder.Default private Duration timeout = Duration.ofSeconds(5);
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Accessors(chain = true)
+    @Builder
     public static class Refresh {
-        private Duration lockWait = Duration.ofSeconds(5);
-        private Duration lockLease = Duration.ofSeconds(15);
-        private Duration tokenTimeout = Duration.ofSeconds(5);
+        @Builder.Default private Duration lockWait = Duration.ofSeconds(5);
+        @Builder.Default private Duration lockLease = Duration.ofSeconds(15);
+        @Builder.Default private Duration tokenTimeout = Duration.ofSeconds(5);
     }
 }

@@ -44,6 +44,9 @@ public class EdgeOAuthTokenRevocationClient {
     }
 
     public Mono<Void> revoke(EdgeLogoutRevocationIntent intent) {
+        boolean configured = properties.getResources().values().stream().anyMatch(resource ->
+                intent.registrationId().equals(resource.getIssuerRegistrationIds().get(intent.issuer())));
+        if (!configured) { return Mono.error(new IllegalStateException("Edge revocation tuple is not in the deployment catalog")); }
         return registrations.findByRegistrationId(intent.registrationId())
                 .switchIfEmpty(Mono.error(new IllegalStateException("Edge revocation registration is unavailable")))
                 .flatMap(registration -> revoke(registration, intent))
@@ -65,7 +68,8 @@ public class EdgeOAuthTokenRevocationClient {
             return Mono.error(new IllegalStateException("Edge revocation registration no longer matches the durable intent"));
         }
         String endpoint = revocationEndpoint(registration);
-        if (!sameOrigin(properties.getUpstreams().getAuthorizationServer(), URI.create(endpoint))) {
+        if (!"https".equals(URI.create(endpoint).getScheme()) || !endpoint.equals(issuer + "/oauth2/revoke")
+                || !sameOrigin(properties.getUpstreams().getAuthorizationServer(), URI.create(endpoint))) {
             return Mono.error(new IllegalStateException("Edge revocation endpoint is outside the configured issuer origin"));
         }
 
@@ -108,7 +112,7 @@ public class EdgeOAuthTokenRevocationClient {
         if (!StringUtils.hasText(value)) {
             throw new IllegalStateException("Edge issuer metadata is unavailable");
         }
-        return URI.create(value).normalize().toString().replaceAll("/$", "");
+        return URI.create(value).toASCIIString();
     }
 
     private static String tenantId(String issuer) {

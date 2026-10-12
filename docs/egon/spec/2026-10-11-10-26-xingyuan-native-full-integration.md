@@ -839,3 +839,13 @@ Verdict: **PASS — Ready for user review**。用户已明确confirmed批准本�
 | --- | --- | --- |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |
+
+### 20.9 Step 7 fixed resource ID and complete external Bearer approval — DEC-011
+
+状态：**Accepted — 用户于2026-10-12直接批准“必填资源 ID 与完整 Bearer 验证”**。授柄完整 SERVICE 验证调用 `IdentityResourceServerStateReader.read(resourceServerId)`，检查 ACTIVE、精确 resourceUri 和 resource_version；当前端口没有 URI lookup。Edge 每 alias 原只有 resourceUri，不能借 Edge portal ID 或从 JWT/Header 推导目标 ID。原外部 Bearer 透传草稿不能作为 §9.6/REQ-001 的完整 receiver 验证。
+
+在既有 `EdgeRegistrationResourceBindingBO` 增加部署必填 `String resourceServerId`，`@NotBlank @Size(max=128)`，只来自原可信资源 owner/部署目录；不新增 HTTP/query/header selector，不设置权限/租户/资源默认值。base/local 的 `resources.<alias>.resource-server-id` 同层级且值引用既有真实部署来源。已批准的 resourceUri、issuer/realreg、scope/redirect/canonical/fence 合同不变。
+
+复用当前 `IdpJwtVerifier.createConfigured` 和 capture overload：每固定 alias 使用其明确 ID/URI、已有 issuer manager/状态 readers/converter/clock/共享 revocation/usage observer，外部 USER/SERVICE 在本地 RS256、类型、iss/aud/time、资源/客户端状态、共享撤销及严格 usage 完成后才透传同一原 token。验证/FS 在 boundedElastic，revocation 复用现 Reactive reader；不重解析/重复解码、不新增 token cache/Redis/registry/框架/依赖/SQL/SDK API。外部 Bearer 不选 BFF registration；denial 必须零 TokenRelay/业务调用，保持现401/503/400、no-store/Bearer和业务响应形状。
+
+本修订复用 Step7 原 File1/5/6/7/10/11/12/16/17 owners，无新增生产文件。两既有测试 owner 增实际 RSA/SDK/状态/撤销/审计正反例：USER/SERVICE成功、wrongaud/资源disabled或版本stale/revoked401、依赖/审计503、原Bearer不变、混合Cookie400及零AS/BFF调用。原完整 native A→append→全logout→B、lease/refresh/latecallback/cancel及17MC/10Literal门禁继续。本三份文档修订纳入 Step7 单一 focused commit；19Step 顺序、无服务/浏览器/部署/Docker本阶段限制不变。批准不表示源码/行为/真实运行通过。

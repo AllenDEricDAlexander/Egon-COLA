@@ -12,20 +12,19 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.web.server.csrf.CsrfToken;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification;
+import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
+import top.egon.cola.component.yuheng.edge.service.domain.enums.EdgeSessionBindingStateEnum;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import top.egon.cola.component.yuheng.edge.controller.domain.EdgeCsrfResult;
 import top.egon.cola.component.yuheng.edge.controller.domain.EdgeLogoutFailureResult;
 import top.egon.cola.component.yuheng.edge.controller.domain.EdgeSessionResult;
@@ -33,15 +32,10 @@ import top.egon.cola.component.yuheng.edge.config.EdgeOAuthProperties;
 import top.egon.cola.component.yuheng.edge.service.EdgeLogoutService;
 import top.egon.cola.component.yuheng.edge.service.impl.EdgeAuthorizedClientRepository;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
-import top.egon.cola.platform.tianquan.shoubing.starter.security.TenantIssuerAuthenticationManagerComponent;
-import top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.OAuthRevocationReader;
 import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.VerifiedJwtBO;
-import top.egon.cola.platform.tianquan.shoubing.contract.PrincipalType;
 
-import java.net.URI;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -77,7 +71,9 @@ public class EdgeSessionController {
     @Operation(operationId = "oauthBffSession", summary = "Read the current BFF session")
     @SecurityRequirement(name = "bffSessionCookie")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Current verified identity"),
+            @ApiResponse(responseCode = "200", description = "Current verified identity", content = @io.swagger.v3.oas.annotations.media.Content(
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = EdgeSessionResult.class))),
+            @ApiResponse(responseCode = "400", description = "Unexpected query or request body"),
             @ApiResponse(responseCode = "401", description = "Session or access token is invalid"),
             @ApiResponse(responseCode = "503", description = "Shared security state is unavailable")
     })
@@ -86,42 +82,82 @@ public class EdgeSessionController {
                 || !authentication.isAuthenticated()) {
             return Mono.just(unauthorized());
         }
-        String registrationId = oauthAuthentication.getAuthorizedClientRegistrationId();
-        return exchange.getSession().flatMap(session -> {
-            Instant createdAt = session.getAttribute(SESSION_CREATED_AT_ATTRIBUTE);
-            if (createdAt == null
-                    || !clock.instant().isBefore(createdAt.plus(edgeProperties.getSession().getAbsoluteTimeout()))) {
-                return Mono.just(unauthorized());
+        if (!exchange.getRequest().getQueryParams().isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().cacheControl(NO_STORE).body(Map.of("error", "invalid_request")));
+        }
+        return exchange.getRequest().getBody().doOnNext(DataBufferUtils::release).hasElements().flatMap(body -> {
+            if (body) { return Mono.just(ResponseEntity.badRequest().cacheControl(NO_STORE).body(Map.of("error", "invalid_request"))); }
+            var bindings = authorizedClients.bindingComponent();
+            return bindings.load(exchange).flatMap(binding -> {
+                if (binding.getState() != EdgeSessionBindingStateEnum.ACTIVE
+                        || !binding.getSubject().equals(authentication.getName())) { return Mono.just(unauthorized()); }
+                AccessTokenVerification<IdentityPrincipal> noValidToken = new AccessTokenVerification.Invalid<>("JWT_INVALID");
+                return authorizedClients.loadAll(authentication, exchange).flatMap(clients -> reactor.core.publisher.Flux.fromIterable(clients)
+                        .concatMap(client -> bindings.verifyClient(client, authentication, java.util.UUID.randomUUID().toString().replace("-", "")))
+                        .takeUntil(result -> result instanceof AccessTokenVerification.Unavailable<?>)
+                        .reduce(noValidToken,
+                                (best, current) -> current instanceof AccessTokenVerification.Unavailable<?>
+                                        || !(best instanceof AccessTokenVerification.Valid<?>) ? current : best)
+                        .flatMap(result -> {
+                            if (result instanceof AccessTokenVerification.Unavailable<?>) {
+                                return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).cacheControl(NO_STORE).body(Map.of("error", "temporarily_unavailable")));
+                            }
+                            if (result instanceof AccessTokenVerification.Valid<?> valid
+                                    && valid.proof() != null && binding.getIssuer().equals(valid.proof().issuer())
+                                    && binding.getTenantId().equals(valid.principal().tenantId()) && binding.getSubject().equals(valid.principal().subject())) {
+                                return bindings.load(exchange).map(current -> current.getGeneration() == binding.getGeneration()
+                                        && current.getBindingId().equals(binding.getBindingId()) && current.getState() == EdgeSessionBindingStateEnum.ACTIVE
+                                        ? ResponseEntity.ok().cacheControl(NO_STORE).body(new EdgeSessionResult(true, binding.getTenantId(), binding.getSubject(), displayName(oauthAuthentication, binding.getSubject())))
+                                        : unauthorized());
+                            }
+                            return Mono.just(unauthorized());
+                        }));
+            });
+        }).onErrorResume(org.springframework.security.oauth2.core.OAuth2AuthenticationException.class, failure -> {
+            if ("temporarily_unavailable".equals(failure.getError().getErrorCode())) {
+                return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).cacheControl(NO_STORE).body(Map.of("error", "temporarily_unavailable")));
             }
-            return registrations.findByRegistrationId(registrationId)
-                    .flatMap(registration -> authorizedClients
-                            .loadAuthorizedClient(registrationId, authentication, exchange)
-                            .flatMap(client -> verifySession(oauthAuthentication, registration, client)))
-                    .defaultIfEmpty(SessionCheck.invalid())
-                    .map(this::toResponse);
+            if ("invalid_token".equals(failure.getError().getErrorCode())) {
+                exchange.getResponse().addCookie(org.springframework.http.ResponseCookie.from("__Host-egon_bff", "").path("/")
+                        .secure(true).httpOnly(true).sameSite("Lax").maxAge(0).build());
+                return exchange.getSession().flatMap(session -> session.invalidate()).thenReturn(unauthorized());
+            }
+            return Mono.just(unauthorized());
         });
     }
 
     @GetMapping("/csrf")
     @Operation(operationId = "oauthBffCsrf", summary = "Read the current CSRF token")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "CSRF header and token")})
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "CSRF header and token", content = @io.swagger.v3.oas.annotations.media.Content(
+            schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = EdgeCsrfResult.class))),
+            @ApiResponse(responseCode = "400", description = "Unexpected query or request body"),
+            @ApiResponse(responseCode = "503", description = "CSRF state is unavailable")})
     public Mono<ResponseEntity<?>> csrf(ServerWebExchange exchange) {
-        Object value = exchange.getAttribute(CsrfToken.class.getName());
-        if (value instanceof Mono<?> tokenMono) {
-            @SuppressWarnings("unchecked")
-            Mono<CsrfToken> csrf = (Mono<CsrfToken>) tokenMono;
-            return csrf.map(token -> ResponseEntity.ok()
-                    .cacheControl(NO_STORE)
-                    .body(new EdgeCsrfResult(token.getHeaderName(), token.getToken())));
+        if (!exchange.getRequest().getQueryParams().isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().cacheControl(NO_STORE).body(Map.of("error", "invalid_request")));
         }
-        if (value instanceof CsrfToken token) {
-            return Mono.just(ResponseEntity.ok()
-                    .cacheControl(NO_STORE)
-                    .body(new EdgeCsrfResult(token.getHeaderName(), token.getToken())));
-        }
-        return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .cacheControl(NO_STORE)
-                .body(Map.of("error", "temporarily_unavailable")));
+        return exchange.getRequest().getBody().doOnNext(DataBufferUtils::release)
+                .hasElements().flatMap(hasBody -> {
+                    if (hasBody) {
+                        return Mono.just(ResponseEntity.badRequest().cacheControl(NO_STORE).body(Map.of("error", "invalid_request")));
+                    }
+                    Object value = exchange.getAttribute(CsrfToken.class.getName());
+                    if (value instanceof Mono<?> tokenMono) {
+                        @SuppressWarnings("unchecked")
+                        Mono<CsrfToken> csrf = (Mono<CsrfToken>) tokenMono;
+                        return csrf.map(token -> ResponseEntity.ok()
+                                .cacheControl(NO_STORE)
+                                .body(new EdgeCsrfResult(token.getHeaderName(), token.getToken())));
+                    }
+                    if (value instanceof CsrfToken token) {
+                        return Mono.just(ResponseEntity.ok()
+                                .cacheControl(NO_STORE)
+                                .body(new EdgeCsrfResult(token.getHeaderName(), token.getToken())));
+                    }
+                    return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                            .cacheControl(NO_STORE)
+                            .body(Map.of("error", "temporarily_unavailable")));
+                });
     }
 
     @PostMapping("/logout")
@@ -132,14 +168,20 @@ public class EdgeSessionController {
     })
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Local session ended and all remote revocations confirmed"),
-            @ApiResponse(responseCode = "503", description = "Local logout completed; remote revocation is pending or unknown")
+            @ApiResponse(responseCode = "400", description = "Unexpected query or request body"),
+            @ApiResponse(responseCode = "401", description = "Authenticated BFF session is required"),
+            @ApiResponse(responseCode = "403", description = "CSRF verification failed"),
+            @ApiResponse(responseCode = "503", description = "Local logout completed; remote revocation is pending or unknown", content = @io.swagger.v3.oas.annotations.media.Content(
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = EdgeLogoutFailureResult.class)))
     })
     public Mono<ResponseEntity<?>> logout(Authentication authentication, ServerWebExchange exchange) {
         if (!(authentication instanceof OAuth2AuthenticationToken) || !authentication.isAuthenticated()) {
             return Mono.just(unauthorized());
         }
-        return logoutService.logout(authentication, exchange)
-                .map(remoteState -> switch (remoteState) {
+        if (!exchange.getRequest().getQueryParams().isEmpty()) { return Mono.just(ResponseEntity.badRequest().cacheControl(NO_STORE).body(Map.of("error", "invalid_request"))); }
+        return exchange.getRequest().getBody().doOnNext(DataBufferUtils::release).hasElements().flatMap(body -> {
+            if (body) { return Mono.just(ResponseEntity.badRequest().cacheControl(NO_STORE).body(Map.of("error", "invalid_request"))); }
+            return logoutService.logout(authentication, exchange).map(remoteState -> switch (remoteState) {
                     case CONFIRMED -> ResponseEntity.noContent().cacheControl(NO_STORE).build();
                     case PENDING -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                             .cacheControl(NO_STORE)
@@ -156,85 +198,12 @@ public class EdgeSessionController {
                                     true,
                                     "UNKNOWN"));
                 });
-    }
-
-    private Mono<SessionCheck> verifySession(
-            OAuth2AuthenticationToken authentication,
-            ClientRegistration registration,
-            OAuth2AuthorizedClient client) {
-        if (client.getAccessToken() == null
-                || !registrationIssuer(registration).equals(clientIssuer(client))
-                || client.getAccessToken().getExpiresAt() == null
-                || !client.getAccessToken().getExpiresAt().isAfter(clock.instant())) {
-            return Mono.just(SessionCheck.invalid());
-        }
-        return Mono.fromCallable(() -> accessTokenVerifier.apply(client.getAccessToken().getTokenValue()))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(verified -> checkVerifiedSession(
-                        authentication,
-                        registration,
-                        client.getAccessToken().getTokenValue(),
-                        verified))
-                .onErrorResume(RestClientException.class, exception -> {
-                    log.warn("BFF session token verification dependency is unavailable; failureType={}",
-                            exception.getClass().getSimpleName());
-                    return Mono.just(SessionCheck.unavailable());
-                })
-                .onErrorResume(TenantIssuerAuthenticationManagerComponent.InvalidIssuerException.class,
-                        exception -> invalidSession(exception))
-                .onErrorResume(JwtException.class, exception -> invalidSession(exception))
-                .onErrorResume(IllegalArgumentException.class, exception -> invalidSession(exception));
-    }
-
-    private Mono<SessionCheck> invalidSession(RuntimeException exception) {
-        log.debug("BFF session token is invalid; failureType={}", exception.getClass().getSimpleName());
-        return Mono.just(SessionCheck.invalid());
-    }
-
-    private Mono<SessionCheck> checkVerifiedSession(
-            OAuth2AuthenticationToken authentication,
-            ClientRegistration registration,
-            String accessTokenValue,
-            VerifiedJwtBO verified) {
-        TrustedIssuerRegistry.TrustedIssuerVO trusted = verified.getTrustedIssuer();
-        String tenantId = tenantId(trusted.issuer().toString());
-        boolean exactIdentity = verified.getPrincipalType() == PrincipalType.USER
-                && tenantId != null
-                && tenantId.equals(verified.getTenantId())
-                && registrationIssuer(registration).equals(trusted.issuer().toString())
-                && registrationIssuer(registration).equals(canonicalIssuer(
-                        verified.getJwt().getIssuer() == null ? null : verified.getJwt().getIssuer().toString()))
-                && accessTokenValue.equals(verified.getJwt().getTokenValue())
-                && authentication.getName().equals(verified.getSubject())
-                && verified.getSubject().equals(verified.getJwt().getSubject())
-                && idpProperties.getResourceUri() != null
-                && verified.getJwt().getAudience().contains(idpProperties.getResourceUri().toASCIIString());
-        if (!exactIdentity) {
-            return Mono.just(SessionCheck.invalid());
-        }
-        return revocationCheck.apply(verified).map(result -> switch (result.status()) {
-            case VALID -> SessionCheck.valid(verified, tenantId, displayName(authentication, verified.getSubject()));
-            case REVOKED -> SessionCheck.invalid();
-            case UNAVAILABLE -> SessionCheck.unavailable();
         });
-    }
-
-    private ResponseEntity<?> toResponse(SessionCheck check) {
-        if (check.state() == CheckState.UNAVAILABLE) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .cacheControl(NO_STORE)
-                    .body(Map.of("error", "temporarily_unavailable"));
-        }
-        if (check.state() != CheckState.VALID) {
-            return unauthorized();
-        }
-        return ResponseEntity.ok()
-                .cacheControl(NO_STORE)
-                .body(new EdgeSessionResult(true, check.tenantId(), check.subject(), check.displayName()));
     }
 
     private static ResponseEntity<Map<String, String>> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(org.springframework.http.HttpHeaders.WWW_AUTHENTICATE, "Bearer")
                 .cacheControl(NO_STORE)
                 .body(Map.of("error", "invalid_token"));
     }
@@ -248,47 +217,4 @@ public class EdgeSessionController {
         return bounded.length() <= 256 ? bounded : bounded.substring(0, 256);
     }
 
-    private static String clientIssuer(OAuth2AuthorizedClient client) {
-        return registrationIssuer(client.getClientRegistration());
-    }
-
-    private static String registrationIssuer(ClientRegistration registration) {
-        String issuer = registration.getProviderDetails().getIssuerUri();
-        return issuer == null ? "" : canonicalIssuer(issuer);
-    }
-
-    private static String canonicalIssuer(String issuer) {
-        if (issuer == null || issuer.isBlank()) {
-            return "";
-        }
-        return URI.create(issuer).normalize().toString().replaceAll("/$", "");
-    }
-
-    private static String tenantId(String issuer) {
-        String path = URI.create(issuer).getPath();
-        if (path != null && path.matches("/tenants/[1-9][0-9]*")) {
-            return path.substring("/tenants/".length());
-        }
-        return null;
-    }
-
-    private enum CheckState {
-        VALID,
-        INVALID,
-        UNAVAILABLE
-    }
-
-    private record SessionCheck(CheckState state, String tenantId, String subject, String displayName) {
-        private static SessionCheck valid(VerifiedJwtBO ignored, String tenantId, String displayName) {
-            return new SessionCheck(CheckState.VALID, tenantId, ignored.getSubject(), displayName);
-        }
-
-        private static SessionCheck invalid() {
-            return new SessionCheck(CheckState.INVALID, null, null, null);
-        }
-
-        private static SessionCheck unavailable() {
-            return new SessionCheck(CheckState.UNAVAILABLE, null, null, null);
-        }
-    }
 }

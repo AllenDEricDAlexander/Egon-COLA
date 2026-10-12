@@ -150,35 +150,25 @@ class EdgeLoginContractTest {
     }
 
     @Test
-    void successfulApiAndMcpForwardingDropsCookiesButPreservesResolvedSessionAndBearer() {
-        var filter = new top.egon.cola.component.yuheng.edge.filter.TrustedIdentityHeaderFilter(
-                new com.fasterxml.jackson.databind.ObjectMapper());
-        for (String path : List.of("/api/orders", "/mcp/messages")) {
-            var bearer = org.springframework.mock.web.server.MockServerWebExchange.from(
-                    org.springframework.mock.http.server.reactive.MockServerHttpRequest.get(path)
-                            .header("Authorization", "Bearer service-token")
-                            .header("Cookie", "legacy_at=old; legacy_rt=old")
-                            .header("x-egon-user-id", "spoofed"));
-            AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
-            filter.filter(bearer, next -> { forwarded.set(next); return Mono.empty(); }).block();
-            assertThat(forwarded.get().getRequest().getHeaders().getFirst("Cookie")).isNull();
-            assertThat(forwarded.get().getRequest().getHeaders().getFirst("Authorization"))
-                    .isEqualTo("Bearer service-token");
-            assertThat(forwarded.get().getRequest().getHeaders().getFirst("x-egon-user-id")).isNull();
-
-            var browser = org.springframework.mock.web.server.MockServerWebExchange.from(
-                    org.springframework.mock.http.server.reactive.MockServerHttpRequest.get(path)
-                            .cookie(new org.springframework.http.HttpCookie("__Host-egon_bff", "opaque-session")));
-            WebSession resolved = browser.getSession().block();
-            resolved.getAttributes().put("resolved-binding", "session-1");
-            Authentication principal = oauthAuthentication("tenant-a", "subject-1");
-            ServerWebExchange authenticated = browser.mutate().principal(Mono.just(principal)).build();
-            filter.filter(authenticated, next -> { forwarded.set(next); return Mono.empty(); }).block();
-            assertThat(forwarded.get().getRequest().getHeaders().getFirst("Cookie")).isNull();
-            assertThat(forwarded.get().getPrincipal().block()).isSameAs(principal);
-            assertThat(forwarded.get().getSession().block()).isSameAs(resolved);
-            assertThat(forwarded.get().getSession().block().getAttribute("resolved-binding").toString())
-                    .isEqualTo("session-1");
+    void successfulApiAndMcpForwardingDropsCookiesButPreservesResolvedSessionAndBearer() throws Exception {
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir)) {
+            var session = fixture.newSession();
+            for (String alias : List.of("app-a", "app-b")) {
+                var callback = fixture.pendingExchange(alias, session);
+                fixture.clients.saveAuthorizedClient(fixture.client(alias, "user-1"), fixture.authentication(alias, "user-1"), callback).block();
+                var reached = new AtomicReference<ServerWebExchange>();
+                fixture.forward(alias, session, fixture.authentication(alias, "user-1"), null, reached);
+                assertThat(reached.get()).isNotNull();
+                assertThat(reached.get().getRequest().getHeaders().getFirst("Cookie")).isNull();
+                assertThat(reached.get().getRequest().getHeaders().getFirst("Authorization")).startsWith("Bearer ");
+                assertThat(reached.get().getRequest().getHeaders().getFirst("tenant_id")).isEqualTo("1001");
+                assertThat(reached.get().getRequest().getHeaders().getFirst("x-egon-user-id")).isNull();
+                String token = fixture.token(alias, "SERVICE", "client-" + alias, Map.of()); reached.set(null);
+                fixture.forward(alias, fixture.newSession(), null, token, reached);
+                assertThat(reached.get().getRequest().getHeaders().getFirst("Authorization")).isEqualTo("Bearer " + token);
+                assertThat(reached.get().getRequest().getHeaders().getFirst("Cookie")).isNull();
+            }
+            assertThat(fixture.refreshExchanges).hasValue(0);
         }
     }
 
@@ -258,77 +248,22 @@ class EdgeLoginContractTest {
     }
 
     @Test
-    void concurrentRelayRefreshesWaitForTheEncryptedRepositoryWrite() {
-        EdgeOAuthProperties properties = propertiesWithIssuerOrigin();
-        properties.getRefresh().setLockWait(Duration.ofSeconds(2));
-        properties.getRefresh().setLockLease(Duration.ofSeconds(5));
-        properties.getRefresh().setTokenTimeout(Duration.ofSeconds(2));
-        ClientRegistration tenantA = registration("tenant-a", "https://idp.example/tenants/1001", "client-a");
-        ClientRegistration tenantB = registration("tenant-b", "https://idp.example/tenants/1002", "client-b");
-        Map<String, ClientRegistration> registrationsById = Map.of(
-                tenantA.getRegistrationId(), tenantA,
-                tenantB.getRegistrationId(), tenantB);
-        ReactiveClientRegistrationRepository registrations = id -> Mono.justOrEmpty(registrationsById.get(id));
-        TestingAuthenticationToken principal = new TestingAuthenticationToken(
-                "subject-1", "unused", "ROLE_USER");
-        WebSession session = mock(WebSession.class);
-        when(session.getAttribute(EdgeAuthorizedClientRepository.SESSION_BINDING_ATTRIBUTE))
-                .thenReturn("session-binding-1");
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        when(exchange.getSession()).thenReturn(Mono.just(session));
-
-        RedissonReactiveClient redisson = mock(RedissonReactiveClient.class);
-        Map<String, Semaphore> semaphores = new ConcurrentHashMap<>();
-        Map<String, RLockReactive> locks = new ConcurrentHashMap<>();
-        when(redisson.getLock(org.mockito.ArgumentMatchers.anyString())).thenAnswer(invocation -> {
-            String name = invocation.getArgument(0);
-            return locks.computeIfAbsent(name, ignored -> lock(semaphores.computeIfAbsent(name,
-                    unused -> new Semaphore(1, true))));
-        });
-
-        AtomicInteger refreshes = new AtomicInteger();
-        Map<String, AtomicReference<OAuth2AuthorizedClient>> current = new ConcurrentHashMap<>();
-        current.put(tenantA.getRegistrationId(), new AtomicReference<>(expiredAuthorizedClient(tenantA, principal.getName())));
-        current.put(tenantB.getRegistrationId(), new AtomicReference<>(expiredAuthorizedClient(tenantB, principal.getName())));
-        ReactiveOAuth2AuthorizedClientManager delegate = mock(ReactiveOAuth2AuthorizedClientManager.class);
-        doAnswer(invocation -> {
-            OAuth2AuthorizeRequest request = invocation.getArgument(0);
-            AtomicReference<OAuth2AuthorizedClient> authorized = current.get(request.getClientRegistrationId());
-            return Mono.defer(() -> {
-                OAuth2AuthorizedClient existing = authorized.get();
-                if (existing.getAccessToken().getExpiresAt().isAfter(NOW)) {
-                    return Mono.just(existing);
-                }
-                return Mono.delay(Duration.ofMillis(20)).map(ignored -> {
-                    refreshes.incrementAndGet();
-                    OAuth2AuthorizedClient fresh = authorizedClient(
-                            existing.getClientRegistration(),
-                            existing.getPrincipalName(),
-                            "fresh-" + request.getClientRegistrationId(),
-                            "rotated-" + request.getClientRegistrationId());
-                    authorized.set(fresh);
-                    return fresh;
-                });
-            });
-        }).when(delegate).authorize(any(OAuth2AuthorizeRequest.class));
-
-        EdgeSingleFlightAuthorizedClientManager manager = new EdgeSingleFlightAuthorizedClientManager(
-                delegate, registrations, redisson, properties);
-        OAuth2AuthorizeRequest requestA = authorizeRequest(tenantA, principal, exchange);
-        List<OAuth2AuthorizedClient> returned = Flux.range(0, 20)
-                .flatMap(ignored -> manager.authorize(requestA), 20)
-                .collectList()
-                .block(Duration.ofSeconds(5));
-
-        assertThat(returned).hasSize(20);
-        assertThat(refreshes).hasValue(1);
-        assertThat(returned).extracting(value -> value.getAccessToken().getTokenValue())
-                .containsOnly("fresh-tenant-a");
-        manager.authorize(authorizeRequest(tenantB, principal, exchange)).block(Duration.ofSeconds(5));
-        assertThat(refreshes).hasValue(2);
-        assertThat(locks).hasSize(2);
-        assertThat(locks.keySet()).allSatisfy(lockName ->
-                assertThat(lockName).doesNotContain("subject-1", "client-secret", "raw-refresh"));
+    void concurrentRelayRefreshesWaitForTheEncryptedRepositoryWrite() throws Exception {
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir)) {
+            var session = fixture.newSession(); var callback = fixture.pendingExchange("app-a", session);
+            var valid = fixture.client("app-a", "user-1");
+            var expiredMetadata = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, valid.getAccessToken().getTokenValue(),
+                    EdgeResourceAuthorizationContractTest.Fixture.TIME.minusSeconds(600), EdgeResourceAuthorizationContractTest.Fixture.TIME.minusSeconds(1), valid.getAccessToken().getScopes());
+            fixture.clients.saveAuthorizedClient(new OAuth2AuthorizedClient(valid.getClientRegistration(), "user-1", expiredMetadata, valid.getRefreshToken()),
+                    fixture.authentication("app-a", "user-1"), callback).block();
+            var manager = fixture.manager(); var principal = fixture.authentication("app-a", "user-1");
+            var returned = Flux.range(0, 20).flatMap(index -> manager.authorize(OAuth2AuthorizeRequest.withClientRegistrationId("app-a")
+                    .principal(principal).attribute(ServerWebExchange.class.getName(), fixture.request("/api/app-a/data", session)).build()), 20)
+                    .collectList().block(Duration.ofSeconds(10));
+            assertThat(returned).hasSize(20); assertThat(fixture.refreshExchanges).hasValue(1);
+            assertThat(returned).extracting(client -> client.getRefreshToken().getTokenValue()).containsOnly(returned.getFirst().getRefreshToken().getTokenValue());
+            assertThat(fixture.leaseOwners).isEmpty();
+        }
     }
 
     @Test
@@ -377,137 +312,47 @@ class EdgeLoginContractTest {
     }
 
     @Test
-    void logoutAtomicallyQueuesEverySessionRefreshTokenBeforeInvalidating() {
-        ClientRegistration tenantA = registration("tenant-a", "https://idp.example/tenants/1001", "client-a");
-        ClientRegistration tenantB = registration("tenant-b", "https://idp.example/tenants/1002", "client-b");
-        OAuth2AuthorizedClient clientA = authorizedClient(tenantA, "subject-1", "access-A", "refresh-A");
-        OAuth2AuthorizedClient clientB = authorizedClient(tenantB, "subject-1", "access-B", "refresh-B");
-        OAuth2AuthenticationToken principal = oauthAuthentication("tenant-a", "subject-1");
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        EdgeAuthorizedClientRepository authorizedClients = mock(EdgeAuthorizedClientRepository.class);
-        when(authorizedClients.loadAll(principal, exchange)).thenReturn(Mono.just(List.of(clientA, clientB)));
-        EdgeLogoutIntentStore intentStore = mock(EdgeLogoutIntentStore.class);
-        when(intentStore.enqueueAll(any())).thenReturn(Mono.just(List.of("1-0", "2-0")));
-        when(intentStore.acknowledge(any())).thenReturn(Mono.empty());
-        EdgeOAuthTokenRevocationClient revocation = mock(EdgeOAuthTokenRevocationClient.class);
-        when(revocation.revoke(any())).thenReturn(Mono.empty());
-        ServerHttpResponse response = mock(ServerHttpResponse.class);
-        WebSession session = mock(WebSession.class);
-        when(exchange.getResponse()).thenReturn(response);
-        when(exchange.getSession()).thenReturn(Mono.just(session));
-        when(session.invalidate()).thenReturn(Mono.empty());
-        when(authorizedClients.removeAll(principal, exchange)).thenReturn(Mono.empty());
-        EdgeLogoutService service = new EdgeLogoutService(
-                authorizedClients, intentStore, revocation, Clock.fixed(NOW, ZoneOffset.UTC));
-
-        EdgeLogoutService.RemoteState outcome = service.logout(principal, exchange).block();
-
-        assertThat(outcome).isEqualTo(EdgeLogoutService.RemoteState.CONFIRMED);
-        ArgumentCaptor<List<EdgeLogoutRevocationIntent>> intents = ArgumentCaptor.forClass(List.class);
-        verify(intentStore).enqueueAll(intents.capture());
-        assertThat(intents.getValue()).hasSize(2)
-                .extracting(EdgeLogoutRevocationIntent::tokenValue)
-                .containsExactlyInAnyOrder("refresh-A", "refresh-B");
-        assertThat(intents.getValue())
-                .extracting(EdgeLogoutRevocationIntent::tenantId)
-                .containsExactly("1001", "1002");
-        assertThat(intents.getValue()).allSatisfy(intent ->
-                assertThat(intent.toString()).doesNotContain(intent.tokenValue()));
-        verify(authorizedClients).removeAll(principal, exchange);
-        verify(session).invalidate();
-        verify(revocation, times(2)).revoke(any());
-        verify(intentStore, times(2)).acknowledge(any());
+    void logoutAtomicallyQueuesEverySessionRefreshTokenBeforeInvalidating() throws Exception {
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir)) {
+            var session = fixture.newSession(); ServerWebExchange callback = null;
+            for (String alias : List.of("app-a", "app-b")) {
+                callback = fixture.pendingExchange(alias, session);
+                fixture.clients.saveAuthorizedClient(fixture.client(alias, "user-1"), fixture.authentication(alias, "user-1"), callback).block();
+            }
+            assertThat(fixture.logout(fixture.authentication("app-b", "user-1"), callback)).isEqualTo(EdgeLogoutService.RemoteState.CONFIRMED);
+            assertThat(fixture.intents).hasSize(2).extracting(EdgeLogoutRevocationIntent::tenantId).containsOnly("1001");
+            assertThat(fixture.intents).allSatisfy(intent -> assertThat(intent.toString()).doesNotContain(intent.tokenValue()));
+            assertThat(fixture.remoteRevocations).hasValue(2); assertThat(fixture.leaseOwners).isEmpty();
+            assertThat(callback.getResponse().getCookies().getFirst("__Host-egon_bff").getMaxAge()).isEqualTo(Duration.ZERO);
+        }
     }
 
     @Test
-    void logoutQueueFailureStillClearsLocalSessionAndReturnsUnknown() {
-        ClientRegistration registration = registration("tenant-a", "https://idp.example/tenants/1001", "client-a");
-        OAuth2AuthorizedClient client = authorizedClient(registration, "subject-1", "access", "refresh");
-        OAuth2AuthenticationToken principal = oauthAuthentication("tenant-a", "subject-1");
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        EdgeAuthorizedClientRepository authorizedClients = mock(EdgeAuthorizedClientRepository.class);
-        when(authorizedClients.loadAll(principal, exchange)).thenReturn(Mono.just(List.of(client)));
-        EdgeLogoutIntentStore intentStore = mock(EdgeLogoutIntentStore.class);
-        when(intentStore.enqueueAll(any())).thenReturn(Mono.error(new IllegalStateException("queue unavailable")));
-        EdgeOAuthTokenRevocationClient revocation = mock(EdgeOAuthTokenRevocationClient.class);
-        ServerHttpResponse response = mock(ServerHttpResponse.class);
-        WebSession session = mock(WebSession.class);
-        when(exchange.getResponse()).thenReturn(response);
-        when(exchange.getSession()).thenReturn(Mono.just(session));
-        when(session.invalidate()).thenReturn(Mono.empty());
-        when(authorizedClients.removeAll(principal, exchange)).thenReturn(Mono.empty());
-        EdgeLogoutService service = new EdgeLogoutService(
-                authorizedClients, intentStore, revocation, Clock.fixed(NOW, ZoneOffset.UTC));
-
-        EdgeLogoutService.RemoteState outcome = service.logout(principal, exchange).block();
-
-        assertThat(outcome).isEqualTo(EdgeLogoutService.RemoteState.UNKNOWN);
-        verify(session).invalidate();
-        verify(authorizedClients).removeAll(principal, exchange);
-        verify(revocation, never()).revoke(any());
+    void logoutQueueFailureStillClearsLocalSessionAndReturnsUnknown() throws Exception {
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir)) {
+            var callback = fixture.pendingExchange("app-a", fixture.newSession());
+            fixture.clients.saveAuthorizedClient(fixture.client("app-a", "user-1"), fixture.authentication("app-a", "user-1"), callback).block();
+            fixture.failQueue = true;
+            assertThat(fixture.logout(fixture.authentication("app-a", "user-1"), callback)).isEqualTo(EdgeLogoutService.RemoteState.UNKNOWN);
+            assertThat(fixture.cached.values()).allSatisfy(map -> assertThat(map).isEmpty());
+            assertThat(fixture.remoteRevocations).hasValue(0); assertThat(fixture.leaseOwners).isEmpty();
+        }
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void authorizedClientsAreEncryptedAndPartitionedByRegistrationIdentity() throws Exception {
-        EdgeTokenCipher cipher = newCipher();
-        EdgeOAuthProperties properties = propertiesWithIssuerOrigin();
-        ClientRegistration tenantA = registration("tenant-a", "https://idp.example/tenants/1001", "client-a");
-        ClientRegistration tenantB = registration("tenant-b", "https://idp.example/tenants/1002", "client-b");
-        Map<String, ClientRegistration> registrationsById = Map.of(
-                tenantA.getRegistrationId(), tenantA,
-                tenantB.getRegistrationId(), tenantB);
-        ReactiveClientRegistrationRepository registrations = id -> Mono.justOrEmpty(registrationsById.get(id));
-        RedissonClient redisson = mock(RedissonClient.class);
-        RMapCache<String, String> map = mock(RMapCache.class);
-        org.mockito.Mockito.doReturn(map).when(redisson).getMapCache(any(), eq(StringCodec.INSTANCE));
-        Map<String, String> storedEntries = new ConcurrentHashMap<>();
-        doAnswer(invocation -> {
-            storedEntries.put(invocation.getArgument(0), invocation.getArgument(1));
-            return true;
-        }).when(map).fastPut(anyString(), anyString(), anyLong(), eq(TimeUnit.SECONDS),
-                anyLong(), eq(TimeUnit.SECONDS));
-        when(map.get(anyString())).thenAnswer(invocation -> storedEntries.get(invocation.getArgument(0)));
-        EdgeAuthorizedClientRepository repository = new EdgeAuthorizedClientRepository(
-                redisson,
-                registrations,
-                properties,
-                cipher,
-                Clock.fixed(NOW, ZoneOffset.UTC));
-
-        TestingAuthenticationToken principal = new TestingAuthenticationToken(
-                "subject-1", "unused", "ROLE_USER");
-        WebSession session = mock(WebSession.class);
-        Map<String, Object> sessionAttributes = new java.util.HashMap<>();
-        when(session.getAttributes()).thenReturn(sessionAttributes);
-        when(session.getAttribute(any())).thenAnswer(invocation ->
-                sessionAttributes.get(invocation.getArgument(0)));
-        when(session.getCreationTime()).thenReturn(NOW.minusSeconds(5));
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        when(exchange.getSession()).thenReturn(Mono.just(session));
-
-        OAuth2AuthorizedClient clientA = authorizedClient(tenantA, principal.getName(),
-                "raw-access-A", "raw-refresh-A");
-        OAuth2AuthorizedClient clientB = authorizedClient(tenantB, principal.getName(),
-                "raw-access-B", "raw-refresh-B");
-        repository.saveAuthorizedClient(clientA, principal, exchange).block();
-        repository.saveAuthorizedClient(clientB, principal, exchange).block();
-
-        ArgumentCaptor<String> fields = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> ciphertexts = ArgumentCaptor.forClass(String.class);
-        verify(map, times(2)).fastPut(
-                fields.capture(), ciphertexts.capture(),
-                anyLong(), eq(TimeUnit.SECONDS), anyLong(), eq(TimeUnit.SECONDS));
-        assertThat(fields.getAllValues()).doesNotHaveDuplicates();
-        assertThat(ciphertexts.getAllValues()).allSatisfy(value -> {
-            assertThat(value).doesNotContain("raw-access", "raw-refresh");
-        });
-
-        when(map.readAllMap()).thenReturn(storedEntries);
-        List<OAuth2AuthorizedClient> loaded = repository.loadAll(principal, exchange).block();
-        assertThat(loaded).hasSize(2);
-        assertThat(loaded).extracting(value -> value.getAccessToken().getTokenValue())
-                .containsExactlyInAnyOrder("raw-access-A", "raw-access-B");
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir)) {
+            var session = fixture.newSession(); var principal = fixture.authentication("app-a", "user-1");
+            for (String id : List.of("app-a", "app-b")) {
+                var callback = fixture.pendingExchange(id, session); fixture.clients.saveAuthorizedClient(fixture.client(id, "user-1"), principal, callback).block();
+            }
+            var exchange = fixture.request("/bff/session", session);
+            assertThat(fixture.clients.loadAll(principal, exchange).block()).hasSize(2);
+            assertThat(fixture.cached.values()).flatExtracting(Map::values).hasSize(2).allSatisfy(value -> assertThat(value).startsWith("ENC:v1:").doesNotContain("controlled-refresh"));
+            assertThatThrownBy(() -> fixture.clients.loadAuthorizedClient("app-a-b", principal, exchange).block()).isInstanceOf(RuntimeException.class);
+            assertThatThrownBy(() -> fixture.clients.loadAuthorizedClient("app-a", fixture.authentication("app-a", "different-user"), exchange).block()).isInstanceOf(RuntimeException.class);
+        }
     }
 
     @Test
@@ -560,7 +405,7 @@ class EdgeLoginContractTest {
         Method csrfHandler = controller.orElseThrow().getDeclaredMethod("csrf", ServerWebExchange.class);
         assertThat(Arrays.stream(csrfHandler.getAnnotation(ApiResponses.class).value())
                 .map(ApiResponse::responseCode))
-                .containsExactly("200");
+                .contains("200", "400", "503");
         Method logoutHandler = controller.orElseThrow()
                 .getDeclaredMethod("logout", Authentication.class, ServerWebExchange.class);
         assertThat(Arrays.stream(logoutHandler.getAnnotation(SecurityRequirements.class).value())
@@ -588,141 +433,18 @@ class EdgeLoginContractTest {
     }
 
     @Test
-    void api015VerifiesTheHeldTenantTokenAndMapsSharedStateWithoutRefreshing() {
-        String issuer = "https://idp.example/tenants/1001";
-        String audience = "https://api.example/resource";
-        ClientRegistration registration = registration("tenant-a", issuer, "client-a");
-        ReactiveClientRegistrationRepository registrations = id -> Mono.just(registration);
-        DefaultOAuth2User user = new DefaultOAuth2User(
-                Set.of(new SimpleGrantedAuthority("ROLE_USER")),
-                Map.of("sub", "subject-1", "name", "Edge User"),
-                "sub");
-        OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(
-                user, user.getAuthorities(), registration.getRegistrationId());
-        OAuth2AuthorizedClient client = authorizedClient(
-                registration, authentication.getName(), "active-access", "active-refresh");
-        EdgeAuthorizedClientRepository authorizedClients = mock(EdgeAuthorizedClientRepository.class);
-        AtomicReference<OAuth2AuthorizedClient> sessionClient = new AtomicReference<>(client);
-        WebSession session = mock(WebSession.class);
-        when(session.getAttribute(EdgeSessionController.SESSION_CREATED_AT_ATTRIBUTE))
-                .thenReturn(NOW.minusSeconds(30));
-        ServerWebExchange exchange = mock(ServerWebExchange.class);
-        when(exchange.getSession()).thenReturn(Mono.just(session));
-        when(authorizedClients.loadAuthorizedClient(registration.getRegistrationId(), authentication, exchange))
-                .thenAnswer(ignored -> Mono.just(sessionClient.get()));
-
-        TrustedIssuerRegistry.TrustedIssuerVO trustedIssuer = new TrustedIssuerRegistry.TrustedIssuerVO(
-                URI.create(issuer),
-                URI.create("https://idp.example/tenants/1001/oauth2/jwks"),
-                "tenant-1001",
-                TrustedIssuerRegistry.RealmType.TENANT,
-                "1001",
-                TrustedIssuerRegistry.Status.ACTIVE,
-                1L);
-        Jwt jwt = Jwt.withTokenValue("active-access")
-                .header("alg", "RS256")
-                .issuer(issuer)
-                .subject("subject-1")
-                .audience(List.of(audience))
-                .issuedAt(NOW.minusSeconds(30))
-                .expiresAt(NOW.plusSeconds(300))
-                .build();
-        VerifiedJwtBO verified = mock(VerifiedJwtBO.class);
-        when(verified.getTrustedIssuer()).thenReturn(trustedIssuer);
-        when(verified.getPrincipalType()).thenReturn(PrincipalType.USER);
-        AtomicReference<String> verifiedTenantId = new AtomicReference<>("1001");
-        when(verified.getTenantId()).thenAnswer(ignored -> verifiedTenantId.get());
-        AtomicReference<String> verifiedSubject = new AtomicReference<>("subject-1");
-        when(verified.getSubject()).thenAnswer(ignored -> verifiedSubject.get());
-        AtomicReference<Jwt> verifiedJwt = new AtomicReference<>(jwt);
-        when(verified.getJwt()).thenAnswer(ignored -> verifiedJwt.get());
-        AtomicInteger verifierCalls = new AtomicInteger();
-        AtomicReference<OAuthRevocationReader.Result> revocationResult =
-                new AtomicReference<>(OAuthRevocationReader.Result.valid());
-        java.util.function.Function<String, VerifiedJwtBO> verifier = token -> {
-            assertThat(token).isEqualTo("active-access");
-            verifierCalls.incrementAndGet();
-            return verified;
-        };
-        java.util.function.Function<VerifiedJwtBO, Mono<OAuthRevocationReader.Result>> revocationReader =
-                ignored -> Mono.just(revocationResult.get());
-        IdpStarterProperties idpProperties = new IdpStarterProperties();
-        idpProperties.setResourceUri(URI.create(audience));
-
-        EdgeSessionController controller = new EdgeSessionController(
-                authorizedClients,
-                mock(EdgeLogoutService.class),
-                registrations,
-                propertiesWithIssuerOrigin(),
-                idpProperties,
-                verifier,
-                revocationReader,
-                Clock.fixed(NOW, ZoneOffset.UTC));
-
-        ResponseEntity<?> valid = controller.session(authentication, exchange).block();
-        assertThat(valid.getStatusCode().value()).isEqualTo(200);
-        assertThat(valid.getBody()).isInstanceOf(EdgeSessionResult.class);
-        assertThat(valid.getHeaders().getCacheControl()).contains("no-store");
-
-        verifiedJwt.set(Jwt.withTokenValue("active-access")
-                .header("alg", "RS256")
-                .issuer("https://other.example/tenants/1001")
-                .subject("subject-1")
-                .audience(List.of(audience))
-                .issuedAt(NOW.minusSeconds(30))
-                .expiresAt(NOW.plusSeconds(300))
-                .build());
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-
-        verifiedJwt.set(Jwt.withTokenValue("different-access")
-                .header("alg", "RS256")
-                .issuer(issuer)
-                .subject("subject-1")
-                .audience(List.of(audience))
-                .issuedAt(NOW.minusSeconds(30))
-                .expiresAt(NOW.plusSeconds(300))
-                .build());
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-
-        verifiedJwt.set(Jwt.withTokenValue("active-access")
-                .header("alg", "RS256")
-                .issuer(issuer)
-                .subject("another-subject")
-                .audience(List.of(audience))
-                .issuedAt(NOW.minusSeconds(30))
-                .expiresAt(NOW.plusSeconds(300))
-                .build());
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-
-        verifiedJwt.set(Jwt.withTokenValue("active-access")
-                .header("alg", "RS256")
-                .issuer(issuer)
-                .subject("subject-1")
-                .audience(List.of("https://api.example/other"))
-                .issuedAt(NOW.minusSeconds(30))
-                .expiresAt(NOW.plusSeconds(300))
-                .build());
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-
-        verifiedJwt.set(jwt);
-        verifiedSubject.set("another-subject");
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-        verifiedSubject.set("subject-1");
-
-        verifiedTenantId.set("1002");
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-        verifiedTenantId.set("1001");
-
-        sessionClient.set(expiredAuthorizedClient(registration, authentication.getName()));
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-        sessionClient.set(client);
-
-        revocationResult.set(OAuthRevocationReader.Result.revoked("TOKEN_REVOKED"));
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(401);
-
-        revocationResult.set(OAuthRevocationReader.Result.unavailable("OAUTH_SECURITY_STATE_UNAVAILABLE"));
-        assertThat(controller.session(authentication, exchange).block().getStatusCode().value()).isEqualTo(503);
-        assertThat(verifierCalls.get()).isEqualTo(9);
+    void api015VerifiesTheHeldTenantTokenAndMapsSharedStateWithoutRefreshing() throws Exception {
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir)) {
+            var session = fixture.newSession(); var principal = fixture.authentication("app-a", "user-1");
+            var callback = fixture.pendingExchange("app-a", session); fixture.clients.saveAuthorizedClient(fixture.client("app-a", "user-1"), principal, callback).block();
+            var exchange = fixture.request("/bff/session", session); var controller = fixture.controller();
+            ResponseEntity<?> valid = controller.session(principal, exchange).block();
+            assertThat(valid.getStatusCode().value()).isEqualTo(200); assertThat(valid.getBody()).isInstanceOf(EdgeSessionResult.class);
+            assertThat(valid.getHeaders().getCacheControl()).contains("no-store");
+            fixture.snapshot.set(List.of("R", "JWT_REVOKED")); assertThat(controller.session(principal, exchange).block().getStatusCode().value()).isEqualTo(401);
+            fixture.snapshot.set(List.of("U", "OAUTH_SECURITY_READY_ABSENT")); assertThat(controller.session(principal, exchange).block().getStatusCode().value()).isEqualTo(503);
+            assertThat(fixture.codeExchanges).hasValue(0); assertThat(fixture.refreshExchanges).hasValue(0);
+        }
     }
 
     @Test
@@ -745,90 +467,28 @@ class EdgeLoginContractTest {
     }
 
     @Test
-    void browserChainRequiresSessionAndCsrfWithoutRedirectingApiRequests() {
-        EdgeOAuthProperties properties = propertiesWithIssuerOrigin();
-        EdgeSecurityConfiguration configuration = new EdgeSecurityConfiguration(properties);
-        InMemoryReactiveClientRegistrationRepository registrations =
-                new InMemoryReactiveClientRegistrationRepository(registration(
-                        "tenant-a", "https://idp.example/tenants/1001", "client-a"));
-        ServerOAuth2AuthorizedClientRepository authorizedClients =
-                mock(ServerOAuth2AuthorizedClientRepository.class);
-        WebSessionServerCsrfTokenRepository csrfTokens = new WebSessionServerCsrfTokenRepository();
-        SecurityWebFilterChain apiChain = configuration.edgeApiSecurityWebFilterChain(
-                ServerHttpSecurity.http(), csrfTokens);
-        IdpStarterProperties resourceProperties = new IdpStarterProperties();
-        resourceProperties.setResourceUri(URI.create("https://edge.example/resource"));
-        SecurityWebFilterChain browserChain = configuration.edgeBrowserSecurityWebFilterChain(
-                ServerHttpSecurity.http(),
-                registrations,
-                authorizedClients,
-                csrfTokens,
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                resourceProperties,
-                new com.fasterxml.jackson.databind.ObjectMapper());
-        WebFilterChainProxy security = new WebFilterChainProxy(apiChain, browserChain);
-        WebHandler handler = exchange -> {
-            exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.NO_CONTENT);
-            return exchange.getResponse().setComplete();
-        };
-        WebTestClient client = WebTestClient.bindToWebHandler(handler)
-                .webFilter(security)
-                .build();
-
-        client.get().uri("/login/oauth2/code/tenant-a?code=synthetic-code&state=missing-request")
-                .exchange().expectStatus().isBadRequest()
-                .expectHeader().doesNotExist("Location")
-                .expectHeader().valueEquals("Cache-Control", "no-store")
-                .expectBody().jsonPath("$.error").isEqualTo("invalid_request");
-
-        client.get().uri("/bff/session")
-                .exchange()
-                .expectStatus().isUnauthorized()
-                .expectHeader().valueEquals("Cache-Control", "no-store");
-        client.post().uri("/bff/logout")
-                .exchange()
-                .expectStatus().isForbidden();
-        client.post().uri("/bff/logout")
-                .header("Origin", "https://edge.example")
-                .exchange()
-                .expectStatus().isUnauthorized();
-        client.get().uri("/api/test")
-                .exchange()
-                .expectStatus().isNoContent()
-                .expectHeader().doesNotExist("Location");
-
-        URI normalAuthorization = client.get().uri("/oauth2/authorization/tenant-a")
-                .exchange()
-                .expectStatus().is3xxRedirection()
-                .returnResult(Void.class)
-                .getResponseHeaders()
-                .getLocation();
-        var normalQuery = UriComponentsBuilder.fromUri(normalAuthorization)
-                .build()
-                .getQueryParams();
-        assertThat(normalQuery.getFirst("prompt")).isNull();
-        assertThat(normalQuery.getFirst("max_age")).isNull();
-        assertThat(normalQuery.getFirst("resource")).isEqualTo("https://edge.example/resource");
-
-        URI stepUpAuthorization = client.get()
-                .uri("/oauth2/authorization/tenant-a?stepUp=true")
-                .exchange()
-                .expectStatus().is3xxRedirection()
-                .returnResult(Void.class)
-                .getResponseHeaders()
-                .getLocation();
-        var stepUpQuery = UriComponentsBuilder.fromUri(stepUpAuthorization)
-                .build()
-                .getQueryParams();
-        assertThat(stepUpQuery.getFirst("prompt")).isEqualTo("login");
-        assertThat(stepUpQuery.getFirst("max_age")).isEqualTo("0");
-        assertThat(stepUpQuery.getFirst("resource")).isEqualTo("https://edge.example/resource");
-        client.get().uri("/oauth2/authorization/tenant-a?resource=https://attacker.example/resource")
-                .exchange().expectStatus().isBadRequest();
-
-        client.get().uri("/oauth2/authorization/tenant-a?stepUp=trusted-input")
-                .exchange()
-                .expectStatus().isBadRequest();
+    void browserChainRequiresSessionAndCsrfWithoutRedirectingApiRequests() throws Exception {
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir)) {
+            var configuration = new EdgeSecurityConfiguration(fixture.properties); var csrf = new WebSessionServerCsrfTokenRepository();
+            var api = configuration.edgeApiSecurityWebFilterChain(ServerHttpSecurity.http(), csrf);
+            var browser = configuration.edgeBrowserSecurityWebFilterChain(ServerHttpSecurity.http(), fixture.registrations, fixture.clients, csrf,
+                    EdgeResourceAuthorizationContractTest.Fixture.TIME_CLOCK, fixture.idp, fixture.mapper);
+            var security = new WebFilterChainProxy(api, browser);
+            WebTestClient client = WebTestClient.bindToWebHandler(exchange -> { exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.NO_CONTENT); return exchange.getResponse().setComplete(); }).webFilter(security).build();
+            client.get().uri("/login/oauth2/code/app-a?code=synthetic-code&state=missing-request").exchange().expectStatus().isBadRequest().expectHeader().doesNotExist("Location");
+            client.get().uri("/bff/session").exchange().expectStatus().isUnauthorized().expectHeader().valueEquals("Cache-Control", "no-store");
+            client.post().uri("/bff/logout").exchange().expectStatus().isForbidden();
+            client.post().uri("/bff/logout").header("Origin", "https://edge.example").exchange().expectStatus().isUnauthorized();
+            client.get().uri("/api/test").exchange().expectStatus().isNoContent().expectHeader().doesNotExist("Location");
+            client.post().uri("/api/app-a/data").cookie("__Host-egon_bff", "opaque")
+                    .header("Authorization", "Bearer external-token").exchange().expectStatus().isBadRequest().expectHeader().doesNotExist("Location");
+            URI normal = client.get().uri("/oauth2/authorization/app-a").exchange().expectStatus().isFound().returnResult(Void.class).getResponseHeaders().getLocation();
+            var normalQuery = UriComponentsBuilder.fromUri(normal).build().getQueryParams(); assertThat(normalQuery.getFirst("prompt")).isNull();
+            URI stepUp = client.get().uri("/oauth2/authorization/app-a?stepUp=true").exchange().expectStatus().isFound().returnResult(Void.class).getResponseHeaders().getLocation();
+            var stepUpQuery = UriComponentsBuilder.fromUri(stepUp).build().getQueryParams(); assertThat(stepUpQuery.getFirst("prompt")).isEqualTo("login"); assertThat(stepUpQuery.getFirst("max_age")).isEqualTo("0");
+            client.get().uri("/oauth2/authorization/app-a?resource=https://attacker.example/resource").exchange().expectStatus().isBadRequest();
+            client.get().uri("/oauth2/authorization/app-a?stepUp=trusted-input").exchange().expectStatus().isBadRequest();
+        }
     }
 
     @Test
@@ -874,6 +534,9 @@ class EdgeLoginContractTest {
         EdgeOAuthProperties properties = propertiesWithIssuerOrigin();
         properties.getSession().getEncryption().setKeyId("session-key-v1");
         properties.getSession().getEncryption().setKeyFile("/mounted/session-key");
+        properties.setResources(Map.of("tenant-a", top.egon.cola.component.yuheng.edge.config.domain.bo.EdgeRegistrationResourceBindingBO.builder()
+                .resourceServerId("resource-1").resourceUri(URI.create("https://api.example/resource")).defaultRegistrationId("tenant-a")
+                .issuerRegistrationIds(Map.of("https://idp.example/tenants/1001", "tenant-a")).scopes(Set.of("openid", "offline_access")).returnPath("/").build()));
         properties.validate();
 
         properties.getLogout().setPollInterval(Duration.ofMinutes(2));
@@ -945,7 +608,7 @@ class EdgeLoginContractTest {
                 .isEqualTo(localProperties.stringPropertyNames())
                 .contains("spring.session.redis.namespace", "spring.data.redis.url",
                         "egon.yuheng.edge.session.encryption.key-file",
-                        "egon.cola.platform.tianquan.shoubing.trusted-issuers.edge-ui.issuer",
+                        "egon.cola.platform.tianquan.shoubing.trusted-issuers.edge-issuer-a.issuer",
                         "egon.cola.platform.tianquan.shoubing.revocation.epoch",
                         "egon.cola.component.yuheng.openapi.enabled",
                         "springdoc.api-docs.enabled",
@@ -1012,6 +675,59 @@ class EdgeLoginContractTest {
 
     }
 
+    @Test
+    void generatedOpenApiHasFiveOriginalOperationsExactSchemasAndLogoutAndSecurity() throws Exception {
+        try (var fixture = new EdgeResourceAuthorizationContractTest.Fixture(tempDir);
+                var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.setEnvironment(new org.springframework.boot.web.reactive.context.StandardReactiveWebEnvironment());
+            context.getEnvironment().getPropertySources().addFirst(new org.springframework.core.env.MapPropertySource("edgeDocsFixture", Map.of(
+                    "springdoc.api-docs.enabled", true, "springdoc.api-docs.version", "OPENAPI_3_1",
+                    "egon.cola.component.yuheng.openapi.enabled", false, "egon.cola.component.id.enabled", false,
+                    "egon.cola.platform.tianquan.shoubing.enabled", false,
+                    "spring.cloud.gateway.server.webflux.filter.json-to-grpc.enabled", false,
+                    "spring.autoconfigure.exclude", "org.redisson.spring.starter.RedissonAutoConfigurationV2,org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration")));
+            context.registerBean("edgeSessionController", EdgeSessionController.class, fixture::controller);
+            var config = new EdgeSecurityConfiguration(fixture.properties);
+            context.registerBean("edgeOpenAPI", io.swagger.v3.oas.models.OpenAPI.class, config::edgeOpenAPI);
+            context.registerBean("edgeBffOpenApiSecurityCustomizer", org.springdoc.core.customizers.GlobalOpenApiCustomizer.class, config::edgeBffOpenApiSecurityCustomizer);
+            context.register(EdgeDocumentFixtureConfiguration.class); context.refresh();
+            String body = WebTestClient.bindToApplicationContext(context).build().get().uri("/v3/api-docs/edge-bff").exchange().expectStatus().isOk()
+                    .expectBody(String.class).returnResult().getResponseBody();
+            var doc = fixture.mapper.readTree(body); assertThat(doc.path("openapi").asText()).startsWith("3.1.");
+            var paths = doc.path("paths");
+            assertThat(paths.path("/oauth2/authorization/{registrationId}").path("get").path("operationId").asText()).isEqualTo("oauthBffLogin");
+            var callback = paths.path("/login/oauth2/code/{registrationId}").path("get");
+            assertThat(callback.path("operationId").asText()).isEqualTo("oauthBffCallback");
+            assertThat(callback.path("responses").has("303")).isTrue(); assertThat(callback.path("responses").has("503")).isTrue();
+            var issuer = java.util.stream.StreamSupport.stream(callback.path("parameters").spliterator(), false).filter(param -> "iss".equals(param.path("name").asText())).findFirst().orElseThrow();
+            assertThat(issuer.path("required").asBoolean()).isTrue(); assertThat(issuer.path("schema").path("maxLength").asInt()).isEqualTo(2048);
+            assertThat(paths.path("/bff/session").path("get").path("operationId").asText()).isEqualTo("oauthBffSession");
+            assertThat(paths.path("/bff/csrf").path("get").path("operationId").asText()).isEqualTo("oauthBffCsrf");
+            var logout = paths.path("/bff/logout").path("post"); assertThat(logout.path("operationId").asText()).isEqualTo("oauthBffLogout");
+            assertThat(logout.path("security")).hasSize(1); assertThat(logout.path("security").get(0).has("bffSessionCookie")).isTrue();
+            assertThat(logout.path("security").get(0).has("bffCsrfHeader")).isTrue();
+            assertThat(logout.path("responses").path("204").has("content")).isFalse();
+            var schemas = doc.path("components").path("schemas"); var session = schemas.path("EdgeSessionResult");
+            assertThat(session.path("properties").size()).isEqualTo(4); assertThat(session.path("required")).hasSize(4);
+            assertThat(session.path("properties").path("displayName").path("maxLength").asInt()).isEqualTo(256);
+            assertThat(schemas.path("EdgeLogoutFailureResult").path("required")).hasSize(4);
+            assertThat(schemas.path("EdgeLogoutFailureResult").path("properties").path("remoteState").path("enum")).hasSize(2);
+        }
+    }
+
+    @lombok.extern.slf4j.Slf4j
+    @Configuration(value = "edgeDocumentFixtureConfiguration", proxyBeanMethods = false)
+    @org.springframework.boot.autoconfigure.EnableAutoConfiguration
+    @org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
+    @org.springframework.web.reactive.config.EnableWebFlux
+    static class EdgeDocumentFixtureConfiguration {
+        @org.springframework.context.annotation.Bean("edgeDocumentFixtureChain")
+        SecurityWebFilterChain documentChain(ServerHttpSecurity http) { return http.csrf(ServerHttpSecurity.CsrfSpec::disable).authorizeExchange(authorize -> authorize.anyExchange().permitAll()).build(); }
+        @org.springframework.context.annotation.Bean("edgeBffFixtureGroup")
+        org.springdoc.core.models.GroupedOpenApi group() { return org.springdoc.core.models.GroupedOpenApi.builder().group("edge-bff")
+                .pathsToMatch("/bff/**", "/oauth2/authorization/**", "/login/oauth2/code/**").build(); }
+    }
+
     private Optional<Class<?>> load(String typeName) {
         try {
             return Optional.of(Class.forName(EDGE_PACKAGE + typeName));
@@ -1057,6 +773,50 @@ class EdgeLoginContractTest {
         properties.setPublicOrigin(URI.create("https://edge.example"));
         properties.setDefaultRegistrationId("tenant-a");
         return properties;
+    }
+
+    @Test
+    void configurationRequiresAnExplicitResourceCatalog() {
+        EdgeOAuthProperties properties = propertiesWithIssuerOrigin();
+        properties.getSession().getEncryption().setKeyId("session-key-v1");
+        properties.getSession().getEncryption().setKeyFile("/mounted/session-key");
+        assertThatThrownBy(properties::validate).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("resource");
+    }
+
+    @Test
+    void actualBootBinderPreservesExactBracketedIssuerUrlKeys() {
+        String issuer = "https://idp.example/tenants/1001";
+        var source = new org.springframework.boot.context.properties.source.MapConfigurationPropertySource(Map.of(
+                "egon.yuheng.edge.resources.edge-ui.resource-uri", "https://edge.example/resource",
+                "egon.yuheng.edge.resources.edge-ui.default-registration-id", "edge-ui-a",
+                "egon.yuheng.edge.resources.edge-ui.issuer-registration-ids.[" + issuer + "]", "edge-ui-a",
+                "egon.yuheng.edge.resources.edge-ui.return-path", "/"));
+        var bound = new org.springframework.boot.context.properties.bind.Binder(source)
+                .bind("egon.yuheng.edge", org.springframework.boot.context.properties.bind.Bindable.of(EdgeOAuthProperties.class)).get();
+        assertThat(bound.getResources().get("edge-ui").getIssuerRegistrationIds()).containsExactlyEntriesOf(Map.of(issuer, "edge-ui-a"));
+    }
+
+    @Test
+    void lifecycleSchemaStateAndAbsoluteDeadlineAreValidatedWithoutPublicIdentityFields() throws Exception {
+        var binding = top.egon.cola.component.yuheng.edge.service.domain.bo.EdgeSessionBindingBO.builder()
+                .bindingId(java.util.UUID.randomUUID().toString()).generation(1).fencingToken(1)
+                .originalCreatedAt(NOW).absoluteExpiresAt(NOW.plusSeconds(3600)).build();
+        try (var validator = new org.springframework.validation.beanvalidation.LocalValidatorFactoryBean()) {
+            validator.afterPropertiesSet(); assertThat(validator.validate(binding)).isEmpty();
+            binding.setSchemaVersion(1); assertThat(validator.validate(binding)).isNotEmpty(); binding.setSchemaVersion(2);
+            binding.setState(top.egon.cola.component.yuheng.edge.service.domain.enums.EdgeSessionBindingStateEnum.ACTIVE);
+            assertThat(validator.validate(binding)).isNotEmpty();
+            binding.setIssuer(URI.create("https://idp.example/tenants/1001")).setTenantId("1001").setSubject("user-1");
+            assertThat(validator.validate(binding)).isEmpty();
+            binding.setState(top.egon.cola.component.yuheng.edge.service.domain.enums.EdgeSessionBindingStateEnum.CLOSED);
+            assertThat(validator.validate(binding)).isNotEmpty(); binding.setClosedAt(NOW);
+            assertThat(validator.validate(binding)).isEmpty();
+        }
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
+        String serialized = mapper.writeValueAsString(binding);
+        assertThat(serialized).contains("\"state\":\"CLOSED\"").doesNotContain("stateValid");
+        assertThat(mapper.readValue(serialized, top.egon.cola.component.yuheng.edge.service.domain.bo.EdgeSessionBindingBO.class)).isEqualTo(binding);
     }
 
     private static ClientRegistration registration(String registrationId, String issuer, String clientId) {
@@ -1141,14 +901,13 @@ class EdgeLoginContractTest {
         assertThat(properties).isNotNull();
         assertThat(properties.getProperty(GatewayProperties.PREFIX + ".routes[0].id"))
                 .isEqualTo("authorization-server");
-        assertThat(properties.getProperty(GatewayProperties.PREFIX + ".routes[1].id"))
-                .isEqualTo("yuheng-biz");
-        assertThat(properties.getProperty(GatewayProperties.PREFIX + ".routes[1].filters[0]"))
-                .isEqualTo("TokenRelay");
-        assertThat(properties.getProperty(GatewayProperties.PREFIX + ".routes[2].id"))
-                .isEqualTo("yuheng-mcp");
-        assertThat(properties.getProperty(GatewayProperties.PREFIX + ".routes[2].filters[0]"))
-                .isEqualTo("TokenRelay");
+        for (int index = 1; properties.containsKey(GatewayProperties.PREFIX + ".routes[" + index + "].id"); index++) {
+            String prefix = GatewayProperties.PREFIX + ".routes[" + index + "]";
+            String alias = properties.getProperty(prefix + ".metadata.edge-registration-id");
+            assertThat(alias).isNotBlank();
+            assertThat(properties.getProperty(prefix + ".filters[0]")).isEqualTo("EdgeResourceAuthorization=" + alias);
+            assertThat(properties.getProperty("egon.yuheng.edge.resources." + alias + ".resource-server-id")).isNotBlank();
+        }
         assertThat(properties.getProperty("spring.cloud.gateway.routes[0].id")).isNull();
     }
 

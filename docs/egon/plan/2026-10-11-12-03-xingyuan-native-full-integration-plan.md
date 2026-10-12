@@ -4814,6 +4814,7 @@ fixture.cleanup(); // memory contexts only, no socket/server
 ### Step 7 — 建立可线性化的同身份多资源BFF并对全部授权族退出
 
 - Requirements: REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-007, REQ-008, REQ-011, REQ-012（本Step落点按各File；native/businesswriter保留下一owner）。
+- DEC-011: 已批准每alias必填resourceServerId及现完整SDK外部USER/SERVICE验证；具体owner/测试/profile/单次capture见§12.12，不借portal ID、不改public HTTP或依赖。
 - Dependencies: Step 6已GREEN、path-limited提交并记录真实HEAD；本Step重读共享symbols，不revert别人的source。
 - Baseline state: 当前每registration用一个resource、implicitrelay拿最后登录AT；callback重置createdAt；scopeA误给B；refresh/logout不共享generation且latewrite能复活；旧session必须failclosed；保留已完成自身加固255受控test基线，不把前次日志当本次运行证明。
 - Observable outcome: 建立可线性化的同身份多资源BFF并对全部授权族退出；只本Step已批准owner边界，不靠放宽aud/scope/tenant过门禁。
@@ -4826,7 +4827,7 @@ fixture.cleanup(); // memory contexts only, no socket/server
 #### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/domain/bo/EdgeRegistrationResourceBindingBO.java`
 
 - Purpose: 仅schema/约束声明帮助新测试compile
-- Symbols: resourceUri/routeIds/requestPaths/scopes/returnPath
+- Symbols: resourceServerId/resourceUri/routeIds/requestPaths/scopes/returnPath
 - Repository evidence: Edge附录§8/§10已选定CREATE；同目录现有技术类型/测试命名
 - Dependencies and consumers: 本Step列出的实际owner/已声明调用方；后续Step通过此完整契约消费，不跨业务Domain
 - Why now: 仅建立新test编译需要的声明/已批准依赖；保持旧兼容行为、不先启用runtime。
@@ -4841,6 +4842,7 @@ fixture.cleanup(); // memory contexts only, no socket/server
 ```java
 @Data @NoArgsConstructor @AllArgsConstructor @Accessors(chain = true) @Builder
 public class EdgeRegistrationResourceBindingBO {
+    @NotBlank @Size(max = 128) private String resourceServerId;
     @NotNull private URI resourceUri;
     @NotBlank private String defaultRegistrationId;
     @NotEmpty @Size(min = 1, max = 64) private Map<String, String> issuerRegistrationIds;
@@ -5102,7 +5104,7 @@ return usingWhen(lifecycleLease(binding), l -> usingWhen(resourceRefreshLease(
 
 ```java
 requireConfiguredAliasRouteMetadataAndFinalResourceTarget();
-if (externalBearer) return cleanOriginalBearerOnly();
+if (externalBearer) return fullSdkVerifyAnyOnceForFixedResourceIdAndUriThenOriginalBearer();
 requireActiveCanonicalAndGeneration();
 String realId = bindingComponent.resolveRegistration(config.getName(), binding.getIssuer());
 storePrivateExchangeSelection(config.getName(), realId, binding.getIssuer(), resource, generation, fence);
@@ -5137,7 +5139,7 @@ if (bffCredential) {
     requireAuthoritativeActiveBindingAndSamePrivateExchangeResolvedTuple();
     useExactlyThatRealRegistrationAndVerifiedProofForIdentityHeaders();
 }
-forwardOriginalExternalBearerExactlyOnceWithoutRebinding();
+forwardOriginalExternalBearerExactlyOnceAfterFullSdkVerificationWithoutRebinding();
 // Never select last-login/default registration or deserialize proof from headers.
 ```
 
@@ -5276,6 +5278,7 @@ egon.yuheng.edge.resources:
     issuer-registration-ids:
       "[https://auth.example.test/tenants/10001]": edge-tianshu-a
       "[https://auth.example.test/tenants/10002]": edge-tianshu-b
+    resource-server-id: ${EXISTING_TRUSTED_RESOURCE_OWNER_ID}
     # Original resource-uri/route-ids/request-paths/scopes/return-path remain required.
 spring.security.oauth2.client.registration: # independent real clientId for every resource/issuer
 spring.session.redis.namespace: egon:bff:session:v3
@@ -5311,6 +5314,7 @@ egon.yuheng.edge.resources:
     issuer-registration-ids:
       "[https://auth.example.test/tenants/10001]": edge-tianshu-a
       "[https://auth.example.test/tenants/10002]": edge-tianshu-b
+    resource-server-id: ${EXISTING_TRUSTED_RESOURCE_OWNER_ID}
     # Original resource-uri/route-ids/request-paths/scopes/return-path remain required.
 spring.security.oauth2.client.registration: # independent real clientId for every resource/issuer
 spring.session.redis.namespace: egon:bff:session:v3
@@ -5334,7 +5338,7 @@ usage-observation: {enabled: true, receiver: EDGE}
 - Failure returns to: REDfile fixture错回该File；行为错回该File所指owner；symbol/Spec新语义冲突回主Spec，不改设计来迎合test。
 - Completion criteria: sameGREEN实际exit0+selectedXML zero failures/errors/skips、oldoverload/qualifier/shape/policynegative证明、此Step17MC和10literal逐项证据、diff只下列paths、source/no secrets/namespace边界；runtime仍以后续gate为准。
 - Rollback: code-only本Step exactpaths的focusedrevert/forwardfix；不改已有commit历史、不drop库、不repairDDL、不删除旧Redis/namespaces；未数据/运行切换前可恢复baseline。Step7只旧state隔离不能用source回退把新v2会话当老宽权限，pendingintent/key保留。
-- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/domain/bo/EdgeRegistrationResourceBindingBO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/domain/enums/EdgeSessionBindingStateEnum.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/domain/bo/EdgeSessionBindingBO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeResourceAuthorizationContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSessionBindingComponent.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientRepository.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSingleFlightAuthorizedClientManager.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/EdgeResourceAuthorizationGatewayFilterFactory.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutService.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeOAuthTokenRevocationClient.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/domain/bo/EdgeRegistrationResourceBindingBO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/domain/enums/EdgeSessionBindingStateEnum.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/domain/bo/EdgeSessionBindingBO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeOAuthProperties.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeResourceAuthorizationContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/test/java/top/egon/cola/component/yuheng/edge/EdgeLoginContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSessionBindingComponent.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeAuthorizedClientRepository.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeSingleFlightAuthorizedClientManager.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/EdgeResourceAuthorizationGatewayFilterFactory.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/filter/TrustedIdentityHeaderFilter.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/config/EdgeSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/controller/EdgeSessionController.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/EdgeLogoutService.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/java/top/egon/cola/component/yuheng/edge/service/impl/EdgeOAuthTokenRevocationClient.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-edge-gateway/src/main/resources/application-local.yml`, `docs/egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md`, `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration.md`, `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-edge.md`
 - Commit: `feat(yuheng): isolate BFF resource tokens and fence all-session logout`；仅上述完整path-set精确stage，一条本Stepsemanticcommit；记录实际git rev-parse HEAD再继续。不要stage/commit他人文件或未来Step符号。
 
 ### Step 8 — 使既有 MP Outbox 与同 DataSource 的 JPA owner 共享真实本地事务
@@ -11754,3 +11758,27 @@ Verdict: **PASS — Ready for user review**。本轮confirmed已完成整份Spec
 | --- | --- | --- |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/yuheng/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/yuheng/openapi/webflux/GatewayOpenApiWebFluxContractTest.java` | 复用已验证实际 SDK 夹具，保留真实 Springdoc 断言并消除服务器启动 |
+
+### 12.12 Step 7 fixed resource ID and complete external Bearer approval — DEC-011
+
+状态：**Accepted — 用户于2026-10-12直接批准“必填资源 ID 与完整 Bearer 验证”**。授柄完整 SERVICE 验证调用 `IdentityResourceServerStateReader.read(resourceServerId)`，检查 ACTIVE、精确 resourceUri 和 resource_version；当前端口没有 URI lookup。Edge 每 alias 原只有 resourceUri，不能借 Edge portal ID 或从 JWT/Header 推导目标 ID。原外部 Bearer 透传草稿不能作为 §9.6/REQ-001 的完整 receiver 验证。
+
+在既有 `EdgeRegistrationResourceBindingBO` 增加部署必填 `String resourceServerId`，`@NotBlank @Size(max=128)`，只来自原可信资源 owner/部署目录；不新增 HTTP/query/header selector，不设置权限/租户/资源默认值。base/local 的 `resources.<alias>.resource-server-id` 同层级且值引用既有真实部署来源。已批准的 resourceUri、issuer/realreg、scope/redirect/canonical/fence 合同不变。
+
+复用当前 `IdpJwtVerifier.createConfigured` 和 capture overload：每固定 alias 使用其明确 ID/URI、已有 issuer manager/状态 readers/converter/clock/共享 revocation/usage observer，外部 USER/SERVICE 在本地 RS256、类型、iss/aud/time、资源/客户端状态、共享撤销及严格 usage 完成后才透传同一原 token。验证/FS 在 boundedElastic，revocation 复用现 Reactive reader；不重解析/重复解码、不新增 token cache/Redis/registry/框架/依赖/SQL/SDK API。外部 Bearer 不选 BFF registration；denial 必须零 TokenRelay/业务调用，保持现401/503/400、no-store/Bearer和业务响应形状。
+
+本修订复用 Step7 原 File1/5/6/7/10/11/12/16/17 owners，无新增生产文件。两既有测试 owner 增实际 RSA/SDK/状态/撤销/审计正反例：USER/SERVICE成功、wrongaud/资源disabled或版本stale/revoked401、依赖/审计503、原Bearer不变、混合Cookie400及零AS/BFF调用。原完整 native A→append→全logout→B、lease/refresh/latecallback/cancel及17MC/10Literal门禁继续。本三份文档修订纳入 Step7 单一 focused commit；19Step 顺序、无服务/浏览器/部署/Docker本阶段限制不变。批准不表示源码/行为/真实运行通过。
+
+### 12.13 Step 7 existing Gateway configuration and generated document clarification
+
+按用户已授权“小问题探索推荐方案改造”完成两个已声明 owner 内的局部修正，不改变文件清单、19Step 顺序、协议、授权规则、依赖或运行许可。
+
+- `application.yml` 与 `application-local.yml` 同步配置 `spring.cloud.gateway.server.webflux.filter.json-to-grpc.enabled=false`。现有 RPC 制品使用 shaded gRPC，SCG 默认 JSON-to-gRPC 的 `GrpcSslConfigurer` 却引用未提供的 `io.grpc.netty.NettyChannelBuilder`，真实无服务器文档上下文复现装配失败。当前固定路由未使用该过滤器；复用 SCG 已有 `ConditionalOnEnabledFilter` 开关，保留原生 RPC 与已有路由，不增加 unshaded 依赖。
+- 真实 springdoc 生成会从 Controller 通用响应与 record 模型重新推断 content、required 和范围。现有 `EdgeSecurityConfiguration` 文档 owner 补齐既有三个响应类型的 required/范围/枚举；现 `edgeBffOpenApiSecurityCustomizer` 对原 `oauthBffLogout` 合并 Cookie＋CSRF 的 AND security，并明确 204/403 无 content。五个原 operationId、路径和响应字段保持，实际生成文档测试核验这些事实；不新增接口、DTO 或业务字段。
+
+证据：`.runtime/xingyuan-plan-execution/step7-generated-oas-candidate2.log` 的 Gateway 装配失败、已缓存 SCG 4.3.4 `GatewayAutoConfiguration`/`OnEnabledComponent` 原生条件，以及 `step7-generated-oas-combined-candidate2.log`/`step7-compat-overloads-candidate.log` 的完整48项定向 GREEN。这些均为受控验证，不代表真实 Redis、授权服务器或浏览器运行验收。其余 Step7 门禁与后续 Step18 实际运行义务继续保留。
+
+
+### 12.14 Step 7 响应式审计装配澄清（2026-10-12）
+
+真实无网络服务的 Spring Context 测试暴露：直接导入授柄 `UsageObservationConfiguration` 时，Spring 反射其 Servlet Filter 工厂签名，因 Edge 纯 WebFlux 类路径没有 `jakarta.servlet.Filter` 而失败。Step 7 既有 `EdgeSecurityConfiguration` owner 改为直接构造现有 `IdpObservedVerificationComponent`，复用原生成 Converter、TokenUsageAuditComponent、Metrics、Clock、Validator、usage 配置和固定资源 URI；保留原 Bean 名称及实际审计就绪守卫。无需 Servlet 依赖、SDK 文件改动、HTTP 接口或安全降级。沿用已有授权的局部装配修复，Step 顺序及 20 个文件清单不变。测试需用真实 Root 配置及 SDK Metrics/Readiness 装配验证，不以手工安全链替代。
