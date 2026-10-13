@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.codegen.model.CodegenConfigBO;
 import top.egon.cola.component.codegen.model.CodegenProfileEnum;
 import top.egon.cola.component.codegen.model.CodegenSchemaBO;
+import top.egon.cola.component.codegen.validation.TemporalDefaultValidator;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -34,6 +35,7 @@ public class TemplateContextService {
         List<Map<String, String>> fields = new ArrayList<>();
         Set<String> imports = new LinkedHashSet<>();
         for (CodegenSchemaBO.ColumnBO column : table.getColumns()) {
+            TemporalDefaultValidator.requireUtc(column);
             if (column.getName() == null || isHidden(column.getName(), policies, artifact)) {
                 continue;
             }

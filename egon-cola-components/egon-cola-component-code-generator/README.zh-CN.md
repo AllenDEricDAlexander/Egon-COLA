@@ -82,3 +82,17 @@ Update 允许 MP 部分更新省略字段，Persisted 校验已加载行。复�
 归属记录，此后同名文件都会判为冲突。
 
 当前验收覆盖源码编译和隔离测试：`./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-code-generator -am test`。它不代表 PostgreSQL、ShardingSphere 或 MQ 已经在真实环境运行。
+
+
+## UTC 时间默认值
+
+时间 DEFAULT 必须独立于数据库会话时区保持 UTC 语义。`TIMESTAMPTZ(6)` 使用
+`CURRENT_TIMESTAMP(6)` / `now()`；Legacy UTC timestamp 使用
+`(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`；UTC 今天使用
+`((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date)`；UTC 钟表时间使用
+`((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::time(6))`。
+固定日期/本地时间字面值保留其声明语义；发生时刻字面值要求 Z 或零偏移。
+两个渲染入口对依赖会话时区或不支持的时间默认表达式返回 `TIME_DEFAULT_UNSUPPORTED`。
+`TIMESTAMP 'now'` 会固定为建表时刻；`timezone('UTC', now())` 返回无时区值，不能作为发生时刻列默认值。
+排课起止仍要求调用者显式提供，`deleted_at` 保持 nullable。MP 提案只推导类型，不自动补默认值。
+历史迁移保持不可变；本规则不执行或重写 SQL。

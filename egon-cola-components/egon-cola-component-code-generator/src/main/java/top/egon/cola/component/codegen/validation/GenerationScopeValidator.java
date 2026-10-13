@@ -70,6 +70,9 @@ public class GenerationScopeValidator {
 
     public Map<String, Object> renderModel(CodegenConfigBO config, CodegenSchemaBO.TableBO table, String artifact) {
         ProjectLayoutStrategy layout = ProjectLayoutStrategy.resolve(config.getProfile());
+        for (CodegenSchemaBO.ColumnBO column : table.getColumns()) {
+            TemporalDefaultValidator.requireUtc(column);
+        }
         String poType = simpleType(config, "po", typeName(table.getLogicalName(), "PO"));
         String daoType = simpleType(config, "dao", typeName(table.getLogicalName(), "DAO"));
         String repoType = typeName(table.getLogicalName(), "Repository");
@@ -227,6 +230,11 @@ public class GenerationScopeValidator {
             if (column.getName() == null || !isIdentifier(column.getName())) {
                 diagnostics.add(diagnostic("CONFIG_REQUIRED", "/" + table.getLogicalName(), "column name is not an identifier"));
                 continue;
+            }
+            if (!TemporalDefaultValidator.supports(column)) {
+                diagnostics.add(diagnostic(TemporalDefaultValidator.TIME_DEFAULT_UNSUPPORTED,
+                        "/" + table.getLogicalName() + "/" + column.getName(),
+                        "temporal default must have explicit UTC semantics or a supported literal"));
             }
             if (!BASE_COLUMNS.contains(column.getName()) && javaType(column) == null) {
                 diagnostics.add(diagnostic(UNKNOWN_SQL_TYPE, "/" + table.getLogicalName() + "/" + column.getName(),

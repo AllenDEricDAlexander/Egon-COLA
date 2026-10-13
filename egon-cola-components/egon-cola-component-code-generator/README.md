@@ -116,3 +116,17 @@ same-named files are judged as conflicts.
 Current acceptance covers compiling from source and the isolated tests:
 `./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-code-generator -am test`. It does not
 mean PostgreSQL, ShardingSphere or MQ have run in a real environment.
+
+
+## UTC temporal defaults
+
+Temporal DEFAULT expressions must retain UTC semantics independently of the database session zone.
+Use `CURRENT_TIMESTAMP(6)` / `now()` for `TIMESTAMPTZ(6)`; use
+`(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')` for a legacy UTC timestamp,
+`((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date)` for UTC today, and
+`((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::time(6))` for UTC wall-clock time.
+Fixed date/time literals retain their declared semantics; instant literals require `Z` or a zero offset.
+Unsupported or session-dependent temporal defaults fail with `TIME_DEFAULT_UNSUPPORTED` in both render paths.
+`TIMESTAMP 'now'` freezes the creation-time value; `timezone('UTC', now())` returns a naive value and is
+not an instant-column default. Scheduling endpoints remain required inputs; `deleted_at` stays nullable.
+The MP schema maintainer proposes types without inventing defaults. Historical migrations are immutable.

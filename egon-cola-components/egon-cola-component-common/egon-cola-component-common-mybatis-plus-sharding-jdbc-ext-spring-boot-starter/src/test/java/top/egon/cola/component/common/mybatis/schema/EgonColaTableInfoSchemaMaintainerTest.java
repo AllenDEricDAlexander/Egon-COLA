@@ -53,6 +53,7 @@ class EgonColaTableInfoSchemaMaintainerTest {
         EgonColaSchemaMaintainQuery query = query(TimeTypesPO.class.getPackageName(), "time_types");
         List<EgonColaSchemaMaintainResult> results = maintainer.maintain(query);
         assertThat(results).hasSize(1);
+        assertThat(results.get(0).sql()).doesNotContain("DEFAULT");
         assertThat(results.get(0).sql()).contains(
                 "\"occurred_at\" TIMESTAMPTZ(6)", "\"offset_at\" TIMESTAMPTZ(6)",
                 "\"local_at\" TIMESTAMP(6) WITHOUT TIME ZONE", "\"pure_date\" DATE",
