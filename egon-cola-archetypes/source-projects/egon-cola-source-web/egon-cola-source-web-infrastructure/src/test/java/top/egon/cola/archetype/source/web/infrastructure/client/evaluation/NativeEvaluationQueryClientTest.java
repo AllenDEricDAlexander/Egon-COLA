@@ -23,7 +23,6 @@ import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
-
 import top.egon.cola.archetype.source.web.common.exception.ExternalDependencyException;
 import top.egon.cola.archetype.source.web.common.enums.ExternalDependencyFailure;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.EvaluationCourseBO;
@@ -175,8 +174,8 @@ class NativeEvaluationQueryClientTest {
                 new top.egon.cola.component.rpc.contract.validation.RpcContractValidator(validation),
                 strategies, proxies,
                 new top.egon.cola.component.rpc.context.identity.RpcProcessIdentity("consumer", "test", "localhost", 1L, "consumer-1"),
-                new NativeEvaluationRpcProperties("biz", "evaluation-app", "course", "exam", "score", "1.0", 5000),
-                new top.egon.cola.component.rpc.config.EgonRpcProperties(), validation);
+                new NativeEvaluationRpcProperties("biz", "evaluation-app", "course", "exam", "score", "1.0", 5000, "evaluation-app"),
+                new top.egon.cola.component.rpc.config.EgonRpcProperties(), validation, evaluationBindings());
         config.evaluationCourseFacade();
         config.evaluationExamFacade();
         config.evaluationScoreFacade();
@@ -199,4 +198,23 @@ class NativeEvaluationQueryClientTest {
             }
         }
     }
+    private top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties evaluationBindings() {
+        var settings = new top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties();
+        settings.getRpc().setEnabled(true); settings.getRpc().getConsumer().setEnabled(true);
+        for (var entry : java.util.Map.of("CourseService", "course:read", "ExamService", "exam:read", "ScoreService", "score:read").entrySet()) {
+            String service = "top.egon.cola.evaluation.facade.rpc.v1." + entry.getKey();
+            var binding = new top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.RpcConsumerBindingProperties();
+            binding.setServiceName(service); binding.setGroup(entry.getValue().split(":")[0]); binding.setVersion("1.0");
+            binding.setFullMethodName(service + "/Get" + entry.getKey().replace("Service", ""));
+            binding.setProcessIdentity(java.util.Map.of("applicationName", "consumer", "env", "test"));
+            binding.setMode(top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.RpcConsumerModeEnum.SERVICE);
+            binding.setAppId("organization-app"); binding.setResourceUri(java.net.URI.create("https://evaluation.example.test"));
+            binding.setScopeContext(top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.TENANT);
+            binding.setTenantRegistrationIds(java.util.Map.of("1001", "evaluation-one"));
+            binding.setScopes(java.util.Set.of("evaluation-app:" + entry.getValue()));
+            settings.getRpc().getConsumer().getBindings().put(entry.getKey(), binding);
+        }
+        return settings;
+    }
+
 }

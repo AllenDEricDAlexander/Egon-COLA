@@ -1,5 +1,12 @@
 package top.egon.cola.archetype.source.web.adapter.teaching.controller;
 
+import java.nio.file.Path;
+import java.util.Set;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.archetype.source.web.adapter.graphql.NativeGraphQlSecurityContractTest.SecurityFixture;
 import top.egon.cola.archetype.source.web.adapter.teaching.controller.GradeController;
 import top.egon.cola.archetype.source.web.adapter.teaching.controller.SchoolClassController;
 import top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor.GradeAdapterConverter;
@@ -17,9 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import java.util.List;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
@@ -31,6 +36,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(MockitoExtension.class)
 class TeachingControllerTest {
+    @TempDir Path temporary;
+    private SecurityFixture security;
+
+    @BeforeEach
+    void bindVerifiedUser() throws Exception {
+        security = new SecurityFixture(temporary);
+        SecurityContextHolder.getContext().setAuthentication(security.authenticatedUser("1001", Set.copyOf(security.permissions)));
+    }
+
+    @AfterEach
+    void closeVerifiedUser() { security.close(); }
+
     @Mock GradeManage gradeManage;
     @Mock SchoolClassManage schoolClassManage;
 
@@ -45,8 +62,8 @@ class TeachingControllerTest {
         when(schoolClassManage.getSchoolClass(any())).thenReturn(
             new SchoolClassDetailResult(2001L, "Class A", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new GradeController(gradeManage, Mappers.getMapper(GradeAdapterConverter.class)),
-            new SchoolClassController(
+            new GradeController(security.fields, security.properties, gradeManage, Mappers.getMapper(GradeAdapterConverter.class)),
+            new SchoolClassController(security.fields, security.properties,
                 schoolClassManage, Mappers.getMapper(SchoolClassAdapterConverter.class))).build();
 
         mockMvc.perform(post("/api/v1/grades").contentType(MediaType.APPLICATION_JSON)

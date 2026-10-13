@@ -23,7 +23,6 @@ import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.web.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import java.time.Instant;
 
 /** Role assignment use case; the aggregate keeps the invariant that the cache and MQ cannot express. */
@@ -46,7 +45,6 @@ public class RoleManageImpl implements RoleManage {
     @Transactional
     public void assignRole(AssignRoleCommand command) {
         IdempotentCommand.execute(idempotency, "assign-role", command.requestId(), () -> {
-            validator.requireOrganizationAdmin();
             User user = userDomainService.findById(new UserId(command.userId()))
                     .orElseThrow(() -> notFound("user not found"));
             Role role = userDomainService.findRoleByCode(new RoleCode(command.roleCode()))

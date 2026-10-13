@@ -4,6 +4,11 @@ import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import java.util.Set;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.RpcConsumerModeEnum;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -32,6 +37,7 @@ import top.egon.cola.archetype.source.service.facade.exam.ScoreFacade;
 @Profile({"dev", "prod"})
 @EnableConfigurationProperties(NativeEvaluationRpcProperties.class)
 @RequiredArgsConstructor
+@Slf4j
 public class NativeEvaluationRpcConfiguration {
     @Qualifier("rpcContractValidator")
     private final RpcContractValidator contractValidator;
@@ -47,6 +53,8 @@ public class NativeEvaluationRpcConfiguration {
     private final EgonRpcProperties runtimeProperties;
     @Qualifier("nativeRpcValidation")
     private final ValidationUtils validation;
+    @Qualifier("idpStarterProperties")
+    private final IdpStarterProperties identityProperties;
 
     @Bean("evaluationQueryConverter")
     EvaluationQueryConverter evaluationQueryConverter() {
@@ -55,22 +63,39 @@ public class NativeEvaluationRpcConfiguration {
 
     @Bean("evaluationCourseFacade")
     CourseFacade evaluationCourseFacade() {
-        return reference(CourseFacade.class, target.courseGroup());
+        return reference(CourseFacade.class, target.courseGroup(), "GetCourse", "course:read");
     }
 
     @Bean("evaluationExamFacade")
     ExamFacade evaluationExamFacade() {
-        return reference(ExamFacade.class, target.examGroup());
+        return reference(ExamFacade.class, target.examGroup(), "GetExam", "exam:read");
     }
 
     @Bean("evaluationScoreFacade")
     ScoreFacade evaluationScoreFacade() {
-        return reference(ScoreFacade.class, target.scoreGroup());
+        return reference(ScoreFacade.class, target.scoreGroup(), "GetScore", "score:read");
     }
 
-    private <T> T reference(Class<T> contractType, String group) {
+    private <T> T reference(Class<T> contractType, String group, String operation, String intent) {
         validation.validate(target);
         var descriptor = contractValidator.validate(contractType);
+        String fullMethod = descriptor.serviceName() + "/" + operation;
+        var candidates = identityProperties.getRpc().getConsumer().getBindings().values().stream()
+                .filter(binding -> descriptor.serviceName().equals(binding.getServiceName())
+                        && group.equals(binding.getGroup()) && target.version().equals(binding.getVersion())
+                        && fullMethod.equals(binding.getFullMethodName())
+                        && processIdentity.applicationName().equals(binding.getProcessIdentity().get("applicationName"))
+                        && processIdentity.env().equals(binding.getProcessIdentity().get("env")))
+                .toList();
+        if (!identityProperties.getRpc().isEnabled() || !identityProperties.getRpc().getConsumer().isEnabled()
+                || identityProperties.getRpc().getConsumer().getBindings().size() != 3 || candidates.size() != 1) {
+            throw new IllegalStateException("EVALUATION_RPC_BINDING_UNAVAILABLE");
+        }
+        var binding = validation.validate(candidates.getFirst());
+        if (binding.getMode() != RpcConsumerModeEnum.SERVICE || binding.getScopeContext() != ServiceTokenContext.TENANT
+                || !binding.getScopes().equals(Set.of(target.applicationNamespace() + ":" + intent))) {
+            throw new IllegalStateException("EVALUATION_RPC_BINDING_INVALID");
+        }
         var identity = new RpcServiceIdentity(descriptor.serviceName(), group, target.version());
         var query = new RpcProviderQuery(target.bizCode(), target.appCode(), processIdentity.env(),
                 descriptor.serviceName(), group, target.version(), "grpc");

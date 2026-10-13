@@ -26,21 +26,22 @@ import org.springframework.graphql.test.tester.ExecutionGraphQlServiceTester;
 import org.springframework.graphql.test.tester.GraphQlTester;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
 import java.util.List;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @GraphQlTest
-@Import({UserResolver.class, SchoolClassResolver.class, OrganizationGraphQlExceptionResolver.class})
+@Import({UserResolver.class, SchoolClassResolver.class, OrganizationGraphQlExceptionResolver.class,
+        top.egon.cola.archetype.source.web.adapter.graphql.NativeGraphQlSecurityContractTest.ReadFixtureConfiguration.class})
 class OrganizationGraphQlContractTest {
 
     @Autowired
     private ExecutionGraphQlService executionGraphQlService;
 
     private GraphQlTester graphQlTester;
+    @Autowired
+    private top.egon.cola.archetype.source.web.adapter.graphql.NativeGraphQlSecurityContractTest.SecurityFixture security;
 
     // The resolvers inject by bean name, so every override has to carry that same name.
     @MockitoBean(name = "userManage")
@@ -55,9 +56,14 @@ class OrganizationGraphQlContractTest {
     private SchoolClassManage schoolClassManage;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         graphQlTester = ExecutionGraphQlServiceTester.create(executionGraphQlService);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                security.authenticatedUser("1001", java.util.Set.copyOf(security.permissions)));
     }
+
+    @org.junit.jupiter.api.AfterEach
+    void releaseUser() { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
 
     @Test
     void exposesBothDomainQueriesAndMutations() {

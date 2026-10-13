@@ -2139,3 +2139,13 @@ RuntimeConfigurationTest和StudentManagementApplicationTest纳入同一受控SDK
 ### 22.10 Service profile的typed map与测试关闭语义
 
 同一tenant-registration-ids typed Map在部署与测试拥有不同有界条目，不把动态tenant条目误判为新增core key；四profile剩余P/OAuth/SSL keys均实际相同，Map以实际Binder/Jakarta验证。TENANT binding的registration-id保持未声明/null，runtime需部署映射，external-off test显式1001/1002fixture和规范HTTPS例值。NONE测试关闭Servlet及Reactive OAuthClient自动创建，无生产弱化或默认role。Step4独立提交ee414cb645a67725899d69f2fdddc69865a8f0e8补公共RPC actor-kind，实际signed两类主体及MDC恢复由33受控test证明。
+
+### 22.11 Web Adapter compile注解API与既有caller
+
+现Common Core的provided/optional Swagger Jakarta annotations2.2.47不传递到Web Adapter，而声明OAS需要实际compile API。仅在既有Adapter POM复制同坐标、继承swagger.annotations.version及provided/optional范围；Host仍使用原OpenAPI runtime，无新框架/升级/下载/Domain/Open变更。两旧直接callerOrganizationFilterTest/OrganizationHttpErrorContractTest加入原兼容门禁，所有controller/resolver test实际使用受控已验证SDK fixture和Core-derived field policies；不构造允许型PDP/fieldguard/noop。
+
+### 22.12 Web entry proxy、namespace及既有context兼容
+
+30个实际Spring代理配真实signedUSER和SDK/Core授权fixture证明scope gate在PDP前，20个USER入口scope足够但PDPdeny仍不进usecase；之后按已批准范围移除header-role的Application判断，保留业务/幂等/事务/事件。Web既有NativeRpcConfiguration复用同Light/Service方法template和shared active marker严格DENY mapper，非Servlet也生效。三evaluation只读binding新增既有properties.applicationNamespace配置槽，部署声明目标namespace，group/version按原RPC descriptor与实际default1.0.0；不给当前app或header选择target，unknown/错scope关闭proxy。
+
+已有完整context tests五个caller加入显式SDKfixture；业务H2用例tenant1有专用test-only signedRealm1，原1001/1002安全用例不变；不改production默认tenant/role、持久化或publicDTO。并行UTC修改保留工作树并从本安全commit分离，时间规范原位SQL/启动/Profile/README由UTC任务拥有。本轮检验security/CQE/schema冻结，真实DB/AS/SSO/TLS/注册仍后续运行Gate，不以workingTree UTC与source测试冒部署证明。

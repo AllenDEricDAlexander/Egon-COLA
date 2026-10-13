@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.user.facade.impl;
 
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class PermissionFacadeImpl implements PermissionFacade {
     private final ValidationUtils validation;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:permission:grant")
     public RpcResponse grantPermission(GrantPermissionRpcRequest request) {
         var command = validation.validate(
                 converter.grantPermissionCommand(request, OrganizationFacadeSupport.requestId()));
@@ -46,6 +48,7 @@ public class PermissionFacadeImpl implements PermissionFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:permission:read")
     public PermissionTreeRpcResponse getPermissionTree(GetPermissionTreeRpcRequest request) {
         var input = validation.validate(new RpcIdQuery(request.hasUserId() ? request.getUserId() : null));
         return OrganizationFacadeSupport.invoke(

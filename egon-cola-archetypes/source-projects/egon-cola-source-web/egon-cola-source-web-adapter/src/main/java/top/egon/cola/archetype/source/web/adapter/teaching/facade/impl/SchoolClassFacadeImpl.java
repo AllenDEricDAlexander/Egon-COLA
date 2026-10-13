@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.teaching.facade.impl;
 
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.util.Objects;
@@ -40,6 +41,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:school-class:create")
     public SchoolClassRpcResponse createSchoolClass(CreateSchoolClassRpcRequest request) {
         var command = validation.validate(
                 converter.createSchoolClassCommand(request, OrganizationFacadeSupport.requestId()));
@@ -49,6 +51,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:school-class:read")
     public SchoolClassRpcResponse getSchoolClass(GetSchoolClassRpcRequest request) {
         var input = validation.validate(new SchoolClassQuery(
                 request.hasGradeId() ? request.getGradeId() : null,
@@ -60,6 +63,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:school-class:assign-user")
     public RpcResponse assignUser(AssignUserRpcRequest request) {
         var command = validation.validate(
                 converter.assignUserToClassCommand(request, OrganizationFacadeSupport.requestId()));

@@ -32,7 +32,6 @@ import top.egon.cola.archetype.source.web.domain.user.entities.User;
 import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import java.time.Instant;
 
 /** School class and membership use cases; the compound lookup stays inside the domain service. */
@@ -59,7 +58,6 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     @Transactional
     public SchoolClassDetailResult createSchoolClass(CreateSchoolClassCommand command) {
         return IdempotentCommand.execute(idempotency, "create-school-class", command.requestId(), () -> {
-            validator.requireTeachingAdmin();
             Grade grade = schoolClassDomainService.findGradeByCode(GradeCode.create(command.gradeCode()))
                     .orElseThrow(() -> notFound("grade not found"));
             if (schoolClassDomainService.existsByGradeIdAndNameIgnoreCase(grade.id(), command.name().trim())) {
@@ -87,7 +85,6 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     @Transactional
     public void assignUser(AssignUserToClassCommand command) {
         IdempotentCommand.execute(idempotency, "assign-user-to-school-class", command.requestId(), () -> {
-            validator.requireTeachingAdmin();
             SchoolClassId classId = new SchoolClassId(command.schoolClassId());
             UserId memberId = new UserId(command.userId());
             User user = userDomainService.findById(memberId).orElseThrow(() -> notFound("user not found"));

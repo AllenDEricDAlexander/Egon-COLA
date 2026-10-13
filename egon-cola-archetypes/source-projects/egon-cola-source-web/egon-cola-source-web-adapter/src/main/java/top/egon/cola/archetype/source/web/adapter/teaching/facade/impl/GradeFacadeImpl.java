@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.teaching.facade.impl;
 
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class GradeFacadeImpl implements GradeFacade {
     private final ValidationUtils validation;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:grade:create")
     public GradeRpcResponse createGrade(CreateGradeRpcRequest request) {
         var command = validation.validate(
                 converter.createGradeCommand(request, OrganizationFacadeSupport.requestId()));
@@ -42,6 +44,7 @@ public class GradeFacadeImpl implements GradeFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:grade:read")
     public GradeRpcResponse getGrade(GetGradeRpcRequest request) {
         var input = validation.validate(new RpcIdQuery(request.hasGradeId() ? request.getGradeId() : null));
         return OrganizationFacadeSupport.invoke(

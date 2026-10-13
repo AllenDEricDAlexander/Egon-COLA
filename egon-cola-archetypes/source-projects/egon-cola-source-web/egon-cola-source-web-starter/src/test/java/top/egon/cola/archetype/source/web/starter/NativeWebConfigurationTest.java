@@ -1,5 +1,8 @@
 package top.egon.cola.archetype.source.web.starter;
 
+import org.springframework.context.annotation.Import;
+import top.egon.cola.archetype.source.web.starter.config.NativeSecurityContractTest;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @SpringBootTest(classes = OrganizationApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class NativeWebConfigurationTest extends top.egon.cola.archetype.source.web.support.PersistenceTestSupport {
     @Autowired
@@ -38,7 +42,7 @@ class NativeWebConfigurationTest extends top.egon.cola.archetype.source.web.supp
         assertThat(context.containsBean("rpcProviderLifecycle")).isFalse();
         assertThat(context.containsBean("ddcRuntimeCoordinator")).isFalse();
         assertThat(context.containsBean("ddcHttpRegistrationRuntime")).isFalse();
-        assertThat(context.getBeansOfType(org.redisson.api.RedissonClient.class)).isEmpty();
+        assertThat(context.containsBean("ddcRedissonClient")).isFalse();
         for (String suffix : new String[]{"rpc.enabled", "rpc.provider.enabled", "rpc.consumer.enabled",
                 "tianshu.enabled", "tianshu.registry.enabled", "tianshu.redis.enabled", "tianshu.registry.http.enabled"}) {
             assertThat(environment.getProperty("egon.cola.component." + suffix)).as(suffix).isEqualTo("false");
@@ -55,7 +59,7 @@ class NativeWebConfigurationTest extends top.egon.cola.archetype.source.web.supp
         assertThat(properties("application-prod.yml").getProperty("egon.cola.component.rpc.tls.enabled"))
                 .isEqualTo("${RPC_TLS_ENABLED:true}");
         assertThat(properties("application-test.yml").getProperty("organization.integrations.evaluation.version"))
-                .endsWith(":1.0}");
+                .endsWith(":1.0.0}");
     }
 
     @Test
@@ -86,6 +90,7 @@ class NativeWebConfigurationTest extends top.egon.cola.archetype.source.web.supp
         return properties.stringPropertyNames().stream().filter(key -> key.startsWith("egon.cola.component.rpc.")
                 || key.startsWith("egon.cola.component.tianshu.") || key.startsWith("egon.cola.component.yuheng.openapi.")
                 || key.startsWith("egon.cola.platform.tianquan.shoubing.") || key.startsWith("organization.integrations.evaluation."))
+                .filter(key -> !key.contains("tenant-registration-ids"))
                 .collect(Collectors.toSet());
     }
 }

@@ -4,12 +4,12 @@ import top.egon.cola.archetype.source.web.application.context.OrganizationReques
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
 import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
 import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
-
-import java.util.Arrays;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /** Binds the request-scoped organization context around one inbound call. */
 public final class OrganizationFacadeSupport {
@@ -41,10 +41,10 @@ public final class OrganizationFacadeSupport {
     }
 
     public static <T> T invoke(Supplier<T> action, RejectionMapper<T> rejection) {
-        boolean created = OrganizationRequestContextHolder.current().isEmpty();
-        if (created) {
-            OrganizationRequestContextHolder.set(context());
-        }
+        var verified = context();
+        var previous = OrganizationRequestContextHolder.current();
+        OrganizationRequestContextHolder.clear();
+        OrganizationRequestContextHolder.set(verified);
         try {
             return action.get();
         } catch (OrganizationApplicationException failure) {
@@ -52,31 +52,25 @@ public final class OrganizationFacadeSupport {
                     .map(OrganizationRequestContext::traceId).orElse("unknown");
             return rejection.map(failure.code(), failure.getMessage(), traceId);
         } finally {
-            if (created) {
-                OrganizationRequestContextHolder.clear();
-            }
+            OrganizationRequestContextHolder.clear();
+            previous.ifPresent(OrganizationRequestContextHolder::set);
         }
     }
 
     private static OrganizationRequestContext context() {
-        String actorId = valueOrDefault(attachment("x-actor-id"), "facade-system");
+        if (!(IdpRpcSecurityContext.currentPrincipalOrNull() instanceof ServiceIdentityPrincipal service)
+                || service.tenantId() == null || service.subject().isBlank() || service.subject().length() > 128
+                || !service.subject().equals(service.subject().strip())) {
+            throw new AuthenticationCredentialsNotFoundException("Verified TENANT SERVICE identity is required");
+        }
         String traceId = valueOrDefault(attachment("x-trace-id"), UUID.randomUUID().toString());
-        String roleHeader = attachment("x-actor-roles");
-        Set<String> roles = roleHeader == null || roleHeader.isBlank()
-                ? Set.of("SYSTEM")
-                : Arrays.stream(roleHeader.split(","))
-                        .map(String::trim)
-                        .filter(role -> !role.isEmpty())
-                        .collect(Collectors.toUnmodifiableSet());
-        return new OrganizationRequestContext(actorId, roles, traceId);
+        return new OrganizationRequestContext(service.subject(), Set.of(), traceId);
     }
 
     private static String attachment(String name) {
         OrganizationRpcContextDTO context = OrganizationRpcContextDTO.current();
         String value = context == null ? null : switch (name) {
             case "idempotency-key" -> context.idempotencyKey();
-            case "x-actor-id" -> context.actorId();
-            case "x-actor-roles" -> context.actorRoles();
             case "x-trace-id" -> context.traceId();
             default -> null;
         };

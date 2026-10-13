@@ -1,5 +1,12 @@
 package top.egon.cola.archetype.source.web.adapter;
 
+import java.nio.file.Path;
+import java.util.Set;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.archetype.source.web.adapter.graphql.NativeGraphQlSecurityContractTest.SecurityFixture;
 import top.egon.cola.archetype.source.web.adapter.user.controller.UserController;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.UserAdapterConverter;
 import top.egon.cola.archetype.source.web.adapter.filter.OrganizationAuthContextFilter;
@@ -18,9 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import java.util.stream.Stream;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,6 +34,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(MockitoExtension.class)
 class OrganizationHttpErrorContractTest {
+    @TempDir Path temporary;
+    private SecurityFixture security;
+
+    @BeforeEach
+    void bindVerifiedUser() throws Exception {
+        security = new SecurityFixture(temporary);
+        SecurityContextHolder.getContext().setAuthentication(security.authenticatedUser("1001", Set.copyOf(security.permissions)));
+    }
+
+    @AfterEach
+    void closeVerifiedUser() { security.close(); }
+
     @Mock UserManage userManage;
 
     @ParameterizedTest
@@ -36,9 +53,9 @@ class OrganizationHttpErrorContractTest {
     void mapsApplicationFailures(OrganizationFailureType type, HttpStatus httpStatus, String code) throws Exception {
         when(userManage.getUser(any())).thenThrow(new OrganizationApplicationException(type, code, "failure"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new UserController(userManage, Mappers.getMapper(UserAdapterConverter.class)))
-            .setControllerAdvice(new OrganizationGlobalExceptionHandler())
-            .addFilters(new OrganizationTraceFilter(), new OrganizationAuthContextFilter())
+                new UserController(security.fields, security.properties, userManage, Mappers.getMapper(UserAdapterConverter.class)))
+            .setControllerAdvice(new OrganizationGlobalExceptionHandler(new top.egon.cola.platform.tianquan.jianshen.starter.web.Rbac3AuthorizationExceptionHandler()))
+            .addFilters(new OrganizationTraceFilter(), new OrganizationAuthContextFilter(security.mapper, "tenantId", "userId"))
             .build();
 
         mockMvc.perform(get("/api/v1/users/1001").header("X-Trace-Id", "trace-1"))

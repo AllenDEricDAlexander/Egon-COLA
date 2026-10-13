@@ -28,7 +28,6 @@ import top.egon.cola.archetype.source.web.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.web.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import java.time.Instant;
 
 /** Permission grant use case; the granted-code projection is delegated to the named converter. */
@@ -55,7 +54,6 @@ public class PermissionManageImpl implements PermissionManage {
     @Transactional
     public void grantPermission(GrantPermissionCommand command) {
         IdempotentCommand.execute(idempotency, "grant-permission", command.requestId(), () -> {
-            validator.requireOrganizationAdmin();
             Role role = userDomainService.findRoleByCode(new RoleCode(command.roleCode()))
                     .orElseThrow(() -> notFound("role not found"));
             Permission permission = permissionDomainService.findByCode(new PermissionCode(command.permissionCode()))

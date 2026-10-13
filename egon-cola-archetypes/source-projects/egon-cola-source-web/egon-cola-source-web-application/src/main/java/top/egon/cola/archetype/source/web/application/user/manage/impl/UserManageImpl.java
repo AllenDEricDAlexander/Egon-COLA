@@ -23,7 +23,6 @@ import top.egon.cola.archetype.source.web.domain.user.events.UserChangedEvent;
 import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import java.time.Instant;
 
 /** User use cases; caching and transport stay inside the domain service implementations. */
@@ -48,7 +47,6 @@ public class UserManageImpl implements UserManage {
     @Transactional
     public UserDetailResult createUser(CreateUserCommand command) {
         return IdempotentCommand.execute(idempotency, "create-user", command.requestId(), () -> {
-            validator.requireOrganizationAdmin();
             String normalizedEmail = validator.normalizedEmail(command.email());
             if (userDomainService.existsByEmail(normalizedEmail)) {
                 throw conflict("user email already exists");

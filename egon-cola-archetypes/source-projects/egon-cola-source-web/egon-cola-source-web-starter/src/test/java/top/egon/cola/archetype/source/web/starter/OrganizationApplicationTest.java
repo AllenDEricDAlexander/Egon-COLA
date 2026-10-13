@@ -1,5 +1,8 @@
 package top.egon.cola.archetype.source.web.starter;
 
+import org.springframework.context.annotation.Import;
+import top.egon.cola.archetype.source.web.starter.config.NativeSecurityContractTest;
+
 import top.egon.cola.archetype.source.web.domain.teaching.service.EvaluationQueryService;
 import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.impl.NativeEvaluationQueryClientImpl;
 import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.impl.LocalEvaluationQueryClientImpl;
@@ -16,6 +19,7 @@ import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @SpringBootTest(
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")

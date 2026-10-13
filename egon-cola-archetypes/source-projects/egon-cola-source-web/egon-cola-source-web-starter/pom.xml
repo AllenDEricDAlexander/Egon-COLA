@@ -15,7 +15,21 @@
     <packaging>jar</packaging>
     <name>egon-cola-source-web-starter</name>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+                <version>${egon-cola.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-web-adapter</artifactId>

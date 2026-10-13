@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.user.facade.impl;
 
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class UserFacadeImpl implements UserFacade {
     private final ValidationUtils validation;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:user:create")
     public UserRpcResponse createUser(CreateUserRpcRequest request) {
         var command = validation.validate(
                 converter.createUserCommand(request, OrganizationFacadeSupport.requestId()));
@@ -42,6 +44,7 @@ public class UserFacadeImpl implements UserFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:user:read")
     public UserRpcResponse getUser(GetUserRpcRequest request) {
         var input = validation.validate(new RpcIdQuery(request.hasUserId() ? request.getUserId() : null));
         return OrganizationFacadeSupport.invoke(

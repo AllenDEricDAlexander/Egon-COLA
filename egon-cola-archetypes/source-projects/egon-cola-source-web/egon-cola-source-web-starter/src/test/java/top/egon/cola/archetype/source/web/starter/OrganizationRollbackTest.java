@@ -1,5 +1,8 @@
 package top.egon.cola.archetype.source.web.starter;
 
+import org.springframework.context.annotation.Import;
+import top.egon.cola.archetype.source.web.starter.config.NativeSecurityContractTest;
+
 import top.egon.cola.archetype.source.web.application.teaching.pojo.command.AssignUserToClassCommand;
 import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateGradeCommand;
 import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateSchoolClassCommand;
@@ -26,6 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @SpringBootTest(
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")

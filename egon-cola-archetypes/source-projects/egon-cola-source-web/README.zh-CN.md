@@ -173,11 +173,11 @@ SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl egon-cola-source-web-starter spring-b
 
 ## 原生 RPC、Tianshu 与远程查询
 
-本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 10 个 organization unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Evaluation 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms，`EVALUATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 10 个 organization unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Evaluation 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms，`EVALUATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
 
 `dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
 
-文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、JWT decoder/`yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
+文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、完整授柄SERVICE验证与 `yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
 
 `test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 Tianshu 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 Tianshu/Tianquan-Shoubing、TLS 或容器互通。
 
@@ -207,3 +207,13 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 ## 2026-09-22 Java / CQE 维护规范
 
 普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。
+
+## 星垣身份与授权
+
+10个REST与10个GraphQL root均要求面向当前精确资源的已验证USER Token、对应egon-cola-source-web:<intent> delegation scope，以及独立的namespace RBAC资源/permission。业务与MP审计actor/tenant只来自可信主体，actor/role/tenant headers不授权；仅liveness/readiness公共。REST/GraphQL写入在用例前按实际提交字段检查当前role field rules，field定义cap本身不授WRITE。
+
+10个native RPC方法要求已验证TENANT SERVICE身份、固定audience与本方法scope。共同SDK严格确认usage proof并在finally恢复callback tenant/actor/kind；facade metadata仅传递trace/幂等，不构造SYSTEM或伪USER。GraphQL使用immutable身份/scope/proof/trace和框架callback Adapter/Decorator，aliases共用一次已确认DENY marker；依赖/审计Unavailable不降为普通拒绝。
+
+三个evaluation只读调用仅GetCourse/GetExam/GetScore，scope来自目标发布namespace。填写organization.integrations.evaluation.application-namespace、固定group/version（默认1.0.0）、精确目标resource URI、独立client registrations及SDK可信tenant-registration map。未知/错配binding在创建出站proxy前拒绝，不增加USER relay或DTO选target回退。
+
+运行配置需要明确HTTPS trusted issuer/JWK、严格撤销endpoint/epoch、独立control/tenant client凭据和独占audit spool/HMAC key。SDK Servlet自动注册关闭，由应用持有observation→IdP→RBAC→authorization→可信业务context链。RPC默认TLS，明文仅显式loopback例外；高优先级文档窄链在治理启用时验证完整SERVICE与yuheng.openapi.read，关闭治理也不公开文档。目录登记不自动授权。external-off测试提供明确SDK事实，不代表真实PG/Redis/TLS/注册/SSO/浏览器已验。

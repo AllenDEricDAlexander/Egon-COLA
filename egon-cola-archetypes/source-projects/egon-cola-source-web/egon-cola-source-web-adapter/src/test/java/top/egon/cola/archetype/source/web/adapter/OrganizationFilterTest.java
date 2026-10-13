@@ -7,16 +7,19 @@ import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-
+import org.junit.jupiter.api.io.TempDir;
+import java.nio.file.Path;
+import java.util.Set;
+import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.archetype.source.web.adapter.graphql.NativeGraphQlSecurityContractTest.SecurityFixture;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OrganizationFilterTest {
     @Test
-    void propagatesActorRolesAndAlwaysClearsContext() throws Exception {
+    void bindsVerifiedActorIgnoresHeaderRolesAndAlwaysClearsContext(@TempDir Path temporary) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("X-Trace-Id", "trace-1");
         request.addHeader("X-Actor-Id", "admin-1");
@@ -25,14 +28,16 @@ class OrganizationFilterTest {
         AtomicBoolean rolesObserved = new AtomicBoolean();
         FilterChain terminal = (req, res) -> {
             rolesObserved.set(OrganizationRequestContextHolder.current()
-                .map(context -> context.hasRole("TEACHING_ADMIN")).orElse(false));
+                .map(context -> "subject-1001".equals(context.actorId()) && context.actorRoles().isEmpty()).orElse(false));
             throw new IllegalStateException("boom");
         };
-        OrganizationAuthContextFilter auth = new OrganizationAuthContextFilter();
         OrganizationTraceFilter trace = new OrganizationTraceFilter();
-
-        assertThrows(IllegalStateException.class,
-            () -> trace.doFilter(request, response, (req, res) -> auth.doFilter(req, res, terminal)));
+        try (var security = new SecurityFixture(temporary)) {
+            SecurityContextHolder.getContext().setAuthentication(security.authenticatedUser("1001", Set.of("openid")));
+            var auth = new OrganizationAuthContextFilter(security.mapper, "tenantId", "userId");
+            assertThrows(IllegalStateException.class,
+                () -> trace.doFilter(request, response, (req, res) -> auth.doFilter(req, res, terminal)));
+        }
 
         assertTrue(rolesObserved.get());
         assertFalse(OrganizationRequestContextHolder.current().isPresent());

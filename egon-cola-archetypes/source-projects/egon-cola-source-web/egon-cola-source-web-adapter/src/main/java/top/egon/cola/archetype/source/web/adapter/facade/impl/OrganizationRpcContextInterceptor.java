@@ -10,20 +10,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/** Binds legacy organization header semantics to gRPC's managed context lifecycle. */
+/** Carries correlation/idempotency metadata; the shared SDK owns verified SERVICE identity. */
 @Component("organizationRpcContextInterceptor")
 @RequiredArgsConstructor
 @Slf4j
 public class OrganizationRpcContextInterceptor implements ServerInterceptor {
-    private static final Metadata.Key<String> ACTOR_ID = Metadata.Key.of("x-actor-id", Metadata.ASCII_STRING_MARSHALLER);
-    private static final Metadata.Key<String> ACTOR_ROLES = Metadata.Key.of("x-actor-roles", Metadata.ASCII_STRING_MARSHALLER);
     private static final Metadata.Key<String> TRACE_ID = Metadata.Key.of("x-trace-id", Metadata.ASCII_STRING_MARSHALLER);
     private static final Metadata.Key<String> IDEMPOTENCY_KEY = Metadata.Key.of("idempotency-key", Metadata.ASCII_STRING_MARSHALLER);
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
             ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
-        var metadata = new OrganizationRpcContextDTO(headers.get(ACTOR_ID), headers.get(ACTOR_ROLES),
+        var metadata = new OrganizationRpcContextDTO(null, null,
                 headers.get(TRACE_ID), headers.get(IDEMPOTENCY_KEY));
         return Contexts.interceptCall(Context.current().withValue(OrganizationRpcContextDTO.CONTEXT_KEY, metadata),
                 call, headers, next);

@@ -15,7 +15,21 @@
     <packaging>jar</packaging>
     <name>egon-cola-source-web-infrastructure</name>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-tianquan-shoubing-starter</artifactId>
+                <version>${egon-cola.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-tianquan-shoubing-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</artifactId>

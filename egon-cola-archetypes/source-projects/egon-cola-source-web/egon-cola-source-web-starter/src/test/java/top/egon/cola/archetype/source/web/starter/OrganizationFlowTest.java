@@ -1,5 +1,8 @@
 package top.egon.cola.archetype.source.web.starter;
 
+import org.springframework.context.annotation.Import;
+import top.egon.cola.archetype.source.web.starter.config.NativeSecurityContractTest;
+
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +22,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @SpringBootTest(
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
 @AutoConfigureMockMvc
 class OrganizationFlowTest extends top.egon.cola.archetype.source.web.support.PersistenceTestSupport {
+    @Autowired
+    private NativeSecurityContractTest.SecurityFixture security;
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -63,7 +70,7 @@ class OrganizationFlowTest extends top.egon.cola.archetype.source.web.support.Pe
                 .andReturn();
         String gradeId = JsonPath.read(createdGrade.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(get("/api/v1/grades/{id}", gradeId))
+        mockMvc.perform(get("/api/v1/grades/{id}", gradeId).headers(adminHeaders("read-grade")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(gradeCode));
 
@@ -78,7 +85,7 @@ class OrganizationFlowTest extends top.egon.cola.archetype.source.web.support.Pe
         mockMvc.perform(get(
                         "/api/v1/grades/{gradeId}/school-classes/{schoolClassId}",
                         gradeId,
-                        schoolClassId))
+                        schoolClassId).headers(adminHeaders("read-class")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gradeCode").value(gradeCode));
 
@@ -91,7 +98,7 @@ class OrganizationFlowTest extends top.egon.cola.archetype.source.web.support.Pe
                         .content("{\"userId\":\"" + userId + "\"}"))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/v1/users/{id}", userId))
+        mockMvc.perform(get("/api/v1/users/{id}", userId).headers(adminHeaders("read-user")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.roleCodes[0]").value("STUDENT"));
 
@@ -106,9 +113,10 @@ class OrganizationFlowTest extends top.egon.cola.archetype.source.web.support.Pe
                 Integer.class, 1L, gradeId, userId, schoolClassId)).isEqualTo(1);
     }
 
-    private static HttpHeaders adminHeaders(String idempotencyKey) {
+    private HttpHeaders adminHeaders(String idempotencyKey) throws Exception {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Actor-Id", "admin-1");
+        headers.setBearerAuth(security.token("1", java.util.Set.copyOf(security.permissions)));
+        headers.set("X-Actor-Id", "forged-actor");
         headers.set("X-Actor-Roles", "ORGANIZATION_ADMIN,TEACHING_ADMIN");
         headers.set("X-Trace-Id", "flow-test");
         headers.set("Idempotency-Key", idempotencyKey);

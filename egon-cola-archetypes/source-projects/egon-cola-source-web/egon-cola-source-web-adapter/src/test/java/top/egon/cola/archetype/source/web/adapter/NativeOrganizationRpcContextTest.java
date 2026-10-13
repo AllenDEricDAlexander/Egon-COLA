@@ -1,5 +1,13 @@
 package top.egon.cola.archetype.source.web.adapter;
 
+import java.nio.file.Path;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.BeforeEach;
+import top.egon.cola.archetype.source.web.adapter.graphql.NativeGraphQlSecurityContractTest.SecurityFixture;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO;
+
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.ServerInterceptors;
@@ -39,7 +47,6 @@ import top.egon.cola.component.rpc.provider.binding.RpcProviderBinding;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderMethodRegistry;
 import top.egon.cola.component.rpc.provider.lifecycle.RpcProviderAvailabilityRegistry;
 import top.egon.cola.component.rpc.provider.server.RpcServerServiceDefinitionFactory;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,6 +54,27 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class NativeOrganizationRpcContextTest {
+    @TempDir Path temporary;
+    private SecurityFixture security;
+    private Context verifiedContext;
+    private Context previousContext;
+
+    @BeforeEach
+    void bindVerifiedService() throws Exception {
+        security = new SecurityFixture(temporary);
+        String token = security.serviceToken("1001", java.util.Set.copyOf(security.permissions));
+        var verified = (AccessTokenVerification.Valid<?>) security.verifier.verifyService(token);
+        verifiedContext = IdpRpcSecurityContext.with(verified.principal(), token, verified.proof(),
+                new IdpAuthorizationObservationContextBO(), verified.scopes());
+        previousContext = verifiedContext.attach();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void releaseVerifiedService() {
+        verifiedContext.detach(previousContext);
+        security.close();
+    }
+
 
     private static final ValidationUtils VALIDATION_UTILS =
             new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
@@ -65,7 +93,7 @@ class NativeOrganizationRpcContextTest {
         Context.current().withValue(OrganizationRpcContextDTO.CONTEXT_KEY,
                 new OrganizationRpcContextDTO("rpc-actor", "ADMIN", "rpc-trace", "request-1")).run(() -> {
                     OrganizationFacadeSupport.invoke(() -> {
-                        assertThat(OrganizationRequestContextHolder.current().orElseThrow()).isSameAs(existing);
+                        assertThat(OrganizationRequestContextHolder.current().orElseThrow().actorId()).isEqualTo("organization-service");
                         assertThat(OrganizationFacadeSupport.requestId()).isEqualTo("request-1");
                         return null;
                     }, unexpectedRejection());
@@ -95,8 +123,8 @@ class NativeOrganizationRpcContextTest {
     void retains_default_actor_roles_and_uuid_request_ids() {
         OrganizationFacadeSupport.invoke(() -> {
             var context = OrganizationRequestContextHolder.current().orElseThrow();
-            assertThat(context.actorId()).isEqualTo("facade-system");
-            assertThat(context.actorRoles()).isEqualTo(Set.of("SYSTEM"));
+            assertThat(context.actorId()).isEqualTo("organization-service");
+            assertThat(context.actorRoles()).isEqualTo(Set.of());
             assertThat(UUID.fromString(context.traceId())).isNotNull();
             assertThat(UUID.fromString(OrganizationFacadeSupport.requestId())).isNotNull();
             return null;
@@ -163,7 +191,7 @@ class NativeOrganizationRpcContextTest {
             var definition = new RpcServerServiceDefinitionFactory(availability).create(registry).getFirst();
             var name = InProcessServerBuilder.generateName();
             var server = InProcessServerBuilder.forName(name).directExecutor()
-                    .addService(ServerInterceptors.intercept(definition, new OrganizationRpcContextInterceptor()))
+                    .addService(ServerInterceptors.intercept(definition, new OrganizationRpcContextInterceptor(), security.rpcInterceptor()))
                     .build().start();
             var channel = InProcessChannelBuilder.forName(name).directExecutor().build();
             try {
@@ -173,7 +201,7 @@ class NativeOrganizationRpcContextTest {
                 var response = stub.createUser(CreateUserRpcRequest.newBuilder()
                         .setName("Mario").setEmail("mario@example.com").build());
                 assertThat(response.getSuccess()).isTrue();
-                assertThat(observed.get()).isEqualTo(new OrganizationRequestContext("actor-1", Set.of("TEACHER", "ADMIN"), "trace-1"));
+                assertThat(observed.get()).isEqualTo(new OrganizationRequestContext("organization-service", Set.of(), "trace-1"));
                 assertThat(requestId.get()).isEqualTo("request-1");
                 assertThat(OrganizationRequestContextHolder.current()).isEmpty();
                 assertThat(OrganizationRpcContextDTO.current()).isNull();
@@ -185,15 +213,15 @@ class NativeOrganizationRpcContextTest {
                 assertThat(rejected.getCode()).isEqualTo("DENIED");
                 assertThat(rejected.getMessage()).isEqualTo("reason");
                 assertThat(rejected.getTraceId()).isEqualTo("trace-2");
-                assertThat(observed.get().actorId()).isEqualTo("actor-2");
+                assertThat(observed.get().actorId()).isEqualTo("organization-service");
                 assertThat(requestId.get()).isEqualTo("request-2");
                 assertThat(OrganizationRequestContextHolder.current()).isEmpty();
                 assertThat(OrganizationRpcContextDTO.current()).isNull();
 
-                UserServiceGrpc.newBlockingStub(channel).createUser(CreateUserRpcRequest.newBuilder()
+                UserServiceGrpc.newBlockingStub(channel).withInterceptors(MetadataUtils.newAttachHeadersInterceptor(headers("ignored", "SYSTEM", "trace-3", "request-3"))).createUser(CreateUserRpcRequest.newBuilder()
                         .setName("Mario").setEmail("mario@example.com").build());
-                assertThat(observed.get().actorId()).isEqualTo("facade-system");
-                assertThat(observed.get().actorRoles()).isEqualTo(Set.of("SYSTEM"));
+                assertThat(observed.get().actorId()).isEqualTo("organization-service");
+                assertThat(observed.get().actorRoles()).isEqualTo(Set.of());
                 assertThat(requestId.get()).isNotEqualTo("request-2");
             } finally {
                 channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
@@ -212,6 +240,12 @@ class NativeOrganizationRpcContextTest {
         var headers = new Metadata();
         Map.of("x-actor-id", actorId, "x-actor-roles", roles, "x-trace-id", traceId, "idempotency-key", requestId)
                 .forEach((name, value) -> headers.put(Metadata.Key.of(name, Metadata.ASCII_STRING_MARSHALLER), value));
+        headers.put(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER), "Bearer " + bearerToken());
         return headers;
     }
+    private String bearerToken() {
+        try { return security.serviceToken("1001", Set.copyOf(security.permissions)); }
+        catch (Exception failure) { throw new IllegalStateException("Controlled SERVICE fixture failed", failure); }
+    }
+
 }

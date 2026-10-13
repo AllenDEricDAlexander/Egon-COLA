@@ -1,5 +1,14 @@
 package top.egon.cola.archetype.source.web.adapter;
 
+import java.nio.file.Path;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.BeforeEach;
+import top.egon.cola.archetype.source.web.adapter.graphql.NativeGraphQlSecurityContractTest.SecurityFixture;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO;
+import io.grpc.Context;
+
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
@@ -39,7 +48,6 @@ import top.egon.cola.archetype.source.web.facade.proto.GrantPermissionRpcRequest
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,6 +58,27 @@ import static org.mockito.Mockito.when;
 
 /** Wire contract of the merged native providers: Protobuf in, use case, unchanged Protobuf out. */
 class NativeOrganizationRpcProviderTest {
+    @TempDir Path temporary;
+    private SecurityFixture security;
+    private Context verifiedContext;
+    private Context previousContext;
+
+    @BeforeEach
+    void bindVerifiedService() throws Exception {
+        security = new SecurityFixture(temporary);
+        String token = security.serviceToken("1001", java.util.Set.copyOf(security.permissions));
+        var verified = (AccessTokenVerification.Valid<?>) security.verifier.verifyService(token);
+        verifiedContext = IdpRpcSecurityContext.with(verified.principal(), token, verified.proof(),
+                new IdpAuthorizationObservationContextBO(), verified.scopes());
+        previousContext = verifiedContext.attach();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void releaseVerifiedService() {
+        verifiedContext.detach(previousContext);
+        security.close();
+    }
+
 
     private static final ValidationUtils VALIDATION_UTILS =
             new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());

@@ -2,6 +2,8 @@ package top.egon.cola.archetype.source.web.infrastructure.client.evaluation;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -15,5 +17,6 @@ public record NativeEvaluationRpcProperties(
         @NotBlank String examGroup,
         @NotBlank String scoreGroup,
         @NotBlank String version,
-        @Positive long timeoutMs) {
+        @Positive long timeoutMs,
+        @NotBlank @Size(max = 108) @Pattern(regexp = "[A-Za-z0-9._-]+") String applicationNamespace) {
 }

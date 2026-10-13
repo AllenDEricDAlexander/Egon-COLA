@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.user.facade.impl;
 
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -28,6 +29,7 @@ public class RoleFacadeImpl implements RoleFacade {
     private final ValidationUtils validation;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-web:role:assign")
     public RpcResponse assignRole(AssignRoleRpcRequest request) {
         var command = validation.validate(
                 converter.assignRoleCommand(request, OrganizationFacadeSupport.requestId()));

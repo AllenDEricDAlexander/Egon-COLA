@@ -23,7 +23,6 @@ import top.egon.cola.archetype.source.web.domain.teaching.events.GradeChangedEve
 import top.egon.cola.archetype.source.web.domain.teaching.service.GradeDomainService;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import java.time.Instant;
 
 /** Grade use cases; caching and transport stay inside the domain service implementations. */
@@ -48,7 +47,6 @@ public class GradeManageImpl implements GradeManage {
     @Transactional
     public GradeDetailResult createGrade(CreateGradeCommand command) {
         return IdempotentCommand.execute(idempotency, "create-grade", command.requestId(), () -> {
-            validator.requireTeachingAdmin();
             GradeCode code = GradeCode.create(command.code());
             if (gradeDomainService.existsByCode(code)) {
                 throw conflict("grade code already exists");
