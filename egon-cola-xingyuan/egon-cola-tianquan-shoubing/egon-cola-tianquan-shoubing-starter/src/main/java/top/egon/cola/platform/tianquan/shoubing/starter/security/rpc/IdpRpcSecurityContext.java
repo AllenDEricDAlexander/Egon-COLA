@@ -116,6 +116,7 @@ public final class IdpRpcSecurityContext {
             RequestContextHolder.resetRequestAttributes();
             if (principal.tenantId() == null) { MDC.remove("tenantId"); } else { MDC.put("tenantId", principal.tenantId()); }
             MDC.put("userId", principal instanceof ServiceIdentityPrincipal service ? service.clientId() : principal.subject());
+            MDC.put("egon.auth.actor-kind", principal instanceof ServiceIdentityPrincipal ? "SERVICE" : "USER");
             callback.run();
         } finally {
             SecurityContextHolder.setContext(previous);

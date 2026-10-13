@@ -226,6 +226,7 @@ class IdpRpcBearerServerInterceptorTest {
             SecurityContextHolder.setContext(previous);
             MDC.put("tenantId", "previous-tenant");
             MDC.put("userId", "previous-user");
+            MDC.put("egon.auth.actor-kind", "previous-kind");
             var previousAttributes = new ServletRequestAttributes(new MockHttpServletRequest());
             RequestContextHolder.setRequestAttributes(previousAttributes);
             Runnable record = () -> {
@@ -237,6 +238,7 @@ class IdpRpcBearerServerInterceptorTest {
                 assertThat(RequestContextHolder.getRequestAttributes()).isNull();
                 assertThat(MDC.get("tenantId")).isEqualTo("1001");
                 assertThat(MDC.get("userId")).isEqualTo("orders-client");
+                assertThat(MDC.get("egon.auth.actor-kind")).isEqualTo("SERVICE");
                 assertThat(IdpRpcSecurityContext.currentProofOrNull()).isNotNull();
             };
             var listener = interceptor.interceptCall(new RecordingServerCall(), bearer(token), (call, headers) -> {
@@ -258,9 +260,29 @@ class IdpRpcBearerServerInterceptorTest {
             assertThat(RequestContextHolder.getRequestAttributes()).isSameAs(previousAttributes);
             assertThat(MDC.get("tenantId")).isEqualTo("previous-tenant");
             assertThat(MDC.get("userId")).isEqualTo("previous-user");
+            assertThat(MDC.get("egon.auth.actor-kind")).isEqualTo("previous-kind");
             assertThat(IdpRpcSecurityContext.currentPrincipalOrNull()).isNull();
             assertThat(events).hasSize(1).allSatisfy(event -> assertThat(event).containsEntry("result", "SUCCESS"));
             verify(managers, times(1)).authenticate(token); verify(revocations, times(1)).check(any());
+        }
+
+        @Test
+        void authenticatedUserCallbackBindsItsOwnActorKindAndRestoresThePreviousValue() throws Exception {
+            String token = token(true, ServiceTokenContext.TENANT, Set.of("inventory:read"),
+                    IdpRpcBindingPropertiesTest.RESOURCE, NOW.plusSeconds(300));
+            properties.getRpc().getProvider().getMethods().get(IdpRpcBindingPropertiesTest.METHOD)
+                    .setPrincipalKind(RpcPrincipalKindEnum.USER);
+            MDC.put("egon.auth.actor-kind", "previous-kind");
+            var listener = interceptor.interceptCall(new RecordingServerCall(), bearer(token), (call, headers) -> {
+                assertThat(MDC.get("egon.auth.actor-kind")).isEqualTo("USER");
+                return new ServerCall.Listener<String>() {
+                    @Override public void onHalfClose() {
+                        assertThat(MDC.get("egon.auth.actor-kind")).isEqualTo("USER");
+                    }
+                };
+            });
+            listener.onHalfClose(); listener.onCancel();
+            assertThat(MDC.get("egon.auth.actor-kind")).isEqualTo("previous-kind");
         }
 
         @Test
