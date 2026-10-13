@@ -1,22 +1,33 @@
 package top.egon.cola.archetype.source.light.adapter.teaching.controller;
 
-import top.egon.cola.archetype.source.light.adapter.filter.RequestContextFilter;
-import top.egon.cola.archetype.source.light.adapter.filter.TraceIdFilter;
-import top.egon.cola.archetype.source.light.adapter.teaching.pojo.convertor.TeachingAdapterConvertorImpl;
-import top.egon.cola.archetype.source.light.adapter.teaching.validators.TeachingRequestValidator;
-import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateSchoolClassCommand;
-import top.egon.cola.archetype.source.light.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.light.application.teaching.pojo.result.SchoolClassResult;
+import jakarta.servlet.Filter;
+import jakarta.validation.Validation;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import jakarta.validation.Validation;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+import top.egon.cola.archetype.source.light.adapter.filter.RequestContextFilter;
+import top.egon.cola.archetype.source.light.adapter.filter.TraceIdFilter;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.convertor.TeachingAdapterConvertorImpl;
+import top.egon.cola.archetype.source.light.adapter.teaching.validators.TeachingRequestValidator;
+import top.egon.cola.archetype.source.light.application.teaching.manage.SchoolClassManage;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.light.application.teaching.pojo.result.SchoolClassResult;
+import top.egon.cola.archetype.source.light.start.config.NativeHttpSecurityConfiguration;
+import top.egon.cola.archetype.source.light.start.config.NativeSecurityContractTest;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,9 +39,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("test")
+@TestPropertySource(properties = "TIANQUAN_SHOUBING_RESOURCE_URI=https://light.example.test")
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @WebMvcTest(SchoolClassController.class)
 @ContextConfiguration(classes = {
-        top.egon.cola.archetype.source.light.start.config.NativeHttpSecurityConfiguration.class,
+        NativeHttpSecurityConfiguration.class,
         SchoolClassController.class,
         TeachingAdapterConvertorImpl.class,
         TeachingRequestValidator.class,
@@ -50,8 +64,19 @@ class SchoolClassControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    @MockitoBean
+    @MockitoBean(name = "schoolClassManageImpl")
     private SchoolClassManage schoolClassManage;
+
+    @Autowired private WebApplicationContext web;
+    @Autowired private NativeSecurityContractTest.SecurityFixture security;
+    @BeforeEach void verifiedRequestDefaults() throws Exception {
+        mockMvc = MockMvcBuilders.webAppContextSetup(web)
+                .addFilter(web.getBean(TraceIdFilter.class))
+                .addFilter(web.getBean("springSecurityFilterChain", Filter.class))
+                .defaultRequest(MockMvcRequestBuilders.get("/")
+                        .header("Authorization", "Bearer " + security.token("1001", Set.of("egon-cola-source-light:school-class:create", "egon-cola-source-light:school-class:read", "egon-cola-source-light:school-class:schedule-course"))))
+                .build();
+    }
 
     @Test
     void creates_school_class_with_typed_context() throws Exception {
@@ -65,7 +90,7 @@ class SchoolClassControllerTest {
 
         ArgumentCaptor<CreateSchoolClassCommand> captor = ArgumentCaptor.forClass(CreateSchoolClassCommand.class);
         verify(schoolClassManage).create(captor.capture());
-        assertThat(captor.getValue().operatorId()).isEqualTo("operator-1");
+        assertThat(captor.getValue().operatorId()).isEqualTo("subject-1001");
     }
 
     @Test

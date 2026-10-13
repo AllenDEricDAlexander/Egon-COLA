@@ -1,15 +1,27 @@
 package top.egon.cola.archetype.source.light.start.config;
 
+import io.swagger.v3.oas.annotations.Operation;
+import java.util.Map;
+import java.util.Set;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestComponent;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
+import top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.light.application.user.pojo.result.UserResult;
 import top.egon.cola.archetype.source.light.start.StudentManagementApplication;
+import top.egon.cola.archetype.source.light.support.PersistenceTestSupport;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -21,38 +33,40 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
-@SpringBootTest(classes = StudentManagementApplication.class)
-class NativeHttpCompatibilityTest extends top.egon.cola.archetype.source.light.support.PersistenceTestSupport {
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
+@SpringBootTest(classes = StudentManagementApplication.class, properties = "TIANQUAN_SHOUBING_RESOURCE_URI=https://light.example.test")
+class NativeHttpCompatibilityTest extends PersistenceTestSupport {
     @Autowired
     private MockMvc mockMvc;
     @MockitoBean
     private UserManage userManage;
+    @Autowired private NativeSecurityContractTest.SecurityFixture security;
 
     @Test
-    void business_post_keeps_public_access_request_context_and_json_contract() throws Exception {
+    void business_post_keeps_verified_context_and_json_contract() throws Exception {
         when(userManage.create(any())).thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
-        mockMvc.perform(post("/api/users").header("X-Operator-Id", "operator-1")
+        mockMvc.perform(post("/api/users").header("Authorization", "Bearer " + security.token("1001", Set.of(NativeSecurityContractTest.SecurityFixture.SYSTEM + ":user:create"))).header("X-Operator-Id", "forged-actor")
                         .header("X-Tenant-Id", "42").header("X-Request-Id", "request-1").contentType("application/json")
                         .content("{\"externalId\":\"external-1\",\"name\":\"Mario\",\"email\":\"mario@example.com\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(10000))
                 .andExpect(jsonPath("$.data.id").value("1001"))
                 .andExpect(jsonPath("$.data.name").value("Mario"));
-        verify(userManage).create(new top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand(
-                "external-1", "Mario", "mario@example.com", "operator-1", "request-1"));
+        verify(userManage).create(new CreateUserCommand(
+                "external-1", "Mario", "mario@example.com", "subject-1001", "request-1"));
     }
 
     @Test
-    void platform_starter_retains_openapi_info_and_business_paths() throws Exception {
-        mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title").value("Student Management"))
-                .andExpect(jsonPath("$.paths['/api/users'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/courses'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/users/{userId}'].get").exists());
+    void platform_starter_retains_openapi_info_and_business_paths_for_service_reader() throws Exception {
+        mockMvc.perform(get("/v3/api-docs")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/v3/api-docs").header("Authorization", "Bearer " + security.token("1001", Set.of("openid")))).andExpect(status().isForbidden());
+        // Governance-disabled documents are not public; generated business OAS is asserted by the enabled narrow SERVICE chain below.
+
     }
 
-    @org.junit.jupiter.api.Nested
+    @Nested
     @SpringBootTest(classes = StudentManagementApplication.class, properties = {
             "egon.cola.component.yuheng.openapi.enabled=true",
+            "TIANQUAN_SHOUBING_RESOURCE_URI=https://light.example.test",
             "egon.cola.component.yuheng.openapi.publish-to-tianshu=false",
             "egon.cola.component.yuheng.openapi.published-groups[0]=public",
             "egon.cola.component.yuheng.openapi.biz-code=student-management",
@@ -66,59 +80,60 @@ class NativeHttpCompatibilityTest extends top.egon.cola.archetype.source.light.s
             "springdoc.group-configs[1].group=legacy",
             "springdoc.group-configs[1].paths-to-match=/api/**"
     })
-    @org.springframework.context.annotation.Import(JwtTestConfiguration.class)
+    @Import(JwtTestConfiguration.class)
     class DocumentGovernance {
         @Autowired
         private MockMvc governedMvc;
+        @Autowired private NativeSecurityContractTest.SecurityFixture governedSecurity;
 
         @Test
         void documents_require_the_document_scope() throws Exception {
             governedMvc.perform(get("/v3/api-docs/public")).andExpect(status().isUnauthorized());
-            governedMvc.perform(get("/v3/api-docs/public").header("Authorization", "Bearer other-token"))
+            governedMvc.perform(get("/v3/api-docs/public").header("Authorization", "Bearer " + governedSecurity.serviceToken("1001", Set.of("unrelated"))))
                     .andExpect(status().isForbidden());
-            governedMvc.perform(get("/v3/api-docs/public").header("Authorization", "Bearer docs-token"))
+            governedMvc.perform(get("/v3/api-docs/public").header("Authorization", "Bearer " + governedSecurity.serviceToken("1001", Set.of("yuheng.openapi.read"))))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.paths['/governed-probe'].get.operationId").value("governedProbe"));
         }
 
         @Test
-        void uncatalogued_operations_require_explicit_operation_ids_before_publication() throws Exception {
-            governedMvc.perform(get("/v3/api-docs/legacy").header("Authorization", "Bearer docs-token"))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message").value("catalogued OpenAPI operationId is required"));
+        void governed_business_document_keeps_original_info_paths_and_security_contract() throws Exception {
+            governedMvc.perform(get("/v3/api-docs/legacy").header("Authorization", "Bearer " + governedSecurity.serviceToken("1001", Set.of("yuheng.openapi.read"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.info.title").value("Student Management"))
+                    .andExpect(jsonPath("$.paths['/api/users'].post.operationId").value("nativeLightUserCreateV1"))
+                    .andExpect(jsonPath("$.paths['/api/courses'].post.operationId").value("nativeLightCourseCreateV1"))
+                    .andExpect(jsonPath("$.paths['/api/users/{userId}'].get.operationId").value("nativeLightUserGetV1"))
+                    .andExpect(jsonPath("$.components.securitySchemes.nativeBearer.scheme").value("bearer"))
+                    .andExpect(jsonPath("$.components.schemas.NativeSecurityError.required.length()").value(2))
+                    .andExpect(jsonPath("$.paths['/api/users'].post.responses['401'].headers['WWW-Authenticate']").exists())
+                    .andExpect(jsonPath("$.paths['/api/users'].post.responses['503'].headers['Cache-Control']").exists());
         }
 
         @Test
         void document_governance_leaves_business_and_health_routes_accessible() throws Exception {
-            governedMvc.perform(get("/actuator/health")).andExpect(status().isOk());
-            governedMvc.perform(post("/api/users").contentType("application/json").content("{}"))
+            governedMvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());
+            governedMvc.perform(post("/api/users").header("Authorization", "Bearer " + governedSecurity.token("1001", Set.of(NativeSecurityContractTest.SecurityFixture.SYSTEM + ":user:create"))).contentType("application/json").content("{}"))
                     .andExpect(status().isBadRequest());
         }
     }
 
-    @org.springframework.boot.test.context.TestConfiguration(proxyBeanMethods = false)
+    @TestConfiguration(proxyBeanMethods = false)
     static class JwtTestConfiguration {
-        @org.springframework.context.annotation.Bean("governedProbeController")
+        @Bean("governedProbeController")
         GovernedProbeController governedProbeController() {
             return new GovernedProbeController();
         }
 
-        @org.springframework.context.annotation.Bean("testJwtDecoder")
-        org.springframework.security.oauth2.jwt.JwtDecoder jwtDecoder() {
-            return token -> org.springframework.security.oauth2.jwt.Jwt.withTokenValue(token)
-                    .header("alg", "none").subject("test-reader")
-                    .issuedAt(java.time.Instant.now()).expiresAt(java.time.Instant.now().plusSeconds(60))
-                    .claim("scope", "docs-token".equals(token) ? "yuheng.openapi.read" : "unrelated")
-                    .build();
-        }
+
     }
 
-    @org.springframework.boot.test.context.TestComponent
-    @org.springframework.web.bind.annotation.RestController
+    @TestComponent
+    @RestController
     static class GovernedProbeController {
-        @org.springframework.web.bind.annotation.GetMapping("/governed-probe")
-        @io.swagger.v3.oas.annotations.Operation(operationId = "governedProbe")
-        java.util.Map<String, String> probe() {
-            return java.util.Map.of("status", "ok");
+        @GetMapping("/governed-probe")
+        @Operation(operationId = "governedProbe")
+        Map<String, String> probe() {
+            return Map.of("status", "ok");
         }
     }
 }

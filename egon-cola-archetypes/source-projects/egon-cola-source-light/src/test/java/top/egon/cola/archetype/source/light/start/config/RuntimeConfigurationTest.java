@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,10 +19,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @SpringBootTest(
         classes = StudentManagementApplication.class,
         properties = {
                 "app.integrations.rabbitmq.enabled=false",
+                "TIANQUAN_SHOUBING_RESOURCE_URI=https://light.example.test",
                 "app.integrations.redis.enabled=false",
                 "app.integrations.external-http.enabled=false",
                 "egon.cola.component.rpc.enabled=false",
@@ -35,11 +38,13 @@ class RuntimeConfigurationTest extends top.egon.cola.archetype.source.light.supp
     private ObjectMapper objectMapper;
 
     @Test
-    void exposesOpenApiAndHealthEndpoints() throws Exception {
+    void probesArePublicAndDisabledDocumentationRemainsProtected() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/actuator/health/liveness"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title").value("Student Management"));
-        mockMvc.perform(get("/actuator/health"))
+                .andExpect(jsonPath("$.status").value("UP"));
+        mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));
     }

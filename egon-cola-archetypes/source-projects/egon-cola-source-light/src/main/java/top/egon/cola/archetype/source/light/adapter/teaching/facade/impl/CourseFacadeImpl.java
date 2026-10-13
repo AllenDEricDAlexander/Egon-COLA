@@ -3,10 +3,10 @@ package top.egon.cola.archetype.source.light.adapter.teaching.facade.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverter;
 import top.egon.cola.archetype.source.light.adapter.pojo.dto.RpcIdQuery;
-import top.egon.cola.archetype.source.light.facade.validation.NativeRpcValidationGroup;
 import top.egon.cola.archetype.source.light.application.teaching.manage.CourseManage;
 import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateCourseCommand;
 import top.egon.cola.archetype.source.light.application.teaching.pojo.query.GetCourseQuery;
@@ -20,8 +20,13 @@ import top.egon.cola.archetype.source.light.facade.teaching.CourseFacade;
 import top.egon.cola.archetype.source.light.facade.teaching.dto.CourseDTO;
 import top.egon.cola.archetype.source.light.facade.teaching.dto.CreateCourseDTO;
 import top.egon.cola.archetype.source.light.facade.teaching.utils.TeachingFacadeAssert;
+import top.egon.cola.archetype.source.light.facade.validation.NativeRpcValidationGroup;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
+import top.egon.cola.component.rpc.common.exception.EgonRpcRejectedException;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
 
 /** Native unary provider of the Course facade; maps Protobuf onto the teaching use cases. */
 @EgonRpcProvider
@@ -40,8 +45,9 @@ public class CourseFacadeImpl implements CourseFacade {
     private final ValidationUtils validation;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-light:course:create")
     public CourseRpcResponse createCourse(CreateCourseRpcRequest request) {
-        CreateCourseDTO input = validation.validate(converter.toSource(request), NativeRpcValidationGroup.class);
+        CreateCourseDTO input = validation.validate(converter.toSource(request.toBuilder().setOperatorId(verifiedActor(request.hasOperatorId() ? request.getOperatorId() : null)).build()), NativeRpcValidationGroup.class);
         try {
             return converter.courseSuccess(create(input));
         } catch (TeachingFacadeException exception) {
@@ -51,6 +57,7 @@ public class CourseFacadeImpl implements CourseFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-light:course:read")
     public CourseRpcResponse getCourse(GetCourseRpcRequest request) {
         RpcIdQuery input = validation.validate(new RpcIdQuery(request.hasCourseId() ? request.getCourseId() : null));
         try {
@@ -59,6 +66,17 @@ public class CourseFacadeImpl implements CourseFacade {
             log.debug("getCourse rejected: {}", exception.getStatus());
             return converter.courseFailure(exception.getStatus(), exception.getMessage(), null);
         }
+    }
+
+    private static String verifiedActor(String suppliedActor) {
+        if (!(IdpRpcSecurityContext.currentPrincipalOrNull() instanceof ServiceIdentityPrincipal service)
+                || service.subject().isBlank() || service.subject().length() > 128 || !service.subject().equals(service.subject().strip())) {
+            throw new AuthenticationCredentialsNotFoundException("Verified SERVICE identity is required");
+        }
+        if (suppliedActor != null && !service.subject().equals(suppliedActor)) {
+            throw new EgonRpcRejectedException("RPC actor conflicts with verified identity");
+        }
+        return service.subject();
     }
 
     private CourseDTO create(CreateCourseDTO request) {

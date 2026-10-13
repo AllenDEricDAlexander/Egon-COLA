@@ -9,9 +9,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @org.springframework.test.context.ActiveProfiles("test")
+@org.springframework.context.annotation.Import(top.egon.cola.archetype.source.light.start.config.NativeSecurityContractTest.SecurityTestBeans.class)
 @org.springframework.boot.test.context.SpringBootTest(
         classes = top.egon.cola.archetype.source.light.start.StudentManagementApplication.class,
-        properties = {"app.integrations.rabbitmq.enabled=false", "app.integrations.redis.enabled=false",
+        properties = {"TIANQUAN_SHOUBING_RESOURCE_URI=https://light.example.test", "app.integrations.rabbitmq.enabled=false", "app.integrations.redis.enabled=false",
                 "app.integrations.external-http.enabled=false", "egon.cola.component.rpc.enabled=false",
                 "egon.cola.component.tianshu.enabled=false"})
 class RepositoryPersistenceContractTest extends top.egon.cola.archetype.source.light.support.PersistenceTestSupport {

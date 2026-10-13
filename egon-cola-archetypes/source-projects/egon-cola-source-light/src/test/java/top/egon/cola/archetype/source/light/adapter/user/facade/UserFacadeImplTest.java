@@ -3,6 +3,15 @@ package top.egon.cola.archetype.source.light.adapter.user.facade;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
+import io.grpc.Context;
+import java.nio.file.Path;
+import java.util.Set;
+import top.egon.cola.archetype.source.light.start.config.NativeSecurityContractTest;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverter;
@@ -54,8 +63,25 @@ class UserFacadeImplTest {
     private final PermissionFacadeImpl permissionFacade =
             new PermissionFacadeImpl(permissionManage, converter, validation);
 
+    @TempDir Path temporary;
+    private NativeSecurityContractTest.SecurityFixture security;
+    private Context verifiedContext;
+    private Context previousContext;
+
+    @BeforeEach
+    void bindVerifiedService() throws Exception {
+        security = new NativeSecurityContractTest.SecurityFixture(temporary);
+        String token = security.serviceToken("1001", Set.copyOf(security.permissions));
+        var verified = (AccessTokenVerification.Valid<?>) security.verifier.verifyService(token);
+        verifiedContext = IdpRpcSecurityContext.with(verified.principal(), token, verified.proof(),
+                new IdpAuthorizationObservationContextBO(), verified.scopes());
+        previousContext = verifiedContext.attach();
+    }
+
     @AfterEach
     void closeValidationFactory() {
+        verifiedContext.detach(previousContext);
+        security.close();
         validators.close();
     }
 
@@ -67,7 +93,7 @@ class UserFacadeImplTest {
                 .setExternalId("ext-1")
                 .setName("Mario")
                 .setEmail("mario@example.com")
-                .setOperatorId("operator-1")
+                .setOperatorId("light-service")
                 .setRequestId("request-1")
                 .build());
 
@@ -75,7 +101,7 @@ class UserFacadeImplTest {
         assertThat(converter.toSource(response.getData()))
                 .isEqualTo(new UserDetailDTO(1001L, "Mario", "mario@example.com", "ACTIVE"));
         verify(userManage).create(new CreateUserCommand(
-                "ext-1", "Mario", "mario@example.com", "operator-1", "request-1"));
+                "ext-1", "Mario", "mario@example.com", "light-service", "request-1"));
     }
 
     @Test
@@ -87,7 +113,7 @@ class UserFacadeImplTest {
                 .setExternalId("ext-1")
                 .setName("Mario")
                 .setEmail("mario@example.com")
-                .setOperatorId("operator-1")
+                .setOperatorId("light-service")
                 .setRequestId("request-1")
                 .build());
 
@@ -103,12 +129,12 @@ class UserFacadeImplTest {
         UserRpcResponse response = userFacade.assignRole(AssignRoleRpcRequest.newBuilder()
                 .setUserId(1001L)
                 .setRoleCode("STUDENT")
-                .setOperatorId("operator-1")
+                .setOperatorId("light-service")
                 .setRequestId("request-1")
                 .build());
 
         assertThat(response.getSuccess()).isTrue();
-        verify(roleManage).assignRole(new AssignRoleCommand(1001L, "STUDENT", "operator-1", "request-1"));
+        verify(roleManage).assignRole(new AssignRoleCommand(1001L, "STUDENT", "light-service", "request-1"));
     }
 
     @Test
@@ -136,13 +162,13 @@ class UserFacadeImplTest {
                 top.egon.cola.archetype.source.light.facade.proto.GrantPermissionRpcRequest.newBuilder()
                         .setRoleCode("STUDENT")
                         .setPermissionCode("course:read")
-                        .setOperatorId("operator-1")
+                        .setOperatorId("light-service")
                         .setRequestId("request-1")
                         .build());
 
         assertThat(response.getSuccess()).isTrue();
         verify(permissionManage).grantPermission(new GrantPermissionCommand(
-                "STUDENT", "course:read", "operator-1", "request-1"));
+                "STUDENT", "course:read", "light-service", "request-1"));
     }
 
     @Test

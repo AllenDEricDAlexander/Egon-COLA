@@ -378,6 +378,7 @@ DEC-007新增Step8的9路径已在主Spec§7.0.1完整列明；拒绝双TM/produ
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/facade/impl/UserFacadeImpl.java` | Step 11: createUser[L-RPC-06],assignRole[L-RPC-07],getUser[L-RPC-08] | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolver.java` | Step 11: user[L-GQL-01],permissions[L-GQL-02] | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeHttpSecurityConfiguration.java` | Step 11: applicationSecurityFilterChain/IdpEndpointAuthenticationPolicy/registration-disabled | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeRpcConfiguration.java` | Step 11: annotationTemplateExpressionDefaults/nativeRpcValidationExceptionMapper | REQ-003, REQ-004, REQ-006, REQ-008, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml` | Step 11: sharedP/R/audit/RPC/Tianshu/coresecurity key parity | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml` | Step 11: sharedP/R/audit/RPC/Tianshu/coresecurity key parity | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml` | Step 11: sharedP/R/audit/RPC/Tianshu/coresecurity key parity | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
@@ -388,6 +389,12 @@ DEC-007新增Step8的9路径已在主Spec§7.0.1完整列明；拒绝双TM/produ
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolverTest.java` | Step 11: UserResolverTest existing assertions + explicitauthenticated fixture | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/graphql/CourseResolverTest.java` | Step 11: CourseResolverTest existing assertions + explicitauthenticated fixture | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolverTest.java` | Step 11: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/RuntimeConfigurationTest.java` | Step 11: existing host context/probe compatibility | REQ-003, REQ-004, REQ-006, REQ-008, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/StudentManagementApplicationTest.java` | Step 11: existing host context/probe compatibility | REQ-003, REQ-004, REQ-006, REQ-008, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/TeachingFacadeImplTest.java` | Step 11: verified existing direct caller fixture | REQ-003, REQ-004, REQ-006, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/facade/UserFacadeImplTest.java` | Step 11: verified existing direct caller fixture | REQ-003, REQ-004, REQ-006, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/HttpAdapterContractTest.java` | Step 11: verified existing direct caller fixture | REQ-003, REQ-004, REQ-006, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/infrastructure/config/datasource/RepositoryPersistenceContractTest.java` | Step 11: verified existing direct caller fixture | REQ-003, REQ-004, REQ-006, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/README.md` | Step 11: existing run/auth instructions only | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-light/README.zh-CN.md` | Step 11: existing run/auth instructions only | REQ-003, REQ-004, REQ-006, REQ-007, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/pom.xml` | Step 12: dependencies/internal SDK coordinates | REQ-003, REQ-004, REQ-006, REQ-008, REQ-009, REQ-011 |
@@ -6371,7 +6378,9 @@ egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：new DTO/VO及typedsignature遵守Rule1/2/3/6/10，compileonly不得fakefacts；Rule4 qualifiers，Rule11不新增层/SQL。
 - Implementation pseudocode:
 ```xml
-POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter, no version; inherit current platform BOM;
+POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter with no direct-dependency version;
+manage this approved SDK in the declared Light owner dependencyManagement using existing ${egon-cola.version};
+actual archetypes-parent manages components/Tianshu/Yuheng, not a platform BOM; do not change shared parent/Open consumers;
 if this owner references sharedSecurity/MDC/field types, direct dependency belongs here, never Domain;
 no new context-propagation compile or testcontainers/framework; existing protobuf generation unchanged;
 retain Java21/MapStruct/Lombok/validation configuration; no dependency upgrade;
@@ -6918,7 +6927,32 @@ disable servlet auto registrations to avoid doublefilter; exactURI/scopes/subjec
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 22 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`
+#### File 22 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeRpcConfiguration.java`
+
+- Purpose: 真实RPC方法代理展开SERVICE scope，保持非Servlet入口的方法安全并拒绝冲突actor
+- Symbols: annotationTemplateExpressionDefaults/nativeRpcValidationExceptionMapper
+- Repository evidence: 当前既有 NativeRpcConfiguration owner；Step11真实代理测试发现合法scope仍因模板未展开被拒绝，详见§12.19。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: applicationSecurityFilterChain/IdpEndpointAuthenticationPolicy/registration-disabled；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+@Configuration(value = "nativeRpcConfiguration", proxyBeanMethods = false) @EnableMethodSecurity
+static named @Bean AnnotationTemplateExpressionDefaults enables existing SDK RequiresServiceScope value interpolation;
+reuse existing nativeRpcValidationExceptionMapper for AuthenticationException -> UNAUTHENTICATED;
+AccessDeniedException or existing EgonRpcRejectedException -> shared RPC marker strict DENY once then PERMISSION_DENIED;
+missing proof/marker or failed handoff -> UNAVAILABLE; never expose causes/raw tokens/new PB body;
+existing Jakarta/time validation maps INVALID_ARGUMENT; all other business mapping unchanged;
+keep methods secured for both servlet and non-servlet RPC host; no new framework/SDK/public contract.
+```
+- Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 23 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -6944,7 +6978,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 23 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`
+#### File 24 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -6970,7 +7004,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 24 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml`
+#### File 25 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -6996,7 +7030,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 25 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-test.yml`
+#### File 26 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-test.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -7022,7 +7056,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 26 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeHttpCompatibilityTest.java`
+#### File 27 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeHttpCompatibilityTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: NativeHttpCompatibilityTest existing assertions + explicitauthenticated fixture
@@ -7045,7 +7079,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 27 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/NativeRpcProviderTest.java`
+#### File 28 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/NativeRpcProviderTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: NativeRpcProviderTest existing assertions + explicitauthenticated fixture
@@ -7068,7 +7102,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 28 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/filter/RequestContextFilterTest.java`
+#### File 29 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/filter/RequestContextFilterTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: RequestContextFilterTest existing assertions + explicitauthenticated fixture
@@ -7091,7 +7125,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 29 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolverTest.java`
+#### File 30 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolverTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: UserResolverTest existing assertions + explicitauthenticated fixture
@@ -7114,7 +7148,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 30 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/graphql/CourseResolverTest.java`
+#### File 31 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/graphql/CourseResolverTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: CourseResolverTest existing assertions + explicitauthenticated fixture
@@ -7137,7 +7171,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 31 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolverTest.java`
+#### File 32 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolverTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture
@@ -7160,7 +7194,145 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 32 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/README.md`
+#### File 33 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/RuntimeConfigurationTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: existing context/probe/serialization compatibility assertions
+- Repository evidence: 既有完整SpringBoot caller `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/RuntimeConfigurationTest.java`；原匿名docs/health断言与接入安全边界冲突，按§12.20更新受控身份fixture。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+replace old public/key/headerrole assumptions with explicitcontrolled Idp USERscope/PDP or signedTENANT SERVICEscope fixture;
+retain original methodparams/successDTO/SDL/PB/time/pagination/business effects assertions;
+where teststandalone preserves business-only focus, no claim securityPASS; new primarycontract tests use actualchain/proxy;
+assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; do not weaken originalexpectedproto/sourcearchitecture.
+
+```
+- Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 34 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/StudentManagementApplicationTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: existing context/probe/serialization compatibility assertions
+- Repository evidence: 既有完整SpringBoot caller `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/StudentManagementApplicationTest.java`；原匿名docs/health断言与接入安全边界冲突，按§12.20更新受控身份fixture。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+replace old public/key/headerrole assumptions with explicitcontrolled Idp USERscope/PDP or signedTENANT SERVICEscope fixture;
+retain original methodparams/successDTO/SDL/PB/time/pagination/business effects assertions;
+where teststandalone preserves business-only focus, no claim securityPASS; new primarycontract tests use actualchain/proxy;
+assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; do not weaken originalexpectedproto/sourcearchitecture.
+
+```
+- Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 35 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/TeachingFacadeImplTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: existing context/probe/serialization compatibility assertions
+- Repository evidence: 全Light回归发现该直接调用方缺乏新可信身份fixture；实际既有owner `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/TeachingFacadeImplTest.java`；只补身份与关联上下文测试输入。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+replace old public/key/headerrole assumptions with explicitcontrolled Idp USERscope/PDP or signedTENANT SERVICEscope fixture;
+retain original methodparams/successDTO/SDL/PB/time/pagination/business effects assertions;
+where teststandalone preserves business-only focus, no claim securityPASS; new primarycontract tests use actualchain/proxy;
+assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; do not weaken originalexpectedproto/sourcearchitecture.
+
+```
+- Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 36 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/facade/UserFacadeImplTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: existing context/probe/serialization compatibility assertions
+- Repository evidence: 全Light回归发现该直接调用方缺乏新可信身份fixture；实际既有owner `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/facade/UserFacadeImplTest.java`；只补身份与关联上下文测试输入。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+replace old public/key/headerrole assumptions with explicitcontrolled Idp USERscope/PDP or signedTENANT SERVICEscope fixture;
+retain original methodparams/successDTO/SDL/PB/time/pagination/business effects assertions;
+where teststandalone preserves business-only focus, no claim securityPASS; new primarycontract tests use actualchain/proxy;
+assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; do not weaken originalexpectedproto/sourcearchitecture.
+
+```
+- Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 37 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/HttpAdapterContractTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: existing context/probe/serialization compatibility assertions
+- Repository evidence: 全Light回归发现该直接调用方缺乏新可信身份fixture；实际既有owner `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/HttpAdapterContractTest.java`；只补身份与关联上下文测试输入。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+replace old public/key/headerrole assumptions with explicitcontrolled Idp USERscope/PDP or signedTENANT SERVICEscope fixture;
+retain original methodparams/successDTO/SDL/PB/time/pagination/business effects assertions;
+where teststandalone preserves business-only focus, no claim securityPASS; new primarycontract tests use actualchain/proxy;
+assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; do not weaken originalexpectedproto/sourcearchitecture.
+
+```
+- Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 38 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/infrastructure/config/datasource/RepositoryPersistenceContractTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: existing context/probe/serialization compatibility assertions
+- Repository evidence: 全Light回归发现该直接调用方缺乏新可信身份fixture；实际既有owner `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/infrastructure/config/datasource/RepositoryPersistenceContractTest.java`；只补身份与关联上下文测试输入。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: GraphQlExceptionResolverTest existing assertions + explicitauthenticated fixture；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+replace old public/key/headerrole assumptions with explicitcontrolled Idp USERscope/PDP or signedTENANT SERVICEscope fixture;
+retain original methodparams/successDTO/SDL/PB/time/pagination/business effects assertions;
+where teststandalone preserves business-only focus, no claim securityPASS; new primarycontract tests use actualchain/proxy;
+assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; do not weaken originalexpectedproto/sourcearchitecture.
+
+```
+- Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 39 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/README.md`
 
 - Purpose: 明示新身份/目录/peer配置兼容delta，不重写架构说明
 - Symbols: existing run/auth instructions only
@@ -7183,7 +7355,7 @@ keep existingbusiness endpoints/successschemas/modules/DDL/env/runinstructions, 
 - Verification contribution: `NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 10实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 33 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/README.zh-CN.md`
+#### File 40 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/README.zh-CN.md`
 
 - Purpose: 明示新身份/目录/peer配置兼容delta，不重写架构说明
 - Symbols: existing run/auth instructions only
@@ -7209,14 +7381,14 @@ keep existingbusiness endpoints/successschemas/modules/DDL/env/runinstructions, 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
 - Verification command:
 ```bash
-./mvnw -B -ntp -o -f egon-cola-archetypes/source-projects/pom.xml -pl egon-cola-source-light -am -Dtest=NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest -Dsurefire.failIfNoSpecifiedTests=false test
+./mvnw -B -ntp -o -f egon-cola-archetypes/source-projects/pom.xml -pl egon-cola-source-light -am -Dtest=NativeSecurityContractTest,NativeGraphQlSecurityContractTest,NativeHttpCompatibilityTest,NativeRpcProviderTest,RequestContextFilterTest,UserResolverTest,CourseResolverTest,GraphQlExceptionResolverTest,CourseControllerTest,SchoolClassControllerTest,UserControllerTest,RoleControllerTest,PermissionControllerTest,RuntimeConfigurationTest,StudentManagementApplicationTest,HttpAdapterContractTest,TeachingFacadeImplTest,UserFacadeImplTest,RepositoryPersistenceContractTest,NativeRpcConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
 git diff --check
 ```
 - Expected result: 未来RED只上述指定assertion失败/0fixture errors；GREEN命令exit0、focused测试0fail/error，不给固定臆造计数；原业务成功Frozen schema与authority负例同时保持。未执行所以目前不写PASS。
 - Failure returns to: 当前File具体symbol/fixture；若缺制品/真实owner/typedAPI不同先修正编译prereq，不能改Spec协议/PDP/SQL或跳external门禁。
 - Completion criteria: 当前Step所有symbol受控GREEN、17 MC与十Literal每行记录具体diff/test evidence，无源码inventory外路径；更新owner规范参数，残留closedshim=0；保留generated15/harness16/live17/audit18门禁，不谎称生产ready。
 - Rollback: 前一Step新HEAD为回滚边界；只ownpath forwardfix或用户批准revert本语义commit，保护他人dirty；不SQLrepair/drop新库/secret日志。
-- Commit paths: `egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/filter/RequestContextFilter.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecuritySnapshotBO.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecurityInterceptor.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecurityInstrumentation.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolver.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/OpenApiConfig.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/CourseController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/SchoolClassController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/impl/CourseFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/impl/SchoolClassFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/graphql/CourseResolver.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/controller/PermissionController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/controller/RoleController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/controller/UserController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/facade/impl/PermissionFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/facade/impl/UserFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolver.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeHttpSecurityConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-test.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeHttpCompatibilityTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/NativeRpcProviderTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/filter/RequestContextFilterTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolverTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/graphql/CourseResolverTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolverTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/README.md`; `egon-cola-archetypes/source-projects/egon-cola-source-light/README.zh-CN.md`
+- Commit paths: `egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/filter/RequestContextFilter.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecuritySnapshotBO.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecurityInterceptor.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/graphql/NativeGraphQlSecurityInstrumentation.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolver.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/OpenApiConfig.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/CourseController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/SchoolClassController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/impl/CourseFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/impl/SchoolClassFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/graphql/CourseResolver.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/controller/PermissionController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/controller/RoleController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/controller/UserController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/facade/impl/PermissionFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/facade/impl/UserFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolver.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeHttpSecurityConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-test.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeHttpCompatibilityTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/NativeRpcProviderTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/filter/RequestContextFilterTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/graphql/UserResolverTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/graphql/CourseResolverTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolverTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/README.md`; `egon-cola-archetypes/source-projects/egon-cola-source-light/README.zh-CN.md`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/CourseControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/SchoolClassControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/controller/UserControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/controller/RoleControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/controller/PermissionControllerTest.java`; `docs/egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md`; `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-native.md`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeRpcConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/RuntimeConfigurationTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/StudentManagementApplicationTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/facade/TeachingFacadeImplTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/facade/UserFacadeImplTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/HttpAdapterContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/infrastructure/config/datasource/RepositoryPersistenceContractTest.java`
 ```text
 egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml
 egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeSecurityContractTest.java
@@ -7251,6 +7423,7 @@ egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/eg
 egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/handler/GraphQlExceptionResolverTest.java
 egon-cola-archetypes/source-projects/egon-cola-source-light/README.md
 egon-cola-archetypes/source-projects/egon-cola-source-light/README.zh-CN.md
+egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeRpcConfiguration.java
 ```
 - Commit: `feat(archetype-light): enforce Xingyuan identity and permissions`；每Step至多一focused语义commit，记录实际HEAD后下一Step。
 #### Step gates — 每项单独填写，不合成一行PASS
@@ -7919,7 +8092,9 @@ egon-cola-archetypes/source-projects/egon-cola-source-service/README.zh-CN.md
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：new DTO/VO及typedsignature遵守Rule1/2/3/6/10，compileonly不得fakefacts；Rule4 qualifiers，Rule11不新增层/SQL。
 - Implementation pseudocode:
 ```xml
-POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter, no version; inherit current platform BOM;
+POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter with no direct-dependency version;
+manage this approved SDK in the declared Light owner dependencyManagement using existing ${egon-cola.version};
+actual archetypes-parent manages components/Tianshu/Yuheng, not a platform BOM; do not change shared parent/Open consumers;
 if this owner references sharedSecurity/MDC/field types, direct dependency belongs here, never Domain;
 no new context-propagation compile or testcontainers/framework; existing protobuf generation unchanged;
 retain Java21/MapStruct/Lombok/validation configuration; no dependency upgrade;
@@ -7942,7 +8117,9 @@ retain Java21/MapStruct/Lombok/validation configuration; no dependency upgrade;
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：new DTO/VO及typedsignature遵守Rule1/2/3/6/10，compileonly不得fakefacts；Rule4 qualifiers，Rule11不新增层/SQL。
 - Implementation pseudocode:
 ```xml
-POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter, no version; inherit current platform BOM;
+POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter with no direct-dependency version;
+manage this approved SDK in the declared Light owner dependencyManagement using existing ${egon-cola.version};
+actual archetypes-parent manages components/Tianshu/Yuheng, not a platform BOM; do not change shared parent/Open consumers;
 if this owner references sharedSecurity/MDC/field types, direct dependency belongs here, never Domain;
 no new context-propagation compile or testcontainers/framework; existing protobuf generation unchanged;
 retain Java21/MapStruct/Lombok/validation configuration; no dependency upgrade;
@@ -9287,7 +9464,9 @@ egon-cola-archetypes/source-projects/egon-cola-source-web/README.zh-CN.md
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：new DTO/VO及typedsignature遵守Rule1/2/3/6/10，compileonly不得fakefacts；Rule4 qualifiers，Rule11不新增层/SQL。
 - Implementation pseudocode:
 ```xml
-POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter, no version; inherit current platform BOM;
+POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter with no direct-dependency version;
+manage this approved SDK in the declared Light owner dependencyManagement using existing ${egon-cola.version};
+actual archetypes-parent manages components/Tianshu/Yuheng, not a platform BOM; do not change shared parent/Open consumers;
 if this owner references sharedSecurity/MDC/field types, direct dependency belongs here, never Domain;
 no new context-propagation compile or testcontainers/framework; existing protobuf generation unchanged;
 retain Java21/MapStruct/Lombok/validation configuration; no dependency upgrade;
@@ -9310,7 +9489,9 @@ retain Java21/MapStruct/Lombok/validation configuration; no dependency upgrade;
 - Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：new DTO/VO及typedsignature遵守Rule1/2/3/6/10，compileonly不得fakefacts；Rule4 qualifiers，Rule11不新增层/SQL。
 - Implementation pseudocode:
 ```xml
-POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter, no version; inherit current platform BOM;
+POM compile prerequisite: declare existing top.egon:egon-cola-tianquan-jianshen-starter with no direct-dependency version;
+manage this approved SDK in the declared Light owner dependencyManagement using existing ${egon-cola.version};
+actual archetypes-parent manages components/Tianshu/Yuheng, not a platform BOM; do not change shared parent/Open consumers;
 if this owner references sharedSecurity/MDC/field types, direct dependency belongs here, never Domain;
 no new context-propagation compile or testcontainers/framework; existing protobuf generation unchanged;
 retain Java21/MapStruct/Lombok/validation configuration; no dependency upgrade;
@@ -11823,3 +12004,29 @@ Step8的32受控用例证明同DS JPA/JDBC兼容、实际连接持有者守卫�
 ### 12.16 Step9必要的现有MapStruct编译配置澄清（2026-10-13）
 
 Admin原编译配置未生成新声明的Mapper实现：step9-writer-compile-candidate.log虽exit0，target只有nestedinterface/BO，没有任何DeploymentPermissionRegistrationConverterImpl。为遵守已批准MapStruct/BaseForward与实际Bean装配要求，复用鉴神Starter现有compiler processor paths（Boot配置processor、Lombok1.18.46、binding0.2.0、MapStruct1.6.3，局部property复制Starter既有1.6.3/0.2.0并沿现缓存），在同Admin POM补齐直接必要的编译配置。沿用户明确允许必要编译/配置文件及小问题推荐修复的范围，无新runtime dependency/框架/版本升级/制品下载/SQL/HTTP；outer19Step顺序不变。Step9增加一个POM实施条目及本Plan/nativeSpec文档，uniquecommit范围8原文件+1POM+2docs=11。此前File7源码仅草稿/compile证据，现先补processor后验证生成/wiring，再继续原行为RED→GREEN；没有将草稿作为已完成提交。
+
+### 12.17 Step 11 编译前置的 SDK 版本管理事实修正
+
+2026-10-13 当前 `egon-cola-archetypes/pom.xml` 与已解析同版本 parent 均只 import components BOM，并局部管理 Tianshu/Yuheng；没有可供 Light 继承的鉴神 Starter 管理项，也没有独立 Xingyuan BOM。Step 11 原 File 1 的“inherit current platform BOM”是事实遗漏。实际 offline preflight 报 `dependencies.dependency.version for top.egon:egon-cola-tianquan-jianshen-starter is missing`，不计行为 RED。依用户完整接入授权中“小问题推荐修复”及 AGENTS 必要编译/配置修正，在同一已声明 Light POM 的 dependencyManagement 复用已有 `${egon-cola.version}`（当前 5.4.1）管理已批准的 SDK；直接 dependency 不写 version。仅修管理缺项，无新依赖坐标、版本升级、运行框架、SQL、共享 parent/Open 改动。
+
+同步 Native Spec §22.3 说明该管理来源，并把本 Plan 与该 Native Spec 纳入 Step 11 文档提交清单；原 33 源文件顺序不变，共 35 唯一路径。其他已批准 native SDK owner 在各自 File 1 前置阶段按真实 parent 管理项复核，缺同类已批准 SDK 的版本管理时，仅在各自已声明 owner 复用相同版本属性；不得提前编辑后续 Step 或顺势扩依赖。实际日志 `.runtime/xingyuan-plan-execution/step11-prerequisite-compile.log`。
+
+### 12.18 Step 11 已有 MVC slice 调用方的必要回归范围
+
+实际 caller inventory 发现五个既有 `@WebMvcTest` 显式导入原 NativeHttpSecurityConfiguration 与 RequestContextFilter，仍以匿名/旧 actor header 调用业务。这些测试不是新测试文件：CourseControllerTest、SchoolClassControllerTest、UserControllerTest、RoleControllerTest、PermissionControllerTest（均位于当前 Light adapter 测试目录）。接入后必须换为明确的受控已验证 USER、scope/PDP/字段权限 fixture，并保留原成功 DTO、业务参数与校验断言；不能以关闭安全或静默字段 guard 来维持旧匿名假设。它们在原 File31 的兼容测试阶段后、两个 README 之前完成，不提前修改其他 Step；原生产文件顺序与流程不变。
+
+按用户对完整接入的小问题自治授权及 AGENTS 必要调用方/配置兼容要求，把这五个已有测试路径加入 Step11 commit 清单并加入实际 selector；Native Spec §22.4 同步记录。当前 Step11 共 40 路径：原33源文件、5已有调用方测试、2修正文件。fixture 只控制外部数据/网络/审计存储边界；新的主安全合同测试仍须实际链、Spring advisors、可信签名、Core/PDP/字段判断，原业务专注测试不得冒充安全/运行验收。没有新增依赖、框架、业务请求字段、SQL、Open 或共享 parent 改动。
+
+### 12.19 Step11真实RPC方法代理与actor冲突的必要接线修正
+
+2026-10-13实际代理正向测试（step11-provider-advisor-red3.log）以真实RS256 SERVICE身份、已批准course:read及实际Spring provider复现1个assertion failure、0error/skip：`RequiresServiceScope` 的 `{value}` 未展开，合法请求仍被拒绝。原单测仅验证server interceptor与直接provider，不能替代该代理证据。依已授权的小问题修复，纳入既有 `NativeRpcConfiguration.java`：复用现Spring Security `AnnotationTemplateExpressionDefaults`，具名static Bean与方法安全；沿原native mapper处理安全失败，确认共享RPC marker严格DENY后返回PERMISSION_DENIED，交付失败返回UNAVAILABLE。RPC-only上下文同样必须具备方法安全。无新依赖、SDK契约、SQL、PB/业务接口或架构层。
+
+同时按已Accepted Native §7.6/各L-RPC输入合同落实 `operator_id` 冲突拒绝：未提供时由真实SERVICE subject重建，明确提供不同actor时拒绝且零业务调用；不截断或默认system。增加现有NativeRpcProviderTest断言并保留原DTOgroups与业务错误测试。原File22–33编号顺延，新File22在host chain后且四profile前；本Step现在41唯一路径（原33源文件+新增既有RPC配置+5已有调用方测试+2文档），其他Step与Open保持。该局部配置/测试修正依用户明确小问题自治授权执行，仍须全部Manual/Literal与组合GREEN后提交。
+
+### 12.20 Step11完整上下文既有调用方与回归范围
+
+最终caller检查发现既有RuntimeConfigurationTest与StudentManagementApplicationTest也启动同一完整Light Spring Context，外部关闭profile仍须显式受控SDK身份/观察/PDP，而不能自动开放业务。纳入这两个已有测试owner，导入同一实际SDK SecurityTestBeans，提供固定测试资源URI；原Instant序列化断言保留，health仅liveness/readiness公共，disabled docs保持401。真实生成OAS的info/路径/原成功schema由既有NativeHttpCompatibilityTest治理窄链核验，不由匿名fixture复活。二者在兼容阶段、README之前完成，本Step43唯一路径；增加两类到focusedselector，并在全部Light测试回归中验证无其他被破坏caller。无生产业务/依赖/SQL/Open变更。
+
+### 12.21 Step11全Light回归的必要已有调用方修正
+
+全Light205项实际回归发现HttpAdapterContractTest仍依赖header主体、TeachingFacadeImplTest与UserFacadeImplTest仍直接匿名调用写provider、RepositoryPersistenceContractTest完整Context缺受控SDK fixture。只纳入这四个已有caller：同一真实签名SecurityFixture，SERVICE actor改为已验证subject，旧成功wire/业务错误/MP填充版本及租户隔离断言保留；未认证header改为401而不恢复旧信任。原RPC configuration-only validator测试保持无外部依赖：existing mapper通过qualified ObjectProvider取得观察器，仅在DENY时需要，缺观察器/proof/active marker仍UNAVAILABLE；不创建noop或允许业务。已显式接入的实际host/代理仍必须具备SDK，正反例复用已有主安全测试。四caller在兼容阶段且README前完成，本Step47唯一路径，无新增第三方、SQL、Open或生产业务接口。全Light回归必须修复并重新执行通过，初次失败不报PASS。

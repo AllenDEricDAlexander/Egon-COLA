@@ -3,6 +3,15 @@ package top.egon.cola.archetype.source.light.adapter.teaching.facade;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
+import io.grpc.Context;
+import java.nio.file.Path;
+import java.util.Set;
+import top.egon.cola.archetype.source.light.start.config.NativeSecurityContractTest;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAuthorizationObservationContextBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverter;
@@ -44,8 +53,25 @@ class TeachingFacadeImplTest {
     private final SchoolClassFacadeImpl schoolClassFacade =
             new SchoolClassFacadeImpl(schoolClassManage, converter, validation);
 
+    @TempDir Path temporary;
+    private NativeSecurityContractTest.SecurityFixture security;
+    private Context verifiedContext;
+    private Context previousContext;
+
+    @BeforeEach
+    void bindVerifiedService() throws Exception {
+        security = new NativeSecurityContractTest.SecurityFixture(temporary);
+        String token = security.serviceToken("1001", Set.copyOf(security.permissions));
+        var verified = (AccessTokenVerification.Valid<?>) security.verifier.verifyService(token);
+        verifiedContext = IdpRpcSecurityContext.with(verified.principal(), token, verified.proof(),
+                new IdpAuthorizationObservationContextBO(), verified.scopes());
+        previousContext = verifiedContext.attach();
+    }
+
     @AfterEach
     void closeValidationFactory() {
+        verifiedContext.detach(previousContext);
+        security.close();
         validators.close();
     }
 
@@ -56,14 +82,14 @@ class TeachingFacadeImplTest {
         CourseRpcResponse response = courseFacade.createCourse(CreateCourseRpcRequest.newBuilder()
                 .setCode("MATH")
                 .setName("Math")
-                .setOperatorId("operator-1")
+                .setOperatorId("light-service")
                 .setRequestId("request-1")
                 .build());
 
         assertThat(response.getSuccess()).isTrue();
         assertThat(converter.toSource(response.getData()))
                 .isEqualTo(new CourseDTO(1002L, "MATH", "Math", "ACTIVE"));
-        verify(courseManage).create(new CreateCourseCommand("MATH", "Math", "operator-1", "request-1"));
+        verify(courseManage).create(new CreateCourseCommand("MATH", "Math", "light-service", "request-1"));
     }
 
     @Test
@@ -74,7 +100,7 @@ class TeachingFacadeImplTest {
         CourseRpcResponse response = courseFacade.createCourse(CreateCourseRpcRequest.newBuilder()
                 .setCode("MATH")
                 .setName("Math")
-                .setOperatorId("operator-1")
+                .setOperatorId("light-service")
                 .setRequestId("request-1")
                 .build());
 

@@ -180,13 +180,23 @@ printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-
 
 ## 原生 RPC 与 Tianshu 配置
 
-10 个 unary 操作定义于 `src/main/proto/teaching_user_facade.proto`，由四个具名 RPC Provider 实现。platform OpenAPI MVC starter 保留 `/v3/api-docs` 及既有业务 HTTP 访问。文档治理默认关闭；启用 `egon.cola.component.yuheng.openapi.enabled` 时，需要按平台合同补齐文档身份、发布分组和 JWT decoder，并使用 `yuheng.openapi.read` scope。每个发布 handler 还必须显式声明 `@Operation(operationId = "...")`；现有示例业务 Controller 需完成该编目后才能开启治理。
+10 个 REST 方法和 4 个 GraphQL 根查询要求本应用精确 HTTPS audience 的已验证 USER Bearer。每个入口同时校验 `egon-cola-source-light:<intent>` OAuth scope 与独立的资源/细权限；`openid` 不授予业务访问。身份和租户来自 SDK 验证后的主体，`X-Tenant-Id`、`X-Operator-Id` 不具有身份权威。仅 `/actuator/health/liveness`、`/actuator/health/readiness` 公共。
+
+6 个 REST 写操作在业务调用前显式检查字段集合：用户创建 externalId/name/email、角色分配 roleCode、权限授予 permissionCode、课程创建 code/name、班级创建 name/semester、排课 startsAt/endsAt。字段定义的 writable 只是上限；真实权限审核、资源映射/角色授予和显式字段规则必须进入当前授权投影。缺规则、READ、NONE 均拒绝写入；目录登记与审核/授权是独立操作者步骤，不自动授予权限。
+
+`src/main/proto/teaching_user_facade.proto` 的 10 个 unary 操作全部要求 TENANT SERVICE、固定本服务资源与该 method 精确 scope。Provider 用可信服务主体重建写命令 actor，原 Protobuf 成功/业务错误协议保留。每个服务独立配置最小权限客户端；不把 USER 权威转换为 SERVICE。
+
+宿主只安装一次无状态 observation → IdP → RBAC → authorization → 业务 context 链，SDK Servlet 自动注册关闭。GraphQL 捕获不可变身份/scope/授权快照/trace/脱敏审计 proof，框架回调 Adapter 在短作用域恢复它们，并在 finally 清理，包含异步结果处理；同一请求的多个 alias 共享一次已确认 DENY。安全错误仅 code/message，no-store；401 带 WWW-Authenticate: Bearer；状态或审计不可用返回 503。
+
+可选文档治理链独立拥有 `/v3/api-docs/**`，只接受完整验证且包含 `yuheng.openapi.read` 的 SERVICE。治理关闭不意味着文档公开。业务 handler 已有稳定 operationId、nativeBearer 与 401/403/503 NativeSecurityError 声明，既有请求/成功响应 schema 保留。
+
+部署需显式提供两个 TENANT issuer/JWK 信任条目、严格撤销 primary/epoch、有界 JWK 缓存、独占绝对审计 spool/HMAC key 和 RBAC endpoint/runtime Redis。受保护配置里的 `egon.cola.platform.tianquan.shoubing.service-client.tenant-registration-ids` 必须将真实正整数租户 ID 映射到 native-tenant-one/native-tenant-two；没有默认租户或旧身份回退。各 registration 的 client ID/secret 与 HTTPS token URI 沿 Spring OAuth2 Client 配置。独立控制面 tianshuregistration 的部署 scope 必须包含 tianshu:registration:write。缺配置不得放行业务；test 的外部关闭仅配合明确的受控 SDK fixture。
 
 `dev` 和 `prod` 使用部署方已有的 Tianshu RPC 服务（`TIANSHU_RPC_TARGET`）和 Tianshu Redis 服务，还需提供注册 resource URI 及独立的 runtime/registry HMAC 凭据。RPC/Tianshu 配置前缀分别为 `egon.cola.component.rpc`、`egon.cola.component.tianshu`；应用身份由 `APP_NAME`、`APP_ENV`、`TIANSHU_BIZ_CODE`、`TIANSHU_APP_CODE`、`INSTANCE_ID` 指定。advertised host 必须能被消费者访问。本工程不附带 Tianshu 容器。`test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册及文档发布。
 
-生产环境启用 RPC 和 Tianshu mTLS：通过对应的 `RPC_*`、`TIANSHU_RPC_*` 变量传入证书链、私钥和信任证书路径，并将证书文件挂载到容器中的相同路径。开发环境显式允许明文。部署前填写 `deploy/env/.env.prod.example` 中的空白项，真实凭据通过环境变量或挂载文件提供。Compose 保留 PostgreSQL、Redis、RabbitMQ 及原有数据卷。静态和模块测试不能证明真实 Tianshu 注册、TLS 互通或容器就绪。
+生产环境启用 RPC 和 Tianshu mTLS：通过对应的 `RPC_*`、`TIANSHU_RPC_*` 变量传入证书链、私钥和信任证书路径，并将证书文件挂载到容器中的相同路径。原生 RPC 运行环境默认 TLS；本地明文需明确批准的 loopback override，既有 Tianshu 传输例外仍由部署配置明确拥有。部署前填写 `deploy/env/.env.prod.example` 中的空白项，真实凭据通过环境变量或挂载文件提供。Compose 保留 PostgreSQL、Redis、RabbitMQ 及原有数据卷。静态和模块测试不能证明真实 Tianshu 注册、TLS 互通或容器就绪。
 
-Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token。填写 `.env` 样例中的 `TIANQUAN_SHOUBING_*` 字段，并配置 Spring OAuth2 Client 的 `tianshuregistration` registration/provider，使用 `client_credentials`、`client_secret_basic`、client ID/secret 和 token URI。Compose 已映射标准 Spring 环境变量；直接 Java 启动时，请通过外部配置提供 `spring.security.oauth2.client.registration.tianshuregistration` 及 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。app ID、resource server ID/URI、registration resource URI 必须与部署方的 Tianquan-Shoubing/Tianshu 保持一致。Tianquan-Shoubing 的 Servlet filter 自动注册关闭，以保留业务 HTTP 行为；显式启用后，平台文档安全链仍负责文档权限。
+Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token。填写 `.env` 样例中的 `TIANQUAN_SHOUBING_*` 字段，并配置 Spring OAuth2 Client 的 `tianshuregistration` registration/provider，使用 `client_credentials`、`client_secret_basic`、client ID/secret 和 token URI。Compose 已映射标准 Spring 环境变量；直接 Java 启动时，请通过外部配置提供 `spring.security.oauth2.client.registration.tianshuregistration` 及 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。app ID、resource server ID/URI、registration resource URI 必须与部署方的 Tianquan-Shoubing/Tianshu 保持一致。SDK Servlet 自动注册关闭，由宿主显式链保护业务路由；文档治理保留更窄的 SERVICE 链。
 
 排除默认 Redisson 自动配置，由 Tianshu 管理显式配置的 Redis client；业务 Redis 保持 Spring 原有 connection factory。关闭 Tianshu 的测试环境不会因此自动建立 Redis 连接。
 

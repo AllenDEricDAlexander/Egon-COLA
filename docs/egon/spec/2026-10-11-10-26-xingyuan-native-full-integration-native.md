@@ -378,11 +378,11 @@ L/W/A的USER身份/PEP所需依赖明确qualifier：idpBearerAuthenticationFilte
 
 | Owning exact POM | Coordinate | Reason |
 | --- | --- | --- |
-| egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；全BOM管理，无version |
-| egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-adapter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；全BOM管理，无version |
-| egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；全BOM管理，无version |
-| egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；全BOM管理，无version |
-| egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；全BOM管理，无version |
+| egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；direct dependency无version；已声明owner按§22.3复用现版本属性管理 |
+| egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-adapter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；direct dependency无version；已声明owner按§22.3复用现版本属性管理 |
+| egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；direct dependency无version；已声明owner按§22.3复用现版本属性管理 |
+| egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；direct dependency无version；已声明owner按§22.3复用现版本属性管理 |
+| egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml | top.egon:egon-cola-tianquan-jianshen-starter | actual HTTP/GQL/field/PDP直接引用；direct dependency无version；已声明owner按§22.3复用现版本属性管理 |
 | egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/pom.xml | top.egon:egon-cola-tianquan-shoubing-starter | SERVICE principal/scope/consumer直接引用，S无USER业务不强加PDP |
 | egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/pom.xml | top.egon:egon-cola-tianquan-shoubing-starter | SERVICE principal/scope/consumer直接引用，S无USER业务不强加PDP |
 | egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/pom.xml | top.egon:egon-cola-tianquan-shoubing-starter | SERVICE principal/scope/consumer直接引用，S无USER业务不强加PDP |
@@ -2107,3 +2107,23 @@ DATA-CAT-001依旧复用生成的MapStruct＋BaseForwardConverter，不接受手
 DATA-CAT-001的既有 `--manifest` 文件由同CLI nested `DeploymentManifestBO` 表达：schemaVersion=1、canonical UUID runId、absolute canonical rootPath、identitySub≤64、正Long tenantId、1..64条application定义。每条 `ApplicationDeploymentBO` 明确businessCode/applicationCode、buildId≤256、root内artifactFile、artifactSha256与catalogSha256（lowercase SHA256）；namespace唯一，不含任意SQL、授权默认值或私钥/token。manifest与catalog≤1MiB，制品摘要有界读取；regular/current-owner、无group/world写、无symlink/路径逃逸，strictJackson unknown/duplicate拒绝；actor flag必须等于manifest身份并经过实际Directory ACTIVE profile＋membership。Production root由受保护部署文件给定；显式test alias再核runId root，两源必须canonical一致。这些是原部署操作者/制品校验合同的具体文件形状，不新增HTTP或任意授权入口。
 
 启动先在仅BootJackson＋Validation的input profile做全部本地参数/文件/hash/namespace预检；通过后才开启精确catalog command profile（NONE、无main组件扫描）。标准应用与原bootstrap入口保留。命令profile沿现共享EntityManager、既有Owner、只读DdcManagementClient/RPC目录以及Spring原OAuth Client＋缓存/credential factory；不启动RPCprovider、Tianshu实例注册生命周期、HTTP、developmentbootstrap或业务@Scheduled；命令专用DeniedStrategy使既有Provider注册自动配置退让，误调用register/heartbeat/deregister全部拒绝，绝无noop成功。只读RPC订阅适配沿现client coordinator并在自己context关闭时释放，不复制registry；指标复用实际Micrometer adapter/宿主registry，不静默NOOP。受控consumer-disabledBean图与client-onlyBean图只算装配证据，真正SERVICE Token/RPC/SQL/SSO与进程关闭仍由Step18完整验收。
+
+### 22.3 Native SDK 管理来源的编译事实澄清
+
+Step 11 offline model preflight 证明当前 archetypes parent 没有鉴神 Starter dependencyManagement，也没有独立平台 BOM 可继承。§8 依赖许可及既有框架版本保持：Light 对已批准 `top.egon:egon-cola-tianquan-jianshen-starter` 的直接 dependency 不带 version，在同一已声明 owner 的 dependencyManagement 使用既有 `${egon-cola.version}`，当前 5.4.1。其他已声明 native SDK owner 在自己的执行 Step 复核并按同一方式补必要管理项；没有新增依赖许可、升级版本、改变共享 parent 或影响 Open 变体。本修正属于用户允许自行推荐处理的小型编译配置问题，行为、层次、协议、数据库与运行验收不变。Step 11 纳入当前 Spec 与 Plan 文档；其他源码仍按原顺序逐 Step 处理。
+
+### 22.4 Light 原有 MVC 测试调用方的安全兼容
+
+五个现有 adapter ControllerTest 显式加载已批准改造的原 HTTP chain/context filter，旧匿名/header 身份不再合法。把这些既有调用方测试纳入同一 Step11 的兼容验证与提交范围，使用受控的已验证 USER、精确 OAuth scope/PDP/字段 fixture；原请求、业务参数、成功响应及业务校验断言保留。更新目的为关闭已发现的安全配置/构造调用方依赖，不能关闭安全、引入生产 Noop 字段 guard 或把业务专注 mock 当 NTEST/runtime 证明。实际生产协议、业务/SQL与已批准依赖边界均不变，Source/Open 范围不扩展。
+
+### 22.5 Light真实RPC方法安全与actor冲突接线
+
+既有 `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeRpcConfiguration.java` 是方法安全的非Servlet owner。使用现Spring Security `AnnotationTemplateExpressionDefaults` 的具名static Bean展开SDK `RequiresServiceScope`；`@EnableMethodSecurity` 在RPC-only上下文生效。既有native exception mapper保留校验INVALID_ARGUMENT，同时将方法安全/actor冲突拒绝经共享RPC marker一次严格DENY交付后映射PERMISSION_DENIED；缺proof/marker或交付失败UNAVAILABLE。无SDK/依赖/业务协议新增。四Light provider按§7.6保留operator_id字段号，未提供则由verified subject重建，提供冲突值则拒绝、零业务；已有测试验证真实代理的正向scope和六种写冲突。源码配置和受控代理证据不表示真实TLS/PG/Redis互调已验。
+
+### 22.6 Light既有完整上下文调用方
+
+RuntimeConfigurationTest和StudentManagementApplicationTest纳入同一受控SDK fixture；external-off test profile不豁免安全依赖。仅既有liveness/readiness公共，disabled docs401，原Instant序列化保持；启用docs的实际OAS信息/paths/security沿NativeHttpCompatibilityTest窄SERVICE链验证。两者是必要已有测试兼容，不表示应用/数据库/浏览器启动或真实运行通过。
+
+### 22.7 Light全模块既有caller兼容
+
+全模块回归纳入HttpAdapterContractTest、TeachingFacadeImplTest、UserFacadeImplTest、RepositoryPersistenceContractTest的可信身份fixture，原wire/业务/MP语义保留。RPC configuration-only验证可以不装外部观察器；qualified ObjectProvider仅延迟取得该组件，不构造替代/noop，缺观察器、proof或active marker的拒绝映射UNAVAILABLE。真实host准入/方法代理仍执行共同SDK完整验证与严格DENY。

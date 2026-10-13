@@ -2,6 +2,11 @@ package top.egon.cola.archetype.source.light.adapter.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.io.TempDir;
+import java.nio.file.Path;
+import java.util.Set;
 import org.slf4j.MDC;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -12,6 +17,8 @@ import top.egon.cola.archetype.source.light.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.light.adapter.filter.TraceIdFilter;
 import top.egon.cola.archetype.source.light.common.exception.UserUseCaseException;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+import top.egon.cola.archetype.source.light.start.config.NativeSecurityContractTest;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Map;
 
@@ -22,6 +29,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class HttpAdapterContractTest {
+    @TempDir Path temporary;
+    private NativeSecurityContractTest.SecurityFixture security;
+
+    @BeforeEach
+    void bindVerifiedUser() throws Exception {
+        security = new NativeSecurityContractTest.SecurityFixture(temporary);
+        SecurityContextHolder.getContext().setAuthentication(security.authenticatedUser("1002", Set.of("openid")));
+    }
+
+    @AfterEach
+    void closeVerifiedUser() {
+        security.close();
+    }
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ProbeController())
             .setControllerAdvice(new GlobalExceptionHandler(), new ResponseWrapperHandler(objectMapper))
@@ -37,8 +58,8 @@ class HttpAdapterContractTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.traceId").value("trace-1"))
                 .andExpect(jsonPath("$.timestamp").isNumber())
-                .andExpect(jsonPath("$.data.tenantId").value(42))
-                .andExpect(jsonPath("$.data.userId").value("operator-1"))
+                .andExpect(jsonPath("$.data.tenantId").value(1002))
+                .andExpect(jsonPath("$.data.userId").value("subject-1002"))
                 .andExpect(jsonPath("$.data.requestId").value("request-1"));
         assertThat(RequestContextHolder.get()).isEmpty();
         assertThat(MDC.get("traceId")).isNull();
@@ -59,12 +80,12 @@ class HttpAdapterContractTest {
     }
 
     @Test
-    void invalid_tenant_failure_has_trace_and_stops_before_controller() throws Exception {
+    void missing_identity_stops_before_controller_despite_tenant_header() throws Exception {
+        SecurityContextHolder.clearContext();
         mvc.perform(get("/probe").header("X-Tenant-Id", "invalid").header("X-Trace-Id", "trace-invalid"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.status").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.traceId").value("trace-invalid"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(header().string("X-Trace-Id", "trace-invalid"));
         assertThat(MDC.get("traceId")).isNull();
         assertThat(MDC.get("tenantId")).isNull();
     }

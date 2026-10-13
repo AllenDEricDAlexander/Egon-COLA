@@ -3,10 +3,10 @@ package top.egon.cola.archetype.source.light.adapter.user.facade.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.light.adapter.pojo.convertor.LightFacadeConverter;
 import top.egon.cola.archetype.source.light.adapter.pojo.dto.RpcIdQuery;
-import top.egon.cola.archetype.source.light.facade.validation.NativeRpcValidationGroup;
 import top.egon.cola.archetype.source.light.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.light.application.user.pojo.command.AssignRoleCommand;
@@ -24,8 +24,13 @@ import top.egon.cola.archetype.source.light.facade.user.dto.AssignRoleDTO;
 import top.egon.cola.archetype.source.light.facade.user.dto.CreateUserDTO;
 import top.egon.cola.archetype.source.light.facade.user.dto.UserDetailDTO;
 import top.egon.cola.archetype.source.light.facade.user.utils.UserFacadeAssert;
+import top.egon.cola.archetype.source.light.facade.validation.NativeRpcValidationGroup;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
+import top.egon.cola.component.rpc.common.exception.EgonRpcRejectedException;
+import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecurityContext;
 
 /** Native unary provider of the User facade; maps Protobuf onto the user use cases. */
 @EgonRpcProvider
@@ -46,8 +51,9 @@ public class UserFacadeImpl implements UserFacade {
     private final ValidationUtils validation;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-light:user:create")
     public UserRpcResponse createUser(CreateUserRpcRequest request) {
-        CreateUserDTO input = validation.validate(converter.toSource(request), NativeRpcValidationGroup.class);
+        CreateUserDTO input = validation.validate(converter.toSource(request.toBuilder().setOperatorId(verifiedActor(request.hasOperatorId() ? request.getOperatorId() : null)).build()), NativeRpcValidationGroup.class);
         try {
             return converter.userSuccess(create(input));
         } catch (UserFacadeException exception) {
@@ -57,8 +63,9 @@ public class UserFacadeImpl implements UserFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-light:role:assign")
     public UserRpcResponse assignRole(AssignRoleRpcRequest request) {
-        AssignRoleDTO input = validation.validate(converter.toSource(request), NativeRpcValidationGroup.class);
+        AssignRoleDTO input = validation.validate(converter.toSource(request.toBuilder().setOperatorId(verifiedActor(request.hasOperatorId() ? request.getOperatorId() : null)).build()), NativeRpcValidationGroup.class);
         try {
             return converter.userSuccess(assignRole(input));
         } catch (UserFacadeException exception) {
@@ -68,6 +75,7 @@ public class UserFacadeImpl implements UserFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-light:user:read")
     public UserRpcResponse getUser(GetUserRpcRequest request) {
         RpcIdQuery input = validation.validate(new RpcIdQuery(request.hasUserId() ? request.getUserId() : null));
         try {
@@ -76,6 +84,17 @@ public class UserFacadeImpl implements UserFacade {
             log.debug("getUser rejected: {}", exception.getStatus());
             return converter.userFailure(exception.getStatus(), exception.getMessage(), null);
         }
+    }
+
+    private static String verifiedActor(String suppliedActor) {
+        if (!(IdpRpcSecurityContext.currentPrincipalOrNull() instanceof ServiceIdentityPrincipal service)
+                || service.subject().isBlank() || service.subject().length() > 128 || !service.subject().equals(service.subject().strip())) {
+            throw new AuthenticationCredentialsNotFoundException("Verified SERVICE identity is required");
+        }
+        if (suppliedActor != null && !service.subject().equals(suppliedActor)) {
+            throw new EgonRpcRejectedException("RPC actor conflicts with verified identity");
+        }
+        return service.subject();
     }
 
     private UserDetailDTO create(CreateUserDTO request) {

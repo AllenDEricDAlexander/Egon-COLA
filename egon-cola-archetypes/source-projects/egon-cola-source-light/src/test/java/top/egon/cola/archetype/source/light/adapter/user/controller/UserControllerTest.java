@@ -1,18 +1,29 @@
 package top.egon.cola.archetype.source.light.adapter.user.controller;
 
-import top.egon.cola.archetype.source.light.adapter.user.pojo.convertor.UserAdapterConvertorImpl;
-import top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand;
-import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.light.application.user.pojo.result.UserResult;
-import top.egon.cola.archetype.source.light.adapter.filter.RequestContextFilter;
-import top.egon.cola.archetype.source.light.adapter.filter.TraceIdFilter;
+import jakarta.servlet.Filter;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+import top.egon.cola.archetype.source.light.adapter.filter.RequestContextFilter;
+import top.egon.cola.archetype.source.light.adapter.filter.TraceIdFilter;
+import top.egon.cola.archetype.source.light.adapter.user.pojo.convertor.UserAdapterConvertorImpl;
+import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
+import top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand;
+import top.egon.cola.archetype.source.light.application.user.pojo.result.UserResult;
+import top.egon.cola.archetype.source.light.start.config.NativeHttpSecurityConfiguration;
+import top.egon.cola.archetype.source.light.start.config.NativeSecurityContractTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,9 +34,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@ActiveProfiles("test")
+@TestPropertySource(properties = "TIANQUAN_SHOUBING_RESOURCE_URI=https://light.example.test")
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @WebMvcTest(UserController.class)
 @ContextConfiguration(classes = {
-        top.egon.cola.archetype.source.light.start.config.NativeHttpSecurityConfiguration.class,
+        NativeHttpSecurityConfiguration.class,
         UserController.class,
         UserAdapterConvertorImpl.class,
         TraceIdFilter.class,
@@ -35,8 +49,19 @@ class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @MockitoBean(name = "userManageImpl")
     private UserManage userManage;
+
+    @Autowired private WebApplicationContext web;
+    @Autowired private NativeSecurityContractTest.SecurityFixture security;
+    @BeforeEach void verifiedRequestDefaults() throws Exception {
+        mockMvc = MockMvcBuilders.webAppContextSetup(web)
+                .addFilter(web.getBean(TraceIdFilter.class))
+                .addFilter(web.getBean("springSecurityFilterChain", Filter.class))
+                .defaultRequest(MockMvcRequestBuilders.get("/")
+                        .header("Authorization", "Bearer " + security.token("1001", Set.of("egon-cola-source-light:user:create", "egon-cola-source-light:user:read"))))
+                .build();
+    }
 
     @Test
     void creates_user_with_request_context() throws Exception {
@@ -52,7 +77,7 @@ class UserControllerTest {
 
         ArgumentCaptor<CreateUserCommand> captor = ArgumentCaptor.forClass(CreateUserCommand.class);
         verify(userManage).create(captor.capture());
-        assertThat(captor.getValue().operatorId()).isEqualTo("operator-1");
+        assertThat(captor.getValue().operatorId()).isEqualTo("subject-1001");
         assertThat(captor.getValue().idempotencyKey()).isEqualTo("request-1");
     }
 

@@ -38,6 +38,11 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+                <version>${egon-cola.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-bom</artifactId>
                 <version>${native.grpc.version}</version>
@@ -60,6 +65,10 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-rpc-starter</artifactId>

@@ -1,33 +1,50 @@
 package top.egon.cola.archetype.source.light.adapter.user.graphql;
 
+import java.util.List;
+import java.util.Set;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import top.egon.cola.archetype.source.light.adapter.user.pojo.convertor.UserAdapterConvertorImpl;
 import top.egon.cola.archetype.source.light.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.light.application.user.pojo.result.PermissionDetailResult;
 import top.egon.cola.archetype.source.light.application.user.pojo.result.UserResult;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
-import org.springframework.graphql.test.tester.GraphQlTester;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
-import java.util.List;
+import top.egon.cola.archetype.source.light.start.config.NativeSecurityContractTest;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+@ActiveProfiles("test")
+@TestPropertySource(properties = "TIANQUAN_SHOUBING_RESOURCE_URI=https://light.example.test")
+@Import(NativeSecurityContractTest.SecurityTestBeans.class)
 @GraphQlTest(UserResolver.class)
 @ContextConfiguration(classes = {UserResolver.class, UserAdapterConvertorImpl.class})
 class UserResolverTest {
     @Autowired
     private GraphQlTester graphQlTester;
 
-    @MockitoBean
+    @MockitoBean(name = "userManageImpl")
     private UserManage userManage;
 
-    @MockitoBean
+    @MockitoBean(name = "permissionManageImpl")
     private PermissionManage permissionManage;
+
+    @Autowired private NativeSecurityContractTest.SecurityFixture security;
+    @BeforeEach void verifiedContext() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(security.authenticatedUser("1001", Set.of("egon-cola-source-light:user:read", "egon-cola-source-light:permission:read")));
+    }
+    @AfterEach void clearContext() { SecurityContextHolder.clearContext(); MDC.clear(); }
 
     @Test
     void resolves_user_through_graphql_boundary() {
