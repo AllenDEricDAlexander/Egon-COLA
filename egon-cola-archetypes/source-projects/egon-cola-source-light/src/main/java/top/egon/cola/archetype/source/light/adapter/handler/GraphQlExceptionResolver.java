@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.light.adapter.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
@@ -41,9 +42,11 @@ public class GraphQlExceptionResolver extends DataFetcherExceptionResolverAdapte
             return securityError(environment, reason, "Tianquan-Jianshen authorization denied", ErrorType.FORBIDDEN);
         }
         if (exception instanceof UserUseCaseException failure) {
+            ExceptionLogger.log(log, failure);
             return publicError(failure.getStatus(), failure.getMessage());
         }
         if (exception instanceof TeachingUseCaseException failure) {
+            ExceptionLogger.log(log, failure);
             return publicError(failure.getStatus(), failure.getMessage());
         }
         return null;

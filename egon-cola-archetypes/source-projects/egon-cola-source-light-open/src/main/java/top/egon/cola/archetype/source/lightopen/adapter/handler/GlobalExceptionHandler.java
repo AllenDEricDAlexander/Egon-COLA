@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.lightopen.adapter.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -38,12 +39,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserUseCaseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResultRecord<Void> handleUserFailure(UserUseCaseException exception) {
+        ExceptionLogger.log(log, exception);
         return ResultRecord.failure(exception);
     }
 
     @ExceptionHandler(TeachingUseCaseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResultRecord<Void> handleTeachingFailure(TeachingUseCaseException exception) {
+        ExceptionLogger.log(log, exception);
         return ResultRecord.failure(exception);
     }
 

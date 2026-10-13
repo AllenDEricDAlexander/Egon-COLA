@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.common.exception;
 
+import top.egon.cola.component.common.core.enums.ExceptionCategory;
 import top.egon.cola.archetype.source.web.common.enums.OrganizationFailureType;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.BusinessException;
@@ -18,13 +19,14 @@ public class OrganizationApplicationException extends BusinessException {
     private final OrganizationFailureType failureType;
 
     public OrganizationApplicationException(OrganizationFailureType failureType, String code, String message) {
-        super(ResultCode.BUSINESS_ERROR.getCode(), code, message);
-        this.failureType = failureType;
+        this(failureType, code, message, null);
     }
 
     public OrganizationApplicationException(
             OrganizationFailureType failureType, String code, String message, Throwable cause) {
-        super(ResultCode.BUSINESS_ERROR.getCode(), code, message, cause);
+        super(ResultCode.BUSINESS_ERROR.getCode(), code, message, cause,
+                failureType == OrganizationFailureType.DEPENDENCY_UNAVAILABLE || failureType == OrganizationFailureType.INTERNAL
+                        ? ExceptionCategory.BUSINESS_ALERT : ExceptionCategory.BUSINESS);
         this.failureType = failureType;
     }
 

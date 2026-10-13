@@ -22,7 +22,7 @@ class CommonExceptionTest {
         assertEquals(BusinessExceptionEnum.INVALID_PARAM.getCode(), exception.getCode());
         assertEquals(BusinessExceptionEnum.INVALID_PARAM.getStatus(), exception.getStatus());
         assertEquals(BusinessExceptionEnum.INVALID_PARAM.getMessage(), exception.getMessage());
-        assertEquals(ExceptionLevelEnum.ERROR, exception.getLevel());
+        assertEquals(ExceptionLevelEnum.WARN, exception.getLevel());
         assertFalse(exception.isRetryable());
     }
 

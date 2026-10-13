@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.service.adapter.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.service.adapter.pojo.dto.FacadeFailureDTO;
@@ -15,10 +16,10 @@ public class GlobalFacadeExceptionHandler {
     private static final String INTERNAL_MESSAGE = "service request failed";
 
     public FacadeFailureDTO toFailure(RuntimeException failure) {
+        ExceptionLogger.log(log, failure);
         if (failure instanceof ApplicationException applicationFailure) {
             return new FacadeFailureDTO(applicationFailure.getStatus(), applicationFailure.getMessage());
         }
-        log.warn("unexpected native facade failure masked as {}", INTERNAL_ERROR, failure);
         return new FacadeFailureDTO(INTERNAL_ERROR, INTERNAL_MESSAGE);
     }
 }

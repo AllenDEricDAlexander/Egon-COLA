@@ -3,6 +3,8 @@ package top.egon.cola.component.common.core.exception;
 import top.egon.cola.component.common.core.enums.BusinessExceptionEnum;
 import top.egon.cola.component.common.core.enums.ErrorStatus;
 import top.egon.cola.component.common.core.enums.ExceptionLevelEnum;
+import top.egon.cola.component.common.core.enums.ExceptionCategory;
+import top.egon.cola.component.common.core.enums.ResultCode;
 
 import java.io.Serial;
 import java.util.Objects;
@@ -24,37 +26,37 @@ public class BusinessException extends CommonException {
     private Object[] details;
 
     public BusinessException(ErrorStatus errorStatus) {
-        this(errorStatus, ExceptionLevelEnum.ERROR, null, new Object[0]);
+        this(errorStatus, ExceptionLevelEnum.WARN, null, new Object[0]);
     }
 
     public BusinessException(ErrorStatus errorStatus, Throwable cause) {
-        this(errorStatus, ExceptionLevelEnum.ERROR, cause, new Object[0]);
+        this(errorStatus, ExceptionLevelEnum.WARN, cause, new Object[0]);
     }
 
     public BusinessException(ErrorStatus errorStatus, Object... details) {
-        this(errorStatus, ExceptionLevelEnum.ERROR, null, details);
+        this(errorStatus, ExceptionLevelEnum.WARN, null, details);
     }
 
     public BusinessException(ErrorStatus errorStatus, Throwable cause, Object... details) {
-        this(errorStatus, ExceptionLevelEnum.ERROR, cause, details);
+        this(errorStatus, ExceptionLevelEnum.WARN, cause, details);
     }
 
     public BusinessException(BusinessExceptionEnum businessExceptionEnum) {
-        this(businessExceptionEnum, ExceptionLevelEnum.ERROR, null, new Object[0]);
+        this(businessExceptionEnum, ExceptionLevelEnum.WARN, null, new Object[0]);
     }
 
     public BusinessException(BusinessExceptionEnum businessExceptionEnum, Throwable cause) {
-        this(businessExceptionEnum, ExceptionLevelEnum.ERROR, cause, new Object[0]);
+        this(businessExceptionEnum, ExceptionLevelEnum.WARN, cause, new Object[0]);
     }
 
     public BusinessException(BusinessExceptionEnum businessExceptionEnum, Object... details) {
-        this(businessExceptionEnum, ExceptionLevelEnum.ERROR, null, details);
+        this(businessExceptionEnum, ExceptionLevelEnum.WARN, null, details);
     }
 
     public BusinessException(BusinessExceptionEnum businessExceptionEnum,
                              Throwable cause,
                              Object... details) {
-        this(businessExceptionEnum, ExceptionLevelEnum.ERROR, cause, details);
+        this(businessExceptionEnum, ExceptionLevelEnum.WARN, cause, details);
     }
 
     public BusinessException(BusinessExceptionEnum businessExceptionEnum,
@@ -67,28 +69,23 @@ public class BusinessException extends CommonException {
                              ExceptionLevelEnum level,
                              Throwable cause,
                              Object... details) {
-        super(
-                Objects.requireNonNull(businessExceptionEnum, "businessExceptionEnum").getCode(),
-                businessExceptionEnum.getStatus(),
-                formatMessage(businessExceptionEnum.getMessage(), details),
-                cause
-        );
-        this.businessExceptionEnum = businessExceptionEnum;
-        this.level = Objects.requireNonNull(level, "level");
-        this.details = copyDetails(details);
+        this(businessExceptionEnum, level, cause, details, category(businessExceptionEnum));
     }
 
     public BusinessException(int code, String status, String message) {
-        super(code, status, message);
-        this.businessExceptionEnum = null;
-        this.level = ExceptionLevelEnum.ERROR;
-        this.details = new Object[0];
+        this(code, status, message, null);
     }
 
     public BusinessException(int code, String status, String message, Throwable cause) {
-        super(code, status, message, cause);
+        this(code, status, message, cause, category(code, status));
+    }
+
+    /** Allows a typed application failure to mark a dependency/internal rejection explicitly. */
+    protected BusinessException(int code, String status, String message, Throwable cause,
+                                ExceptionCategory category) {
+        super(code, status, message, false, cause, category);
         this.businessExceptionEnum = null;
-        this.level = ExceptionLevelEnum.ERROR;
+        this.level = category == ExceptionCategory.BUSINESS ? ExceptionLevelEnum.WARN : ExceptionLevelEnum.ERROR;
         this.details = new Object[0];
     }
 
@@ -96,12 +93,48 @@ public class BusinessException extends CommonException {
                               ExceptionLevelEnum level,
                               Throwable cause,
                               Object[] details) {
-        super(Objects.requireNonNull(errorStatus, "errorStatus"), cause, details);
+        this(errorStatus, level, cause, details, category(errorStatus));
+    }
+
+    private BusinessException(ErrorStatus errorStatus, ExceptionLevelEnum level,
+                              Throwable cause, Object[] details, ExceptionCategory category) {
+        super(Objects.requireNonNull(errorStatus, "errorStatus").getCode(), errorStatus.getStatus(),
+                formatMessage(errorStatus.getMessage(), details), false, cause, category);
         this.businessExceptionEnum = errorStatus instanceof BusinessExceptionEnum business
                 ? business
                 : null;
         this.level = Objects.requireNonNull(level, "level");
         this.details = copyDetails(details);
+    }
+
+    /** Marks a business response that also needs operational attention, without ambiguous overloads. */
+    public static BusinessException alert(ErrorStatus errorStatus, Throwable cause, Object... details) {
+        return new BusinessException(errorStatus, ExceptionLevelEnum.ERROR, cause, details, ExceptionCategory.BUSINESS_ALERT);
+    }
+
+    private static ExceptionCategory category(int code, String status) {
+        for (ResultCode known : ResultCode.values()) {
+            if (known.getCode() == code && known.getStatus().equals(status)) {
+                return category(known);
+            }
+        }
+        for (BusinessExceptionEnum known : BusinessExceptionEnum.values()) {
+            if (known.getCode() == code && known.getStatus().equals(status)) {
+                return category(known);
+            }
+        }
+        return ExceptionCategory.BUSINESS;
+    }
+
+    private static ExceptionCategory category(ErrorStatus status) {
+        Objects.requireNonNull(status, "errorStatus");
+        boolean system = status == BusinessExceptionEnum.SYSTEM_ERROR
+                || status == BusinessExceptionEnum.INTERFACE_CALL_ERROR
+                || status == BusinessExceptionEnum.TIMEOUT
+                || status == BusinessExceptionEnum.OPEN_REQUEST_EXCEPTION
+                || status == ResultCode.SYSTEM_ERROR || status == ResultCode.REMOTE_CALL_ERROR
+                || status == ResultCode.MIDDLEWARE_ERROR || status == ResultCode.UNKNOWN_ERROR;
+        return system ? ExceptionCategory.BUSINESS_ALERT : ExceptionCategory.BUSINESS;
     }
 
     public static BusinessException get(BusinessExceptionEnum businessExceptionEnum,
@@ -143,7 +176,11 @@ public class BusinessException extends CommonException {
         if (cause instanceof BusinessException businessException) {
             return businessException;
         }
-        return new BusinessException(BusinessExceptionEnum.SYSTEM_ERROR, cause);
+        return alert(BusinessExceptionEnum.SYSTEM_ERROR, cause);
+    }
+
+    ExceptionCategory legacyCategory() {
+        return businessExceptionEnum == null ? category(getCode(), getStatus()) : category(businessExceptionEnum);
     }
 
     public BusinessExceptionEnum getBusinessExceptionEnum() {
@@ -151,7 +188,7 @@ public class BusinessException extends CommonException {
     }
 
     public ExceptionLevelEnum getLevel() {
-        return level;
+        return isAlertRequired() && level != ExceptionLevelEnum.FATAL ? ExceptionLevelEnum.ERROR : level;
     }
 
     public long getMessageId() {

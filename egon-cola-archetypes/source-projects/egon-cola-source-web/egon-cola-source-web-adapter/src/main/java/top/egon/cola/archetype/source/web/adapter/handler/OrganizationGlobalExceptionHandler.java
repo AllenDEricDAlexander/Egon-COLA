@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
 import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
@@ -78,6 +79,7 @@ public class OrganizationGlobalExceptionHandler {
 
     @ExceptionHandler(OrganizationApplicationException.class)
     public ResponseEntity<OrganizationErrorResponse> handleApplication(OrganizationApplicationException failure) {
+        ExceptionLogger.log(log, failure);
         return response(status(failure.failureType()), failure.code(), failure.getMessage(), Map.of());
     }
 
@@ -100,7 +102,7 @@ public class OrganizationGlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<OrganizationErrorResponse> handleUnexpected(Exception failure) {
-        log.error("unexpected organization request failure traceId={}", traceId(), failure);
+        ExceptionLogger.log(log, failure);
         return response(HttpStatus.INTERNAL_SERVER_ERROR, "ORG_INTERNAL_ERROR", "internal error", Map.of());
     }
 

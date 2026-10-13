@@ -1,8 +1,12 @@
 package top.egon.cola.component.common.core.exception;
 
 import top.egon.cola.component.common.core.enums.ErrorStatus;
+import top.egon.cola.component.common.core.enums.ExceptionCategory;
 
 import java.io.Serial;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.IllegalFormatException;
 import java.util.Objects;
 
@@ -19,6 +23,8 @@ public class CommonException extends RuntimeException {
     private final String status;
 
     private final boolean retryable;
+
+    private final ExceptionCategory exceptionCategory;
 
     public CommonException(ErrorStatus errorStatus) {
         this(errorStatus, false, null, new Object[0]);
@@ -62,7 +68,13 @@ public class CommonException extends RuntimeException {
     }
 
     public CommonException(int code, String status, String message, boolean retryable, Throwable cause) {
+        this(code, status, message, retryable, cause, ExceptionCategory.SYSTEM);
+    }
+
+    protected CommonException(int code, String status, String message, boolean retryable,
+                              Throwable cause, ExceptionCategory exceptionCategory) {
         super(message, cause);
+        this.exceptionCategory = Objects.requireNonNull(exceptionCategory, "exceptionCategory");
         this.code = code;
         this.status = status;
         this.retryable = retryable;
@@ -78,6 +90,34 @@ public class CommonException extends RuntimeException {
 
     public boolean isRetryable() {
         return retryable;
+    }
+
+    /** Legacy serialized exceptions have no category field; keep their original family. */
+    public ExceptionCategory getExceptionCategory() {
+        ExceptionCategory category = exceptionCategory == null
+                ? (this instanceof BusinessException business ? business.legacyCategory() : ExceptionCategory.SYSTEM)
+                : exceptionCategory;
+        return category == ExceptionCategory.BUSINESS && hasAlertCause(getCause())
+                ? ExceptionCategory.BUSINESS_ALERT : category;
+    }
+
+    public boolean isAlertRequired() {
+        return getExceptionCategory() != ExceptionCategory.BUSINESS;
+    }
+
+    private static boolean hasAlertCause(Throwable cause) {
+        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Throwable current = cause; current != null && seen.add(current); current = current.getCause()) {
+            if (current instanceof CommonException common) {
+                ExceptionCategory category = common.exceptionCategory == null
+                        ? (common instanceof BusinessException business ? business.legacyCategory() : ExceptionCategory.SYSTEM)
+                        : common.exceptionCategory;
+                if (category == ExceptionCategory.SYSTEM || category == ExceptionCategory.BUSINESS_ALERT) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     protected static String formatMessage(String message, Object[] details) {

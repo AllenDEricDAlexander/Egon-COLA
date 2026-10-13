@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.serviceopen.adapter.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import top.egon.cola.archetype.source.serviceopen.common.exception.ApplicationException;
 import io.grpc.Metadata;
 import io.grpc.Status;
@@ -39,9 +40,10 @@ public class GlobalFacadeExceptionHandler {
         String description = applicationFailure == null
                 ? (rejectedInput ? failure.getMessage() : "service request failed")
                 : applicationFailure.getMessage();
-        if (applicationFailure == null && !rejectedInput) {
-            log.warn("unexpected open facade failure masked as {}", errorCode, failure);
-        }
+        ExceptionLogger.log(log, rejectedInput
+                ? new top.egon.cola.component.common.core.exception.BusinessException(
+                        top.egon.cola.component.common.core.enums.ResultCode.VALIDATION_ERROR, failure)
+                : failure);
         return status.withDescription(description == null ? "service request failed" : description)
                 .asRuntimeException(trailers);
     }

@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.agent.adapter.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -91,6 +92,7 @@ public class DeepResearchGlobalExceptionHandler {
     @ExceptionHandler(DeepResearchApplicationException.class)
     public ResponseEntity<DeepResearchErrorResponse> handleApplication(
             DeepResearchApplicationException failure, HttpServletRequest request) {
+        ExceptionLogger.log(log, failure);
         return response(failure.code(), failure.traceId(), failure.fieldErrors(), request);
     }
 
@@ -134,6 +136,7 @@ public class DeepResearchGlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<DeepResearchErrorResponse> handleUnexpected(
             Exception failure, HttpServletRequest request) {
+        ExceptionLogger.log(log, failure);
         return response(ResearchErrorCodeEnum.RESEARCH_INTERNAL_ERROR, null, Map.of(), request);
     }
 

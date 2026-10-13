@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.serviceopen.common.exception;
 
+import top.egon.cola.component.common.core.enums.ExceptionCategory;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.BusinessException;
 import top.egon.cola.archetype.source.serviceopen.common.enums.ApplicationErrorCode;
@@ -22,7 +23,9 @@ public final class ApplicationException extends BusinessException {
     }
 
     public ApplicationException(ApplicationErrorCode error, String message, Throwable cause) {
-        super(ResultCode.BUSINESS_ERROR.getCode(), error.getStatus(), message, cause);
+        super(ResultCode.BUSINESS_ERROR.getCode(), error.getStatus(), message, cause,
+                error == ApplicationErrorCode.INFRASTRUCTURE_FAILURE
+                        ? ExceptionCategory.BUSINESS_ALERT : ExceptionCategory.BUSINESS);
         this.error = error;
     }
 

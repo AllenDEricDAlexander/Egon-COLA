@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
 import top.egon.cola.archetype.source.web.common.exception.OrganizationApplicationException;
 import graphql.GraphQLError;
@@ -44,8 +45,10 @@ public class OrganizationGraphQlExceptionResolver extends DataFetcherExceptionRe
             return securityError(environment, code, "Tianquan-Jianshen authorization denied", ErrorType.FORBIDDEN);
         }
         if (error instanceof OrganizationApplicationException failure) {
+            ExceptionLogger.log(log, failure);
             return error(environment, failure.code(), failure.getMessage());
         }
+        ExceptionLogger.log(log, error);
         return error(environment, "ORG_INTERNAL_ERROR", "Internal server error");
     }
 

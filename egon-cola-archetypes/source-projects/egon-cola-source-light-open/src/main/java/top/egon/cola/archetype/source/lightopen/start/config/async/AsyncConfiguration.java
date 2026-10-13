@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.lightopen.start.config.async;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
@@ -46,6 +47,6 @@ public class AsyncConfiguration implements AsyncConfigurer {
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (Throwable ex, Method method, Object... params) ->
-            log.error("Async method failed: {}", method.toGenericString(), ex);
+            ExceptionLogger.log(log, ex);
     }
 }

@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.agent.common.exception;
 
+import top.egon.cola.component.common.core.enums.ExceptionCategory;
 import top.egon.cola.archetype.source.agent.common.error.KnowledgeErrorCodeEnum;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.BusinessException;
@@ -38,7 +39,9 @@ public class KnowledgeApplicationException extends BusinessException {
     public KnowledgeApplicationException(KnowledgeErrorCodeEnum code, String traceId,
                                          Map<String, List<String>> fieldErrors, Throwable cause) {
         super(ResultCode.BUSINESS_ERROR.getCode(), normalized(code).getStatus(),
-                normalized(code).safeMessage(), cause);
+                normalized(code).safeMessage(), cause,
+                normalized(code) == KnowledgeErrorCodeEnum.KNOWLEDGE_EMBEDDING_FAILED || normalized(code) == KnowledgeErrorCodeEnum.KNOWLEDGE_DEPENDENCY_UNAVAILABLE || normalized(code) == KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR
+                        ? ExceptionCategory.BUSINESS_ALERT : ExceptionCategory.BUSINESS);
         this.code = normalized(code);
         this.traceId = traceId;
         this.fieldErrors = fieldErrors == null ? Map.of() : fieldErrors.entrySet().stream()

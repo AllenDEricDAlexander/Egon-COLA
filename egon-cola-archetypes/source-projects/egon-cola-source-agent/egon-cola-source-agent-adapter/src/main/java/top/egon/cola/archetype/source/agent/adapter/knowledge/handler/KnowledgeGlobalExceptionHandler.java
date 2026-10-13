@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.agent.adapter.knowledge.handler;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -118,6 +119,7 @@ public class KnowledgeGlobalExceptionHandler {
     @ExceptionHandler(KnowledgeApplicationException.class)
     public ResponseEntity<DeepResearchErrorResponse> handleApplication(
             KnowledgeApplicationException failure, HttpServletRequest request) {
+        ExceptionLogger.log(log, failure);
         return response(failure.code(), failure.traceId(), failure.fieldErrors(), request);
     }
 
@@ -224,8 +226,7 @@ public class KnowledgeGlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<DeepResearchErrorResponse> handleUnexpected(
             Exception failure, HttpServletRequest request) {
-        log.error("knowledge request failed outcome=REJECTED code={} exception={}",
-                KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR.code(), failure.getClass().getSimpleName());
+        ExceptionLogger.log(log, failure);
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, null, Map.of(), request);
     }
 

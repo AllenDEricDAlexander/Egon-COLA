@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.agent.common.exception;
 
+import top.egon.cola.component.common.core.enums.ExceptionCategory;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.BusinessException;
@@ -37,7 +38,9 @@ public class DeepResearchApplicationException extends BusinessException {
     public DeepResearchApplicationException(ResearchErrorCodeEnum code, String traceId,
                                            Map<String, List<String>> fieldErrors, Throwable cause) {
         super(ResultCode.BUSINESS_ERROR.getCode(), normalized(code).getStatus(),
-                normalized(code).safeMessage(), cause);
+                normalized(code).safeMessage(), cause,
+                normalized(code) == ResearchErrorCodeEnum.RESEARCH_DEPENDENCY_UNAVAILABLE || normalized(code) == ResearchErrorCodeEnum.RESEARCH_INTERNAL_ERROR || normalized(code) == ResearchErrorCodeEnum.RESEARCH_TIMEOUT
+                        ? ExceptionCategory.BUSINESS_ALERT : ExceptionCategory.BUSINESS);
         this.code = normalized(code);
         this.traceId = traceId;
         this.fieldErrors = fieldErrors == null ? Map.of() : fieldErrors.entrySet().stream()

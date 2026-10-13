@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.service.starter.config.async;
 
+import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,6 @@ public class AsyncConfiguration implements AsyncConfigurer {
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
         return (Throwable ex, Method method, Object... params) ->
-            log.error("Async method failed: {}", method.toGenericString(), ex);
+            ExceptionLogger.log(log, ex);
     }
 }
