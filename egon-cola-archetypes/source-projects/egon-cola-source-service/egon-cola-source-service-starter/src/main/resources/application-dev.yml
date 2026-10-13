@@ -1,4 +1,37 @@
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          tianshuregistration:
+            provider: native-control
+            client-id: ${NATIVE_CONTROL_CLIENT_ID:}
+            client-secret: ${NATIVE_CONTROL_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+            scope: ${NATIVE_CONTROL_SCOPES:}
+          native-tenant-one:
+            provider: native-tenant-one
+            client-id: ${NATIVE_SERVICE_CLIENT_ID:}
+            client-secret: ${NATIVE_SERVICE_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+            scope: ${NATIVE_SERVICE_SCOPES:}
+          native-tenant-two:
+            provider: native-tenant-two
+            client-id: ${NATIVE_SERVICE_CLIENT_ID:}
+            client-secret: ${NATIVE_SERVICE_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+            scope: ${NATIVE_SERVICE_SCOPES:}
+        provider:
+          native-control:
+            token-uri: ${NATIVE_CONTROL_TOKEN_URI:}
+          native-tenant-one:
+            token-uri: ${NATIVE_TENANT_ONE_TOKEN_URI:}
+          native-tenant-two:
+            token-uri: ${NATIVE_TENANT_TWO_TOKEN_URI:}
+
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
@@ -14,8 +47,9 @@ app:
       biz-code: ${ORGANIZATION_FACADE_BIZ_CODE:student-management}
       app-code: ${ORGANIZATION_FACADE_APP_CODE:}
       group: ${ORGANIZATION_FACADE_GROUP:student-management-organization}
-      version: ${ORGANIZATION_FACADE_SERVICE_VERSION:1.0}
+      version: ${ORGANIZATION_FACADE_SERVICE_VERSION:1.0.0}
       timeout-ms: ${ORGANIZATION_FACADE_TIMEOUT_MS:3000}
+      application-namespace: ${ORGANIZATION_APPLICATION_NAMESPACE:}
     rabbitmq:
       enabled: ${RABBITMQ_ENABLED:true}
       listener-auto-startup: ${RABBITMQ_LISTENER_AUTO_STARTUP:true}
@@ -139,8 +173,8 @@ egon:
           default-timeout-ms: 3000
           max-retries: 0
         tls:
-          enabled: ${RPC_TLS_ENABLED:false}
-          development-plaintext: ${RPC_DEVELOPMENT_PLAINTEXT:true}
+          enabled: ${RPC_TLS_ENABLED:true}
+          development-plaintext: ${RPC_DEVELOPMENT_PLAINTEXT:false}
           certificate-chain-path: ${RPC_CERTIFICATE_CHAIN_PATH:}
           private-key-path: ${RPC_PRIVATE_KEY_PATH:}
           trust-certificate-collection-path: ${RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
@@ -196,15 +230,175 @@ egon:
     platform:
       tianquan:
         shoubing:
-          enabled: ${TIANQUAN_SHOUBING_ENABLED:true}
+          enabled: true
           register-filter: false
           issuer: ${TIANQUAN_SHOUBING_ISSUER:}
           jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:}
           resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID:}
           resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+          clock-skew: PT30S
+          trusted-issuers:
+            tenant-one:
+              issuer: ${NATIVE_TENANT_ONE_ISSUER:}
+              jwks-uri: ${NATIVE_TENANT_ONE_JWKS_URI:}
+              realm-key: ${NATIVE_TENANT_ONE_REALM_KEY:}
+              realm-type: TENANT
+              tenant-id: ${NATIVE_TENANT_ONE_ID:}
+              status: ACTIVE
+              trust-version: ${NATIVE_TENANT_ONE_TRUST_VERSION:1}
+            tenant-two:
+              issuer: ${NATIVE_TENANT_TWO_ISSUER:}
+              jwks-uri: ${NATIVE_TENANT_TWO_JWKS_URI:}
+              realm-key: ${NATIVE_TENANT_TWO_REALM_KEY:}
+              realm-type: TENANT
+              tenant-id: ${NATIVE_TENANT_TWO_ID:}
+              status: ACTIVE
+              trust-version: ${NATIVE_TENANT_TWO_TRUST_VERSION:1}
+          revocation:
+            mode: STRICT_SHARED
+            primary-endpoint: ${OAUTH_REVOCATION_PRIMARY_ENDPOINT:}
+            timeout: PT0.5S
+            epoch: ${OAUTH_REVOCATION_EPOCH:}
+          jwks-cache:
+            ttl: PT300S
+            max-issuers: 1000
+            connect-timeout: PT2S
+            read-timeout: PT5S
+          usage-observation:
+            enabled: true
+            receiver: APPLICATION
+            fallback-issuer: ${TIANQUAN_SHOUBING_ISSUER:}
+            allow-local-plaintext: false
+          audit:
+            stream: egon:oauth:audit:v1
+            spool-directory: ${NATIVE_OAUTH_AUDIT_SPOOL_DIRECTORY:}
+            spool-max-bytes: 1073741824
+            hmac-key-file: ${NATIVE_OAUTH_AUDIT_HMAC_KEY_FILE:}
+            replay-initial-delay: 5000
+            replay-delay: 5000
+            delivery:
+              receipt-ttl: PT1H
+              confirmation-timeout: PT30S
+              batch-size: 100
           service-client:
-            app-id: ${TIANQUAN_SHOUBING_SERVICE_APP_ID:}
+            app-id: egon-cola-source-service
             registration-id: tianshuregistration
+            credential-versions:
+              tianshuregistration: ${NATIVE_CONTROL_CREDENTIAL_VERSION:1}
+              native-tenant-one: ${NATIVE_TENANT_ONE_CREDENTIAL_VERSION:1}
+              native-tenant-two: ${NATIVE_TENANT_TWO_CREDENTIAL_VERSION:1}
+            # Deployment manifest supplies exact positive tenant IDs; there is no default tenant selection.
+            tenant-registration-ids: {}
+            renewal-skew: PT60S
+          rpc:
+            enabled: true
+            consumer:
+              enabled: true
+              bindings:
+                organization-user-read:
+                  service-name: top.egon.cola.organization.facade.rpc.v1.UserService
+                  group: ${app.integrations.organization.group}
+                  version: ${app.integrations.organization.version}
+                  full-method-name: top.egon.cola.organization.facade.rpc.v1.UserService/GetUser
+                  process-identity:
+                    "[applicationName]": ${spring.application.name}
+                    "[env]": ${APP_ENV:dev}
+                  mode: SERVICE
+                  app-id: egon-cola-source-service
+                  resource-uri: ${ORGANIZATION_RESOURCE_URI:}
+                  scope-context: TENANT
+                  tenant-registration-ids: {}
+                  scopes: ["${app.integrations.organization.application-namespace}:user:read"]
+                organization-class-read:
+                  service-name: top.egon.cola.organization.facade.rpc.v1.SchoolClassService
+                  group: ${app.integrations.organization.group}
+                  version: ${app.integrations.organization.version}
+                  full-method-name: top.egon.cola.organization.facade.rpc.v1.SchoolClassService/GetSchoolClass
+                  process-identity:
+                    "[applicationName]": ${spring.application.name}
+                    "[env]": ${APP_ENV:dev}
+                  mode: SERVICE
+                  app-id: egon-cola-source-service
+                  resource-uri: ${ORGANIZATION_RESOURCE_URI:}
+                  scope-context: TENANT
+                  tenant-registration-ids: {}
+                  scopes: ["${app.integrations.organization.application-namespace}:school-class:read"]
+            provider:
+              enabled: true
+              methods:
+                "[top.egon.cola.evaluation.facade.rpc.v1.CourseService/CreateCourse]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:course:create"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.CourseService/ScheduleCourse]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:course:schedule"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.CourseService/GetCourse]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:course:read"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.CourseService/PageCourses]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:course:list"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.ExamService/CreateExam]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:exam:create"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.ExamService/AttachPaper]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:exam:attach-paper"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.ExamService/PublishExam]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:exam:publish"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.ExamService/GetExam]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:exam:read"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.ScoreService/RecordScore]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:score:record"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.ScoreService/GetScore]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:score:read"]
+                "[top.egon.cola.evaluation.facade.rpc.v1.ScoreService/PageScores]":
+                  required: true
+                  principal-kind: SERVICE
+                  scope-context: TENANT
+                  expected-resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+                  required-scopes: ["egon-cola-source-service:score:list"]
+
+server:
+  ssl:
+    enabled: ${NATIVE_TLS_ENABLED:true}
+    key-store: ${NATIVE_TLS_KEY_STORE:}
+    key-store-password: ${NATIVE_TLS_KEY_STORE_PASSWORD:}
+    key-store-type: PKCS12
 
 logging:
   level:

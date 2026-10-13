@@ -18,6 +18,7 @@ import top.egon.cola.archetype.source.service.facade.proto.PageCourseRpcResponse
 import top.egon.cola.archetype.source.service.facade.proto.ScheduleCourseRpcRequest;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 
 import java.util.Objects;
 
@@ -38,6 +39,7 @@ public class CourseFacadeImpl implements CourseFacade {
     private final GlobalFacadeExceptionHandler exceptionHandler;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:course:create")
     public CourseRpcResponse createCourse(CreateCourseRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -49,6 +51,7 @@ public class CourseFacadeImpl implements CourseFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:course:schedule")
     public CourseScheduleRpcResponse scheduleCourse(ScheduleCourseRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -60,6 +63,7 @@ public class CourseFacadeImpl implements CourseFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:course:read")
     public CourseRpcResponse getCourse(GetCourseRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -71,6 +75,7 @@ public class CourseFacadeImpl implements CourseFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:course:list")
     public PageCourseRpcResponse pageCourses(PageCourseRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {

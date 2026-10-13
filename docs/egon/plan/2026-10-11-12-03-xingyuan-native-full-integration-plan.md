@@ -404,6 +404,7 @@ DEC-007新增Step8的9路径已在主Spec§7.0.1完整列明；拒绝双TM/produ
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/course/facade/impl/CourseFacadeImpl.java` | Step 12: createCourse[S-RPC-01],scheduleCourse[S-RPC-02],getCourse[S-RPC-03],pageCourses[S-RPC-04] | REQ-003, REQ-004, REQ-006, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/exam/facade/impl/ExamFacadeImpl.java` | Step 12: createExam[S-RPC-05],attachPaper[S-RPC-06],publishExam[S-RPC-07],getExam[S-RPC-08] | REQ-003, REQ-004, REQ-006, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/exam/facade/impl/ScoreFacadeImpl.java` | Step 12: recordScore[S-RPC-09],getScore[S-RPC-10],pageScores[S-RPC-11] | REQ-003, REQ-004, REQ-006, REQ-008, REQ-009, REQ-011 |
+| MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/config/NativeRpcConfiguration.java` | Step 12: RPC-only method safety/template/mapped security failures | REQ-003, REQ-004, REQ-006, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/java/top/egon/cola/archetype/source/service/starter/config/NativeHttpSecurityConfiguration.java` | Step 12: applicationSecurityFilterChain/IdpEndpointAuthenticationPolicy/registration-disabled | REQ-003, REQ-004, REQ-006, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcProperties.java` | Step 12: existing target/group/version settings coexist sharedRpc bindings | REQ-003, REQ-004, REQ-006, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcConfiguration.java` | Step 12: reference(Class,group) via originaldescriptor/strategies/proxy | REQ-003, REQ-004, REQ-006, REQ-008, REQ-009, REQ-011 |
@@ -7682,7 +7683,30 @@ invoke original provider->Manage only after sharedSDK callback verification/scop
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 8 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/java/top/egon/cola/archetype/source/service/starter/config/NativeHttpSecurityConfiguration.java`
+#### File 8 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/config/NativeRpcConfiguration.java`
+
+- Purpose: RPC-only上下文的真实方法安全、SDK scope模板及既有安全错误mapper接线
+- Symbols: annotationTemplateExpressionDefaults/nativeRpcValidationExceptionMapper
+- Repository evidence: 既有Adapter NativeRpcConfiguration及Step11真实SERVICE代理证据；没有新的SDK合同/框架。
+- Dependencies and consumers: Step1共同观测、Step4 SERVICE RPC及Step6默认off docs窄链；Step8 Outbox/Step9目录/Step10字段owner为后续共同能力，不在SERVICE宿主安装USER链。 保留本Step原focused selectors及现成功wire caller。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: 原applicationSecurityFilterChain签名/BeanName保持，仅fallback策略闭锁并让原docs窄链拥有其路径；不新HTTP业务API、scope或依赖。
+- Input/output and state mapping: S-RPC只从完整verified SERVICE principal/proof取tenant/actor；HTTP无业务USER输入，docs沿现固定scope/own-resource，不改PB成功字段或数据操作。
+- Error and edge behavior: S-RPC沿UNAUTHENTICATED/PERMISSION_DENIED/UNAVAILABLE原status；HTTP health公共、docs关闭或固定完整SERVICE guard、其他fallback拒绝；缺依赖deny/notready，不安装不存在的Jianshen Bean。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+existing @Configuration nativeRpcConfiguration also enables method security for RPC-only contexts;
+static named AnnotationTemplateExpressionDefaults expands existing RequiresServiceScope values;
+reuse existing RpcProviderExceptionMapper; AuthenticationException -> UNAUTHENTICATED;
+AccessDeniedException -> strict shared RPC marker/proof once confirmed PERMISSION_DENIED, absent/closed/failed UNAVAILABLE;
+qualified ObjectProvider never supplies noop or grants when observation absent; existing validation INVALID_ARGUMENT and business PB unchanged.
+```
+- Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 9 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/java/top/egon/cola/archetype/source/service/starter/config/NativeHttpSecurityConfiguration.java`
 
 - Purpose: SERVICE宿主HTTP仅health与既有基础设施策略；其余fallback闭锁
 - Symbols: existing applicationSecurityFilterChain/registration-disabled；fixed infrastructure fallback，无USER advisor/PEP
@@ -7712,7 +7736,7 @@ Step5 USER scope-order factory is consumed only by USER families, not installed 
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 9 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcProperties.java`
+#### File 10 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcProperties.java`
 
 - Purpose: 本地target配置核S/W目标publishednamespace，not请求选择
 - Symbols: existing target/group/version settings coexist sharedRpc bindings
@@ -7734,7 +7758,7 @@ unknown registration/duplicate selector ->nooutbound; no fallbackdefaulttenant/n
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 10 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcConfiguration.java`
+#### File 11 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcConfiguration.java`
 
 - Purpose: 现RPCfactory装配sharedStep5SERVICE credentials，不复制token缓存
 - Symbols: reference(Class,group) via originaldescriptor/strategies/proxy
@@ -7757,7 +7781,7 @@ original converter/ClientFailureMapper envelopes maintained.
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 11 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application.yml`
+#### File 12 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -7783,7 +7807,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 12 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-dev.yml`
+#### File 13 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-dev.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -7809,7 +7833,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 13 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-prod.yml`
+#### File 14 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-prod.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -7835,7 +7859,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 14 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-test.yml`
+#### File 15 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-test.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -7861,7 +7885,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 15 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/test/java/top/egon/cola/archetype/source/service/adapter/rpc/NativeServiceRpcProviderTest.java`
+#### File 16 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/test/java/top/egon/cola/archetype/source/service/adapter/rpc/NativeServiceRpcProviderTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: NativeServiceRpcProviderTest existing assertions + explicitauthenticated fixture
@@ -7884,7 +7908,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 16 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/NativeServiceConfigurationTest.java`
+#### File 17 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/NativeServiceConfigurationTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: NativeServiceConfigurationTest existing assertions + explicitauthenticated fixture
@@ -7907,7 +7931,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 17 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/EvaluationExternalFreeContextTest.java`
+#### File 18 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/EvaluationExternalFreeContextTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: EvaluationExternalFreeContextTest existing assertions + explicitauthenticated fixture
@@ -7930,7 +7954,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 18 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/test/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/impl/NativeOrganizationDirectoryClientImplTest.java`
+#### File 19 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/test/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/impl/NativeOrganizationDirectoryClientImplTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: NativeOrganizationDirectoryClientImplTest existing assertions + explicitauthenticated fixture
@@ -7953,7 +7977,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 19 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/README.md`
+#### File 20 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/README.md`
 
 - Purpose: 明示新身份/目录/peer配置兼容delta，不重写架构说明
 - Symbols: existing run/auth instructions only
@@ -7976,7 +8000,7 @@ keep existingbusiness endpoints/successschemas/modules/DDL/env/runinstructions, 
 - Verification contribution: `NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 11实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 20 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/README.zh-CN.md`
+#### File 21 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/README.zh-CN.md`
 
 - Purpose: 明示新身份/目录/peer配置兼容delta，不重写架构说明
 - Symbols: existing run/auth instructions only
@@ -8002,14 +8026,14 @@ keep existingbusiness endpoints/successschemas/modules/DDL/env/runinstructions, 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
 - Verification command:
 ```bash
-./mvnw -B -ntp -o -f egon-cola-archetypes/source-projects/pom.xml -pl egon-cola-source-service-starter,egon-cola-source-service-adapter,egon-cola-source-service-infrastructure -am -Dtest=NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest -Dsurefire.failIfNoSpecifiedTests=false test
+./mvnw -B -ntp -o -f egon-cola-archetypes/source-projects/pom.xml -pl :egon-cola-source-service-starter,:egon-cola-source-service-adapter,:egon-cola-source-service-infrastructure -am -Dtest=NativeSecurityContractTest,NativeServiceRpcProviderTest,NativeOrganizationDirectoryClientImplTest,NativeServiceConfigurationTest,EvaluationExternalFreeContextTest -Dsurefire.failIfNoSpecifiedTests=false test
 git diff --check
 ```
 - Expected result: 未来RED只上述指定assertion失败/0fixture errors；GREEN命令exit0、focused测试0fail/error，不给固定臆造计数；原业务成功Frozen schema与authority负例同时保持。未执行所以目前不写PASS。
 - Failure returns to: 当前File具体symbol/fixture；若缺制品/真实owner/typedAPI不同先修正编译prereq，不能改Spec协议/PDP/SQL或跳external门禁。
 - Completion criteria: 当前Step所有symbol受控GREEN、17 MC与十Literal每行记录具体diff/test evidence，无源码inventory外路径；更新owner规范参数，残留closedshim=0；保留generated15/harness16/live17/audit18门禁，不谎称生产ready。
 - Rollback: 前一Step新HEAD为回滚边界；只ownpath forwardfix或用户批准revert本语义commit，保护他人dirty；不SQLrepair/drop新库/secret日志。
-- Commit paths: `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/config/NativeSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/course/facade/impl/CourseFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/exam/facade/impl/ExamFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/exam/facade/impl/ScoreFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/java/top/egon/cola/archetype/source/service/starter/config/NativeHttpSecurityConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcProperties.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-dev.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-prod.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-test.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/test/java/top/egon/cola/archetype/source/service/adapter/rpc/NativeServiceRpcProviderTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/NativeServiceConfigurationTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/EvaluationExternalFreeContextTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/test/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/impl/NativeOrganizationDirectoryClientImplTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/README.md`; `egon-cola-archetypes/source-projects/egon-cola-source-service/README.zh-CN.md`
+- Commit paths: `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/config/NativeSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/course/facade/impl/CourseFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/exam/facade/impl/ExamFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/exam/facade/impl/ScoreFacadeImpl.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/java/top/egon/cola/archetype/source/service/starter/config/NativeHttpSecurityConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcProperties.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/main/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/NativeOrganizationRpcConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-dev.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-prod.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application-test.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/test/java/top/egon/cola/archetype/source/service/adapter/rpc/NativeServiceRpcProviderTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/NativeServiceConfigurationTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/test/java/top/egon/cola/archetype/source/service/starter/EvaluationExternalFreeContextTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/src/test/java/top/egon/cola/archetype/source/service/infrastructure/client/organization/impl/NativeOrganizationDirectoryClientImplTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-service/README.md`; `egon-cola-archetypes/source-projects/egon-cola-source-service/README.zh-CN.md`; `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/src/main/java/top/egon/cola/archetype/source/service/adapter/config/NativeRpcConfiguration.java`; `docs/egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md`; `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-native.md`
 ```text
 egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/pom.xml
 egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/pom.xml
@@ -12030,3 +12054,25 @@ Admin原编译配置未生成新声明的Mapper实现：step9-writer-compile-can
 ### 12.21 Step11全Light回归的必要已有调用方修正
 
 全Light205项实际回归发现HttpAdapterContractTest仍依赖header主体、TeachingFacadeImplTest与UserFacadeImplTest仍直接匿名调用写provider、RepositoryPersistenceContractTest完整Context缺受控SDK fixture。只纳入这四个已有caller：同一真实签名SecurityFixture，SERVICE actor改为已验证subject，旧成功wire/业务错误/MP填充版本及租户隔离断言保留；未认证header改为401而不恢复旧信任。原RPC configuration-only validator测试保持无外部依赖：existing mapper通过qualified ObjectProvider取得观察器，仅在DENY时需要，缺观察器/proof/active marker仍UNAVAILABLE；不创建noop或允许业务。已显式接入的实际host/代理仍必须具备SDK，正反例复用已有主安全测试。四caller在兼容阶段且README前完成，本Step47唯一路径，无新增第三方、SQL、Open或生产业务接口。全Light回归必须修复并重新执行通过，初次失败不报PASS。
+
+### 12.22 Step12现有Maven reactor选择器语法修正
+
+Source aggregator的Service子module位于egon-cola-source-service目录内，原`-pl egon-cola-source-service-starter,...`被Maven解释为根级相对路径，实际离线预检报selected project不存在。将本Step命令改为Maven既有artifact selector `-pl :egon-cola-source-service-starter,:egon-cola-source-service-adapter,:egon-cola-source-service-infrastructure -am`，不改reactor/POM结构、scope、运行许可或组件版本；首次命令失败是工具选择器前置错误，不计行为RED。
+
+### 12.23 Step12既有RPC配置的必要方法安全接通
+
+按Step11真实代理证据纳入Service既有Adapter NativeRpcConfiguration，RPC-only上下文独立@EnableMethodSecurity和现Spring注解模板；复用原exception-mapper SPI与已批准SDK共同marker/strict audit。原provider/public协议与七层保持；没有USER/Jianshen链、新安全SPI/框架/SQL。原File8–20顺延，新File8在三provider后、HTTP fallback前。加Plan/NativeSpec两文档，本Step23唯一路径。源SDK管理沿12.17既有5.4.1事实修正，actual20-own-source列表与新增existingconfig分开，不以传递旧JAR作为新接线证明。
+
+合法已验证USER带同scope访问SERVICE-only method的kind准入失败按既有Step4实际SDK返回PERMISSION_DENIED（已认证但未授权），错误/未识别principal_type、ID Token或非at+jwt类型仍UNAUTHENTICATED。Native规范原“wrongtype”短语按此明确区分token验证失败与有效主体的receiver-kind授权失败，不改SDK或旧wire行为、不放行USER；所有模式均零provider/SQL。该澄清属于本轮已授权的小问题合同一致性修正，行为与原实现/已通过Step4及Light矩阵一致。
+
+### 12.24 Step12组织目标namespace与版本事实澄清
+
+现有biz/appCode是Tianshu选择器，不足以证明目标发布permission namespace。仅在已声明NativeOrganizationRpcProperties增加不可变配置 `applicationNamespace`（非空ASCII namespace且总scope不超过128），四profile同加 `app.integrations.organization.application-namespace`，由部署提供且无默认借用当前应用。实际两个固定read reference在原factory/strategy/proxy链创建前校验唯一SERVICE/TENANT binding、local process applicationName/env、descriptor fullMethod、group/version及精确target namespace scope；unknown/重复/错误scope零proxy/出站，client/token仍由共同SDK CallCredentials取得，不新transport/cache。原record已发现一个构造caller位于本Step声明的NativeOrganizationDirectoryClientImplTest，一并更新并保留原超时/投影/错误断言。
+
+Source Web两个真实facade既有EgonRpcService版本为1.0.0，而Service四profile原默认1.0导致缺省查询无法命中已发布目标；在既有owner修为1.0.0并更新既有assertion，显式部署version override仍保持。无PB/业务接口/依赖版本改变。namespace与两精确read bindings/三个独立OAuth2 client组用实际Binder校验，不以文本key相同代替有效接线。
+
+### 12.25 Step4公共RPC actor-kind的独立修正与Step12恢复
+
+Step12真实provider callback发现SDK仅绑定tenant/userId，缺少Native7.6.1规定的egon.auth.actor-kind。暂停native推进后，以既有IdpRpcSecurityContext与IdpRpcBearerServerInterceptorTest两路径完成Step4独立修正并提交 `ee414cb645a67725899d69f2fdddc69865a8f0e8`。实际signed SERVICE回调RED14项/1预期assertion/0error；补一行从已验证sealed principal导出USER或SERVICE，既有全MDC finally恢复；SDK三RPC测试owner GREEN33项/0failure/error/skip，无依赖/API/SQL。该提交没有混入Step12草稿，Step12以已提交依赖恢复，原baselinefea7f5f7371f6f6dc00a28c870952c20932b1c1f保持为起始证据。
+
+四profile typed tenant-registration-ids map是同一个配置槽；运行环境必须从部署提供正tenantID映射，test在transport/OAuth自动创建关闭时提供明确1001/1002fixture值。Map条目不是环境core-key，原flattened key测试改为排除动态条目，同时实际Binder/Jakarta测试验证每环境相同方法/binding/key结构与Map类型、有限fixture映射；不忽略其他key。TENANT binding不声明registration-id（空YAML绑定成空String会违反SDKnullable合同）；PLATFORM才用该项。NONE测试同时关闭Servlet与Reactive OAuthClient auto-creation，避免空凭据实例化；production未关闭。

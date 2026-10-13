@@ -17,6 +17,7 @@ import top.egon.cola.archetype.source.service.facade.proto.GetExamRpcRequest;
 import top.egon.cola.archetype.source.service.facade.proto.PublishExamRpcRequest;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 
 import java.util.Objects;
 
@@ -37,6 +38,7 @@ public class ExamFacadeImpl implements ExamFacade {
     private final GlobalFacadeExceptionHandler exceptionHandler;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:exam:create")
     public ExamRpcResponse createExam(CreateExamRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -48,6 +50,7 @@ public class ExamFacadeImpl implements ExamFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:exam:attach-paper")
     public ExamPaperRpcResponse attachPaper(AttachExamPaperRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -59,6 +62,7 @@ public class ExamFacadeImpl implements ExamFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:exam:publish")
     public ExamRpcResponse publishExam(PublishExamRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -70,6 +74,7 @@ public class ExamFacadeImpl implements ExamFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:exam:read")
     public ExamRpcResponse getExam(GetExamRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {

@@ -37,6 +37,7 @@ import top.egon.cola.archetype.source.service.facade.proto.ScheduleCourseRpcRequ
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 
 import java.time.Instant;
 import java.util.List;
@@ -76,13 +77,18 @@ class NativeServiceRpcProviderTest {
     }
 
     @Test
-    void exports_all_eleven_native_methods_from_named_provider_beans() {
+    void exports_all_eleven_native_methods_from_named_provider_beans() throws Exception {
         int methods = 0;
         for (Class<?> provider : List.of(CourseFacadeImpl.class, ExamFacadeImpl.class, ScoreFacadeImpl.class)) {
             assertThat(provider.getAnnotation(EgonRpcProvider.class)).isNotNull();
             assertThat(provider.getAnnotation(Component.class).value()).isNotBlank();
             for (Class<?> contract : provider.getInterfaces()) {
-                methods += new RpcContractValidator(VALIDATION_UTILS).validate(contract).methods().size();
+                for (var method : new RpcContractValidator(VALIDATION_UTILS).validate(contract).methods()) {
+                    var implementation = provider.getMethod(method.javaMethod().getName(), method.javaMethod().getParameterTypes());
+                    assertThat(implementation.getAnnotation(RequiresServiceScope.class)).isNotNull();
+                    assertThat(implementation.getAnnotation(RequiresServiceScope.class).value()).startsWith("egon-cola-source-service:");
+                    methods++;
+                }
             }
         }
         assertThat(methods).isEqualTo(11);

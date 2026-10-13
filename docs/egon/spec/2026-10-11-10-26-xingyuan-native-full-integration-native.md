@@ -255,7 +255,7 @@ GraphQLContext另保存已验证请求的标准ServletRequestAttributes/受控re
 
 ### 7.6 N-RPC
 
-31个样例method：本地 `rpc.provider.methods.<exactfullMethodName>` required=true、principalKind=SERVICE、scopeContext=TENANT、expectedResourceUri及requiredScopes固定。missing/duplicate/malformed/wrongiss/aud/type/revoked→UNAUTHENTICATED；已验证但欠scope/PLATFORM操作tenant SQL→PERMISSION_DENIED；state/JWK/audit/gettoken unavailable→UNAVAILABLE；每拒绝callback/business/SQL0。
+31个样例method：本地 `rpc.provider.methods.<exactfullMethodName>` required=true、principalKind=SERVICE、scopeContext=TENANT、expectedResourceUri及requiredScopes固定。missing/duplicate/malformed/wrongiss/aud/错误token类型或未识别principal_type/revoked→UNAUTHENTICATED；已验证USER访问SERVICE-only method、欠scope或PLATFORM操作tenant SQL→PERMISSION_DENIED；state/JWK/audit/gettoken unavailable→UNAVAILABLE；每拒绝callback/business/SQL0。
 
 verifyAny一次、strictaudit成功才proof；gRPC Context持IdpPrincipal/proof，各listenercallback安装Springauth/tenantMDC并finally恢复。currentTokenOrNull兼容仅USERtoken，不误把SERVICE作为USERrelay。L既有PB operator_id保留字段号但actor由可信principal重建，若提供冲突拒绝，不为operator_id伪user；request_id仍原幂等。
 
@@ -2127,3 +2127,15 @@ RuntimeConfigurationTest和StudentManagementApplicationTest纳入同一受控SDK
 ### 22.7 Light全模块既有caller兼容
 
 全模块回归纳入HttpAdapterContractTest、TeachingFacadeImplTest、UserFacadeImplTest、RepositoryPersistenceContractTest的可信身份fixture，原wire/业务/MP语义保留。RPC configuration-only验证可以不装外部观察器；qualified ObjectProvider仅延迟取得该组件，不构造替代/noop，缺观察器、proof或active marker的拒绝映射UNAVAILABLE。真实host准入/方法代理仍执行共同SDK完整验证与严格DENY。
+
+### 22.8 Service RPC-only方法安全与既有状态区分
+
+既有Service Adapter NativeRpcConfiguration独立启用方法安全与现RequiresServiceScope模板，原RPC exception mapper在共享active marker严格DENY确认后输出PERMISSION_DENIED；缺观察/proof/active marker或交付失败UNAVAILABLE，保留原校验/业务PB。合法已认证USER的receiver-kind不匹配是授权失败PERMISSION_DENIED；无效token/ID token/未知principal_type仍UNAUTHENTICATED，全部拒绝且零provider/SQL。这消除§7.6短码歧义，保持既有Step4 SDK实际行为与31方法的SERVICE-only边界。
+
+### 22.9 Service组织只读配置的独立namespace
+
+既有NativeOrganizationRpcProperties增加 `applicationNamespace`：部署声明目标发布namespace，不能从bizCode/appCode/header猜测。`app.integrations.organization.application-namespace` 四profile一致，无默认权限；source目标的实际facade默认RPC version1.0.0。两个reference保留原descriptor/strategy/proxy/failure行为，创建前只校验共同SDK两条固定TENANT SERVICE binding和精确namespace:user:read、namespace:school-class:read，不授权同facade其他write methods。TENANT registration map需来自部署事实；缺失、重复、错scope/selector关闭出站。改动只在已声明属性/配置/caller文件，不引入新client或新scope。
+
+### 22.10 Service profile的typed map与测试关闭语义
+
+同一tenant-registration-ids typed Map在部署与测试拥有不同有界条目，不把动态tenant条目误判为新增core key；四profile剩余P/OAuth/SSL keys均实际相同，Map以实际Binder/Jakarta验证。TENANT binding的registration-id保持未声明/null，runtime需部署映射，external-off test显式1001/1002fixture和规范HTTPS例值。NONE测试关闭Servlet及Reactive OAuthClient自动创建，无生产弱化或默认role。Step4独立提交ee414cb645a67725899d69f2fdddc69865a8f0e8补公共RPC actor-kind，实际signed两类主体及MDC恢复由33受控test证明。

@@ -16,6 +16,7 @@ import top.egon.cola.archetype.source.service.facade.proto.RecordScoreRpcRequest
 import top.egon.cola.archetype.source.service.facade.proto.ScoreRpcResponse;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope;
 
 import java.util.Objects;
 
@@ -36,6 +37,7 @@ public class ScoreFacadeImpl implements ScoreFacade {
     private final GlobalFacadeExceptionHandler exceptionHandler;
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:score:record")
     public ScoreRpcResponse recordScore(RecordScoreRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -47,6 +49,7 @@ public class ScoreFacadeImpl implements ScoreFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:score:read")
     public ScoreRpcResponse getScore(GetScoreRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {
@@ -58,6 +61,7 @@ public class ScoreFacadeImpl implements ScoreFacade {
     }
 
     @Override
+    @RequiresServiceScope("egon-cola-source-service:score:list")
     public PageScoreRpcResponse pageScores(PageScoreRpcRequest request) {
         var input = validation.validate(converter.toSource(request));
         try {

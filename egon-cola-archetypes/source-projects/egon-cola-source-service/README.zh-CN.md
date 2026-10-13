@@ -150,11 +150,11 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 
 ## 原生 RPC、Tianshu 与远程查询
 
-本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 11 个 evaluation unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Organization 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms，`ORGANIZATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 11 个 evaluation unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Organization 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms，`ORGANIZATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
 
 `dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
 
-文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、JWT decoder/`yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
+文档由 platform OpenAPI MVC starter 的 SERVICE 窄安全链提供，本服务不暴露业务 HTTP API。文档治理默认关闭；开启前须配置平台身份、发布分组、完整授柄 SERVICE 验证与 `yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
 
 `test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 Tianshu 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 Tianshu/Tianquan-Shoubing、TLS 或容器互通。
 
@@ -186,3 +186,13 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 ## 2026-09-22 Java / CQE 维护规范
 
 普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。
+
+## 星垣身份与 RPC 授权
+
+11 个评估 RPC 方法均要求面向当前精确资源 URI 的已验证 TENANT SERVICE Token，以及对应 `egon-cola-source-service:<intent>` scope。复用授柄完整 issuer/JWK、类型、audience、时间、资源状态、共享撤销与严格使用审计，确认 proof 后进入真实方法代理；代理再次校验本方法 SERVICE scope。合法 USER Token 不能调用这些 SERVICE 方法。回调 tenant、actor 与 `egon.auth.actor-kind=SERVICE` 均来自验证后的主体，成功、失败、取消后恢复之前上下文；原 DTO、Protobuf、CQE 与数据库合同保持。
+
+本服务没有业务 HTTP/GraphQL API，仅 liveness/readiness 公共，其余 HTTP fallback 拒绝。显式启用的既有高优先级 OpenAPI 窄链验证完整 SERVICE 身份与 `yuheng.openapi.read`；文档 scope 不授予评估业务权限。
+
+两个组织只读调用沿原 DIRECT descriptor/strategy/proxy 链：从目标发布目录填写 `app.integrations.organization.application-namespace`、group/version（默认 RPC 版本1.0.0）、精确资源 URI 及两条 SDK 固定 binding（UserService/GetUser、SchoolClassService/GetSchoolClass）。请求的 scope 仅 `<目标 namespace>:user:read` 与 `<目标 namespace>:school-class:read`，由可信 tenant 映射独立 registration。缺失、重复或不匹配在创建出站 proxy 前失败；同 facade 的其他方法没有 credential binding。
+
+独立 control 与 tenant client 凭据、有限 trusted issuer、严格撤销 endpoint/epoch、独占 audit spool/HMAC key 均由受保护部署配置提供。运行 RPC 默认 TLS，明文本机测试仅显式 loopback 例外；tenant-registration-ids 必须来自部署事实，header 不产生 tenant/role。目录登记不自动授权。external-off test profile 仅使用明确非秘密 fixture 值，关闭外部 transport 与 OAuth client 自动创建。受控测试和生成构建不证明真实 PG/Redis/TLS/注册/浏览器已验。

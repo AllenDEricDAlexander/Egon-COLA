@@ -64,6 +64,8 @@ class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.s
 
     @Test
     void shouldAssembleWithoutExternalInfrastructure() {
+        assertThat(context.getBean("annotationTemplateExpressionDefaults"))
+                .isInstanceOf(org.springframework.security.core.annotation.AnnotationTemplateExpressionDefaults.class);
         assertThat(context.containsBean("courseManage")).isTrue();
         assertThat(context.containsBean("evaluationExamManage")).isTrue();
         assertThat(context.containsBean("scoreManage")).isTrue();

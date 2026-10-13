@@ -55,7 +55,7 @@ class NativeServiceConfigurationTest extends top.egon.cola.archetype.source.serv
         assertThat(properties("application-prod.yml").getProperty("egon.cola.component.rpc.tls.enabled"))
                 .isEqualTo("${RPC_TLS_ENABLED:true}");
         assertThat(properties("application-test.yml").getProperty("app.integrations.organization.version"))
-                .endsWith(":1.0}");
+                .endsWith(":1.0.0}");
     }
 
     @Test
@@ -86,6 +86,7 @@ class NativeServiceConfigurationTest extends top.egon.cola.archetype.source.serv
         return properties.stringPropertyNames().stream().filter(key -> key.startsWith("egon.cola.component.rpc.")
                 || key.startsWith("egon.cola.component.tianshu.") || key.startsWith("egon.cola.component.yuheng.openapi.")
                 || key.startsWith("egon.cola.platform.tianquan.shoubing.") || key.startsWith("app.integrations.organization."))
+                .filter(key -> !key.contains("tenant-registration-ids"))
                 .collect(Collectors.toSet());
     }
 }
