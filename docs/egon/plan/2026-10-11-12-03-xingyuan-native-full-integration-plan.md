@@ -340,7 +340,7 @@ DEC-007新增Step8的9路径已在主Spec§7.0.1完整列明；拒绝双TM/produ
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolver.java` | Step 8: resolve; package-private supportsSelectedLocalTransaction; private nested JpaTransactionManagerSupport | REQ-007, REQ-008, REQ-011, REQ-013 |
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfiguration.java` | Step 8: validateStoreInfrastructure same-local-TM condition | REQ-007, REQ-008, REQ-011, REQ-013 |
 | MODIFY | `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuard.java` | Step 8: requireSelectedTransaction; original constructor(DataSource) | REQ-007, REQ-008, REQ-011, REQ-013 |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java` | Step 8: jpaRoleResourceAndMpOutboxRollback; jpaRoleResourceAndMpOutboxAppendFault; jpaRoleResourceAndMpOutboxCommit | REQ-007, REQ-008, REQ-011, REQ-013 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java` | Step 17: jpaRoleResourceAndMpOutboxRollback; jpaRoleResourceAndMpOutboxAppendFault; jpaRoleResourceAndMpOutboxCommit | REQ-007, REQ-008, REQ-011, REQ-013 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/command/DeploymentCatalogRegistrationCommand.java` | Step 9: Registration组及PermissionDefinitionBO/ResourceDefinitionBO/FieldDefinitionBO | REQ-007, REQ-008, REQ-011, REQ-013 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/vo/DeploymentCatalogRegistrationResultVO.java` | Step 9: applicationId/applicationCode/buildId/checksum/applicationVersion/permissionCount/resourceCount/fieldCount/status | REQ-007, REQ-008, REQ-011, REQ-013 |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/service/GlobalResourceCatalogService.java` | Step 9: registerDeploymentCatalog新signature，原archive/createField签名保持, registerDeploymentCatalog实现phase，same-file primaryowner8 | REQ-007, REQ-008, REQ-011, REQ-013 |
@@ -5348,11 +5348,12 @@ usage-observation: {enabled: true, receiver: EDGE}
 - Dependencies: Steps1–7 committed；DEC007及整文Spec/Plan执行批准；现Admin starter-data-jpa/RoleResourceGrantService.replace/原Schema均已存在。新fieldwriter尚未实现，测试不引用其未来API。
 - Baseline state: 已读真实DSTX-only guard/现JPA owner/Outbox selectedDS；尚无Maven/PG或实现结果。已读实际configuredrepo Boot3.5.16/Spring6.2.19源码并在/tmp重复实际6.2.19 javac21（无Persistence/Hibernatecompile），不冒充本Step GREEN。
 - Observable outcome: JDBC消费者无ORM继续装配；同DS JpaTM被严格接受，不同/nullDS、unknown/JTA、wrong MPfactory及假的boundresource拒绝；producer无需第二TM或REQUIRES_NEW。
-- End state: 仅9条路径的真实controlled GREEN、编译与ManualChecks可提交；Hibernate+taskPG append/version/epoch回滚仍必由live18执行，不宣称Runtime ready。
+- End state: 仅8条实施路径和2条本次修订文档的真实controlled GREEN、编译与ManualChecks可提交；Hibernate+taskPG append/version/epoch回滚仍必由live18执行，不宣称Runtime ready。
 - Test-first gate: Required；File1 optionalORM只compile prerequisite，File2真实matchingJpa MP装配assertion与File3伪holder拒绝assertion先RED，非ClassNotFound/compiler/environment failure；Files6–8最小实现后同selectors GREEN。
 - Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
-- Ordered files: 以下9条精确按序，production无新framework/provider/Bean或新table。
+- Execution amendment: 用户于2026-10-13直接批准将真实事务测试实施归属移至Step17、复用隔离夹具，Step18三个真实用例全部保留；见§12.15。
+- Ordered files: 以下8条实施文件精确按序；原File9移至Step17，另纳入下列2条本次修订文档，production无新framework/provider/Bean或新table。
 
 #### File 1 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/pom.xml`
 
@@ -5373,7 +5374,7 @@ usage-observation: {enabled: true, receiver: EDGE}
 </dependency>
 <!-- Current Boot manages version; no Jakarta Persistence API, Hibernate or JPA starter dependency. -->
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: 只有此approved POM prerequisite允许先于RED；package build可编译，尚无compat行为。
 
 #### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxJpaCompatibilityTest.java`
@@ -5437,7 +5438,7 @@ usage-observation: {enabled: true, receiver: EDGE}
 // An external competitor occupying defaultname must never be counted as JPA-ready; actualJA live preflight
 // requires sole JpaTM/default Bean/EMF-info DS and Outbox selection, otherwise blocks before real owner mutation.
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: 先运行Admin controlled命令：matchingJPA装配assertion失败，0compile/setup errors；此时不提交。
 
 #### File 3 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuardTest.java`
@@ -5474,7 +5475,7 @@ usage-observation: {enabled: true, receiver: EDGE}
 }
 @AfterEach restore exact resource/synchronization/actualTransaction state; no raw connection opened.
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: 第二行为RED成立；JPA-like未设flag与JDBC设flag的两种真实绑定holder正例都不冒充实际数据库原子性证明。
 
 #### File 4 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolverTest.java`
@@ -5503,7 +5504,7 @@ retain unique/explicit/primary/ambiguous selection assertions and resolver noarg
 // For both filtered variants unknown PTM pure-selection compatibility remains; actualMP store must
 // throw controlled OutboxConfigurationException for unsupported TM, never a LinkageError.
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: compile成立且旧selection行为不变；新optional gate由后续helper及Admin fixture GREEN覆盖。
 
 #### File 5 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfigurationTest.java`
@@ -5529,7 +5530,7 @@ unsupported/JTA -> original OUTBOX_DATASOURCE_TRANSACTION_MANAGER_REQUIRED;
 retain multiPRIMARY/SessionDS mismatch/nonSpringManaged/missingXML negatives;
 verify DataSource.getConnection never called; no testcontainers/profile/network.
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: 原MP约束固定；不得为新JPA绿灯删掉旧守卫。
 
 #### File 6 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolver.java`
@@ -5568,7 +5569,7 @@ resolve(beanFactory,properties): keep unique/explicit/primary selection;
 // Unknown PTM pure selection unchanged; default MP store rejects controlled, not LinkageError.
 // Retain noarg constructor, Bean name, public resolve signature and OutboxInfrastructure record fields.
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: typed conditional compatibility在现owner可用；实际Boot3.5.16默认JpaTM来源由File2 ownercase验证，不新增JA managerBean/path或连接。
 
 #### File 7 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfiguration.java`
@@ -5594,7 +5595,7 @@ if(!OutboxInfrastructureResolver.supportsSelectedLocalTransaction(
 // outboxStore/workerTransaction Bean names, signatures/qualifiers/config keys unchanged.
 // Producer enqueue stays in calling tx; don't invoke existing worker REQUIRES_NEW template here.
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: Admin matchingJpa+MP controlled test应转GREEN；所有DSTX及MP negative继续GREEN。
 
 #### File 8 — `MODIFY egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuard.java`
@@ -5625,51 +5626,8 @@ if(connection==null || !DataSourceUtils.isConnectionTransactional(connection,sel
 // Never require JDBC holder syncflag here.
 // No new manager/independent producer tx; constructor and exception types retain compatibility.
 ```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
+- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。原File9已批准移至Step17；真Hibernate+PG/实际MPconn/事实回滚仍只Step18计，默认测试不冒充它。
 - After this file: Guard新负例及JPA-like未设flag/JDBC设flag正例GREEN，默认SDK/MP结果不冒充真实Hibernate原子提交。
-
-#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java`
-
-- Purpose: 真正taskPG/Hibernate+MP append原子性受控后由live18证明
-- Symbols: jpaRoleResourceAndMpOutboxRollback; jpaRoleResourceAndMpOutboxAppendFault; jpaRoleResourceAndMpOutboxCommit
-- Repository evidence: 现真实source符号已读取；SHA256 ddd3179ad31247fc77cfd277ec282d77c15f5dd93cb753119c6ac9ec92485877。 规范落点 `主Spec §7.0.1（DEC-007提案）`，DEC007批准后root同步effectiveSpecs。
-- Dependencies and consumers: 同Step先前contract/test与现Outbox/MP公开API；Admin为typedJpa消费者，普通JDBC宿主不引ORM/API。下段明确输入caller与bean，不提前改catalog/fieldwriter。
-- Why now: 行为测试在生产delta前或已RED后最小实现；按序消除当前对应缺口。
-- Contract/signature changes: jpaRoleResourceAndMpOutboxRollback; jpaRoleResourceAndMpOutboxAppendFault; jpaRoleResourceAndMpOutboxCommit；保留原 public构造/Bean名/配置/异常协议，唯一package-private helper新增，不新生产API。
-- Input/output and state mapping: selectedDS/selectedTM只由现本地受控Spring配置解析，真实ConnectionHolder来自Spring/JPA；DTO/SQL/用户scope/tenant/Outbox envelope/schema均保持。
-- Error and edge behavior: 同DS正例才允；null/mismatch/unknown/noholder拒绝；finally恢复测试状态，真实event失败整体rollback；缺制品/数据库不假RED或PASS。
-- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；具体onlyoptionalmanagedORM、typednested短adapter/noBean、现Slf4j/Bean规范不扩业务，原Jackson/java.time与MP/DDL保持。配置无新key、DDL无delta；测试无Docker/自动boot。
-- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Rule1/3不造普通record/DTO、Rule2现properties/group验证保持、Rule4现namedbean/qualifier签名不改、Rule5框架ClassUtils复用本模块TransactionalMessageMethodValidator#isAsynchronous optional-type pattern，仅已知type presence，不反射guess/不造genericbusinessUtils、Rule6/10原JSON/Instant保持、Rule7keys保持、Rule9用最小typedadapter无需新Strategy层、Rule11原MP/owner/Outbox与SQL冻结。
-- Implementation pseudocode:
-```java
-@Test @EnabledIfEnvironmentVariable(named="XINGYUAN_INTEGRATION_MANIFEST",matches=".+")
-jpaRoleResourceAndMpOutboxRollback() {
-  Step17 harness must validate protected manifest/runId/endpoint + new taskDB/schema COMMENT/OID ownership;
-  preserve reused existing local PostgreSQL service/PID; never stop it, default URL/Docker forbidden;
-  absent validated harness inputs -> do not create live context, skip cannot count PASS;
-  explicit NONE context: real Hibernate EMF + selected logical DataSource + sole JpaTransactionManager,
-    real MP SqlSessionFactory SpringManagedTransactionFactory + OutboxStore/TransactionalOutbox/publisher,
-    existing RoleResourceGrantService/JpaRoleResourceGrantRepository/TenantAuthorizationStateRepository;
-  assert context has sole JpaTM Bean named transactionManager owned by actual Boot3.5.16 HibernateJpaConfiguration;
-  assert same logicalDS in JpaTM, EntityManagerFactoryInfo, MP factory and OutboxInfrastructure;
-  assert context manager==OutboxInfrastructure.manager; wrong/competing/defaultname manager blocks before mutation;
-  baseline=freshConnectionRead(role/grants/epoch/eventCounts); // fixture facts from real explicit owners
-  assertThrows(() -> new TransactionTemplate(sameJpaManager).executeWithoutResult(tx -> {
-    actualRoleResourceGrantService.replace(existingApprovedCommand); // old API exists now
-    sharedEntityManager.flush();
-    Session.doWork(hibConnection -> assertSame(hibConnection,DataSourceUtils.getConnection(selectedDS)));
-    assert test-only StatementHandler.prepare captured actual MP insert same connection;
-    assert pg_backend_pid and txid_current same; throw new IllegalStateException("forced rollback");
-  }));
-  assert fresh independent reads equal baseline; all rules/grants/version/epoch/outbox rollback;
-}
-// AppendFault uses actual enqueue then controlled throw, not fake DAO or best-effort event.
-// Commit case asserts same atomic changes/event. FieldRulePO actual writer cases arrive laterStep10.
-// No reuse component PostgresqlOutboxTestSupport (it starts Docker); no migration-count fiction/new tables.
-// Existing oldJdbc cases untouched and don't count as JPA proof; live18 requires these3 cases executed/0skip.
-```
-- Verification contribution: File2 matchingJPA+MP positive/negative与Files3–5原JDBC/holder/optional装配；component/Admin命令按下文分开。File9真Hibernate+PG/实际MPconn/事实回滚只live18计，默认测试不冒充它。
-- After this file: 仅测试源已编译、case安排完整；真实taskPG live18前Runtime unverified，不在默认unit执行或自动启动DB。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
 - Verification command:
@@ -5679,9 +5637,9 @@ jpaRoleResourceAndMpOutboxRollback() {
 ```
 - Expected result: 未来RED为File2 matchingJpa actualMP startup assertion/File3 bogusHolder assertion；0setup errors；GREEN相同命令exit0且named tests非0执行/0fail，focused默认无外部连接。上述未执行不写PASS。实际Hibernate+PG0skip证明留live18，不用H2/holdermock替代。
 - Failure returns to: compile→File1/实际BOM；REDsetup→File2真实MP fixture/API classpath；装配→Files6/7；连接binding→File8/JPA dialect/同DS配置；live原子性失败→本Step阻断最终goal，修精确Spec能力，不换2TM/复制DAO。
-- Completion criteria: 9路径compile与controlled GREEN；17MC+10Literal逐项独立diff/test证据；新Jar供后续catalog9/field10消费；无生产数据/框架/Schema变化；File9 live18必验，required未验不完整接入。
+- Completion criteria: 8条实施路径compile与controlled GREEN及2条修订文档严格校验；17MC+10Literal逐项独立diff/test证据；新Jar供后续catalog9/field10消费；无生产数据/框架/Schema变化；移至Step17的三真实JPA事务case在Step18必验，required未验不完整接入。
 - Rollback: revert本focusedsourcecommit仅至批准的新认证/权限边界；不回退为错DS/假holder接受；不改既有用户数据/SQL/运行进程，不使用repair/reset。
-- Commit paths: `egon-cola-components/egon-cola-component-transactional-outbox-starter/pom.xml`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxJpaCompatibilityTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuardTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolverTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfigurationTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolver.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfiguration.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuard.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java`
+- Commit paths: `egon-cola-components/egon-cola-component-transactional-outbox-starter/pom.xml`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxJpaCompatibilityTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuardTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolverTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/test/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfigurationTest.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolver.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfiguration.java`; `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuard.java`; `docs/egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md`; `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration.md`
 - Commit: `fix(outbox): join same-datasource JPA local transactions`；最多本逻辑Step一个focusedcommit，先review exactdiff后path-limitedstage，记录newHEAD；不包含tmp/APIproof/其他agentsdocs。
 
 未来live18精确命令必须经Step17 runtime harness强护栏注入taskmanifest/newPG并验证0skip；现有本机PG服务/PID保护，新DB/schema/COMMENT/OID归本任务，默认不建live context、不把跳过算PASS：
@@ -11021,7 +10979,7 @@ Existing/Keep（非File block、非commit）：四definitions现packaging-pom递
 
 ### Step 17 — 隔离运行harness与真实owner/oracle验收代码
 - Requirements: `REQ-002`, `REQ-003`, `REQ-004`, `REQ-005`, `REQ-006`, `REQ-007`, `REQ-010`, `REQ-011`, `REQ-012`, `REQ-013`
-- Dependencies: Steps1–16可用；DEC007同DS修订及DEC008 issuer-bound resource alias须先获准并在Step7/8/15对应实现GREEN，才进入本Step真实装配合同；当前两项仍是待批准提案。本Step只代码unit/controlled验证，不新DB/平台启动。
+- Dependencies: Steps1–16可用；DEC007同DS修订及DEC008 issuer-bound resource alias须先获准并在Step7/8/15对应实现GREEN，才进入本Step真实装配合同；两项已获批准；本Step必须消费已提交的Step7/8实际GREEN，不能将设计批准当运行证据。本Step只代码unit/controlled验证，不新DB/平台启动。
 - Baseline state: 旧stack触旧runtime且无新manifest/Edge生命周期；3fixtures与9CLI、真实24livegate/oracle尚无代码；YW已有Playwright1.62.0。
 - Observable outcome: strict owner/newDB/PID/TLS/phase/data守卫、真实repository/service/cipher准备与BFF实际族replay源码可review，默认tests不会触外部设施。
 - End state: 9commands/3fixtures/liveIT/browser代码和runbooks可供Step18明确opt-in运行；两tenant真实registry/alias/BFF链及Outbox三PG门禁均有required selector；所有runtimecase仍未执行。
@@ -11113,12 +11071,55 @@ registerDeploymentCatalog leaves pending facts; explicitly review/map/create/gra
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前platform/native phases/real review/role/fieldRule合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 5 — `CREATE scripts/unified-xingyuan/lib/isolated-integration.sh`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java`
+
+- Purpose: 真正taskPG/Hibernate+MP append原子性受控后由live18证明
+- Symbols: jpaRoleResourceAndMpOutboxRollback; jpaRoleResourceAndMpOutboxAppendFault; jpaRoleResourceAndMpOutboxCommit
+- Repository evidence: 现真实source符号已读取；SHA256 ddd3179ad31247fc77cfd277ec282d77c15f5dd93cb753119c6ac9ec92485877。 规范落点 `主Spec §7.0.1（DEC-007提案）`，DEC007批准后root同步effectiveSpecs。
+- Dependencies and consumers: 已提交Step8同DS兼容及Step9/10真实owner；本StepFile4 IsolatedAuthorizationProvisioningIT的受保护manifest/receipt/真实授权事实与NONE上下文夹具。复用该同模块test-only夹具，不复制另一套归属/授权准备入口。
+- Why now: 用户2026-10-13批准从Step8移至本Step，在真实JA隔离夹具编译后实现；普通测试只编译/测试守卫，实际PG执行归Step18。
+- Contract/signature changes: jpaRoleResourceAndMpOutboxRollback; jpaRoleResourceAndMpOutboxAppendFault; jpaRoleResourceAndMpOutboxCommit；保留原 public构造/Bean名/配置/异常协议，唯一package-private helper新增，不新生产API。
+- Input/output and state mapping: selectedDS/selectedTM只由现本地受控Spring配置解析，真实ConnectionHolder来自Spring/JPA；DTO/SQL/用户scope/tenant/Outbox envelope/schema均保持。
+- Error and edge behavior: 同DS正例才允；null/mismatch/unknown/noholder拒绝；finally恢复测试状态，真实event失败整体rollback；缺制品/数据库不假RED或PASS。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；具体onlyoptionalmanagedORM、typednested短adapter/noBean、现Slf4j/Bean规范不扩业务，原Jackson/java.time与MP/DDL保持。配置无新key、DDL无delta；测试无Docker/自动boot。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；Rule1/3不造普通record/DTO、Rule2现properties/group验证保持、Rule4现namedbean/qualifier签名不改、Rule5框架ClassUtils复用本模块TransactionalMessageMethodValidator#isAsynchronous optional-type pattern，仅已知type presence，不反射guess/不造genericbusinessUtils、Rule6/10原JSON/Instant保持、Rule7keys保持、Rule9用最小typedadapter无需新Strategy层、Rule11原MP/owner/Outbox与SQL冻结。
+- Implementation pseudocode:
+```java
+@Test @EnabledIfEnvironmentVariable(named="XINGYUAN_INTEGRATION_MANIFEST",matches=".+")
+jpaRoleResourceAndMpOutboxRollback() {
+  Step17 harness must validate protected manifest/runId/endpoint + new taskDB/schema COMMENT/OID ownership;
+  preserve reused existing local PostgreSQL service/PID; never stop it, default URL/Docker forbidden;
+  absent validated harness inputs -> do not create live context, skip cannot count PASS;
+  explicit NONE context: real Hibernate EMF + selected logical DataSource + sole JpaTransactionManager,
+    real MP SqlSessionFactory SpringManagedTransactionFactory + OutboxStore/TransactionalOutbox/publisher,
+    existing RoleResourceGrantService/JpaRoleResourceGrantRepository/TenantAuthorizationStateRepository;
+  assert context has sole JpaTM Bean named transactionManager owned by actual Boot3.5.16 HibernateJpaConfiguration;
+  assert same logicalDS in JpaTM, EntityManagerFactoryInfo, MP factory and OutboxInfrastructure;
+  assert context manager==OutboxInfrastructure.manager; wrong/competing/defaultname manager blocks before mutation;
+  baseline=freshConnectionRead(role/grants/epoch/eventCounts); // fixture facts from real explicit owners
+  assertThrows(() -> new TransactionTemplate(sameJpaManager).executeWithoutResult(tx -> {
+    actualRoleResourceGrantService.replace(existingApprovedCommand); // old API exists now
+    sharedEntityManager.flush();
+    Session.doWork(hibConnection -> assertSame(hibConnection,DataSourceUtils.getConnection(selectedDS)));
+    assert test-only StatementHandler.prepare captured actual MP insert same connection;
+    assert pg_backend_pid and txid_current same; throw new IllegalStateException("forced rollback");
+  }));
+  assert fresh independent reads equal baseline; all rules/grants/version/epoch/outbox rollback;
+}
+// AppendFault uses actual enqueue then controlled throw, not fake DAO or best-effort event.
+// Commit case asserts same atomic changes/event. FieldRulePO actual writer cases arrive laterStep10.
+// No reuse component PostgresqlOutboxTestSupport (it starts Docker); no migration-count fiction/new tables.
+// Existing oldJdbc cases untouched and don't count as JPA proof; live18 requires these3 cases executed/0skip.
+```
+- Verification contribution: Step8已提交的32受控验证仅证明兼容与连接守卫；本File三个真实case复用File4夹具、默认无DB且实际执行在Step18；不可把未运行/跳过算PASS，默认测试不冒充它。
+- After this file: 三个原命名case和共享安全夹具已编译，普通测试不得连接DB；实际taskPG/Hibernate/MP证据仍为Step18必需、零跳过，不新表/第二TM/producer REQUIRES_NEW。
+
+#### File 6 — `CREATE scripts/unified-xingyuan/lib/isolated-integration.sh`
 - Purpose: 既有tool风格的本任务安全组合
 - Symbols: manifest validation/file/PID/TLS/profile helpers
 - Repository evidence: common.sh helperstyle，Runtime冻结9DB/32process/CA/phase
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 5按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 6按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: taskroot0700/file0600+owner/OID+PIDtime+artifacthash，keyfiles32raw，registryactualrefs
 - Input/output and state mapping: taskroot0700/file0600+owner/OID+PIDtime+artifacthash，keyfiles32raw，registryactualrefs
 - Error and edge behavior: 不source任意env、不密码argv、不全局nginx/Redis/旧runtime
@@ -11134,12 +11135,12 @@ start task nginx -p/-c with canonical AS HTTPS paths directly available before E
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前manifest validation/file/PID/TLS/profile helpers合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 6 — `CREATE scripts/unified-xingyuan/isolated-integration.sh`
+#### File 7 — `CREATE scripts/unified-xingyuan/isolated-integration.sh`
 - Purpose: 9原子CLI与明确两phase生命周期
 - Symbols: prepare/provision-identity/start-control-plane/provision-authorization/start-consumers/authorize-cli/verify/status/stop
 - Repository evidence: RuntimeR3所有flags/error/result/2phase/bootstrap顺序
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 6按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 7按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: --phase platform/native、token-index refs、live full optin；stdout安全一行结果path
 - Input/output and state mapping: --phase platform/native、token-index refs、live full optin；stdout安全一行结果path
 - Error and edge behavior: 无任意exec/force/drop/repair/scope选择；任何handle缺失停止不假重启
@@ -11155,12 +11156,12 @@ full verify must run the real browser chain A all-family logout→NEW explicit B
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前prepare/provision-identity/start-control-plane/provision-authorization/start-consumers/authorize-cli/verify/status/stop合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/playwright.integration.config.ts`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/playwright.integration.config.ts`
 - Purpose: 复用当前1.62.0且不自动起fixture服务
 - Symbols: real live config/bounded sameorigin/browsers/no webServer
 - Repository evidence: YW package localresolved Playwright1.62.0；RuntimeConfig
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 7按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 8按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: envtrue/manifest→publicbaseURL28443、e2e/integration，traceoff/retries0
 - Input/output and state mapping: envtrue/manifest→publicbaseURL28443、e2e/integration，traceoff/retries0
 - Error and edge behavior: missinginput明确BLOCKED，不能skip-pass；noignoreHTTPSErrors
@@ -11175,12 +11176,12 @@ do not download or replace a browser/runtime dependency and do not save password
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前real live config/bounded sameorigin/browsers/no webServer合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/integration/xingyuan-identity-integration.spec.ts`
+#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/integration/xingyuan-identity-integration.spec.ts`
 - Purpose: 真正浏览器/独立CLIcode与同Session多client验收
 - Symbols: real Code/S256/consent/resourceSSO/logout/oracle handshake
 - Repository evidence: actual Portal/Wujie APIs traced inStep15；Runtime24cases/BFForacle
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 8按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 9按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: onlydeclaredfixedaliases→realASform/callback/targetbootstrap，BFFheldfamilies和PUBLICCLI分开
 - Input/output and state mapping: onlydeclaredfixedaliases→realASform/callback/targetbootstrap，BFFheldfamilies和PUBLICCLI分开
 - Error and edge behavior: nopage.routeAuth/fakecookie/tokenexport；scope不足/PDP不足/不同sub均拒绝
@@ -11197,12 +11198,12 @@ before real CSRF logout coordinate only safe READY markers with SA in-memory act
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前real Code/S256/consent/resourceSSO/logout/oracle handshake合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 9 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanResourceAuthorizationIT.java`
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanResourceAuthorizationIT.java`
 - Purpose: 实际已批准协议的新livegate源码
 - Symbols: perresource HTTP/tenant/revoke
 - Repository evidence: existingSuite live opt-in与真实typedclient；RuntimeR6
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 9按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 10按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: manifest+actualreference→actualHTTP/RPCstatusevidence，不生新productionAPI
 - Input/output and state mapping: manifest+actualreference→actualHTTP/RPCstatusevidence，不生新productionAPI
 - Error and edge behavior: default无外部设施，live missinginput拒绝完成
@@ -11218,12 +11219,12 @@ consume only sanitized browser BFF B-session proof references to correlate the u
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前perresource HTTP/tenant/revoke合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanNativeAuthenticationIT.java`
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanNativeAuthenticationIT.java`
 - Purpose: 实际已批准协议的新livegate源码
 - Symbols: actual generated RPC/Tianshu/HMAC/cached CC
 - Repository evidence: existingSuite live opt-in与真实typedclient；RuntimeR6
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 10按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 11按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: manifest+actualreference→actualHTTP/RPCstatusevidence，不生新productionAPI
 - Input/output and state mapping: manifest+actualreference→actualHTTP/RPCstatusevidence，不生新productionAPI
 - Error and edge behavior: default无外部设施，live missinginput拒绝完成
@@ -11238,12 +11239,12 @@ observe current IdpServiceOAuth2Client cache/expiry singleflight via actual toke
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前actual generated RPC/Tianshu/HMAC/cached CC合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityTenantSwitchIT.java`
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityTenantSwitchIT.java`
 - Purpose: 修既有live旧claim/撤销假设
 - Symbols: tenant_id/exactresource
 - Repository evidence: currentexistingIT uses tid/old behavior，Runtime andASreal contracts
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 11按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 12按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: actual tenant_id/family tosame-tokenHTTP evidence
 - Input/output and state mapping: actual tenant_id/family tosame-tokenHTTP evidence
 - Error and edge behavior: no fabricatedinputs/extraruntimeinordinarytest
@@ -11259,12 +11260,12 @@ keep these formal-token tenant checks separate from the new Playwright A logout�
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前tenant_id/exactresource合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityRevocationIT.java`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityRevocationIT.java`
 - Purpose: 修既有live旧claim/撤销假设
 - Symbols: actual currentfamily revocation semantics
 - Repository evidence: currentexistingIT uses tid/old behavior，Runtime andASreal contracts
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 12按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Why now: File 13按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: actual tenant_id/family tosame-tokenHTTP evidence
 - Input/output and state mapping: actual tenant_id/family tosame-tokenHTTP evidence
 - Error and edge behavior: no fabricatedinputs/extraruntimeinordinarytest
@@ -11279,27 +11280,7 @@ if the candidate expired naturally or no unique actual USED proof matches, fail 
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前actual currentfamily revocation semantics合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 13 — `MODIFY docs/runbooks/unified-identity-local.md`
-- Purpose: 只记录准确新harness代码使用合同
-- Symbols: isolated command/phase/secret/owner operations documentation
-- Repository evidence: existingrunbooks与scripts分层；runtime规范九CLI
-- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
-- Why now: File 13按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
-- Contract/signature changes: sourceharnessknownflags→documentedexactsequence/error/recovery
-- Input/output and state mapping: sourceharnessknownflags→documentedexactsequence/error/recovery
-- Error and edge behavior: 未运行的步骤标future，原操作者流程不删
-- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
-- Literal rule enforcement: Rule 11；文档只记录实际diff/HEAD/required gates与未验证边界，禁止key/token/PID/rawtaskfile提交。Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10的Java实现为N/A（本文件不含Java代码改动）。
-- Implementation pseudocode:
-```markdown
-document the exact existing-script and new nine-command boundaries, explicit --phase platform/native and normal AS/Edge discovery order with canonical private TLS;
-state private key/password/token ref permissions, irreversible new-task commit reconciliation and no drop/FLUSHDB/system proxy changes; explain actual BFF replay oracle vs separate PUBLIC CLI family;
-list controlled tests versus user-authorized real live cases, required prerequisite output receipts and owned stop behavior; do not report unexecuted infrastructure/browser/RPC gates as passing;
-```
-- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
-- After this file: 当前isolated command/phase/secret/owner operations documentation合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
-
-#### File 14 — `MODIFY docs/operations/unified-identity-mcp-local-runbook.md`
+#### File 14 — `MODIFY docs/runbooks/unified-identity-local.md`
 - Purpose: 只记录准确新harness代码使用合同
 - Symbols: isolated command/phase/secret/owner operations documentation
 - Repository evidence: existingrunbooks与scripts分层；runtime规范九CLI
@@ -11319,12 +11300,32 @@ list controlled tests versus user-authorized real live cases, required prerequis
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前isolated command/phase/secret/owner operations documentation合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
-#### File 15 — `MODIFY scripts/README.md`
+#### File 15 — `MODIFY docs/operations/unified-identity-mcp-local-runbook.md`
 - Purpose: 只记录准确新harness代码使用合同
 - Symbols: isolated command/phase/secret/owner operations documentation
 - Repository evidence: existingrunbooks与scripts分层；runtime规范九CLI
 - Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
 - Why now: File 15按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Contract/signature changes: sourceharnessknownflags→documentedexactsequence/error/recovery
+- Input/output and state mapping: sourceharnessknownflags→documentedexactsequence/error/recovery
+- Error and edge behavior: 未运行的步骤标future，原操作者流程不删
+- Standards impact: MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
+- Literal rule enforcement: Rule 11；文档只记录实际diff/HEAD/required gates与未验证边界，禁止key/token/PID/rawtaskfile提交。Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10的Java实现为N/A（本文件不含Java代码改动）。
+- Implementation pseudocode:
+```markdown
+document the exact existing-script and new nine-command boundaries, explicit --phase platform/native and normal AS/Edge discovery order with canonical private TLS;
+state private key/password/token ref permissions, irreversible new-task commit reconciliation and no drop/FLUSHDB/system proxy changes; explain actual BFF replay oracle vs separate PUBLIC CLI family;
+list controlled tests versus user-authorized real live cases, required prerequisite output receipts and owned stop behavior; do not report unexecuted infrastructure/browser/RPC gates as passing;
+```
+- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
+- After this file: 当前isolated command/phase/secret/owner operations documentation合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
+
+#### File 16 — `MODIFY scripts/README.md`
+- Purpose: 只记录准确新harness代码使用合同
+- Symbols: isolated command/phase/secret/owner operations documentation
+- Repository evidence: existingrunbooks与scripts分层；runtime规范九CLI
+- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
+- Why now: File 16按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
 - Contract/signature changes: sourceharnessknownflags→documentedexactsequence/error/recovery
 - Input/output and state mapping: sourceharnessknownflags→documentedexactsequence/error/recovery
 - Error and edge behavior: 未运行的步骤标future，原操作者流程不删
@@ -11349,13 +11350,14 @@ list controlled tests versus user-authorized real live cases, required prerequis
 | Default test boundary | env -u XINGYUAN_ISOLATED_INTEGRATION ./mvnw -o -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dtest=IsolatedOAuthProvisioningIT,IsolatedAuthorizationProvisioningIT -Dsurefire.failIfNoSpecifiedTests=false test | nonliveguard tests执行；live明确disabled，未连DB；本表不是livePASS | fixture annotation/target gate | externalfree |
 | Script syntax | bash -n scripts/unified-xingyuan/isolated-integration.sh scripts/unified-xingyuan/lib/isolated-integration.sh scripts/regression/test-isolated-integration-contract.sh | exit0 | scripts | 纯syntax |
 | Browser discovery only | npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web exec -- playwright test --config playwright.integration.config.ts --list | 使用existing1.62.0发现已定义required cases；不打开browser/起webserver | config/spec | 非真实SSO |
+| JPA transaction source compile | ./mvnw -B -ntp -o -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -DskipTests test-compile | 三个原命名JPA case与File4共享夹具编译，未连接PG | File4/5 | source only; live18零跳过必验 |
 | Live source compile | ./mvnw -o -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite -am test-compile -DskipTests | actualtypedHTTP/RPCselector编译 | liveIT/sourcecontract | no default live run |
 
 - Expected result: guard/CLI/typedmodels真实RED→GREEN、compile/syntax/list通过且默认不访问设施。BFForacle仅源码可审核，本Step不能声称实际BFF族已撤或PG/JPArollback已跑。
 - Failure returns to: guard→lib/IT entry；methodshape→qualified actualsource；Outbox JPAunsupported→独立approved修订Step，禁止双TM/REQUIRES_NEW；pipeline缺facts→规范阶段而非fakeDAO。
-- Completion criteria: 九命令所有flags/exit/schema/sideeffects、3fixtureactualowners/oracle、24live源码、secrets不log、profilekeys/SAN/ownedstop可review，17MC逐项完成；所有默认验证无外部启动。
+- Completion criteria: Outbox三case（rollback/真实append后fault/commit）已实现并复用File4夹具，实际验证仍归Step18；九命令所有flags/exit/schema/sideeffects、3fixtureactualowners/oracle、24live源码、secrets不log、profilekeys/SAN/ownedstop可review，17MC逐项完成；所有默认验证无外部启动。
 - Rollback: 本Step精确source/runbook文件回退；新数据尚未创建；保留其他worker与当前Spec/Plan，未批准不能启动。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningIT.java`, `scripts/regression/test-isolated-integration-contract.sh`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningComponent.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/integration/IsolatedAuthorizationProvisioningIT.java`, `scripts/unified-xingyuan/lib/isolated-integration.sh`, `scripts/unified-xingyuan/isolated-integration.sh`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/playwright.integration.config.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/integration/xingyuan-identity-integration.spec.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanResourceAuthorizationIT.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanNativeAuthenticationIT.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityTenantSwitchIT.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityRevocationIT.java`, `docs/runbooks/unified-identity-local.md`, `docs/operations/unified-identity-mcp-local-runbook.md`, `scripts/README.md`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningIT.java`, `scripts/regression/test-isolated-integration-contract.sh`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningComponent.java`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/integration/IsolatedAuthorizationProvisioningIT.java`, `scripts/unified-xingyuan/lib/isolated-integration.sh`, `scripts/unified-xingyuan/isolated-integration.sh`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/playwright.integration.config.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/integration/xingyuan-identity-integration.spec.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanResourceAuthorizationIT.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanNativeAuthenticationIT.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityTenantSwitchIT.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan/shoubing/UnifiedIdentityRevocationIT.java`, `docs/runbooks/unified-identity-local.md`, `docs/operations/unified-identity-mcp-local-runbook.md`, `scripts/README.md`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java`
 - Commit: `test(xingyuan): add guarded local integration workflow and real family oracle`
 
 ### Step 18 — 授权隔离本机准备、24真实gate与任务保留证据
@@ -11782,3 +11784,10 @@ Verdict: **PASS — Ready for user review**。本轮confirmed已完成整份Spec
 ### 12.14 Step 7 响应式审计装配澄清（2026-10-12）
 
 真实无网络服务的 Spring Context 测试暴露：直接导入授柄 `UsageObservationConfiguration` 时，Spring 反射其 Servlet Filter 工厂签名，因 Edge 纯 WebFlux 类路径没有 `jakarta.servlet.Filter` 而失败。Step 7 既有 `EdgeSecurityConfiguration` owner 改为直接构造现有 `IdpObservedVerificationComponent`，复用原生成 Converter、TokenUsageAuditComponent、Metrics、Clock、Validator、usage 配置和固定资源 URI；保留原 Bean 名称及实际审计就绪守卫。无需 Servlet 依赖、SDK 文件改动、HTTP 接口或安全降级。沿用已有授权的局部装配修复，Step 顺序及 20 个文件清单不变。测试需用真实 Root 配置及 SDK Metrics/Readiness 装配验证，不以手工安全链替代。
+
+
+### 12.15 已批准的真实 JPA 事务测试实施归属调整（2026-10-13）
+
+状态：**Accepted**。用户直接批准将真实事务测试移至Step17并复用隔离夹具，明确要求Step18三个真实验收用例全部保留。Step8实施清单为原前8条source/POM/test文件，加本Plan与主Spec共10条提交路径；原第9条 `OutboxTransactionRollbackIT` 的完整实现合同移至Step17 File5，紧随实际JA夹具 `IsolatedAuthorizationProvisioningIT`，其后文件仅编号顺延。19个Step总体顺序、生产接口、依赖版本、SQL和最终要求不变。
+
+Step8的32受控用例证明同DS JPA/JDBC兼容、实际连接持有者守卫、Boot默认事务管理器来源及可选类缺失保护，不证明真实数据库原子性。Step17复用同一受保护manifest/runId/hash、DB/schema COMMENT/OID归属校验、真实owner授权事实与NONE上下文；保留 `jpaRoleResourceAndMpOutboxRollback`、`jpaRoleResourceAndMpOutboxAppendFault`、`jpaRoleResourceAndMpOutboxCommit`，不以mock DAO/store/wholeowner、旧Jdbc case、H2或独立fixture替代。Step18原精确Failsafe selector保持，三个case均须真实执行、零跳过，验证Hibernate与MP同连接/pid/txid以及grants/version/epoch/event的回滚/提交。任何必需运行证据缺失仍阻断完整接入结论。本阶段不启动服务、数据库、浏览器或Docker。

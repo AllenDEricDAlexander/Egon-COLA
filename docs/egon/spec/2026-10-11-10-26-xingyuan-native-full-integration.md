@@ -305,7 +305,7 @@ Guard保留 constructor(DataSource)/void requireSelectedTransaction签名。先�
 - `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxInfrastructureResolver.java` — MODIFY exact symbols described below
 - `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/autoconfigure/OutboxMybatisPlusAutoConfiguration.java` — MODIFY exact symbols described below
 - `egon-cola-components/egon-cola-component-transactional-outbox-starter/src/main/java/top/egon/cola/component/outbox/transaction/OutboxTransactionGuard.java` — MODIFY exact symbols described below
-- `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java` — MODIFY exact symbols described below
+- `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/runtime/OutboxTransactionRollbackIT.java` — MODIFY in Step17 after IsolatedAuthorizationProvisioningIT; three original JPA cases execute in Step18
 
 #### 测试与编译顺序
 
@@ -315,7 +315,7 @@ OutboxTransactionGuardTest先增加绑定Object、空handle拒绝；原guard只h
 
 之后实现resolver/helper→MP gate→ConnectionHolder guard，再同focused selectors GREEN。不把NoClassDefFoundError/fixture setup/compile缺符号当RED。实际PG证据在后续隔离live Step18，不在默认unit阶段启动数据库。
 
-#### 真正Hibernate+PG证明（既有 Admin OutboxTransactionRollbackIT 增case）
+#### 真正Hibernate+PG证明（Step17复用隔离夹具，Step18全部执行）
 
 不继承组件PostgresqlOutboxTestSupport：它会调用Testcontainers.start并TRUNCATE。新case仅由Step17 harness注入已授权task manifest/新taskPG，默认不建context；failclosed检查运行runId/受控路径、endpoint与manifest匹配，只有新taskDB/schema/COMMENT/OID/manifest归本任务；复用的现有本机PG服务/PID必须保护、不停止；无默认旧库或Docker。
 
@@ -335,7 +335,7 @@ Admin controlled：`./mvnw -B -ntp -o -pl egon-cola-xingyuan/egon-cola-tianquan-
 
 最终live18（manifest taskPG已provision，由harness注入受控env）：`./mvnw -B -ntp -o -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Ptianquan-jianshen-local-it -Dit.test=OutboxTransactionRollbackIT#jpaRoleResourceAndMpOutbox* -Dfailsafe.failIfNoSpecifiedTests=false verify`。此selector须3真实positive/rollback/fault case都执行；不运行组件integration目录/Docker，不宣称旧Jdbc case通过。
 
-此新增Step8为一个直接必要的能力修订focusedcommit；原catalog9、rolefields10、Light11、Service12、Web13、Agent14、frontend15、generated16、harness17、live18、audit19。本节为必要修订的规范内容；§8/Plan Step8列精确inventory，MC-DEP/MC-BLOCKER待整文批准；不开始source实施。
+此新增Step8为一个直接必要的能力修订focusedcommit；原catalog9、rolefields10、Light11、Service12、Web13、Agent14、frontend15、generated16、harness17、live18、audit19。用户2026-10-13已批准：Step8实施原前8条兼容/受控测试路径；真实事务测试实现由harness17复用JA隔离夹具，live18仍全部验收三个原命名case。本节为必要修订的规范内容；DEC-007及本次实施归属已获批准，§8/Plan列精确inventory；受控证据记录在Step8，真实事务证据仍由Step18验收。
 
 ### 7.1 System Architecture Design
 
@@ -849,3 +849,8 @@ Verdict: **PASS — Ready for user review**。用户已明确confirmed批准本�
 复用当前 `IdpJwtVerifier.createConfigured` 和 capture overload：每固定 alias 使用其明确 ID/URI、已有 issuer manager/状态 readers/converter/clock/共享 revocation/usage observer，外部 USER/SERVICE 在本地 RS256、类型、iss/aud/time、资源/客户端状态、共享撤销及严格 usage 完成后才透传同一原 token。验证/FS 在 boundedElastic，revocation 复用现 Reactive reader；不重解析/重复解码、不新增 token cache/Redis/registry/框架/依赖/SQL/SDK API。外部 Bearer 不选 BFF registration；denial 必须零 TokenRelay/业务调用，保持现401/503/400、no-store/Bearer和业务响应形状。
 
 本修订复用 Step7 原 File1/5/6/7/10/11/12/16/17 owners，无新增生产文件。两既有测试 owner 增实际 RSA/SDK/状态/撤销/审计正反例：USER/SERVICE成功、wrongaud/资源disabled或版本stale/revoked401、依赖/审计503、原Bearer不变、混合Cookie400及零AS/BFF调用。原完整 native A→append→全logout→B、lease/refresh/latecallback/cancel及17MC/10Literal门禁继续。本三份文档修订纳入 Step7 单一 focused commit；19Step 顺序、无服务/浏览器/部署/Docker本阶段限制不变。批准不表示源码/行为/真实运行通过。
+
+
+### 20.10 已批准的真实 JPA 事务测试实施归属调整（2026-10-13）
+
+状态：**Accepted**，用户直接批准。§7.0.1九条总体文件清单与同DataSource原子事务要求不变，实施归属分为Step8前八条兼容/受控测试路径与Step17既有 `OutboxTransactionRollbackIT`。后者在真实JA隔离夹具 `IsolatedAuthorizationProvisioningIT` 就绪后复用受保护manifest、归属凭据、授权事实及NONE上下文，不创建第二套准备入口。Step18三个原用例 `jpaRoleResourceAndMpOutboxRollback`、`jpaRoleResourceAndMpOutboxAppendFault`、`jpaRoleResourceAndMpOutboxCommit` 和原精确selector全部保留，必须实际执行、零跳过，证明同连接/pid/txid和完整业务版本/授权epoch/MP事件原子回滚或提交。32个受控用例不是这项运行证明；缺失真实验收仍不完成。该修订不改变19Step总体顺序、生产API、依赖版本、SQL或最终验收范围，不授权启动Docker。

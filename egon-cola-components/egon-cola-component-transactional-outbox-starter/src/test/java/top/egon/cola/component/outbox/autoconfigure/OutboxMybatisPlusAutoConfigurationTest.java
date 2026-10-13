@@ -170,6 +170,32 @@ class OutboxMybatisPlusAutoConfigurationTest {
                 });
     }
 
+    @Test
+    void jdbcMpStoreWorksWhenOrmOrPersistenceApiIsAbsent() throws Exception {
+        for (String hidden : List.of("org.springframework.orm", "jakarta.persistence")) {
+            try (var loader = new org.springframework.boot.test.context.FilteredClassLoader(hidden)) {
+                contextRunner.withClassLoader(loader).run(context -> {
+                    assertThat(context).hasNotFailed().hasSingleBean(MybatisPlusOutboxStore.class);
+                    org.mockito.Mockito.verify(context.getBean(DataSource.class), org.mockito.Mockito.never()).getConnection();
+                });
+            }
+        }
+    }
+
+    @Test
+    void unsupportedManagerWithOptionalTypesAbsentFailsWithControlledConfigurationError() throws Exception {
+        for (String hidden : List.of("org.springframework.orm", "jakarta.persistence")) {
+            try (var loader = new org.springframework.boot.test.context.FilteredClassLoader(hidden)) {
+                contextRunner.withClassLoader(loader).withPropertyValues("test.outbox.unknown-manager=true").run(context -> {
+                    assertThat(context).hasFailed(); Throwable cause = context.getStartupFailure();
+                    while (cause.getCause() != null && cause.getCause() != cause) { cause = cause.getCause(); }
+                    assertThat(cause).isInstanceOf(top.egon.cola.component.outbox.common.exception.OutboxConfigurationException.class)
+                            .hasMessageContaining("OUTBOX_DATASOURCE_TRANSACTION_MANAGER_REQUIRED");
+                });
+            }
+        }
+    }
+
     @Configuration(proxyBeanMethods = false)
     static class TestInfrastructureConfiguration {
 
@@ -179,8 +205,9 @@ class OutboxMybatisPlusAutoConfigurationTest {
         }
 
         @Bean("transactionManager")
-        DataSourceTransactionManager transactionManager(@Qualifier("dataSource") DataSource dataSource) {
-            return new DataSourceTransactionManager(dataSource);
+        org.springframework.transaction.PlatformTransactionManager transactionManager(@Qualifier("dataSource") DataSource dataSource,
+                @org.springframework.beans.factory.annotation.Value("${test.outbox.unknown-manager:false}") boolean unknown) {
+            return unknown ? mock(org.springframework.transaction.PlatformTransactionManager.class) : new DataSourceTransactionManager(dataSource);
         }
 
         @Bean("objectMapper")

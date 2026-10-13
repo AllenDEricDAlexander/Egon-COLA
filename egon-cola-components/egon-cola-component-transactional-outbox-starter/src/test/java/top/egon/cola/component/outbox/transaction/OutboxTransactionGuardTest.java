@@ -69,4 +69,52 @@ class OutboxTransactionGuardTest {
 
         assertThatCode(guard::requireSelectedTransaction).doesNotThrowAnyException();
     }
+    @Test
+    void rejectsNonConnectionHolder() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.bindResource(dataSource, new Object());
+        assertThatThrownBy(new OutboxTransactionGuard(dataSource)::requireSelectedTransaction)
+                .isInstanceOf(OutboxTransactionMismatchException.class);
+    }
+
+    @Test
+    void rejectsEmptyConnectionHandle() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        TransactionSynchronizationManager.initSynchronization();
+        TransactionSynchronizationManager.bindResource(dataSource,
+                mock(ConnectionHolder.class));
+        assertThatThrownBy(new OutboxTransactionGuard(dataSource)::requireSelectedTransaction)
+                .isInstanceOf(OutboxTransactionMismatchException.class);
+    }
+
+    @Test
+    void rejectsHolderWhoseHandleCannotProvideAConnection() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        TransactionSynchronizationManager.initSynchronization();
+        var handle = mock(org.springframework.jdbc.datasource.ConnectionHandle.class);
+        TransactionSynchronizationManager.bindResource(dataSource, new ConnectionHolder(handle));
+        assertThatThrownBy(new OutboxTransactionGuard(dataSource)::requireSelectedTransaction)
+                .isInstanceOf(OutboxTransactionMismatchException.class);
+    }
+
+    @Test
+    void acceptsJpaLikeHolderWithoutJdbcSynchronizationFlag() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        TransactionSynchronizationManager.initSynchronization();
+        ConnectionHolder holder = new ConnectionHolder(mock(Connection.class));
+        org.assertj.core.api.Assertions.assertThat(holder.isSynchronizedWithTransaction()).isFalse();
+        TransactionSynchronizationManager.bindResource(dataSource, holder);
+        assertThatCode(new OutboxTransactionGuard(dataSource)::requireSelectedTransaction).doesNotThrowAnyException();
+    }
+
+    @Test
+    void acceptsJdbcSynchronizedHolder() {
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        TransactionSynchronizationManager.initSynchronization();
+        ConnectionHolder holder = new ConnectionHolder(mock(Connection.class)); holder.setSynchronizedWithTransaction(true);
+        TransactionSynchronizationManager.bindResource(dataSource, holder);
+        assertThatCode(new OutboxTransactionGuard(dataSource)::requireSelectedTransaction).doesNotThrowAnyException();
+    }
+
 }

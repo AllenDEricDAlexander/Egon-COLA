@@ -1,6 +1,7 @@
 package top.egon.cola.component.outbox.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
@@ -11,7 +12,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
@@ -45,7 +45,8 @@ import java.util.List;
 import java.util.Set;
 
 /** Registers the managed DDL hook before Common builds the logical datasource. */
-@AutoConfiguration(after = EgonColaMybatisPlusAutoConfiguration.class, before = EgonColaShardingAutoConfiguration.class)
+@Slf4j
+@AutoConfiguration(value = "top.egon.cola.component.outbox.autoconfigure.OutboxMybatisPlusAutoConfiguration", after = EgonColaMybatisPlusAutoConfiguration.class, before = EgonColaShardingAutoConfiguration.class)
 @MapperScan(basePackageClasses = OutboxMessageDAO.class,
         sqlSessionFactoryRef = "${egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name:sqlSessionFactory}")
 public class OutboxMybatisPlusAutoConfiguration {
@@ -219,8 +220,8 @@ public class OutboxMybatisPlusAutoConfiguration {
         if (!mybatisProperties.getTenantId().ignores("egon_cola_outbox_message")) {
             throw new OutboxConfigurationException("OUTBOX_TENANT_TABLE_IGNORE_REQUIRED");
         }
-        if (!(infrastructure.transactionManager() instanceof DataSourceTransactionManager transactionManager)
-                || transactionManager.getDataSource() != infrastructure.dataSource()) {
+        if (!OutboxInfrastructureResolver.supportsSelectedLocalTransaction(
+                infrastructure.transactionManager(), infrastructure.dataSource(), beanFactory.getBeanClassLoader())) {
             throw new OutboxConfigurationException("OUTBOX_DATASOURCE_TRANSACTION_MANAGER_REQUIRED");
         }
 

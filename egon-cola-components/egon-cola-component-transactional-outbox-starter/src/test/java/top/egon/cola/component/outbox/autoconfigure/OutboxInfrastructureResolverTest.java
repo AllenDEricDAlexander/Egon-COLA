@@ -101,6 +101,51 @@ class OutboxInfrastructureResolverTest {
                 .hasMessageContaining("notADataSource");
     }
 
+    @Test
+    void rejectsMismatchedJdbcDatasource() {
+        var factory = new DefaultListableBeanFactory(); DataSource selected = mock(DataSource.class);
+        factory.registerSingleton("dataSource", selected);
+        factory.registerSingleton("transactionManager", new org.springframework.jdbc.datasource.DataSourceTransactionManager(mock(DataSource.class)));
+        assertThatThrownBy(() -> resolver.resolve(factory, new TransactionalOutboxProperties()))
+                .isInstanceOf(OutboxConfigurationException.class).hasMessageContaining("do not match");
+    }
+
+    @Test
+    void jdbcSelectionDoesNotRequireOrmOrPersistenceApi() throws Exception {
+        for (String hidden : java.util.List.of("org.springframework.orm", "jakarta.persistence")) {
+            try (var loader = new org.springframework.boot.test.context.FilteredClassLoader(hidden)) {
+                DataSource selected = mock(DataSource.class);
+                var manager = new org.springframework.jdbc.datasource.DataSourceTransactionManager(selected);
+                new org.springframework.boot.test.context.runner.ApplicationContextRunner().withClassLoader(loader)
+                        .withBean("dataSource", DataSource.class, () -> selected)
+                        .withBean("transactionManager", PlatformTransactionManager.class, () -> manager)
+                        .withBean("outboxInfrastructureResolver", OutboxInfrastructureResolver.class, OutboxInfrastructureResolver::new)
+                        .run(context -> {
+                            assertThat(context).hasNotFailed();
+                            var infrastructure = context.getBean(OutboxInfrastructureResolver.class).resolve(context.getBeanFactory(), new TransactionalOutboxProperties());
+                            assertThat(infrastructure.dataSource()).isSameAs(selected); assertThat(infrastructure.transactionManager()).isSameAs(manager);
+                        });
+                org.mockito.Mockito.verify(selected, org.mockito.Mockito.never()).getConnection();
+            }
+        }
+    }
+
+    @Test
+    void optionalClassFilteringKeepsUnknownPureSelectionCompatible() throws Exception {
+        for (String hidden : java.util.List.of("org.springframework.orm", "jakarta.persistence")) {
+            try (var loader = new org.springframework.boot.test.context.FilteredClassLoader(hidden)) {
+                DataSource selected = mock(DataSource.class); PlatformTransactionManager manager = mock(PlatformTransactionManager.class);
+                new org.springframework.boot.test.context.runner.ApplicationContextRunner().withClassLoader(loader)
+                        .withBean("dataSource", DataSource.class, () -> selected)
+                        .withBean("transactionManager", PlatformTransactionManager.class, () -> manager)
+                        .run(context -> {
+                            assertThat(context).hasNotFailed();
+                            assertThat(resolver.resolve(context.getBeanFactory(), new TransactionalOutboxProperties()).transactionManager()).isSameAs(manager);
+                        });
+            }
+        }
+    }
+
     private DefaultListableBeanFactory candidates() {
         DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
         beanFactory.registerSingleton("firstDataSource", mock(DataSource.class));
