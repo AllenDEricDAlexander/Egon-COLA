@@ -669,4 +669,39 @@ repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main
     assert !it.text.contains('is_deleted')
 }
 
+
+
+// Xingyuan native contract: the generated root owns every business permission and resource.
+def nativeRootModel = new groovy.xml.XmlSlurper(false, false).parse(new File(projectDir, 'pom.xml'))
+def nativeNamespace = nativeRootModel.artifactId.text()
+def nativeContractJava = []
+def nativeProfiles = []
+projectDir.eachFileRecurse { candidate ->
+    def path = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    if (candidate.isFile() && !path.startsWith('target/') && !path.contains('/target/')) {
+        if (path.contains('/src/main/java/') && candidate.name.endsWith('.java')) nativeContractJava << candidate
+        if (candidate.name ==~ /application(?:-dev|-prod|-test)?\.yml/) nativeProfiles << candidate
+    }
+}
+assert nativeProfiles.size() == 4: 'Expected all four native security profiles'
+def nativeSources = nativeContractJava.collect { it.getText('UTF-8') }.join('\n')
+assert (nativeSources =~ /@PreAuthorize\(/).count == 20: 'Every USER entry requires its own consent gate'
+assert (nativeSources =~ /@RequiresServiceScope\(/).count == 10: 'Every business RPC requires TENANT SERVICE scope'
+(nativeSources =~ /@RBACAPIResource\(code\s*=\s*"([^"]+)"\s*,\s*permission\s*=\s*"([^"]+)"/).each { resource ->
+    assert resource[1].startsWith(nativeNamespace + '.')
+    assert resource[2].startsWith(nativeNamespace + ':')
+}
+assert !nativeSources.contains('getHeader("X-Tenant-Id")')
+assert !nativeSources.contains('getHeader("X-Actor-Id")')
+assert !nativeSources.contains('getHeader("X-Actor-Roles")')
+nativeProfiles.each { profile ->
+    def text = profile.getText('UTF-8')
+    ['trusted-issuers:', 'STRICT_SHARED', 'usage-observation:', 'APPLICATION', 'resource-server-id:',
+     'register-filter: false', 'tenant-registration-ids:', 'hmac-key-file:'].each { required ->
+        assert text.contains(required): "Missing native key ${required} in ${profile.name}"
+    }
+    assert !text.contains('egon-cola-source-web'): 'Source namespace must be relocated'
+}
+nativeProfiles.each { assert it.text.contains('system-code: ' + nativeNamespace) }
+
 return true

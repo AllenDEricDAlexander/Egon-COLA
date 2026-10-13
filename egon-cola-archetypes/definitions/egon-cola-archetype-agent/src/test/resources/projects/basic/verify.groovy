@@ -30,7 +30,8 @@ def sourceFiles = { String root ->
 def textFiles = {
     def result = []
     projectDir.traverse(type: FileType.FILES) { candidate ->
-        if (!candidate.path.replace('\\', '/').contains('/target/') &&
+        def path = relativePath(candidate)
+        if (!path.startsWith('target/') && !path.contains('/target/') &&
                 ['.java', '.xml', '.yml', '.md', '.properties'].any { candidate.name.endsWith(it) }) {
             result << candidate
         }
@@ -126,11 +127,33 @@ new java.util.jar.JarFile(agentArchive).withCloseable { archive ->
  "spring-ai-pgvector-store-", "flyway-core-", "flyway-database-postgresql-", "postgresql-"].each { required ->
     assert agentLibraries.any { it.startsWith(required) }: "Missing Agent runtime library ${required}"
 }
-["egon-cola-component-rpc-", "egon-cola-tianshu", "nacos-", "dubbo-",
+["nacos-", "dubbo-",
  "spring-cloud-starter-alibaba-nacos-"].each { forbidden ->
     assert !agentLibraries.any { it.startsWith(forbidden) }: "Forbidden Agent runtime library ${forbidden}"
 }
 // Google ADK's gRPC/Protobuf dependencies remain allowed.
+
+// These SDK transport libraries are assembly dependencies, never Agent business RPC contracts.
+def technicalArtifacts = [
+    'egon-cola-component-rpc-api', 'egon-cola-component-rpc-common',
+    'egon-cola-component-rpc-provider-starter', 'egon-cola-component-rpc-consumer-starter',
+    'egon-cola-component-rpc-starter', 'egon-cola-component-rpc-tianshu-adapter',
+    'egon-cola-tianshu-starter', 'egon-cola-tianshu-http-registration-starter'
+]
+def technicalLibraries = technicalArtifacts.collect { it + '-' + rootPom.properties.'egon-cola.version'.text() + '.jar' } as Set
+agentLibraries.findAll { it.startsWith('egon-cola-component-rpc-') || it.startsWith('egon-cola-tianshu') }.each { library ->
+    assert technicalLibraries.contains(library): "Unapproved Agent RPC/Tianshu runtime library ${library}"
+}
+modules.each { module ->
+    def ids = dependencyIds(poms[module])
+    assert !ids.any { it.startsWith('egon-cola-component-rpc-') && it != 'egon-cola-component-rpc-tianshu-adapter' }:
+            "Agent RPC transport must stay transitive in ${module}"
+    ['egon-cola-component-rpc-tianshu-adapter', 'egon-cola-tianshu-starter',
+     'egon-cola-tianshu-http-registration-starter', 'yuheng-starter-openapi-webmvc'].each { sdk ->
+        assert module == 'starter' || !ids.contains(sdk): "Technical SDK ${sdk} belongs in starter"
+    }
+}
+
 
 def requiredFiles = [
     "${prefix}-domain/src/main/java/it/pkg/domain/research/model/DeepResearchTaskBO.java",
@@ -172,7 +195,10 @@ def runtimeText = runtimeSources.collect { it.getText("UTF-8") }.join("\n")
 assert runtimeText.contains("PostMapping")
 assert runtimeText.contains("TEXT_EVENT_STREAM")
 assert runtimeText.contains("deep-research")
-assert runtimeText.contains("researchApiKey")
+def legacyFilter = file("${prefix}-adapter/src/main/java/it/pkg/adapter/filter/ResearchApiKeyFilter.java").text
+assert legacyFilter.contains('@Deprecated') && !legacyFilter.contains('@Component'):
+        'Legacy API-key filter must remain an isolated compatibility fixture'
+assert runtimeText.contains('@PreAuthorize')
 assert !runtimeText.contains("org.apache.commons.lang3.time.DateUtils")
 assert !(runtimeText =~ /import\s+java\.util\.(Date|Calendar)/)
 assert !runtimeText.contains("com.alibaba.fastjson")
@@ -191,11 +217,9 @@ profiles.each { profile ->
     ["agent:", "deep-research:", "model:", "search:"].each { token ->
         assert text.contains(token): "Missing ${token} in ${profile}"
     }
-    if (profile == "application-test.yml") {
-        assert text.contains("api-key:")
-    } else {
-        assert text.contains("DEEP_RESEARCH_API_KEY")
-    }
+    assert !text.contains('DEEP_RESEARCH_API_KEY'): 'Native USER authentication must replace the API key'
+    assert !(text =~ /(?m)^\s{4}security:/): 'Retired Deep Research API-key configuration must be absent'
+
 }
 
 def readme = file("README.md").text
@@ -222,7 +246,7 @@ projectDir.traverse(type: FileType.FILES) { candidate ->
 ["AgentArchitectureTest", "DeepResearchDomainTest", "DeepResearchManageImplTest", "AgentFlowDeepResearchAgentGatewayTest",
  "AgentFlowEventConverterTest", "McpResearchToolFactoryTest", "DeepResearchControllerTest", "DeepResearchConverterTest",
  "ResearchApiKeyFilterTest", "DeepResearchApplicationTest", "DeepResearchFlowTest", "DeepResearchOpenApiTest",
- "AgentSourceContractTest"].each { testName ->
+ "AgentSourceContractTest", "NativeSecurityContractTest", "KnowledgeConfigParityTest"].each { testName ->
     def report = reports.find { it.name.contains(testName) }
     assert report && report.text.contains('failures="0"') && report.text.contains('errors="0"'):
             "Expected generated Agent test report ${testName} to pass"
@@ -236,8 +260,17 @@ def generatedSourceText = sourceBoundaryFiles.collect { it.text }.join("\n").toL
 ["top.egon.internal.archetype.source", "egon-cola-source-agent", "0.1.0-snapshot"].each { forbiddenToken ->
     assert !generatedSourceText.contains(forbiddenToken): "Generated project leaked source sentinel ${forbiddenToken}"
 }
-["spring-boot-starter-data-jpa", "jakarta.persistence", "jparepository", "redis", "graphql", "dubbo", "fastjson"].each { forbiddenToken ->
+["spring-boot-starter-data-jpa", "jakarta.persistence", "jparepository", "graphql", "dubbo", "fastjson"].each { forbiddenToken ->
     assert !generatedSourceText.contains(forbiddenToken): "Generated project leaked forbidden token ${forbiddenToken}"
+}
+
+// Redis/RPC names in native SDK configuration do not authorize business-layer transports.
+runtimeSources.findAll { candidate ->
+    def path = relativePath(candidate)
+    !path.contains('-infrastructure/') && !path.contains('-starter/')
+}.each { candidate ->
+    assert !(candidate.text =~ /(?m)^import\s+(?:org\.redisson|org\.springframework\.data\.redis|redis\.clients|top\.egon\.cola\.component\.rpc)\./):
+            "Business source must not own SDK transport: ${relativePath(candidate)}"
 }
 
 def assertPackageDocs = { String sourceRoot ->
@@ -317,3 +350,41 @@ assert releasedLibraries.any { it.startsWith('egon-cola-component-common-core-')
 
 println 'Published parent and agent runtime boundaries passed'
 true
+
+
+// Xingyuan native contract: the generated root owns every business permission and resource.
+def nativeRootModel = new groovy.xml.XmlSlurper(false, false).parse(new File(projectDir, 'pom.xml'))
+def nativeNamespace = nativeRootModel.artifactId.text()
+def nativeJava = runtimeSources
+def nativeProfiles = profiles.collect { file("${prefix}-starter/src/main/resources/${it}") }
+assert nativeProfiles.size() == 4: 'Expected all four native security profiles'
+def nativeSources = nativeJava.collect { it.getText('UTF-8') }.join('\n')
+assert (nativeSources =~ /@PreAuthorize\(/).count == 14: 'Every USER entry requires its own consent gate'
+assert (nativeSources =~ /@RequiresServiceScope\(/).count == 0: 'Every business RPC requires TENANT SERVICE scope'
+(nativeSources =~ /@RBACAPIResource\(code\s*=\s*"([^"]+)"\s*,\s*permission\s*=\s*"([^"]+)"/).each { resource ->
+    assert resource[1].startsWith(nativeNamespace + '.')
+    assert resource[2].startsWith(nativeNamespace + ':')
+}
+assert !nativeSources.contains('getHeader("X-Tenant-Id")')
+assert !nativeSources.contains('getHeader("X-Actor-Id")')
+assert !nativeSources.contains('getHeader("X-Actor-Roles")')
+nativeProfiles.each { profile ->
+    def text = profile.getText('UTF-8')
+    ['trusted-issuers:', 'STRICT_SHARED', 'usage-observation:', 'APPLICATION', 'resource-server-id:',
+     'register-filter: false', 'tenant-registration-ids:', 'hmac-key-file:'].each { required ->
+        assert text.contains(required): "Missing native key ${required} in ${profile.name}"
+    }
+    assert !text.contains('egon-cola-source-agent'): 'Source namespace must be relocated'
+}
+nativeProfiles.each { assert it.text.contains('system-code: ' + nativeNamespace) }
+assert !nativeProfiles.any { it.text.contains('agent.knowledge.tenant.default-id') }
+
+["egon-cola-tianquan-jianshen-starter-", "egon-cola-tianquan-shoubing-starter-", "egon-cola-tianshu-starter-",
+ "egon-cola-tianshu-http-registration-starter-", "egon-cola-component-rpc-tianshu-adapter-", "yuheng-starter-openapi-webmvc-"].each { required ->
+    assert agentLibraries.any { it.startsWith(required) }: "Missing approved native library ${required}"
+}
+assert dependencyIds(poms.adapter).contains('egon-cola-tianquan-jianshen-starter')
+assert dependencyIds(poms.starter).contains('egon-cola-tianshu-starter')
+assert !nativeProfiles.any { it.text.contains('DEEP_RESEARCH_API_KEY') || it.text.contains('AGENT_KNOWLEDGE_TENANT_ID') }
+
+return true
