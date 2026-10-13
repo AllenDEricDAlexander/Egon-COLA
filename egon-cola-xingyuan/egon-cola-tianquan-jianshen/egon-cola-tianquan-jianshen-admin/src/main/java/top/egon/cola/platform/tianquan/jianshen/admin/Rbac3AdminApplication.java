@@ -52,6 +52,8 @@ public class Rbac3AdminApplication {
             application.setBannerMode(org.springframework.boot.Banner.Mode.OFF);
             application.addInitializers(context -> context.getEnvironment().getPropertySources()
                     .addFirst(new MapPropertySource("rbac3CatalogCommandRuntime", catalogCommandRuntimeProperties())));
+            application.addInitializers(context -> context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("rbac3FieldRuleCommandRuntime",
+                    Map.of("rbac3.catalog.field-rules-enabled", args[0].equals(top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.controller.cli.Rbac3ApplicationCatalogRegistrationCli.FIELD_COMMAND)))));
             int result;
             try (var context = application.run(args)) {
                 result = context.getBean("rbac3ApplicationCatalogRegistrationCli",
@@ -109,7 +111,8 @@ public class Rbac3AdminApplication {
                 "management.endpoint.health.validate-group-membership", false);
     }
     public static boolean isCatalogCommand(String[] args) {
-        return args != null && args.length > 0 && top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.controller.cli.Rbac3ApplicationCatalogRegistrationCli.COMMAND.equals(args[0]);
+        return args != null && args.length > 0 && (top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.controller.cli.Rbac3ApplicationCatalogRegistrationCli.COMMAND.equals(args[0])
+                || top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.controller.cli.Rbac3ApplicationCatalogRegistrationCli.FIELD_COMMAND.equals(args[0]));
     }
 
     public static Map<String, Object> catalogCommandRuntimeProperties() {
@@ -121,6 +124,8 @@ public class Rbac3AdminApplication {
                 Map.entry("egon.cola.component.tianshu.registry.http.enabled", false),
                 Map.entry("egon.cola.component.yuheng.reporting.enabled", false),
                 Map.entry("egon.cola.component.transactional-outbox.polling.enabled", false),
+                Map.entry("egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl", false),
+                Map.entry("egon.cola.component.mybatis-plus.ddl.enabled", false),
                 Map.entry("rbac3.bootstrap.auto-activate-local-admin-roles", false),
                 Map.entry("spring.main.web-application-type", "none"),
                 Map.entry("spring.jpa.hibernate.ddl-auto", "none"));

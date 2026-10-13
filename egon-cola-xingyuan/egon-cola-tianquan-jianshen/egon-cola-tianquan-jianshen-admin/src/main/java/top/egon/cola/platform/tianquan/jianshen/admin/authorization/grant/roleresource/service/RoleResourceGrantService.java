@@ -1,5 +1,18 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.service;
 
+import jakarta.validation.Valid;
+import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.convertor.RoleFieldRuleReplacementConverter;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleFieldRulesCommandDTO;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.vo.RoleFieldRuleMutationVO;
+import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
+import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesCommandDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesRequestDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.po.RoleResourceGrantPO;
@@ -21,23 +34,58 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Coordinates resource-root reads and atomic direct-grant replacement. */
-@Service
+@Slf4j
+@Service("roleResourceGrantService")
+@Validated
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RoleResourceGrantService {
 
+    @Qualifier("jpaRoleResourceGrantRepository")
     private final RoleResourceGrantRepository grants;
+    @Qualifier("jpaResourceApiBindingRepository")
     private final ResourceApiBindingRepository bindings;
+    @Qualifier("jpaTenantAuthorizationStateRepository")
     private final TenantAuthorizationStateRepository authorizationState;
+    @Qualifier("authorizationEventPort")
     private final AuthorizationEventPublisher events;
+    @Qualifier("roleFieldRuleReplacementConverterImpl")
+    private final RoleFieldRuleReplacementConverter fieldConverter;
+    @Qualifier("defaultValidator")
+    private final Validator validator;
+    @Qualifier("jpaDatabaseClock")
+    private final DatabaseClock databaseClock;
 
     public RoleResourceGrantService(
             RoleResourceGrantRepository grants,
             ResourceApiBindingRepository bindings,
             TenantAuthorizationStateRepository authorizationState,
             AuthorizationEventPublisher events) {
-        this.grants = Objects.requireNonNull(grants, "grants");
-        this.bindings = Objects.requireNonNull(bindings, "bindings");
-        this.authorizationState = Objects.requireNonNull(authorizationState, "authorizationState");
-        this.events = Objects.requireNonNull(events, "events");
+        this(Objects.requireNonNull(grants, "grants"), Objects.requireNonNull(bindings, "bindings"),
+                Objects.requireNonNull(authorizationState, "authorizationState"), Objects.requireNonNull(events, "events"),
+                null, null, null);
+    }
+
+    /** Rules, role version, tenant epoch and repair trigger share the existing local transaction. */
+    @Transactional
+    @Validated(ReplaceRoleFieldRulesCommandDTO.Mutation.class)
+    public RoleFieldRuleMutationVO replaceFieldRules(@Valid ReplaceRoleFieldRulesCommandDTO command) {
+        if (fieldConverter == null || validator == null || databaseClock == null) {
+            throw new Rbac3RuleViolation("ROLE_FIELD_RULE_WRITER_UNAVAILABLE");
+        }
+        new ValidationUtils(validator).validate(command, ReplaceRoleFieldRulesCommandDTO.Mutation.class);
+        var result = grants.replaceFieldRules(fieldConverter.toReplacement(command, databaseClock.transactionNow()));
+        boolean changed = result.addedCount() != 0 || result.changedCount() != 0 || result.disabledCount() != 0;
+        long authVersion = changed ? authorizationState.increment(command.getTenantId(), command.getActorId())
+                : authorizationState.require(command.getTenantId()).getPolicyVersion();
+        long policyVersion = authorizationState.require(command.getTenantId()).getPolicyVersion();
+        if (changed) {
+            events.enqueue(new AuthorizationEventVO(command.getTenantId().toString(), "ROLE",
+                    command.getRoleId().toString(), "ROLE_FIELD_RULE_CHANGED",
+                    Map.of("policyVersion", Long.toString(policyVersion), "roleVersion", Long.toString(result.roleVersion())),
+                    "role-field-rule-changed-" + command.getRoleId() + "-" + result.roleVersion()));
+        }
+        return new RoleFieldRuleMutationVO(command.getRoleId().toString(), result.roleVersion(), result.ruleCount(),
+                result.addedCount(), result.changedCount(), result.disabledCount(), authVersion, policyVersion, "CONFIRMED");
     }
 
     /** Keeps the role lock and its resource facts in the same transaction. */

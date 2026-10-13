@@ -16,6 +16,51 @@ public interface RoleResourceGrantRepository {
 
     Set<Long> activeDirectResourceIds(Set<Long> roleIds, Instant now);
 
+    /** Legacy implementations remain source compatible and must explicitly implement the new capability. */
+    default FieldRuleReplacementResultBO replaceFieldRules(@jakarta.validation.Valid FieldRuleReplacementBO command) {
+        throw new top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation("ROLE_FIELD_RULE_WRITER_UNAVAILABLE");
+    }
+
+    record FieldRuleReplacementBO(
+            @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Positive Long tenantId,
+            @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Positive Long applicationId,
+            @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Positive Long roleId,
+            @jakarta.validation.constraints.Min(0) long expectedRoleVersion,
+            @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Size(max = 256) @jakarta.validation.Valid List<FieldRuleDesiredVO> rules,
+            @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 128)
+            @jakarta.validation.constraints.Pattern(regexp = "[\\x21-\\x7E]{1,128}") String actorId,
+            @jakarta.validation.constraints.NotNull Instant now) {
+        public FieldRuleReplacementBO {
+            tenantId = positive(tenantId, "tenantId"); applicationId = positive(applicationId, "applicationId"); roleId = positive(roleId, "roleId");
+            rules = List.copyOf(Objects.requireNonNull(rules, "rules")); actorId = required(actorId, "actorId"); now = Objects.requireNonNull(now, "now");
+            if (rules.size() > 256 || expectedRoleVersion < 0 || !actorId.matches("[\\x21-\\x7E]{1,128}")
+                    || rules.stream().map(rule -> List.of(rule.permissionId(), rule.fieldDefinitionId(), rule.validFrom())).distinct().count() != rules.size()) {
+                throw new IllegalArgumentException("Field rule replacement facts are invalid");
+            }
+        }
+    }
+
+    record FieldRuleDesiredVO(
+            @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Positive Long permissionId,
+            @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Positive Long fieldDefinitionId,
+            @jakarta.validation.constraints.NotNull top.egon.cola.platform.tianquan.jianshen.contract.authorization.FieldAccessLevel accessLevel,
+            @jakarta.validation.constraints.NotNull Instant validFrom, Instant validTo,
+            @jakarta.validation.constraints.NotNull top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.domain.enums.FieldRuleStatusEnum status) {
+        public FieldRuleDesiredVO {
+            permissionId = positive(permissionId, "permissionId"); fieldDefinitionId = positive(fieldDefinitionId, "fieldDefinitionId");
+            Objects.requireNonNull(accessLevel, "accessLevel"); Objects.requireNonNull(validFrom, "validFrom"); Objects.requireNonNull(status, "status");
+            if (validTo != null && !validTo.isAfter(validFrom)) { throw new IllegalArgumentException("Field rule window is invalid"); }
+        }
+    }
+
+    record FieldRuleReplacementResultBO(long roleVersion, int ruleCount, int addedCount, int changedCount, int disabledCount) {
+        public FieldRuleReplacementResultBO {
+            if (roleVersion < 0 || ruleCount < 0 || ruleCount > 256 || addedCount < 0 || changedCount < 0 || disabledCount < 0) {
+                throw new IllegalArgumentException("Field rule replacement result is invalid");
+            }
+        }
+    }
+
     record GrantTreeFacts(
             Long applicationId,
             long roleVersion,

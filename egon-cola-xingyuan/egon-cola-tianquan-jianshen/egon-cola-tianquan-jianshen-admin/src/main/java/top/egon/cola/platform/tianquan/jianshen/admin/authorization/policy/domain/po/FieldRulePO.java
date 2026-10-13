@@ -1,6 +1,16 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.domain.po;
 
 import jakarta.persistence.Column;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import lombok.AccessLevel;
+import lombok.experimental.Accessors;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -20,6 +30,12 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.domai
  * 语义与用法：将 `FieldRulePO` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `FieldRulePO` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
+@Data
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@Accessors(chain = true)
+@EqualsAndHashCode(callSuper = true)
+@ToString(onlyExplicitlyIncluded = true)
 @Entity(name = "FieldRuleEntity")
 @Table(name = "rbac3_field_rule")
 public class FieldRulePO extends TenantScopedPO {
@@ -32,6 +48,8 @@ public class FieldRulePO extends TenantScopedPO {
      * Meaning and usage: when reading, passing, or updating `id`, preserve `FieldRulePO`'s lifecycle, immutability, and thread-safety constraints.
      */
     @Id
+    @NotNull @Positive @ToString.Include
+    @lombok.Setter(AccessLevel.NONE)
     private Long id;
 
     /**
@@ -42,6 +60,8 @@ public class FieldRulePO extends TenantScopedPO {
      * Meaning and usage: when reading, passing, or updating `applicationId`, preserve `FieldRulePO`'s lifecycle, immutability, and thread-safety constraints.
      */
     @Column(name = "application_id", nullable = false)
+    @NotNull @Positive
+    @lombok.Setter(AccessLevel.NONE)
     private Long applicationId;
 
     /**
@@ -52,6 +72,8 @@ public class FieldRulePO extends TenantScopedPO {
      * Meaning and usage: when reading, passing, or updating `roleId`, preserve `FieldRulePO`'s lifecycle, immutability, and thread-safety constraints.
      */
     @Column(name = "role_id", nullable = false)
+    @NotNull @Positive
+    @lombok.Setter(AccessLevel.NONE)
     private Long roleId;
 
     /**
@@ -62,6 +84,8 @@ public class FieldRulePO extends TenantScopedPO {
      * Meaning and usage: when reading, passing, or updating `permissionId`, preserve `FieldRulePO`'s lifecycle, immutability, and thread-safety constraints.
      */
     @Column(name = "permission_id", nullable = false)
+    @NotNull @Positive
+    @lombok.Setter(AccessLevel.NONE)
     private Long permissionId;
 
     /**
@@ -72,6 +96,8 @@ public class FieldRulePO extends TenantScopedPO {
      * Meaning and usage: when reading, passing, or updating `fieldDefinitionId`, preserve `FieldRulePO`'s lifecycle, immutability, and thread-safety constraints.
      */
     @Column(name = "field_definition_id", nullable = false)
+    @NotNull @Positive
+    @lombok.Setter(AccessLevel.NONE)
     private Long fieldDefinitionId;
 
     /**
@@ -83,6 +109,8 @@ public class FieldRulePO extends TenantScopedPO {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "access_level", nullable = false, length = 32)
+    @NotNull
+    @lombok.Setter(AccessLevel.NONE)
     private FieldRuleAccessLevelEnum accessLevel;
 
     /**
@@ -93,6 +121,8 @@ public class FieldRulePO extends TenantScopedPO {
      * Meaning and usage: when reading, passing, or updating `validFrom`, preserve `FieldRulePO`'s lifecycle, immutability, and thread-safety constraints.
      */
     @Column(name = "valid_from", nullable = false)
+    @NotNull
+    @lombok.Setter(AccessLevel.NONE)
     private Instant validFrom;
 
     /**
@@ -103,6 +133,7 @@ public class FieldRulePO extends TenantScopedPO {
      * Meaning and usage: when reading, passing, or updating `validTo`, preserve `FieldRulePO`'s lifecycle, immutability, and thread-safety constraints.
      */
     @Column(name = "valid_to")
+    @lombok.Setter(AccessLevel.NONE)
     private Instant validTo;
 
     /**
@@ -114,6 +145,8 @@ public class FieldRulePO extends TenantScopedPO {
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
+    @NotNull
+    @lombok.Setter(AccessLevel.NONE)
     private FieldRuleStatusEnum status;
 
     /**
@@ -123,8 +156,6 @@ public class FieldRulePO extends TenantScopedPO {
      * 用法：通过 `FieldRulePO` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
      * Usage: create the instance through `FieldRulePO`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      */
-    protected FieldRulePO() {
-    }
 
     /**
      * 构造器 `FieldRulePO` 用于创建并初始化 `FieldRulePO` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -145,6 +176,7 @@ public class FieldRulePO extends TenantScopedPO {
      * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
+    @Builder
     public FieldRulePO(
             Long id,
             Long tenantId,
@@ -195,6 +227,12 @@ public class FieldRulePO extends TenantScopedPO {
         this.accessLevel = Objects.requireNonNull(accessLevel, "accessLevel");
         this.validFrom = validFrom;
         this.validTo = validTo;
+        markUpdated(actorId, now);
+    }
+
+    /** Preserves immutable rule identity and history while an explicit replacement disables or expires it. */
+    public void changeStatus(FieldRuleStatusEnum status, String actorId, Instant now) {
+        this.status = Objects.requireNonNull(status, "status");
         markUpdated(actorId, now);
     }
 

@@ -31,6 +31,21 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.api.TransactionalOutbox;
+import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfiguration;
+import top.egon.cola.component.outbox.autoconfigure.OutboxMybatisPlusAutoConfiguration;
+import top.egon.cola.component.outbox.autoconfigure.OutboxStateMachineAutoConfiguration;
+import top.egon.cola.component.outbox.delivery.DeliveryHandler;
+import top.egon.cola.component.outbox.delivery.DeliveryContext;
+import top.egon.cola.component.outbox.delivery.DeliveryResult;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.service.RoleResourceGrantService;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.repository.jpa.JpaRoleResourceGrantRepository;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.convertor.RoleFieldRuleReplacementConverter;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.convertor.RoleFieldRuleReplacementConverterImpl;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.apibinding.repository.jpa.JpaResourceApiBindingRepository;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.state.repository.jpa.JpaTenantAuthorizationStateRepository;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.outbox.TransactionalOutboxAuthorizationEventPublisher;
 import top.egon.cola.component.common.id.autoconfigure.IdGeneratorAutoConfiguration;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaShardingAutoConfiguration;
@@ -132,6 +147,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.List;
 
 /**
  * 类型 `Rbac3ApplicationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Application Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -706,8 +722,10 @@ public class Rbac3ApplicationConfiguration {
             @Qualifier("identityTenantMembershipDirectory") IdentityTenantMembershipDirectory memberships,
             @Qualifier("identityProfileDirectory") IdentityProfileDirectory profiles,
             @Qualifier("jacksonObjectMapper") ObjectMapper mapper,
-            @Qualifier("defaultValidator") Validator validator) {
-        return new Rbac3ApplicationCatalogRegistrationCli(catalog, memberships, profiles, mapper, validator);
+            @Qualifier("defaultValidator") Validator validator,
+            @Qualifier("roleResourceGrantService") RoleResourceGrantService roleGrants,
+            @Qualifier("ddcCatalogGateway") DdcCatalogGateway deploymentCatalog) {
+        return new Rbac3ApplicationCatalogRegistrationCli(catalog, memberships, profiles, mapper, validator, roleGrants, deploymentCatalog);
     }
 
     /** Exact operator context: no main application scan, HTTP/RPC provider, scheduler or development bootstrap imports. */
@@ -731,7 +749,8 @@ public class Rbac3ApplicationConfiguration {
     @Import({
             GlobalResourceCatalogService.class,
             PermissionCatalogService.class,
-            CatalogClientConfiguration.class})
+            CatalogClientConfiguration.class,
+            FieldRuleCommandConfiguration.class})
     public static class CatalogCommandConfiguration {
         @Bean("deploymentPermissionRegistrationConverterImpl")
         GlobalResourceCatalogService.PermissionRegistrationConverter permissionConverter() {
@@ -775,8 +794,67 @@ public class Rbac3ApplicationConfiguration {
                 @Qualifier("identityTenantMembershipDirectory") IdentityTenantMembershipDirectory memberships,
                 @Qualifier("identityProfileDirectory") IdentityProfileDirectory profiles,
                 @Qualifier("jacksonObjectMapper") ObjectMapper mapper,
-                @Qualifier("defaultValidator") Validator validator) {
-            return new Rbac3ApplicationCatalogRegistrationCli(catalog, memberships, profiles, mapper, validator);
+                @Qualifier("defaultValidator") Validator validator,
+                @Qualifier("roleResourceGrantService") ObjectProvider<RoleResourceGrantService> roleGrants,
+                @Qualifier("ddcCatalogGateway") DdcCatalogGateway deploymentCatalog) {
+            return new Rbac3ApplicationCatalogRegistrationCli(catalog, memberships, profiles, mapper, validator, roleGrants.getIfAvailable(), deploymentCatalog);
+        }
+    }
+
+    /** Imports the existing transactional writer only for an explicit field-rule command. */
+    @lombok.extern.slf4j.Slf4j
+    @Configuration(value = "rbac3FieldRuleCommandConfiguration", proxyBeanMethods = false)
+    @Profile("rbac3-catalog-command")
+    @ConditionalOnProperty(prefix = "rbac3.catalog", name = "field-rules-enabled", havingValue = "true")
+    @Import({RoleResourceGrantService.class, JpaRoleResourceGrantRepository.class})
+    @ImportAutoConfiguration({TransactionalOutboxAutoConfiguration.class, OutboxMybatisPlusAutoConfiguration.class,
+            OutboxStateMachineAutoConfiguration.class})
+    public static class FieldRuleCommandConfiguration {
+        @Bean("jpaResourceApiBindingRepository")
+        JpaResourceApiBindingRepository resourceBindings(@Qualifier("jpaSharedEM_entityManagerFactory") EntityManager manager) {
+            return new JpaResourceApiBindingRepository(manager);
+        }
+
+        @Bean("jpaTenantAuthorizationStateRepository")
+        JpaTenantAuthorizationStateRepository tenantState(@Qualifier("jpaSharedEM_entityManagerFactory") EntityManager manager,
+                @Qualifier("jpaDatabaseClock") DatabaseClock clock) {
+            return new JpaTenantAuthorizationStateRepository(manager, clock);
+        }
+
+        @Bean("roleFieldRuleReplacementConverterImpl")
+        RoleFieldRuleReplacementConverter fieldConverter() { return new RoleFieldRuleReplacementConverterImpl(); }
+
+        @Bean("authorizationEventPort")
+        AuthorizationEventPublisher fieldEvents(@Qualifier("transactionalOutbox") TransactionalOutbox outbox) {
+            return new TransactionalOutboxAuthorizationEventPublisher(outbox, Clock.systemUTC());
+        }
+
+        @Bean("catalogProjectionEventProducerAdapter")
+        DeliveryHandler producerDestinationValidator() { return new CatalogProjectionEventProducerAdapter(); }
+
+        @Bean("catalogOutboxProducerOnlyBeanFactoryPostProcessor")
+        static org.springframework.beans.factory.config.BeanFactoryPostProcessor producerOnlyOutbox() {
+            return factory -> {
+                var definitions = (org.springframework.beans.factory.support.BeanDefinitionRegistry) factory;
+                // Keep the Starter's durable writer, MP store and lifecycle engine; this process never consumes events.
+                for (String name : List.of("outboxDeliveryExecutor", "outboxTaskScheduler", "outboxDispatcher", "outboxCleanupJob",
+                        "outboxCommittedEventListener", "outboxPoller")) {
+                    if (definitions.containsBeanDefinition(name)) { definitions.removeBeanDefinition(name); }
+                }
+            };
+        }
+    }
+
+    /** Producer-side adapter validates the same field-event destination without running projection workers in the CLI. */
+    @lombok.extern.slf4j.Slf4j
+    @lombok.RequiredArgsConstructor
+    private static class CatalogProjectionEventProducerAdapter implements DeliveryHandler {
+        @Override public String channel() { return TransactionalOutboxAuthorizationEventPublisher.CHANNEL; }
+        @Override public void validateDestination(String destination) {
+            if (!"tianquan-jianshen.role.policy-changed.v1".equals(destination)) { throw new IllegalArgumentException("Unsupported field-rule event destination"); }
+        }
+        @Override public DeliveryResult deliver(DeliveryContext context) {
+            throw new IllegalStateException("The deployment CLI cannot deliver projection events");
         }
     }
 

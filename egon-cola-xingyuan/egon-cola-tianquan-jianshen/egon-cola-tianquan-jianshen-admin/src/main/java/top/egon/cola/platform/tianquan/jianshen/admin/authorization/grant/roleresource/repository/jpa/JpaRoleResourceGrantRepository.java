@@ -2,6 +2,18 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roler
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
+import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.convertor.RoleFieldRuleReplacementConverter;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.convertor.RoleFieldRuleReplacementConverter.RulePersistenceContextVO;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.domain.po.FieldRulePO;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.domain.enums.FieldRuleStatusEnum;
+import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.domain.enums.RoleStatusEnum;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.FieldAccessLevel;
 import org.springframework.stereotype.Repository;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.enums.RoleResourceGrantStatusEnum;
@@ -19,6 +31,7 @@ import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +39,139 @@ import java.util.Objects;
 import java.util.Set;
 
 /** JPA adapter for direct role-resource grants. */
-@Repository
+@Repository("jpaRoleResourceGrantRepository")
+@Slf4j
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class JpaRoleResourceGrantRepository implements RoleResourceGrantRepository {
 
+    @Qualifier("jpaSharedEM_entityManagerFactory")
     private final EntityManager entityManager;
+    @Qualifier("roleFieldRuleReplacementConverterImpl")
+    private final RoleFieldRuleReplacementConverter fieldConverter;
+    @Qualifier("defaultValidator")
+    private final Validator validator;
 
-    public JpaRoleResourceGrantRepository(
-            EntityManager entityManager) {
-        this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
+    /** Existing resource-grant callers keep their constructor; the new writer requires configured conversion/validation ports. */
+    public JpaRoleResourceGrantRepository(EntityManager entityManager) {
+        this(entityManager, null, null);
+    }
+
+    @Override
+    public FieldRuleReplacementResultBO replaceFieldRules(FieldRuleReplacementBO command) {
+        if (fieldConverter == null || validator == null) {
+            throw new Rbac3RuleViolation("ROLE_FIELD_RULE_WRITER_UNAVAILABLE");
+        }
+        var validation = new ValidationUtils(validator);
+        validation.validate(command);
+        RolePO role = entityManager.find(RolePO.class, command.roleId(), LockModeType.PESSIMISTIC_WRITE);
+        if (role == null || !command.tenantId().equals(role.getTenantId()) || !command.applicationId().equals(role.getApplicationId())
+                || role.getStatus() != RoleStatusEnum.ACTIVE) {
+            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
+        }
+        if (role.getVersion() != command.expectedRoleVersion()) {
+            throw new Rbac3RuleViolation("RESOURCE_VERSION_CONFLICT");
+        }
+        Number entitlements = (Number) entityManager.createNativeQuery("""
+                select count(*) from rbac3_tenant_application entitlement
+                  join rbac3_application application on application.id = entitlement.application_id and application.status = 'ACTIVE'
+                 where entitlement.tenant_id = :tenantId and entitlement.application_id = :applicationId and entitlement.status = 'ACTIVE'
+                   and entitlement.valid_from <= :now and (entitlement.valid_to is null or entitlement.valid_to > :now)
+                """).setParameter("tenantId", command.tenantId()).setParameter("applicationId", command.applicationId())
+                .setParameter("now", command.now()).getSingleResult();
+        if (entitlements.longValue() < 1) { throw new Rbac3RuleViolation("ROLE_APPLICATION_MISMATCH"); }
+        for (FieldRuleDesiredVO desired : command.rules()) {
+            requireFieldRuleFacts(command, desired);
+        }
+        var existing = entityManager.createQuery("select rule from FieldRuleEntity rule where rule.tenantId = :tenantId and rule.applicationId = :applicationId and rule.roleId = :roleId",
+                        FieldRulePO.class)
+                .setParameter("tenantId", command.tenantId()).setParameter("applicationId", command.applicationId()).setParameter("roleId", command.roleId()).getResultList();
+        var byKey = new HashMap<List<Object>, FieldRulePO>();
+        for (var row : existing) {
+            if (byKey.put(fieldKey(row.getPermissionId(), row.getFieldDefinitionId(), row.getValidFrom()), row) != null) {
+                throw new Rbac3RuleViolation("RESOURCE_VERSION_CONFLICT");
+            }
+        }
+        Set<List<Object>> requested = new HashSet<>();
+        int added = 0, changed = 0, disabled = 0;
+        for (FieldRuleDesiredVO desired : command.rules()) {
+            List<Object> key = fieldKey(desired.permissionId(), desired.fieldDefinitionId(), desired.validFrom());
+            requested.add(key);
+            var row = byKey.get(key);
+            var access = fieldConverter.toAccessLevel(desired.accessLevel());
+            if (row == null) {
+                var source = fieldConverter.toRequest(desired);
+                var context = new RulePersistenceContextVO(
+                        SnowflakeIdGenerator.nextLongId(), command.tenantId(), command.applicationId(), command.roleId(), command.actorId(), command.now());
+                var created = validation.validate(fieldConverter.toTarget(source, context));
+                entityManager.persist(created);
+                added++;
+            } else if (row.getAccessLevel() != access || !Objects.equals(row.getValidTo(), desired.validTo()) || row.getStatus() != desired.status()) {
+                row.update(access, desired.validFrom(), desired.validTo(), command.actorId(), command.now());
+                row.changeStatus(desired.status(), command.actorId(), command.now());
+                validation.validate(row);
+                changed++;
+            }
+        }
+        for (var row : existing) {
+            if (row.getStatus() == FieldRuleStatusEnum.ACTIVE
+                    && !requested.contains(fieldKey(row.getPermissionId(), row.getFieldDefinitionId(), row.getValidFrom()))) {
+                row.changeStatus(FieldRuleStatusEnum.DISABLED, command.actorId(), command.now());
+                validation.validate(row);
+                disabled++;
+            }
+        }
+        if (added + changed + disabled > 0) {
+            role.touch(command.actorId(), command.now());
+        }
+        entityManager.flush();
+        return new FieldRuleReplacementResultBO(role.getVersion(), command.rules().size(), added, changed, disabled);
+    }
+
+    private void requireFieldRuleFacts(FieldRuleReplacementBO command, FieldRuleDesiredVO desired) {
+        PermissionPO permission = entityManager.find(PermissionPO.class, desired.permissionId(), LockModeType.PESSIMISTIC_READ);
+        if (permission == null || !command.applicationId().equals(permission.getApplicationId()) || permission.getStatus() != PermissionStatusEnum.ACTIVE) {
+            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
+        }
+        var rows = entityManager.createNativeQuery("""
+                select definition.resource_id, definition.writable, definition.default_access
+                  from rbac3_field_definition definition join rbac3_resource resource
+                    on resource.id = definition.resource_id and resource.application_id = definition.application_id
+                 where definition.id = :fieldId and definition.application_id = :applicationId
+                   and definition.status = 'ACTIVE' and resource.status = 'ACTIVE'
+                   and resource.required_permission_id = :permissionId
+                """).setParameter("fieldId", desired.fieldDefinitionId()).setParameter("applicationId", command.applicationId())
+                .setParameter("permissionId", desired.permissionId()).getResultList();
+        if (rows.size() != 1) { throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND"); }
+        Object[] definition = (Object[]) rows.getFirst();
+        var cap = Boolean.TRUE.equals(definition[1]) ? FieldAccessLevel.WRITE
+                : FieldAccessLevel.valueOf(String.valueOf(definition[2]));
+        if (accessRank(desired.accessLevel()) > accessRank(cap)) { throw new Rbac3RuleViolation("FIELD_ACCESS_DENIED"); }
+        Number grants = (Number) entityManager.createNativeQuery("""
+                select count(*) from rbac3_role_resource_grant grant_row
+                  join rbac3_resource source on source.id = grant_row.resource_id
+                    and source.application_id = grant_row.application_id and source.status = 'ACTIVE'
+                 where grant_row.tenant_id = :tenantId and grant_row.application_id = :applicationId and grant_row.role_id = :roleId
+                   and grant_row.status = 'ACTIVE' and grant_row.valid_from <= :now and (grant_row.valid_to is null or grant_row.valid_to > :now)
+                   and (grant_row.resource_id = :resourceId or exists (
+                       select 1 from rbac3_resource_api_binding binding where binding.application_id = grant_row.application_id
+                         and binding.source_resource_id = grant_row.resource_id and binding.api_resource_id = :resourceId
+                         and binding.status = 'ACTIVE'))
+                """).setParameter("tenantId", command.tenantId()).setParameter("applicationId", command.applicationId()).setParameter("roleId", command.roleId())
+                .setParameter("resourceId", definition[0]).setParameter("now", command.now()).getSingleResult();
+        if (grants.longValue() < 1) { throw new Rbac3RuleViolation("FIELD_ACCESS_DENIED"); }
+    }
+
+    private static List<Object> fieldKey(Long permissionId, Long fieldId, Instant from) {
+        return List.of(permissionId, fieldId, from);
+    }
+
+    private static int accessRank(FieldAccessLevel level) {
+        return switch (level) {
+            case NONE -> 0;
+            case MASKED_READ -> 1;
+            case READ -> 2;
+            case WRITE -> 3;
+        };
     }
 
     @Override
