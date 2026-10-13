@@ -116,11 +116,15 @@ class KnowledgeManageTest {
     @BeforeEach
     void publishTenantContext() {
         MDC.put(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, String.valueOf(TENANT_ID));
+        MDC.put("userId", "knowledge-test-user");
+        MDC.put("egon.auth.actor-kind", "USER");
     }
 
     @AfterEach
     void clearTenantContext() {
         MDC.remove(EgonColaTenantIdProvider.DEFAULT_MDC_KEY);
+        MDC.remove("userId");
+        MDC.remove("egon.auth.actor-kind");
     }
 
     @Test
@@ -503,7 +507,9 @@ class KnowledgeManageTest {
         private Fixture(int qaMaxConcurrent) {
             this.qaMaxConcurrent = qaMaxConcurrent;
             this.capacity = new KnowledgeQaCapacityService(qaMaxConcurrent);
-            this.ingestQueueService = new KnowledgeIngestQueueService(documentRepository, outbox);
+            this.ingestQueueService = new KnowledgeIngestQueueService(documentRepository, outbox,
+                    new top.egon.cola.component.common.mybatis.business.EgonColaMdcUserIdProvider(
+                            new top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties()));
             this.removalService = new KnowledgeRemovalService(vectorService, documentRepository, baseRepository,
                     documentStorage);
         }

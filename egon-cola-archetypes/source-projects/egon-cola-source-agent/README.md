@@ -54,7 +54,7 @@ credentials in the existing environment/secrets mechanism, never in `run.*` prop
 
 ## Runtime contract
 
-The only public operation is `POST /api/v1/deep-research/runs`. It consumes JSON and produces `text/event-stream`. The request body accepts `topic`, optional `reportLanguage` (`ZH_CN` or `EN_US`, default `ZH_CN`), and optional `maxSources` (default `8`, bounded to `3..20`). The `X-Research-Api-Key` header is required; `X-Trace-Id` is optional and is generated when absent.
+The research operation is `POST /api/v1/deep-research/runs`. It consumes JSON and produces `text/event-stream`. The request body accepts `topic`, optional `reportLanguage` (`ZH_CN` or `EN_US`, default `ZH_CN`), and optional `maxSources` (default `8`, bounded to `3..20`). An authenticated USER `Authorization: Bearer` header is required; `X-Trace-Id` is optional and is generated when absent.
 
 Each accepted request creates one process-local Agent Flow session and one non-idempotent run. Events are ordered by `runId:sequence` and use `research.started`, `research.progress`, `research.completed`, or `research.failed`. A completed or failed event is the sole public terminal event. Reconnecting creates a new run; there is no status, history, resume, or durable recovery API. A disconnected client cancels the run and releases the session and capacity lease.
 
@@ -62,7 +62,7 @@ The fixed flow is `Planner -> ParallelResearch -> Writer`; the parallel node con
 
 ## Knowledge contract
 
-The knowledge domain adds twelve operations under `/api/v1/knowledge-bases` and `/api/v1/knowledge-documents`. They use the same `X-Research-Api-Key` header and the same optional `X-Trace-Id` as research, and they answer their failures with the same JSON error body — including the answer endpoint, whose success is an event stream.
+The knowledge domain adds twelve operations under `/api/v1/knowledge-bases` and `/api/v1/knowledge-documents`. They use the same USER Bearer authentication and the same optional `X-Trace-Id` as research, and they answer their failures with the same JSON error body — including the answer endpoint, whose success is an event stream.
 
 | Method and path | Purpose |
 | --- | --- |
@@ -109,7 +109,6 @@ A document in a non-terminal state is refused a reprocess with `409`. A retried 
 | `egon.cola.component.transactional-outbox.enabled` | — | The ingest queue and its delivery |
 | `egon.cola.component.mybatis-plus.tenant-id` | — | The tenant column, filled from the MDC on every statement |
 | `agent.knowledge.embedding.base-url` / `api-key` / `model-name` | `AGENT_KNOWLEDGE_EMBEDDING_BASE_URL`, `AGENT_KNOWLEDGE_EMBEDDING_API_KEY`, `AGENT_KNOWLEDGE_EMBEDDING_MODEL` | The embedding provider; `dev` and `prod` require them |
-| `agent.knowledge.tenant.default-id` | `AGENT_KNOWLEDGE_TENANT_ID` | The tenant every call runs as, `0` by default |
 | `agent.knowledge.runtime.qa-max-concurrent` | `AGENT_KNOWLEDGE_QA_MAX_CONCURRENT` | Answer streams in flight at once (4 by default) |
 | `agent.knowledge.runtime.max-upload-bytes` | `AGENT_KNOWLEDGE_MAX_UPLOAD_BYTES` | The upload limit the API enforces (20 MB by default) |
 | `agent.knowledge.runtime.max-documents-per-base` | `AGENT_KNOWLEDGE_MAX_DOCUMENTS_PER_BASE` | Documents one base may hold (10000 by default) |
@@ -119,18 +118,18 @@ A deployment of the knowledge domain has four prerequisites that no configuratio
 
 1. The database must be PostgreSQL with the `vector` extension available to the application role — the first migration runs `CREATE EXTENSION vector`.
 2. The vector table is created by the `knowledgeRagVectorStore` bean on first start-up, not by a migration, so the table's dimension cannot drift from the embedding model the component validates.
-3. The tenant is a fixed value (`agent.knowledge.tenant.default-id`, `0` by default); it is not an isolation boundary, and authentication and tenant resolution are out of scope for this archetype.
-4. Knowledge answers and research runs share one API key and the same process-local capacity model, each with its own pool: saturating one does not refuse the other, and neither survives a restart.
+3. The tenant and audit actor come from the verified Tianquan-Shoubing USER. Configure the trusted issuer registry and own resource URI; ingress tenant/actor headers do not establish identity.
+4. Knowledge answers and research runs share the USER security boundary and the same process-local capacity model, each with its own pool: saturating one does not refuse the other, and neither survives a restart.
 
 ## Environment contract
 
-Development and production require externally supplied values for `DEEP_RESEARCH_MODEL_BASE_URL`, `DEEP_RESEARCH_MODEL_API_KEY`, `DEEP_RESEARCH_MODEL_NAME`, `DEEP_RESEARCH_API_KEY`, `DEEP_RESEARCH_MCP_BASE_URI`, `DEEP_RESEARCH_MCP_SSE_ENDPOINT`, and `DEEP_RESEARCH_MCP_API_KEY`, and for the knowledge domain the `AGENT_DB_*` and `AGENT_KNOWLEDGE_EMBEDDING_*` values listed above. Runtime limits use the `DEEP_RESEARCH_MAX_*`, `DEEP_RESEARCH_HEARTBEAT_INTERVAL` and `AGENT_KNOWLEDGE_*` variables. No credential, provider URL, or usable secret is committed in this source project. The test profile uses a fake `ChatModel` and fake `ToolCallback`, a closed RAG component and no Flyway run, so it never opens a network connection or touches PostgreSQL.
+Development and production require externally supplied values for `DEEP_RESEARCH_MODEL_BASE_URL`, `DEEP_RESEARCH_MODEL_API_KEY`, `DEEP_RESEARCH_MODEL_NAME`, `DEEP_RESEARCH_MCP_BASE_URI`, `DEEP_RESEARCH_MCP_SSE_ENDPOINT`, and `DEEP_RESEARCH_MCP_API_KEY`, and for the knowledge domain the `AGENT_DB_*` and `AGENT_KNOWLEDGE_EMBEDDING_*` values listed above. Runtime limits use the `DEEP_RESEARCH_MAX_*`, `DEEP_RESEARCH_HEARTBEAT_INTERVAL` and `AGENT_KNOWLEDGE_*` variables. No credential, provider URL, or usable secret is committed in this source project. The test profile uses a fake `ChatModel` and fake `ToolCallback`, a closed RAG component and no Flyway run, so it never opens a network connection or touches PostgreSQL.
 
 Example request (the shell expands the externally managed key):
 
 ```bash
 curl --fail-with-body --no-buffer \
-  -H "X-Research-Api-Key: ${DEEP_RESEARCH_API_KEY}" \
+  -H "Authorization: Bearer ${NATIVE_USER_ACCESS_TOKEN}" \
   -H "Accept: text/event-stream" \
   -H "Content-Type: application/json" \
   -d '{"topic":"agent architecture","reportLanguage":"EN_US","maxSources":8}' \
@@ -177,3 +176,13 @@ All four profiles serialize Java time as ISO strings and declare Jackson UTC. Th
 Timeline values use `Instant`. Light/Service scheduling and exam Commands follow the shared microsecond contract; this template adds no scheduling or exam feature. An example UTC value is `2026-10-13T01:00:00.123456Z`. `LocalDate` and `LocalTime` represent dates and wall-clock times without zone conversion. Existing `LocalDateTime deletedAt` remains a nullable legacy UTC token: NULL means active, and deletion/version/tenant rules remain unchanged.
 
 The undeployed Light/Service initialization sources use `TIMESTAMP(6) WITH TIME ZONE` for window columns; their existing manifest checksums match the source bytes. This does not migrate deployed data or repair existing SQL history. Existing scheduling uniqueness gaps are outside this change. Real PostgreSQL/JDBC acceptance is separate from offline and H2 tests.
+
+## Xingyuan native security
+
+All 13 business operations require their exact `egon-cola-source-agent:<intent>` consented scope and a Jianshen resource permission. The hidden chat negotiation handler uses the same `knowledge:chat` permission before returning 406. Create/update knowledge bases and document upload additionally require explicit WRITE rules for their submitted field sets. Generated projects replace the source namespace with the root artifact ID. Catalog registration remains pending until an operator reviews it and explicitly grants permissions and field rules.
+
+The host owns one stateless chain with complete issuer/JWK/revocation checks and strict APPLICATION audit delivery. Missing identity answers 401; denied scope/resource/field answers 403; unavailable security state or audit answers 503. These security bodies contain only code/message and use no-store. Existing business replies, SSE events and capacity/cancel semantics stay unchanged. API keys and default tenant zero no longer authenticate callers.
+
+Configure the `TIANQUAN_SHOUBING_*`, `NATIVE_TENANT_*`, `OAUTH_REVOCATION_*`, `NATIVE_OAUTH_AUDIT_*`, `TIANQUAN_JIANSHEN_*` and `RBAC3_RUNTIME_*` external values in every environment. Tianshu technical registration uses its existing fixed control registration, HMAC credentials and TLS; the Agent exposes no business RPC provider or invented peer binding. Documentation governance defaults off and, when explicitly enabled, the existing narrow `/v3/api-docs/**` SERVICE chain requires complete verification and `yuheng.openapi.read`.
+
+Ingestion captures trusted actor ID, actor kind and tenant into the existing private Outbox headers before the document write. Workers validate those facts, use the configured MP audit keys and restore the previous MDC. Historical tasks without these facts return a typed retry and follow the existing dead-letter policy; they never acquire a system actor. Offline HTTP/SSE/SDK/H2 tests do not establish live SSO, Redis, PostgreSQL, Tianshu or model-provider integration.

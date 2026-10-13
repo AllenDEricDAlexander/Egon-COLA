@@ -12,7 +12,37 @@
     <artifactId>egon-cola-source-agent-starter</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-source-agent-starter</name>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+                <version>${egon-cola.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>yuheng-starter-openapi-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-tianshu-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-tianshu-http-registration-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-agent-adapter</artifactId>

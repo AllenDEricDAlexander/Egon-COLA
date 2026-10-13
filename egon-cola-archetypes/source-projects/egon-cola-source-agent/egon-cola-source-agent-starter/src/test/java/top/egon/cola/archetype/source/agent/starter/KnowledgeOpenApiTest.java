@@ -8,7 +8,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import top.egon.cola.archetype.source.agent.adapter.filter.ResearchApiKeyFilter;
+import top.egon.cola.archetype.source.agent.starter.config.NativeSecurityContractTest;
+import java.util.Set;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,7 +32,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>The last test is about the other half of the same document: the research operation this
  * archetype has always published must survive the knowledge domain's arrival unchanged.
  */
-@SpringBootTest(classes = DeepResearchApplication.class)
+@SpringBootTest(classes = DeepResearchApplication.class, properties = {
+        "springdoc.api-docs.enabled=true",
+        "egon.cola.component.yuheng.openapi.enabled=true",
+        "egon.cola.component.yuheng.openapi.publish-to-tianshu=false",
+        "egon.cola.component.yuheng.openapi.published-groups[0]=public",
+        "egon.cola.component.yuheng.openapi.biz-code=deep-research",
+        "egon.cola.component.yuheng.openapi.application-code=egon-cola-source-agent",
+        "egon.cola.component.yuheng.openapi.resource-uri=https://agent.example.test",
+        "egon.cola.component.yuheng.openapi.artifact-version=1.0.0",
+        "egon.cola.component.yuheng.openapi.build-id=contract-test",
+        "springdoc.group-configs[0].group=public",
+        "springdoc.group-configs[0].paths-to-match=/api/**"})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(DeepResearchApplicationTest.FakeAgentDependencies.class)
@@ -39,6 +51,8 @@ class KnowledgeOpenApiTest extends PersistenceTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
+    @Autowired
+    private NativeSecurityContractTest.SecurityFixture security;
 
     @Test
     void exposes_the_twelve_knowledge_operations() throws Exception {
@@ -80,7 +94,7 @@ class KnowledgeOpenApiTest extends PersistenceTestSupport {
      * and the document has to say so for each of them.
      */
     @Test
-    void publishes_the_shared_key_error_contract_and_the_answer_accept_requirement() throws Exception {
+    void publishes_the_bearer_error_contract_and_the_answer_accept_requirement() throws Exception {
         mockMvc.perform(apiDocs())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/v1/knowledge-bases/{knowledgeBaseId}/chat'].post"
@@ -95,8 +109,14 @@ class KnowledgeOpenApiTest extends PersistenceTestSupport {
                         .value("#/components/schemas/DeepResearchErrorResponse"))
                 .andExpect(jsonPath("$.components.schemas.KnowledgeQaEventVO").exists())
                 .andExpect(jsonPath("$.components.schemas.DeepResearchErrorResponse").exists())
-                .andExpect(jsonPath("$.components.securitySchemes.researchApiKey.name")
-                        .value(ResearchApiKeyFilter.API_KEY_HEADER));
+                .andExpect(jsonPath("$.components.securitySchemes.nativeBearer.scheme").value("bearer"))
+                .andExpect(jsonPath("$.components.schemas.NativeSecurityError.required.length()").value(2))
+                .andExpect(jsonPath("$.components.schemas.NativeSecurityError.additionalProperties").value(false))
+                .andExpect(jsonPath("$.components.schemas.NativeOrBusinessUnavailableError.oneOf.length()").value(2))
+                .andExpect(jsonPath("$.paths['/api/v1/knowledge-bases/{knowledgeBaseId}/chat'].post.responses['401'].content['application/json'].schema.$ref")
+                        .value("#/components/schemas/NativeSecurityError"))
+                .andExpect(jsonPath("$.paths['/api/v1/knowledge-bases/{knowledgeBaseId}/chat'].post.responses['503'].content['application/json'].schema.$ref")
+                        .value("#/components/schemas/NativeOrBusinessUnavailableError"));
     }
 
     @Test
@@ -110,7 +130,7 @@ class KnowledgeOpenApiTest extends PersistenceTestSupport {
                 .andExpect(jsonPath("$.paths['/api/v1/deep-research/runs'].post.responses['429']").exists());
     }
 
-    private static MockHttpServletRequestBuilder apiDocs() {
-        return get("/v3/api-docs").header(ResearchApiKeyFilter.API_KEY_HEADER, "test-research-key");
+    private MockHttpServletRequestBuilder apiDocs() throws Exception {
+        return get("/v3/api-docs/public").header("Authorization", "Bearer " + security.serviceToken("1001", Set.of("yuheng.openapi.read")));
     }
 }

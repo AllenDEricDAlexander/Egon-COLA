@@ -87,6 +87,45 @@ class KnowledgeIngestDeliveryHandlerTest {
     }
 
     @Test
+    void protectedActorFactsAreInstalledAndTheWholePreviousMdcIsRestored() {
+        MDC.put("tenantId", "777");
+        MDC.put("userId", "previous-actor");
+        MDC.put("egon.auth.actor-kind", "SERVICE");
+        MDC.put("traceId", "worker-trace");
+        Map<String, String> previous = MDC.getCopyOfContextMap();
+        given(documentRepository.findById(DOCUMENT_ID)).willAnswer(call -> {
+            assertThat(MDC.get("userId")).isEqualTo("subject-42");
+            assertThat(MDC.get("egon.auth.actor-kind")).isEqualTo("USER");
+            assertThat(MDC.get("tenantId")).isEqualTo("42");
+            return Optional.empty();
+        });
+        var context = new DeliveryContext("message-1", KnowledgeIngestDeliveryHandler.CHANNEL,
+                String.valueOf(DOCUMENT_ID), payload(TENANT, DOCUMENT_ID), "application/json", "1",
+                Map.of("egon.auth.actor-id", "subject-42", "egon.auth.actor-kind", "USER", "egon.auth.tenant-id", "42"),
+                "trace-1", 1, 5, STAMP.plusSeconds(30));
+        handler.deliver(context);
+        assertThat(MDC.getCopyOfContextMap()).isEqualTo(previous);
+    }
+
+    @Test
+    void legacyAndConflictingHeadersReturnTypedRetryWithoutDataAccess() {
+        MDC.put("tenantId", "777"); MDC.put("userId", "previous");
+        Map<String, String> previous = MDC.getCopyOfContextMap();
+        for (Map<String, String> headers : List.of(Map.<String, String>of(),
+                Map.of("egon.auth.actor-id", "subject-42", "egon.auth.actor-kind", "SYSTEM", "egon.auth.tenant-id", "42"),
+                Map.of("egon.auth.actor-id", "subject-42", "egon.auth.actor-kind", "USER", "egon.auth.tenant-id", "43"))) {
+            var context = new DeliveryContext("message-1", KnowledgeIngestDeliveryHandler.CHANNEL,
+                    String.valueOf(DOCUMENT_ID), payload(TENANT, DOCUMENT_ID), "application/json", "1", headers,
+                    "trace-1", 1, 5, STAMP.plusSeconds(30));
+            var result = handler.deliver(context);
+            assertThat(result.kind()).isEqualTo(DeliveryResult.Kind.RETRYABLE_FAILURE);
+            assertThat(result.code()).isEqualTo("KNOWLEDGE_AUDIT_CONTEXT_INVALID");
+            assertThat(MDC.getCopyOfContextMap()).isEqualTo(previous);
+        }
+        verifyNoInteractions(documentRepository, knowledgeBaseRepository, ragIngestionService);
+    }
+
+    @Test
     void rebuilds_the_document_without_reparsing() {
         givenVisibleDocument();
         given(documentRepository.markProcessing(DOCUMENT_ID, 1)).willReturn(true);
@@ -307,7 +346,8 @@ class KnowledgeIngestDeliveryHandlerTest {
     private static DeliveryContext delivery(String payload, int attempt, int maxAttempts) {
         return new DeliveryContext("message-1", KnowledgeIngestDeliveryHandler.CHANNEL,
                 String.valueOf(DOCUMENT_ID), payload, "application/json", "1",
-                Map.of(), "trace-1", attempt, maxAttempts, STAMP.plusSeconds(30));
+                Map.of("egon.auth.actor-id", "subject-42", "egon.auth.actor-kind", "USER", "egon.auth.tenant-id", "42"),
+                "trace-1", attempt, maxAttempts, STAMP.plusSeconds(30));
     }
 
     private static String payload(long tenant, long documentId) {

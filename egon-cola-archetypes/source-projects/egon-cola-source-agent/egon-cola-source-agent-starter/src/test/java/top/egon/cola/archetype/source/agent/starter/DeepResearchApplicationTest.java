@@ -44,6 +44,7 @@ class DeepResearchApplicationTest extends PersistenceTestSupport {
     }
 
     @TestConfiguration(proxyBeanMethods = false)
+    @Import(top.egon.cola.archetype.source.agent.starter.config.NativeSecurityContractTest.SecurityTestBeans.class)
     static class FakeAgentDependencies {
 
         @Bean(name = "deepResearchChatModel")

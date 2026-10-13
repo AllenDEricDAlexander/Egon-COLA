@@ -6,10 +6,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.archetype.source.agent.adapter.config.DeepResearchApiProperties;
 import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
@@ -21,15 +19,17 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.util.Map;
 
-/** Constant-time service API-key filter; missing and wrong keys share one safe response. */
-@Component("researchApiKeyFilter")
-@Order(Ordered.HIGHEST_PRECEDENCE + 1)
+/** Isolated legacy fixture; production authentication is owned by the native USER boundary. */
+@Deprecated
+@Slf4j
 @RequiredArgsConstructor
 public class ResearchApiKeyFilter extends OncePerRequestFilter {
 
     public static final String API_KEY_HEADER = "X-Research-Api-Key";
 
+    @Qualifier("legacyResearchApiProperties")
     private final DeepResearchApiProperties properties;
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
     @Qualifier("agentClock")
     private final Clock clock;

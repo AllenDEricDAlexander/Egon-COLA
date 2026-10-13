@@ -1,5 +1,8 @@
 package top.egon.cola.archetype.source.agent.adapter.knowledge.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -70,6 +73,19 @@ import java.util.concurrent.atomic.AtomicReference;
 @RestController("knowledgeQaController")
 @RequiredArgsConstructor
 @Slf4j
+@SecurityRequirement(name = "nativeBearer")
+@ApiResponses({
+        @ApiResponse(responseCode = "401", description = "Authentication required", headers = {
+                @Header(name = "WWW-Authenticate", required = true, schema = @Schema(type = "string", allowableValues = {"Bearer"})),
+                @Header(name = "Cache-Control", required = true, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeSecurityError"))),
+        @ApiResponse(responseCode = "403", description = "Authorization denied", headers = {
+                @Header(name = "Cache-Control", required = true, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeSecurityError"))),
+        @ApiResponse(responseCode = "503", description = "Authorization or business dependency unavailable", headers = {
+                @Header(name = "Cache-Control", required = false, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
+})
 public class KnowledgeQaController {
 
     /** The identifier pattern the contract publishes for every path variable of this resource. */
@@ -87,18 +103,17 @@ public class KnowledgeQaController {
             description = "Embeds the query and returns the scored chunks of this base. No chat model "
                     + "is called: the endpoint costs one embedding and answers with the chunks a "
                     + "question would have been answered from.")
-    @SecurityRequirement(name = "researchApiKey")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "The matched chunks, possibly none"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "503", description = "The vector store or the embedding endpoint is unavailable",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge:retrieve')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge.retrieve", permission = "egon-cola-source-agent:knowledge:retrieve", name = "Retrieve chunks from a base")
     public KnowledgeRetrievalVO retrieveKnowledgeChunks(
             @PathVariable("knowledgeBaseId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "knowledgeBaseId must be 1 to 64 characters of [A-Za-z0-9._-]")
@@ -120,7 +135,6 @@ public class KnowledgeQaController {
                     + "events. The stream opens with knowledge.started, continues with "
                     + "knowledge.progress increments and ends with knowledge.completed or "
                     + "knowledge.failed; the terminal event is the last one.")
-    @SecurityRequirement(name = "researchApiKey")
     @Parameter(in = ParameterIn.HEADER, name = HttpHeaders.ACCEPT, required = true,
             description = "Must declare text/event-stream; any other value is answered 406",
             schema = @Schema(type = "string", defaultValue = MediaType.TEXT_EVENT_STREAM_VALUE,
@@ -130,9 +144,6 @@ public class KnowledgeQaController {
                     content = @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
                             schema = @Schema(implementation = KnowledgeQaEventVO.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
@@ -146,8 +157,10 @@ public class KnowledgeQaController {
                             schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "503", description = "The vector store or the embedding endpoint is unavailable",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                            schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge:chat')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge.chat", permission = "egon-cola-source-agent:knowledge:chat", name = "Ask a base a question")
     public SseEmitter chatWithKnowledgeBase(
             @PathVariable("knowledgeBaseId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "knowledgeBaseId must be 1 to 64 characters of [A-Za-z0-9._-]")
@@ -205,6 +218,8 @@ public class KnowledgeQaController {
     @Hidden
     @PostMapping(path = "/api/v1/knowledge-bases/{knowledgeBaseId}/chat",
             consumes = MediaType.APPLICATION_JSON_VALUE, headers = "Accept!=text/event-stream")
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge:chat')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge.chat", permission = "egon-cola-source-agent:knowledge:chat", name = "Ask a base a question")
     public ResponseEntity<Void> rejectUnacceptableAccept(
             @RequestAttribute(ResearchTraceFilter.TRACE_ATTRIBUTE) String traceId) {
         throw new KnowledgeApplicationException(KnowledgeErrorCodeEnum.KNOWLEDGE_NOT_ACCEPTABLE, traceId);

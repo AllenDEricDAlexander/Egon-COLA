@@ -1,59 +1,91 @@
 package top.egon.cola.archetype.source.agent.adapter.knowledge.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import top.egon.cola.archetype.source.agent.application.knowledge.config.KnowledgeRuntimeProperties;
-import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3AuthenticationToken;
+import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpAuthenticationToken;
 
-import java.io.IOException;
-
-/**
- * Opens the tenant scope of every request and closes it again (Spec B §9.2, `REQ-025`).
- *
- * <p>The tenant is the project's thread-scoped channel: the mybatis-plus tenant interceptor reads the
- * key this filter writes, and the ingest delivery thread restores the same key from its task payload.
- * Without it a knowledge read would fail on a missing tenant instead of answering, and a leftover
- * value would scope whatever the next request on that thread touches — so the removal happens in a
- * {@code finally}, on the same thread the value was set.
- *
- * <p>The default tenant is the only source in this version: the request carries no tenant of its own,
- * and authentication, which would supply one, is out of scope. The key name and the value both come
- * from configuration, so the adapter and the component that reads the key cannot drift apart.
- *
- * <p>It is registered for every request rather than only for knowledge paths, because a scoped
- * registration would make the tenant depend on the mapping a request eventually reaches; the only
- * tenant-scoped tables are the knowledge ones, so elsewhere the value is inert.
- */
+/** Opens MP tenant and audit scope from the verified USER and restores the worker's prior MDC. */
 @Component("knowledgeTenantMdcFilter")
-@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 @RequiredArgsConstructor
 @Slf4j
 public class KnowledgeTenantMdcFilter extends OncePerRequestFilter {
 
-    @Qualifier("knowledgeRuntimeProperties")
-    private final KnowledgeRuntimeProperties properties;
-
-    private final EgonColaMybatisPlusProperties mybatisPlusProperties;
+    @Qualifier("jacksonObjectMapper")
+    private final ObjectMapper objectMapper;
+    @Value("${egon.cola.component.mybatis-plus.tenant-id.mdc-key:tenantId}")
+    private final String tenantMdcKey;
+    @Value("${egon.cola.component.mybatis-plus.audit.user-id-mdc-key:userId}")
+    private final String actorMdcKey;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
-        String tenantKey = mybatisPlusProperties.getTenantId().getMdcKey();
-        MDC.put(tenantKey, String.valueOf(properties.tenant().defaultId()));
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        return path.equals("/actuator/health/liveness") || path.equals("/actuator/health/readiness");
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        IdentityPrincipal identity = null;
+        if (authentication instanceof Rbac3AuthenticationToken token && token.isAuthenticated()) {
+            identity = token.getPrincipal().identity();
+        } else if (authentication instanceof IdpAuthenticationToken token && token.isAuthenticated()
+                && token.getPrincipal() instanceof IdentityPrincipal user) {
+            identity = user;
+        }
+        if (identity == null) {
+            writeFailure(response, HttpServletResponse.SC_UNAUTHORIZED, "AUTHENTICATION_REQUIRED", "Tianquan-Shoubing authentication failed");
+            return;
+        }
+        String actor = identity.subject();
+        Long tenant;
         try {
+            if (identity.tenantId() == null || !identity.tenantId().matches("[1-9][0-9]{0,18}")
+                    || actor == null || actor.isBlank() || actor.length() > 128 || !actor.equals(actor.strip())) {
+                throw new IllegalArgumentException("Invalid verified business identity");
+            }
+            tenant = Long.valueOf(identity.tenantId());
+        } catch (IllegalArgumentException invalid) {
+            writeFailure(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "AUTHORIZATION_RUNTIME_UNAVAILABLE", "Tianquan-Jianshen authorization runtime unavailable");
+            return;
+        }
+        Map<String, String> previousMdc = MDC.getCopyOfContextMap();
+        try {
+            MDC.put("tenantId", tenant.toString());
+            MDC.put(tenantMdcKey, tenant.toString());
+            MDC.put("userId", actor);
+            MDC.put(actorMdcKey, actor);
+            MDC.put("egon.auth.actor-kind", "USER");
             filterChain.doFilter(request, response);
         } finally {
-            MDC.remove(tenantKey);
+            MDC.clear();
+            if (previousMdc != null && !previousMdc.isEmpty()) { MDC.setContextMap(previousMdc); }
         }
     }
+
+    private void writeFailure(HttpServletResponse response, int status, String code, String message) throws IOException {
+        response.setStatus(status);
+        response.setHeader("Cache-Control", "no-store");
+        if (status == HttpServletResponse.SC_UNAUTHORIZED) { response.setHeader("WWW-Authenticate", "Bearer"); }
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getOutputStream(), Map.of("code", code, "message", message));
+    }
+
 }

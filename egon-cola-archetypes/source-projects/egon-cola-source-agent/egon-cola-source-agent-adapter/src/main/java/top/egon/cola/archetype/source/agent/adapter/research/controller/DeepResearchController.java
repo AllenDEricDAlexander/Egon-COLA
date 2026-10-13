@@ -1,5 +1,8 @@
 package top.egon.cola.archetype.source.agent.adapter.research.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -47,6 +50,19 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Deep Research")
+@SecurityRequirement(name = "nativeBearer")
+@ApiResponses({
+        @ApiResponse(responseCode = "401", description = "Authentication required", headers = {
+                @Header(name = "WWW-Authenticate", required = true, schema = @Schema(type = "string", allowableValues = {"Bearer"})),
+                @Header(name = "Cache-Control", required = true, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeSecurityError"))),
+        @ApiResponse(responseCode = "403", description = "Authorization denied", headers = {
+                @Header(name = "Cache-Control", required = true, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeSecurityError"))),
+        @ApiResponse(responseCode = "503", description = "Authorization or business dependency unavailable", headers = {
+                @Header(name = "Cache-Control", required = false, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
+})
 public class DeepResearchController {
 
     @Qualifier("deepResearchManage")
@@ -61,14 +77,11 @@ public class DeepResearchController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "Start Deep Research", operationId = "startDeepResearch",
             description = "Starts one bounded, non-idempotent source-grounded research run.")
-    @SecurityRequirement(name = "researchApiKey")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "SSE research lifecycle stream",
                     content = @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
                             schema = @Schema(implementation = DeepResearchEventVO.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "406", description = "SSE is not accepted",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
@@ -79,8 +92,10 @@ public class DeepResearchController {
             @ApiResponse(responseCode = "500", description = "Internal failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "503", description = "Research dependency is unavailable",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:research:start')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.research.start", permission = "egon-cola-source-agent:research:start", name = "Start Deep Research")
     public SseEmitter startDeepResearch(
             @Valid @RequestBody StartDeepResearchRequest request,
             @Parameter(in = ParameterIn.HEADER, name = ResearchTraceFilter.TRACE_HEADER,

@@ -14,8 +14,9 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
-import top.egon.cola.archetype.source.agent.adapter.config.DeepResearchApiProperties;
-import top.egon.cola.archetype.source.agent.adapter.filter.ResearchApiKeyFilter;
+import top.egon.cola.archetype.source.agent.adapter.NativeAgentSecurityContractTest;
+import top.egon.cola.platform.tianquan.jianshen.starter.web.Rbac3AuthorizationExceptionHandler;
+import org.junit.jupiter.api.AfterEach;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.controller.KnowledgeBaseController;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.handler.KnowledgeGlobalExceptionHandler;
@@ -55,7 +56,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class KnowledgeBaseControllerTest {
 
-    private static final String API_KEY = "test-key";
     private static final Instant NOW = Instant.parse("2026-09-10T06:00:00Z");
     private static final String TRACE_ID = "4e9d6938";
     private static final String BASES = "/api/v1/knowledge-bases";
@@ -66,6 +66,11 @@ class KnowledgeBaseControllerTest {
     private final RecordingManage manage = new RecordingManage(base());
 
     private MockMvc mvc;
+    private NativeAgentSecurityContractTest.SecurityFixture security;
+    private String bearer;
+
+    @AfterEach
+    void closesSecurityFixture() { security.close(); }
 
     @BeforeAll
     static void startValidator() {
@@ -78,17 +83,17 @@ class KnowledgeBaseControllerTest {
     }
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        security = new NativeAgentSecurityContractTest.SecurityFixture(java.nio.file.Files.createTempDirectory("agent-wire-"));
+        bearer = security.token("1001", java.util.Set.copyOf(security.permissions));
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
         ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        mvc = MockMvcBuilders.standaloneSetup(new KnowledgeBaseController(manage))
+        mvc = MockMvcBuilders.standaloneSetup(new KnowledgeBaseController(security.fields, security.properties, manage))
                 .setValidator(validator)
                 .addFilters(
-                        new ResearchTraceFilter(Clock.fixed(NOW, ZoneOffset.UTC), mapper),
-                        new ResearchApiKeyFilter(new DeepResearchApiProperties(API_KEY), mapper,
-                                Clock.fixed(NOW, ZoneOffset.UTC)))
-                .setControllerAdvice(new KnowledgeGlobalExceptionHandler(Clock.fixed(NOW, ZoneOffset.UTC)))
+                        new ResearchTraceFilter(Clock.fixed(NOW, ZoneOffset.UTC), mapper)).addFilters(security.httpBoundary())
+                .setControllerAdvice(new KnowledgeGlobalExceptionHandler(new Rbac3AuthorizationExceptionHandler(), Clock.fixed(NOW, ZoneOffset.UTC)))
                 .build();
     }
 
@@ -245,15 +250,15 @@ class KnowledgeBaseControllerTest {
     }
 
     @Test
-    void refuses_a_request_without_the_api_key() throws Exception {
+    void refuses_a_request_without_the_bearer() throws Exception {
         mvc.perform(MockMvcRequestBuilders.get(BASES + "/7"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(header().string("WWW-Authenticate", "ApiKey"))
-                .andExpect(jsonPath("$.code").value("RESEARCH_UNAUTHORIZED"));
+                .andExpect(header().string("WWW-Authenticate", "Bearer"))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
     }
 
-    private static MockHttpServletRequestBuilder authenticated(MockHttpServletRequestBuilder request) {
-        return request.header(ResearchApiKeyFilter.API_KEY_HEADER, API_KEY)
+    private MockHttpServletRequestBuilder authenticated(MockHttpServletRequestBuilder request) {
+        return request.header("Authorization", "Bearer " + bearer)
                 .header(ResearchTraceFilter.TRACE_HEADER, TRACE_ID);
     }
 

@@ -2,6 +2,9 @@ package top.egon.cola.archetype.source.agent.application.knowledge.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,11 +40,14 @@ public class KnowledgeIngestQueueService {
 
     private final @Qualifier("transactionalOutbox") TransactionalOutbox transactionalOutbox;
 
+    private final @Qualifier("egonColaMdcUserIdProvider") EgonColaUserIdProvider actorProvider;
+
     /** Stores the document and queues its first ingest; anything failing rolls both back. */
     @Transactional
     public KnowledgeDocumentBO storeAndEnqueue(KnowledgeDocumentBO document, String traceId) {
+        Map<String, String> headers = auditHeaders(document, traceId);
         KnowledgeDocumentBO stored = documentRepository.insert(document);
-        enqueue(stored, traceId);
+        enqueue(stored, traceId, headers);
         log.info("knowledge upload documentId={} knowledgeBaseId={} sizeBytes={} outcome=QUEUED",
                 stored.documentId(), stored.knowledgeBaseId(), stored.sizeBytes());
         return stored;
@@ -55,12 +61,13 @@ public class KnowledgeIngestQueueService {
      */
     @Transactional
     public boolean resetAndEnqueue(KnowledgeDocumentBO document, String traceId) {
+        Map<String, String> headers = auditHeaders(document, traceId);
         if (!documentRepository.resetForReingest(document.documentId())) {
             log.info("knowledge reingest documentId={} outcome=SKIPPED reason=status_changed",
                     document.documentId());
             return false;
         }
-        enqueue(document, traceId);
+        enqueue(document, traceId, headers);
         log.info("knowledge reingest documentId={} knowledgeBaseId={} outcome=QUEUED",
                 document.documentId(), document.knowledgeBaseId());
         return true;
@@ -70,13 +77,14 @@ public class KnowledgeIngestQueueService {
      * Queues one ingest. The payload carries the tenant because the delivery thread has no request
      * context to restore it from, and the handler rebuilds that thread's tenant scope from it.
      */
-    private void enqueue(KnowledgeDocumentBO document, String traceId) {
+    private void enqueue(KnowledgeDocumentBO document, String traceId, Map<String, String> headers) {
         try {
             transactionalOutbox.enqueue(OutboxMessage.builder()
                     .channel(KnowledgeIngestChannel.NAME)
                     .destination(String.valueOf(document.documentId()))
                     .schemaVersion(KnowledgeIngestChannel.SCHEMA_VERSION)
                     .payload(payload(document))
+                    .headers(headers)
                     .traceId(traceId)
                     .build());
         } catch (RuntimeException failure) {
@@ -84,6 +92,25 @@ public class KnowledgeIngestQueueService {
             // rather than surface as a document nothing will ever process.
             throw new KnowledgeApplicationException(KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, traceId, failure);
         }
+    }
+
+    /** Captures server-owned facts before either document write; HTTP headers never enter this map. */
+    private Map<String, String> auditHeaders(KnowledgeDocumentBO document, String traceId) {
+        String actor;
+        Long tenant;
+        try {
+            actor = actorProvider.currentUserId();
+            tenant = EgonColaTenantIdProvider.currentTenantId();
+        } catch (IllegalStateException missing) {
+            throw new KnowledgeApplicationException(KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, traceId, missing);
+        }
+        String kind = MDC.get("egon.auth.actor-kind");
+        if (actor == null || actor.isBlank() || actor.length() > 128 || !actor.equals(actor.strip())
+                || !("USER".equals(kind) || "SERVICE".equals(kind))
+                || tenant == null || tenant <= 0 || !tenant.equals(document.tenantId())) {
+            throw new KnowledgeApplicationException(KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, traceId);
+        }
+        return Map.of("egon.auth.actor-id", actor, "egon.auth.actor-kind", kind, "egon.auth.tenant-id", tenant.toString());
     }
 
     private static Map<String, Object> payload(KnowledgeDocumentBO document) {

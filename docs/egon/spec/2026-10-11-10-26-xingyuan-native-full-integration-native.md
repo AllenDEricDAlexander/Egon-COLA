@@ -2149,3 +2149,15 @@ RuntimeConfigurationTest和StudentManagementApplicationTest纳入同一受控SDK
 30个实际Spring代理配真实signedUSER和SDK/Core授权fixture证明scope gate在PDP前，20个USER入口scope足够但PDPdeny仍不进usecase；之后按已批准范围移除header-role的Application判断，保留业务/幂等/事务/事件。Web既有NativeRpcConfiguration复用同Light/Service方法template和shared active marker严格DENY mapper，非Servlet也生效。三evaluation只读binding新增既有properties.applicationNamespace配置槽，部署声明目标namespace，group/version按原RPC descriptor与实际default1.0.0；不给当前app或header选择target，unknown/错scope关闭proxy。
 
 已有完整context tests五个caller加入显式SDKfixture；业务H2用例tenant1有专用test-only signedRealm1，原1001/1002安全用例不变；不改production默认tenant/role、持久化或publicDTO。并行UTC修改保留工作树并从本安全commit分离，时间规范原位SQL/启动/Profile/README由UTC任务拥有。本轮检验security/CQE/schema冻结，真实DB/AS/SSO/TLS/注册仍后续运行Gate，不以workingTree UTC与source测试冒部署证明。
+
+### 22.13. Agent 同一503业务与安全响应的文档兼容
+
+A-HTTP-01/12/13 已有业务依赖503 body DeepResearchErrorResponse 保持；安全503 body NativeSecurityError 不变。三个操作的503 OAS schema由现metadata owner以 oneOf 组合两个原schema引用；其余503仅NativeSecurityError。没有新的运行响应类、状态或业务字段。chat隐藏406 handler仍为A-HTTP-13同一权限、scope及resource，先双PEP再406。并行UTC配置与文档改动由独立任务负责，本安全delta不更改其wire/存储时间语义。
+
+### 22.14. Agent 文档窄 SERVICE 链能力声明
+
+实际 Agent starter缺少 L/W/S已有的yuheng-starter-openapi-webmvc；完整接入复用该现5.4.1技术SDK，以 declared Agent starter POM 的 direct无版本依赖、原parent管理补齐。不新增Admin或业务层依赖。文档 default-off；显式启用仅原 /v3/api-docs/** 窄完整Shoubing SERVICE chain（own-host resource/revocation/strict APPLICATION usage与现yuheng.openapi.read）。Agent13 USER业务路径与隐藏chat406双PEP不变，无新业务RPC/provider/scope/自动grant。
+
+### 22.15. Agent SSE 容器响应续传边界
+
+两个原SSE路径容器ASYNC仅发送初次REQUEST已双PEP准入任务的 response continuation，允许在SDK初次request scope已finally恢复后完成终端输出。不会重建USER认证、重开scope或进入新Manage；普通REQUEST以及其他ASYNC仍原USER认证/denyAll。初次权限失败task/model/capacity0不变；原cancel/timeout释放与worker技术headers/contextfinally保持，不能从HTTP参数/header选择dispatchertype。

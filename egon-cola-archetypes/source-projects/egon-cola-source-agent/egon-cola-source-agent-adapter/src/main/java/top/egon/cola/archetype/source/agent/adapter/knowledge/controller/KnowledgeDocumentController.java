@@ -1,5 +1,12 @@
 package top.egon.cola.archetype.source.agent.adapter.knowledge.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource;
+import io.swagger.v3.oas.annotations.headers.Header;
+import java.util.Set;
+import top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties;
+import top.egon.cola.platform.tianquan.jianshen.starter.field.FieldWriteAuthorizationCommand;
+import top.egon.cola.platform.tianquan.jianshen.starter.field.Rbac3FieldWriteAuthorizationComponent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -62,7 +69,25 @@ import java.util.Map;
 @RestController("knowledgeDocumentController")
 @RequiredArgsConstructor
 @Slf4j
+@SecurityRequirement(name = "nativeBearer")
+@ApiResponses({
+        @ApiResponse(responseCode = "401", description = "Authentication required", headers = {
+                @Header(name = "WWW-Authenticate", required = true, schema = @Schema(type = "string", allowableValues = {"Bearer"})),
+                @Header(name = "Cache-Control", required = true, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeSecurityError"))),
+        @ApiResponse(responseCode = "403", description = "Authorization denied", headers = {
+                @Header(name = "Cache-Control", required = true, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeSecurityError"))),
+        @ApiResponse(responseCode = "503", description = "Authorization unavailable", headers = {
+                @Header(name = "Cache-Control", required = true, schema = @Schema(type = "string", allowableValues = {"no-store"}))},
+                content = @Content(mediaType = "application/json", schema = @Schema(ref = "#/components/schemas/NativeSecurityError")))
+})
 public class KnowledgeDocumentController {
+
+    @Qualifier("rbac3FieldWriteAuthorizationComponent")
+    private final Rbac3FieldWriteAuthorizationComponent fieldWrite;
+    @Qualifier("egon.cola.platform.tianquan.jianshen-top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties")
+    private final Rbac3StarterProperties authorizationProperties;
 
     /** The identifier pattern the contract publishes for every path variable of this resource. */
     private static final String IDENTIFIER_PATTERN = "[A-Za-z0-9._-]{1,64}";
@@ -81,12 +106,9 @@ public class KnowledgeDocumentController {
     @Operation(operationId = "uploadKnowledgeDocument", summary = "Upload a document",
             description = "Stores the original, extracts its text and queues the ingest; the status "
                     + "starts at PENDING and is polled through getKnowledgeDocument.")
-    @SecurityRequirement(name = "researchApiKey")
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "The document is stored and queued"),
             @ApiResponse(responseCode = "400", description = "Validation failure or no extractor for the format",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
@@ -95,6 +117,8 @@ public class KnowledgeDocumentController {
             @ApiResponse(responseCode = "429", description = "The base holds as many documents as it may",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:upload')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.upload", permission = "egon-cola-source-agent:knowledge-document:upload", name = "Upload a document")
     public ResponseEntity<KnowledgeDocumentVO> uploadKnowledgeDocument(
             @PathVariable("knowledgeBaseId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "knowledgeBaseId must be 1 to 64 characters of [A-Za-z0-9._-]")
@@ -106,6 +130,8 @@ public class KnowledgeDocumentController {
             @Parameter(in = ParameterIn.HEADER, name = ResearchTraceFilter.TRACE_HEADER,
                     description = "Optional safe request correlation id")
             @RequestAttribute(ResearchTraceFilter.TRACE_ATTRIBUTE) String traceId) {
+        fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-agent:knowledge-document:upload", authorizationProperties.getSystemCode(),
+                "egon-cola-source-agent.api.knowledge-document.upload", Set.of("file", "displayName")));
         Long identifier = identifier(knowledgeBaseId, "knowledgeBaseId", traceId);
         KnowledgeDocumentBO uploaded = knowledgeDocumentManage.upload(
                 uploadCommand(identifier, file, displayName, traceId));
@@ -118,16 +144,15 @@ public class KnowledgeDocumentController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "listKnowledgeDocuments", summary = "List the documents of a base",
             description = "Returns one page of documents, newest first, optionally filtered by status and name.")
-    @SecurityRequirement(name = "researchApiKey")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "One page of documents"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:list')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.list", permission = "egon-cola-source-agent:knowledge-document:list", name = "List the documents of a base")
     public PageResultRecord<KnowledgeDocumentVO> listKnowledgeDocuments(
             @PathVariable("knowledgeBaseId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "knowledgeBaseId must be 1 to 64 characters of [A-Za-z0-9._-]")
@@ -156,16 +181,15 @@ public class KnowledgeDocumentController {
     @Operation(operationId = "getKnowledgeDocument", summary = "Get a document",
             description = "Returns the status and the diagnostics of one document; the stored text is "
                     + "reported as a length, never as a body.")
-    @SecurityRequirement(name = "researchApiKey")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "The document"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The document does not exist",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:read')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.read", permission = "egon-cola-source-agent:knowledge-document:read", name = "Get a document")
     public KnowledgeDocumentVO getKnowledgeDocument(
             @PathVariable("documentId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "documentId must be 1 to 64 characters of [A-Za-z0-9._-]")
@@ -181,18 +205,17 @@ public class KnowledgeDocumentController {
     @Operation(operationId = "reingestKnowledgeDocument", summary = "Reprocess a document",
             description = "Queues another ingest attempt from the already stored text; the original is "
                     + "neither re-uploaded nor re-parsed.")
-    @SecurityRequirement(name = "researchApiKey")
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "The document is queued again"),
             @ApiResponse(responseCode = "400", description = "Validation failure or a request body was sent",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The document does not exist",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "409", description = "The document is still in progress or has no text",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:reingest')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.reingest", permission = "egon-cola-source-agent:knowledge-document:reingest", name = "Reprocess a document")
     public ResponseEntity<KnowledgeDocumentVO> reingestKnowledgeDocument(
             @PathVariable("documentId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "documentId must be 1 to 64 characters of [A-Za-z0-9._-]")
@@ -211,16 +234,15 @@ public class KnowledgeDocumentController {
     @DeleteMapping(path = "/api/v1/knowledge-documents/{documentId}")
     @Operation(operationId = "deleteKnowledgeDocument", summary = "Delete a document",
             description = "Removes the document with its stored original and its chunks; it is not recoverable.")
-    @SecurityRequirement(name = "researchApiKey")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "The document is gone"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "API key failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The document does not exist",
                     content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
     })
+    @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:delete')")
+    @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.delete", permission = "egon-cola-source-agent:knowledge-document:delete", name = "Delete a document")
     public ResponseEntity<Void> deleteKnowledgeDocument(
             @PathVariable("documentId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "documentId must be 1 to 64 characters of [A-Za-z0-9._-]")

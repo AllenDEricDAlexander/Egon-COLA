@@ -1,6 +1,14 @@
 package top.egon.cola.archetype.source.agent.adapter.knowledge.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import top.egon.cola.platform.tianquan.jianshen.starter.authorization.DefaultAuthorizationService.AuthorizationDeniedException;
+import top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService.RuntimeUnavailableException;
+import top.egon.cola.platform.tianquan.jianshen.starter.web.Rbac3AuthorizationExceptionHandler;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpSecurityObservationFilter;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +67,49 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class KnowledgeGlobalExceptionHandler {
+
+    @Qualifier("rbac3AuthorizationExceptionHandler")
+    private final Rbac3AuthorizationExceptionHandler securityErrors;
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthorization(AuthorizationDeniedException failure) {
+        return confirmedDenial() ? securityErrors.denied(failure) : auditUnavailable();
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleScopeOrFields(AccessDeniedException failure) {
+        return confirmedDenial() ? securityErrors.fieldDenied(
+                new org.springframework.security.authorization.AuthorizationDeniedException(failure.getMessage())) : auditUnavailable();
+    }
+
+    @ExceptionHandler(RuntimeUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleSecurityUnavailable(RuntimeUnavailableException failure) {
+        return securityErrors.unavailable(failure);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException failure) {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)
+                || !IdpSecurityObservationFilter.beforeAuthenticationFailure(attributes.getRequest())) {
+            return auditUnavailable();
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header("Cache-Control", "no-store")
+                .header("WWW-Authenticate", "Bearer").body(Map.of(
+                        "code", "AUTHENTICATION_REQUIRED", "message", "Tianquan-Shoubing authentication failed"));
+    }
+
+    private static boolean confirmedDenial() {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) { return false; }
+        var marker = IdpSecurityObservationFilter.authorizationObservationContext(attributes.getRequest());
+        return marker != null && marker.isActive() && IdpSecurityObservationFilter.beforeAuthorizationDenied(attributes.getRequest())
+                && marker.isConfirmed();
+    }
+
+    private static ResponseEntity<Map<String, Object>> auditUnavailable() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header("Cache-Control", "no-store").body(Map.of(
+                "code", "OAUTH_AUDIT_DELIVERY_UNAVAILABLE", "message", "Tianquan-Jianshen authorization runtime unavailable"));
+    }
+
 
     @Qualifier("agentClock")
     private final Clock clock;

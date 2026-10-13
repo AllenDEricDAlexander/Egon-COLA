@@ -15,7 +15,7 @@ import java.time.Duration;
 public record DeepResearchConfigurationProperties(
         @Valid @NotNull RuntimeProperties runtime,
         @Valid @NotNull ModelProperties model,
-        @Valid @NotNull SecurityProperties security,
+        @Valid SecurityProperties security,
         @Valid @NotNull SearchProperties search,
         @Valid @NotNull DocsProperties docs) {
 
@@ -24,7 +24,6 @@ public record DeepResearchConfigurationProperties(
                 ? new RuntimeProperties(4, Duration.ofMinutes(5), 20, Duration.ofSeconds(15))
                 : runtime;
         model = model == null ? new ModelProperties(null, null, null) : model;
-        security = security == null ? new SecurityProperties(null) : security;
         search = search == null ? new SearchProperties(null) : search;
         docs = docs == null ? new DocsProperties(false) : docs;
     }
@@ -55,6 +54,8 @@ public record DeepResearchConfigurationProperties(
         }
     }
 
+    /** Optional legacy constructor value; native authentication never reads this setting. */
+    @Deprecated
     public record SecurityProperties(@NotBlank String apiKey) {
 
         public SecurityProperties {

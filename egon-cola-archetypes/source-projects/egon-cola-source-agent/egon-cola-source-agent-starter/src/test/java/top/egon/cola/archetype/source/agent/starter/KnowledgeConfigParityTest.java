@@ -15,6 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -60,6 +61,46 @@ class KnowledgeConfigParityTest {
             onlyInProfile.removeAll(base);
             assertTrue(onlyInProfile.isEmpty(),
                     () -> "application-" + profile + ".yml declares keys the base file does not: " + onlyInProfile);
+        }
+    }
+
+    @Test
+    void actualYamlAndBinderKeepThirteenUserScopesAndNoBusinessRpcBindings() throws Exception {
+        Set<String> baseline = null;
+        try (var validators = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            for (String profile : List.of("application.yml", "application-dev.yml", "application-prod.yml", "application-test.yml")) {
+                var values = new java.util.LinkedHashMap<String, Object>();
+                for (var source : new org.springframework.boot.env.YamlPropertySourceLoader().load(profile,
+                        new org.springframework.core.io.ClassPathResource(profile))) {
+                    ((org.springframework.core.env.MapPropertySource) source).getSource().forEach((key, value) -> values.put(key,
+                            value instanceof org.springframework.boot.origin.OriginTrackedValue tracked ? tracked.getValue() : value));
+                }
+                Set<String> keys = values.keySet().stream().filter(key -> key.startsWith("egon.cola.platform.tianquan.")
+                                || key.startsWith("spring.security.oauth2.client.") || key.startsWith("server.ssl."))
+                        .filter(key -> !key.contains("tenant-registration-ids")).collect(java.util.stream.Collectors.toSet());
+                if (baseline == null) { baseline = keys; } else { assertEquals(baseline, keys, profile); }
+                var environment = new org.springframework.core.env.StandardEnvironment();
+                environment.getPropertySources().addFirst(new org.springframework.core.env.MapPropertySource("contract", values));
+                var rpc = org.springframework.boot.context.properties.bind.Binder.get(environment)
+                        .bind("egon.cola.platform.tianquan.shoubing.rpc",
+                                top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.RpcProperties.class).get();
+                assertTrue(validators.getValidator().validate(rpc).isEmpty(), profile);
+                assertFalse(rpc.isEnabled(), profile);
+                assertTrue(rpc.getProvider().getMethods().isEmpty(), profile);
+                assertTrue(rpc.getConsumer().getBindings().isEmpty(), profile);
+                var policy = org.springframework.boot.context.properties.bind.Binder.get(environment)
+                        .bind("egon.cola.platform.tianquan.jianshen.user-scope-policy",
+                                top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3StarterProperties.UserScopePolicyProperties.class).get();
+                assertTrue(validators.getValidator().validate(policy).isEmpty(), profile);
+                assertTrue(policy.isEnabled(), profile);
+                assertEquals(13, policy.getPermissionScopes().size(), profile);
+                policy.getPermissionScopes().forEach((permission, scopes) -> {
+                    assertTrue(permission.startsWith("egon-cola-source-agent:"), profile);
+                    assertEquals(Set.of(permission), scopes, profile);
+                });
+                assertFalse(values.containsKey("agent.deep-research.security.api-key"), profile);
+                assertFalse(values.containsKey("agent.knowledge.tenant.default-id"), profile);
+            }
         }
     }
 

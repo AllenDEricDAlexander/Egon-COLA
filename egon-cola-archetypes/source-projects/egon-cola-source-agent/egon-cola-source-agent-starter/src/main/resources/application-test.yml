@@ -2,6 +2,44 @@
 # `create extension vector`、`jsonb`、部分索引与 `lower(...)` 表达式索引只在真实 PostgreSQL 上可执行，
 # 因此本 profile 不校验迁移，迁移契约由 KnowledgeSchemaMigrationTest 以文本断言守住。
 spring:
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.client.reactive.ReactiveOAuth2ClientAutoConfiguration
+  security:
+    oauth2:
+      client:
+        registration:
+          tianshuregistration:
+            provider: native-control
+            client-id: ${NATIVE_CONTROL_CLIENT_ID:}
+            client-secret: ${NATIVE_CONTROL_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+            scope: ${NATIVE_CONTROL_SCOPES:}
+          native-tenant-one:
+            provider: native-tenant-one
+            client-id: ${NATIVE_SERVICE_CLIENT_ID:}
+            client-secret: ${NATIVE_SERVICE_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+            scope: service:authorization:snapshot
+          native-tenant-two:
+            provider: native-tenant-two
+            client-id: ${NATIVE_SERVICE_CLIENT_ID:}
+            client-secret: ${NATIVE_SERVICE_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+            scope: service:authorization:snapshot
+        provider:
+          native-control:
+            token-uri: ${NATIVE_CONTROL_TOKEN_URI:}
+          native-tenant-one:
+            token-uri: ${NATIVE_TENANT_ONE_TOKEN_URI:}
+          native-tenant-two:
+            token-uri: ${NATIVE_TENANT_TWO_TOKEN_URI:}
+
   jackson:
     time-zone: UTC
     serialization:
@@ -119,6 +157,184 @@ egon:
             knowledge_document:
               type: SINGLE
               data-source: primary
+      rpc:
+        enabled: false
+        identity:
+          env: ${APP_ENV:test}
+          host: ${RPC_ADVERTISED_HOST:localhost}
+          instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
+        provider:
+          enabled: false
+          port: ${RPC_PORT:50051}
+          advertised-host: ${RPC_ADVERTISED_HOST:localhost}
+          registration-fail-fast: true
+        consumer:
+          enabled: false
+          default-timeout-ms: 3000
+          max-retries: 0
+        tls:
+          enabled: false
+          development-plaintext: true
+          certificate-chain-path: ${RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
+        enabled: false
+        biz-code: ${TIANSHU_BIZ_CODE:deep-research}
+        app-code: ${TIANSHU_APP_CODE:${spring.application.name}}
+        env: ${APP_ENV:test}
+        namespace: ${TIANSHU_NAMESPACE:default}
+        registration-resource-uri: ${TIANSHU_REGISTRATION_RESOURCE_URI:}
+        redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
+          enabled: false
+          host: ${TIANSHU_REDIS_HOST:localhost}
+          port: ${TIANSHU_REDIS_PORT:6379}
+          password: ${TIANSHU_REDIS_PASSWORD:}
+          database: ${TIANSHU_REDIS_DATABASE:0}
+        consistency:
+          fail-fast: true
+        registry:
+          enabled: false
+          http:
+            enabled: false
+            env: ${APP_ENV:test}
+            namespace: ${TIANSHU_NAMESPACE:default}
+            instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
+            service-name: ${spring.application.name}
+            version: 1.0.0
+            advertised-host: ${HTTP_ADVERTISED_HOST:localhost}
+            port: ${server.port:8080}
+            fail-fast: true
+        rpc:
+          target: ${TIANSHU_RPC_TARGET:}
+          tls:
+            enabled: false
+            development-plaintext: true
+            certificate-chain-path: ${TIANSHU_RPC_CERTIFICATE_CHAIN_PATH:}
+            private-key-path: ${TIANSHU_RPC_PRIVATE_KEY_PATH:}
+            trust-certificate-collection-path: ${TIANSHU_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+          auth:
+            enabled: false
+            runtime:
+              access-key: ${TIANSHU_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RUNTIME_SECRET_KEY:}
+            registry:
+              access-key: ${TIANSHU_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_REGISTRY_SECRET_KEY:}
+      yuheng:
+        openapi:
+          enabled: false
+          publish-to-tianshu: false
+    platform:
+      tianquan:
+        shoubing:
+          enabled: false
+          register-filter: false
+          issuer: ${TIANQUAN_SHOUBING_ISSUER:}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:}
+          resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID:}
+          resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:https://organization.example.test}
+          clock-skew: PT30S
+          trusted-issuers:
+            tenant-one:
+              issuer: ${NATIVE_TENANT_ONE_ISSUER:}
+              jwks-uri: ${NATIVE_TENANT_ONE_JWKS_URI:}
+              realm-key: ${NATIVE_TENANT_ONE_REALM_KEY:}
+              realm-type: TENANT
+              tenant-id: ${NATIVE_TENANT_ONE_ID:}
+              status: ACTIVE
+              trust-version: ${NATIVE_TENANT_ONE_TRUST_VERSION:1}
+            tenant-two:
+              issuer: ${NATIVE_TENANT_TWO_ISSUER:}
+              jwks-uri: ${NATIVE_TENANT_TWO_JWKS_URI:}
+              realm-key: ${NATIVE_TENANT_TWO_REALM_KEY:}
+              realm-type: TENANT
+              tenant-id: ${NATIVE_TENANT_TWO_ID:}
+              status: ACTIVE
+              trust-version: ${NATIVE_TENANT_TWO_TRUST_VERSION:1}
+          revocation:
+            mode: STRICT_SHARED
+            primary-endpoint: ${OAUTH_REVOCATION_PRIMARY_ENDPOINT:}
+            timeout: PT0.5S
+            epoch: ${OAUTH_REVOCATION_EPOCH:}
+          jwks-cache:
+            ttl: PT300S
+            max-issuers: 1000
+            connect-timeout: PT2S
+            read-timeout: PT5S
+          usage-observation:
+            enabled: false
+            receiver: APPLICATION
+            fallback-issuer: ${TIANQUAN_SHOUBING_ISSUER:}
+            allow-local-plaintext: false
+          audit:
+            stream: egon:oauth:audit:v1
+            spool-directory: ${NATIVE_OAUTH_AUDIT_SPOOL_DIRECTORY:}
+            spool-max-bytes: 1073741824
+            hmac-key-file: ${NATIVE_OAUTH_AUDIT_HMAC_KEY_FILE:}
+            replay-initial-delay: 5000
+            replay-delay: 5000
+            delivery:
+              receipt-ttl: PT1H
+              confirmation-timeout: PT30S
+              batch-size: 100
+          service-client:
+            app-id: egon-cola-source-agent
+            registration-id: tianshuregistration
+            credential-versions:
+              tianshuregistration: ${NATIVE_CONTROL_CREDENTIAL_VERSION:1}
+              native-tenant-one: ${NATIVE_TENANT_ONE_CREDENTIAL_VERSION:1}
+              native-tenant-two: ${NATIVE_TENANT_TWO_CREDENTIAL_VERSION:1}
+            # Deployment manifest supplies exact positive tenant IDs; there is no default tenant selection.
+            tenant-registration-ids: {}
+            renewal-skew: PT60S
+          rpc:
+            enabled: false
+            consumer:
+              enabled: false
+              bindings: {}
+            provider:
+              methods: {}
+        jianshen:
+          enabled: false
+          register-filter: false
+          system-code: egon-cola-source-agent
+          user-scope-policy:
+            enabled: true
+            permission-scopes:
+              "[egon-cola-source-agent:research:start]": ["egon-cola-source-agent:research:start"]
+              "[egon-cola-source-agent:knowledge-base:create]": ["egon-cola-source-agent:knowledge-base:create"]
+              "[egon-cola-source-agent:knowledge-base:list]": ["egon-cola-source-agent:knowledge-base:list"]
+              "[egon-cola-source-agent:knowledge-base:read]": ["egon-cola-source-agent:knowledge-base:read"]
+              "[egon-cola-source-agent:knowledge-base:update]": ["egon-cola-source-agent:knowledge-base:update"]
+              "[egon-cola-source-agent:knowledge-base:delete]": ["egon-cola-source-agent:knowledge-base:delete"]
+              "[egon-cola-source-agent:knowledge-document:upload]": ["egon-cola-source-agent:knowledge-document:upload"]
+              "[egon-cola-source-agent:knowledge-document:list]": ["egon-cola-source-agent:knowledge-document:list"]
+              "[egon-cola-source-agent:knowledge-document:read]": ["egon-cola-source-agent:knowledge-document:read"]
+              "[egon-cola-source-agent:knowledge-document:reingest]": ["egon-cola-source-agent:knowledge-document:reingest"]
+              "[egon-cola-source-agent:knowledge-document:delete]": ["egon-cola-source-agent:knowledge-document:delete"]
+              "[egon-cola-source-agent:knowledge:retrieve]": ["egon-cola-source-agent:knowledge:retrieve"]
+              "[egon-cola-source-agent:knowledge:chat]": ["egon-cola-source-agent:knowledge:chat"]
+          authorization:
+            endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:}
+            cache-ttl: PT5M
+            maximum-jitter: PT30S
+            near-cache-ttl: PT5S
+            fetch-timeout: PT1S
+            service-token:
+              enabled: true
+              resource-uri: ${TIANQUAN_JIANSHEN_RESOURCE_URI:}
+              scopes: service:authorization:snapshot
+              renewal-skew: PT60S
+          runtime:
+            redis-enabled: false
+            redis-address: ${RBAC3_RUNTIME_REDIS_ADDRESS:}
+            database: ${RBAC3_RUNTIME_REDIS_DATABASE:0}
+            password-file: ${RBAC3_RUNTIME_REDIS_PASSWORD_FILE:}
+            timeout: PT2S
+
 agent:
   deep-research:
     runtime:
@@ -130,8 +346,6 @@ agent:
       base-url: http://test.invalid
       api-key: test-model-key
       model-name: test-model
-    security:
-      api-key: test-research-key
     docs:
       enabled: true
     search:
@@ -146,8 +360,6 @@ agent:
       base-url: http://test.invalid
       api-key: test-embedding-key
       model-name: text-embedding-ada-002
-    tenant:
-      default-id: 0
     runtime:
       qa-max-concurrent: 4
       max-upload-bytes: 20971520
@@ -165,3 +377,10 @@ springdoc:
 
 mybatis-plus:
   mapper-locations: classpath*:mybatis/mapper/**/*.xml
+
+server:
+  ssl:
+    enabled: false
+    key-store: ${NATIVE_HTTP_KEY_STORE:}
+    key-store-password: ${NATIVE_HTTP_KEY_STORE_PASSWORD:}
+    key-store-type: PKCS12

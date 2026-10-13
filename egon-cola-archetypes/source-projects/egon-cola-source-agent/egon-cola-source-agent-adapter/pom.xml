@@ -12,7 +12,21 @@
     <artifactId>egon-cola-source-agent-adapter</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-source-agent-adapter</name>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+                <version>${egon-cola.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-agent-application</artifactId>

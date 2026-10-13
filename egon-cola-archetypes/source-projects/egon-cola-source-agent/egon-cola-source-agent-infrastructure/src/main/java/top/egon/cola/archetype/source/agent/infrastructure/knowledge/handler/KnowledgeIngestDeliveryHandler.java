@@ -75,14 +75,19 @@ public class KnowledgeIngestDeliveryHandler implements DeliveryHandler {
             "RAG_MODEL_NOT_REGISTERED", "KNOWLEDGE_MODEL_NOT_REGISTERED",
             "RAG_VALIDATION", "KNOWLEDGE_VALIDATION_ERROR");
 
+    @Qualifier("knowledgeDocumentRepository")
     private final KnowledgeDocumentRepository documentRepository;
 
+    @Qualifier("knowledgeBaseRepository")
     private final KnowledgeBaseRepository knowledgeBaseRepository;
 
+    @Qualifier("ragIngestionService")
     private final RagIngestionService ragIngestionService;
 
+    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties mybatisPlusProperties;
 
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
 
     @Qualifier("agentClock")
@@ -108,12 +113,28 @@ public class KnowledgeIngestDeliveryHandler implements DeliveryHandler {
     @Override
     public DeliveryResult deliver(DeliveryContext context) {
         IngestTask task = parseTask(context.payload());
+        String actor = context.headers().get("egon.auth.actor-id");
+        String kind = context.headers().get("egon.auth.actor-kind");
+        String tenant = context.headers().get("egon.auth.tenant-id");
+        if (actor == null || actor.isBlank() || actor.length() > 128 || !actor.equals(actor.strip())
+                || !("USER".equals(kind) || "SERVICE".equals(kind))
+                || tenant == null || !tenant.equals(String.valueOf(task.tenant())) || task.tenant() <= 0) {
+            // Historical tasks without protected facts are retried/dead-lettered by the existing outbox policy.
+            return DeliveryResult.retryableFailure("KNOWLEDGE_AUDIT_CONTEXT_INVALID", "ingest audit context unavailable");
+        }
         String tenantKey = mybatisPlusProperties.getTenantId().getMdcKey();
-        MDC.put(tenantKey, String.valueOf(task.tenant()));
+        String actorKey = mybatisPlusProperties.getAudit().getUserIdMdcKey();
+        Map<String, String> previous = MDC.getCopyOfContextMap();
         try {
+            MDC.put("tenantId", tenant);
+            MDC.put(tenantKey, tenant);
+            MDC.put("userId", actor);
+            MDC.put(actorKey, actor);
+            MDC.put("egon.auth.actor-kind", kind);
             return ingest(task, context, clock.millis());
         } finally {
-            MDC.remove(tenantKey);
+            MDC.clear();
+            if (previous != null && !previous.isEmpty()) { MDC.setContextMap(previous); }
         }
     }
 

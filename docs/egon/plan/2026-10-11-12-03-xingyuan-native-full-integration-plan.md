@@ -9823,7 +9823,29 @@ no newsecret file/table/loginAPI; exact springproperties from nativeSpec matrix.
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 7 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/filter/KnowledgeTenantMdcFilter.java`
+#### File 7 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/DeepResearchConfigurationProperties.java`
+
+- Purpose: 修复实际Starter父配置仍强制构造旧API-key值造成startup validation失败
+- Symbols: optional legacy SecurityProperties lifecycle
+- Repository evidence: 当前真实文件 `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/DeepResearchConfigurationProperties.java`；目标symbol `optional legacy SecurityProperties lifecycle`；现sourceSHA256 `899b9ad137ae599639afa5bce71f7f28d3636851fff48620d5fa7ca614220f44`。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: optional legacy SecurityProperties lifecycle；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+keep the existing DeepResearchConfigurationProperties public record signature and other validated business config;
+legacy security component is nullable @Valid without @NotNull; do not synthesize SecurityProperties(null) in its constructor;
+retain nested SecurityProperties as deprecated constructor compatibility, no production identity consumer;
+model/search provider keys remain required; native USER auth only sharedSDK/host chain.
+```
+- Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 8 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/filter/KnowledgeTenantMdcFilter.java`
 
 - Purpose: 已验证tenant/actor进原MP，不用default0
 - Symbols: doFilterInternal/order
@@ -9845,7 +9867,7 @@ knowledge RuntimeProperties business quotas keep; never use tenant.defaultId as 
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 8 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/handler/KnowledgeGlobalExceptionHandler.java`
+#### File 9 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/handler/KnowledgeGlobalExceptionHandler.java`
 
 - Purpose: 保留旧businesserror，只增安全wire/审计去重
 - Symbols: specific securityexception mapping before generic
@@ -9867,7 +9889,7 @@ preserve original validation/domaincode/status/trace/time and RESTwrapper or SDL
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 9 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/handler/DeepResearchGlobalExceptionHandler.java`
+#### File 10 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/handler/DeepResearchGlobalExceptionHandler.java`
 
 - Purpose: 保留旧businesserror，只增安全wire/审计去重
 - Symbols: specific securityexception mapping before generic
@@ -9889,7 +9911,7 @@ preserve original validation/domaincode/status/trace/time and RESTwrapper or SDL
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 10 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/DeepResearchOpenApiConfiguration.java`
+#### File 11 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/DeepResearchOpenApiConfiguration.java`
 
 - Purpose: nativeBearer文档delta而不新增成功DTO
 - Symbols: existing OpenAPI Bean components
@@ -9912,7 +9934,7 @@ no direct org.springdoc import forbidden by nativeboundary; no custom responsewr
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 11 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeBaseController.java`
+#### File 12 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeBaseController.java`
 
 - Purpose: 这个existing adapter文件的所有公开业务暴露逐method接PEP，原body保持
 - Symbols: createKnowledgeBase[A-HTTP-02],listKnowledgeBases[A-HTTP-03],getKnowledgeBase[A-HTTP-04],updateKnowledgeBase[A-HTTP-05],deleteKnowledgeBase[A-HTTP-06]
@@ -9960,7 +9982,7 @@ append only exact Spec @Operation operationId/nativeBearer/401-403-503 NativeSec
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 12 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeDocumentController.java`
+#### File 13 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeDocumentController.java`
 
 - Purpose: 这个existing adapter文件的所有公开业务暴露逐method接PEP，原body保持
 - Symbols: uploadKnowledgeDocument[A-HTTP-07],listKnowledgeDocuments[A-HTTP-08],getKnowledgeDocument[A-HTTP-09],reingestKnowledgeDocument[A-HTTP-10],deleteKnowledgeDocument[A-HTTP-11]
@@ -10006,7 +10028,7 @@ append only exact Spec @Operation operationId/nativeBearer/401-403-503 NativeSec
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 13 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeQaController.java`
+#### File 14 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeQaController.java`
 
 - Purpose: 这个existing adapter文件的所有公开业务暴露逐method接PEP，原body保持
 - Symbols: retrieveKnowledgeChunks[A-HTTP-12],chatWithKnowledgeBase[A-HTTP-13]
@@ -10035,7 +10057,7 @@ append only exact Spec @Operation operationId/nativeBearer/401-403-503 NativeSec
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 14 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/research/controller/DeepResearchController.java`
+#### File 15 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/research/controller/DeepResearchController.java`
 
 - Purpose: 这个existing adapter文件的所有公开业务暴露逐method接PEP，原body保持
 - Symbols: startDeepResearch[A-HTTP-01]
@@ -10059,7 +10081,7 @@ append only exact Spec @Operation operationId/nativeBearer/401-403-503 NativeSec
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 15 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/NativeHttpSecurityConfiguration.java`
+#### File 16 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/NativeHttpSecurityConfiguration.java`
 
 - Purpose: 真实ownchain保护business/health，不permitAll
 - Symbols: applicationSecurityFilterChain/IdpEndpointAuthenticationPolicy/registration-disabled
@@ -10084,7 +10106,7 @@ disable servlet auto registrations to avoid doublefilter; exactURI/scopes/subjec
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 16 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/test/java/top/egon/cola/archetype/source/agent/application/knowledge/KnowledgeIngestAuditContextTest.java`
+#### File 17 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/test/java/top/egon/cola/archetype/source/agent/application/knowledge/KnowledgeIngestAuditContextTest.java`
 
 - Purpose: 新增内部header行为回归，写源后补附属测试不是主行为RED替代
 - Symbols: enqueueWritesProtectedInternalActorFacts; absentActorRollsBack
@@ -10106,7 +10128,7 @@ real taskmetadata confirmedbefore worker; no directfakePDPgrant or Tokenexport;
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: test compiles against existing queue/handler ports; wrong/missing actor behavior and exact header assertions RED before those implementations.
 
-#### File 17 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/test/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/KnowledgeIngestDeliveryHandlerTest.java`
+#### File 18 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/test/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/KnowledgeIngestDeliveryHandlerTest.java`
 
 - Purpose: 原workerfixture补真实header，不mockUSER当SERVICE
 - Symbols: trustedHeader/finally/oldmissingactor cases
@@ -10128,7 +10150,7 @@ noContainer/externalmodelprovider started.
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: test compiles against existing queue/handler ports; wrong/missing actor behavior and exact header assertions RED before those implementations.
 
-#### File 18 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/knowledge/service/KnowledgeIngestQueueService.java`
+#### File 19 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/knowledge/service/KnowledgeIngestQueueService.java`
 
 - Purpose: 真实已验证actor贯穿Outbox，publicpayloadschema不改
 - Symbols: enqueue/storeAndEnqueue/resetAndEnqueue internalheaders
@@ -10151,7 +10173,7 @@ missingactor fails storeAndEnqueue transaction rollback; preserve originalfilecl
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 19 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/handler/KnowledgeIngestDeliveryHandler.java`
+#### File 20 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/handler/KnowledgeIngestDeliveryHandler.java`
 
 - Purpose: worker校内部facts并绑定audit+tenant，finally还原
 - Symbols: deliver/context.headers before ingest
@@ -10174,7 +10196,7 @@ publicpayload/SDL/schema remains immutable; samebusiness attempts/errorlogging b
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 20 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application.yml`
+#### File 21 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -10200,7 +10222,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 21 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-dev.yml`
+#### File 22 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-dev.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -10226,7 +10248,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 22 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-prod.yml`
+#### File 23 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-prod.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -10252,7 +10274,7 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 23 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-test.yml`
+#### File 24 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-test.yml`
 
 - Purpose: 所有该profile真实properties接线，flags不开后门
 - Symbols: sharedP/R/audit/RPC/Tianshu/coresecurity key parity
@@ -10278,7 +10300,48 @@ AgenttechnicalTianshu registration uses originalcontroltoken/HMAC/TLS, no newbus
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 24 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/research/DeepResearchControllerTest.java`
+#### File 25 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/NativeAgentSecurityContractTest.java`
+
+- Purpose: 模块内实际SDK/方法代理 fixture；跨adapter/starter不得反向引用测试类或新test-jar
+- Symbols: allFourteenActualMethodsRequireBothScopesAndPdp; SecurityFixture
+- Repository evidence: NativeSpec§8/§18已定义CREATE `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/NativeAgentSecurityContractTest.java` 及symbol；邻居目录存在，目标不是派生产物/DDL。
+- Dependencies and consumers: Step1共同marker/观测、Step4既有出站绑定能力、Step5 USER scope-order、Step8 Outbox、Step9目录/Step10显式字段规则；实际Agent无business RPC provider。 保留本Step原focused selectors及现成功wire caller。
+- Why now: 这个test在生产路径改之前提供RED。
+- Contract/signature changes: allFourteenActualMethodsRequireBothScopesAndPdp; SecurityFixture；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+@Test everyNativeEntryRejectsMissingWrongScopeAndAuditFailure() {
+  create actual USER HTTP/SSE host context with Step1 observer/marker and Step5 scope-first real advisors;
+  controlled fully valid Idp/PDP/audit ports, no fake business response;
+  for exact Spec A-HTTP-01..13 existing controllers including SSE:
+    missing/wrongkind SERVICE/revoked/iss/aud/tenant -> specified HE response and original Manage/model/file/SQL0;
+    USER scope absent but PDP ALLOW ->403 before PDP/field/business;
+    PDP/field WRITE deny ->403; state/audit unavailable ->503, never allow or wrong403;
+  original chat content negotiation shares its approved chat permission; SSE only begins after PEP;
+}
+@Test frozenWireAndOas() {
+  keep existing HTTP DTO/VO/JSON/SSE shapes, operationIds, statuses/Location/content types and business semantics;
+  no business RPC provider/method/scope/status test is invented for Agent;
+}
+@Test trustedTenantActorAndFinally() {
+  two verified USER tenants, old API-key/default0/rawheaders never confer identity;
+  exception/SSE cancel/timeout and ingest worker restore previous MDC/tenant/security scope;
+  actual queue captures server-owned actor/kind/tenant into existing private Outbox headers and delivery finally restores;
+  async Tianshu outgoing registration uses existing fixed control-plane/HMAC/direct-factory contract only,
+    with Step4 binding capability where already applicable; no new business RPC service or target from payload;
+  Step8 Outbox compatibility + Step9 catalog/Step10 reviewed field rules precede actual WRITE acceptance;
+}
+// RED current baseline Agent requires X-Research-Api-Key/default0; assertion failures0fixture errors.
+// Only 13 HTTP/SSE entries plus real async/Tianshu outgoing behavior; no externalPG/Redis/server/Docker.
+```
+- Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
+- After this file: 测试编译且因上面缺行为assertion RED；不commit/red不是依赖error。
+
+#### File 26 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/research/DeepResearchControllerTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: DeepResearchControllerTest existing assertions + explicitauthenticated fixture
@@ -10301,7 +10364,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 25 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeBaseControllerTest.java`
+#### File 27 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeBaseControllerTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: KnowledgeBaseControllerTest existing assertions + explicitauthenticated fixture
@@ -10324,7 +10387,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 26 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeDocumentControllerTest.java`
+#### File 28 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeDocumentControllerTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: KnowledgeDocumentControllerTest existing assertions + explicitauthenticated fixture
@@ -10347,7 +10410,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 27 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeQaControllerTest.java`
+#### File 29 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeQaControllerTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: KnowledgeQaControllerTest existing assertions + explicitauthenticated fixture
@@ -10370,7 +10433,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 28 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchOpenApiTest.java`
+#### File 30 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchOpenApiTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: DeepResearchOpenApiTest existing assertions + explicitauthenticated fixture
@@ -10393,7 +10456,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 29 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeOpenApiTest.java`
+#### File 31 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeOpenApiTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: KnowledgeOpenApiTest existing assertions + explicitauthenticated fixture
@@ -10416,7 +10479,7 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 30 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeConfigParityTest.java`
+#### File 32 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeConfigParityTest.java`
 
 - Purpose: 原successwire回归换可控真实身份，不迁就开放行为
 - Symbols: KnowledgeConfigParityTest existing assertions + explicitauthenticated fixture
@@ -10439,7 +10502,118 @@ assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; d
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 31 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/README.md`
+#### File 33 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchApplicationTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: FakeAgentDependencies / explicit module-local SecurityTestBeans import
+- Repository evidence: 当前真实文件 `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchApplicationTest.java`；目标symbol `FakeAgentDependencies / explicit module-local SecurityTestBeans import`；现sourceSHA256 `86e75b68865a4c779f4d2a430789dda3155adb20406d9c19ac560fed7e60d6de`。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: FakeAgentDependencies / explicit module-local SecurityTestBeans import；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+replace old public/key/headerrole assumptions with explicitcontrolled Idp USERscope/PDP or signedTENANT SERVICEscope fixture;
+retain original methodparams/successDTO/SDL/PB/time/pagination/business effects assertions;
+where teststandalone preserves business-only focus, no claim securityPASS; new primarycontract tests use actualchain/proxy;
+assert missing/wrongscope/authority neverbusiness, no emptyfieldpolicy grants; do not weaken originalexpectedproto/sourcearchitecture.
+
+```
+- Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 34 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/test/java/top/egon/cola/archetype/source/agent/application/knowledge/KnowledgeManageTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: KnowledgeIngestQueueService constructor / publishTenantContext / clearTenantContext
+- Repository evidence: 当前真实文件 `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/test/java/top/egon/cola/archetype/source/agent/application/knowledge/KnowledgeManageTest.java`；目标symbol `KnowledgeIngestQueueService constructor / publishTenantContext / clearTenantContext`；现sourceSHA256 `86e75b68865a4c779f4d2a430789dda3155adb20406d9c19ac560fed7e60d6de`。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: KnowledgeIngestQueueService constructor / publishTenantContext / clearTenantContext；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+keep all existing application business and transactional assertions;
+existing queue constructor receives actual EgonColaMdcUserIdProvider with the existing MP properties;
+existing test scope publishes subject string and finite USER kind alongside its positive tenant;
+finally clears only the test-owned context keys; no SDK dependency or business fake grant added to Application.
+```
+- Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 35 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/AgentSourceContractTest.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: source boundary / package inventory
+- Repository evidence: 当前真实文件 `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/AgentSourceContractTest.java`；目标symbol `source boundary / package inventory`；现sourceSHA256 `86e75b68865a4c779f4d2a430789dda3155adb20406d9c19ac560fed7e60d6de`。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: source boundary / package inventory；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+preserve exact six modules and all original business-root/package-info/profile assertions;
+replace superseded blanket Redis-word fence with exact business Java transport-import fence;
+allow only the approved existing SDK technical configuration, not business transport coupling;
+new Native fixtures receive existing-style test-only package-info.java, no new production layer.
+```
+- Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 36 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/config/package-info.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: test-only package documentation
+- Repository evidence: 当前真实文件 `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/config/package-info.java`；目标symbol `test-only package documentation`；现sourceSHA256 `86e75b68865a4c779f4d2a430789dda3155adb20406d9c19ac560fed7e60d6de`。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: test-only package documentation；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+preserve exact six modules and all original business-root/package-info/profile assertions;
+replace superseded blanket Redis-word fence with exact business Java transport-import fence;
+allow only the approved existing SDK technical configuration, not business transport coupling;
+new Native fixtures receive existing-style test-only package-info.java, no new production layer.
+```
+- Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 37 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/package-info.java`
+
+- Purpose: 原successwire回归换可控真实身份，不迁就开放行为
+- Symbols: test-only package documentation
+- Repository evidence: 当前真实文件 `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/package-info.java`；目标symbol `test-only package documentation`；现sourceSHA256 `86e75b68865a4c779f4d2a430789dda3155adb20406d9c19ac560fed7e60d6de`。
+- Dependencies and consumers: 先前文件与原BOM/currentSDK；主focusedselector `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest`；该文件生产或test调用方按具体pseudocode。
+- Why now: 前置合同/RED/原callee已存在，此处使对应观察点达标；不开始其他Step。
+- Contract/signature changes: test-only package documentation；只有Spec已批准delta，其余签名/协议保留。
+- Input/output and state mapping: 保持原业务字段/IDL，身份/authority从原已验证上下文；不得header决定tenant/actor
+- Error and edge behavior: 缺依赖failclosed，原成功协议/SQL保持；异常finally恢复，不吞原错误
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-NAME-001, MC-VALID-001, MC-MODEL-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-UTIL-001, MC-JSON-001, MC-TIME-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001, MC-BLOCKER-001；Java具体：具名@Slf4j/RequiredArgsConstructor/finalQualifier，DTOgroups/immutablevalue/realBaseForward/Jackson/java.time；非Java配置keys与Rule7/11，测试无外部启动。
+- Literal rule enforcement: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；本文件具体约束：下段明确validation/身份/命名Bean或properties/mapper/异常/时间；Rule7 profile一致；Rule9复用现Strategy/Decorator或原transaction，简单fieldset直接，Rule11保持原模块/MP/Outbox且SQL冻结。
+- Implementation pseudocode:
+```java
+preserve exact six modules and all original business-root/package-info/profile assertions;
+replace superseded blanket Redis-word fence with exact business Java transport-import fence;
+allow only the approved existing SDK technical configuration, not business transport coupling;
+new Native fixtures receive existing-style test-only package-info.java, no new production layer.
+```
+- Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
+- After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
+
+#### File 38 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/README.md`
 
 - Purpose: 明示新身份/目录/peer配置兼容delta，不重写架构说明
 - Symbols: existing run/auth instructions only
@@ -10462,7 +10636,7 @@ keep existingbusiness endpoints/successschemas/modules/DDL/env/runinstructions, 
 - Verification contribution: `NativeSecurityContractTest,DeepResearchControllerTest,KnowledgeBaseControllerTest,KnowledgeDocumentControllerTest,KnowledgeQaControllerTest,KnowledgeIngestAuditContextTest,KnowledgeIngestDeliveryHandlerTest,DeepResearchOpenApiTest,KnowledgeOpenApiTest,KnowledgeConfigParityTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 13实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 32 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/README.zh-CN.md`
+#### File 39 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/README.zh-CN.md`
 
 - Purpose: 明示新身份/目录/peer配置兼容delta，不重写架构说明
 - Symbols: existing run/auth instructions only
@@ -10495,7 +10669,7 @@ git diff --check
 - Failure returns to: 当前File具体symbol/fixture；若缺制品/真实owner/typedAPI不同先修正编译prereq，不能改Spec协议/PDP/SQL或跳external门禁。
 - Completion criteria: 当前Step所有symbol受控GREEN、17 MC与十Literal每行记录具体diff/test evidence，无源码inventory外路径；更新owner规范参数，残留closedshim=0；保留generated15/harness16/live17/audit18门禁，不谎称生产ready。
 - Rollback: 前一Step新HEAD为回滚边界；只ownpath forwardfix或用户批准revert本语义commit，保护他人dirty；不SQLrepair/drop新库/secret日志。
-- Commit paths: `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/config/NativeSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/filter/ResearchApiKeyFilter.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/config/DeepResearchApiConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/config/DeepResearchApiProperties.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/filter/KnowledgeTenantMdcFilter.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/handler/KnowledgeGlobalExceptionHandler.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/handler/DeepResearchGlobalExceptionHandler.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/DeepResearchOpenApiConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeBaseController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeDocumentController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeQaController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/research/controller/DeepResearchController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/NativeHttpSecurityConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/knowledge/service/KnowledgeIngestQueueService.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/handler/KnowledgeIngestDeliveryHandler.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/test/java/top/egon/cola/archetype/source/agent/application/knowledge/KnowledgeIngestAuditContextTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/test/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/KnowledgeIngestDeliveryHandlerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-dev.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-prod.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-test.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/research/DeepResearchControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeBaseControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeDocumentControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeQaControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchOpenApiTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeOpenApiTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeConfigParityTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/README.md`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/README.zh-CN.md`
+- Commit paths: `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/AgentSourceContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/config/package-info.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/package-info.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/test/java/top/egon/cola/archetype/source/agent/application/knowledge/KnowledgeManageTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/DeepResearchConfigurationProperties.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchApplicationTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/NativeAgentSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/config/NativeSecurityContractTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/filter/ResearchApiKeyFilter.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/config/DeepResearchApiConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/config/DeepResearchApiProperties.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/filter/KnowledgeTenantMdcFilter.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/handler/KnowledgeGlobalExceptionHandler.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/handler/DeepResearchGlobalExceptionHandler.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/DeepResearchOpenApiConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeBaseController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeDocumentController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/knowledge/controller/KnowledgeQaController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/research/controller/DeepResearchController.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/NativeHttpSecurityConfiguration.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/knowledge/service/KnowledgeIngestQueueService.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/handler/KnowledgeIngestDeliveryHandler.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/test/java/top/egon/cola/archetype/source/agent/application/knowledge/KnowledgeIngestAuditContextTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/test/java/top/egon/cola/archetype/source/agent/infrastructure/knowledge/KnowledgeIngestDeliveryHandlerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-dev.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-prod.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/resources/application-test.yml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/research/DeepResearchControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeBaseControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeDocumentControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/knowledge/KnowledgeQaControllerTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchOpenApiTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeOpenApiTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeConfigParityTest.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/README.md`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/README.zh-CN.md`
 ```text
 egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml
 egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml
@@ -10527,6 +10701,7 @@ egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-age
 egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/DeepResearchOpenApiTest.java
 egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeOpenApiTest.java
 egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/KnowledgeConfigParityTest.java
+egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/src/test/java/top/egon/cola/archetype/source/agent/adapter/NativeAgentSecurityContractTest.java
 egon-cola-archetypes/source-projects/egon-cola-source-agent/README.md
 egon-cola-archetypes/source-projects/egon-cola-source-agent/README.zh-CN.md
 ```
@@ -12286,3 +12461,33 @@ Adapter实际编译缺io.swagger.v3.oas.annotations；现Common Core已采用pro
 30实际Spring entry proxies配真实签名USER、实际SDK/CorePDP/fieldguard test；欠scope在PDP前拒绝，20USER正确scope但PDPdeny也拒绝且零usecase（step13-all30-double-guard-candidate.log）。此证据后才移除旧RequireOrganizationAdmin/RequireTeachingAdmin的header-role逻辑与6调用，其余normalization/transaction/idempotency/domain/event不改。
 
 fullweb回归发现五个已有SpringBoot context caller缺真实SDKfixture，纳入本Step兼容阶段，在README前；不修改测试数据/框架来恢复匿名。旧H2业务tenant1由专用test-only受控签名realm1供事实，原1001/1002安全测试仍保留；不增加production默认tenant/role。全部schema/PB冻结保持。另有UTC任务同文件无关hunks（profile时间/启动/README）在当前worktree出现，必须保留且从安全commit排除；UTC gate与当前worktree证据独立记录，未验证不能谎称全reactor通过。该任务不修改我们securitykeys或actor/PEP。当前实际源码+文档60条unique预期，精确以step13-paths.txt和最终索引diff对照。
+
+### 12.29. Step14 Agent 运行入口兼容澄清
+
+Agent 当前 A-HTTP-01/12/13 的业务依赖不可用已使用503及 DeepResearchErrorResponse；保留该 body/status。安全503仍使用 NativeSecurityError 两字段。对应三个操作的503文档通过现有 DeepResearchOpenApiConfiguration 中 oneOf schema 同时引用这两种真实 body，其他十个操作503直接引用 NativeSecurityError；不新增Java响应模型或运行协议。chat 的隐藏406 handler与实际SSE handler必须共享相同双PEP，不增业务scope/resource。
+
+实际构造调用方 KnowledgeManageTest 创建 KnowledgeIngestQueueService，需在 Step14 compatibility File30 后纳入原测试，仅接入可信actor fixture并保留原事务/队列断言；应用/启动全上下文调用方若 SDK默认外部启动条件变化，同样以原测试的显式受控SDK fixture修正，不恢复API-key/defaulttenant生产fallback。两leafSDK本地management沿既有12.26；starter添加已批准Tianshu三个现坐标，版本由原parent管理。
+
+并行UTC工作当前触及Agent四profile与两个README：保留workingtree全部内容，安全提交index只剥离本任务基线已存在的UTC段；不得改UTC test/launch/parent/生成DDL或Open family。构建使用已存在 offline-cached-origins-settings.xml 补全本机缓存central来源身份，不改全局settings/版本或下载依赖；第一默认settings离线失败不是RED。primaryRED step14-primary-red.log 实际HTTP/controller/application→repository，API-keyonly预期401实际200，1assertion/0errors/skips。受控GREEN必须实际host chain/代理/审计，不能用孤立legacyfilter验证Bearer。
+
+### 12.30. Agent 既有文档治理能力的必要接入
+
+实际POM表明 Agent 只有 springdoc-openapi-starter-webmvc-api；L/W/S 已有 yuheng-starter-openapi-webmvc 窄 SERVICE 文档链。为打通同一 Xingyuan 文档治理边界，Step14 File2 在当前 declared starter POM 增加已存在 top.egon:yuheng-starter-openapi-webmvc 坐标（原archetypes-parent现5.4.1管理；direct无版本、不升级），复用现完整 SERVICE verify/revocation/strictaudit 链，禁止另写文档验证器/permitAll。四profile保持同样 default-off 文档治理键；实际授权文档读取测试供证明原13operation metadata，unknown/business路径仍由原USER宿主拒绝。仅 technical starter，非平台Admin依赖/新架构层。用户已授权小问题采用推荐修正方案，本处为缺少现共享能力的接线修复。
+
+Step14模块测试依赖澄清：新建Adapter测试 NativeAgentSecurityContractTest 是必要实际方法代理/签名SDK fixture owner，放在原四wire callers之前。Starter拥有独立同语义fixture；不能从Adapter反向依赖Starter test类、不能新test-jar或测试依赖版本。原wire测试继续其业务stand-in，只从本模块fixture获得实际fieldguard；真实安全链证据来自两Native suites。该CREATE精确入File序列及stage清单，不引入运行类或新架构。
+
+### 12.31. Agent SSE response continuation
+
+原SSE fixture实际 asyncDispatch 暴露 Spring AuthorizationFilter 默认对ASYNC再次求当前认证；SDK OncePerRequest verifier已在初次REQUEST finally恢复，因此终端事件已提交时会产生二次认证异常。Step14 File15只允许容器ASYNC对两个已存在SSE response continuation路径（research/runs与knowledge-bases/{id}/chat）；普通REQUEST和其他ASYNC仍原authenticated/denyAll，不能通过HTTP header选dispatchertype，也不新增业务入口。初次REQUEST的双PEP和task/capacity/model0负例保持，实际host完整SSE终端输出/清理测试必须通过。模块wire fixture使用真实Spring AuthorizationFilter并关闭它的重复async检查；不是另一生产认证器。所有fixture close额外清除Servlet request attributes避免SSE单测异常跨case携带closed audit marker。
+
+Step14启动caller修正：DeepResearchApplicationTest 内原 FakeAgentDependencies 被四个现context tests共同导入；仅在该 declared File中 @Import 本模块 NativeSecurityContractTest.SecurityTestBeans，使原启动/流程/OAS tests有真实受控SDK beans，避免为缺Bean恢复生产匿名/API-key fallback。原 model/RAG/outbox stand-in用途与全部领域流程断言不变；没有测试容器或外部连接。
+
+### 12.32. Starter legacy API-key parent validation
+
+实际全context启动显示 DeepResearchConfigurationProperties.security @NotNull 与 constructor强制 SecurityProperties(null) 仍要求旧API-key，虽Adapter binding/filter已停用；grep确认无生产security()消费者。Step14新增精确File修复该父配置：保留public record/旧nested carrier构造签名为兼容值，security可空且不合成空key；其他model/search/runtime约束不改。这是已有批准API-key去生产化的必要漏接caller，不恢复fallback或新认证类型。
+
+### 12.33. Agent source contract与文档annotation合并
+
+全source reactor发现旧AgentSourceContractTest blanket Redis-word fence拒绝已批准严格撤销/audit/Tianshu配置；修正为business Java直接transport-import fence，保留fastjson/graphql/dubbo、六模块、包说明与profile原断言。两新Native测试所在现test package需补project现style package-info.java，精确入序列及commit scope，无生产目录/新层。
+
+实际springdoc响应显示class-level503覆盖method-level503且剔除无引用的oneOf。File13/14（当前重排后的QA/research controller）class-level503同步指向已有NativeOrBusinessUnavailableError，三原业务503才能同时保留两种body的文档；No-store在这种联合响应中是安全分支的保证，不谎称所有原业务503也带该header。实际OAS schema/headers断言锁定此行为，不变运行body。

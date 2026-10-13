@@ -35,8 +35,17 @@ class AgentSourceContractTest {
         assertTrue(Files.exists(SOURCE.resolve(
                 "egon-cola-source-agent-starter/src/main/resources/agent/deep-research-flow.yml")));
         assertFalse(allSourceText().contains("egon-cola-source-web"));
-        assertFalse(allSourceText().matches("(?s).*\\b(fastjson|redis|graphql|dubbo)\\b.*"));
+        assertFalse(allSourceText().matches("(?s).*\\b(fastjson|graphql|dubbo)\\b.*"));
         assertFalse(allSourceText().contains("BEGIN GENERATED"));
+        try (Stream<Path> files = Files.walk(SOURCE)) {
+            for (Path file : files.filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> path.toString().contains("/src/main/java/"))
+                    .filter(path -> !path.toString().contains("/infrastructure/")
+                            && !path.toString().contains("/starter/")).toList()) {
+                assertFalse(Files.readString(file).matches("(?s).*import (?:org\\.redisson|org\\.springframework\\.data\\.redis|redis\\.clients)\\..*"),
+                        () -> "business code must not own the SDK transport: " + file);
+            }
+        }
     }
 
     @Test

@@ -6,8 +6,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import top.egon.cola.archetype.source.agent.adapter.config.DeepResearchApiProperties;
-import top.egon.cola.archetype.source.agent.adapter.filter.ResearchApiKeyFilter;
+import top.egon.cola.archetype.source.agent.adapter.NativeAgentSecurityContractTest;
+import top.egon.cola.platform.tianquan.jianshen.starter.web.Rbac3AuthorizationExceptionHandler;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
 import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchGlobalExceptionHandler;
 import top.egon.cola.archetype.source.agent.adapter.research.controller.DeepResearchController;
@@ -38,45 +38,45 @@ class DeepResearchControllerTest {
 
     @Test
     void accepts_one_post_sse_command_and_emits_one_terminal_event() throws Exception {
-        DeepResearchManage manage = mock(DeepResearchManage.class);
-        RecordingRun run = new RecordingRun("run-1");
-        when(manage.startResearch(any(StartDeepResearchCommand.class), any(DeepResearchEventObserverService.class)))
-                .thenAnswer(invocation -> {
-                    DeepResearchEventObserverService observer = invocation.getArgument(1);
-                    observer.onEvent(DeepResearchEvent.started("run-1", "trace-1", NOW));
-                    observer.onEvent(DeepResearchEvent.completed("run-1", 2, "# report", NOW, "trace-1"));
-                    return run;
-                });
-        var mvc = MockMvcBuilders.standaloneSetup(new DeepResearchController(manage,
-                        new DeepResearchRuntimeProperties(4, Duration.ofMinutes(5), 20, Duration.ofSeconds(15)),
-                        Clock.fixed(NOW, ZoneOffset.UTC)))
-                .addFilters(new ResearchTraceFilter(Clock.fixed(NOW, ZoneOffset.UTC),
-                                new com.fasterxml.jackson.databind.ObjectMapper()
-                                        .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())),
-                        new ResearchApiKeyFilter(new DeepResearchApiProperties("test-key"),
-                                new com.fasterxml.jackson.databind.ObjectMapper(), Clock.fixed(NOW, ZoneOffset.UTC)))
-                .setControllerAdvice(new DeepResearchGlobalExceptionHandler(Clock.fixed(NOW, ZoneOffset.UTC)))
-                .build();
+        try (var security = new NativeAgentSecurityContractTest.SecurityFixture(java.nio.file.Files.createTempDirectory("agent-sse-wire-"))) {
+            DeepResearchManage manage = mock(DeepResearchManage.class);
+            RecordingRun run = new RecordingRun("run-1");
+            when(manage.startResearch(any(StartDeepResearchCommand.class), any(DeepResearchEventObserverService.class)))
+                    .thenAnswer(invocation -> {
+                        DeepResearchEventObserverService observer = invocation.getArgument(1);
+                        observer.onEvent(DeepResearchEvent.started("run-1", "trace-1", NOW));
+                        observer.onEvent(DeepResearchEvent.completed("run-1", 2, "# report", NOW, "trace-1"));
+                        return run;
+                    });
+            var mvc = MockMvcBuilders.standaloneSetup(new DeepResearchController(manage,
+                            new DeepResearchRuntimeProperties(4, Duration.ofMinutes(5), 20, Duration.ofSeconds(15)),
+                            Clock.fixed(NOW, ZoneOffset.UTC)))
+                    .addFilters(new ResearchTraceFilter(Clock.fixed(NOW, ZoneOffset.UTC),
+                                    new com.fasterxml.jackson.databind.ObjectMapper()
+                                            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule()))).addFilters(security.httpBoundary())
+                    .setControllerAdvice(new DeepResearchGlobalExceptionHandler(new Rbac3AuthorizationExceptionHandler(), Clock.fixed(NOW, ZoneOffset.UTC)))
+                    .build();
 
-        MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/v1/deep-research/runs")
-                        .header(ResearchApiKeyFilter.API_KEY_HEADER, "test-key")
-                        .accept(MediaType.TEXT_EVENT_STREAM)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"topic\":\"agent architecture\"}"))
-                .andReturn();
-        if (result.getRequest().isAsyncStarted()) {
-            result = mvc.perform(MockMvcRequestBuilders.asyncDispatch(result)).andReturn();
+            MvcResult result = mvc.perform(MockMvcRequestBuilders.post("/api/v1/deep-research/runs")
+                            .header("Authorization", "Bearer " + security.token("1001", java.util.Set.copyOf(security.permissions)))
+                            .accept(MediaType.TEXT_EVENT_STREAM)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"topic\":\"agent architecture\"}"))
+                    .andReturn();
+            if (result.getRequest().isAsyncStarted()) {
+                result = mvc.perform(MockMvcRequestBuilders.asyncDispatch(result)).andReturn();
+            }
+
+            assertTrue(result.getResponse().getContentAsString().contains("research.started"));
+            assertTrue(result.getResponse().getContentAsString().contains("research.completed"));
+            assertTrue(result.getResponse().getContentAsString().contains("run-1:2"));
+            verify(manage).startResearch(any(StartDeepResearchCommand.class), any(DeepResearchEventObserverService.class));
         }
-
-        assertTrue(result.getResponse().getContentAsString().contains("research.started"));
-        assertTrue(result.getResponse().getContentAsString().contains("research.completed"));
-        assertTrue(result.getResponse().getContentAsString().contains("run-1:2"));
-        verify(manage).startResearch(any(StartDeepResearchCommand.class), any(DeepResearchEventObserverService.class));
     }
 
     @Test
     void maps_capacity_failure_before_stream_to_429() throws Exception {
-        var response = new DeepResearchGlobalExceptionHandler(Clock.fixed(NOW, ZoneOffset.UTC))
+        var response = new DeepResearchGlobalExceptionHandler(new Rbac3AuthorizationExceptionHandler(), Clock.fixed(NOW, ZoneOffset.UTC))
                 .handleApplication(new DeepResearchApplicationException(
                         ResearchErrorCodeEnum.RESEARCH_CAPACITY_EXHAUSTED, "trace-1"),
                         new MockHttpServletRequest());
