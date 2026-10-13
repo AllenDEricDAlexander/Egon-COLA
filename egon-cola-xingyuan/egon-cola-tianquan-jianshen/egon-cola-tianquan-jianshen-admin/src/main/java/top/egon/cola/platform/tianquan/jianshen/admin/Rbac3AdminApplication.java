@@ -16,6 +16,7 @@ import java.util.Map;
  * 语义与用法：将 `Rbac3AdminApplication` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `Rbac3AdminApplication` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
+@lombok.extern.slf4j.Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class Rbac3AdminApplication {
@@ -30,6 +31,35 @@ public class Rbac3AdminApplication {
      * @param args 输入参数 `args`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public static void main(String[] args) {
+        if (isCatalogCommand(args)) {
+            SpringApplication preflight = new SpringApplication(CatalogInputConfiguration.class);
+            preflight.setWebApplicationType(WebApplicationType.NONE);
+            preflight.setAdditionalProfiles("rbac3-catalog-input");
+            preflight.setLogStartupInfo(false);
+            preflight.setBannerMode(org.springframework.boot.Banner.Mode.OFF);
+            int inputResult;
+            try (var input = preflight.run()) {
+                inputResult = top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.controller.cli.Rbac3ApplicationCatalogRegistrationCli.validateLocalInvocation(
+                        args, input.getBean("jacksonObjectMapper", com.fasterxml.jackson.databind.ObjectMapper.class),
+                        input.getBean("defaultValidator", jakarta.validation.Validator.class));
+            }
+            if (inputResult != 0) { System.exit(inputResult); return; }
+            SpringApplication application = new SpringApplication(
+                    top.egon.cola.platform.tianquan.jianshen.admin.config.runtime.Rbac3ApplicationConfiguration.CatalogCommandConfiguration.class);
+            application.setWebApplicationType(WebApplicationType.NONE);
+            application.setAdditionalProfiles("rbac3-catalog-command");
+            application.setLogStartupInfo(false);
+            application.setBannerMode(org.springframework.boot.Banner.Mode.OFF);
+            application.addInitializers(context -> context.getEnvironment().getPropertySources()
+                    .addFirst(new MapPropertySource("rbac3CatalogCommandRuntime", catalogCommandRuntimeProperties())));
+            int result;
+            try (var context = application.run(args)) {
+                result = context.getBean("rbac3ApplicationCatalogRegistrationCli",
+                        top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.controller.cli.Rbac3ApplicationCatalogRegistrationCli.class).run(args);
+            }
+            if (result != 0) { System.exit(result); }
+            return;
+        }
         if (isBootstrapCommand(args)) {
             SpringApplication application = new SpringApplication(Rbac3AdminApplication.class);
             application.setWebApplicationType(WebApplicationType.NONE);
@@ -78,4 +108,31 @@ public class Rbac3AdminApplication {
                 "egon.cola.component.transactional-outbox.polling.enabled", false,
                 "management.endpoint.health.validate-group-membership", false);
     }
+    public static boolean isCatalogCommand(String[] args) {
+        return args != null && args.length > 0 && top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.controller.cli.Rbac3ApplicationCatalogRegistrationCli.COMMAND.equals(args[0]);
+    }
+
+    public static Map<String, Object> catalogCommandRuntimeProperties() {
+        return Map.ofEntries(
+                Map.entry("egon.cola.component.rpc.provider.enabled", false),
+                Map.entry("egon.cola.component.rpc.provider.grpc.enabled", false),
+                Map.entry("egon.cola.component.tianshu.enabled", false),
+                Map.entry("egon.cola.component.tianshu.registry.enabled", false),
+                Map.entry("egon.cola.component.tianshu.registry.http.enabled", false),
+                Map.entry("egon.cola.component.yuheng.reporting.enabled", false),
+                Map.entry("egon.cola.component.transactional-outbox.polling.enabled", false),
+                Map.entry("rbac3.bootstrap.auto-activate-local-admin-roles", false),
+                Map.entry("spring.main.web-application-type", "none"),
+                Map.entry("spring.jpa.hibernate.ddl-auto", "none"));
+    }
+
+    /** Local preflight deliberately has no datasource, RPC, cache or application component imports. */
+    @lombok.extern.slf4j.Slf4j
+    @org.springframework.context.annotation.Configuration(value = "rbac3CatalogInputConfiguration", proxyBeanMethods = false)
+    @org.springframework.context.annotation.Profile("rbac3-catalog-input")
+    @org.springframework.boot.autoconfigure.ImportAutoConfiguration({
+            org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration.class,
+            org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration.class})
+    public static class CatalogInputConfiguration { }
+
 }

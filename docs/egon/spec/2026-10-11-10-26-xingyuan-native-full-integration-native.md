@@ -2095,3 +2095,15 @@ CLI文件选择事实但server核真实activeidentity、role/app/tenant/permissi
 | MC-BLOCKER-001 | Applicable | PASS | 无独立未决用户设计项；六项重大方案均已approved，整份Spec仍Review待整文正式接受 | 设计已闭合；未宣称运行 | 主owner合并一致性检查 |
 
 **PASS — Ready for user review（本规范附录内容）**。主Spec总审批/执行授权由主代理汇总；实现、运行和最终goal完成状态均未由此文档判PASS。
+
+
+### 22.1 Step9现有MapStruct生成器的必要编译接通（2026-10-13）
+
+DATA-CAT-001依旧复用生成的MapStruct＋BaseForwardConverter，不接受手写投影。Admin现配置只能编译新Mapper接口而没有Impl，故同Admin POM纳入直接必要编译配置：复用已存在Starter的Boot/Lombok/binding/MapStruct processor paths及现版本，不升级或新增运行依赖/框架/SQL/HTTP。用户已授权必要编译/配置文件及小问题按推荐方案修复；本项保持原19Step和所有协议/授权/运行门禁，只补实际生成与Bean验证。实施与本Spec/Plan修订纳入Step9的11条uniquepath；缺生成类/装配不能冒行为GREEN。应用表沿实际ci_report_build_id/ci_report_checksum/ci_reported_at，而非新增/改名列。
+
+
+### 22.2 Step9受保护部署文件与命令启动边界的具体装配
+
+DATA-CAT-001的既有 `--manifest` 文件由同CLI nested `DeploymentManifestBO` 表达：schemaVersion=1、canonical UUID runId、absolute canonical rootPath、identitySub≤64、正Long tenantId、1..64条application定义。每条 `ApplicationDeploymentBO` 明确businessCode/applicationCode、buildId≤256、root内artifactFile、artifactSha256与catalogSha256（lowercase SHA256）；namespace唯一，不含任意SQL、授权默认值或私钥/token。manifest与catalog≤1MiB，制品摘要有界读取；regular/current-owner、无group/world写、无symlink/路径逃逸，strictJackson unknown/duplicate拒绝；actor flag必须等于manifest身份并经过实际Directory ACTIVE profile＋membership。Production root由受保护部署文件给定；显式test alias再核runId root，两源必须canonical一致。这些是原部署操作者/制品校验合同的具体文件形状，不新增HTTP或任意授权入口。
+
+启动先在仅BootJackson＋Validation的input profile做全部本地参数/文件/hash/namespace预检；通过后才开启精确catalog command profile（NONE、无main组件扫描）。标准应用与原bootstrap入口保留。命令profile沿现共享EntityManager、既有Owner、只读DdcManagementClient/RPC目录以及Spring原OAuth Client＋缓存/credential factory；不启动RPCprovider、Tianshu实例注册生命周期、HTTP、developmentbootstrap或业务@Scheduled；命令专用DeniedStrategy使既有Provider注册自动配置退让，误调用register/heartbeat/deregister全部拒绝，绝无noop成功。只读RPC订阅适配沿现client coordinator并在自己context关闭时释放，不复制registry；指标复用实际Micrometer adapter/宿主registry，不静默NOOP。受控consumer-disabledBean图与client-onlyBean图只算装配证据，真正SERVICE Token/RPC/SQL/SSO与进程关闭仍由Step18完整验收。

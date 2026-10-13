@@ -5782,7 +5782,34 @@ validate existing constraints before queries; do not introduce role/resource gra
 - Verification contribution: `DeploymentCatalogRegistrationContractTest,ResourcePermissionMappingServiceTest,FieldCrudControllerTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 8实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/service/GlobalResourceCatalogService.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml`
+
+- Purpose: 生成本Step已批准MapStruct/BaseForward投影的直接编译前置，修正实际只编译interface却无Impl的配置缺口。
+- Symbols: existing maven-compiler-plugin annotationProcessorPaths; Boot/Lombok/binding/MapStruct processors
+- Repository evidence: File7 draft compileexit0但target只有PermissionRegistrationConverter.interface、无generated Impl；Starter既有POM使用Boot管理processor、Lombok1.18.46、binding0.2.0、MapStruct1.6.3，全部沿现property/缓存。
+- Dependencies and consumers: 后续File7 nestedMapper与File9实际Spring装配；不新增runtime dependency/版本、框架、SQL或下载制品。
+- Why now: 当前实际编译能力缺口在File7草稿编译中发现；先补同owner必要processor配置再验证generatedBean与wiring，不把interface编译当行为GREEN。
+- Contract/signature changes: 无public Java/HTTP/config/runtime变化，现compiler plugin复用父版本。
+- Input/output and state mapping: 已声明普通BO→现CreatePermissionRequestDTO由生成BaseForwardConverter投影；不手写替代mapper。
+- Error and edge behavior: 缺cached制品/生成失败/Bean名不匹配须修编译前置，禁止假manualconverter或无ImplGREEN。
+- Standards impact: MC-DEP-001/MC-CONVERT-001/MC-BEAN-001/MC-SCOPE-001；直接必要build配置，沿用户允许必要编译/配置文件及小问题推荐修复的范围。
+- Literal rule enforcement: Rule 3/Rule 4/Rule 5/Rule 11；现MapStruct+BaseForward/qualifiedLombok，既有模块边界与版本，不运行服务。
+- Implementation pseudocode:
+```xml
+<properties>
+  <mapstruct.version>1.6.3</mapstruct.version>
+  <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
+</properties>
+<!-- Copy the exact existing Starter maven-compiler-plugin annotationProcessorPaths subtree.
+     Coordinates: org.springframework.boot:spring-boot-configuration-processor:${spring.boot.version},
+     org.projectlombok:lombok:${lombok.version},
+     org.projectlombok:lombok-mapstruct-binding:${lombok.mapstruct.binding.version},
+     org.mapstruct:mapstruct-processor:${mapstruct.version}. -->
+```
+- Verification contribution: exactStepselector及test-compile实际生成DeploymentPermissionRegistrationConverterImpl，检查SpringBean/映射结果；缺类不是RED。
+- After this file: cachedprocessor已生成真实Impl，返回File7继续minimalwriter实现与File4实际正反例；原RED保留。
+
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/service/GlobalResourceCatalogService.java`
 
 - Purpose: 用真实owner实现File4锁定的目录事务
 - Symbols: registerDeploymentCatalog实现phase，same-file primaryowner8
@@ -5810,7 +5837,7 @@ validate existing constraints before queries; do not introduce role/resource gra
 - Verification contribution: `DeploymentCatalogRegistrationContractTest,ResourcePermissionMappingServiceTest,FieldCrudControllerTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 8实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/controller/cli/Rbac3ApplicationCatalogRegistrationCli.java`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/controller/cli/Rbac3ApplicationCatalogRegistrationCli.java`
 
 - Purpose: 真实protected CLI入口，目录和review/grant分离
 - Symbols: run/register-application-catalog mode；Step10未来追加fieldmode
@@ -5837,7 +5864,7 @@ validate existing constraints before queries; do not introduce role/resource gra
 - Verification contribution: `DeploymentCatalogRegistrationContractTest,ResourcePermissionMappingServiceTest,FieldCrudControllerTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 8实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/config/runtime/Rbac3ApplicationConfiguration.java`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/config/runtime/Rbac3ApplicationConfiguration.java`
 
 - Purpose: 在真实owner具备行为后注册CLI，原otherBeans不变
 - Symbols: rbac3ApplicationCatalogRegistrationCli bean/qualifiedrealdependencies
@@ -5860,7 +5887,7 @@ command-only imports retain db/catalog/Directory, not listener/lifecycle/schedul
 - Verification contribution: `DeploymentCatalogRegistrationContractTest,ResourcePermissionMappingServiceTest,FieldCrudControllerTest` 中对应pseudocode namedcases/原成功wire断言；NTEST 8实际链/代理/producer而非直接返回fake响应。
 - After this file: 对应symbol/wiring/config具备预期增量；本Step完整GREEN前不得提交/进入下Step。
 
-#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/Rbac3AdminApplication.java`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/Rbac3AdminApplication.java`
 
 - Purpose: NONE但确切禁监听器/调度/bootstrap，避免假offline
 - Symbols: main/isBootstrapCommand增加register command branch；primaryowner8
@@ -5894,7 +5921,7 @@ git diff --check
 - Failure returns to: 当前File具体symbol/fixture；若缺制品/真实owner/typedAPI不同先修正编译prereq，不能改Spec协议/PDP/SQL或跳external门禁。
 - Completion criteria: 当前Step所有symbol受控GREEN、17 MC与十Literal每行记录具体diff/test evidence，无源码inventory外路径；更新owner规范参数，残留closedshim=0；保留generated15/harness16/live17/audit18门禁，不谎称生产ready。
 - Rollback: 前一Step新HEAD为回滚边界；只ownpath forwardfix或用户批准revert本语义commit，保护他人dirty；不SQLrepair/drop新库/secret日志。
-- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/command/DeploymentCatalogRegistrationCommand.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/vo/DeploymentCatalogRegistrationResultVO.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/service/GlobalResourceCatalogService.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/DeploymentCatalogRegistrationContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/permission/service/PermissionCatalogService.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/controller/cli/Rbac3ApplicationCatalogRegistrationCli.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/config/runtime/Rbac3ApplicationConfiguration.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/Rbac3AdminApplication.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/command/DeploymentCatalogRegistrationCommand.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/vo/DeploymentCatalogRegistrationResultVO.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/service/GlobalResourceCatalogService.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/DeploymentCatalogRegistrationContractTest.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/permission/service/PermissionCatalogService.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/controller/cli/Rbac3ApplicationCatalogRegistrationCli.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/config/runtime/Rbac3ApplicationConfiguration.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/Rbac3AdminApplication.java`; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml`; `docs/egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md`; `docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-native.md`
 ```text
 egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/command/DeploymentCatalogRegistrationCommand.java
 egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/authorization/resource/domain/vo/DeploymentCatalogRegistrationResultVO.java
@@ -11791,3 +11818,8 @@ Verdict: **PASS — Ready for user review**。本轮confirmed已完成整份Spec
 状态：**Accepted**。用户直接批准将真实事务测试移至Step17并复用隔离夹具，明确要求Step18三个真实验收用例全部保留。Step8实施清单为原前8条source/POM/test文件，加本Plan与主Spec共10条提交路径；原第9条 `OutboxTransactionRollbackIT` 的完整实现合同移至Step17 File5，紧随实际JA夹具 `IsolatedAuthorizationProvisioningIT`，其后文件仅编号顺延。19个Step总体顺序、生产接口、依赖版本、SQL和最终要求不变。
 
 Step8的32受控用例证明同DS JPA/JDBC兼容、实际连接持有者守卫、Boot默认事务管理器来源及可选类缺失保护，不证明真实数据库原子性。Step17复用同一受保护manifest/runId/hash、DB/schema COMMENT/OID归属校验、真实owner授权事实与NONE上下文；保留 `jpaRoleResourceAndMpOutboxRollback`、`jpaRoleResourceAndMpOutboxAppendFault`、`jpaRoleResourceAndMpOutboxCommit`，不以mock DAO/store/wholeowner、旧Jdbc case、H2或独立fixture替代。Step18原精确Failsafe selector保持，三个case均须真实执行、零跳过，验证Hibernate与MP同连接/pid/txid以及grants/version/epoch/event的回滚/提交。任何必需运行证据缺失仍阻断完整接入结论。本阶段不启动服务、数据库、浏览器或Docker。
+
+
+### 12.16 Step9必要的现有MapStruct编译配置澄清（2026-10-13）
+
+Admin原编译配置未生成新声明的Mapper实现：step9-writer-compile-candidate.log虽exit0，target只有nestedinterface/BO，没有任何DeploymentPermissionRegistrationConverterImpl。为遵守已批准MapStruct/BaseForward与实际Bean装配要求，复用鉴神Starter现有compiler processor paths（Boot配置processor、Lombok1.18.46、binding0.2.0、MapStruct1.6.3，局部property复制Starter既有1.6.3/0.2.0并沿现缓存），在同Admin POM补齐直接必要的编译配置。沿用户明确允许必要编译/配置文件及小问题推荐修复的范围，无新runtime dependency/框架/版本升级/制品下载/SQL/HTTP；outer19Step顺序不变。Step9增加一个POM实施条目及本Plan/nativeSpec文档，uniquecommit范围8原文件+1POM+2docs=11。此前File7源码仅草稿/compile证据，现先补processor后验证生成/wiring，再继续原行为RED→GREEN；没有将草稿作为已完成提交。

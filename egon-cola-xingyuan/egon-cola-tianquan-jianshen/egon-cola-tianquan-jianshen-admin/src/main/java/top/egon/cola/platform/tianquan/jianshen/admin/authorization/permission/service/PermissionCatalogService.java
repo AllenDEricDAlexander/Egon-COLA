@@ -1,6 +1,13 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.permission.service;
 
 import jakarta.persistence.EntityManager;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -14,18 +21,16 @@ import java.util.List;
 import java.util.Objects;
 
 /** Global permission CRUD; tenant role bindings are deliberately outside this service. */
-@Service
+@Service("permissionCatalogService")
+@Validated
+@RequiredArgsConstructor
+@Slf4j
 public class PermissionCatalogService {
 
+    @Qualifier("jpaSharedEM_entityManagerFactory")
     private final EntityManager entityManager;
+    @Qualifier("jpaDatabaseClock")
     private final DatabaseClock clock;
-
-    public PermissionCatalogService(
-            EntityManager entityManager,
-            DatabaseClock clock) {
-        this.entityManager = entityManager;
-        this.clock = clock;
-    }
 
     @Transactional(readOnly = true)
     public List<PermissionCatalogVO> list(String applicationId, boolean assignable) {
@@ -44,7 +49,7 @@ public class PermissionCatalogService {
     }
 
     @Transactional
-    public PermissionCatalogVO create(CreatePermissionRequestDTO command, String actorId) {
+    public PermissionCatalogVO create(@Valid CreatePermissionRequestDTO command, @NotBlank @Size(max = 128) String actorId) {
         long applicationId = Long.parseLong(required(command.applicationId()));
         requireApplication(applicationId);
         String code = required(command.permissionCode());
@@ -74,8 +79,8 @@ public class PermissionCatalogService {
     @Transactional
     public PermissionCatalogVO changeStatus(
             String id,
-            ChangePermissionStatusRequestDTO command,
-            String actorId) {
+            @Valid ChangePermissionStatusRequestDTO command,
+            @NotBlank @Size(max = 128) String actorId) {
         Instant now = clock.transactionNow();
         int updated = entityManager.createNativeQuery("""
                         update rbac3_permission
