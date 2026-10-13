@@ -138,6 +138,58 @@ class EgonColaUtcTimePostgreSqlTest {
         }
     }
 
+    @Test
+    void utcTemporalDefaultsSurviveJvmAndSessionZones() throws Exception {
+        java.util.TimeZone original = java.util.TimeZone.getDefault();
+        try (var connection = source().getConnection()) {
+            connection.setAutoCommit(false);
+            try (var sql = connection.createStatement()) {
+                sql.execute("""
+                        CREATE TEMPORARY TABLE egon_utc_defaults (
+                            occurred_at TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP(6),
+                            legacy_at TIMESTAMP(6) WITHOUT TIME ZONE DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+                            utc_date DATE DEFAULT ((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date),
+                            utc_time TIME(6) WITHOUT TIME ZONE DEFAULT ((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::time(6)),
+                            fixed_at TIMESTAMPTZ(6) DEFAULT '2026-10-13T00:30:00.123456Z',
+                            pure_date DATE DEFAULT DATE '2026-10-13',
+                            pure_time TIME(6) DEFAULT TIME '06:07:08.123456',
+                            starts_at TIMESTAMPTZ(6), ends_at TIMESTAMPTZ(6),
+                            deleted_at TIMESTAMP(6) WITHOUT TIME ZONE DEFAULT NULL
+                        ) ON COMMIT DROP
+                        """);
+                Instant transactionTime;
+                try (var rows = sql.executeQuery("SELECT CURRENT_TIMESTAMP(6)")) {
+                    assertThat(rows.next()).isTrue();
+                    transactionTime = rows.getObject(1, java.time.OffsetDateTime.class).toInstant();
+                }
+                LocalDateTime utc = LocalDateTime.ofInstant(transactionTime, ZoneOffset.UTC);
+                for (String zone : List.of("UTC", "Asia/Shanghai", "America/New_York", "Pacific/Kiritimati")) {
+                    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(zone));
+                    // Values are the fixed fixture whitelist, never external SQL input.
+                    sql.execute("SET LOCAL TIME ZONE '" + zone + "'");
+                    try (var rows = sql.executeQuery("INSERT INTO egon_utc_defaults DEFAULT VALUES RETURNING *")) {
+                        assertThat(rows.next()).isTrue();
+                        assertThat(rows.getObject("occurred_at", java.time.OffsetDateTime.class).toInstant()).isEqualTo(transactionTime);
+                        assertThat(rows.getObject("legacy_at", LocalDateTime.class)).isEqualTo(utc);
+                        assertThat(rows.getObject("utc_date", LocalDate.class)).isEqualTo(utc.toLocalDate());
+                        assertThat(rows.getObject("utc_time", LocalTime.class)).isEqualTo(utc.toLocalTime());
+                        assertThat(rows.getObject("fixed_at", java.time.OffsetDateTime.class).toInstant())
+                                .isEqualTo(Instant.parse("2026-10-13T00:30:00.123456Z"));
+                        assertThat(rows.getObject("pure_date", LocalDate.class)).isEqualTo(LocalDate.of(2026, 10, 13));
+                        assertThat(rows.getObject("pure_time", LocalTime.class)).isEqualTo(LocalTime.of(6, 7, 8, 123456000));
+                        assertThat(rows.getObject("starts_at")).isNull();
+                        assertThat(rows.getObject("ends_at")).isNull();
+                        assertThat(rows.getObject("deleted_at")).isNull();
+                    }
+                }
+            } finally {
+                connection.rollback();
+            }
+        } finally {
+            java.util.TimeZone.setDefault(original);
+        }
+    }
+
     private static PGSimpleDataSource source() {
         PGSimpleDataSource source = new PGSimpleDataSource();
         source.setURL(System.getenv("EGON_MP_PG_URL"));

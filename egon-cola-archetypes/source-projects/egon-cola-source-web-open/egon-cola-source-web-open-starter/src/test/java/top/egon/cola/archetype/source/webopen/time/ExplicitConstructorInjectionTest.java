@@ -24,11 +24,13 @@ class ExplicitConstructorInjectionTest {
             root = root.getParent();
         }
         assertTrue(root != null, "source project root");
+        Path sourceProjectRoot = root;
         int checked = 0;
-        try (var files = Files.walk(root)) {
+        try (var files = Files.walk(sourceProjectRoot)) {
             for (Path path : files.filter(file -> file.toString().endsWith(".java")
                     && file.toString().replace('\\', '/').contains("/src/main/java/")
-                    && !file.toString().replace('\\', '/').contains("/target/")).toList()) {
+                    && !sourceProjectRoot.relativize(file).toString().replace('\\', '/').startsWith("target/")
+                    && !sourceProjectRoot.relativize(file).toString().replace('\\', '/').contains("/target/")).toList()) {
                 String source = Files.readString(path);
                 boolean lombokConstructor = source.contains("@RequiredArgsConstructor");
                 boolean manualDependencyConstructor = Pattern.compile("@(Component|Service|Repository|RestController|Configuration)(?:\\W|$)")

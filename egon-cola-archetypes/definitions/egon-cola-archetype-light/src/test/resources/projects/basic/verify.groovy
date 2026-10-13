@@ -1234,11 +1234,33 @@ assertNoInternalImports("src/main/java/it/pkg/common", ["adapter", "application"
     assertOnlyCommonExceptions("src/main/java/it/pkg/${layer}")
 }
 
+
+// GraphQL framework security adapters are shared infrastructure, not flat business resolvers.
+def graphQlSecurityTypes = ["NativeGraphQlSecurityInstrumentation", "NativeGraphQlSecurityInterceptor",
+        "NativeGraphQlSecuritySnapshotBO"]
+def graphQlSecurityDir = new File(generatedProjectDir, "src/main/java/it/pkg/adapter/graphql")
+assert graphQlSecurityDir.isDirectory(): "Expected native GraphQL security adapters"
+def graphQlSecurityFiles = []
+graphQlSecurityDir.eachFileRecurse(FileType.FILES) { candidate ->
+    if (candidate.name.endsWith('.java') && candidate.name != 'package-info.java') {
+        graphQlSecurityFiles << candidate.name.replace('.java', '')
+    }
+}
+graphQlSecurityFiles.sort()
+assert graphQlSecurityFiles == graphQlSecurityTypes.sort(): "Only the native GraphQL security adapters belong here"
+[
+        "NativeGraphQlSecurityInterceptor": ["implements WebGraphQlInterceptor", "nativeGraphQlSecurityInterceptor", "TokenAuditProofBO"],
+        "NativeGraphQlSecurityInstrumentation": ["extends SimplePerformantInstrumentation", "nativeGraphQlSecurityInstrumentation", "withinSnapshot"],
+        "NativeGraphQlSecuritySnapshotBO": ["record NativeGraphQlSecuritySnapshotBO", "Set.copyOf", "NATIVE_GRAPHQL_IDENTITY_MISMATCH"]
+].each { type, tokens ->
+    def content = assertFile("src/main/java/it/pkg/adapter/graphql/${type}.java").getText("UTF-8")
+    tokens.each { token -> assert content.contains(token): "Expected ${type} to contain ${token}" }
+}
+
 [
     "src/main/java/it/pkg/adapter/controller",
     "src/main/java/it/pkg/adapter/mq",
     "src/main/java/it/pkg/adapter/rpc",
-    "src/main/java/it/pkg/adapter/graphql",
     "src/main/java/it/pkg/adapter/facade",
     "src/main/java/it/pkg/adapter/dto",
     "src/main/java/it/pkg/adapter/vo",
@@ -1493,6 +1515,9 @@ repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main
 
 assertMissing("src/main/java/it/pkg/adapter/handler/ApiResponse.java")
 assert assertFile("src/main/java/it/pkg/adapter/handler/ResponseWrapperHandler.java").text.contains("ResultRecord.success(body)")
-assert assertFile("src/main/java/it/pkg/adapter/filter/RequestContextFilter.java").text.contains('MDC.put("tenantId", tenantId.toString())')
+def trustedContextFilter = assertFile("src/main/java/it/pkg/adapter/filter/RequestContextFilter.java").text
+assert trustedContextFilter.contains('MDC.put("tenantId", tenant.toString())')
+assert trustedContextFilter.contains('Long.valueOf(identity.tenantId())')
+assert !trustedContextFilter.contains('getHeader(TENANT_ID_HEADER)')
 
 return true

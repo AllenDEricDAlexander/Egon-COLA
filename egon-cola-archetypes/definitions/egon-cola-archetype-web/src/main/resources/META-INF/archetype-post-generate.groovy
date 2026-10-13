@@ -81,7 +81,7 @@ if (web) {
     replaceExactly(context, '(?m)^    @Autowired\\n    private EvaluationQueryService evaluationQueryPort;\\n\\n', '', 1)
     replaceExactly(context, '(?m)^        (?:assertThat\\((?:environment.*evaluation|evaluationQueryPort|context.*evaluationQueryClient|context.*NativeEvaluation).*|// The Domain Service always answers.*)\\n', '', 5)
     def config = findTest('NativeWebConfigurationTest.java')
-    replaceExactly(config, '(?m)^        assertThat\\(properties\\("application-test.yml"\\).getProperty\\("organization.integrations.evaluation.version"\\)\\)\\n                \\.endsWith\\(":1.0}"\\);\\n', '', 1)
+    replaceExactly(config, '(?m)^        assertThat\\(properties\\("application-test.yml"\\).getProperty\\("organization.integrations.evaluation.version"\\)\\)\\n                \\.endsWith\\(":1.0.0}"\\);\\n', '', 1)
     replaceExactly(config, ' \\|\\| key.startsWith\\("organization.integrations.evaluation."\\)', '', 1)
 } else {
     removeNamed('domain', ['OrganizationDirectoryService.java', 'OrganizationUserBO.java',
@@ -92,9 +92,20 @@ if (web) {
     replaceExactly(context, '(?m)^    @Autowired private OrganizationDirectoryService organizationDirectory;\\n', '', 1)
     replaceExactly(context, '(?s)        assertThat\\(environment.getProperty\\("app.integrations.organization.enabled", Boolean.class\\)\\)\\n                \\.isFalse\\(\\);\\n        assertThat\\(organizationDirectory\\).*?\\n                \\.containsExactly\\("organizationDirectoryClient"\\);\\n', '', 1)
     def config = findTest('NativeServiceConfigurationTest.java')
-    replaceExactly(config, '(?m)^        assertThat\\(properties\\("application-test.yml"\\).getProperty\\("app.integrations.organization.version"\\)\\)\\n                \\.endsWith\\(":1.0}"\\);\\n', '', 1)
+    replaceExactly(config, '(?m)^        assertThat\\(properties\\("application-test.yml"\\).getProperty\\("app.integrations.organization.version"\\)\\)\\n                \\.endsWith\\(":1.0.0}"\\);\\n', '', 1)
     replaceExactly(config, ' \\|\\| key.startsWith\\("app.integrations.organization."\\)', '', 1)
 }
+
+
+// The no-peer fixture must not synthesize removed bindings while checking provider security.
+def nativeSecurity = findTest('NativeSecurityContractTest.java')
+def bindingKeys = web ? '"evaluation-course-read", "evaluation-exam-read", "evaluation-score-read"'
+        : '"organization-user-read", "organization-class-read"'
+replaceExactly(nativeSecurity, '(?m)^                for \\(String key : List\\.of\\(' + Pattern.quote(bindingKeys) + '\\)\\) \\{\\n'
+        + '^                    values\\.put\\("egon\\.cola\\.platform\\.tianquan\\.shoubing\\.rpc\\.consumer\\.bindings\\." \\+ key \\+ "\\.tenant-registration-ids\\[1001\\]", "native-tenant-one"\\);\\n'
+        + '^                \\}\\n', '', 1)
+replaceExactly(nativeSecurity, 'assertThat\\(rpc\\.getConsumer\\(\\)\\.getBindings\\(\\)\\)\\.hasSize\\(' + (web ? 3 : 2) + '\\);',
+        'assertThat(rpc.getConsumer().isEnabled()).isFalse();\n                assertThat(rpc.getConsumer().getBindings()).isEmpty();', 1)
 
 def architecture = findTest('ArchetypeContractConvergenceTest.java')
 def peerMethod = web ? 'externalContractStaysBehindTheNamedClientInInfrastructure'
@@ -109,6 +120,16 @@ def resources = new File(module('starter'), 'src/main/resources')
 ['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { name ->
     def yaml = new File(resources, name)
     replaceExactly(yaml, '(?m)^    ' + peer + ':\\n(?:^      .*\\n)*', '', 1)
+    // Peer removal must remove the matching security bindings as well as the client configuration.
+    def consumerBindings = web ? ['evaluation-course-read', 'evaluation-exam-read', 'evaluation-score-read']
+            : ['organization-user-read', 'organization-class-read']
+    consumerBindings.each { binding ->
+        replaceExactly(yaml, '(?m)^                ' + binding + ':\\n(?:^                  .*\\n)*', '', 1)
+    }
+    replaceExactly(yaml, '(?m)^            consumer:\\n              enabled:.*\\n',
+            '            consumer:\n              enabled: false\n', 1)
+    replaceExactly(yaml, '(?m)^              bindings:\\n', '              bindings: {}\n', 1)
+
     if (web && name == 'application.yml') {
         replaceExactly(yaml, '(?m)\\norganization:\\n  integrations:\\n?\\z', '\n', 1)
     }

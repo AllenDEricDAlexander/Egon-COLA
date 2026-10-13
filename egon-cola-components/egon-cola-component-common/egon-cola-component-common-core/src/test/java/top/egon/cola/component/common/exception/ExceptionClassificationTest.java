@@ -176,6 +176,26 @@ class ExceptionClassificationTest {
         assertTrue(new BusinessException(BusinessExceptionEnum.OPERATION_FAILED, legacyBusinessAlert).isAlertRequired());
     }
 
+    @Test
+    void preservesWhitelistedLegacyTraceIdsAndRejectsControlCharacters() {
+        Logger logger = (Logger) LoggerFactory.getLogger("classification-legacy-trace-test");
+        ListAppender<ILoggingEvent> events = attach(logger);
+        try {
+            String legacy = "5c93ac52-641b-4bfb-990c-7841273e0fd9";
+            MDC.put("traceId", legacy);
+            ExceptionLogger.log(logger, new BusinessException(BusinessExceptionEnum.INVALID_PARAM));
+            assertTrue(events.list.get(0).getKeyValuePairs().stream().anyMatch(pair -> pair.key.equals("traceId") && pair.value.equals(legacy)));
+            MDC.put("traceId", "trace\nsecret");
+            MDC.put("requestId", "request\rsecret");
+            ExceptionLogger.log(logger, new RuntimeException("secret"));
+            assertTrue(events.list.get(1).getKeyValuePairs().stream().anyMatch(pair -> pair.key.equals("traceId") && pair.value.equals("unknown")));
+            assertTrue(events.list.get(1).getKeyValuePairs().stream().anyMatch(pair -> pair.key.equals("requestId") && pair.value.equals("unknown")));
+        } finally {
+            MDC.clear();
+            logger.detachAppender(events);
+        }
+    }
+
     private static ListAppender<ILoggingEvent> attach(Logger logger) {
         logger.setLevel(Level.TRACE);
         logger.setAdditive(false);

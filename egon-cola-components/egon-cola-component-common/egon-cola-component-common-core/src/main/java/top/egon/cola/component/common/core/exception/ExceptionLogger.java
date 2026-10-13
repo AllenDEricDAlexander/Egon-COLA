@@ -38,7 +38,7 @@ public final class ExceptionLogger {
                 .addKeyValue("retryable", common != null && common.isRetryable())
                 .addKeyValue("exceptionClass", classified.getClass().getName())
                 .addKeyValue("exceptionLevel", severity.name())
-                .addKeyValue("traceId", safe(trace.traceId()))
+                .addKeyValue("traceId", safe(trace.traceId() == null ? TraceContext.getTraceId() : trace.traceId()))
                 .addKeyValue("requestId", safe(trace.requestId()));
         if (category != ExceptionCategory.BUSINESS) {
             event.setCause(sanitized(failure, Collections.newSetFromMap(new IdentityHashMap<>()), 0));

@@ -126,8 +126,16 @@ class NativeSecurityContractTest {
     @Test
     void frozenFacadeSchemaAndOperationIdentitiesRemainTheOriginalContract() throws Exception {
         var proto = Path.of("../egon-cola-source-service-facade/src/main/proto/evaluation_facade.proto");
-        String hash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(proto)));
-        assertThat(hash).isEqualTo("6207f69ffa74026c4c1a8e2ca70e79ef86bf5c718d94c66f34904f8226f24254");
+        String testPackage = getClass().getPackageName();
+        String javaPackage = testPackage.substring(0, testPackage.length() - ".starter.config".length())
+                + ".facade.proto";
+        String declaration = "option java_package = \"" + javaPackage + "\";";
+        String source = Files.readString(proto);
+        assertThat(source).containsOnlyOnce(declaration);
+        String normalized = source.replace(declaration, "option java_package = \"<project-package>\";");
+        String hash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(normalized.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        assertThat(hash).isEqualTo("b0be505ae4df8b422cacb9334aaffe9be55bff478127fc35d2130126f86264a1");
         assertThat(CourseServiceGrpc.getServiceDescriptor().getName()).isEqualTo("top.egon.cola.evaluation.facade.rpc.v1.CourseService");
         assertThat(ExamServiceGrpc.getServiceDescriptor().getName()).isEqualTo("top.egon.cola.evaluation.facade.rpc.v1.ExamService");
         assertThat(ScoreServiceGrpc.getServiceDescriptor().getName()).isEqualTo("top.egon.cola.evaluation.facade.rpc.v1.ScoreService");
