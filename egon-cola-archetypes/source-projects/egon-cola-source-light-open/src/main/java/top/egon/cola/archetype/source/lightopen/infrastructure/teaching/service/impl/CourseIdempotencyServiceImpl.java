@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.lightopen.infrastructure.teaching.service
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,7 +18,7 @@ import java.time.Duration;
 @Validated
 @Service("courseIdempotencyService")
 @ConditionalOnProperty(name = "app.integrations.redis.enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseIdempotencyServiceImpl implements CourseIdempotencyService {
     private static final Duration CLAIM_TTL = Duration.ofMinutes(5);

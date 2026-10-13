@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,7 +24,7 @@ import java.util.UUID;
 /** Normalizes a safe trace id before authentication and keeps it in request scope only. */
 @Component("researchTraceFilter")
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ResearchTraceFilter extends OncePerRequestFilter {
 
     public static final String TRACE_HEADER = "X-Trace-Id";

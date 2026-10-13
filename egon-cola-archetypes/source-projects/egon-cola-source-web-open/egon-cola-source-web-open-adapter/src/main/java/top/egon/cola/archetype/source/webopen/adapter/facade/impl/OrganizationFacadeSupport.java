@@ -14,12 +14,13 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.rpc.RpcContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 /** Shared request-context and stable gRPC error mapping for organization Triple providers. */
 @Component("organizationFacadeSupport")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public final class OrganizationFacadeSupport {
 
     private static final Metadata.Key<String> ERROR_CODE = Metadata.Key.of(

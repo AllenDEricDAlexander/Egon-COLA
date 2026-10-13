@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.service.adapter.course.facade.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.service.adapter.handler.GlobalFacadeExceptionHandler;
@@ -25,7 +26,7 @@ import java.util.Objects;
 /** Native unary provider of the service-owned Course facade; maps Protobuf onto the use cases. */
 @Component("courseFacadeImpl")
 @EgonRpcProvider
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseFacadeImpl implements CourseFacade {
 

@@ -12,6 +12,7 @@ import top.egon.cola.archetype.source.webopen.application.user.pojo.result.Permi
 import top.egon.cola.archetype.source.webopen.application.user.pojo.result.UserDetailResult;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -22,7 +23,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @Controller("userResolver")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class UserResolver {
 
     @Qualifier("userManage")

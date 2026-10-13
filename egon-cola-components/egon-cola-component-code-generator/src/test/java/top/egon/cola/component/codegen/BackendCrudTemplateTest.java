@@ -106,6 +106,9 @@ class BackendCrudTemplateTest {
 
     private void exerciseManage(Map<String, String> sources, Path output) throws Exception {
         Path sourceRoot = output.resolve("src");
+        Files.createDirectories(sourceRoot);
+        Files.writeString(sourceRoot.resolve("lombok.config"),
+                "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier\n");
         write(sourceRoot, "com/example/order/support/OrdersErrorMapper.java", """
                 package com.example.order.support;
                 public final class OrdersErrorMapper {
@@ -165,6 +168,10 @@ class BackendCrudTemplateTest {
             Object deleteConverter = loader.loadClass("com.example.order.application.order.converter.DeleteOrdersCommandConverterImpl").getConstructor().newInstance();
             Object resultConverter = loader.loadClass("com.example.order.application.order.converter.OrdersResultConverterImpl").getConstructor().newInstance();
             Constructor<?> constructor = manageClass.getDeclaredConstructors()[0];
+            assertTrue(constructor.isAnnotationPresent(org.springframework.beans.factory.annotation.Autowired.class));
+            for (var parameter : constructor.getParameters()) {
+                assertTrue(parameter.isAnnotationPresent(org.springframework.beans.factory.annotation.Qualifier.class), parameter.toString());
+            }
             Object manage = constructor.newInstance(fake, createConverter, updateConverter, deleteConverter, resultConverter);
             Class<?> updateCommand = loader.loadClass("com.example.order.application.order.UpdateOrdersCommand");
             Object command = updateCommand.getConstructor().newInstance();

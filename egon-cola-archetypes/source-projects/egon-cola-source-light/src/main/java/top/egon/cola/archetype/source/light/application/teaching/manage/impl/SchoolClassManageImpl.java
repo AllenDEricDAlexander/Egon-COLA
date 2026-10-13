@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.application.teaching.manage.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ import top.egon.cola.archetype.source.light.domain.teaching.vos.TeachingEvent;
 
 @Service("schoolClassManageImpl")
 @Lazy
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class SchoolClassManageImpl implements SchoolClassManage {
     @Qualifier("schoolClassDomainService")

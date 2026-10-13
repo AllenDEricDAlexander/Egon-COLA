@@ -9,6 +9,7 @@ import top.egon.cola.archetype.source.web.infrastructure.teaching.repo.GradeRepo
 import top.egon.cola.archetype.source.web.infrastructure.teaching.po.GradePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -19,7 +20,7 @@ import java.util.Optional;
 @Slf4j
 @Validated
 @Service("gradeDomainService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class GradeDomainServiceImpl
         implements GradeDomainService {
 

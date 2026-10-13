@@ -12,6 +12,7 @@ import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.UserPO;
 import top.egon.cola.archetype.source.lightopen.infrastructure.user.po.UserRolePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -24,7 +25,7 @@ import java.util.Optional;
 @Slf4j
 @Validated
 @Service("userDomainService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class UserDomainServiceImpl
         implements UserDomainService {
 

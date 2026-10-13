@@ -2,13 +2,14 @@ package top.egon.cola.archetype.source.web.application.teaching.validators;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
 import top.egon.cola.component.common.core.validation.BaseValidator;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 /** Grade code guard; the value object owns the accepted code shape. */
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class GradeApplicationValidator extends BaseValidator {
 

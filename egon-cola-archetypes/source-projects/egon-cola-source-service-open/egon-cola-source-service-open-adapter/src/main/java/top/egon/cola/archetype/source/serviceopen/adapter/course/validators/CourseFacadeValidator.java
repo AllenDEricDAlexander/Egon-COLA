@@ -3,6 +3,7 @@ package top.egon.cola.archetype.source.serviceopen.adapter.course.validators;
 import com.google.protobuf.Timestamp;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.ScheduleCourseRequest;
@@ -17,7 +18,7 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
  * wire, so only the ordering relation is asserted at this boundary.</p>
  */
 @Component("courseFacadeValidator")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseFacadeValidator extends BaseValidator {
 

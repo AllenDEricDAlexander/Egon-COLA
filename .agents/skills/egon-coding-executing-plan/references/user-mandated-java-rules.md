@@ -103,3 +103,15 @@ Before editing, compare every Step path with the selected traditional layered or
 | Rule 1 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<exact evidence>` | `<command/result>` | `<conclusion>` | `None / action and owner` |
 
 Use original order `1, 2, 3, 4, 5, 6, 7, 9, 10, 11`. No merged row, missing evidence, FAIL, BLOCKED, UNKNOWN, or silent exception permits Step verification, a completion commit, or final PASS.
+
+
+## Constructor injection amendment (2026-10-13)
+
+For Spring dependency-injection constructors, explicitly declare `@Autowired` even when there is only one
+constructor. Keep final dependency fields and use `@RequiredArgsConstructor(onConstructor_ = @Autowired)`;
+retain stable Bean names and every `@Qualifier`, including its propagation to generated constructor parameters.
+With multiple constructors, annotate only the intended DI constructor. Field injection remains forbidden.
+This rule does not apply to DTO/PO/exception/Domain value construction or `@ConfigurationProperties` constructor
+binding; `@Autowired` on a binding constructor changes its semantics. Verify the emitted constructor annotation
+and parameter Qualifiers by compilation/reflection. Source-projects and CRUD templates are the producer truth;
+do not patch generated Java. This amendment supplements Rule 4 without changing the historical quoted text.

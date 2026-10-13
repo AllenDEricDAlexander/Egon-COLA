@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.serviceopen.adapter.exam.validators;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.core.validation.BaseValidator;
@@ -14,7 +15,7 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
  * carrier; the wire exposes no relation that native constraints cannot express.</p>
  */
 @Component("scoreFacadeValidator")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class ScoreFacadeValidator extends BaseValidator {
 

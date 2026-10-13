@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.infrastructure.user.validators;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.light.common.exception.UserDomainException;
@@ -11,7 +12,7 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 /** Infrastructure response rules for the user side. */
 @Component("userInfrastructureValidator")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserInfrastructureValidator extends BaseValidator {
 

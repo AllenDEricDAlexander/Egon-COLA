@@ -111,3 +111,15 @@ Use the six-column table from `references/step-gate-checklist.md`. Manual inspec
 ## Final audit rule
 
 After all Step commits, repeat all 17 checks against the final tree and commits; do not merely aggregate prior Step assertions. Final PASS requires all applicable checks PASS and every N/A evidence-backed. Any Manual Check failure, any `Partial`/`Not satisfied` Spec requirement, or required missing runtime evidence produces `PARTIAL`; inability to determine the baseline/evidence produces `BLOCKED`. Report gaps; do not silently implement them during the audit.
+
+
+## Constructor injection amendment (2026-10-13)
+
+For Spring dependency-injection constructors, explicitly declare `@Autowired` even when there is only one
+constructor. Keep final dependency fields and use `@RequiredArgsConstructor(onConstructor_ = @Autowired)`;
+retain stable Bean names and every `@Qualifier`, including its propagation to generated constructor parameters.
+With multiple constructors, annotate only the intended DI constructor. Field injection remains forbidden.
+This rule does not apply to DTO/PO/exception/Domain value construction or `@ConfigurationProperties` constructor
+binding; `@Autowired` on a binding constructor changes its semantics. Verify the emitted constructor annotation
+and parameter Qualifiers by compilation/reflection. Source-projects and CRUD templates are the producer truth;
+do not patch generated Java. This amendment supplements Rule 4 without changing the historical quoted text.

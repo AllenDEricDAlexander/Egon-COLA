@@ -12,6 +12,7 @@ import top.egon.cola.archetype.source.lightopen.application.user.pojo.query.GetU
 import top.egon.cola.archetype.source.lightopen.application.user.pojo.result.PermissionResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +24,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class PermissionController {
     private final PermissionManage permissionManage;

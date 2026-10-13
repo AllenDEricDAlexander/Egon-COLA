@@ -7,6 +7,7 @@ import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.disposables.Disposable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** Infrastructure Adapter that owns one Agent Flow session and its stream cleanup. */
 @Service("deepResearchAgentService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class AgentFlowDeepResearchAgentServiceImpl implements DeepResearchAgentService {
 

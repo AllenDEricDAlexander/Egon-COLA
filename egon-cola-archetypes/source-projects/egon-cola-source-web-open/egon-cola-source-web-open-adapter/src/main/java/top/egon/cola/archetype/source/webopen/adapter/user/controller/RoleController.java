@@ -7,6 +7,7 @@ import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFa
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +19,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @RestController("roleController")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class RoleController {
 

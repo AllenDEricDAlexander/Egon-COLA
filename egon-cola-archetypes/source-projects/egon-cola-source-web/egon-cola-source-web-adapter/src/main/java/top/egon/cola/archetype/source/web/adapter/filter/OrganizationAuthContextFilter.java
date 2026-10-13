@@ -14,6 +14,7 @@ import top.egon.cola.archetype.source.web.application.context.OrganizationReques
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -26,7 +27,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpAuthenticati
 
 /** Binds business context after the host's verified USER boundary; ingress headers only carry correlation IDs. */
 @Component("organizationAuthContextFilter")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class OrganizationAuthContextFilter extends OncePerRequestFilter {
 

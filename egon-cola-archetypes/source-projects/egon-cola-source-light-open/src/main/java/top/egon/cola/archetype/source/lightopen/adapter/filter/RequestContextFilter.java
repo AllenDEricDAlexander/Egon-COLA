@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
@@ -20,7 +21,7 @@ import java.util.UUID;
 
 @Component("domainRequestContextFilter")
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RequestContextFilter extends OncePerRequestFilter {
     public static final String TENANT_ID_HEADER = "X-Tenant-Id";
     public static final String OPERATOR_ID_HEADER = "X-Operator-Id";

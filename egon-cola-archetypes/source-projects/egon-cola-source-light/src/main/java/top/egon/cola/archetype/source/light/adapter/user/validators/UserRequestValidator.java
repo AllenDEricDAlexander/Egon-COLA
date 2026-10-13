@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.adapter.user.validators;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.light.facade.validation.NativeRpcValidationGroup;
@@ -13,7 +14,7 @@ import java.util.regex.Pattern;
 
 /** Adapter-boundary user rules; the email shape is the part native constraints cannot pin down. */
 @Component("userRequestValidator")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserRequestValidator extends BaseValidator {
 

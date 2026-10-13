@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.application.user.manage.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ import java.util.List;
 
 @Service("permissionManageImpl")
 @Lazy
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class PermissionManageImpl implements PermissionManage {
     @Qualifier("permissionDomainService")

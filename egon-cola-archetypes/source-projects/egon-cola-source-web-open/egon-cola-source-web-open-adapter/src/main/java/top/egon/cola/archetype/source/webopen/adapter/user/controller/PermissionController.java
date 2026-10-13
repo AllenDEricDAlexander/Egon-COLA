@@ -9,6 +9,7 @@ import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFa
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +22,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @RestController("permissionController")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class PermissionController {
 

@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.infrastructure.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -13,7 +14,7 @@ import top.egon.cola.archetype.source.light.infrastructure.mq.MqRouteEnum;
 /** Resolves the declared route for a user event and hands the message to the single MQ boundary. */
 @Validated
 @Service("userEventService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserEventServiceImpl implements UserEventService {
     @Qualifier("mqMessageService")

@@ -1,13 +1,14 @@
 package top.egon.cola.archetype.source.web.infrastructure.mq;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component("organizationEventProducer")
 @ConditionalOnProperty(prefix = "organization.integrations.rabbit", name = "enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OrganizationEventProducer {
     private final RabbitTemplate rabbitTemplate;
 

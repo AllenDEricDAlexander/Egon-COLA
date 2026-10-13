@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.service.infrastructure.course.service.imp
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -14,7 +15,7 @@ import top.egon.cola.archetype.source.service.infrastructure.mq.MqRouteEnum;
 /** Resolves the declared course route and hands the message to the single MQ boundary. */
 @Validated
 @Service("courseEventService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseEventServiceImpl implements CourseEventService {
     @Qualifier("mqMessageService")

@@ -8,6 +8,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice(name = "organizationGlobalExceptionHandler")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OrganizationGlobalExceptionHandler {
     @Qualifier("rbac3AuthorizationExceptionHandler")
     private final Rbac3AuthorizationExceptionHandler securityErrors;

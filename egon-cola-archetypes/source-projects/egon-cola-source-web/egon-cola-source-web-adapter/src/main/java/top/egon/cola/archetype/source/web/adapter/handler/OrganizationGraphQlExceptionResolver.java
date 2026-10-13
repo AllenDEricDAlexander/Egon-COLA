@@ -6,6 +6,7 @@ import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,7 +22,7 @@ import java.time.Instant;
 import java.util.Map;
 
 @Component("organizationGraphQlExceptionResolver")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class OrganizationGraphQlExceptionResolver extends DataFetcherExceptionResolverAdapter {
 

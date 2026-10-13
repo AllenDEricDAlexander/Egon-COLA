@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.service.infrastructure.client.organizatio
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,7 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
 /** Native DIRECT adapter for the outbound organization directory client. */
 @Component("organizationDirectoryClient")
 @Profile({"dev", "prod"})
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class NativeOrganizationDirectoryClientImpl implements OrganizationDirectoryClient {
     @Qualifier("organizationUserFacade")

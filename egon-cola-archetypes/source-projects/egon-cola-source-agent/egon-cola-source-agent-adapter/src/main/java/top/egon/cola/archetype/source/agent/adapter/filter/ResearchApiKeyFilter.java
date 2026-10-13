@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.archetype.source.agent.adapter.config.DeepResearchApiProperties;
@@ -22,7 +23,7 @@ import java.util.Map;
 /** Isolated legacy fixture; production authentication is owned by the native USER boundary. */
 @Deprecated
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ResearchApiKeyFilter extends OncePerRequestFilter {
 
     public static final String API_KEY_HEADER = "X-Research-Api-Key";

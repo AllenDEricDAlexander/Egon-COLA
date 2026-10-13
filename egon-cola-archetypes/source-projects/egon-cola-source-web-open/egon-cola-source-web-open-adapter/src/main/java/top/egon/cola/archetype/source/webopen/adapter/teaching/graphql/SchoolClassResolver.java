@@ -11,6 +11,7 @@ import top.egon.cola.archetype.source.webopen.application.teaching.pojo.result.G
 import top.egon.cola.archetype.source.webopen.application.teaching.pojo.result.SchoolClassDetailResult;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -21,7 +22,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @Controller("schoolClassResolver")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class SchoolClassResolver {
 
     @Qualifier("gradeManage")

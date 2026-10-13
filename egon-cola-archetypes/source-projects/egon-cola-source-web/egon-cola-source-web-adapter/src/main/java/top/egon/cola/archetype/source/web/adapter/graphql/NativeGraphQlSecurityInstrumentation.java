@@ -11,6 +11,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -29,7 +30,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAutho
 
 /** Runs each framework callback in its own verified scope, including callbacks after the original dispatch ends. */
 @Component("nativeGraphQlSecurityInstrumentation")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class NativeGraphQlSecurityInstrumentation extends SimplePerformantInstrumentation {
     @Qualifier("defaultValidator")

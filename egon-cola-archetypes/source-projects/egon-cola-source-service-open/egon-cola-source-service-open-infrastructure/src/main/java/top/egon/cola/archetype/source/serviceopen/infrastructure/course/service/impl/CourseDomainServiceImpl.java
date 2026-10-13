@@ -16,6 +16,7 @@ import top.egon.cola.archetype.source.serviceopen.infrastructure.course.po.Cours
 import top.egon.cola.archetype.source.serviceopen.infrastructure.course.po.CourseSchedulePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -29,7 +30,7 @@ import java.util.Optional;
 @Slf4j
 @Validated
 @Service("courseDomainService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class CourseDomainServiceImpl
         implements CourseDomainService {
 

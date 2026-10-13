@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.agent.infrastructure.knowledge.service.im
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,7 +35,7 @@ import java.util.Objects;
  */
 @Slf4j
 @Service("knowledgeVectorService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RagKnowledgeVectorServiceImpl implements KnowledgeVectorService {
 
     private final @Qualifier("ragRetrievalService") RagRetrievalService ragRetrievalService;

@@ -6,12 +6,13 @@ import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.SchoolClassManage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @Component("schoolClassChangedConsumer")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class SchoolClassChangedConsumer {
 

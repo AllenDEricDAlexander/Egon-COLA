@@ -6,6 +6,7 @@ import graphql.schema.DataFetchingEnvironment;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.execution.DataFetcherExceptionResolverAdapter;
 import org.springframework.graphql.execution.ErrorType;
 import org.springframework.security.access.AccessDeniedException;
@@ -20,7 +21,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.IdpAutho
 
 @Component("graphQlExceptionResolver")
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class GraphQlExceptionResolver extends DataFetcherExceptionResolverAdapter {
     @Override
     protected GraphQLError resolveToSingleError(Throwable exception, DataFetchingEnvironment environment) {

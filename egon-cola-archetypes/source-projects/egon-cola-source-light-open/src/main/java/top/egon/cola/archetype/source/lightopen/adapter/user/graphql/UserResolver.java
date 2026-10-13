@@ -9,6 +9,7 @@ import top.egon.cola.archetype.source.lightopen.application.user.manage.Permissi
 import top.egon.cola.archetype.source.lightopen.application.user.pojo.query.GetUserQuery;
 import top.egon.cola.archetype.source.lightopen.application.user.pojo.query.GetUserPermissionsQuery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Controller;
 import java.util.List;
 
 @Controller
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserResolver {
     private final UserManage userManage;

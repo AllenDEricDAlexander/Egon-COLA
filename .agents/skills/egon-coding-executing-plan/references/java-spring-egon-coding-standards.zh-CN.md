@@ -108,3 +108,13 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 ## 最终审核规则
 
 全部 Step 提交后，针对最终 Tree 与 Commit 重新逐项执行 17 项检查，不能只汇总 Step 断言。最终 PASS 要求所有适用项 PASS、所有 N/A 有证据。任何 Manual Check 失败、任何 `Partial`/`Not satisfied` Spec 要求或缺失强制运行时证据都产生 `PARTIAL`；无法确定基线/证据则 `BLOCKED`。只报告缺口，最终审核中不能静默实施。
+
+
+## 构造器注入补充规则（2026-10-13）
+
+Spring 依赖注入构造器即使只有一个，也统一显式声明 `@Autowired`。保留 final 依赖字段，采用
+`@RequiredArgsConstructor(onConstructor_ = @Autowired)`；具名 Bean、每个 `@Qualifier` 和构造参数复制配置保持。
+多个构造器时，仅标注实际用于依赖注入的构造器。字段注入仍禁止。
+DTO、PO、异常、纯 Domain 值对象构造和 `@ConfigurationProperties` 构造绑定不适用本规则；给绑定构造器
+添加 `@Autowired` 会改变绑定语义。验证实际生成构造器的注解和参数 Qualifier，不能只检查 Lombok 文本。
+以 source-projects 和 CRUD 模板为生产来源，不手改生成 Java。本补充落实 Rule 4，保留历史用户原文。

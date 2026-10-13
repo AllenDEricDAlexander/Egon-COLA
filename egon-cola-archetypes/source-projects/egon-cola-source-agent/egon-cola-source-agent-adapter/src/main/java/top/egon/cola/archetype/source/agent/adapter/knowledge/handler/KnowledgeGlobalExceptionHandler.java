@@ -1,6 +1,7 @@
 package top.egon.cola.archetype.source.agent.adapter.knowledge.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -64,7 +65,7 @@ import java.util.stream.Collectors;
 @RestControllerAdvice(name = "knowledgeGlobalExceptionHandler",
         basePackages = "top.egon.cola.archetype.source.agent.adapter.knowledge")
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class KnowledgeGlobalExceptionHandler {
 

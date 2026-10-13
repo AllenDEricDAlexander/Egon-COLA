@@ -10,6 +10,7 @@ import top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.RpcConsumerModeEnum;
 import org.mapstruct.factory.Mappers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -36,7 +37,7 @@ import top.egon.cola.archetype.source.service.facade.exam.ScoreFacade;
 @Configuration(value = "nativeEvaluationRpcConfiguration", proxyBeanMethods = false)
 @Profile({"dev", "prod"})
 @EnableConfigurationProperties(NativeEvaluationRpcProperties.class)
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class NativeEvaluationRpcConfiguration {
     @Qualifier("rpcContractValidator")

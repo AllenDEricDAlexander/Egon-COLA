@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +35,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource
 
 @RestController("userController")
 @RequestMapping("/api/users")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 @SecurityRequirement(name = "nativeBearer")
 @ApiResponses({

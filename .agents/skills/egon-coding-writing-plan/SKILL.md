@@ -245,3 +245,15 @@ Use exactly one:
 ## Skill maintenance
 
 When changing this skill, first run the literal-rule preservation test (`scripts/test_user_mandated_java_rules.py`), resource-integrity tests (`scripts/test_validate_skill_resources.py`), Manual Check tests (`scripts/test_validate_manual_checks.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if the verbatim source changes, any bundled resource is missing, a path is ambiguous/escaping, or a local Markdown link is broken.
+
+
+## Constructor injection amendment (2026-10-13)
+
+For Spring dependency-injection constructors, explicitly declare `@Autowired` even when there is only one
+constructor. Keep final dependency fields and use `@RequiredArgsConstructor(onConstructor_ = @Autowired)`;
+retain stable Bean names and every `@Qualifier`, including its propagation to generated constructor parameters.
+With multiple constructors, annotate only the intended DI constructor. Field injection remains forbidden.
+This rule does not apply to DTO/PO/exception/Domain value construction or `@ConfigurationProperties` constructor
+binding; `@Autowired` on a binding constructor changes its semantics. Verify the emitted constructor annotation
+and parameter Qualifiers by compilation/reflection. Source-projects and CRUD templates are the producer truth;
+do not patch generated Java. This amendment supplements Rule 4 without changing the historical quoted text.

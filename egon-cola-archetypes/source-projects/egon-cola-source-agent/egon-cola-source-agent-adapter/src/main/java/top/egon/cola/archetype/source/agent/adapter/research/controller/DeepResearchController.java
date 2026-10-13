@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.agent.adapter.research.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource;
 import io.swagger.v3.oas.annotations.headers.Header;
@@ -47,7 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /** Single REST Command endpoint that bridges domain Observer events to SSE. */
 @RestController("deepResearchController")
 @RequestMapping("/api/v1/deep-research/runs")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 @Tag(name = "Deep Research")
 @SecurityRequirement(name = "nativeBearer")

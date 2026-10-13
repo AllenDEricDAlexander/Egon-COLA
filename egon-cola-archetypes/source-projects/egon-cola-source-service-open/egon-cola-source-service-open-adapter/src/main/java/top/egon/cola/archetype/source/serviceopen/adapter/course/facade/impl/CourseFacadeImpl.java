@@ -4,6 +4,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.archetype.source.serviceopen.adapter.course.pojo.convertor.CourseFacadeConverter;
 import top.egon.cola.archetype.source.serviceopen.adapter.course.validators.CourseFacadeValidator;
@@ -20,7 +21,7 @@ import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.ScheduleC
 
 /** Dubbo Triple provider of the open Course facade; maps Protobuf onto the use cases. */
 @DubboService(version = "1.0.0", group = "course")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseFacadeImpl extends DubboCourseServiceTriple.CourseServiceImplBase {
 

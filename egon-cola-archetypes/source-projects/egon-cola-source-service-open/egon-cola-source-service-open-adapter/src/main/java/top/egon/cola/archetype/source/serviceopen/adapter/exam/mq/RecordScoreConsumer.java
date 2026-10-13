@@ -4,6 +4,7 @@ import top.egon.cola.archetype.source.serviceopen.adapter.exam.pojo.dto.RecordSc
 import top.egon.cola.archetype.source.serviceopen.application.exam.pojo.command.RecordScoreCommand;
 import top.egon.cola.archetype.source.serviceopen.application.exam.manage.ScoreManage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component("recordScoreConsumer")
 @ConditionalOnProperty(prefix = "app.integrations.rabbitmq", name = "enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RecordScoreConsumer {
     @Qualifier("scoreManage")
     private final ScoreManage scoreManage;

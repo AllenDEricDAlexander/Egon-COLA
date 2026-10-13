@@ -6,11 +6,12 @@ import top.egon.cola.archetype.source.light.application.user.pojo.command.Create
 import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.light.facade.user.dto.CreateUserDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserImportedConsumer {
     private final UserManage userManage;

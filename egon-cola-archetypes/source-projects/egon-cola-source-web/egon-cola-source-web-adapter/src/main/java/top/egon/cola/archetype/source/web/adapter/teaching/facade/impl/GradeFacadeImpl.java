@@ -4,6 +4,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresService
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
@@ -22,7 +23,7 @@ import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 /** Native unary provider of the web-owned Grade facade; maps Protobuf onto the use cases. */
 @Service("gradeFacade")
 @EgonRpcProvider
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class GradeFacadeImpl implements GradeFacade {
 

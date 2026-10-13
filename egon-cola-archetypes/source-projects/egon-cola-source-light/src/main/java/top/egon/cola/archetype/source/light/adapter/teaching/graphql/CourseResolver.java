@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.adapter.teaching.graphql;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -17,7 +18,7 @@ import top.egon.cola.archetype.source.light.application.teaching.pojo.query.GetS
 import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource;
 
 @Controller("courseResolver")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseResolver {
     @Qualifier("courseManageImpl")

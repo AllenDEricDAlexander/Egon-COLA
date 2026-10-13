@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation.impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import top.egon.cola.archetype.source.webopen.common.exception.ExternalDependencyException;
 import top.egon.cola.archetype.source.webopen.common.enums.ExternalDependencyFailure;
 import top.egon.cola.archetype.source.webopen.domain.teaching.vos.EvaluationCourseBO;
@@ -40,6 +41,7 @@ public class GrpcEvaluationQueryClientImpl implements EvaluationQueryClient {
     private final ManagedChannel channel;
     private final Duration deadline;
 
+    @Autowired
     public GrpcEvaluationQueryClientImpl(OrganizationIntegrationProperties properties) {
         this(ManagedChannelBuilder.forTarget(properties.getIntegrations().getEvaluation().getGrpcTarget())
                         .usePlaintext()

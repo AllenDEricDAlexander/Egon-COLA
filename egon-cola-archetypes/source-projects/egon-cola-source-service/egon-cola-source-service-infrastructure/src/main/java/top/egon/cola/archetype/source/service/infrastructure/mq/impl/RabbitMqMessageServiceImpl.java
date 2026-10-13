@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.service.infrastructure.mq.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,7 +20,7 @@ import top.egon.cola.archetype.source.service.infrastructure.mq.MqRouteEnum;
 @Validated
 @Component("rabbitMqMessageService")
 @ConditionalOnProperty(prefix = "app.integrations.rabbitmq", name = "enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class RabbitMqMessageServiceImpl implements MqMessageService {
     @Qualifier("rabbitTemplate")

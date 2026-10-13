@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.application.teaching.validators;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,7 @@ import top.egon.cola.component.common.core.validation.ValidationUtils;
 /** Teaching use-case rules; the claim itself belongs to the idempotency service. */
 @Component("teachingApplicationValidator")
 @Lazy
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class TeachingApplicationValidator extends BaseValidator {
 

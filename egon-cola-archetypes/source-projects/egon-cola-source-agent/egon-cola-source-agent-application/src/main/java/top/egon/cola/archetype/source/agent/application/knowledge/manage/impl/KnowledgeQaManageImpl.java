@@ -3,6 +3,7 @@ package top.egon.cola.archetype.source.agent.application.knowledge.manage.impl;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.AskKnowledgeBaseCommand;
@@ -56,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 @Service("knowledgeQaManage")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class KnowledgeQaManageImpl implements KnowledgeQaManage {
 
     /** The component's own result cap, which an absent {@code topK} leaves in charge. */

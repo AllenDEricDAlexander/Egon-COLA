@@ -6,6 +6,7 @@ import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.client.T
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.validators.TeachingInfrastructureValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -16,7 +17,7 @@ import java.util.Optional;
 
 @Component("teachingQueryClient")
 @ConditionalOnProperty(name = "app.integrations.external-http.enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class RestTeachingQueryClientImpl implements TeachingQueryClient {
     @Qualifier("teachingRestClient")

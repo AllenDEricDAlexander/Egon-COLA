@@ -16,6 +16,7 @@ import top.egon.cola.archetype.source.light.infrastructure.teaching.po.ClassCour
 import top.egon.cola.archetype.source.light.infrastructure.teaching.po.SchoolClassPO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -28,7 +29,7 @@ import java.util.Optional;
 @Slf4j
 @Validated
 @Service("schoolClassDomainService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class SchoolClassDomainServiceImpl
         implements SchoolClassDomainService {
 

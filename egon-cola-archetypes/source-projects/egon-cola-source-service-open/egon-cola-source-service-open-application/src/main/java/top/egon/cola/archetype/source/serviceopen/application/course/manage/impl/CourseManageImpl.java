@@ -21,6 +21,7 @@ import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,7 @@ import org.springframework.validation.annotation.Validated;
 @Service("courseManage")
 @Validated
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class CourseManageImpl implements CourseManage {
 
     @Qualifier("courseEventService")

@@ -149,3 +149,15 @@ Every Java Spec must include a rule-by-rule matrix. No rows may be merged:
 | Rule 1 | Yes / No | `<paths and symbols>` | `<mandatory naming decision>` | `<exact targets>` | `<search/compile/review gate>` | PASS / N/A / BLOCKED |
 
 Rules 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 must each appear exactly once. A `No`/`N/A` row requires positive repository evidence proving the concern is absent from the affected surface.
+
+
+## Constructor injection amendment (2026-10-13)
+
+For Spring dependency-injection constructors, explicitly declare `@Autowired` even when there is only one
+constructor. Keep final dependency fields and use `@RequiredArgsConstructor(onConstructor_ = @Autowired)`;
+retain stable Bean names and every `@Qualifier`, including its propagation to generated constructor parameters.
+With multiple constructors, annotate only the intended DI constructor. Field injection remains forbidden.
+This rule does not apply to DTO/PO/exception/Domain value construction or `@ConfigurationProperties` constructor
+binding; `@Autowired` on a binding constructor changes its semantics. Verify the emitted constructor annotation
+and parameter Qualifiers by compilation/reflection. Source-projects and CRUD templates are the producer truth;
+do not patch generated Java. This amendment supplements Rule 4 without changing the historical quoted text.

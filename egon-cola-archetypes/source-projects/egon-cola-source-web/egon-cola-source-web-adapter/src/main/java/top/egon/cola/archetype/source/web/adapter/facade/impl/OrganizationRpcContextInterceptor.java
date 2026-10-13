@@ -8,11 +8,12 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Carries correlation/idempotency metadata; the shared SDK owns verified SERVICE identity. */
 @Component("organizationRpcContextInterceptor")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class OrganizationRpcContextInterceptor implements ServerInterceptor {
     private static final Metadata.Key<String> TRACE_ID = Metadata.Key.of("x-trace-id", Metadata.ASCII_STRING_MARSHALLER);

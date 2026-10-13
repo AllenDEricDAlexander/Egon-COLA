@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.web.infrastructure.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,7 +20,7 @@ import top.egon.cola.archetype.source.web.infrastructure.config.OrganizationInte
 @Validated
 @Service("commandIdempotencyService")
 @ConditionalOnProperty(prefix = "organization.integrations.redis", name = "enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CommandIdempotencyServiceImpl implements CommandIdempotencyService {
     @Qualifier("organizationRedisTemplate")

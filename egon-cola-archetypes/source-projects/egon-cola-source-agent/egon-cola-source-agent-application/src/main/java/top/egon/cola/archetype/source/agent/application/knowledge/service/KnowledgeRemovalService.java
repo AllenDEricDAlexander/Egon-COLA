@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.agent.application.knowledge.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Service("knowledgeRemovalService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class KnowledgeRemovalService {
 
     private final @Qualifier("knowledgeVectorService") KnowledgeVectorService vectorService;

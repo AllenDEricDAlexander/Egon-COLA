@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.lightopen.start.config.async;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ public class AsyncConfiguration implements AsyncConfigurer {
 
     private final Executor applicationTaskExecutor;
 
+    @Autowired
     public AsyncConfiguration(
             @Lazy @Qualifier("applicationTaskExecutor") Executor applicationTaskExecutor) {
         this.applicationTaskExecutor = applicationTaskExecutor;

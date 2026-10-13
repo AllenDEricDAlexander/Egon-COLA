@@ -1,6 +1,7 @@
 package top.egon.cola.archetype.source.lightopen.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -19,7 +20,7 @@ import top.egon.cola.archetype.source.lightopen.infrastructure.mq.MqRouteEnum;
 @EnableRabbit
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "app.integrations.rabbitmq.enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RabbitMqConfig {
     @Value("${app.integrations.rabbitmq.exchange}")
     private final String exchangeName;

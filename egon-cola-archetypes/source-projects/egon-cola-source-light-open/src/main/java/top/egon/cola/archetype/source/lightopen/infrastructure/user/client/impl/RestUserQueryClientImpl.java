@@ -5,6 +5,7 @@ import top.egon.cola.archetype.source.lightopen.infrastructure.user.client.UserQ
 import top.egon.cola.archetype.source.lightopen.infrastructure.user.validators.UserInfrastructureValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,7 @@ import java.util.Optional;
 
 @Component("userQueryClient")
 @ConditionalOnProperty(name = "app.integrations.external-http.enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class RestUserQueryClientImpl implements UserQueryClient {
     @Qualifier("userRestClient")

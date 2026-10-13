@@ -11,12 +11,13 @@ import top.egon.cola.archetype.source.lightopen.facade.teaching.dto.CreateCourse
 import top.egon.cola.archetype.source.lightopen.common.exception.TeachingFacadeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @Component("courseFacadeImpl")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseFacadeImpl implements CourseFacade {
     @Qualifier("courseManageImpl")

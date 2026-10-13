@@ -3,6 +3,7 @@ package top.egon.cola.archetype.source.light.adapter.handler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -15,7 +16,7 @@ import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 @ControllerAdvice(basePackages = "top.egon.cola.archetype.source.light.adapter")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ResponseWrapperHandler implements ResponseBodyAdvice<Object> {
     private final ObjectMapper objectMapper;
 

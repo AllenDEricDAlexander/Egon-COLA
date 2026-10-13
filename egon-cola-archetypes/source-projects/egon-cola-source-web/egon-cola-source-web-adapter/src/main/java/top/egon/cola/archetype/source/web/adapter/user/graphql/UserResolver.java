@@ -6,6 +6,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.autoconfigure.Rbac3Start
 import top.egon.cola.platform.tianquan.jianshen.starter.field.FieldWriteAuthorizationCommand;
 import top.egon.cola.platform.tianquan.jianshen.starter.field.Rbac3FieldWriteAuthorizationComponent;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import top.egon.cola.archetype.source.web.application.user.pojo.command.AssignRoleCommand;
 import top.egon.cola.archetype.source.web.application.user.pojo.command.CreateUserCommand;
@@ -28,7 +29,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @Controller("userResolver")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserResolver {
     @Qualifier("rbac3FieldWriteAuthorizationComponent")

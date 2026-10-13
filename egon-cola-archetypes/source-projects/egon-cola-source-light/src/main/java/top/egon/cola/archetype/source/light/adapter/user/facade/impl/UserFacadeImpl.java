@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.light.adapter.user.facade.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.stereotype.Component;
@@ -35,7 +36,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.rpc.IdpRpcSecur
 /** Native unary provider of the User facade; maps Protobuf onto the user use cases. */
 @EgonRpcProvider
 @Component("userFacadeImpl")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserFacadeImpl implements UserFacade {
 

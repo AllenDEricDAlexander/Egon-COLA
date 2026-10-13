@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.validation.annotation.Validated;
@@ -22,7 +23,7 @@ import java.util.List;
 @Slf4j
 @Validated
 @Repository("permissionRepository")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class PermissionRepository extends EgonColaRepository<PermissionDAO, PermissionPO> {
     @Getter
     @Qualifier("permissionDAO")

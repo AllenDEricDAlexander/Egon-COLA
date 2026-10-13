@@ -6,6 +6,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.factory.Mappers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +36,7 @@ import java.util.Set;
 @Configuration(value = "nativeOrganizationRpcConfiguration", proxyBeanMethods = false)
 @Profile({"dev", "prod"})
 @EnableConfigurationProperties(NativeOrganizationRpcProperties.class)
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class NativeOrganizationRpcConfiguration {
     @Qualifier("rpcContractValidator")

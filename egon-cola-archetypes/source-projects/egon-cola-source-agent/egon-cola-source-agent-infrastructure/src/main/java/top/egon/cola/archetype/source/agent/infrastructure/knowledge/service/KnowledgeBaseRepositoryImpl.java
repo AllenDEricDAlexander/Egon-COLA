@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,7 @@ import java.util.Objects;
 @Slf4j
 @Validated
 @Repository("knowledgeBaseRepository")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class KnowledgeBaseRepositoryImpl extends EgonColaRepository<KnowledgeBaseDAO, KnowledgeBasePO> implements KnowledgeBaseRepository {
     @Getter
     @Qualifier("knowledgeBaseDAO")

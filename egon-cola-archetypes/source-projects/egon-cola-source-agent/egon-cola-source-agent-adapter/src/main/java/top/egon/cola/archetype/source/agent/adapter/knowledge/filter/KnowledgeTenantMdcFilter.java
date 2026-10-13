@@ -10,6 +10,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -22,7 +23,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpAuthenticati
 
 /** Opens MP tenant and audit scope from the verified USER and restores the worker's prior MDC. */
 @Component("knowledgeTenantMdcFilter")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class KnowledgeTenantMdcFilter extends OncePerRequestFilter {
 

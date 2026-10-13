@@ -3,6 +3,7 @@ package top.egon.cola.archetype.source.agent.application.research.manage.impl;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import top.egon.cola.archetype.source.agent.application.research.pojo.command.StartDeepResearchCommand;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** Atomic application use case that owns capacity and terminal cleanup. */
 @Service("deepResearchManage")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class DeepResearchManageImpl implements DeepResearchManage {
 

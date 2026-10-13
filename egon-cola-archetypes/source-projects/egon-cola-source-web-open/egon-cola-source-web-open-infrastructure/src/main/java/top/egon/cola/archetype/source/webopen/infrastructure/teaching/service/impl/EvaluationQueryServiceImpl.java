@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.webopen.infrastructure.teaching.service.i
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -17,7 +18,7 @@ import top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation.E
  */
 @Validated
 @Service("evaluationQueryService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class EvaluationQueryServiceImpl implements EvaluationQueryService {
     @Qualifier("evaluationQueryClient")

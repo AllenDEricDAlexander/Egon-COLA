@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.service.adapter.exam.facade.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.service.adapter.handler.GlobalFacadeExceptionHandler;
@@ -24,7 +25,7 @@ import java.util.Objects;
 /** Native unary provider of the service-owned Exam facade; maps Protobuf onto the use cases. */
 @Component("examFacadeImpl")
 @EgonRpcProvider
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class ExamFacadeImpl implements ExamFacade {
 

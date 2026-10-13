@@ -14,6 +14,7 @@ import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.Score
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.po.ScorePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -25,7 +26,7 @@ import java.util.Optional;
 @Slf4j
 @Validated
 @Service("scoreDomainService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ScoreDomainServiceImpl
         implements ScoreDomainService {
 

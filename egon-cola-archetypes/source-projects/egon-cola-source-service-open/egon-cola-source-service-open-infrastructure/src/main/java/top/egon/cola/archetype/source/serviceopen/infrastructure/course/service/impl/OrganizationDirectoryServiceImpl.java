@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.serviceopen.infrastructure.course.service
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -13,7 +14,7 @@ import top.egon.cola.archetype.source.serviceopen.infrastructure.client.organiza
 /** Domain directory capability served by the named infrastructure client. */
 @Validated
 @Service("organizationDirectoryService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class OrganizationDirectoryServiceImpl implements OrganizationDirectoryService {
     @Qualifier("organizationDirectoryClient")

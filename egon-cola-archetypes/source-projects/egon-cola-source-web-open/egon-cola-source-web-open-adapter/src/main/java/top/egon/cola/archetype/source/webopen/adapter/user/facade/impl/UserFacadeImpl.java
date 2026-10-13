@@ -11,12 +11,13 @@ import top.egon.cola.archetype.source.webopen.facade.organization.v1.User;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 /** Dubbo Triple provider of the organization User contract; maps Protobuf onto the use cases. */
 @Service("userFacade")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserFacadeImpl extends DubboUserServiceTriple.UserServiceImplBase {
 

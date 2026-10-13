@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.service.starter.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 /** Service business exposure is RPC-only; the higher-priority document chain owns its SERVICE policy. */
 @Configuration(value = "nativeHttpSecurityConfiguration", proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class NativeHttpSecurityConfiguration {
     @Bean("applicationSecurityFilterChain")

@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.agent.infrastructure.knowledge.service.im
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -41,7 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * would otherwise follow a stream the caller has already closed.
  */
 @Service("knowledgeAnswerService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class KnowledgeAnswerChatModelServiceImpl implements KnowledgeAnswerService {
 

@@ -272,3 +272,15 @@ Never claim full completion when any effective requirement is `Partial`, `Not sa
 ## Skill maintenance
 
 When changing this skill, run `scripts/test_user_mandated_java_rules.py`, `scripts/test_validate_skill_resources.py`, and `scripts/validate_skill_resources.py`, review `references/acceptance-scenarios.md`, and confirm the verbatim source, English operational file, Chinese review mirror, standards, checklists, and metadata still express the same execution contract.
+
+
+## Constructor injection amendment (2026-10-13)
+
+For Spring dependency-injection constructors, explicitly declare `@Autowired` even when there is only one
+constructor. Keep final dependency fields and use `@RequiredArgsConstructor(onConstructor_ = @Autowired)`;
+retain stable Bean names and every `@Qualifier`, including its propagation to generated constructor parameters.
+With multiple constructors, annotate only the intended DI constructor. Field injection remains forbidden.
+This rule does not apply to DTO/PO/exception/Domain value construction or `@ConfigurationProperties` constructor
+binding; `@Autowired` on a binding constructor changes its semantics. Verify the emitted constructor annotation
+and parameter Qualifiers by compilation/reflection. Source-projects and CRUD templates are the producer truth;
+do not patch generated Java. This amendment supplements Rule 4 without changing the historical quoted text.

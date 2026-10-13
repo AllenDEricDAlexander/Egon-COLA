@@ -59,5 +59,18 @@ class UserMandatedJavaRulesTest(unittest.TestCase):
             self.assertNotIn(forbidden, text)
 
 
+    def test_explicit_constructor_amendment_is_synchronized(self) -> None:
+        for relative in (
+            "SKILL.md", "SKILL.zh-CN.md",
+            "references/user-mandated-java-rules.md", "references/user-mandated-java-rules.zh-CN.md",
+            "references/java-spring-egon-coding-standards.md", "references/java-spring-egon-coding-standards.zh-CN.md",
+        ):
+            text = (self.root / relative).read_text(encoding="utf-8")
+            amendment = text[text.index("2026-10-13"):]
+            self.assertIn("@RequiredArgsConstructor(onConstructor_ = @Autowired)", amendment, relative)
+            self.assertIn("@Qualifier", amendment, relative)
+            self.assertIn("@ConfigurationProperties", amendment, relative)
+
+
 if __name__ == "__main__":
     unittest.main()

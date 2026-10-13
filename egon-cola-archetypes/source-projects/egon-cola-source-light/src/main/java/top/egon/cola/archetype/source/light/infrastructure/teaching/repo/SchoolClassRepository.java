@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.cache.annotation.CacheConfig;
@@ -25,7 +26,7 @@ import java.util.List;
 @Slf4j
 @Validated
 @Repository("schoolClassRepository")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @CacheConfig(cacheNames = "SchoolClassPO")
 public class SchoolClassRepository extends EgonColaRepository<SchoolClassDAO, SchoolClassPO> {
     @Getter

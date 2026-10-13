@@ -9,12 +9,13 @@ import top.egon.cola.archetype.source.lightopen.application.teaching.manage.Scho
 import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.query.GetCourseQuery;
 import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.query.GetSchoolClassQuery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
 @Controller
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseResolver {
     private final CourseManage courseManage;

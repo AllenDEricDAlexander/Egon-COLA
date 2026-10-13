@@ -4,6 +4,7 @@ import jakarta.validation.Validator;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.graphql.server.WebGraphQlInterceptor;
 import org.springframework.graphql.server.WebGraphQlRequest;
@@ -23,7 +24,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAud
 
 /** Captures verified facts on the HTTP thread; callbacks receive values rather than a mutable SecurityContext. */
 @Component("nativeGraphQlSecurityInterceptor")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class NativeGraphQlSecurityInterceptor implements WebGraphQlInterceptor {
     public static final String SNAPSHOT_KEY = NativeGraphQlSecurityInterceptor.class.getName() + ".snapshot";

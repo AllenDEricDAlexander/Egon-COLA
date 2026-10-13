@@ -6,11 +6,12 @@ import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.comman
 import top.egon.cola.archetype.source.lightopen.application.teaching.manage.CourseManage;
 import top.egon.cola.archetype.source.lightopen.facade.teaching.dto.CreateCourseDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class CourseImportedConsumer {
     private final CourseManage courseManage;

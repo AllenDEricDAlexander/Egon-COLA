@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeBaseBO;
@@ -51,7 +52,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Component("knowledgeIngestDeliveryHandler")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class KnowledgeIngestDeliveryHandler implements DeliveryHandler {
 
     /** Channel this handler owns, registered by name with the outbox registry. */

@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +27,7 @@ import jakarta.validation.constraints.Max;
 @Slf4j
 @Validated
 @Repository("examPaperRepository")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class ExamPaperRepository extends EgonColaRepository<ExamPaperDAO, ExamPaperPO> {
     @Getter
     @Qualifier("examPaperDAO")

@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.web.application.user.manage.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,7 @@ import java.time.Instant;
 @Service("roleManage")
 @Validated
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RoleManageImpl implements RoleManage {
 
     @Qualifier("userDomainService")

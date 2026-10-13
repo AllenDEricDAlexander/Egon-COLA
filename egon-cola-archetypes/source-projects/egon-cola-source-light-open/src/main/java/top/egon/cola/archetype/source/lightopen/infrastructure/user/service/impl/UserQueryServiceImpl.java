@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.lightopen.infrastructure.user.service.imp
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -14,7 +15,7 @@ import java.util.Optional;
 /** User query capability; transport is delegated to the bound client implementation. */
 @Validated
 @Service("userQueryService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class UserQueryServiceImpl implements UserQueryService {
     @Qualifier("userQueryClient")

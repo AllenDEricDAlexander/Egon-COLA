@@ -3,6 +3,7 @@ package top.egon.cola.archetype.source.web.infrastructure.mq.impl;
 import io.micrometer.core.instrument.Metrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ import top.egon.cola.archetype.source.web.infrastructure.mq.OrganizationEventPro
 @Validated
 @Component("rabbitMqMessageService")
 @ConditionalOnProperty(prefix = "organization.integrations.rabbit", name = "enabled", havingValue = "true")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class RabbitMqMessageServiceImpl implements MqMessageService {
     @Qualifier("organizationEventProducer")

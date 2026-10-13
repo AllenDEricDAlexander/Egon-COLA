@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.service.infrastructure.exam.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -19,7 +20,7 @@ import java.time.Instant;
 /** Resolves the declared exam routes and hands every message to the single MQ boundary. */
 @Validated
 @Service("examEventService")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class ExamEventServiceImpl implements ExamEventService {
     @Qualifier("mqMessageService")

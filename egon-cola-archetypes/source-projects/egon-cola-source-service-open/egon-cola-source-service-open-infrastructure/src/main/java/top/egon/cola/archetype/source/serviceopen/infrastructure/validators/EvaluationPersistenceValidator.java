@@ -2,6 +2,7 @@ package top.egon.cola.archetype.source.serviceopen.infrastructure.validators;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
@@ -16,7 +17,7 @@ import java.util.Locale;
  * original cause chain only; no statement is re-issued and no cache or MQ side effect is written.
  */
 @Component("evaluationPersistenceValidator")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public class EvaluationPersistenceValidator extends BaseValidator {
 
