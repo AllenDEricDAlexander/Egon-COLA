@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { Alert } from 'antd'
 import type { ChildContext } from '../bridge/context'
 import { buildChildProps } from '../bridge/context'
-import { PORTAL_HOST_VERSION } from '../manifest/loader'
+import { PORTAL_HOST_VERSION, validateChildUrl } from '../manifest/loader'
 import type { ChildManifest } from '../manifest/types'
 import type { LifecycleEvent } from './lifecycleState'
 
@@ -16,15 +16,17 @@ export interface WujieChildProps {
 }
 
 const childRouteSuffix = (platformKey: ChildManifest['key'], routeIntent?: string): string => {
+  routeIntent = routeIntent?.split(/[?#]/, 1)[0]
   const prefix = `/xingyuan/${platformKey}`
   if (!routeIntent || (routeIntent !== prefix && !routeIntent.startsWith(`${prefix}/`))) {
     return ''
   }
 
   try {
-    const decoded = decodeURIComponent(routeIntent.slice(prefix.length))
+    const decoded = decodeURIComponent(routeIntent.slice(prefix.length)).split(/[?#]/, 1)[0]
     const segments = decoded.split('/')
-    if (segments.some((segment) => segment === '..')) {
+    if (/[\\]/.test(decoded) || Array.from(decoded).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /%[0-9a-f]{2}/i.test(decoded)
+      || segments.some((segment) => segment === '..')) {
       return ''
     }
     return segments.filter((segment) => segment && segment !== '.').join('/')
@@ -38,7 +40,7 @@ export const resolveChildUrl = (
   platformKey: ChildManifest['key'],
   routeIntent?: string,
 ): string => {
-  const baseUrl = new URL(manifestUrl, globalThis.location?.href ?? 'http://portal.local/')
+  const baseUrl = validateChildUrl(manifestUrl, platformKey)
   const routeSuffix = childRouteSuffix(platformKey, routeIntent)
   if (!routeSuffix) {
     baseUrl.search = ''
@@ -122,10 +124,15 @@ export const WujieChild = ({ manifest, context, onState }: WujieChildProps) => {
     }
     const reportUnmount = (): void => onState({ type: 'UNMOUNT' })
 
+    let childUrl: string
+    try { childUrl = resolveChildUrl(manifest.url, manifest.key, context.routeIntent) } catch {
+      onState({type: 'MOUNT_FAILED', code: 'CHILD_URL_NOT_ALLOWED', message: 'Child mount URL is not allowed'})
+      return
+    }
     onState({ type: 'LOAD' })
     void startApp({
       name: manifest.key,
-      url: resolveChildUrl(manifest.url, manifest.key, context.routeIntent),
+      url: childUrl,
       el: host,
       attrs: {src: 'about:blank'},
       degradeAttrs: {title: manifest.displayName, style: 'display:block;width:100%;height:100%;border:0;box-shadow:none'},

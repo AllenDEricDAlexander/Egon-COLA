@@ -10,6 +10,14 @@ import {RequireAuth, RequireCapability} from '../auth/RouteGuards'
 import {LoadingBlock} from '../components/QueryState'
 import {AdminLayout} from '../layouts/AdminLayout'
 
+const configuredBase: string = import.meta.env.VITE_BASE_PATH ?? '/'
+if (!configuredBase.startsWith('/') || configuredBase.startsWith('//')
+  || /[\\?#%]/.test(configuredBase) || Array.from(configuredBase).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /\/{2,}/.test(configuredBase)
+  || configuredBase.split('/').some((segment) => segment === '.' || segment === '..')) {
+  throw new Error('Invalid VITE_BASE_PATH')
+}
+const basePath = configuredBase === '/' ? '/' : configuredBase.replace(/\/?$/, '/')
+
 const DashboardPage = lazy(() =>
   import('../features/dashboard/DashboardPage').then((module) => ({
     default: module.DashboardPage,
@@ -205,7 +213,7 @@ const router = createBrowserRouter([
       { path: '*', element: <Result status="404" title="404" subTitle="页面不存在" /> },
     ],
   },
-])
+], {basename: basePath})
 
 const queryClient = new QueryClient({
   defaultOptions: {

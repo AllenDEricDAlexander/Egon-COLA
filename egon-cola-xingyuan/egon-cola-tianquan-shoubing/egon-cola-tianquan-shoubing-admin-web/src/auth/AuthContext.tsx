@@ -4,7 +4,8 @@ import type {AuthorizationBootstrap} from '../api/types'
 
 const gatewayOrigin = import.meta.env.VITE_YUHENG_ORIGIN ?? ''
 
-const gatewayAuth = createGatewayAuthClient({baseUrl: gatewayOrigin})
+const gatewayAuth = createGatewayAuthClient({
+  registrationId: import.meta.env.VITE_OAUTH_REGISTRATION_ID ?? 'edge-shoubing',baseUrl: gatewayOrigin})
 const httpClient = createHttpClient({
     baseUrl: gatewayOrigin,
   credentials: 'include',

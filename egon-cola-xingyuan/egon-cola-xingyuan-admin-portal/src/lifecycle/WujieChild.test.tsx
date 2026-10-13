@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { startApp } from 'wujie'
 import type { ChildContext } from '../bridge/context'
 import type { ChildManifest } from '../manifest/types'
-import { WujieChild } from './WujieChild'
+import { WujieChild, resolveChildUrl } from './WujieChild'
 
 const manifest: ChildManifest = {
   key: 'tianquan-shoubing',
@@ -87,5 +87,17 @@ describe('WujieChild', () => {
     await waitFor(() => expect(onState).toHaveBeenCalledWith({ type: 'CLEANED' }))
     expect((window as unknown as { __WUJIE_TEST_EVENTS?: string[] }).__WUJIE_TEST_EVENTS)
       .toContain('afterUnmount')
+  })
+})
+
+
+describe('mounted child route boundary', () => {
+  it('strips query and fragment from route intent before passing the child URL to Wujie', () => {
+    expect(resolveChildUrl('/apps/tianshu/', 'tianshu', '/xingyuan/tianshu/registry?tenant=forged#section'))
+      .toBe(new URL('/apps/tianshu/registry', window.location.href).toString())
+  })
+  it('keeps encoded traversal inside the approved mount by rejecting the suffix', () => {
+    expect(resolveChildUrl('/apps/tianshu/', 'tianshu', '/xingyuan/tianshu/%252e%252e/yuheng/catalog'))
+      .toBe(new URL('/apps/tianshu/', window.location.href).toString())
   })
 })

@@ -11,7 +11,7 @@ vi.mock('../auth/portalAuth', () => ({portalAuth: {userInfo: async () => null}})
 const manifest = (overrides: Record<string, unknown> = {}) => ({
   key: 'yuheng',
   displayName: 'API 网关',
-  url: '/children/yuheng/assets/index.js',
+  url: '/children/yuheng/',
   standaloneUrl: '/yuheng/dashboard',
   version: '5.3.2',
   contractVersion: 'xingyuan-1',

@@ -147,6 +147,26 @@ describe('AuthContext tenant session isolation', () => {
     unmount()
   })
 
+  it('clears an expired session even when a dirty editor declines voluntary transitions', async () => {
+    vi.spyOn(gatewayAuth, 'bootstrap').mockResolvedValue(bootstrap('1001'))
+    const guard = vi.fn().mockResolvedValue(false)
+    const {queryClient, unmount} = renderWithQueryClient(
+      createElement(AuthProvider, null, createElement(GuardedSessionProbe, {guard})),
+    )
+    await waitFor(() => expect(requestContext().tenantId).toBe('1001'))
+    fireEvent.click(screen.getByText('register-guard'))
+    const generation = requestContext().sessionGeneration
+    const key = ['tianshu', 'tenant', '1001', 'private']
+    queryClient.setQueryData(key, {privateValue: 'A'})
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', {status: 401})))
+    await expect(ddcApi('/api/v1/tianshu/registry')).rejects.toMatchObject({status: 401})
+    await waitFor(() => expect(requestContext().tenantId).toBeUndefined())
+    expect(requestContext().sessionGeneration).toBeGreaterThan(generation)
+    expect(queryClient.getQueryData(key)).toBeUndefined()
+    expect(guard).not.toHaveBeenCalled()
+    unmount()
+  })
+
   it('clears tenant query state and advances generation on logout', async () => {
     vi.spyOn(gatewayAuth, 'bootstrap').mockResolvedValue(bootstrap('1001'))
     vi.spyOn(gatewayAuth, 'logout').mockResolvedValue({remoteState: 'CONFIRMED'})
@@ -254,5 +274,32 @@ describe('AuthContext tenant session isolation', () => {
     expect(bootstrapMock).toHaveBeenCalledTimes(1)
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1)
     unmount()
+  })
+})
+
+
+describe('fixed deployment registration', () => {
+  it('passes the configured alias to the installed client without tenant or issuer selectors', async () => {
+    const navigate = vi.fn()
+    vi.stubEnv('VITE_OAUTH_REGISTRATION_ID', 'edge-deployment-child')
+    vi.stubEnv('VITE_YUHENG_ORIGIN', '')
+    vi.resetModules()
+    vi.doUnmock('./AuthContext')
+    vi.doMock('@egon-cola/xingyuan-admin-web-shared', async () => {
+      const actual = await vi.importActual<typeof import('@egon-cola/xingyuan-admin-web-shared')>('@egon-cola/xingyuan-admin-web-shared')
+      return {...actual, createGatewayAuthClient: (options: Parameters<typeof actual.createGatewayAuthClient>[0]) =>
+        actual.createGatewayAuthClient({...options, navigate})}
+    })
+    try {
+      const {gatewayAuth: configured} = await import('./AuthContext')
+      configured.login()
+      configured.stepUp()
+      expect(navigate.mock.calls[0]?.[0]).toBe('/oauth2/authorization/edge-deployment-child')
+      expect(String(navigate.mock.calls[1]?.[0]).split('?')[0]).toBe('/oauth2/authorization/edge-deployment-child')
+      expect(String(navigate.mock.calls[1]?.[0])).not.toMatch(/tenant|issuer|resource/)
+    } finally {
+      vi.doUnmock('@egon-cola/xingyuan-admin-web-shared')
+      vi.unstubAllEnvs()
+    }
   })
 })

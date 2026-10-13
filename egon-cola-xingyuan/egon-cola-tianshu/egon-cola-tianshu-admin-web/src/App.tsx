@@ -16,6 +16,14 @@ import BindingsPage from './pages/BindingsPage'
 import AiResourcesPage from './pages/AiResourcesPage'
 import AiResourceEditorPage from './pages/AiResourceEditorPage'
 
+const configuredBase: string = import.meta.env.VITE_BASE_PATH ?? '/'
+if (!configuredBase.startsWith('/') || configuredBase.startsWith('//')
+  || /[\\?#%]/.test(configuredBase) || Array.from(configuredBase).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /\/{2,}/.test(configuredBase)
+  || configuredBase.split('/').some((segment) => segment === '.' || segment === '..')) {
+  throw new Error('Invalid VITE_BASE_PATH')
+}
+const basePath = configuredBase === '/' ? '/' : configuredBase.replace(/\/?$/, '/')
+
 const routes = [{
   path: '/',
   element: (
@@ -45,7 +53,7 @@ export default function App() {
   const [router, setRouter] = useState<ReturnType<typeof createBrowserRouter> | null>(null)
 
   useEffect(() => {
-    const currentRouter = createBrowserRouter(routes)
+    const currentRouter = createBrowserRouter(routes, {basename: basePath})
     setRouter(currentRouter)
     return () => currentRouter.dispose()
   }, [])

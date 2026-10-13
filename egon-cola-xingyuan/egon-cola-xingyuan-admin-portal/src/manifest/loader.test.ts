@@ -4,7 +4,7 @@ import {loadManifest} from './loader'
 const manifest = (overrides: Record<string, unknown> = {}) => ({
   key: 'tianquan-shoubing',
   displayName: 'Tianquan-Shoubing',
-  url: '/children/tianquan-shoubing/assets/index.js',
+  url: '/children/tianquan-shoubing/',
   standaloneUrl: '/tianquan-shoubing/overview',
   version: '5.3.2',
   contractVersion: 'xingyuan-1',
@@ -30,7 +30,7 @@ describe('loadManifest', () => {
 
     await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal)).resolves.toMatchObject({
       key: 'tianquan-shoubing',
-      url: '/children/tianquan-shoubing/assets/index.js',
+      url: '/children/tianquan-shoubing/',
       standaloneUrl: '/tianquan-shoubing/overview',
     })
     expect(fetchMock).toHaveBeenCalledWith('/portal-manifest/local.json', {
@@ -91,5 +91,15 @@ describe('loadManifest', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort))
 
     await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal)).rejects.toBe(abort)
+  })
+})
+
+
+describe('fixed child mount URLs', () => {
+  it.each(['/apps/yuheng/', '/apps/tianquan-shoubing/?access_token=forged', '/apps/tianquan-shoubing/#section',
+    '/apps/tianquan-shoubing/assets/index.js'])('rejects an unapproved child entry %s', async (url) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(manifest({url}))))
+    await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal))
+      .rejects.toMatchObject({code: 'MANIFEST_URL_NOT_ALLOWED'})
   })
 })

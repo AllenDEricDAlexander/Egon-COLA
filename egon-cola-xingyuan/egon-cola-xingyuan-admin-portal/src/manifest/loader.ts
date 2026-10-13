@@ -94,6 +94,27 @@ const isAllowedUrl = (value: string): boolean => {
   }
 }
 
+/** Validates the deployment-owned HTML entry before Wujie can load a child. */
+export const validateChildUrl = (value: string, platformKey: PlatformKey, standalone = false): URL => {
+  const reject = (): never => { throw new ManifestLoadError('MANIFEST_URL_NOT_ALLOWED', 'Manifest URL does not match the approved child mount') }
+  if (!['tianquan-shoubing', 'tianquan-jianshen', 'tianshu', 'yuheng'].includes(platformKey) || !isAllowedUrl(value)) return reject()
+  let decoded: string
+  try { decoded = decodeURIComponent(value) } catch { return reject() }
+  if (/[\\]/.test(decoded) || Array.from(decoded).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127) || /%[0-9a-f]{2}/i.test(decoded)
+    || decoded.split('/').some((segment) => segment === '.' || segment === '..')) return reject()
+  const parsed = new URL(value, portalOrigin())
+  if (parsed.username || parsed.password || parsed.search || parsed.hash
+    || (import.meta.env.PROD && parsed.protocol !== 'https:')) return reject()
+  const localStandaloneOrigin = parsed.origin !== portalOrigin() && localChildOriginsEnabled()
+  if (localStandaloneOrigin && (standalone || parsed.pathname === '/' || parsed.pathname === '/index.html')) return parsed
+  const shortKey = platformKey.replace(/^tianquan-/, '')
+  const mounts = [`/apps/${platformKey}/`, `/apps/${shortKey}/`, `/children/${platformKey}/`]
+  if (standalone) mounts.push(`/${platformKey}/`)
+  if (mounts.some((mount) => standalone ? parsed.pathname.startsWith(mount)
+    : parsed.pathname === mount || parsed.pathname === `${mount}index.html`)) return parsed
+  return reject()
+}
+
 const invalid = (message: string): ManifestLoadError => new ManifestLoadError('MANIFEST_INVALID', message)
 
 const readManifest = (value: unknown, platformKey: PlatformKey): PlatformManifest => {
@@ -131,9 +152,8 @@ const readManifest = (value: unknown, platformKey: PlatformKey): PlatformManifes
   if (!parseSemver(candidate.version as string)) {
     throw invalid('Manifest version must be a semantic version')
   }
-  if (!isAllowedUrl(candidate.url as string) || !isAllowedUrl(candidate.standaloneUrl as string)) {
-    throw new ManifestLoadError('MANIFEST_URL_NOT_ALLOWED', 'Manifest URL must remain same-origin')
-  }
+  validateChildUrl(candidate.url as string, platformKey)
+  validateChildUrl(candidate.standaloneUrl as string, platformKey, true)
   if (candidate.summaryUrl !== undefined
     && (typeof candidate.summaryUrl !== 'string' || !isAllowedUrl(candidate.summaryUrl))) {
     throw new ManifestLoadError('MANIFEST_URL_NOT_ALLOWED', 'Manifest summary URL must remain same-origin')

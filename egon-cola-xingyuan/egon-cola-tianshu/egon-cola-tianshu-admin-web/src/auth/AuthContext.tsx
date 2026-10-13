@@ -14,6 +14,7 @@ import {cancelAndClearDdcQueryClient} from '../query/queryClient'
 type UnsavedChangesGuard = () => Promise<boolean>
 
 const gatewayAuth = createGatewayAuthClient({
+  registrationId: import.meta.env.VITE_OAUTH_REGISTRATION_ID ?? 'edge-tianshu',
   baseUrl: import.meta.env.VITE_YUHENG_ORIGIN ?? '',
 })
 
@@ -93,12 +94,10 @@ export function AuthProvider({children}: {children: ReactNode}) {
   }, [])
 
   const clearAuthorization = useCallback(() => {
-    void runSessionTransition(async () => {
-      beginSession()
-      setError(undefined)
-      setLoading(false)
-    })
-  }, [beginSession, runSessionTransition])
+    beginSession()
+    setError(undefined)
+    setLoading(false)
+  }, [beginSession])
 
   const refreshAfterTenantMismatch = useCallback(() => {
     void runSessionTransition(async () => {

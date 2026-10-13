@@ -43,3 +43,30 @@ describe('Tianquan-Shoubing authentication hydration', () => {
         expect(state.bootstrap).toHaveBeenCalledTimes(1)
   })
 })
+
+
+describe('fixed deployment registration', () => {
+  it('passes the configured alias to the installed client without tenant or issuer selectors', async () => {
+    const navigate = vi.fn()
+    vi.stubEnv('VITE_OAUTH_REGISTRATION_ID', 'edge-deployment-child')
+    vi.stubEnv('VITE_YUHENG_ORIGIN', '')
+    vi.resetModules()
+    vi.doUnmock('./AuthContext')
+    vi.doMock('@egon-cola/xingyuan-admin-web-shared', async () => {
+      const actual = await vi.importActual<typeof import('@egon-cola/xingyuan-admin-web-shared')>('@egon-cola/xingyuan-admin-web-shared')
+      return {...actual, createGatewayAuthClient: (options: Parameters<typeof actual.createGatewayAuthClient>[0]) =>
+        actual.createGatewayAuthClient({...options, navigate})}
+    })
+    try {
+      const {gatewayAuth: configured} = await import('./AuthContext')
+      configured.login()
+      configured.stepUp()
+      expect(navigate.mock.calls[0]?.[0]).toBe('/oauth2/authorization/edge-deployment-child')
+      expect(String(navigate.mock.calls[1]?.[0]).split('?')[0]).toBe('/oauth2/authorization/edge-deployment-child')
+      expect(String(navigate.mock.calls[1]?.[0])).not.toMatch(/tenant|issuer|resource/)
+    } finally {
+      vi.doUnmock('@egon-cola/xingyuan-admin-web-shared')
+      vi.unstubAllEnvs()
+    }
+  })
+})
