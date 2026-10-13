@@ -6,17 +6,41 @@ import top.egon.cola.archetype.source.light.domain.teaching.enums.CourseStatus;
 import top.egon.cola.archetype.source.light.domain.teaching.enums.SchoolClassStatus;
 import top.egon.cola.archetype.source.light.common.exception.TeachingDomainException;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseCode;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSchedule;
+import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseScheduleBO;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.Semester;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SchoolClassAggregateTest {
+    @Test
+    void windows_normalize_microseconds_before_overlap() {
+        CourseScheduleBO first = new CourseScheduleBO(new CourseCode("MATH"),
+                Instant.parse("2026-10-13T06:07:08.123456789Z"), Instant.parse("2026-10-13T06:07:08.123457100Z"));
+        CourseScheduleBO adjacent = new CourseScheduleBO(new CourseCode("MATH"),
+                Instant.parse("2026-10-13T06:07:08.123457999Z"), Instant.parse("2026-10-13T06:07:08.123458999Z"));
+        assertEquals(Instant.parse("2026-10-13T06:07:08.123456Z"), first.startsAt());
+        org.junit.jupiter.api.Assertions.assertFalse(first.overlaps(adjacent));
+        assertEquals(first, new CourseScheduleBO(first.courseCode(), first.startsAt(), first.endsAt()));
+    }
+
+    @Test
+    void folded_micro_window_is_rejected_and_offsets_identify_the_same_instant() {
+        TeachingDomainException error = assertThrows(TeachingDomainException.class, () -> new CourseScheduleBO(new CourseCode("MATH"),
+                Instant.parse("2026-10-13T06:07:08.123456100Z"), Instant.parse("2026-10-13T06:07:08.123456900Z")));
+        assertEquals("INVALID_SCHEDULE", error.getStatus());
+        assertEquals(Instant.parse("2026-10-13T06:07:08Z"),
+                java.time.OffsetDateTime.parse("2026-10-13T14:07:08+08:00").toInstant());
+        assertEquals(Instant.parse("2026-11-01T05:30:00Z"),
+                java.time.OffsetDateTime.parse("2026-11-01T01:30:00-04:00").toInstant());
+    }
+
     @Test
     void schedules_non_overlapping_courses() {
         SchoolClassAggregate aggregate = activeClass();
@@ -67,11 +91,11 @@ class SchoolClassAggregateTest {
         return new Course(1002L, new CourseCode(code), code, CourseStatus.ACTIVE);
     }
 
-    private static CourseSchedule schedule(String code, int startsAtHour, int endsAtHour) {
+    private static CourseScheduleBO schedule(String code, int startsAtHour, int endsAtHour) {
         LocalDate date = LocalDate.of(2026, 9, 1);
-        return new CourseSchedule(
+        return new CourseScheduleBO(
                 new CourseCode(code),
-                date.atTime(startsAtHour, 0),
-                date.atTime(endsAtHour, 0));
+                date.atTime(startsAtHour, 0).toInstant(ZoneOffset.UTC),
+                date.atTime(endsAtHour, 0).toInstant(ZoneOffset.UTC));
     }
 }

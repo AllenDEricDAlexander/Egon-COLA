@@ -10,7 +10,7 @@ import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.comman
 import top.egon.cola.archetype.source.lightopen.common.exception.TeachingUseCaseException;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +25,20 @@ class TeachingApplicationValidatorTest {
     @AfterEach
     void closeValidationFactory() {
         validators.close();
+    }
+
+    @Test
+    void command_micro_normalization_precedes_window_validation() {
+        ScheduleCourseCommand command = new ScheduleCourseCommand(1003L, 1002L,
+                Instant.parse("2026-10-13T06:07:08.123456100Z"), Instant.parse("2026-10-13T06:07:08.123456900Z"),
+                "operator-1", "request-1");
+        assertEquals(Instant.parse("2026-10-13T06:07:08.123456Z"), command.startsAt());
+        assertEquals(command.startsAt(), command.endsAt());
+        TeachingUseCaseException error = assertThrows(TeachingUseCaseException.class, () -> validator.validate(command));
+        assertEquals("INVALID_SCHEDULE", error.getStatus());
+        ScheduleCourseCommand missing = new ScheduleCourseCommand(1003L, 1002L, null, null, "operator-1", "request-1");
+        assertEquals(null, missing.startsAt());
+        assertEquals("INVALID_SCHEDULE", assertThrows(TeachingUseCaseException.class, () -> validator.validate(missing)).getStatus());
     }
 
     @Test
@@ -49,7 +63,7 @@ class TeachingApplicationValidatorTest {
 
     @Test
     void rejects_invalid_schedule_interval() {
-        LocalDateTime startsAt = LocalDateTime.of(2026, 9, 1, 10, 0);
+        Instant startsAt = Instant.parse("2026-09-01T10:00:00Z");
         ScheduleCourseCommand command = new ScheduleCourseCommand(
                 1003L, 1002L, startsAt, startsAt, "operator-1", "request-1");
 
@@ -63,8 +77,8 @@ class TeachingApplicationValidatorTest {
     void accepts_a_well_formed_schedule_request() {
         ScheduleCourseCommand command = new ScheduleCourseCommand(
                 1003L, 1002L,
-                LocalDateTime.of(2026, 9, 1, 9, 0),
-                LocalDateTime.of(2026, 9, 1, 10, 0),
+                Instant.parse("2026-09-01T09:00:00Z"),
+                Instant.parse("2026-09-01T10:00:00Z"),
                 "operator-1", "request-1");
 
         assertDoesNotThrow(() -> validator.validate(command));

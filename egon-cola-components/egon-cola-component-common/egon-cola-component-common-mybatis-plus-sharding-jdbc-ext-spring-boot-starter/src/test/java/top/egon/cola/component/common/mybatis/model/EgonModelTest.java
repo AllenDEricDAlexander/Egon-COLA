@@ -266,6 +266,60 @@ class EgonModelTest {
         assertEquals(99L, model.getTenantId());
     }
 
+    @Test
+    void auditPrecisionAndLegacyDeletionAbiStayCompatible() throws Exception {
+        Instant nanos = Instant.parse("2026-10-13T06:07:08.123456789Z");
+        new TestTenantIdProvider().set(41L);
+        TestUserIdProvider user = new TestUserIdProvider();
+        user.set("utc-test");
+        TestBusinessModel model = new TestBusinessModel().businessValues("title", "payload");
+        EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(user, Clock.fixed(nanos, ZoneOffset.UTC));
+        handler.insertFill(SystemMetaObject.forObject(model));
+        assertEquals(Instant.parse("2026-10-13T06:07:08.123456Z"), model.getCreateTime());
+        assertEquals(model.getCreateTime(), model.getUpdateTime());
+        assertEquals(java.time.LocalDateTime.class, EgonModel.class.getDeclaredField("deletedAt").getType());
+        assertEquals(null, model.getDeletedAt());
+        var logic = EgonModel.class.getDeclaredField("deletedAt")
+                .getAnnotation(com.baomidou.mybatisplus.annotation.TableLogic.class);
+        assertEquals("null", logic.value());
+        assertEquals("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')", logic.delval());
+    }
+
+    @Test
+    void uniqueAndPrimaryHostClocksRemainSelectableWithoutNamedBinding() {
+        Instant nanos = Instant.parse("2026-10-13T06:07:08.123456789Z");
+        for (String scenario : java.util.List.of("none", "unique", "primary", "ambiguous")) {
+            var beans = new org.springframework.beans.factory.support.DefaultListableBeanFactory();
+            beans.registerSingleton("validator", jakarta.validation.Validation.buildDefaultValidatorFactory().getValidator());
+            if (!"none".equals(scenario)) {
+                var selected = new org.springframework.beans.factory.support.RootBeanDefinition(Clock.class,
+                        () -> Clock.fixed(nanos, ZoneOffset.ofHours(8)));
+                selected.setPrimary("primary".equals(scenario));
+                beans.registerBeanDefinition("hostClock", selected);
+            }
+            if ("primary".equals(scenario) || "ambiguous".equals(scenario)) {
+                beans.registerSingleton("anotherClock", Clock.fixed(nanos.plusSeconds(3600), ZoneOffset.UTC));
+            }
+            try (var config = new top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration(
+                    new EgonColaMybatisPlusProperties(), beans.getBeanProvider(jakarta.validation.Validator.class))) {
+                new TestTenantIdProvider().set(41L);
+                TestUserIdProvider user = new TestUserIdProvider();
+                user.set("utc-test");
+                Instant before = Clock.systemUTC().instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+                TestBusinessModel model = new TestBusinessModel().businessValues("title", "payload");
+                config.egonColaMetaObjectHandler(user, beans.getBeanProvider(Clock.class))
+                        .insertFill(SystemMetaObject.forObject(model));
+                if ("unique".equals(scenario) || "primary".equals(scenario)) {
+                    assertEquals(nanos.truncatedTo(java.time.temporal.ChronoUnit.MICROS), model.getCreateTime(), scenario);
+                } else {
+                    Instant after = Clock.systemUTC().instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+                    assertFalse(model.getCreateTime().isBefore(before), scenario);
+                    assertFalse(model.getCreateTime().isAfter(after), scenario);
+                }
+            }
+        }
+    }
+
     private static void assertContextFailure(String code, ThrowingSupplier<?> action) {
         IllegalStateException exception = assertThrows(IllegalStateException.class, action::get);
         assertEquals(code, exception.getMessage());

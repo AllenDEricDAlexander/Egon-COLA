@@ -10,7 +10,8 @@ import org.mapstruct.NullValueCheckStrategy;
 import top.egon.cola.component.common.core.converter.BaseConverter;
 import org.mapstruct.NullValueMappingStrategy;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
@@ -266,11 +267,11 @@ public interface LightFacadeConverter extends BaseConverter<
         target.addAllChildren(source.children().stream().map(this::toTarget).toList());
     }
 
-    default String toProtoTime(LocalDateTime value) {
-        return value == null ? null : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(value);
+    default String toProtoTime(Instant value) {
+        return value == null ? null : value.toString();
     }
 
-    default LocalDateTime fromProtoTime(String value) {
-        return value == null ? null : LocalDateTime.parse(value, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    default Instant fromProtoTime(String value) {
+        return value == null ? null : OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant();
     }
 }

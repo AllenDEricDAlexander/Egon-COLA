@@ -10,8 +10,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -106,8 +104,6 @@ class NativeRpcMappingTest {
                 values[index] = variant.equals("zero") ? 0L : 9_007_199_254_740_993L + index;
             } else if (fieldType == Instant.class) {
                 values[index] = variant.equals("nullable") ? null : Instant.parse("2026-09-08T00:12:34.123456789Z");
-            } else if (fieldType == LocalDateTime.class) {
-                values[index] = variant.equals("nullable") ? null : LocalDateTime.parse("2026-09-08T08:12:34.123456789");
             } else if (fieldType == List.class) {
                 Class<?> element = (Class<?>) ((ParameterizedType) component.getGenericType()).getActualTypeArguments()[0];
                 if (!variant.equals("full") || depth > 0) {
@@ -140,8 +136,6 @@ class NativeRpcMappingTest {
                 assertFalse(message.hasField(field), wireName + " lost null/absence semantics");
             } else if (expected instanceof Instant instant) {
                 assertEquals(instant.toString(), message.getField(field));
-            } else if (expected instanceof LocalDateTime local) {
-                assertEquals(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(local), message.getField(field));
             } else if (expected instanceof List<?> list) {
                 List<?> actual = (List<?>) message.getField(field);
                 assertEquals(list.size(), actual.size(), wireName + " changed collection size");

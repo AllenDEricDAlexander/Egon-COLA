@@ -156,3 +156,11 @@ curl --fail-with-body --no-buffer \
 `application.yml`、`application-dev.yml`、`application-prod.yml` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/RedisConfig.java` 已带 `@EnableCaching` 并发布 `redissonClient`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
 Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；当前没有任何 knowledge 查询被注解，因此打开开关本身不会改变行为。普通 CRUD
 不再隐式失效缓存，一旦有读路径接入，其写入和删除入口也必须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。
+
+## UTC 时间契约
+
+四套 profile 均使用 ISO 字符串并声明 Jackson UTC；JVM 启动参数包含 `-Duser.timezone=UTC`，已有容器模板默认 `TZ=UTC` 并设置同一 JVM 参数。Agent 没有容器模板。业务展示时区由调用方决定。
+
+时间线使用 `Instant`。Light/Service 的排课与考试 Command 遵循公共微秒契约；本模板不新增排课或考试功能。UTC 示例为 `2026-10-13T01:00:00.123456Z`。`LocalDate` 和 `LocalTime` 表示纯日期和墙钟时间，不做时区转换。既有 `LocalDateTime deletedAt` 仍为可空的 Legacy UTC token：NULL 表示活动，删除、version 和 tenant 规则保持兼容。
+
+未部署的 Light/Service 初始化源仅将窗口列改为 `TIMESTAMP(6) WITH TIME ZONE`，既有 manifest 摘要与源字节一致；这不迁移已部署数据，也不修复已有 SQL 历史。排课唯一键既有差距不纳入本次范围。真实 PostgreSQL/JDBC 验收与离线/H2 测试分开。

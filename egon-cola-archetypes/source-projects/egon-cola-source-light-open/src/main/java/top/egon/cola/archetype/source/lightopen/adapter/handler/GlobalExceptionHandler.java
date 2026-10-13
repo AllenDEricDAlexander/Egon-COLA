@@ -1,6 +1,9 @@
 package top.egon.cola.archetype.source.lightopen.adapter.handler;
 
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseRequest;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.archetype.source.lightopen.common.exception.TeachingUseCaseException;
@@ -12,9 +15,26 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice
+@RestControllerAdvice(name = "globalExceptionHandler")
 @Slf4j
 public class GlobalExceptionHandler {
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResultRecord<Void> handleScheduleTimeDecodeFailure(HttpMessageNotReadableException exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof JsonMappingException mapping) {
+                for (JsonMappingException.Reference reference : mapping.getPath()) {
+                    if ((reference.getFrom() == ScheduleCourseRequest.class || reference.getFrom() instanceof ScheduleCourseRequest)
+                            && ("startsAt".equals(reference.getFieldName()) || "endsAt".equals(reference.getFieldName()))) {
+                        return ResultRecord.failure(ResultCode.VALIDATION_ERROR.getCode(), ResultCode.VALIDATION_ERROR.getStatus(),
+                                reference.getFieldName() + " must be an offset or Z datetime string");
+                    }
+                }
+            }
+        }
+        throw exception;
+    }
+
     @ExceptionHandler(UserUseCaseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResultRecord<Void> handleUserFailure(UserUseCaseException exception) {

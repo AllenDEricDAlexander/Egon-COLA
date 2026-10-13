@@ -42,7 +42,7 @@ class ExamManageTest {
         ExamDomainService exams = mock(ExamDomainService.class);
         Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
         Exam exam = new Exam(new ExamId(4001L), new top.egon.cola.archetype.source.service.domain.course.vos.CourseId(1001L),
-                "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60), ExamStatus.DRAFT);
+                "Midterm", Instant.EPOCH.plusNanos(123456000), Instant.EPOCH.plusSeconds(60).plusNanos(123456000), ExamStatus.DRAFT);
         when(courses.findById(any())).thenReturn(Optional.of(course));
         when(exams.createExam(any(), any(), any(), any())).thenReturn(exam);
         when(exams.save(exam)).thenReturn(exam);
@@ -51,10 +51,14 @@ class ExamManageTest {
                 Mappers.getMapper(ExamApplicationConverter.class), validator());
 
         var result = manage.create(new CreateExamCommand(
-                1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                1001L, "Midterm", Instant.EPOCH.plusNanos(123456789), Instant.EPOCH.plusSeconds(60).plusNanos(123456789)));
 
         assertEquals(4001L, result.id());
         assertEquals(1001L, result.courseId());
+        assertEquals(Instant.EPOCH.plusNanos(123456000), result.startsAt());
+        org.mockito.Mockito.verify(exams).createExam(course, "Midterm",
+                Instant.EPOCH.plusNanos(123456000),
+                Instant.EPOCH.plusSeconds(60).plusNanos(123456000));
     }
 
     @Test

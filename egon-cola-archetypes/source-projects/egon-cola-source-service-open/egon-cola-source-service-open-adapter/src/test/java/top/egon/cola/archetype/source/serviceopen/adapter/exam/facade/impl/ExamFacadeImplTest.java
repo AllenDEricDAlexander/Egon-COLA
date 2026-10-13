@@ -69,4 +69,21 @@ class ExamFacadeImplTest {
     private static Timestamp timestamp(Instant instant) {
         return Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
     }
+
+    @Test
+    void shouldKeepTimestampWireAndReturnCanonicalManageValues() {
+        ExamManage manage = mock(ExamManage.class);
+        Instant start = Instant.parse("2026-10-13T01:00:00.123456Z");
+        CreateExamCommand command = new CreateExamCommand(1001L, "Midterm", start, start.plusSeconds(60));
+        when(manage.create(command)).thenReturn(new ExamDetailResult(
+                1002L, 1001L, "Midterm", start, start.plusSeconds(60), "DRAFT"));
+        ExamFacadeImpl facade = new ExamFacadeImpl(manage, converter, validator, new GlobalFacadeExceptionHandler());
+        Exam response = facade.createExam(CreateExamRequest.newBuilder()
+                .setCourseId(1001L).setTitle("Midterm")
+                .setStartsAt(timestamp(start.plusNanos(789)))
+                .setEndsAt(timestamp(start.plusSeconds(60).plusNanos(789))).build());
+        assertEquals(timestamp(start), response.getStartsAt());
+        assertEquals(timestamp(start.plusSeconds(60)), response.getEndsAt());
+        verify(manage).create(command);
+    }
 }

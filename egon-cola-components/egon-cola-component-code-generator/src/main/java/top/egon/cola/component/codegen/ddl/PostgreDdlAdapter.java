@@ -289,6 +289,11 @@ public class PostgreDdlAdapter {
                 precision = integer(args.get(0));
             }
         }
+        if (typeName != null && dataType != null && dataType.getArrayData() != null
+                && !dataType.getArrayData().isEmpty()
+                && typeName.toLowerCase(Locale.ROOT).matches("(?:timestamp|timestamptz|date|time|timetz|interval).*")) {
+            typeName += "[]".repeat(dataType.getArrayData().size());
+        }
         boolean notNull = hasSequence(specs, "NOT", "NULL") || hasSequence(specs, "PRIMARY", "KEY");
         String defaultExpression = defaultExpression(specs);
         return CodegenSchemaBO.ColumnBO.builder()

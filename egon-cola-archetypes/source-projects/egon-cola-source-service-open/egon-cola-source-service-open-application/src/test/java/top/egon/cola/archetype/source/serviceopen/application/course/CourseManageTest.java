@@ -57,7 +57,7 @@ class CourseManageTest {
         Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
         CourseSchedule schedule = new CourseSchedule(
                 3001L, new CourseId(course.getId()), 2001L,
-                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), CourseScheduleStatus.SCHEDULED);
+                Instant.EPOCH.plusNanos(123456000), Instant.EPOCH.plusSeconds(60).plusNanos(123456000), CourseScheduleStatus.SCHEDULED);
         when(service.findById(new CourseId(course.getId()))).thenReturn(Optional.of(course));
         when(service.findOverlapping(any(), any(), any(), any())).thenReturn(List.of());
         when(service.scheduleCourse(any(), any(), any(), any(), any())).thenReturn(schedule);
@@ -67,8 +67,12 @@ class CourseManageTest {
                 Mappers.getMapper(CourseApplicationConverter.class), validator());
 
         var result = manage.schedule(new ScheduleCourseCommand(
-                course.getId(), 2001L, Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                course.getId(), 2001L, Instant.EPOCH.plusNanos(123456789), Instant.EPOCH.plusSeconds(60).plusNanos(123456789)));
 
         assertEquals(3001L, result.id());
+        assertEquals(Instant.EPOCH.plusNanos(123456000), result.startsAt());
+        org.mockito.Mockito.verify(service).scheduleCourse(course, 2001L,
+                Instant.EPOCH.plusNanos(123456000),
+                Instant.EPOCH.plusSeconds(60).plusNanos(123456000), List.of());
     }
 }

@@ -780,7 +780,7 @@ assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateT
     "vos/SchoolClassId",
     "vos/CourseCode",
     "vos/Semester",
-    "vos/CourseSchedule",
+    "vos/CourseScheduleBO",
     "vos/ExternalCourse",
     "vos/CourseSnapshot",
     "vos/TeachingEvent",

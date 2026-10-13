@@ -20,6 +20,12 @@ import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -102,8 +108,24 @@ public class EgonColaTableInfoSchemaMaintainer {
         if (type == Integer.class || type == int.class) {
             return "INTEGER";
         }
-        if (java.time.Instant.class.isAssignableFrom(type) || java.time.LocalDateTime.class.isAssignableFrom(type)) {
-            return "TIMESTAMPTZ";
+        if (type == Instant.class || type == OffsetDateTime.class) {
+            return "TIMESTAMPTZ(6)";
+        }
+        if (type == LocalDateTime.class) {
+            return "TIMESTAMP(6) WITHOUT TIME ZONE";
+        }
+        if (type == LocalDate.class) {
+            return "DATE";
+        }
+        if (type == LocalTime.class) {
+            return "TIME(6) WITHOUT TIME ZONE";
+        }
+        Class<?> temporalType = type;
+        while (temporalType.isArray()) {
+            temporalType = temporalType.getComponentType();
+        }
+        if (TemporalAccessor.class.isAssignableFrom(temporalType) || TemporalAmount.class.isAssignableFrom(temporalType)) {
+            throw new EgonColaMybatisPlusConfigurationException("TIME_TYPE_UNSUPPORTED");
         }
         return "TEXT";
     }

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -27,6 +28,7 @@ import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.ScheduleCo
 import top.egon.cola.archetype.source.light.adapter.teaching.pojo.vo.SchoolClassDetailVO;
 import top.egon.cola.archetype.source.light.adapter.teaching.validators.TeachingRequestValidator;
 import top.egon.cola.archetype.source.light.application.teaching.manage.SchoolClassManage;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.light.application.teaching.pojo.command.ScheduleCourseCommand;
 import top.egon.cola.archetype.source.light.application.teaching.pojo.query.GetSchoolClassQuery;
@@ -80,7 +82,21 @@ public class SchoolClassController {
     }
 
     @PostMapping("/{schoolClassId}/courses/{courseId}/schedule")
-    @Operation(operationId = "nativeLightSchoolClassScheduleV1")
+    @Operation(operationId = "nativeLightSchoolClassScheduleV1", description = "Offset or Z datetime input; windows are truncated to microseconds before validation and persistence. Returns the existing ResultRecord envelope with SchoolClassDetailVO in data.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Scheduled course summary in the existing success envelope",
+                    content = @Content(mediaType = "application/json", schema = @Schema(type = "object"), schemaProperties = {
+                            @SchemaProperty(name = "success", schema = @Schema(type = "boolean")),
+                            @SchemaProperty(name = "code", schema = @Schema(type = "integer", format = "int32")),
+                            @SchemaProperty(name = "status", schema = @Schema(type = "string")),
+                            @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                            @SchemaProperty(name = "data", schema = @Schema(implementation = SchoolClassDetailVO.class)),
+                            @SchemaProperty(name = "traceId", schema = @Schema(type = "string", nullable = true)),
+                            @SchemaProperty(name = "timestamp", schema = @Schema(type = "integer", format = "int64", description = "Unix milliseconds"))
+                    })),
+            @ApiResponse(responseCode = "400", description = "Invalid offset datetime or canonical window; existing validation/business error",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ResultRecord.class)))
+    })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-light:school-class:schedule-course')")
     @RBACAPIResource(code = "egon-cola-source-light.api.school-class.schedule-course", permission = "egon-cola-source-light:school-class:schedule-course", name = "Schedule course")
     public SchoolClassDetailVO schedule(

@@ -40,6 +40,16 @@ class ProtoDescriptorContractTest {
         assertMessageField(Exam.getDescriptor(), "starts_at", "google.protobuf.Timestamp");
         assertMessageField(Exam.getDescriptor(), "ends_at", "google.protobuf.Timestamp");
 
+        for (var descriptor : List.of(CourseSchedule.getDescriptor(), Exam.getDescriptor())) {
+            assertEquals(4, field(descriptor, "starts_at").getNumber());
+            assertEquals(5, field(descriptor, "ends_at").getNumber());
+            var timestamp = field(descriptor, "starts_at").getMessageType();
+            assertEquals(1, field(timestamp, "seconds").getNumber());
+            assertEquals(2, field(timestamp, "nanos").getNumber());
+            assertEquals(Descriptors.FieldDescriptor.Type.INT64, field(timestamp, "seconds").getType());
+            assertEquals(Descriptors.FieldDescriptor.Type.INT32, field(timestamp, "nanos").getType());
+        }
+
         assertEquals(1, field(Course.getDescriptor(), "id").getNumber());
         assertEquals(5, field(Course.getDescriptor(), "status").getNumber());
         assertEquals(1, field(top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.PageCourseResponse.getDescriptor(), "records").getNumber());

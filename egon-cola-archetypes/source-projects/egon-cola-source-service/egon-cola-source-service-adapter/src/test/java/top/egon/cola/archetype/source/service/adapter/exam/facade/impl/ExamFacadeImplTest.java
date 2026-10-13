@@ -44,4 +44,24 @@ class ExamFacadeImplTest {
         assertThat(response.getData().getStartsAt()).isEqualTo(Instant.EPOCH.toString());
         verify(manage).create(command);
     }
+
+    @Test
+    void shouldReturnCanonicalUtcValuesFromManage() {
+        ExamManage manage = mock(ExamManage.class);
+        Instant start = Instant.parse("2026-10-13T01:00:00.123456Z");
+        CreateExamCommand command = new CreateExamCommand(1001L, "Midterm", start, start.plusSeconds(60));
+        when(manage.create(command)).thenReturn(new ExamDetailResult(
+                4001L, 1001L, "Midterm", start, start.plusSeconds(60), "DRAFT"));
+        ExamFacadeImpl facade = new ExamFacadeImpl(manage, converter,
+                new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator()),
+                new GlobalFacadeExceptionHandler());
+        var response = facade.createExam(CreateExamRpcRequest.newBuilder()
+                .setCourseId(1001L).setTitle("Midterm")
+                .setStartsAt("2026-10-13T09:00:00.123456789+08:00")
+                .setEndsAt("2026-10-13T09:01:00.123456789+08:00").build());
+        assertThat(response.getSuccess()).isTrue();
+        assertThat(response.getData().getStartsAt()).isEqualTo(start.toString());
+        assertThat(response.getData().getEndsAt()).isEqualTo(start.plusSeconds(60).toString());
+        verify(manage).create(command);
+    }
 }

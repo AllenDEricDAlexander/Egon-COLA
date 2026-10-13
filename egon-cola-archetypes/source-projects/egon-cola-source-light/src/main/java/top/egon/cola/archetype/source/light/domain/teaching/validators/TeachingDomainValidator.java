@@ -1,18 +1,20 @@
 package top.egon.cola.archetype.source.light.domain.teaching.validators;
 
 import jakarta.validation.Validation;
+import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.archetype.source.light.common.exception.TeachingDomainException;
 import top.egon.cola.archetype.source.light.domain.teaching.entities.Course;
 import top.egon.cola.archetype.source.light.domain.teaching.entities.SchoolClass;
 import top.egon.cola.archetype.source.light.domain.teaching.enums.CourseStatus;
 import top.egon.cola.archetype.source.light.domain.teaching.enums.SchoolClassStatus;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSchedule;
+import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseScheduleBO;
 import top.egon.cola.component.common.core.validation.BaseValidator;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.util.Collection;
 
 /** Teaching invariants; the native-constraint facade is inherited from the common base. */
+@Slf4j
 public class TeachingDomainValidator extends BaseValidator {
 
     @Override
@@ -20,7 +22,7 @@ public class TeachingDomainValidator extends BaseValidator {
         return JakartaValidation.UTILS;
     }
 
-    public static void requireSchedulable(SchoolClass schoolClass, Course course, CourseSchedule schedule) {
+    public static void requireSchedulable(SchoolClass schoolClass, Course course, CourseScheduleBO schedule) {
         if (schoolClass.status() != SchoolClassStatus.ACTIVE) {
             throw new TeachingDomainException("CLASS_NOT_ACTIVE", "School class must be active");
         }
@@ -32,7 +34,7 @@ public class TeachingDomainValidator extends BaseValidator {
         }
     }
 
-    public static void requireNoOverlap(Collection<CourseSchedule> schedules, CourseSchedule candidate) {
+    public static void requireNoOverlap(Collection<CourseScheduleBO> schedules, CourseScheduleBO candidate) {
         if (schedules.stream().anyMatch(candidate::overlaps)) {
             throw new TeachingDomainException("SCHEDULE_OVERLAP", "Course schedule overlaps an existing schedule");
         }

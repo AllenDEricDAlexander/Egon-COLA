@@ -2,6 +2,10 @@
 # `create extension vector`、`jsonb`、部分索引与 `lower(...)` 表达式索引只在真实 PostgreSQL 上可执行，
 # 因此本 profile 不校验迁移，迁移契约由 KnowledgeSchemaMigrationTest 以文本断言守住。
 spring:
+  jackson:
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}

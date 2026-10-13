@@ -51,7 +51,7 @@ class SchoolClassControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    @MockitoBean
+    @MockitoBean(name = "schoolClassManageImpl")
     private SchoolClassManage schoolClassManage;
 
     @Test

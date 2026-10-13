@@ -1,4 +1,8 @@
 spring:
+  jackson:
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
   security:
     oauth2:
       client:

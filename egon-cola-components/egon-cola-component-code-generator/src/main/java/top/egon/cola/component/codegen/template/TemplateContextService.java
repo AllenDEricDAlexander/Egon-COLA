@@ -95,7 +95,26 @@ public class TemplateContextService {
     }
 
     private static String javaType(CodegenSchemaBO.ColumnBO column) {
-        String type = column.getSqlType() == null ? "" : column.getSqlType().toLowerCase(Locale.ROOT);
+        String type = column.getSqlType() == null ? "" : column.getSqlType().trim()
+                .toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").replaceAll("\\s+\\(", "(");
+        if (type.startsWith("timestamp") || type.startsWith("date")
+                || type.startsWith("time") || type.startsWith("interval")) {
+            if (column.getPrecision() == null || (column.getPrecision() >= 0 && column.getPrecision() <= 6)) {
+                if (type.matches("(?:timestamp(?:\\([0-6]\\))? with time zone|timestamptz(?:\\([0-6]\\))?)")) {
+                    return "java.time.Instant";
+                }
+                if (type.matches("timestamp(?:\\([0-6]\\))?(?: without time zone)?")) {
+                    return "java.time.LocalDateTime";
+                }
+                if ("date".equals(type)) {
+                    return "java.time.LocalDate";
+                }
+                if (type.matches("time(?:\\([0-6]\\))?(?: without time zone)?")) {
+                    return "java.time.LocalTime";
+                }
+            }
+            throw new IllegalArgumentException("unsupported temporal SQL type for " + column.getName() + ": " + type);
+        }
         if (type.startsWith("bigint") || "int8".equals(type)) {
             return "Long";
         }
@@ -104,9 +123,6 @@ public class TemplateContextService {
         }
         if (type.startsWith("bool")) {
             return "Boolean";
-        }
-        if (type.contains("timestamp") || type.startsWith("date") || type.startsWith("time")) {
-            return "java.time.LocalDateTime";
         }
         if (type.startsWith("numeric") || type.startsWith("decimal")) {
             return "java.math.BigDecimal";

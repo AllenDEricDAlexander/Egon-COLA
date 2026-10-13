@@ -1,4 +1,8 @@
 spring:
+  jackson:
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}

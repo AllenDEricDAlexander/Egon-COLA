@@ -181,6 +181,28 @@ class PersistenceTemplateTest {
                 .contains(GenerationScopeValidator.BASE_FIELD_TYPE));
     }
 
+    @Test
+    void semanticTimeColumnsRenderAndCompile(@TempDir Path output) throws Exception {
+        CodegenSchemaBO schema = TimeTypeMappingTest.temporalSchema();
+        for (CodegenProfileEnum profile : List.of(CodegenProfileEnum.LIGHT, CodegenProfileEnum.WEB, CodegenProfileEnum.SERVICE)) {
+            CodegenConfigBO config = config(profile, List.of("po", "dao", "mapper-xml", "repo"));
+            assertTrue(scope.validate(config, schema).isEmpty());
+            Map<String, String> sources = new LinkedHashMap<>();
+            for (String artifact : config.getArtifacts()) {
+                sources.put(artifact, new String(templates.render(artifact,
+                        scope.renderModel(config, schema.getTables().get(0), artifact)), StandardCharsets.UTF_8));
+            }
+            assertTrue(sources.get("po").contains("java.time.Instant awareAt"));
+            assertTrue(sources.get("po").contains("java.time.LocalDateTime localAt"));
+            assertTrue(sources.get("po").contains("java.time.LocalDate onDate"));
+            assertTrue(sources.get("po").contains("java.time.LocalTime atTime"));
+            String xml = sources.remove("mapper-xml");
+            assertTrue(xml.contains("deleted_at IS NULL"));
+            assertTrue(xml.contains("#{MP_OPTLOCK_VERSION_ORIGINAL}"));
+            compile(sources, output.resolve(profile.code()));
+        }
+    }
+
     private Map<String, String> render(CodegenConfigBO config) {
         CodegenSchemaBO.TableBO table = orders.getTables().get(0);
         Map<String, String> rendered = new LinkedHashMap<>();

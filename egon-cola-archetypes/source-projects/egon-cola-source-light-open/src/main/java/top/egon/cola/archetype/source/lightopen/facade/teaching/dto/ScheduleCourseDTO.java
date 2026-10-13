@@ -5,13 +5,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import top.egon.cola.component.common.core.pojo.BasePojo;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ScheduleCourseDTO(
         @NotNull @Positive Long schoolClassId,
         @NotNull @Positive Long courseId,
-        @NotNull LocalDateTime startsAt,
-        @NotNull LocalDateTime endsAt,
+        @NotNull Instant startsAt,
+        @NotNull Instant endsAt,
         @NotBlank String operatorId,
         @NotBlank String requestId) implements BasePojo {
 }

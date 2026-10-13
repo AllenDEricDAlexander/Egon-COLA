@@ -145,6 +145,18 @@ class PostgreDdlAdapterTest {
         assertFalse(schemaService.contains("getConnection"));
     }
 
+    @Test
+    void temporalAliasesAndPrecisionSurviveTheCreateParser() throws Exception {
+        CodegenSchemaBO schema = TimeTypeMappingTest.temporalSchema();
+        CodegenSchemaBO.TableBO orders = table(schema, "orders");
+        assertEquals("timestamptz", column(orders, "alias_at").getSqlType());
+        assertEquals(6, column(orders, "alias_at").getPrecision());
+        assertTrue(column(orders, "aware_at").getSqlType().matches("timestamp(?:\\(6\\))? with time zone"));
+        assertFalse(column(orders, "local_at").getSqlType().contains("with time zone"));
+        assertEquals("date", column(orders, "on_date").getSqlType());
+        assertTrue(column(orders, "at_time").getSqlType().startsWith("time"));
+    }
+
     private CodegenSchemaBO read(Path path) {
         return service.read(config(path), Map.of(), List.of());
     }

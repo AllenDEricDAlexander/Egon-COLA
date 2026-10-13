@@ -181,7 +181,7 @@ public class GenerationScopeValidator {
             fields.add(Map.of(
                     "column", column.getName(),
                     "javaName", javaName(column.getName()),
-                    "javaType", javaType == null ? "String" : simple(javaType),
+                    "javaType", javaType == null ? "String" : javaType.startsWith("java.time.") ? javaType : simple(javaType),
                     "nullable", String.valueOf(!Boolean.FALSE.equals(column.getNullable())),
                     "length", column.getLength() == null ? "" : column.getLength().toString()));
         }
@@ -266,9 +266,10 @@ public class GenerationScopeValidator {
         if (column == null || column.getSqlType() == null) {
             return;
         }
-        String type = column.getSqlType().toLowerCase(Locale.ROOT);
-        boolean zoned = type.contains("with time zone") || type.startsWith("timestamptz");
-        if (zoned != withTimeZone) {
+        String mappedType = javaType(column);
+        boolean validTimestamp = "java.time.Instant".equals(mappedType) || "java.time.LocalDateTime".equals(mappedType);
+        boolean zoned = "java.time.Instant".equals(mappedType);
+        if (!validTimestamp || zoned != withTimeZone) {
             diagnostics.add(diagnostic(BASE_FIELD_TYPE, "/" + table.getLogicalName() + "/" + name,
                     "timestamp timezone does not match EgonModel"));
         }
@@ -383,7 +384,26 @@ public class GenerationScopeValidator {
     }
 
     static String javaType(CodegenSchemaBO.ColumnBO column) {
-        String type = column.getSqlType() == null ? "" : column.getSqlType().toLowerCase(Locale.ROOT);
+        String type = column.getSqlType() == null ? "" : column.getSqlType().trim()
+                .toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").replaceAll("\\s+\\(", "(");
+        if (type.startsWith("timestamp") || type.startsWith("date")
+                || type.startsWith("time") || type.startsWith("interval")) {
+            if (column.getPrecision() == null || (column.getPrecision() >= 0 && column.getPrecision() <= 6)) {
+                if (type.matches("(?:timestamp(?:\\([0-6]\\))? with time zone|timestamptz(?:\\([0-6]\\))?)")) {
+                    return "java.time.Instant";
+                }
+                if (type.matches("timestamp(?:\\([0-6]\\))?(?: without time zone)?")) {
+                    return "java.time.LocalDateTime";
+                }
+                if ("date".equals(type)) {
+                    return "java.time.LocalDate";
+                }
+                if (type.matches("time(?:\\([0-6]\\))?(?: without time zone)?")) {
+                    return "java.time.LocalTime";
+                }
+            }
+            return null;
+        }
         if (type.startsWith("bigint") || "int8".equals(type)) {
             return "Long";
         }
@@ -392,9 +412,6 @@ public class GenerationScopeValidator {
         }
         if (type.startsWith("bool")) {
             return "Boolean";
-        }
-        if (type.contains("timestamp") || type.startsWith("date") || type.startsWith("time")) {
-            return "java.time.LocalDateTime";
         }
         if (type.startsWith("numeric") || type.startsWith("decimal")) {
             return "java.math.BigDecimal";

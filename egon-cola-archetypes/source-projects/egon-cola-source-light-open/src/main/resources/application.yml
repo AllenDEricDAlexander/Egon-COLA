@@ -35,8 +35,7 @@ spring:
         await-termination: true
         await-termination-period: ${SCHEDULING_AWAIT_TERMINATION:30s}
   jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: ${APP_TIME_ZONE:Asia/Shanghai}
+    time-zone: UTC
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false

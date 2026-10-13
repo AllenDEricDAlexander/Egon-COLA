@@ -46,9 +46,9 @@ message CreateSchoolClassRpcRequest {
 message ScheduleCourseRpcRequest {
   optional int64 school_class_id = 1;
   optional int64 course_id = 2;
-  // ISO_LOCAL_DATE_TIME (no zone conversion), including nanoseconds; absent means null.
+  // Offset/Z ISO datetime input; UTC ISO_INSTANT output. Commands truncate to microseconds; absent means null.
   optional string starts_at = 3;
-  // ISO_LOCAL_DATE_TIME (no zone conversion), including nanoseconds; absent means null.
+  // Offset/Z ISO datetime input; UTC ISO_INSTANT output. Commands truncate to microseconds; absent means null.
   optional string ends_at = 4;
   optional string operator_id = 5;
   optional string request_id = 6;

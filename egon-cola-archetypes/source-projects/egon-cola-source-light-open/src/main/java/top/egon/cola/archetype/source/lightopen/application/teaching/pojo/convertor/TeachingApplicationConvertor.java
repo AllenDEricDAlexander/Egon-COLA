@@ -11,7 +11,7 @@ import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.result
 import top.egon.cola.archetype.source.lightopen.domain.teaching.aggregates.SchoolClassAggregate;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.entities.Course;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.entities.SchoolClass;
-import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseSchedule;
+import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseScheduleBO;
 import top.egon.cola.component.common.core.converter.BaseForwardConverter;
 
 /** Teaching entity-to-result projection. */
@@ -44,5 +44,5 @@ public interface TeachingApplicationConvertor extends BaseForwardConverter<Cours
     @Mapping(target = "courseCode", source = "course.code")
     @Mapping(target = "startsAt", source = "command.startsAt")
     @Mapping(target = "endsAt", source = "command.endsAt")
-    CourseSchedule toSchedule(ScheduleCourseCommand command, Course course);
+    CourseScheduleBO toSchedule(ScheduleCourseCommand command, Course course);
 }

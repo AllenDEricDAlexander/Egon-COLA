@@ -133,3 +133,13 @@ budgets; only values differ per environment.
 ## 2026-09-22 Java / CQE maintenance requirements
 
 Normal entities use class; record is reserved for immutable value objects. Select @Builder for ordinary construction or compatible @SuperBuilder for inherited fields. Persisted enum codes use @EnumValue; frontend JSON codes use @JsonValue. Reuse Components and Common MP repositories. Validation uses native/custom constraint annotations, @Valid, @Validated and groups; ValidationUtils is a generic manual helper. Soft-delete business uniqueness must combine business columns + deleted_at with active-row NULL enforcement. Event delivery uses the Egon transactional outbox or actual MQ, with explicit transaction/failure and consumer-idempotency semantics. Existing source examples and old SQL must be reviewed against these new requirements; this documentation update does not migrate them.
+
+## UTC time contract
+
+All four profiles serialize Java time as ISO strings and declare Jackson UTC. The JVM launch arguments use `-Duser.timezone=UTC`; the existing container templates default to `TZ=UTC` and the same JVM flag. Agent has no container template. Business display zones belong to callers.
+
+Timeline values use `Instant`; scheduling and exam Commands truncate both non-null endpoints to microseconds before validation and persistence. Windows require `startsAt < endsAt` after truncation; adjacent half-open windows do not overlap. An example UTC value is `2026-10-13T01:00:00.123456Z`. `LocalDate` and `LocalTime` represent dates and wall-clock times without zone conversion. Existing `LocalDateTime deletedAt` remains a nullable legacy UTC token: NULL means active, and deletion/version/tenant rules remain unchanged.
+
+The undeployed Light/Service initialization sources use `TIMESTAMP(6) WITH TIME ZONE` for window columns; their existing manifest checksums match the source bytes. This does not migrate deployed data or repair existing SQL history. Existing scheduling uniqueness gaps are outside this change. Real PostgreSQL/JDBC acceptance is separate from offline and H2 tests.
+
+Open RPC retains standard `google.protobuf.Timestamp` seconds/nanos fields; canonical response nanos reflect the microsecond values, without changing the wire type or field numbers.

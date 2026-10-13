@@ -25,7 +25,8 @@ public class TeachingRequestValidator extends BaseValidator {
 
     public void validateSchedule(ScheduleCourseRequest request) {
         validateBean(request);
-        if (!request.startsAt().isBefore(request.endsAt())) {
+        if (!request.startsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS)
+                        .isBefore(request.endsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS))) {
             throw new IllegalArgumentException("startsAt must be before endsAt");
         }
     }

@@ -4,7 +4,7 @@ import top.egon.cola.archetype.source.light.domain.teaching.aggregates.SchoolCla
 import top.egon.cola.archetype.source.light.domain.teaching.entities.Course;
 import top.egon.cola.archetype.source.light.domain.teaching.entities.SchoolClass;
 import top.egon.cola.archetype.source.light.domain.teaching.service.SchoolClassDomainService;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSchedule;
+import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseScheduleBO;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.Semester;
 import top.egon.cola.archetype.source.light.infrastructure.teaching.converter.CoursePOConverter;
@@ -74,7 +74,7 @@ public class SchoolClassDomainServiceImpl
             Course course = Optional.ofNullable(courseRepository.findCachedById(schedule.getCourseId()))
                     .map(courseConverter::toSource)
                     .orElseThrow(() -> new IllegalStateException("scheduled course not found"));
-            aggregate.schedule(course, new CourseSchedule(
+            aggregate.schedule(course, new CourseScheduleBO(
                     course.code(), schedule.getStartsAt(), schedule.getEndsAt()));
         });
         return Optional.of(aggregate);
@@ -99,7 +99,7 @@ public class SchoolClassDomainServiceImpl
 
     @Override
     public SchoolClassAggregate schedule(
-            SchoolClassAggregate schoolClass, Course course, CourseSchedule schedule) {
+            SchoolClassAggregate schoolClass, Course course, CourseScheduleBO schedule) {
         schoolClass.schedule(course, schedule);
         return schoolClass;
     }

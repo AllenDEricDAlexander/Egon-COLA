@@ -28,8 +28,8 @@ CREATE TABLE evaluation_course_schedule (
     id BIGINT PRIMARY KEY,
     course_id BIGINT NOT NULL,
     class_id BIGINT NOT NULL,
-    starts_at TIMESTAMP NOT NULL,
-    ends_at TIMESTAMP NOT NULL,
+    starts_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    ends_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
     status VARCHAR(32) NOT NULL,
 
 
@@ -47,8 +47,8 @@ CREATE TABLE evaluation_exam (
     id BIGINT PRIMARY KEY,
     course_id BIGINT NOT NULL,
     title VARCHAR(128) NOT NULL,
-    starts_at TIMESTAMP NOT NULL,
-    ends_at TIMESTAMP NOT NULL,
+    starts_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    ends_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
     status VARCHAR(32) NOT NULL,
 
 

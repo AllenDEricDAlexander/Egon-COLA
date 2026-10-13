@@ -85,6 +85,25 @@ class BackendCrudTemplateTest {
         exerciseManage(light, output);
     }
 
+    @Test
+    void temporalCrudArtifactsCompileWithRealConverters(@TempDir Path output) throws Exception {
+        CodegenSchemaBO schema = TimeTypeMappingTest.temporalSchema();
+        for (CodegenProfileEnum profile : List.of(CodegenProfileEnum.LIGHT, CodegenProfileEnum.WEB, CodegenProfileEnum.SERVICE)) {
+            CodegenConfigBO config = config(profile, withController(false));
+            config.setFieldPolicies(CodegenConfigBO.FieldPoliciesBO.builder()
+                    .create(TimeTypeMappingTest.TIME_FIELDS).update(TimeTypeMappingTest.TIME_FIELDS)
+                    .result(TimeTypeMappingTest.TIME_FIELDS).filter(List.of("code")).sort(List.of("id")).build());
+            Map<String, String> sources = render(config, schema);
+            assertTrue(sources.get("po").contains("java.time.Instant awareAt"));
+            assertTrue(sources.get("po").contains("java.time.LocalDateTime localAt"));
+            assertTrue(sources.get("po").contains("java.time.LocalDate onDate"));
+            assertTrue(sources.get("po").contains("java.time.LocalTime atTime"));
+            assertTrue(sources.get("create-command").contains("Instant awareAt"));
+            assertTrue(sources.get("result").contains("LocalDate onDate"));
+            exerciseManage(sources, output.resolve(profile.code()));
+        }
+    }
+
     private void exerciseManage(Map<String, String> sources, Path output) throws Exception {
         Path sourceRoot = output.resolve("src");
         write(sourceRoot, "com/example/order/support/OrdersErrorMapper.java", """
@@ -165,8 +184,12 @@ class BackendCrudTemplateTest {
     }
 
     private Map<String, String> render(CodegenConfigBO config) {
-        assertTrue(scope.validate(config, orders).isEmpty());
-        CodegenSchemaBO.TableBO table = orders.getTables().get(0);
+        return render(config, orders);
+    }
+
+    private Map<String, String> render(CodegenConfigBO config, CodegenSchemaBO schema) {
+        assertTrue(scope.validate(config, schema).isEmpty());
+        CodegenSchemaBO.TableBO table = schema.getTables().get(0);
         Map<String, String> rendered = new LinkedHashMap<>();
         for (String artifact : config.getArtifacts()) {
             Map<String, Object> model = new LinkedHashMap<>(scope.renderModel(config, table, artifact));

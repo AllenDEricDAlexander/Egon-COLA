@@ -23,10 +23,10 @@ ARG APP_GID=10001
 
 LABEL org.opencontainers.image.build.engine="${CONTAINER_ENGINE}"
 
-ENV TZ=Asia/Shanghai \
+ENV TZ=UTC \
     SPRING_PROFILES_ACTIVE=prod \
     APP_DATASOURCE_MODE=SHARDING \
-    JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+    JAVA_OPTS="-Duser.timezone=UTC -XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
 
 RUN case "${CONTAINER_ENGINE}" in \
         oci|docker|podman|nerdctl) ;; \

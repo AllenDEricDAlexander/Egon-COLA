@@ -22,7 +22,7 @@ import top.egon.cola.archetype.source.light.domain.teaching.service.CourseDomain
 import top.egon.cola.archetype.source.light.domain.teaching.service.CourseIdempotencyService;
 import top.egon.cola.archetype.source.light.domain.teaching.service.SchoolClassDomainService;
 import top.egon.cola.archetype.source.light.domain.teaching.service.TeachingEventService;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSchedule;
+import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseScheduleBO;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.Semester;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.TeachingEvent;
@@ -70,7 +70,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
                 .orElseThrow(() -> new TeachingUseCaseException("CLASS_NOT_FOUND", "class not found"));
         Course course = courseDomainService.findById(command.courseId())
                 .orElseThrow(() -> new TeachingUseCaseException("COURSE_NOT_FOUND", "course not found"));
-        CourseSchedule schedule = convertor.toSchedule(command, course);
+        CourseScheduleBO schedule = convertor.toSchedule(command, course);
         try {
             SchoolClassAggregate scheduled = schoolClassDomainService.schedule(aggregate, course, schedule);
             schoolClassDomainService.saveAggregate(scheduled);

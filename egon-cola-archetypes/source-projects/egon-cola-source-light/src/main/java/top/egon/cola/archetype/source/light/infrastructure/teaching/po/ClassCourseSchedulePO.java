@@ -4,20 +4,22 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** Persistence model for a scheduled course. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
 @Accessors(chain = true)
 @TableName("class_course_schedules")
 public class ClassCourseSchedulePO extends EgonModel<ClassCourseSchedulePO> {
@@ -32,9 +34,9 @@ public class ClassCourseSchedulePO extends EgonModel<ClassCourseSchedulePO> {
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     @TableField("starts_at")
-    private LocalDateTime startsAt;
+    private Instant startsAt;
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     @TableField("ends_at")
-    private LocalDateTime endsAt;
+    private Instant endsAt;
 }

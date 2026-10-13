@@ -196,3 +196,13 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 两个组织只读调用沿原 DIRECT descriptor/strategy/proxy 链：从目标发布目录填写 `app.integrations.organization.application-namespace`、group/version（默认 RPC 版本1.0.0）、精确资源 URI 及两条 SDK 固定 binding（UserService/GetUser、SchoolClassService/GetSchoolClass）。请求的 scope 仅 `<目标 namespace>:user:read` 与 `<目标 namespace>:school-class:read`，由可信 tenant 映射独立 registration。缺失、重复或不匹配在创建出站 proxy 前失败；同 facade 的其他方法没有 credential binding。
 
 独立 control 与 tenant client 凭据、有限 trusted issuer、严格撤销 endpoint/epoch、独占 audit spool/HMAC key 均由受保护部署配置提供。运行 RPC 默认 TLS，明文本机测试仅显式 loopback 例外；tenant-registration-ids 必须来自部署事实，header 不产生 tenant/role。目录登记不自动授权。external-off test profile 仅使用明确非秘密 fixture 值，关闭外部 transport 与 OAuth client 自动创建。受控测试和生成构建不证明真实 PG/Redis/TLS/注册/浏览器已验。
+
+## UTC 时间契约
+
+四套 profile 均使用 ISO 字符串并声明 Jackson UTC；JVM 启动参数包含 `-Duser.timezone=UTC`，已有容器模板默认 `TZ=UTC` 并设置同一 JVM 参数。Agent 没有容器模板。业务展示时区由调用方决定。
+
+时间线使用 `Instant`；排课与考试 Command 在校验和持久化之前，将两个非空端点截断到微秒。截断后必须满足 `startsAt < endsAt`；相邻半开窗口不重叠。UTC 示例为 `2026-10-13T01:00:00.123456Z`。`LocalDate` 和 `LocalTime` 表示纯日期和墙钟时间，不做时区转换。既有 `LocalDateTime deletedAt` 仍为可空的 Legacy UTC token：NULL 表示活动，删除、version 和 tenant 规则保持兼容。
+
+未部署的 Light/Service 初始化源仅将窗口列改为 `TIMESTAMP(6) WITH TIME ZONE`，既有 manifest 摘要与源字节一致；这不迁移已部署数据，也不修复已有 SQL 历史。排课唯一键既有差距不纳入本次范围。真实 PostgreSQL/JDBC 验收与离线/H2 测试分开。
+
+Native RPC 保持既有 protobuf string 时间字段并输出 UTC `Z` 字符串，字段编号与载体类型不变。

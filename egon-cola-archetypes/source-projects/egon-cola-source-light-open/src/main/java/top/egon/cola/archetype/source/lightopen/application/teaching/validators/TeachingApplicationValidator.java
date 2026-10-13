@@ -42,11 +42,11 @@ public class TeachingApplicationValidator extends BaseValidator {
     }
 
     public void validate(ScheduleCourseCommand command) {
-        validateBean(command);
         if (command.startsAt() == null || command.endsAt() == null
                 || !command.startsAt().isBefore(command.endsAt())) {
             throw new TeachingUseCaseException("INVALID_SCHEDULE", "startsAt must be before endsAt");
         }
+        validateBean(command);
         requireOperator(command.operatorId(), command.idempotencyKey());
     }
 

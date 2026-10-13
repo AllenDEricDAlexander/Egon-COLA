@@ -173,8 +173,8 @@ BEGIN
             id BIGINT PRIMARY KEY,
             school_class_id BIGINT NOT NULL,
             course_id BIGINT NOT NULL,
-            starts_at TIMESTAMP NOT NULL,
-            ends_at TIMESTAMP NOT NULL,
+            starts_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+            ends_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 
             CONSTRAINT uk_class_course_start_0
                 UNIQUE (school_class_id, course_id, starts_at),
@@ -195,8 +195,8 @@ BEGIN
             id BIGINT PRIMARY KEY,
             school_class_id BIGINT NOT NULL,
             course_id BIGINT NOT NULL,
-            starts_at TIMESTAMP NOT NULL,
-            ends_at TIMESTAMP NOT NULL,
+            starts_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+            ends_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
 
             CONSTRAINT uk_class_course_start_1
                 UNIQUE (school_class_id, course_id, starts_at),

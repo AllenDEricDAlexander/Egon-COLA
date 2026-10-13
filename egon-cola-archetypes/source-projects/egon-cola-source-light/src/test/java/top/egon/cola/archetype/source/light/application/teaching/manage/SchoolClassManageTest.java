@@ -25,12 +25,12 @@ import top.egon.cola.archetype.source.light.domain.teaching.service.CourseIdempo
 import top.egon.cola.archetype.source.light.domain.teaching.service.SchoolClassDomainService;
 import top.egon.cola.archetype.source.light.domain.teaching.service.TeachingEventService;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseCode;
-import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSchedule;
+import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseScheduleBO;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.Semester;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.TeachingEvent;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,7 +75,7 @@ class SchoolClassManageTest {
     void schedules_course_and_persists_aggregate() {
         SchoolClassAggregate aggregate = aggregate();
         Course course = course();
-        CourseSchedule schedule = schedule();
+        CourseScheduleBO schedule = schedule();
         when(courseIdempotencyService.claim("request-1")).thenReturn(true);
         when(schoolClassDomainService.findAggregateById(new SchoolClassId(CLASS_ID))).thenReturn(Optional.of(aggregate));
         when(courseDomainService.findById(COURSE_ID)).thenReturn(Optional.of(course));
@@ -151,5 +151,5 @@ class SchoolClassManageTest {
         return new SchoolClass(new SchoolClassId(CLASS_ID), "Class One", new Semester("2026-FALL"), SchoolClassStatus.ACTIVE);
     }
     private Course course() { return new Course(COURSE_ID, new CourseCode("math"), "Mathematics", CourseStatus.ACTIVE); }
-    private CourseSchedule schedule() { return new CourseSchedule(new CourseCode("math"), LocalDateTime.of(2026, 9, 1, 9, 0), LocalDateTime.of(2026, 9, 1, 10, 0)); }
+    private CourseScheduleBO schedule() { return new CourseScheduleBO(new CourseCode("math"), Instant.parse("2026-09-01T09:00:00Z"), Instant.parse("2026-09-01T10:00:00Z")); }
 }

@@ -226,3 +226,15 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 ## 2026-09-22 Java / CQE 维护规范
 
 普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。
+
+## UTC 时间契约
+
+四套 profile 均使用 ISO 字符串并声明 Jackson UTC；JVM 启动参数包含 `-Duser.timezone=UTC`，已有容器模板默认 `TZ=UTC` 并设置同一 JVM 参数。Agent 没有容器模板。业务展示时区由调用方决定。
+
+时间线使用 `Instant`；排课与考试 Command 在校验和持久化之前，将两个非空端点截断到微秒。截断后必须满足 `startsAt < endsAt`；相邻半开窗口不重叠。UTC 示例为 `2026-10-13T01:00:00.123456Z`。`LocalDate` 和 `LocalTime` 表示纯日期和墙钟时间，不做时区转换。既有 `LocalDateTime deletedAt` 仍为可空的 Legacy UTC token：NULL 表示活动，删除、version 和 tenant 规则保持兼容。
+
+未部署的 Light/Service 初始化源仅将窗口列改为 `TIMESTAMP(6) WITH TIME ZONE`，既有 manifest 摘要与源字节一致；这不迁移已部署数据，也不修复已有 SQL 历史。排课唯一键既有差距不纳入本次范围。真实 PostgreSQL/JDBC 验收与离线/H2 测试分开。
+
+排课 REST body 必须使用带 offset 的字符串，例如 `{"startsAt":"2026-10-13T09:00:00.123456789+08:00","endsAt":"2026-10-13T09:30:00.123456789+08:00"}`。无 offset 和数值时间被拒绝；响应使用 Application/Domain 投影中的规范 UTC 值。
+
+Native RPC 保持既有 protobuf string 时间字段并输出 UTC `Z` 字符串，字段编号与载体类型不变。

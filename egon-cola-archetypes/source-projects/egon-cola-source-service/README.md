@@ -213,3 +213,13 @@ The service has no business HTTP or GraphQL API. Only liveness/readiness probes 
 The two organization reads retain the original DIRECT descriptor/strategy/proxy path. Configure `app.integrations.organization.application-namespace` from the target's published catalog, group/version (default service version `1.0.0`), exact resource URI and two fixed SDK bindings for `UserService/GetUser` and `SchoolClassService/GetSchoolClass`. Only `<target namespace>:user:read` and `<target namespace>:school-class:read` are requested. Each binding selects a trusted tenant registration; missing/duplicate/mismatched bindings stop before creating an outbound proxy. Other methods of those facade interfaces have no credential binding.
 
 Supply protected credentials for the independent control registration and tenant registrations, bounded trusted issuers, strict revocation endpoint/epoch and an exclusive audit spool/HMAC key. Runtime RPC defaults to TLS; local plaintext needs an explicit loopback override. Deployment supplies exact `tenant-registration-ids` maps and no tenant/role is inferred from headers. Catalog registration does not grant permissions. The external-off test profile has explicit non-secret fixture values with transports and OAuth client auto-creation disabled. Controlled tests and generated builds do not establish real PG/Redis/TLS/registration/browser acceptance.
+
+## UTC time contract
+
+All four profiles serialize Java time as ISO strings and declare Jackson UTC. The JVM launch arguments use `-Duser.timezone=UTC`; the existing container templates default to `TZ=UTC` and the same JVM flag. Agent has no container template. Business display zones belong to callers.
+
+Timeline values use `Instant`; scheduling and exam Commands truncate both non-null endpoints to microseconds before validation and persistence. Windows require `startsAt < endsAt` after truncation; adjacent half-open windows do not overlap. An example UTC value is `2026-10-13T01:00:00.123456Z`. `LocalDate` and `LocalTime` represent dates and wall-clock times without zone conversion. Existing `LocalDateTime deletedAt` remains a nullable legacy UTC token: NULL means active, and deletion/version/tenant rules remain unchanged.
+
+The undeployed Light/Service initialization sources use `TIMESTAMP(6) WITH TIME ZONE` for window columns; their existing manifest checksums match the source bytes. This does not migrate deployed data or repair existing SQL history. Existing scheduling uniqueness gaps are outside this change. Real PostgreSQL/JDBC acceptance is separate from offline and H2 tests.
+
+Native RPC retains the existing protobuf string time fields and returns UTC `Z` strings; field numbers and carrier types do not change.
