@@ -12698,3 +12698,9 @@ Portal现manifest测试的JSasset url并非Wujie HTML入口，修正其fixture�
 ### 12.42. generated消费者的既有source-only目录检查
 
 实际generated Maven reactor发现多模块家族的既有 ArchetypeContractConvergenceTest#definitionResourcesFollowTheMovedTree 用 Assumptions 明确只在source仓库检查 sibling definitions，生成项目没有该目录而跳过。保持原测试/三Open不变，不将这类跳过报作执行成功；本Step在独立验证副本五个source starter实际运行同方法，要求执行且0skip。全七Maven消费者/所有四native安全、HTTP/OAS/GQL/RPC及constructor契约仍必须真实通过，新的verify钩子要求其必需suite为0skip。记录全量测试计数与source-only跳过数，原表0skip指所有必需生成安全契约及七产品build，不伪称全量JUnit任意source-only方法零跳过。
+
+### 12.43. Step17 前置的撤销 PRIMARY loopback 兼容修正
+
+Runtime R2.1/R5.2/R5.3 已批准复用 redis://127.0.0.1:6379 的本机 loopback 明文例外，SDK IdpStarterProperties.secureRedisUri 与宿主 transport check 已实现该受限路径，但 Admin OAuthRevocationProperties.validateValues 仍仅接受 rediss，真实安全投影装配因此会在写入前失败。按用户小问题自主修正授权，先完成独立的三路径纠正任务：OAuthRevocationProperties.java、既有 OAuthSecurityProjectionComponentTest.java、本 Plan。与 SDK 保持一致，仅允许明确的 127.0.0.1、localhost、::1/[::1] 主机；远程/数字别名/近似 hostname 明文、credentials、query、fragment、database path 继续拒绝，STRICT_SHARED、原 timeout/epoch 和实际 Redisson PRIMARY exact equality 不变。宿主既有 local profile/deployment/usage-observation opt-in 组合仍负责环境限制，不修改该组合或全局 Redis/TLS 配置，不新增 Redis TLS 代理、依赖或公开接口。
+
+先在既有测试类新增两个行为方法证明 RED（受控 Config/mock，不连接 Redis），再校验 GREEN、原 security projection/OIDC 回归和 Step17 默认隔离守卫。完成独立精确 commit 后继续 Step17；该纠正不将 Step17 标为完成，也不证明真实 Redis/数据库/browser 门禁通过。

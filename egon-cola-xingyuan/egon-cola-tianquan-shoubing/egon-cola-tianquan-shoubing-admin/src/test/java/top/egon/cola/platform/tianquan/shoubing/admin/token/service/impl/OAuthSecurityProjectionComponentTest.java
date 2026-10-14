@@ -1,6 +1,7 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -88,6 +89,38 @@ class OAuthSecurityProjectionComponentTest {
                 redisson, stateRepository, revocationRepository, tokenRepository, authorizationRepository,
                 clientRepository,
                 realmRepository, managementRealmResolver, properties, clock);
+    }
+
+    @Test
+    void onlyExactLoopbackPlaintextIsCompatibleWithTheLocalRuntime() {
+        for (String endpoint : List.of("redis://127.0.0.1:6379", "redis://localhost:6379", "redis://[::1]:6379",
+                "rediss://redis.example:6379")) {
+            var candidate = OAuthRevocationProperties.builder().primaryEndpoint(URI.create(endpoint))
+                    .epoch("local-runtime-test").build();
+            assertThatCode(candidate::validateValues).as(endpoint).doesNotThrowAnyException();
+        }
+        for (String endpoint : List.of("redis://redis.example:6379", "redis://127.0.0.1.example:6379",
+                "redis://127.1:6379", "redis://2130706433:6379", "redis://user@127.0.0.1:6379",
+                "redis://127.0.0.1:6379?db=1", "redis://127.0.0.1:6379#state", "redis://127.0.0.1:6379/1",
+                "redis:///1", "redis:local")) {
+            var candidate = OAuthRevocationProperties.builder().primaryEndpoint(URI.create(endpoint))
+                    .epoch("local-runtime-test").build();
+            assertThatThrownBy(candidate::validateValues).as(endpoint).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("OAUTH_REVOCATION_PROPERTIES_INVALID");
+        }
+    }
+
+    @Test
+    void localRuntimeStillRequiresTheExactConfiguredPrimaryConnection() {
+        var candidate = OAuthRevocationProperties.builder().primaryEndpoint(URI.create("redis://127.0.0.1:6379"))
+                .epoch("local-runtime-test").build();
+        Config config = new Config();
+        config.useSingleServer().setAddress("redis://127.0.0.1:6379");
+        when(redisson.getConfig()).thenReturn(config);
+        assertThatCode(() -> candidate.validateWith(redisson)).doesNotThrowAnyException();
+        config.useSingleServer().setAddress("redis://127.0.0.1:6380");
+        assertThatThrownBy(() -> candidate.validateWith(redisson)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("OAUTH_REVOCATION_PRIMARY_ENDPOINT_MISMATCH");
     }
 
     @Test

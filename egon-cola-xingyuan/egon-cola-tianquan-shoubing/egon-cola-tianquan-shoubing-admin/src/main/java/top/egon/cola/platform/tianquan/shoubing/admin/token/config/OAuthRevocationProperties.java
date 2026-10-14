@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -65,8 +66,12 @@ public class OAuthRevocationProperties {
     }
 
     public void validateValues() {
+        boolean loopbackPlaintext = primaryEndpoint != null
+                && "redis".equals(primaryEndpoint.getScheme())
+                && primaryEndpoint.getHost() != null
+                && Set.of("127.0.0.1", "localhost", "::1", "[::1]").contains(primaryEndpoint.getHost());
         if (primaryEndpoint == null || !primaryEndpoint.isAbsolute()
-                || !"rediss".equalsIgnoreCase(primaryEndpoint.getScheme())
+                || !("rediss".equalsIgnoreCase(primaryEndpoint.getScheme()) || loopbackPlaintext)
                 || primaryEndpoint.getHost() == null || primaryEndpoint.getUserInfo() != null
                 || primaryEndpoint.getQuery() != null || primaryEndpoint.getFragment() != null
                 || (primaryEndpoint.getRawPath() != null && !primaryEndpoint.getRawPath().isEmpty())
