@@ -80,6 +80,19 @@ class OutboxMybatisPlusAutoConfigurationTest {
             );
 
     @Test
+    void disabledOutboxDoesNotInstallStorageOrOverrideTheLogicalDatasourceFactory() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(OutboxMybatisPlusAutoConfiguration.class))
+                .withPropertyValues("egon.cola.component.transactional-outbox.enabled=false")
+                .run(context -> assertThat(context).hasNotFailed()
+                        .doesNotHaveBean("outboxManagedDdlInitializer")
+                        .doesNotHaveBean("egonColaShardingLogicalDataSourceFactory")
+                        .doesNotHaveBean("outboxMpStorageProperties")
+                        .doesNotHaveBean(OutboxMessageDAO.class)
+                        .doesNotHaveBean(OutboxStore.class));
+    }
+
+    @Test
     void defaultRuntimeUsesManagedMpStoreAndTheSelectedFactory() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed().hasSingleBean(OutboxStore.class)

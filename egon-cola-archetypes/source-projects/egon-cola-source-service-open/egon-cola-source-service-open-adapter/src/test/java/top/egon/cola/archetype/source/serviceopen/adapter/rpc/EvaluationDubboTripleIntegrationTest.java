@@ -59,6 +59,7 @@ import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mapstruct.factory.Mappers;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
@@ -69,6 +70,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@EnabledIfSystemProperty(named = "egon.test.triple.enabled", matches = "true")
 class EvaluationDubboTripleIntegrationTest {
 
     private static final ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();

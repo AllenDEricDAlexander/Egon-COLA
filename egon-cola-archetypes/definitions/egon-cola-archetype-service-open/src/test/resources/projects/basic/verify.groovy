@@ -197,6 +197,18 @@ def reports = filesUnder(".") { candidate ->
             "Expected generated Service test report ${testName} to pass"
 }
 
+// A listener is opt-in; require its real report even when the explicit gate disables it.
+def tripleReport = reports.find { it.name.endsWith('.EvaluationDubboTripleIntegrationTest.xml') }
+def tripleSuite = new XmlSlurper(false, false).parse(tripleReport)
+assert tripleSuite.@tests.text().toInteger() == 1: 'Expected the complete Triple interoperability test'
+assert tripleSuite.@skipped.text() in ['0', '1']: 'Unexpected Triple test skip count'
+if (tripleSuite.@skipped.text() == '1') {
+    assert System.getProperty('egon.test.triple.enabled') != 'true': 'Enabled Triple test must execute'
+    assert tripleSuite.testcase.skipped.@message.text().contains('egon.test.triple.enabled'):
+            'Triple test may only be skipped by its explicit listener gate'
+    println 'Triple listener validation is pending: enable egon.test.triple.enabled=true to execute it'
+}
+
 def javaFiles = []
 projectDir.traverse(type: FileType.FILES) { candidate ->
     def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString()

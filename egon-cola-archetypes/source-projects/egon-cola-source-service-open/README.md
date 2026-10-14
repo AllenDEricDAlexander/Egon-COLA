@@ -55,12 +55,21 @@ From the repository root:
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-  -pl :egon-cola-archetype-service-open -am clean integration-test
+  -Pgenerated-archetypes -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
 The generated tests cover Proto descriptors, Long identity, Common MyBatis-Plus DAOs and services, isolated H2 persistence and typed ShardingSphere routing contracts, manual SQL conventions, the 11 Triple unary methods exposed by three providers, standard gRPC unary interoperability, the dual-profile Organization client, DTP executor context, and ArchUnit dependency direction. ArchUnit replaces the internal bytecode Maven plugin and enforces service-only/no-JPA/no-Flyway/no-Gateway/no-Springdoc boundaries.
 
 These checks are source/generated-project and local-test evidence. They do not prove a live PostgreSQL schema, Redis DTP registry, Nacos topology, RabbitMQ, cross-Project provider, deployment network, or production authorization. Archetype generation and the commands above do not start the application or apply database SQL.
+
+Default tests do not bind a Triple listener. `EvaluationDubboTripleIntegrationTest` produces an explicit skipped report unless `egon.test.triple.enabled=true`; the generated verifier requires that report and rejects failures, unexpected skips, or a skipped enabled test. From the generated project root, manually run the existing 11-method Triple/gRPC interoperability test with:
+
+```bash
+mvn -B -ntp -Degon.test.triple.enabled=true \
+  -Dtest=EvaluationDubboTripleIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+The explicit command binds a local Triple port. A passing default build does not prove listener interoperability.
 
 ## Maven Profiles And External Launch Arguments
 

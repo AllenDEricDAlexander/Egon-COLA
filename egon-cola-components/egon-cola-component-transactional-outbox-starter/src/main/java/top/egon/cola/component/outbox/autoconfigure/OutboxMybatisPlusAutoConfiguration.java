@@ -47,6 +47,8 @@ import java.util.Set;
 /** Registers the managed DDL hook before Common builds the logical datasource. */
 @Slf4j
 @AutoConfiguration(value = "top.egon.cola.component.outbox.autoconfigure.OutboxMybatisPlusAutoConfiguration", after = EgonColaMybatisPlusAutoConfiguration.class, before = EgonColaShardingAutoConfiguration.class)
+@ConditionalOnProperty(prefix = "egon.cola.component.transactional-outbox", name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 @MapperScan(basePackageClasses = OutboxMessageDAO.class,
         sqlSessionFactoryRef = "${egon.cola.component.transactional-outbox.storage.mp.sql-session-factory-bean-name:sqlSessionFactory}")
 public class OutboxMybatisPlusAutoConfiguration {

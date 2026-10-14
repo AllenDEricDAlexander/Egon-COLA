@@ -55,12 +55,21 @@ Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。逻辑表�
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-  -pl :egon-cola-archetype-service-open -am clean integration-test
+  -Pgenerated-archetypes -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
 生成测试覆盖 Proto descriptor、Long identity、Common MyBatis-Plus DAO/service、隔离 H2 持久化与 typed ShardingSphere 路由合同、手工 SQL 约定、三个 provider 暴露的 11 个 Triple unary 方法、标准 gRPC unary interop、Organization client 双剖面实现、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
 
 这些检查只证明源码、生成工程和本地测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos 拓扑、RabbitMQ、跨 Project provider、部署网络或生产权限。archetype 生成和上述命令不会自动启动应用，也不会执行数据库 SQL。
+
+默认测试不绑定 Triple 监听端口。`EvaluationDubboTripleIntegrationTest` 只有在 `egon.test.triple.enabled=true` 时执行，否则生成明确的跳过报告；生成 verifier 必须找到该报告，并拒绝失败、意外跳过或已启用却未执行的测试。在生成工程根目录手动运行既有 11 个方法的 Triple/gRPC 互操作测试：
+
+```bash
+mvn -B -ntp -Degon.test.triple.enabled=true \
+  -Dtest=EvaluationDubboTripleIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+该显式命令会绑定本地 Triple 端口。默认构建通过不证明真实监听互操作通过。
 
 ## Maven Profiles 与外部启动参数
 
