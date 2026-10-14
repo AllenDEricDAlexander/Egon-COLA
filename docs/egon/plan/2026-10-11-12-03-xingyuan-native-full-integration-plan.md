@@ -545,6 +545,7 @@ DEC-007新增Step8的9路径已在主Spec§7.0.1完整列明；拒绝双TM/produ
 | MODIFY | `scripts/checks/check-native-archetype-boundaries.py` | Step 16: native source/generated family boundary | REQ-006, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `scripts/checks/check-archetype-family-boundaries.py` | Step 16: Agent六层/七family依赖隔离 | REQ-006, REQ-008, REQ-009, REQ-011 |
 | MODIFY | `scripts/regression/test-generate-archetypes.sh` | Step 16: allseven generation/Open invariant regression | REQ-006, REQ-008, REQ-009, REQ-011 |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpSecurityIT.java` | Step 16: current repository interface test caller | REQ-006, REQ-008, REQ-009, REQ-011 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningIT.java` | Step 17: opt-in entry/nested configuration/manifest groups/target tests | REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-010, REQ-011, REQ-012, REQ-013 |
 | CREATE | `scripts/regression/test-isolated-integration-contract.sh` | Step 17: 9CLI flags/unsafe target/PID/known outcomes fixtures | REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-010, REQ-011, REQ-012, REQ-013 |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningComponent.java` | Step 17: provision phases/guard/reconciliation/BFF AT oracle | REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-010, REQ-011, REQ-012, REQ-013 |
@@ -11573,6 +11574,152 @@ run generate twice then check and require deterministic manifests; no invented n
 - Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
 - After this file: 当前allseven generation/Open invariant regression合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
 
+#### File 8 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml`
+- Purpose: 必要边界更新与全七不变性证明
+- Symbols: allseven generation/Open invariant regression
+- Repository evidence: 既有脚本/原native check与generator长期workflow
+- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
+- Why now: File 15按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Contract/signature changes: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Input/output and state mapping: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Error and edge behavior: sourcecontract失败回四native对应Step，不修改三Open/旧SQL以补绿
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
+- Literal rule enforcement: Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；复用既有React/Vite/Wujie/Vitest/脚本工具与实际制品、既有JSON/配置参数，受控generation/cancel/owner guard，时限有界；保留原分层/Open/SQL。Rule 1, Rule 2, Rule 3, Rule 4的Java实现为N/A（非Java文件）。
+- Implementation pseudocode:
+```xml
+remove the duplicate direct springdoc runtime; retain existing installed Yuheng MVC and original business declarations;
+adapter only declares existing swagger-annotations-jakarta API at current swagger.annotations.version, provided and optional;
+no version upgrade, new framework, schema, runtime URL or public Java contract; actual compile/OAS tests verify compatibility.
+```
+- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
+- After this file: 当前allseven generation/Open invariant regression合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
+
+#### File 9 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml`
+- Purpose: 必要边界更新与全七不变性证明
+- Symbols: allseven generation/Open invariant regression
+- Repository evidence: 既有脚本/原native check与generator长期workflow
+- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
+- Why now: File 15按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Contract/signature changes: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Input/output and state mapping: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Error and edge behavior: sourcecontract失败回四native对应Step，不修改三Open/旧SQL以补绿
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
+- Literal rule enforcement: Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；复用既有React/Vite/Wujie/Vitest/脚本工具与实际制品、既有JSON/配置参数，受控generation/cancel/owner guard，时限有界；保留原分层/Open/SQL。Rule 1, Rule 2, Rule 3, Rule 4的Java实现为N/A（非Java文件）。
+- Implementation pseudocode:
+```xml
+remove the duplicate direct springdoc runtime; retain existing installed Yuheng MVC and original business declarations;
+adapter only declares existing swagger-annotations-jakarta API at current swagger.annotations.version, provided and optional;
+no version upgrade, new framework, schema, runtime URL or public Java contract; actual compile/OAS tests verify compatibility.
+```
+- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
+- After this file: 当前allseven generation/Open invariant regression合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
+
+#### File 10 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract/src/test/java/top/egon/cola/component/rpc/test/process/RpcMockGatewayApplication.java`
+- Purpose: 必要边界更新与全七不变性证明
+- Symbols: allseven generation/Open invariant regression
+- Repository evidence: 既有脚本/原native check与generator长期workflow
+- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
+- Why now: File 15按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Contract/signature changes: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Input/output and state mapping: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Error and edge behavior: sourcecontract失败回四native对应Step，不修改三Open/旧SQL以补绿
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
+- Literal rule enforcement: Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；复用既有React/Vite/Wujie/Vitest/脚本工具与实际制品、既有JSON/配置参数，受控generation/cancel/owner guard，时限有界；保留原分层/Open/SQL。Rule 1, Rule 2, Rule 3, Rule 4的Java实现为N/A（非Java文件）。
+- Implementation pseudocode:
+```java
+update only existing test fixture constructor callers to the current public factory/coordinator contract;
+require the controlled fixture's positive tenant id, use existing Jackson/Validator types, close the owned validation factory with registry resources;
+no production fallback, new API/schema or process execution; original assertions remain.
+```
+- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
+- After this file: 当前allseven generation/Open invariant regression合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
+
+#### File 11 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract/src/test/java/top/egon/cola/component/rpc/test/process/RpcProcessIT.java`
+- Purpose: 必要边界更新与全七不变性证明
+- Symbols: allseven generation/Open invariant regression
+- Repository evidence: 既有脚本/原native check与generator长期workflow
+- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
+- Why now: File 15按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Contract/signature changes: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Input/output and state mapping: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Error and edge behavior: sourcecontract失败回四native对应Step，不修改三Open/旧SQL以补绿
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
+- Literal rule enforcement: Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；复用既有React/Vite/Wujie/Vitest/脚本工具与实际制品、既有JSON/配置参数，受控generation/cancel/owner guard，时限有界；保留原分层/Open/SQL。Rule 1, Rule 2, Rule 3, Rule 4的Java实现为N/A（非Java文件）。
+- Implementation pseudocode:
+```java
+update only existing test fixture constructor callers to the current public factory/coordinator contract;
+require the controlled fixture's positive tenant id, use existing Jackson/Validator types, close the owned validation factory with registry resources;
+no production fallback, new API/schema or process execution; original assertions remain.
+```
+- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
+- After this file: 当前allseven generation/Open invariant regression合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
+
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/test/java/top/egon/cola/component/tianshu/test/DdcLeaseLifecycleTest.java`
+- Purpose: 必要边界更新与全七不变性证明
+- Symbols: allseven generation/Open invariant regression
+- Repository evidence: 既有脚本/原native check与generator长期workflow
+- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
+- Why now: File 15按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Contract/signature changes: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Input/output and state mapping: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Error and edge behavior: sourcecontract失败回四native对应Step，不修改三Open/旧SQL以补绿
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
+- Literal rule enforcement: Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；复用既有React/Vite/Wujie/Vitest/脚本工具与实际制品、既有JSON/配置参数，受控generation/cancel/owner guard，时限有界；保留原分层/Open/SQL。Rule 1, Rule 2, Rule 3, Rule 4的Java实现为N/A（非Java文件）。
+- Implementation pseudocode:
+```java
+existing controlled fixture constructs DdcLeaseSessionHolder/DdcLocalConfigState with explicit positive1001L;
+retain current state/resource/session keys and every original lease/snapshot/refresh/ack assertion;
+compile all existing callers against current public constructor; run only these offline controlled tests;
+no production tenant fallback, new dependency, schema/data changes, process or network start;
+record actual observed test/compile result, never label compiler/setup failures as behavior RED.
+```
+- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
+- After this file: 当前allseven generation/Open invariant regression合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
+
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/test/java/top/egon/cola/component/tianshu/test/DdcSampleRefreshFlowTest.java`
+- Purpose: 必要边界更新与全七不变性证明
+- Symbols: allseven generation/Open invariant regression
+- Repository evidence: 既有脚本/原native check与generator长期workflow
+- Dependencies and consumers: 调用上述已核实symbol及本Step前置合同；该文件的真实宿主/生成消费者消费本文件，禁止source alias或旁路caller。
+- Why now: File 15按本Step测试→最小实现→wiring/验收顺序；只能在其前置symbol编译成立后编辑，不越界开始下一Step。
+- Contract/signature changes: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Input/output and state mapping: 已批准四source改动→existingmanifestgenerator→all7 outputs；Open枚举完整Byte/modehash
+- Error and edge behavior: sourcecontract失败回四native对应Step，不修改三Open/旧SQL以补绿
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-JSON-001, MC-CONFIG-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001；保留既有架构/命名/原协议与受控类型；17 MC按本文件实际职责检查。TS沿现React/Vite/Vitest/类型化客户端，Java沿原namedBean/qualifiedfinal/Validation/MapStruct，脚本沿strict模式/owner guard；不加framework。
+- Literal rule enforcement: Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11；复用既有React/Vite/Wujie/Vitest/脚本工具与实际制品、既有JSON/配置参数，受控generation/cancel/owner guard，时限有界；保留原分层/Open/SQL。Rule 1, Rule 2, Rule 3, Rule 4的Java实现为N/A（非Java文件）。
+- Implementation pseudocode:
+```java
+existing controlled fixture constructs DdcLeaseSessionHolder/DdcLocalConfigState with explicit positive1001L;
+retain current state/resource/session keys and every original lease/snapshot/refresh/ack assertion;
+compile all existing callers against current public constructor; run only these offline controlled tests;
+no production tenant fallback, new dependency, schema/data changes, process or network start;
+record actual observed test/compile result, never label compiler/setup failures as behavior RED.
+```
+- Verification contribution: 本文件由本Step明确focusedselector/契约断言核对；以下GREEN/回归不能用SKIP或404代替行为证据。
+- After this file: 当前allseven generation/Open invariant regression合同可供后续文件编译/验证；测试文件仍须先证明指定旧行为RED，实现文件仅在相应断言转GREEN后可计完成。
+
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpSecurityIT.java`
+- Purpose: 当前 MCP validation repository 接口的必要既有测试调用兼容。
+- Symbols: rejectsExternalSchemaReferencesDuringReleaseValidation
+- Repository evidence: McpValidationService 当前构造器依赖 McpArtifactMetadataRepository；旧 jdbc implementation 已不存在。
+- Dependencies and consumers: 既有 yuheng-test-suite testCompile 和原 schema 安全断言；不改 production API。
+- Why now: 完整 source install 的实际 testCompile 暴露旧类型引用；修复后才能验证真实生成消费者。
+- Contract/signature changes: 测试 mock 改用现有 repository interface，保留原构造输入及全部断言。
+- Input/output and state mapping: 原外部 schema reference 输入和 validation report 输出保持。
+- Error and edge behavior: unsafe schema 仍返回 YUHENG_MCP_SCHEMA_EXTERNAL_REF_FORBIDDEN；无网络或数据库调用。
+- Standards impact: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-TEST-001, MC-SCOPE-001；复用现 repository port，不新增 abstraction/dependency；17 Manual Checks 逐项记录实际适用性。
+- Literal rule enforcement: Rule 1–7、9–11 按既有 Java test fixture 检查；不引入 Spring bean、MapStruct mapping 或 persistence 实现。
+- Implementation pseudocode:
+```java
+import the current McpArtifactMetadataRepository interface used by McpValidationService;
+replace only the obsolete JdbcMcpArtifactMetadataRepository mock type;
+retain the original catalog mock, ObjectMapper and hostile schema input;
+retain invalid report and exact external-reference error assertions;
+run the focused offline method and full source testCompile/install without skipping test compilation.
+```
+- Verification contribution: 精确现方法受控离线运行及125模块 source install；不作为浏览器、DB或process证明。
+- After this file: 当前测试调用正确解析，原业务安全断言保持。
+
 - Validation working directory: /Users/mario/SelfProject/Egon-COLA。
 - Verification command: 按下表顺序；全部未来命令，不作为已执行证据。
 
@@ -11589,7 +11736,7 @@ run generate twice then check and require deterministic manifests; no invented n
 - Failure returns to: dependency解析先核已installcurrentSDK；源码安全行为回对应nativeStep；metadata/checker只修本Step必要差异，不清旧SQL或降低Open门禁。
 - Completion criteria: 原三Open source/definitions不变，generated内容/mode/hash不变；四native namespace/HTTP/GQL/RPC全合同及all7验证真实通过；17MC/literalchecks逐项记录。
 - Rollback: 仅本Steptrackeddefinitions/checks回退；ignored .generated由同authoritativegenerator重新生成，不git add/手修；不reset已完成native源代码或历史migration。
-- Commit paths: `egon-cola-archetypes/definitions/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`, `egon-cola-archetypes/definitions/egon-cola-archetype-service/src/test/resources/projects/basic/verify.groovy`, `egon-cola-archetypes/definitions/egon-cola-archetype-web/src/test/resources/projects/basic/verify.groovy`, `egon-cola-archetypes/definitions/egon-cola-archetype-agent/src/test/resources/projects/basic/verify.groovy`, `scripts/checks/check-native-archetype-boundaries.py`, `scripts/checks/check-archetype-family-boundaries.py`, `scripts/regression/test-generate-archetypes.sh`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpSecurityIT.java`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/test/java/top/egon/cola/component/tianshu/test/DdcLeaseLifecycleTest.java`; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/test/java/top/egon/cola/component/tianshu/test/DdcSampleRefreshFlowTest.java`; `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract/src/test/java/top/egon/cola/component/rpc/test/process/RpcMockGatewayApplication.java`; `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract/src/test/java/top/egon/cola/component/rpc/test/process/RpcProcessIT.java`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml`; `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml`; `egon-cola-archetypes/definitions/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`, `egon-cola-archetypes/definitions/egon-cola-archetype-service/src/test/resources/projects/basic/verify.groovy`, `egon-cola-archetypes/definitions/egon-cola-archetype-web/src/test/resources/projects/basic/verify.groovy`, `egon-cola-archetypes/definitions/egon-cola-archetype-agent/src/test/resources/projects/basic/verify.groovy`, `scripts/checks/check-native-archetype-boundaries.py`, `scripts/checks/check-archetype-family-boundaries.py`, `scripts/regression/test-generate-archetypes.sh`
 - Commit: `build(archetypes): verify native identity integration across generated families`
 
 GENERATED validation inventory（不列File blocks，不在Commit paths）：egon-cola-archetypes/.generated/egon-cola-archetype-light、service、web、agent和三Open目录及其manifest由existinggenerate产出；真实目录名称以generator当前输出manifest为准，不能创建上述短写路径。唯一命令仍generate/check，无native-only。所有派生产物ignored，只保存安全validation哈希到后续Step17 evidence。
@@ -12525,3 +12672,29 @@ Portal现manifest测试的JSasset url并非Wujie HTML入口，修正其fixture�
 ### 12.36. Portal HTML mount fixture caller
 
 全Portal regression发现 ChildRoutePage.test.tsx 的默认fixture仍以 /children/yuheng/assets/index.js 作为Wujie入口；仅修正为原 HTML /children/yuheng/，保留版本不兼容、standalone fallback、deep-link与exact cleanup/retry断言。作为现loader调用方补精确File31与stage路径，不放宽新的URL验证。
+
+### 12.37. Step16 native边界的真实wire与Agent注解依赖
+
+现nativechecker将原已冻结top.egon.cola.organization/evaluation.facade.rpc.v1 service/fullMethod selector误当退休共享Java facade，四profile因此失败；只允许本地Facade Protobuf实际定义的准确wire service/method，退休Java/制品引用仍拒绝。org.springdoc仅受控test探针允许，生产仍禁止。Agent必需集合是已批准技术SDK子集（无新增business RPC provider），Open禁令不放松；Agent SDK依赖限制到实际starter/adapter owners，Domain/facade安全框架污染仍拒绝。原已批准MP ext Starter传递的ShardingSphere运行依赖保留，Agent直接声明ShardingSphere仍拒绝；实际packaged runtime验证不能把传递依赖误作直接依赖。
+
+实际Agent两leaf仍直接声明原springdoc runtime；接入现Yuheng MVC后，Step16补两精确source POM前置修正：starter移除重复springdoc直依赖；adapter用现2.2.47 provided/optional swagger-annotations-jakarta替代直接springdoc runtime，沿现CommonCore/Web compile API，不升级/新runtime框架。仅两POM必要边界闭合，UI/API/wire不改，编译及真实OAS回归必须完成。按用户小问题自主修正授权，不把checker改成允许所有平台依赖。
+
+### 12.38. source聚合125模块的旧RPC process fixture构造兼容
+
+原Sourceinstall命令真实包含Components/Xingyuan125模块，-DskipTests仍必须testCompile；RpcMockGatewayApplication/RpcProcessIT 三处调用停留在旧 DdcRpcClientFactory/SubscriptionCoordinator 构造签名。补两个精确既有test fixture文件入Step16，不用maven.test.skip或删test绕过。fixture通过其显式正tenant参数构造现DdcTenantProperties；mock gateway给现Coordinator实际Boot Jackson mapper与Jakarta Validator/ValidationUtils，factory生命周期随RegistryResources关闭；原provider/gateway/process断言不变、不运行任何process/Redis/DB。这个必要caller编译修正不证明process integration运行成功，也不改production factory/API/数据库。
+
+### 12.39. Tianshu既有状态fixture正tenant构造
+
+第二次完整sourceinstall继续揭示 DdcLeaseLifecycleTest/DdcSampleRefreshFlowTest 三处旧无参 state holder构造；当前public构造是明确Long tenant以隔离lease/config state。补两个精确既有test文件，将受控fixture显式设1001L，保留全部lease/refresh/ack断言，不补productiontenant默认值，不跳testCompile。实际测试只有离线受控state/client，不需服务或DB。
+
+### 12.40. Yuheng既有MCP安全fixture repository接口兼容
+
+第三次完整sourceinstall在 yuheng-test-suite testCompile 暴露已退役 JdbcMcpArtifactMetadataRepository import。只将既有 McpSecurityIT 的 mock/import 改成 McpValidationService 当前依赖的 McpArtifactMetadataRepository interface；保留外部schema拒绝等全部原断言，不新增实现、依赖、production API或数据库变更。将该精确测试文件纳入Step16 File14及commit范围，实际focused受控测试及完整sourceinstall仍必须执行；不以跳过testCompile补绿。
+
+### 12.41. Step16并行工作区的独立生成验证副本
+
+完整generation期间其他用户任务修改三Open之一的测试/README，原source snapshot guard正确拒绝发布（未算PASS）。本Step不回退、暂存或提交那些修改；从当前已提交HEAD构建ignored独立验证副本，仅覆盖本Step精确15路径，使用同一authoritative generate/check及同一真实Maven generated-archetypes reactor。副本中三Open source/definitions须匹配本Step已记录冻结bytes/modes，完整七产品generate/check/generate/check及真实consumer测试仍不可省略或用source测试替代。验证副本的来源HEAD、覆盖路径hash、Open前后完整hash和实际命令/result记录在ignored证据；原工作区新Open修改归其原任务，不宣称原工作区全部冻结不变。只有本Step路径/hunks可提交，派生产品/副本始终不提交。此隔离只改变验证cwd，不改变任何production contract或Open源代码。
+
+### 12.42. generated消费者的既有source-only目录检查
+
+实际generated Maven reactor发现多模块家族的既有 ArchetypeContractConvergenceTest#definitionResourcesFollowTheMovedTree 用 Assumptions 明确只在source仓库检查 sibling definitions，生成项目没有该目录而跳过。保持原测试/三Open不变，不将这类跳过报作执行成功；本Step在独立验证副本五个source starter实际运行同方法，要求执行且0skip。全七Maven消费者/所有四native安全、HTTP/OAS/GQL/RPC及constructor契约仍必须真实通过，新的verify钩子要求其必需suite为0skip。记录全量测试计数与source-only跳过数，原表0skip指所有必需生成安全契约及七产品build，不伪称全量JUnit任意source-only方法零跳过。

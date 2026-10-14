@@ -704,4 +704,21 @@ nativeProfiles.each { profile ->
 }
 nativeProfiles.each { assert it.text.contains('system-code: ' + nativeNamespace) }
 
+// Require executed generated security behavior, including error/OAS and constructor wiring contracts.
+def nativeSecurityReports = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    if (candidate.path.replace(File.separator, '/').contains('/target/surefire-reports/') && candidate.name.endsWith('.xml')) {
+        nativeSecurityReports << candidate
+    }
+}
+['NativeSecurityContractTest', 'ExplicitConstructorInjectionTest', 'NativeGraphQlSecurityContractTest'].each { testName ->
+    def suites = nativeSecurityReports.findAll {
+        it.name.endsWith('.' + testName + '.xml') || it.name.contains('.' + testName + '$')
+    }.collect { new groovy.xml.XmlSlurper(false, false).parse(it) }
+    assert suites: "Missing generated security test ${testName}"
+    assert suites.sum { it.@tests.text().toInteger() } > 0: "No generated tests ran for ${testName}"
+    assert suites.every { it.@failures.text() == '0' && it.@errors.text() == '0' && it.@skipped.text() == '0' }:
+            "Generated security behavior must pass without skips: ${testName}"
+}
+
 return true

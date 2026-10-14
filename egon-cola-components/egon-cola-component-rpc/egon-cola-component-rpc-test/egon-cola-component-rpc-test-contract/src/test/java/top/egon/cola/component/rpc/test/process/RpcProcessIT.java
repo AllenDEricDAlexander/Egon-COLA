@@ -125,6 +125,7 @@ class RpcProcessIT {
                         new java.util.ArrayList<>(List.of(
                                 "--egon.cola.component.id.machine-id=3",
                                 "--tianshu.target=" + adminTarget,
+                                "--tianshu.tenant-id=" + requiredEnvironment("TIANSHU_TEST_TENANT_ID"),
                                 "--tianshu.access-key=process-it",
                                 "--tianshu.secret-key=process-it-secret-at-least-32-bytes",
                                 "--tianshu.redis.host=" + redisHost,
@@ -414,6 +415,8 @@ class RpcProcessIT {
                 new DdcRpcClientFactory(
                         rpc,
                         properties,
+                        new top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties()
+                                .setTenantId(Long.parseLong(requiredEnvironment("TIANSHU_TEST_TENANT_ID"))),
                         new RpcProcessIdentity(
                                 "rpc-process-it",
                                 env,

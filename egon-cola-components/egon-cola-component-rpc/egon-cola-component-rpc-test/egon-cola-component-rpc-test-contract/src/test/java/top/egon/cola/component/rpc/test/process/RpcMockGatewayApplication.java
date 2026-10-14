@@ -132,10 +132,14 @@ public final class RpcMockGatewayApplication {
         rpc.getAuth().getRegistry().setSecretKey(
                 required(values, "tianshu.secret-key")
         );
+        var tenant = new top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantProperties()
+                .setTenantId(Long.parseLong(required(values, "tianshu.tenant-id")));
+        var validatorFactory = jakarta.validation.Validation.buildDefaultValidatorFactory();
         DdcRpcClientHandle<DdcServiceRegistryClient> handle =
                 new DdcRpcClientFactory(
                         rpc,
                         properties,
+                        tenant,
                         new RpcProcessIdentity(
                                 "rpc-mock-gateway",
                                 properties.getEnv(),
@@ -150,6 +154,9 @@ public final class RpcMockGatewayApplication {
                 new DdcRegistrySubscriptionCoordinator(
                         new RpcDdcRegistrySnapshotLoader(client),
                         redisson,
+                        tenant.requireTenantId(),
+                        org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build(),
+                        new top.egon.cola.component.common.core.validation.ValidationUtils(validatorFactory.getValidator()),
                         properties.getRegistry().getReconcileIntervalSeconds()
                 );
         client.subscriptions(new RpcDdcServiceRegistryClient.RegistrySubscriptions() {
@@ -167,7 +174,7 @@ public final class RpcMockGatewayApplication {
                 return subscriptions.subscribeServices(query, listener);
             }
         });
-        return new RegistryResources(client, handle, subscriptions, redisson);
+        return new RegistryResources(client, handle, subscriptions, redisson, validatorFactory);
     }
 
     private static RedissonClient redisson(DdcProperties properties) {
@@ -190,7 +197,8 @@ public final class RpcMockGatewayApplication {
             DdcServiceRegistryClient client,
             DdcRpcClientHandle<DdcServiceRegistryClient> handle,
             DdcRegistrySubscriptionCoordinator subscriptions,
-            RedissonClient redisson
+            RedissonClient redisson,
+            jakarta.validation.ValidatorFactory validatorFactory
     ) implements AutoCloseable {
 
         @Override
@@ -198,6 +206,7 @@ public final class RpcMockGatewayApplication {
             subscriptions.close();
             handle.close();
             redisson.shutdown();
+            validatorFactory.close();
         }
     }
 

@@ -44,7 +44,7 @@ class DdcSampleRefreshFlowTest {
     @Test
     void refreshUpdatesBoundFieldAndReportsSuccessAck() throws Exception {
         RecordingAdminClient adminClient = new RecordingAdminClient();
-        DdcLocalConfigState repository = new DdcLocalConfigState();
+        DdcLocalConfigState repository = new DdcLocalConfigState(1001L);
         AnnotationConfigApplicationContext context =
                 new AnnotationConfigApplicationContext();
         context.getBeanFactory().setConversionService(
@@ -97,7 +97,7 @@ class DdcSampleRefreshFlowTest {
                 1024,
                 DdcConfigFormatStrategyRegistry.defaults()
         );
-        DdcLeaseSessionHolder sessionHolder = new DdcLeaseSessionHolder();
+        DdcLeaseSessionHolder sessionHolder = new DdcLeaseSessionHolder(1001L);
         sessionHolder.replace(adminClient.session());
         DdcRefreshService refreshService =
                 new DdcRefreshService(

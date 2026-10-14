@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import argparse
+from functools import lru_cache
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -22,6 +23,25 @@ FROZEN_WIRE = re.compile(r"^\s*package\s+top\.egon\.cola\.(?:organization|evalua
                          re.MULTILINE)
 
 
+@lru_cache(maxsize=1)
+def frozen_wire_identifiers():
+    identifiers = set()
+    source = ROOT / "egon-cola-archetypes/source-projects"
+    for family in ("light", "service", "web"):
+        for proto in (source / ("egon-cola-source-" + family)).rglob("*.proto"):
+            if "target" in proto.parts:
+                continue
+            text = proto.read_text()
+            package = re.search(r"^\s*package\s+([\w.]+)\s*;", text, re.M)
+            if not package:
+                continue
+            for service, body in re.findall(r"service\s+(\w+)\s*\{([^}]+)\}", text, re.S):
+                name = package[1] + "." + service
+                identifiers.add(name)
+                identifiers.update(name + "/" + method for method in re.findall(r"rpc\s+(\w+)\s*\(", body))
+    return identifiers
+
+
 def retired_violations(relative, contents):
     """Report a retired shared facade reference; the frozen Protobuf wire package stays allowed.
 
@@ -30,8 +50,40 @@ def retired_violations(relative, contents):
     """
     if "/src/test/" in "/" + relative.as_posix():
         return []
-    match = RETIRED.search(FROZEN_WIRE.sub("", contents))
+    checked = FROZEN_WIRE.sub("", contents)
+    for identifier in sorted(frozen_wire_identifiers(), key=len, reverse=True):
+        checked = re.sub(re.escape(identifier) + r"(?![\w./])", "FROZEN_WIRE_SELECTOR", checked)
+    match = RETIRED.search(checked)
     return [] if match is None else [f"{relative}: retired shared facade reference {match.group()}"]
+
+
+def java_identity_violations(relative, contents, family):
+    failures = []
+    if "/src/main/java/" not in "/" + relative.as_posix():
+        return failures
+    if "adapter" not in relative.parts and any(layer in relative.parts for layer in ("domain", "facade")) and re.search(
+            r"import\s+(?:org\.springframework|com\.baomidou|top\.egon\.cola\.platform\.tianquan)", contents):
+        failures.append(f"{relative}: framework/security dependency in domain/facade")
+    if re.search(r'getHeader\s*\(\s*"X-(?:Tenant-Id|Actor-Id|Actor-Roles)"\s*\)', contents):
+        failures.append(f"{relative}: untrusted header identity")
+    if family == "agent" and relative.name == "ResearchApiKeyFilter.java" and "@Component" in contents:
+        failures.append(f"{relative}: legacy API-key filter remains registered")
+    return failures
+
+
+def self_test():
+    domain = Path("fixture-domain/src/main/java/example/domain/Order.java")
+    adapter = Path("fixture-adapter/src/main/java/example/adapter/facade/Orders.java")
+    for dependency in ("org.springframework.security.core.Authentication", "com.baomidou.mybatisplus.core.mapper.BaseMapper",
+                       "top.egon.cola.platform.tianquan.jianshen.core.authorization.AuthorizationContext"):
+        assert java_identity_violations(domain, "import " + dependency + ";", "agent"), dependency
+    assert not java_identity_violations(domain, "import java.util.List;", "agent")
+    assert not java_identity_violations(adapter, "import org.springframework.stereotype.Service;", "web")
+    assert java_identity_violations(adapter, 'request.getHeader ( "X-Actor-Id" );', "web")
+    assert retired_violations(adapter, "import top.egon.cola.organization.facade.Order;")
+    assert not retired_violations(adapter, "top.egon.cola.organization.facade.rpc.v1.UserService/GetUser")
+    assert retired_violations(adapter, "top.egon.cola.organization.facade.rpc.v1.UserService/UnknownMethod")
+    print("PASS: domain framework/security, raw identity and frozen wire boundary fixtures")
 
 
 def check(family):
@@ -55,13 +107,16 @@ def check(family):
         elif path.suffix in {".java", ".proto", ".yml", ".yaml", ".md", ".example"} or path.name.startswith(".env"):
             inspected += 1
             contents = path.read_text(encoding="utf-8")
-            match = FORBIDDEN.search(contents)
-            if match:
+            for match in FORBIDDEN.finditer(contents):
+                if "/src/test/" in "/" + relative.as_posix() and match.group() == "org.springdoc":
+                    continue
                 failures.append(f"{relative}:{contents[:match.start()].count(chr(10)) + 1}: {match.group().strip()}")
+            failures.extend(java_identity_violations(relative, contents, family))
             failures.extend(retired_violations(relative, contents))
             if path.name.startswith("bootstrap"):
                 failures.append(f"{relative}: retired bootstrap configuration")
-    missing = REQUIRED - dependencies
+    required = REQUIRED if family != "agent" else (REQUIRED - {"egon-cola-component-rpc-starter"}) | {"egon-cola-tianquan-jianshen-starter"}
+    missing = required - dependencies
     if missing:
         failures.append(f"missing native dependencies: {', '.join(sorted(missing))}")
     if failures:
@@ -74,9 +129,17 @@ def check(family):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("families", nargs="*", choices=["light", "service", "web"])
+    families = ("light", "service", "web", "agent")
+    parser.add_argument("families", nargs="*", metavar="{light,service,web,agent}")
+    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
-    results = [check(family) for family in (args.families or ["light", "service", "web"])]
+    unknown = set(args.families) - set(families)
+    if unknown:
+        parser.error("unknown native families: " + ", ".join(sorted(unknown)))
+    self_test()
+    if args.self_test:
+        return 0
+    results = [check(family) for family in (args.families or families)]
     return 0 if all(results) else 1
 
 

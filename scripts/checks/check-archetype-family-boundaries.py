@@ -50,12 +50,28 @@ def native(coordinate):
         "yuheng-starter-openapi"))
 
 
+AGENT_TECHNICAL = frozenset({
+    ("top.egon", "egon-cola-component-rpc-tianshu-adapter"),
+    ("top.egon", "egon-cola-tianshu-starter"),
+    ("top.egon", "egon-cola-tianshu-http-registration-starter"),
+    ("top.egon", "yuheng-starter-openapi-webmvc"),
+    ("top.egon", "egon-cola-tianquan-jianshen-starter"),
+})
+AGENT_TECHNICAL_RUNTIME = AGENT_TECHNICAL | {
+    ("top.egon", "egon-cola-component-rpc-api"), ("top.egon", "egon-cola-component-rpc-common"),
+    ("top.egon", "egon-cola-component-rpc-provider-starter"), ("top.egon", "egon-cola-component-rpc-consumer-starter"),
+    ("top.egon", "egon-cola-component-rpc-starter"), ("top.egon", "yuheng-starter-openapi"),
+}
+
+
 def violations(family, coordinates, runtime=False):
     failures = []
     for group, artifact in sorted(coordinates):
-        if native((group, artifact)) or (family == "agent" and (
-                group.startswith(("org.apache.dubbo", "com.alibaba.nacos", "org.apache.shardingsphere"))
-                or "nacos" in artifact)):
+        approved = family == "agent" and (group, artifact) in (AGENT_TECHNICAL_RUNTIME if runtime else AGENT_TECHNICAL)
+        if (native((group, artifact)) and not approved) or (family == "agent" and (
+                group.startswith(("org.apache.dubbo", "com.alibaba.nacos"))
+                or (group.startswith("org.apache.shardingsphere") and not runtime)
+                or "nacos" in artifact or (group == "top.egon" and artifact.endswith("-admin")))):
             failures.append(f"{family}: forbidden runtime dependency {group}:{artifact}")
     required = AI | {CORE} if family == "agent" else COMMON | EXTERNAL
     if family == "light-open" or runtime:
@@ -133,6 +149,18 @@ def facade_violations(root, family):
     return [f"{family}: {failure}" for failure in failures]
 
 
+def module_violations(pom, family):
+    artifact = value(pom, "artifactId")
+    suffixes = () if family.startswith("light") else ("common", "domain", "application", "infrastructure", "adapter", "starter")
+    if family in FACADE_FAMILIES:
+        suffixes += ("facade",)
+    expected = {artifact + "-" + suffix for suffix in suffixes}
+    modules = [(module.text or "").strip() for module in pom.findall("m:modules/m:module", NS)]
+    if len(modules) != len(expected) or set(modules) != expected:
+        return [f"{family}: unexpected module topology {modules}; expected {sorted(expected)}"]
+    return []
+
+
 def self_test():
     light = COMMON | EXTERNAL | {CORE, ("org.springdoc", "springdoc-openapi-starter-webmvc-ui")}
     assert not violations("light-open", light)
@@ -140,12 +168,26 @@ def self_test():
     assert violations("light-open", light | {("top.egon", "egon-cola-component-rpc-starter")}), "native starter must fail"
     assert not violations("agent", AI | {CORE, ("io.grpc", "grpc-core")}), "ADK gRPC is permitted"
     assert violations("agent", AI | {CORE, ("org.apache.shardingsphere", "shardingsphere-jdbc")})
+    assert not violations("agent", AI | {CORE, ("com.google.adk", "google-adk"),
+                                        ("org.apache.shardingsphere", "shardingsphere-jdbc")}
+                          | AGENT_TECHNICAL_RUNTIME, runtime=True), "MP-owned ShardingSphere runtime stays allowed"
+    assert not violations("agent", AI | {CORE} | AGENT_TECHNICAL), "approved Agent SDK owners pass"
+    assert violations("agent", AI | {CORE, ("top.egon", "egon-cola-tianshu-admin")}), "Agent admin dependency fails"
+    assert violations("agent", AI | {CORE, ("top.egon", "egon-cola-tianquan-jianshen-admin")}), "Agent identity admin dependency fails"
+    assert violations("web-open", COMMON | EXTERNAL | {CORE} | AGENT_TECHNICAL), "Open restrictions remain unchanged"
     pom = ET.fromstring('<project xmlns="http://maven.apache.org/POM/4.0.0"><dependencyManagement><dependencies><dependency><groupId>top.egon</groupId><artifactId>egon-cola-component-rpc-starter</artifactId></dependency></dependencies></dependencyManagement></project>')
     assert not declarations(pom), "managed dependencies must not become runtime edges"
     assert runtime_coordinates('[INFO] +- io.grpc:grpc-core:jar:1.76.2:compile') == {("io.grpc", "grpc-core")}
     assert shared_facade_violations({("top.egon", "egon-cola-organization-facade")}), "shared facade must fail"
     assert not shared_facade_violations(light), "owned facade coordinates must pass"
-    print("PASS: missing Common/native injection/Agent infrastructure/BOM/runtime parser/shared facade fixtures")
+    agent = ET.fromstring('<project xmlns="http://maven.apache.org/POM/4.0.0"><artifactId>fixture-agent</artifactId><modules>'
+                          + ''.join('<module>fixture-agent-' + suffix + '</module>' for suffix in
+                                    ("common", "domain", "application", "infrastructure", "adapter", "starter"))
+                          + '</modules></project>')
+    assert not module_violations(agent, "agent"), "six-layer Agent passes"
+    ET.SubElement(agent.find("m:modules", NS), "{" + NS["m"] + "}module").text = "fixture-agent-extra"
+    assert module_violations(agent, "agent"), "extra module must fail"
+    print("PASS: missing Common/native injection/Agent infrastructure/BOM/runtime parser/shared facade/extra-module fixtures")
 
 
 def main():
@@ -163,6 +205,12 @@ def main():
         root = args.root / "egon-cola-archetypes/source-projects" / ("egon-cola-source-" + family)
         poms = [ET.parse(p).getroot() for p in [root / "pom.xml", *sorted(root.glob("*/pom.xml"))]]
         coords = set().union(*(declarations(p) for p in poms))
+        if family == "agent":
+            for path in [root / "pom.xml", *sorted(root.glob("*/pom.xml"))]:
+                for coordinate in declarations(ET.parse(path).getroot()) & AGENT_TECHNICAL:
+                    if not path.parent.name.endswith("-starter") and not (
+                            path.parent.name.endswith("-adapter") and coordinate[1] == "egon-cola-tianquan-jianshen-starter"):
+                        failures.append(f"agent: technical SDK in wrong module {path.parent.name}: {coordinate[1]}")
         failures.extend(violations(family, coords))
         if args.effective_poms:
             effective = ET.parse(args.effective_poms / (family + ".xml")).getroot()
@@ -174,6 +222,7 @@ def main():
         print(f"CHECK {family}: {len(coords)} declared runtime coordinates; managed BOMs excluded")
     for family in ("light", "light-open", "service", "service-open", "web", "web-open", "agent"):
         source = args.root / "egon-cola-archetypes/source-projects" / ("egon-cola-source-" + family)
+        failures.extend(module_violations(ET.parse(source / "pom.xml").getroot(), family))
         failures.extend(persistence_violations(source, family))
         if family in FACADE_FAMILIES:
             failures.extend(facade_violations(source, family))

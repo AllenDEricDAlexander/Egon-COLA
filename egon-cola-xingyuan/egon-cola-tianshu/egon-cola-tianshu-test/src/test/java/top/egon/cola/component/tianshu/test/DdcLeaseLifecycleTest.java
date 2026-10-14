@@ -41,7 +41,7 @@ class DdcLeaseLifecycleTest {
     void startsInRegisterDefaultsSnapshotOrderAndRejectsStaleLeaseOperations() {
         DdcProperties properties = properties();
         RecordingAdminClient adminClient = new RecordingAdminClient();
-        DdcLeaseSessionHolder sessionHolder = new DdcLeaseSessionHolder();
+        DdcLeaseSessionHolder sessionHolder = new DdcLeaseSessionHolder(1001L);
         DdcInstanceService instanceService = new DdcInstanceService(
                 properties,
                 adminClient,

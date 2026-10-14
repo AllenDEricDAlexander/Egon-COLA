@@ -363,6 +363,24 @@ test_determinism() {
   assert_equal "$first_hash" "$second_hash" 'repeated full generation must be deterministic'
 }
 
+test_mode_and_manifest_integrity() {
+  local product="$fixture_archetypes/.generated/package-c"
+  local resource="$product/archetype-resources/source.txt" original_mode
+  local source_before definitions_before
+  source_before="$(hash_tree "$fixture_archetypes/source-projects")"
+  definitions_before="$(hash_tree "$fixture_archetypes/definitions")"
+  original_mode="$(stat -f '%Lp' "$resource" 2>/dev/null || stat -c '%a' "$resource")"
+  chmod 600 "$resource"
+  [[ "$original_mode" != 600 ]] || chmod 644 "$resource"
+  assert_command_fails 'generated resources are not deterministic' run_fixture_generator check
+  chmod "$original_mode" "$resource"
+  printf 'changed provenance\n' >>"$product/generation-manifest.sha256"
+  assert_command_fails 'generated provenance differs' run_fixture_generator check
+  run_fixture_generator generate >/dev/null
+  assert_equal "$source_before" "$(hash_tree "$fixture_archetypes/source-projects")" 'source byte/mode preservation'
+  assert_equal "$definitions_before" "$(hash_tree "$fixture_archetypes/definitions")" 'definition byte/mode preservation'
+}
+
 test_atomic_full_reactor_failure() {
   old_hash="$(hash_tree "$fixture_archetypes/.generated")"
   rm -f "$FAKE_COUNTER_FILE"
@@ -483,7 +501,28 @@ test_release_wiring_mode() {
   assert_file_contains "$workflow" 'source-projects' "${workflow} source gate"
 }
 
+test_native_security_verifiers() {
+  local family verifier
+  for family in light service web agent; do
+    verifier="${REPO_ROOT}/egon-cola-archetypes/definitions/egon-cola-archetype-${family}/src/test/resources/projects/basic/verify.groovy"
+    assert_file_contains "$verifier" 'nativeRootModel.artifactId.text()' "${family} generated namespace"
+    assert_file_contains "$verifier" 'nativeProfiles.size() == 4' "${family} actual profile inventory"
+    assert_file_contains "$verifier" 'Every business RPC requires TENANT SERVICE scope' "${family} actual method contract"
+    python3 - "$verifier" <<'PYVERIFY'
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text()
+start = text.index('// Xingyuan native contract:')
+assert 'return true' not in text[:start], 'native contract must execute before the verifier returns'
+assert text.rstrip().endswith('return true'), 'native verification must terminate with an explicit result'
+PYVERIFY
+  done
+  python3 "$REPO_ROOT/scripts/checks/check-native-archetype-boundaries.py" --self-test
+  python3 "$REPO_ROOT/scripts/checks/check-archetype-family-boundaries.py" --self-test
+}
+
 main() {
+  test_native_security_verifiers
   local mode="${1:-unit}"
   case "$mode" in
     unit)
@@ -494,6 +533,7 @@ main() {
       test_generated_aggregator
       test_check_mode
       test_determinism
+      test_mode_and_manifest_integrity
       test_atomic_full_reactor_failure
       test_legacy_sql_hash_boundary
       test_lock_and_signal_cleanup

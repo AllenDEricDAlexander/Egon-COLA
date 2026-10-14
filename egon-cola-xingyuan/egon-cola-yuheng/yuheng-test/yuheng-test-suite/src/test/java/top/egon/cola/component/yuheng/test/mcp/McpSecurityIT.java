@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpValidationReportVO;
-import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
+import top.egon.cola.component.yuheng.admin.mcp.repository.McpArtifactMetadataRepository;
 import top.egon.cola.component.yuheng.admin.mcp.service.McpValidationService;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpProtocolDialect;
@@ -116,7 +116,7 @@ class McpSecurityIT {
         McpRuntimeTool tool = tool("LOW", schema);
         McpValidationService validator = new McpValidationService(
                 mock(GatewayCatalogRepository.class),
-                mock(JdbcMcpArtifactMetadataRepository.class),
+                mock(McpArtifactMetadataRepository.class),
                 objectMapper
         );
 
