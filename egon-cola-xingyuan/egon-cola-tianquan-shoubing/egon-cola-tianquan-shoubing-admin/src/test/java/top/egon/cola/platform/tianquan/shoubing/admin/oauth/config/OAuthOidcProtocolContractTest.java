@@ -762,7 +762,7 @@ class OAuthOidcProtocolContractTest {
                 .getStream(eq(OAuthAuditOutboxDeliveryHandler.STREAM), eq(StringCodec.INSTANCE));
         when(stream.add(any(StreamAddArgs.class))).thenReturn(mock(StreamMessageId.class));
         OAuthAuditOutboxDeliveryHandler handler = new OAuthAuditOutboxDeliveryHandler(
-                redisson, new ObjectMapper().findAndRegisterModules());
+                redisson, new ObjectMapper().findAndRegisterModules(), OAuthAuditOutboxDeliveryHandler.STREAM);
         String eventId = "event-1";
         Map<String, Object> event = Map.of(
                 "eventId", eventId,

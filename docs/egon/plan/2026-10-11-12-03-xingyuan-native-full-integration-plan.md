@@ -12704,3 +12704,9 @@ Portal现manifest测试的JSasset url并非Wujie HTML入口，修正其fixture�
 Runtime R2.1/R5.2/R5.3 已批准复用 redis://127.0.0.1:6379 的本机 loopback 明文例外，SDK IdpStarterProperties.secureRedisUri 与宿主 transport check 已实现该受限路径，但 Admin OAuthRevocationProperties.validateValues 仍仅接受 rediss，真实安全投影装配因此会在写入前失败。按用户小问题自主修正授权，先完成独立的三路径纠正任务：OAuthRevocationProperties.java、既有 OAuthSecurityProjectionComponentTest.java、本 Plan。与 SDK 保持一致，仅允许明确的 127.0.0.1、localhost、::1/[::1] 主机；远程/数字别名/近似 hostname 明文、credentials、query、fragment、database path 继续拒绝，STRICT_SHARED、原 timeout/epoch 和实际 Redisson PRIMARY exact equality 不变。宿主既有 local profile/deployment/usage-observation opt-in 组合仍负责环境限制，不修改该组合或全局 Redis/TLS 配置，不新增 Redis TLS 代理、依赖或公开接口。
 
 先在既有测试类新增两个行为方法证明 RED（受控 Config/mock，不连接 Redis），再校验 GREEN、原 security projection/OIDC 回归和 Step17 默认隔离守卫。完成独立精确 commit 后继续 Step17；该纠正不将 Step17 标为完成，也不证明真实 Redis/数据库/browser 门禁通过。
+
+### 12.44. Step17 前置的审计 Outbox stream 配置接线修正
+
+Runtime R5.1 要求新任务 audit stream/group 使用 runId 归属。SDK 的现有 egon.cola.platform.tianquan.shoubing.audit.stream 已可配置，Admin OAuthAuditOutboxDeliveryHandler 却始终写静态 STREAM，导致隔离任务实际 producer/consumer 目的地不同。按用户小问题自主修正授权，先完成独立四路径纠正任务：该 Handler、既有 OAuthAuditOutboxDeliveryHandlerTest、既有 OAuthOidcProtocolContractTest、本 Plan。Handler 沿本模块已核实的 Lombok @Value constructor 参数复制约定消费现有键，保留原 STREAM 默认值，显式 @Autowired 构造和具名/qualified final DI；启动时按现有 OAuthAuditProperties 的 stream 约束拒绝非法值。四个仓库内直接构造调用更新为显式原默认 stream。无新增 key/依赖/外部 HTTP 协议，不改 Redis 命名算法、事件 payload/allowed fields、Outbox destination、Schema 或旧迁移。
+
+先证明受控 Spring constructor binding 后实际 delivery 仍错误访问默认 stream 的行为 RED，再验证自定义任务 stream、旧默认 delivery、非法值零写和原 OIDC/投影回归。该纠正独立精确 commit 后继续 Step17；Source compile/受控测试不算真实 Redis/audit/browser 接入通过。Step17 私有装配及未来 profile writer 必须显式选择同一任务 stream，但不把未完成 harness 标为完成。

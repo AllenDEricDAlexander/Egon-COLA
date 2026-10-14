@@ -3,6 +3,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.audit.support.outbox;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -15,14 +16,16 @@ import org.redisson.api.RedissonClient;
 import org.redisson.api.StreamMessageId;
 import org.redisson.api.stream.StreamAddArgs;
 import org.redisson.client.codec.StringCodec;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 
 @Component("oauthAuditOutboxDeliveryHandler")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @Slf4j
 public final class OAuthAuditOutboxDeliveryHandler implements DeliveryHandler {
 
@@ -39,6 +42,15 @@ public final class OAuthAuditOutboxDeliveryHandler implements DeliveryHandler {
     private final RedissonClient redisson;
     @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
+    @Value("${egon.cola.platform.tianquan.shoubing.audit.stream:" + STREAM + "}")
+    private final String auditStream;
+
+    @PostConstruct
+    void validateConfiguration() {
+        if (auditStream == null || !auditStream.matches("[A-Za-z0-9:._-]{1,128}")) {
+            throw new IllegalStateException("OAUTH_AUDIT_STREAM_INVALID");
+        }
+    }
 
     @Override
     public String channel() {
@@ -58,7 +70,7 @@ public final class OAuthAuditOutboxDeliveryHandler implements DeliveryHandler {
             validateDestination(context.destination());
             JsonNode event = objectMapper.readTree(context.payload());
             Map<String, String> fields = streamFields(context, event);
-            RStream<String, String> stream = redisson.getStream(STREAM, StringCodec.INSTANCE);
+            RStream<String, String> stream = redisson.getStream(auditStream, StringCodec.INSTANCE);
             StreamMessageId messageId = stream.add(StreamAddArgs.entries(fields));
             if (messageId == null) {
                 return DeliveryResult.retryableFailure(
