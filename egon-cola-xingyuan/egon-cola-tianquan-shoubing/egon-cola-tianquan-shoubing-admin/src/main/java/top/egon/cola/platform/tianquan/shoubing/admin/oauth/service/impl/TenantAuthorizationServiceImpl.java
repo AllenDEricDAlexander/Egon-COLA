@@ -70,9 +70,9 @@ public class TenantAuthorizationServiceImpl implements OAuth2AuthorizationServic
     private final OAuthTokenRepository tokenRepository;
     @Qualifier("oAuthClientRepository")
     private final OAuthClientRepository clientRepository;
-    @Qualifier("SasAuthorizationConverterImpl")
+    @Qualifier("sasAuthorizationConverterImpl")
     private final SasAuthorizationConverter authorizationConverter;
-    @Qualifier("SasRegisteredClientConverterImpl")
+    @Qualifier("sasRegisteredClientConverterImpl")
     private final SasRegisteredClientConverter clientConverter;
     @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;

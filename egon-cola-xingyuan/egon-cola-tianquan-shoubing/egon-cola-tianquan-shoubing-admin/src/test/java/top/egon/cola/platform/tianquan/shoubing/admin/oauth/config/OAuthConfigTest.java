@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class OAuthConfigTest {
 
@@ -51,6 +52,37 @@ class OAuthConfigTest {
         localRegistrationRunner().withPropertyValues(
                 "spring.security.oauth2.client.registration.local-service.client-authentication-method=client_secret_post")
                 .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void sasOwnersResolveTheActualGeneratedConverterBeanNames() {
+        try (var context = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            context.registerBean("tenantIssuerService", top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService.class,
+                    () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.TenantIssuerService.class));
+            context.registerBean("oAuthRealmRepository", top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository.class,
+                    () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthRealmRepository.class));
+            context.registerBean("oAuthAuthorizationRepository", top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthAuthorizationRepository.class,
+                    () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthAuthorizationRepository.class));
+            context.registerBean("oAuthTokenRepository", top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthTokenRepository.class,
+                    () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.admin.token.repository.OAuthTokenRepository.class));
+            context.registerBean("oAuthClientRepository", top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository.class,
+                    () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.OAuthClientRepository.class));
+            context.registerBean("jacksonObjectMapper", com.fasterxml.jackson.databind.ObjectMapper.class, () -> new com.fasterxml.jackson.databind.ObjectMapper());
+            context.registerBean("egonColaMybatisPlusClock", java.time.Clock.class, java.time.Clock::systemUTC);
+            context.registerBean("oauthSecurityProjectionComponent", top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthSecurityProjectionComponent.class,
+                    () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.OAuthSecurityProjectionComponent.class));
+            context.registerBean("oauthTokenIssueService", top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService.class,
+                    () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.OAuthTokenIssueService.class));
+            context.register(top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasAuthorizationConverterImpl.class,
+                    top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.converter.SasRegisteredClientConverterImpl.class,
+                    top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.TenantRegisteredClientRepository.class,
+                    top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TenantAuthorizationServiceImpl.class);
+            assertThatCode(context::refresh).doesNotThrowAnyException();
+            assertThat(context.getBean("tenantRegisteredClientRepository"))
+                    .isInstanceOf(top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository.TenantRegisteredClientRepository.class);
+            assertThat(context.getBean("tenantAuthorizationService"))
+                    .isInstanceOf(top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.TenantAuthorizationServiceImpl.class);
+        }
     }
 
     private org.springframework.boot.test.context.runner.ApplicationContextRunner localRegistrationRunner() {

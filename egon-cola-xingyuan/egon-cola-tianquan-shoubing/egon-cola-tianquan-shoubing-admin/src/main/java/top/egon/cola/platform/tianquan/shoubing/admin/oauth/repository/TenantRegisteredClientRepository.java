@@ -24,7 +24,7 @@ public class TenantRegisteredClientRepository implements RegisteredClientReposit
     private final TenantIssuerService tenantIssuerService;
     @Qualifier("oAuthClientRepository")
     private final OAuthClientRepository clientRepository;
-    @Qualifier("SasRegisteredClientConverterImpl")
+    @Qualifier("sasRegisteredClientConverterImpl")
     private final SasRegisteredClientConverter converter;
 
     @Override
