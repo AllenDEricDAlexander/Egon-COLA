@@ -1502,10 +1502,17 @@ def repositoryManifests = repositoryContractFiles.findAll { it.name == 'reposito
 assert repositoryManifests.size() == 1
 def repositoryManifest = new groovy.json.JsonSlurper().parse(repositoryManifests.first())
 assert repositoryManifest.family == 'light'
-assert repositoryManifest.scripts.size() == 1
+assert repositoryManifest.scripts*.version == ['20260913_001', '20261015_001']
+assert repositoryManifest.scripts*.path == [
+        'db/egon-mp/V20260913_001__initialize_repository_schema.sql',
+        'db/egon-mp/V20261015_001__scope_user_uniqueness_to_tenant.sql'
+]
 def initializationSql = new File(repositoryManifests.first().parentFile, 'V20260913_001__initialize_repository_schema.sql')
 assert initializationSql.isFile()
 assert repositoryManifest.scripts.first().sha256 == java.security.MessageDigest.getInstance('SHA-256').digest(initializationSql.bytes).encodeHex().toString()
+def tenantUniquenessSql = new File(repositoryManifests.first().parentFile, 'V20261015_001__scope_user_uniqueness_to_tenant.sql')
+assert tenantUniquenessSql.isFile()
+assert repositoryManifest.scripts.last().sha256 == java.security.MessageDigest.getInstance('SHA-256').digest(tenantUniquenessSql.bytes).encodeHex().toString()
 assert initializationSql.text.contains('deleted_at') && initializationSql.text.contains('version BIGINT NOT NULL DEFAULT 0')
 repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main/resources/mybatis/mapper/') && it.name.endsWith('DAO.xml') }.each {
     assert it.text.contains('selectActiveById') && it.text.contains('selectActiveByIds')
