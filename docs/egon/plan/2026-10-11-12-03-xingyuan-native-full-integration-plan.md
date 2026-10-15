@@ -12722,3 +12722,18 @@ Runtime R5.1 要求新任务 audit stream/group 使用 runId 归属。SDK 的现
 用户已明确批准：“批准 §12.96 推荐修正并实施”。按批准范围先RED/GREEN，独立提交纠正；Step17其他工作保持In Progress。既有公开构造器签名保留；同文件业务类补现有Lombok/qualified constructor规范，Bean仍由原同名factory装配，不新增组件扫描入口。
 
 §12.96实施验证：新增原Core builder→原producer两项回归先RED（5项中2 assertion failures，0errors/skip），准确暴露跨app及同app错permission/resource组合；只按当前app有效角色的ResourceGrantBinding过滤后GREEN。原公开无参/RoleEligibilityService两构造器签名保留，业务类补@Slf4j和qualified Lombok @RequiredArgsConstructor(onConstructor_=@Autowired)，原具名@Bean factory继续装配；反射验证生成构造器的@Autowired及复制的@Qualifier。原Projector 6项、原Refresh 4项、原恢复8项、SystemSnapshot 9项合计27执行、0失败/错误/skip，offline reactor BUILD SUCCESS 22.747s；日志step17-field-tuple-red.log、step17-field-tuple-green.log均在ignored runtime。27项Manual/Literal逐项记录于step17-field-tuple-audit.md，私有内部过滤不增加层间handoff、模型、Converter、配置或DDL。Plan/Spec strict validator通过；只提交本节及上述两Java路径，不提交其他Step17工作。未启动服务/真实设施/browser/Docker，未宣称真实字段WRITE验收。
+
+### 12.99. Light users历史全局唯一约束纠正（Accepted，2026-10-15）
+
+实际初始化SQL `source-projects/egon-cola-source-light/src/main/resources/db/egon-mp/V20260913_001__initialize_repository_schema.sql` 的users保留uk_users_external_id UNIQUE(external_id)及uk_users_email UNIQUE(email)，同时已有tenant作用域active partial indexes。原LocalUserQueryClientImpl只承认ext-1，因此当前已计划的两租户真实各创建ext-1必被旧全局约束拒绝；tenant安全谓词/SDK鉴权和后加partial index均不能覆盖该全局约束。该问题在旧DDL已存在，不能编辑旧文件/checksum或用fake外部身份/直接SQL seed清理绕过。
+
+推荐仅在非Open Light新增一个受管DDL版本 `db/egon-mp/V20261015_001__scope_user_uniqueness_to_tenant.sql`，仅MASTER_DATA目标处理users：先核旧约束定义与列集合确为原两个global UNIQUE，再删除这两个约束，分别新增包含tenant_id、external_id/email、deleted_at的普通复合UNIQUE；保留原两个WHERE deleted_at IS NULL的tenant active索引，从而active仍同tenant唯一、不同tenant可同业务值，历史deletedAt非空仍有复合键约束。前置定义异常、目标对象冲突或数据不满足新约束则事务失败，不自动删除行/repair。所有旧SQL及manifest旧entry字节保持；repository-manifest.json只追加新version/path/SHA。新脚本按现distributed managed DDL原owner/role/事务执行，不引入Flyway或另一执行器。
+
+源码真相仅该Light source-project的新SQL与manifest，以及同模块现有DDL合同tests和本Plan；经原generate_archetypes.sh生成其非Open Light派生内容（生成前核exact diff，三Open不变），新真实Light生成/构建用于后续任务制品。Web/Service/Agent和其他表不做此次全局清理。纠正作为独立路径限定commit，Step17仍未完成。离线检查版本顺序/旧SHA/role guard/目标约束/派生不变，真实任务PG验证相同tenant active冲突、跨tenant同值成功、软删后重建及rollback；不碰旧部署数据。LIVE013/016复用首次两tenant创建：EMPTY/READ先拒绝无写，再WRITE各创建一次并共享SQL隔离证明，避免把重复ext-1唯一冲突误认字段授权拒绝。
+
+此修订改变既有数据库唯一性语义，按用户“严重问题再确认”集中请求批准；批准前不新增SQL、不改manifest、不运行DDL。该批准不应被解释为其他表/schema自动整改授权。
+
+用户明确批准：“批准 §12.99 推荐纠正并实施”。此独立纠正先离线manifest/不可变历史/SQL合同与派生验证后提交；真实PG语义验证纳入后续Step18，当前不执行DDL。
+
+
+§12.99验证结果：新增原managed manifest登记回归先RED，旧1版本而不是预期2版本（1 assertion failure、0errors/skip）；追加新SQL与manifest后，既有FlywayMigrationConventionTest整类3项全执行、0失败/错误/skip，offline source-project reactor BUILD SUCCESS37.652s（step17-light-user-uniqueness-green.log）。旧初始化SQL实际SHA仍0c9f9cef139e3d6e48564e9aa27e652cac6a4991dc5daede615f5d0066ab6e81。原generate_archetypes.sh用已有离线缓存重生成7种产品并原子发布；新/旧Light SQL经原Velocity symbol_dollar字面量还原后与source bytes一致，manifest直接一致。三Open源码和definitions相对当前HEAD无改动；忽略派生目录中已有陈旧的Service Open verify.groovy被原生成器同步为当前未改HEAD的curated脚本，不作为本纠正tracked变更。旧Step16缓存/冻结快照已陈旧，未拿其差异冒作当前任务改动或声称整树byte-identical。27项Manual/Literal检查逐项在step17-light-user-uniqueness-audit.md完成。只提交新SQL、追加manifest、既有测试和本节；其他Step17/用户修改均保留。未运行DDL/真实PG，实际NULL/跨tenant/软删除/回滚语义仍由Step18真实任务库验证。

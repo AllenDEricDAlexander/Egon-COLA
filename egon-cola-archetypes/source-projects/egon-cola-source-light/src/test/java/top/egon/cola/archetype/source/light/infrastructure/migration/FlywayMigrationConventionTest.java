@@ -25,6 +25,43 @@ class FlywayMigrationConventionTest {
             "^B(\\d{8})_(\\d{3})__[a-z0-9]+(?:_[a-z0-9]+)*\\.sql$");
 
     @Test
+    void managedUserUniquenessPreservesHistoryAndRegistersTheCorrection() throws Exception {
+        Path directory = Path.of("src/main/resources/db/egon-mp");
+        var mapper = org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json().build();
+        var manifest = mapper.readTree(Files.readAllBytes(directory.resolve("repository-manifest.json")));
+        assertThat(manifest.path("family").asText()).isEqualTo("light");
+        assertThat(manifest.path("scripts")).hasSize(2);
+        var original = manifest.path("scripts").get(0);
+        assertThat(original.path("version").asText()).isEqualTo("20260913_001");
+        assertThat(original.path("sha256").asText()).isEqualTo("0c9f9cef139e3d6e48564e9aa27e652cac6a4991dc5daede615f5d0066ab6e81");
+        var correction = manifest.path("scripts").get(1);
+        assertThat(correction.path("version").asText()).isEqualTo("20261015_001");
+        assertThat(correction.path("path").asText()).isEqualTo("db/egon-mp/V20261015_001__scope_user_uniqueness_to_tenant.sql");
+        for (var entry : manifest.path("scripts")) {
+            Path file = Path.of("src/main/resources").resolve(entry.path("path").asText());
+            assertThat(java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file))))
+                    .isEqualTo(entry.path("sha256").asText());
+        }
+    }
+
+    @Test
+    void managedUserUniquenessScopesOnlyTheMasterDataUsersTable() throws Exception {
+        String sql = Files.readString(Path.of("src/main/resources/db/egon-mp/V20261015_001__scope_user_uniqueness_to_tenant.sql"));
+        assertThat(sql).contains("IF current_setting('egon_migration.role') = 'MASTER_DATA' THEN",
+                "LOCK TABLE users IN ACCESS EXCLUSIVE MODE", "constraint_row.conrelid = user_table",
+                "constraint_row.contype = 'u'", "constraint_row.convalidated", "NOT constraint_row.condeferrable",
+                "actual_columns IS DISTINCT FROM ARRAY[business_column]", "index_row.indisunique",
+                "index_row.indisvalid", "index_row.indisready", "(deleted_at IS NULL)",
+                "actual_columns IS DISTINCT FROM ARRAY['tenant_id', business_column]",
+                "DROP CONSTRAINT uk_users_external_id, DROP CONSTRAINT uk_users_email",
+                "uk_users_tenant_external_deleted UNIQUE (tenant_id, external_id, deleted_at)",
+                "uk_users_tenant_email_deleted UNIQUE (tenant_id, email, deleted_at)");
+        assertThat(sql).doesNotContain("DROP TABLE", "DROP INDEX", "DELETE FROM", "INSERT INTO", "UPDATE users", "IF EXISTS uk_users");
+        assertThat(Pattern.compile("(?im)^\\s*ALTER TABLE\\s+(\\w+)").matcher(sql).results().map(match -> match.group(1)).toList())
+                .containsExactly("users", "users");
+    }
+
+    @Test
     void shouldKeepVersionedHistoryAndDeclareOneBaselinePerRole() throws Exception {
         List<Path> migrations = migrationFiles();
         Set<String> dailySequences = new HashSet<>();
