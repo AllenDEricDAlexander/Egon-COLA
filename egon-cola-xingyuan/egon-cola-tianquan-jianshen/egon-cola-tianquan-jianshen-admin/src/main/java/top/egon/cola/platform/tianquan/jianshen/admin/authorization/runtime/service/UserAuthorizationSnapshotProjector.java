@@ -1,5 +1,9 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.service;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.activation.domain.vo.ApplicationFactVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.EffectiveApplicationScope;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.RoleEligibilityService;
@@ -35,17 +39,15 @@ import java.util.TreeSet;
  * Type `UserAuthorizationSnapshotProjector` is a type in its package and carries the responsibility, state, or contract for `User Authorization Snapshot Projector`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Maps the canonical Core activation result to the public user runtime snapshot contract.
  */
+@Slf4j
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public final class UserAuthorizationSnapshotProjector {
 
+    @Qualifier("roleEligibilityService")
     private final RoleEligibilityService roleEligibility;
 
     public UserAuthorizationSnapshotProjector() {
         this(null);
-    }
-
-    /** Creates a projector that drops contexts without an effective Business grant. */
-    public UserAuthorizationSnapshotProjector(RoleEligibilityService roleEligibility) {
-        this.roleEligibility = roleEligibility;
     }
 
     /**
@@ -168,7 +170,7 @@ public final class UserAuthorizationSnapshotProjector {
             }
         });
         Map<String, FieldPolicyDecision> fieldPolicies = fieldPolicies(
-                applicationId, permissions, command);
+                applicationId, effectiveRoles, permissions, command);
         var resourceCodesSet = new TreeSet<String>();
         facts.authorizationFacts().resourceGrantBindings().stream()
                 .filter(binding -> effectiveRoles.contains(binding.roleId()))
@@ -271,12 +273,14 @@ public final class UserAuthorizationSnapshotProjector {
      * Usage: provide contract-compliant arguments before calling `fieldPolicies`, then continue the business flow using its result, exception, or side effect.
      *
      * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param effectiveRoles 当前应用的有效角色，用于限制实际授权的permission/resource组合。
      * @param permissions   输入参数 `permissions`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param command       输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private Map<String, FieldPolicyDecision> fieldPolicies(
             String applicationId,
+            Set<String> effectiveRoles,
             Set<String> permissions,
             ProjectionCommandDTO command
     ) {
@@ -290,9 +294,23 @@ public final class UserAuthorizationSnapshotProjector {
                         new FieldPolicyDecision.FieldAccess(level, null));
             }
         });
+        var resourcesByPermission = new TreeMap<String, Set<String>>();
+        for (AuthorizationRuleFacts.ResourceGrantBinding binding
+                : command.facts().authorizationFacts().resourceGrantBindings()) {
+            if (effectiveRoles.contains(binding.roleId())
+                    && binding.permissionCode() != null
+                    && permissions.contains(binding.permissionCode())
+                    && binding.resourceCode() != null) {
+                resourcesByPermission.computeIfAbsent(
+                        binding.permissionCode(), ignored -> new TreeSet<>()).add(binding.resourceCode());
+            }
+        }
         var result = new TreeMap<String, FieldPolicyDecision>();
         String applicationCode = command.facts().applications().get(applicationId).code();
         fieldsByResource.forEach((resource, fields) -> permissions.forEach(permission -> {
+            if (!resourcesByPermission.getOrDefault(permission, Set.of()).contains(resource)) {
+                return;
+            }
             String key = permission + ':' + applicationCode + ':' + resource;
             result.put(key, new FieldPolicyDecision(
                     Decision.ALLOW,

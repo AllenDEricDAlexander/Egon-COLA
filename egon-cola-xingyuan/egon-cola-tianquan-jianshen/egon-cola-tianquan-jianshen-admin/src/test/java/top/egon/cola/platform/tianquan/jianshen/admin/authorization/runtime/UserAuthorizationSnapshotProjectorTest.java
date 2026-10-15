@@ -1,6 +1,8 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.activation.domain.vo.ActivationFactsVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.activation.domain.vo.ApplicationFactVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.EffectiveApplicationScope;
@@ -12,6 +14,9 @@ import top.egon.cola.platform.tianquan.jianshen.core.activation.AuthorizationRul
 import top.egon.cola.platform.tianquan.jianshen.core.activation.ActiveRoleSet;
 import top.egon.cola.platform.tianquan.jianshen.core.activation.EligibleAssignmentFact;
 import top.egon.cola.platform.tianquan.jianshen.core.activation.RoleActivationResolution;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.FieldAccessLevel;
+import top.egon.cola.platform.tianquan.jianshen.core.decision.UserAuthorizationSnapshotBuilder;
+import top.egon.cola.platform.tianquan.jianshen.core.hierarchy.RoleEdge;
 import top.egon.cola.platform.tianquan.jianshen.core.hierarchy.RoleHierarchy;
 import top.egon.cola.platform.tianquan.jianshen.core.hierarchy.RoleNode;
 
@@ -134,6 +139,107 @@ class UserAuthorizationSnapshotProjectorTest {
         assertThat(first.gatewayScope().checksum())
                 .isEqualTo(second.gatewayScope().checksum())
                 .isNotEqualTo(first.snapshot().checksum());
+    }
+
+    @Test
+    void preservesPublicConstructorsAndQualifiedSpringInjection() throws NoSuchMethodException {
+        var constructor = UserAuthorizationSnapshotProjector.class
+                .getConstructor(RoleEligibilityService.class);
+
+        assertThat(constructor.isAnnotationPresent(Autowired.class)).isTrue();
+        assertThat(constructor.getParameters()[0].getAnnotation(Qualifier.class).value())
+                .isEqualTo("roleEligibilityService");
+        assertThat(UserAuthorizationSnapshotProjector.class.getConstructor()).isNotNull();
+    }
+
+    @Test
+    void projectsFieldPoliciesOnlyForResourcesGrantedInTheCurrentApplication() {
+        ProjectionCommandDTO command = commandWithFieldPolicies(false);
+        var projection = new UserAuthorizationSnapshotProjector().project(command);
+        var appA = projection.snapshot().appContexts().getFirst();
+        var appB = projection.snapshot().appContexts().getLast();
+
+        assertThat(appA.applicationCode()).isEqualTo("app-a");
+        assertThat(appA.fieldPolicies()).containsOnlyKeys("permission-a:app-a:resource-a");
+        assertThat(appA.fieldPolicies().get("permission-a:app-a:resource-a")
+                .fields().get("name").level()).isEqualTo(FieldAccessLevel.READ);
+        assertThat(appB.applicationCode()).isEqualTo("app-b");
+        assertThat(appB.fieldPolicies()).containsOnlyKeys("permission-b:app-b:resource-b");
+        assertThat(appB.fieldPolicies().get("permission-b:app-b:resource-b")
+                .fields().get("secret").level()).isEqualTo(FieldAccessLevel.WRITE);
+        assertThat(projection.snapshot().checksum()).isEqualTo(command.resolution().snapshot().checksum());
+    }
+
+    @Test
+    void projectsFieldPoliciesOnlyForTheGrantedPermissionResourceTupleWithinAnApplication() {
+        ProjectionCommandDTO command = commandWithFieldPolicies(true);
+        var app = new UserAuthorizationSnapshotProjector().project(command)
+                .snapshot().appContexts().getFirst();
+
+        assertThat(app.fieldPolicies()).containsOnlyKeys(
+                "permission-a:app-a:resource-a", "permission-b:app-a:resource-b");
+        assertThat(app.fieldPolicies().get("permission-a:app-a:resource-a")
+                .fields().get("name").level()).isEqualTo(FieldAccessLevel.READ);
+        assertThat(app.fieldPolicies().get("permission-b:app-a:resource-b")
+                .fields().get("secret").level()).isEqualTo(FieldAccessLevel.WRITE);
+        assertThat(app.permissions()).containsExactlyInAnyOrder("permission-a", "permission-b");
+        assertThat(app.activationRootRoleIds()).containsExactly("10");
+        assertThat(app.effectiveRoleIds()).containsExactly("10", "20");
+    }
+
+    private ProjectionCommandDTO commandWithFieldPolicies(boolean sameApplication) {
+        RoleHierarchy hierarchy = new RoleHierarchy(
+                List.of(
+                        new RoleNode("10", "1", "APP_A_ROOT", true,
+                                RoleNode.RiskLevel.LOW, false, null, 100),
+                        new RoleNode("20", sameApplication ? "1" : "2", "APP_B_ROOT",
+                                !sameApplication, RoleNode.RiskLevel.LOW, false, null, 100)),
+                sameApplication ? List.of(new RoleEdge("10", "20")) : List.of());
+        AuthorizationRuleFacts rules = new AuthorizationRuleFacts(
+                List.of(
+                        new AuthorizationRuleFacts.ResourceGrantBinding(
+                                "10", "101", "resource-a", "API", "permission-a"),
+                        new AuthorizationRuleFacts.ResourceGrantBinding(
+                                "20", "201", "resource-b", "API", "permission-b")),
+                List.of(),
+                List.of(
+                        new AuthorizationRuleFacts.FieldRuleFact(
+                                "10", "resource-a", "name", FieldAccessLevel.READ),
+                        new AuthorizationRuleFacts.FieldRuleFact(
+                                "20", "resource-b", "secret", FieldAccessLevel.WRITE)),
+                List.of(
+                        new AuthorizationRuleFacts.FieldDefinitionFact(
+                                "resource-a", "name", FieldAccessLevel.WRITE),
+                        new AuthorizationRuleFacts.FieldDefinitionFact(
+                                "resource-b", "secret", FieldAccessLevel.WRITE)),
+                List.of(
+                        new AuthorizationRuleFacts.ResourceFact(
+                                "101", "resource-a", "API", null, "permission-a"),
+                        new AuthorizationRuleFacts.ResourceFact(
+                                "201", "resource-b", "API", null, "permission-b")));
+        ActivationFactsVO facts = new ActivationFactsVO(
+                "7", "9", hierarchy,
+                List.of(
+                        new EligibleAssignmentFact("101", "9", "10",
+                                EligibleAssignmentFact.Status.ACTIVE, NOW.minusSeconds(60), null),
+                        new EligibleAssignmentFact("102", "9", "20",
+                                EligibleAssignmentFact.Status.ACTIVE, NOW.minusSeconds(60), null)),
+                List.of(), rules, 3, 8, "directory:12",
+                Map.of(
+                        "1", new ApplicationFactVO("1", "app-a", "App A"),
+                        "2", new ApplicationFactVO("2", "app-b", "App B")),
+                Map.of("10", "App A", "20", "App B"));
+        var snapshot = new UserAuthorizationSnapshotBuilder().build(
+                sameApplication ? Set.of("10") : Set.of("10", "20"),
+                hierarchy, rules, 3, 3, 8);
+        RoleActivationResolution resolution = new RoleActivationResolution(
+                new ActiveRoleSet("7", "9", sameApplication
+                        ? Map.of("1", Set.of("10"))
+                        : Map.of("1", Set.of("10"), "2", Set.of("20")), "active"),
+                snapshot, List.of("101", "102"));
+        return new ProjectionCommandDTO(
+                "7", "tianquan-shoubing-9", "9", 3, 8,
+                NOW.plusSeconds(3600), resolution, facts, NOW);
     }
 
     private ProjectionCommandDTO commandWithActiveApplications() {
