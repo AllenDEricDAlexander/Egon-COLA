@@ -190,7 +190,7 @@ class TokenUsageAuditComponentTest {
                 EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         new ApplicationContextRunner()
                 .withUserConfiguration(IdpStarterAutoConfiguration.OAuthAuditConfiguration.class)
-                .withBean("rbac3RuntimeRedissonClient", RedissonClient.class, () -> mock(RedissonClient.class))
+                .withBean("idpAuditRedissonClient", RedissonClient.class, () -> mock(RedissonClient.class))
                 .withBean("jacksonObjectMapper", ObjectMapper.class, ObjectMapper::new)
                 .withBean("idpClock", java.time.Clock.class, java.time.Clock::systemUTC)
                 .withBean("defaultValidator", jakarta.validation.Validator.class, () -> {

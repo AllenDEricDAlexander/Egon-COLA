@@ -107,6 +107,92 @@ class IdpSecurityObservationAutoConfigurationTest {
     }
 
     @Test
+    void configuredObserverRejectsDeadPendingAndFullSpoolsAndRecoversWithTheSameReadinessOwner() {
+        var producer = mock(TokenUsageAuditComponent.class);
+        org.mockito.Mockito.when(producer.appendStrict(org.mockito.ArgumentMatchers.any())).thenReturn(new org.redisson.api.StreamMessageId(1, 1));
+        var issuer = java.net.URI.create("https://idp.example/tenants/1001"); var resource = java.net.URI.create("https://api.example/orders");
+        var now = java.time.Instant.now();
+        var jwt = org.springframework.security.oauth2.jwt.Jwt.withTokenValue("controlled-completed-verification-fixture").header("alg", "RS256")
+                .issuer(issuer.toASCIIString()).subject("controlled-subject").claim("client_id", "controlled-client").issuedAt(now).expiresAt(now.plusSeconds(300)).build();
+        var trusted = new top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry.TrustedIssuerVO(issuer,
+                java.net.URI.create(issuer + "/.well-known/jwks.json"), "tenant:1001", top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry.RealmType.TENANT,
+                "1001", top.egon.cola.platform.tianquan.shoubing.starter.security.TrustedIssuerRegistry.Status.ACTIVE, 1);
+        var verified = top.egon.cola.platform.tianquan.shoubing.starter.security.domain.VerifiedJwtBO.builder().jwt(jwt).trustedIssuer(trusted)
+                .subject("controlled-subject").tenantId("1001").tokenId("17").keyId("key-1").authorizationId("19").clientRegistrationId("23")
+                .principalType(top.egon.cola.platform.tianquan.shoubing.contract.PrincipalType.USER).expiresAt(now.plusSeconds(300))
+                .securityVersion(new top.egon.cola.platform.tianquan.shoubing.contract.OAuthSecurityVersionBO(0, 0, 0L)).build();
+        verified.validate(); org.mockito.Mockito.when(producer.reference(issuer, "17")).thenReturn("c".repeat(64));
+        var successful = new top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification.Valid<>(
+                new top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal("controlled-subject", "1001", "17", Set.of(resource.toASCIIString()), now, now.plusSeconds(300),
+                        top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext.of("PASSWORD", now)), Set.of("orders:read"));
+        runner().withBean("registry", MeterRegistry.class, () -> registry)
+                .withBean("tokenUsageAuditComponent", TokenUsageAuditComponent.class, () -> producer)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    var observations = context.getBean("idpObservedVerificationComponent", top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class);
+                    var ready = context.getBean("idpSecurityAuditReady", BooleanSupplier.class);
+                    for (String fault : java.util.List.of("dead", "pending", "capacity")) {
+                        assertThat(ready.getAsBoolean()).isTrue(); assertThat(observations.authenticationFailure()).isTrue();
+                        assertThat(observations.observeCompleted(successful, verified, resource, "controlled"))
+                                .isInstanceOf(top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification.Valid.class);
+                        org.mockito.Mockito.clearInvocations(producer);
+                        Path file = temporary.resolve("spool/controlled." + (fault.equals("pending") ? "evt" : fault));
+                        try {
+                            Files.writeString(file, "controlled readiness fault");
+                            if (fault.equals("capacity")) {
+                                try (var content = FileChannel.open(file, java.nio.file.StandardOpenOption.WRITE)) {
+                                    content.position(1_048_575); content.write(java.nio.ByteBuffer.wrap(new byte[]{0})); content.force(true);
+                                }
+                            }
+                            assertThat(ready.getAsBoolean()).isFalse();
+                            assertThat(observations.authenticationFailure()).isFalse();
+                            var proof = new top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO(java.net.URI.create("https://idp.example/tenants/1001"),
+                                    java.net.URI.create("https://api.example/orders"), "a".repeat(64), "b".repeat(64), "c".repeat(64));
+                            assertThat(observations.authorizationDenied(proof, "controlled")).isFalse();
+                            assertThat(observations.observeCompleted(new top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification.Invalid<>("invalid"), null,
+                                    proof.resource(), "controlled")).isInstanceOf(top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification.Unavailable.class);
+                            org.mockito.Mockito.verifyNoInteractions(producer);
+                            assertThat(observations.observeCompleted(successful, verified, resource, "controlled"))
+                                    .isInstanceOf(top.egon.cola.platform.tianquan.shoubing.starter.security.AccessTokenVerification.Unavailable.class);
+                            verify(producer, never()).appendStrict(org.mockito.ArgumentMatchers.any());
+                        } finally { Files.deleteIfExists(file); }
+                        assertThat(ready.getAsBoolean()).isTrue(); assertThat(observations.authenticationFailure()).isTrue();
+                    }
+                    org.mockito.Mockito.clearInvocations(producer);
+                    var unavailable = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent(producer,
+                            context.getBean("tokenUsageAuditEventConverterImpl", top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter.class),
+                            context.getBean("oauthUsageObservationProperties", top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties.class),
+                            context.getBean("idpSecurityMetricsRecorder", IdpSecurityMetricsRecorder.class), context.getBean("idpClock", java.time.Clock.class), validator,
+                            java.net.URI.create("https://api.example/orders"), () -> { throw new IllegalStateException("controlled readiness unavailable"); });
+                    assertThat(unavailable.authenticationFailure()).isFalse(); org.mockito.Mockito.verifyNoInteractions(producer);
+                    context.getBean("idpAuditSpoolLease", FileChannel.class).close();
+                    assertThat(ready.getAsBoolean()).isFalse(); assertThat(observations.authenticationFailure()).isFalse();
+                    org.mockito.Mockito.verifyNoInteractions(producer);
+                });
+    }
+
+    @Test
+    void readinessConstructorRetainsThePublicAdapterAndQualifiedAutowiredMetadata() throws Exception {
+        var type = top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent.class;
+        Class<?>[] legacy = {TokenUsageAuditComponent.class,
+                top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converter.TokenUsageAuditEventConverter.class,
+                top.egon.cola.platform.tianquan.shoubing.starter.audit.OAuthUsageObservationProperties.class,
+                IdpSecurityMetricsRecorder.class, java.time.Clock.class, jakarta.validation.Validator.class, java.net.URI.class};
+        var full = java.util.Arrays.copyOf(legacy, 8); full[7] = BooleanSupplier.class;
+        var adapter = type.getConstructor(legacy); var injected = type.getConstructor(full);
+        assertThat(adapter.isAnnotationPresent(org.springframework.beans.factory.annotation.Autowired.class)).isFalse();
+        assertThat(injected.isAnnotationPresent(org.springframework.beans.factory.annotation.Autowired.class)).isTrue();
+        var names = java.util.List.of("tokenUsageAuditComponent", "tokenUsageAuditEventConverterImpl", "oauthUsageObservationProperties",
+                "idpSecurityMetricsRecorder", "idpClock", "defaultValidator");
+        for (int index = 0; index < names.size(); index++) {
+            assertThat(adapter.getParameters()[index].getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class).value()).isEqualTo(names.get(index));
+            assertThat(injected.getParameters()[index].getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class).value()).isEqualTo(names.get(index));
+        }
+        assertThat(injected.getParameters()[7].getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class).value()).isEqualTo("idpSecurityAuditReady");
+        assertThat(java.lang.reflect.Modifier.isFinal(type.getDeclaredField("auditReady").getModifiers())).isTrue();
+    }
+
+    @Test
     void missingOwnerKeyOrRetainedBacklogPreventsReadyStartup() throws Exception {
         var enabled = runner().withBean("registry", MeterRegistry.class, () -> registry);
         Files.delete(temporary.resolve("audit.key"));

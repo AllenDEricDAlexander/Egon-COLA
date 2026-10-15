@@ -472,6 +472,7 @@ class IdpSecurityObservationFilterTest {
                 .withBean("idpClock", Clock.class, () -> clock)
                 .withBean("defaultValidator", jakarta.validation.Validator.class, () -> validator)
                 .withBean("idpStarterProperties", IdpStarterProperties.class, () -> receiver)
+                .withBean("idpSecurityAuditReady", java.util.function.BooleanSupplier.class, () -> () -> true)
                 .withBean("idpEndpointAuthenticationPolicy", IdpEndpointAuthenticationPolicy.class, IdpEndpointAuthenticationPolicy::new)
                 .run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(IdpObservedVerificationComponent.class).hasSingleBean(IdpSecurityObservationFilter.class);

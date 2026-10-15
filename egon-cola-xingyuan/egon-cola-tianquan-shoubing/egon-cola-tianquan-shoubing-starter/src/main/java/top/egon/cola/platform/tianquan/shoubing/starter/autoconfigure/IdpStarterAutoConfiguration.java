@@ -146,8 +146,9 @@ public class IdpStarterAutoConfiguration {
                 @Qualifier("idpSecurityMetricsRecorder") IdpSecurityMetricsRecorder metrics,
                 @Qualifier("idpClock") Clock clock,
                 @Qualifier("defaultValidator") jakarta.validation.Validator validator,
-                @Qualifier("idpStarterProperties") IdpStarterProperties receiver) {
-            return new IdpObservedVerificationComponent(producer, converter, properties, metrics, clock, validator, receiver.getResourceUri());
+                @Qualifier("idpStarterProperties") IdpStarterProperties receiver,
+                @Qualifier("idpSecurityAuditReady") java.util.function.BooleanSupplier ready) {
+            return new IdpObservedVerificationComponent(producer, converter, properties, metrics, clock, validator, receiver.getResourceUri(), ready);
         }
 
         @Bean(name = "idpSecurityObservationFilter")

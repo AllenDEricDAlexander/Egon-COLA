@@ -7,11 +7,13 @@ import java.time.Clock;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.platform.tianquan.shoubing.contract.IdpPrincipal;
@@ -26,7 +28,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.converte
 
 /** Decorates one completed verification with a strict, secret-free usage handoff. */
 @Slf4j
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class IdpObservedVerificationComponent {
     @Qualifier("tokenUsageAuditComponent") private final TokenUsageAuditComponent producer;
     @Qualifier("tokenUsageAuditEventConverterImpl") private final TokenUsageAuditEventConverter converter;
@@ -35,14 +37,27 @@ public class IdpObservedVerificationComponent {
     @Qualifier("idpClock") private final Clock clock;
     @Qualifier("defaultValidator") private final Validator validator;
     private final URI resource;
+    @Qualifier("idpSecurityAuditReady") private final BooleanSupplier auditReady;
     private final AtomicBoolean metricFailureLogged = new AtomicBoolean();
     private final AtomicBoolean deliveryFailureLogged = new AtomicBoolean();
     private final AtomicBoolean proofFailureLogged = new AtomicBoolean();
+
+    /** Preserves standalone callers; enabled managed hosts bind the original spool readiness owner. */
+    public IdpObservedVerificationComponent(
+            @Qualifier("tokenUsageAuditComponent") TokenUsageAuditComponent producer,
+            @Qualifier("tokenUsageAuditEventConverterImpl") TokenUsageAuditEventConverter converter,
+            @Qualifier("oauthUsageObservationProperties") OAuthUsageObservationProperties properties,
+            @Qualifier("idpSecurityMetricsRecorder") IdpSecurityMetricsRecorder metrics,
+            @Qualifier("idpClock") Clock clock,
+            @Qualifier("defaultValidator") Validator validator, URI resource) {
+        this(producer, converter, properties, metrics, clock, validator, resource, () -> true);
+    }
 
     @PostConstruct
     void validateConfiguration() {
         new ValidationUtils(validator).validate(properties);
         if (properties.isEnabled()) {
+            java.util.Objects.requireNonNull(auditReady, "idpSecurityAuditReady");
             new TokenAuditProofBO(properties.getFallbackIssuer(), resource, null, null, null);
             if (metrics == IdpSecurityMetricsRecorder.NOOP) {
                 throw new IllegalStateException("OAUTH_USAGE_METRICS_REQUIRED");
@@ -122,6 +137,7 @@ public class IdpObservedVerificationComponent {
 
     private boolean handoff(TokenAuditProofBO proof, String result, String reason, URI observedResource, String trace) {
         try {
+            if (!auditReady.getAsBoolean()) { return false; }
             if (trace != null && !trace.matches("[A-Za-z0-9._~-]{1,128}")) { trace = null; }
             TokenAuditContextBO context = TokenAuditContextBO.builder().proof(proof)
                     .eventId(UUID.randomUUID().toString().replace("-", ""))

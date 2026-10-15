@@ -12737,3 +12737,26 @@ Runtime R5.1 要求新任务 audit stream/group 使用 runId 归属。SDK 的现
 
 
 §12.99验证结果：新增原managed manifest登记回归先RED，旧1版本而不是预期2版本（1 assertion failure、0errors/skip）；追加新SQL与manifest后，既有FlywayMigrationConventionTest整类3项全执行、0失败/错误/skip，offline source-project reactor BUILD SUCCESS37.652s（step17-light-user-uniqueness-green.log）。旧初始化SQL实际SHA仍0c9f9cef139e3d6e48564e9aa27e652cac6a4991dc5daede615f5d0066ab6e81。原generate_archetypes.sh用已有离线缓存重生成7种产品并原子发布；新/旧Light SQL经原Velocity symbol_dollar字面量还原后与source bytes一致，manifest直接一致。三Open源码和definitions相对当前HEAD无改动；忽略派生目录中已有陈旧的Service Open verify.groovy被原生成器同步为当前未改HEAD的curated脚本，不作为本纠正tracked变更。旧Step16缓存/冻结快照已陈旧，未拿其差异冒作当前任务改动或声称整树byte-identical。27项Manual/Literal检查逐项在step17-light-user-uniqueness-audit.md完成。只提交新SQL、追加manifest、既有测试和本节；其他Step17/用户修改均保留。未运行DDL/真实PG，实际NULL/跨tenant/软删除/回滚语义仍由Step18真实任务库验证。
+
+### 12.102. DEAD spool与严格审计交接的现存SDK断链纠正（Accepted，2026-10-15）
+
+Step17新增受控验收 `IsolatedOAuthProvisioningIT#aSignedDeadSpoolReceiptMustBlockTheConfiguredStrictHandoff` 复用原 `TokenUsageAuditComponent` 的真实临时持久文件、原HMAC签名DEAD receipt、原 `IdpSecurityObservationReadinessComponent` 与实际 `UsageObservationConfiguration` Bean factory，只有Redis stream为Mockito传输。上下文正常创建后才注入原签名DEAD receipt；原readiness明确false，实际配置的 `IdpObservedVerificationComponent.authenticationFailure()` 却返回true。RED2为1 assertion failure、0errors/skip（step17-dead-spool-handoff-red2.log）；首轮仅因fixture使用禁止的NOOP指标而未能启动，不算行为RED。未启动服务/Redis/数据库/浏览器。
+
+断链位置已由源码核实：readiness只供宿主health/startup；`IdpObservedVerificationComponent.handoff` 不读取该状态，`appendStrict` 的capacity保护也不检查已有DEAD。玉衡等原 `renderSecurityError` 根据handoff返回true保留401/403、false才503，因此不能把readiness DOWN冒作请求已fail closed。有效认证也共用handoff；此受控反例证明回调断链，尚未运行真实HTTP请求，不宣称生产运行结果。该现存SDK缺陷阻止R6 LIVE022/严格审计故障合同关闭。
+
+推荐独立纠正，精确生产/测试路径如下；除本节外的Plan/Step17修改不混入纠正commit：
+
+1. `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/security/IdpObservedVerificationComponent.java`：新增具名qualified final `BooleanSupplier` 依赖，复用原 `idpSecurityAuditReady`；在原严格handoff调用producer之前读取。false或原supplier失败时返回交接不可用，原HTTP/RPC适配继续给503/UNAVAILABLE；不写假事件/回执、不改原principal、proof或权限。继续使用既有Decorator，不增加另一套spool状态算法。新完整构造器用Lombok及显式Autowired；保留原七参数公开构造器为无Autowired的兼容适配器，原Qualifier参数元数据保留，生产Bean统一使用完整构造器。
+2. 同模块 `src/main/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpStarterAutoConfiguration.java`：UsageObservationConfiguration的原Bean factory显式注入原BooleanSupplier并传递。依赖图为 observation→ready→lease→producer→metrics；producer不反向依赖observer，避免循环。enabled=false合同不变，不加新配置键/profile差异或依赖。
+3. 同模块 `src/test/java/top/egon/cola/platform/tianquan/shoubing/starter/autoconfigure/IdpSecurityObservationAutoConfigurationTest.java`：原ContextRunner覆盖正常→DEAD/容量/lease失效→恢复；严格交接失败时producer零调用、原disabled兼容、真实Bean图无环及新旧构造器/Qualifier元数据。Step17的上述反例同步转GREEN但保留在Step17范围。
+4. 本Plan仅§12.102的批准、实现与证据记录。
+
+不改变生产HTTP/RPC协议、scope/Grant、数据库/迁移、审计frame/HMAC/receipt语义、TTL、指标标签或默认开关；不从新文件重新计算readiness，不启动实际设施。直接构造的旧七参数适配器仅保留原API行为，受管启用路径必须消费新具名依赖；该兼容适配器不能用于本次宿主配置验收。
+
+先通过上述真实Bean factory的DEAD反例RED；再验证具名ready由true变false时 authenticationFailure/authorizationDenied/已完成认证均拒绝且producer不新增交接，恢复后原逻辑重新可用；上下文装配、原构造/元数据、Starter安全/RPC/自动配置最小回归及Step17反例全部通过。逐项17MC与10Literal关闭后，按一个独立逻辑纠正commit提交三个SDK文件及本节，保留所有其他dirty/untracked修改，然后继续完成Step17并按原约定停止。该生产SDK修订超出Step17既定test/harness路径，批准前不实施。
+
+用户已明确批准：“批准 §12.102，修复后继续 Step 17”。仅上述纠正范围获准；无需再次确认。纠正基线b634e4b2d3b0cd7513824c3cd973686170f6978a，三个SDK路径在锁定时无已有dirty重叠，index为空。
+
+回归装配的必要机械跟进：原 `src/test/.../security/IdpSecurityObservationFilterTest.java` 只导入UsageObservationConfiguration，须显式提供新增必需的受控ready Bean；原 `src/test/.../audit/TokenUsageAuditComponentTest.java` 只导入OAuthAuditConfiguration，却仍以旧rbac3RuntimeRedissonClient名提供Redis，而基线HEAD中的真实factory早已要求idpAuditRedissonClient。仅补这两个测试的具名Bean声明，各一行，保留原断言/传输mock，不改变生产factory或制造缺依赖时的fallback。它们是本纠正的直接配置/验证依赖；最终SDK精确路径为原三条加这两条既有测试及本节，无其他生产扩展。首轮66项中两项失败已据此归类，不能将该次结果报告为全通过。
+
+§12.102最终验证：原配置factory的DEAD反例RED成立；修复后Starter五个精确类66项实际执行、0失败/错误/skip、BUILD SUCCESS19.000s（step17-sdk-readiness-final-regression2.log），覆盖DEAD/pending/容量/lease关闭/supplier异常及恢复、已完成有效/无效认证、两公开构造器与实际Autowired/Qualifier。Step17的原签名DEAD receipt反例另1项执行通过、0skip（step17-dead-spool-handoff-green.log）。新增有效认证单元fixture最初误mock sealed IdpPrincipal，已改用真实IdentityPrincipal/PASSWORD上下文；该中间fixture错误不作行为RED或通过证据。严格Plan及diff检查通过，17MC与10Literal逐项记录在step17-sdk-readiness-audit.md。以上均为受控源码/组件证据，未运行HTTP/RPC服务或PG/Redis/浏览器；原frame/HMAC/wire协议未改变。按约定先独立提交本纠正，再回到尚未完成的Step17。
