@@ -121,7 +121,8 @@ def persistence_violations(root, family):
     else:
         manifest = json.loads(manifests[0].read_text())
         scripts = manifest.get("scripts", [])
-        if manifest.get("family") != family or len(scripts) != 1:
+        expected_scripts = 2 if family == "light" else 1
+        if manifest.get("family") != family or len(scripts) != expected_scripts:
             failures.append(f"{family}: incorrect initialization manifest")
         for script in scripts:
             resource = manifests[0].parents[2] / script["path"]
