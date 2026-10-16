@@ -51,6 +51,10 @@ import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.yuheng.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.yuheng.runtime.security.service.GatewaySecurityPolicyCompiler;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.service.McpRequestObservationComponent;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
+import jakarta.validation.Validator;
 import top.egon.cola.component.yuheng.runtime.rule.service.GatewayRuleActivationApplier;
 import top.egon.cola.component.yuheng.runtime.rule.service.GatewayRuleApplierRegistrar;
 import top.egon.cola.component.yuheng.runtime.rule.repository.GatewayRuleChunkStore;
@@ -532,6 +536,9 @@ public class McpGatewayEngineConfiguration {
      * @param sessionStore 参数 会话存储；parameter session store。
      * @param taskServices 参数 任务Services；parameter task services。
      * @param snapshots 参数 snapshots；parameter snapshots。
+     * @param auditObservers 原严格审计回调；original strict audit observers。
+     * @param auditMetrics 原固定标签度量；original fixed-label security metrics。
+     * @param validators 原验证器；original Jakarta validators。
      * @param dataSources 参数 dataSources；parameter data sources。
      * @param approvalPorts 参数 受守卫MCP审批适配器提供者；parameter the guarded MCP approval adapter provider。
      * @param remoteClients 参数 远程Clients；parameter remote clients。
@@ -557,6 +564,9 @@ public class McpGatewayEngineConfiguration {
             RedisMcpSessionStore sessionStore,
             ObjectProvider<McpTaskService> taskServices,
             ObjectProvider<SingleFlightSnapshotLoader> snapshots,
+            @Qualifier("idpObservedVerificationComponent") ObjectProvider<IdpObservedVerificationComponent> auditObservers,
+            @Qualifier("idpSecurityMetricsRecorder") ObjectProvider<IdpSecurityMetricsRecorder> auditMetrics,
+            @Qualifier("defaultValidator") ObjectProvider<Validator> validators,
             ObjectProvider<DataSource> dataSources,
             @Qualifier("mcpApprovalAdapter")
             ObjectProvider<MpMcpApprovalAdapter> approvalPorts,
@@ -575,17 +585,13 @@ public class McpGatewayEngineConfiguration {
         var toolCatalog = new McpToolCatalog(mcpRules);
         SingleFlightSnapshotLoader snapshotLoader = snapshots.getIfAvailable();
         DataSource dataSource = dataSources.getIfAvailable();
-        McpAuthorizationPort authorization = snapshotLoader == null
-                ? request -> reactor.core.publisher.Mono.just(
-                McpAuthorizationPort.Decision.denied(
-                        "TIANQUAN_JIANSHEN_AUTHORIZATION_UNAVAILABLE",
-                        0L,
-                        0L,
-                        0L
-                ))
-                : new Rbac3McpAuthorizationAdapter(
-                snapshotLoader
-        );
+        var auditObserver = auditObservers.getIfAvailable(); var securityMetrics = auditMetrics.getIfAvailable(); var validator = validators.getIfAvailable();
+        McpAuthorizationPort authorization = snapshotLoader == null || auditObserver == null || securityMetrics == null || validator == null
+                ? request -> reactor.core.publisher.Mono.deferContextual(context -> {
+                    McpRequestObservationComponent observation = context.getOrDefault(McpRequestObservationComponent.class, null);
+                    return reactor.core.publisher.Mono.error(observation == null ? GatewaySecurityException.providerError() : observation.unavailable(null));
+                })
+                : Rbac3McpAuthorizationAdapter.createConfigured(snapshotLoader, auditObserver, securityMetrics, validator);
         MpMcpApprovalAdapter approvalAdapter = approvalPorts.getIfAvailable();
         McpApprovalPort approvals = approvalAdapter == null
                 ? request -> reactor.core.publisher.Mono.just(

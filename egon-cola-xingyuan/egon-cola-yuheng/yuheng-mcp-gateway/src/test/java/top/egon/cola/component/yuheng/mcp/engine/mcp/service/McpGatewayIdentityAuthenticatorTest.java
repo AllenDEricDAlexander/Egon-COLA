@@ -53,6 +53,23 @@ class McpGatewayIdentityAuthenticatorTest {
     }
 
     @Test
+    void handsOffTheSameContextReferenceOnlyForTheManagedConstructor() {
+        var chain = mock(GatewaySecurityChain.class);
+        var request = McpRequestObservationComponentTest.request();
+        var context = McpRequestObservationComponentTest.context(request);
+        var result = mock(GatewaySecurityResult.class);
+        when(result.context()).thenReturn(context);
+        when(chain.execute(any(), any(), any(), any())).thenReturn(Mono.just(result));
+        var policy = policy(List.of(source("policy-1", List.of("yuheng.mcp.billing"), List.of("billing:read"))));
+        var managed = new McpGatewayIdentityAuthenticator(chain, selected -> policy, "node-1", Clock.systemUTC())
+                .authenticate(REQUEST, SERVER).block();
+        assertSame(context, managed.get(McpGatewayIdentityAuthenticator.VERIFIED_CONTEXT_ATTRIBUTE));
+        var legacy = new McpGatewayIdentityAuthenticator(chain, "https://legacy.example", "node-1", Clock.systemUTC())
+                .authenticate(REQUEST, SERVER).block();
+        assertFalse(legacy.containsKey(McpGatewayIdentityAuthenticator.VERIFIED_CONTEXT_ATTRIBUTE));
+    }
+
+    @Test
     void usesTheSameVerifiedIssuerForBothRealmsAndForwardsThePublishedPolicy() {
         var policy = policy(List.of(source("policy-1", List.of("yuheng.mcp.billing"), List.of("billing:read"))));
         for (String issuer : List.of("https://idp.example/tenants/1001", "https://idp.example/tenants/1002")) {

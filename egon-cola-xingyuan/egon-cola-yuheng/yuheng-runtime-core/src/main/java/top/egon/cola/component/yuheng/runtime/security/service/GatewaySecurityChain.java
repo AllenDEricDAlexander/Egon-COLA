@@ -119,11 +119,20 @@ public final class GatewaySecurityChain {
                         error -> !(error instanceof GatewaySecurityException),
                         error -> GatewaySecurityException.providerError()
                 );
-        return Mono.usingWhen(Mono.fromSupplier(AuthorizationObservationScope::new),
-                scope -> guarded.contextWrite(reactor -> reactor.put(GatewayAuthContext.class, scope)),
-                scope -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()),
-                (scope, error) -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()),
-                scope -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()));
+        return Mono.deferContextual(reactor -> {
+            Object outer = reactor.getOrDefault((Object) GatewayAuthContext.class, null);
+            if (outer != null) {
+                if (!(outer instanceof AuthorizationObservationScope scope) || !scope.active()) {
+                    return Mono.error(GatewaySecurityException.providerError());
+                }
+                return guarded;
+            }
+            return Mono.usingWhen(Mono.fromSupplier(AuthorizationObservationScope::new),
+                    scope -> guarded.contextWrite(context -> context.put(GatewayAuthContext.class, scope)),
+                    scope -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()),
+                    (scope, error) -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()),
+                    scope -> Mono.fromRunnable(scope::close).subscribeOn(Schedulers.boundedElastic()));
+        });
     }
 
     /**
@@ -469,10 +478,13 @@ public final class GatewaySecurityChain {
     /** Standard Reactor scope owns callbacks independently of the immutable identity/context snapshot. */
     @Slf4j
     @RequiredArgsConstructor
-    private static class AuthorizationObservationScope implements
+    public static final class AuthorizationObservationScope implements
             java.util.function.BiFunction<Object, java.util.function.Supplier<Map.Entry<Object, Runnable>>, Object>, AutoCloseable {
         private final Map<Object, Map.Entry<Object, Runnable>> states = new java.util.LinkedHashMap<>();
         private boolean closed;
+
+        /** A physical request may borrow this scope until its outer owner closes it. */
+        public synchronized boolean active() { return !closed; }
 
         @Override
         public synchronized Object apply(Object key, java.util.function.Supplier<Map.Entry<Object, Runnable>> factory) {

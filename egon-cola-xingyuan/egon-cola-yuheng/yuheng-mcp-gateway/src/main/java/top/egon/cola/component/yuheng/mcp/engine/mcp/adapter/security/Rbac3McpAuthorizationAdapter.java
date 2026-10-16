@@ -1,6 +1,22 @@
 package top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.security;
 
 import org.reactivestreams.Publisher;
+import lombok.RequiredArgsConstructor;
+import lombok.AccessLevel;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import jakarta.validation.Validator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
+import top.egon.cola.component.yuheng.core.security.AuthorizationDecision;
+import top.egon.cola.component.yuheng.core.security.SecurityDecision;
+import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
+import top.egon.cola.component.yuheng.mcp.engine.mcp.service.McpRequestObservationComponent;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.IdpSecurityMetricsRecorder;
+import top.egon.cola.platform.tianquan.shoubing.core.observability.SecurityMetricObservationBO;
+import top.egon.cola.platform.tianquan.shoubing.starter.security.IdpObservedVerificationComponent;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.IdpOAuthScopeAuthorizationProvider;
+import top.egon.cola.platform.tianquan.shoubing.yuheng.security.domain.GatewayVerifiedIdentityBO;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import top.egon.cola.component.yuheng.core.mcp.security.McpAuthorizationPort;
@@ -19,6 +35,8 @@ import java.util.Objects;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class Rbac3McpAuthorizationAdapter
         implements McpAuthorizationPort {
 
@@ -28,7 +46,14 @@ public final class Rbac3McpAuthorizationAdapter
      *
      * 用法 / Usage: 该字段通过 {@code Rbac3McpAuthorizationAdapter} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code Rbac3McpAuthorizationAdapter}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @Qualifier("singleFlightSnapshotLoader")
     private final SingleFlightSnapshotLoader snapshotLoader;
+    @Qualifier("idpObservedVerificationComponent")
+    private final IdpObservedVerificationComponent observations;
+    @Qualifier("idpSecurityMetricsRecorder")
+    private final IdpSecurityMetricsRecorder metrics;
+    @Qualifier("defaultValidator")
+    private final Validator validator;
 
     /**
      * 中文说明：创建 {@code Rbac3McpAuthorizationAdapter} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
@@ -39,10 +64,14 @@ public final class Rbac3McpAuthorizationAdapter
      */
     public Rbac3McpAuthorizationAdapter(
             SingleFlightSnapshotLoader snapshotLoader) {
-        this.snapshotLoader = Objects.requireNonNull(
-                snapshotLoader,
-                "snapshotLoader"
-        );
+        this(Objects.requireNonNull(snapshotLoader, "snapshotLoader"), null, IdpSecurityMetricsRecorder.NOOP, null);
+    }
+
+    /** Managed hosts require the original strict observer and the same verified request scope. */
+    public static Rbac3McpAuthorizationAdapter createConfigured(SingleFlightSnapshotLoader snapshots,
+            IdpObservedVerificationComponent observations, IdpSecurityMetricsRecorder metrics, Validator validator) {
+        return new Rbac3McpAuthorizationAdapter(Objects.requireNonNull(snapshots, "snapshots"),
+                Objects.requireNonNull(observations, "observations"), Objects.requireNonNull(metrics, "metrics"), Objects.requireNonNull(validator, "validator"));
     }
 
     /**
@@ -56,6 +85,7 @@ public final class Rbac3McpAuthorizationAdapter
     @Override
     public Publisher<Decision> authorize(McpAuthorizationRequest request) {
         Objects.requireNonNull(request, "request");
+        if (observations != null) { return authorizeStrict(request); }
         return Mono.fromCallable(() -> decide(
                 request,
                 snapshotLoader.load(
@@ -79,6 +109,64 @@ public final class Rbac3McpAuthorizationAdapter
                         0L
                 ))
         ).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private Mono<Decision> authorizeStrict(McpAuthorizationRequest request) {
+        return Mono.deferContextual(reactor -> {
+            McpRequestObservationComponent observation = reactor.getOrDefault(McpRequestObservationComponent.class, null);
+            if (observation == null) { return Mono.error(GatewaySecurityException.providerError()); }
+            if (reactor.getOrDefault((Object) GatewayAuthContext.class, null) != observation.authorizationScope()
+                    || !observation.authorizationScope().active()) { return Mono.error(observation.unavailable(null)); }
+            return Mono.fromCallable(() -> verifiedContext(request, observation))
+                    .flatMap(context -> Mono.fromCallable(() -> {
+                        if (!"USER".equals(context.principal().principalType())) {
+                            return Decision.denied("TIANQUAN_JIANSHEN_USER_PRINCIPAL_REQUIRED", 0L, 0L, 0L);
+                        }
+                        var attributes = context.principal().attributes();
+                        var identity = new IdentityPrincipal(context.principal().principalId(), context.principal().tenantId(), request.tokenId(),
+                                java.util.Set.of(attributes.get("tianquan-shoubing.audience")), request.issuedAt(), request.expiresAt(),
+                                AuthenticationContext.of(attributes.get("tianquan-shoubing-auth-acr"), java.time.Instant.parse(attributes.get("tianquan-shoubing-auth-time"))));
+                        return decide(request, snapshotLoader.load(identity, request.userAccessToken()));
+                    }).onErrorResume(Rbac3AuthorizationClient.AuthorizationDeniedException.class,
+                            denied -> Mono.just(Decision.denied("TIANQUAN_JIANSHEN_PERMISSION_DENIED", 0L, 0L, 0L)))
+                            .flatMap(decision -> {
+                                if (decision.allowed()) { record("ALLOW"); return Mono.just(decision); }
+                                if ("TIANQUAN_JIANSHEN_SNAPSHOT_FENCED".equals(decision.reasonCode())) {
+                                    return Mono.error(observation.unavailable(null));
+                                }
+                                return IdpOAuthScopeAuthorizationProvider.observeDecision(context, AuthorizationDecision.deny(decision.reasonCode()), observations, metrics, validator)
+                                        .flatMap(observed -> {
+                                            if (observed.decision() != SecurityDecision.DENY) { return Mono.error(observation.unavailable(null)); }
+                                            observation.confirmDenial(); return Mono.just(decision);
+                                        });
+                            }))
+                    .onErrorMap(failure -> {
+                        if (failure instanceof InterruptedException) { Thread.currentThread().interrupt(); }
+                        record("INDETERMINATE"); return observation.unavailable(failure);
+                    }).subscribeOn(Schedulers.boundedElastic());
+        });
+    }
+
+    private GatewayAuthContext verifiedContext(McpAuthorizationRequest request, McpRequestObservationComponent observation) {
+        var context = observation.verifiedContext(); var principal = context.principal();
+        if (!(principal.trustedAuthenticationEvidence() instanceof GatewayVerifiedIdentityBO evidence) || evidence.proof() == null) {
+            throw observation.unavailable(null);
+        }
+        new ValidationUtils(validator).validate(evidence);
+        var attributes = principal.attributes();
+        if (!evidence.proof().issuer().toASCIIString().equals(request.issuer()) || !evidence.proof().resource().toASCIIString().equals(request.resourceUri())
+                || !principal.principalId().equals(request.subjectId()) || !Objects.equals(principal.tenantId(), request.tenantId())
+                || !Objects.equals(attributes.getOrDefault("tianquan-shoubing.client-id", attributes.get("tianquan-shoubing.audience")), request.clientId())
+                || !Objects.equals(attributes.get("tianquan-shoubing.token-id"), request.tokenId())
+                || !Objects.equals(attributes.get("tianquan-shoubing.issued-at"), request.issuedAt().toString())
+                || !Objects.equals(attributes.get("tianquan-shoubing.expires-at"), request.expiresAt().toString())
+                || !evidence.verifiedScopes().containsAll(context.requiredOAuthScopes())) { throw observation.unavailable(null); }
+        return context;
+    }
+
+    private void record(String result) {
+        try { metrics.record(SecurityMetricObservationBO.builder().signal("rbac.authorization").result(result).build()); }
+        catch (RuntimeException unavailable) { log.debug("MCP authorization metric unavailable; failureType={}", unavailable.getClass().getSimpleName()); }
     }
 
     /**

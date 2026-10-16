@@ -7,6 +7,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
+import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpJsonRpcRequest;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpJsonRpcResponse;
@@ -250,13 +251,26 @@ public final class McpEngineHttpHandler {
                 > maximumBodyBytes) {
             return Mono.just(error(413, "MCP_BODY_TOO_LARGE", null));
         }
-        return Mono.defer(() -> route(request))
+        return Mono.usingWhen(Mono.fromSupplier(McpRequestObservationComponent::new),
+                        observation -> Mono.defer(() -> route(request))
+                                .map(response -> { observation.requireAvailable(); return response; })
+                                .onErrorMap(observation::preserveSecurityFailure)
+                                .contextWrite(context -> context.put(McpRequestObservationComponent.class, observation)
+                                        .put(GatewayAuthContext.class, observation.authorizationScope())),
+                        observation -> Mono.fromRunnable(observation::close).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()),
+                        (observation, original) -> Mono.fromRunnable(() -> {
+                            try { observation.close(); }
+                            catch (RuntimeException | Error cleanup) { original.addSuppressed(cleanup); }
+                        }).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()),
+                        observation -> Mono.fromRunnable(observation::close).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()))
                 .onErrorResume(
                         GatewaySecurityException.class,
                         failure -> {
                             McpHttpResponse response = error(failure.httpStatus(), failure.code(), null);
                             LinkedHashMap<String, List<String>> headers = new LinkedHashMap<>(response.headers());
                             headers.putAll(failure.responseHeaders());
+                            headers.keySet().removeIf(name -> "cache-control".equalsIgnoreCase(name));
+                            headers.put("cache-control", List.of("no-store"));
                             return Mono.just(new McpHttpResponse(response.status(), headers,
                                     response.body(), response.flushPerEvent()));
                         }
@@ -592,12 +606,17 @@ public final class McpEngineHttpHandler {
     private Mono<Map<String, Object>> authenticate(
             McpHttpRequest request,
             McpRuntimeServer server) {
-        return Mono.from(authenticator.authenticate(request, server))
-                .switchIfEmpty(Mono.error(transport(
-                        401,
-                        "MCP_UNAUTHENTICATED",
-                        "MCP authentication is required"
-                )));
+        return Mono.deferContextual(reactor -> Mono.from(authenticator.authenticate(request, server))
+                .map(identity -> {
+                    Object verified = identity.get(McpGatewayIdentityAuthenticator.VERIFIED_CONTEXT_ATTRIBUTE);
+                    if (verified == null) { return identity; }
+                    McpRequestObservationComponent observation = reactor.getOrDefault(McpRequestObservationComponent.class, null);
+                    if (!(verified instanceof GatewayAuthContext context) || observation == null) { throw GatewaySecurityException.providerError(); }
+                    observation.bind(context);
+                    var safe = new LinkedHashMap<>(identity); safe.remove(McpGatewayIdentityAuthenticator.VERIFIED_CONTEXT_ATTRIBUTE);
+                    return Map.copyOf(safe);
+                })
+                .switchIfEmpty(Mono.error(transport(401, "MCP_UNAUTHENTICATED", "MCP authentication is required"))));
     }
 
     /**
@@ -735,7 +754,7 @@ public final class McpEngineHttpHandler {
         LinkedHashMap<String, Object> attributes = new LinkedHashMap<>(
                 identity
         );
-        return Flux.from(dispatcher.dispatch(
+        return Mono.deferContextual(reactor -> Flux.from(dispatcher.dispatch(
                         decoded,
                         new McpRequestContext(
                                 server,
@@ -744,7 +763,17 @@ public final class McpEngineHttpHandler {
                                 Map.copyOf(attributes)
                         )
                 ))
-                .next();
+                .next().map(response -> {
+                    McpRequestObservationComponent observation = reactor.getOrDefault(McpRequestObservationComponent.class, null);
+                    if (observation != null) {
+                        observation.requireAvailable();
+                        if (observation.denialConfirmed() && response.error() != null
+                                && response.error().dataCode() == McpErrorCode.MCP_FORBIDDEN) {
+                            throw new McpProtocolException(McpErrorCode.MCP_FORBIDDEN, response.error().message());
+                        }
+                    }
+                    return response;
+                }));
     }
 
     /**
@@ -821,7 +850,7 @@ public final class McpEngineHttpHandler {
         return McpHttpResponse.json(
                 status,
                 jsonRpc(failure.toResponse(null)),
-                Map.of()
+                status == 401 || status == 403 ? Map.of("cache-control", List.of("no-store")) : Map.of()
         );
     }
 
@@ -844,7 +873,8 @@ public final class McpEngineHttpHandler {
         if (message != null) {
             content.put("message", message);
         }
-        return McpHttpResponse.json(status, json(content), Map.of());
+        return McpHttpResponse.json(status, json(content),
+                status == 401 || status == 403 || status == 503 ? Map.of("cache-control", List.of("no-store")) : Map.of());
     }
 
     /**

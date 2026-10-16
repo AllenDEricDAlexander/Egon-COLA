@@ -44,6 +44,56 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GatewaySecurityChainTest {
 
     @Test
+    void foreignOrClosedOuterScopesFailBeforeCallingAnyProvider() {
+        var calls = new AtomicInteger();
+        var chain = chain(Mono.defer(() -> { calls.incrementAndGet(); return credential(); }),
+                Mono.just(AuthenticationDecision.allow(principal())), Mono.just(AuthorizationDecision.allow()));
+        var closed = new GatewaySecurityChain.AuthorizationObservationScope(); closed.close();
+        for (Object scope : List.of(new Object(), closed)) {
+            StepVerifier.create(chain.execute(exchange(), context(), policy(AuthenticationMode.REQUIRED), GatewayProtocol.HTTP)
+                    .contextWrite(reactor -> reactor.put(GatewayAuthContext.class, scope)))
+                    .expectErrorSatisfies(failure -> assertEquals(503, ((GatewaySecurityException) failure).httpStatus())).verify();
+        }
+        assertEquals(0, calls.get());
+    }
+
+    @Test
+    void ordinaryCancellationClosesTheOriginalObservationScope() throws Exception {
+        var cleaned = new java.util.concurrent.CountDownLatch(1);
+        var chain = chain(Mono.deferContextual(reactor -> {
+            var scope = (GatewaySecurityChain.AuthorizationObservationScope) reactor.get((Object) GatewayAuthContext.class);
+            scope.apply("controlled-cancel", () -> Map.entry(new Object(), (Runnable) cleaned::countDown));
+            return Mono.never();
+        }), Mono.just(AuthenticationDecision.allow(principal())), Mono.just(AuthorizationDecision.allow()));
+        var subscription = chain.execute(exchange(), context(), policy(AuthenticationMode.REQUIRED), GatewayProtocol.HTTP).subscribe();
+        subscription.dispose();
+        assertTrue(cleaned.await(5, java.util.concurrent.TimeUnit.SECONDS));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void anExplicitOuterObservationScopeOwnsTheWholeRequestLifecycle() throws Exception {
+        var type = Class.forName(GatewaySecurityChain.class.getName() + "$AuthorizationObservationScope");
+        var constructor = type.getDeclaredConstructor(); constructor.setAccessible(true);
+        var outer = (java.util.function.BiFunction<Object, java.util.function.Supplier<Map.Entry<Object, Runnable>>, Object>) constructor.newInstance();
+        var seen = new java.util.concurrent.atomic.AtomicReference<Object>(); var cleanup = new AtomicInteger();
+        GatewaySecurityChain chain = chain(Mono.just(new CredentialExtractionResult(
+                        List.of(new GatewayCredential("bearer", "secret", Map.of())), Set.of("authorization"), null)),
+                Mono.deferContextual(reactor -> {
+                    Object raw = reactor.get((Object) GatewayAuthContext.class);
+                    var actual = (java.util.function.BiFunction<Object, java.util.function.Supplier<Map.Entry<Object, Runnable>>, Object>) raw;
+                    seen.set(actual); actual.apply("controlled-observation", () -> Map.entry(new Object(), (Runnable) cleanup::incrementAndGet));
+                    return Mono.just(AuthenticationDecision.allow(principal()));
+                }), Mono.just(AuthorizationDecision.allow()));
+        try {
+            chain.execute(exchange(), context(), policy(AuthenticationMode.REQUIRED), GatewayProtocol.HTTP)
+                    .contextWrite(reactor -> reactor.put(GatewayAuthContext.class, outer)).block(Duration.ofSeconds(5));
+            assertSame(outer, seen.get()); assertEquals(0, cleanup.get());
+        } finally { ((AutoCloseable) outer).close(); }
+        assertEquals(1, cleanup.get());
+    }
+
+    @Test
     void requiredChainAuthenticatesAuthorizesAndMapsIdentity() {
         GatewaySecurityChain chain = chain(
                 Mono.just(new CredentialExtractionResult(

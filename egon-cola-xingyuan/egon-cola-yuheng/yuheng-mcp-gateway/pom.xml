@@ -68,7 +68,7 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-tianquan-shoubing-gateway-adapter</artifactId>
-            <scope>runtime</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>

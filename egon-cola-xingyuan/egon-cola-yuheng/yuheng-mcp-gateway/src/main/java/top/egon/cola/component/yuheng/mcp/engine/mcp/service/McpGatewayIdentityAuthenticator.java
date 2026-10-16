@@ -46,6 +46,9 @@ import java.util.function.Function;
 public final class McpGatewayIdentityAuthenticator
         implements McpEngineHttpHandler.IdentityAuthenticator {
 
+    /** In-process handoff only; the HTTP handler removes it before session or capability handling. */
+    public static final String VERIFIED_CONTEXT_ATTRIBUTE = McpGatewayIdentityAuthenticator.class.getName() + ".verified-context";
+
     /**
      * 中文说明：表示 身份ONLY策略 这一固定值；它属于 {@code McpGatewayIdentityAuthenticator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
      * English summary: Represents the fixed value identity only policy; it is a state, type, or protocol value of {@code McpGatewayIdentityAuthenticator} and keeps callers aligned with the owning type.
@@ -235,15 +238,15 @@ public final class McpGatewayIdentityAuthenticator
                         policy,
                         GatewayProtocol.HTTP
                 )
-                .map(result -> identity(
-                        result.context().principal(),
-                        result.forwardingCredential() == null
-                                ? null
-                                : result.forwardingCredential()
-                                        .tokenReference(),
-                        request,
-                        server.resourceUri()
-                ));
+                .map(result -> {
+                    var identity = identity(result.context().principal(),
+                            result.forwardingCredential() == null ? null : result.forwardingCredential().tokenReference(),
+                            request, server.resourceUri());
+                    if (policies == null) { return identity; }
+                    var observed = new LinkedHashMap<>(identity);
+                    observed.put(VERIFIED_CONTEXT_ATTRIBUTE, result.context());
+                    return Map.copyOf(observed);
+                });
     }
 
     /**
