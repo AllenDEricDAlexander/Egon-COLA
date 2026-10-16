@@ -15,7 +15,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.UserAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.CreateUserRequest;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.CreateUserDTO;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.web.application.user.pojo.query.UserDetailQuery;
@@ -70,7 +70,7 @@ public class UserController {
     @RBACAPIResource(code = "egon-cola-source-web.api.user.create", permission = "egon-cola-source-web:user:create", name = "Create")
     public ResponseEntity<UserDetailVO> create(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @Valid @RequestBody CreateUserRequest request) {
+            @Valid @RequestBody CreateUserDTO request) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-web:user:create", authorizationProperties.getSystemCode(),
                 "egon-cola-source-web.api.user.create", Set.of("name","email")));
         String requestId = idempotencyKey == null ? UUID.randomUUID().toString() : idempotencyKey;

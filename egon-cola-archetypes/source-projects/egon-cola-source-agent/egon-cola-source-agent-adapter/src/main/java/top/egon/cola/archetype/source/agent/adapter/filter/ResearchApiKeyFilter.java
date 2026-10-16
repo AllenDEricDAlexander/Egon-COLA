@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.archetype.source.agent.adapter.config.DeepResearchApiProperties;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
 
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class ResearchApiKeyFilter extends OncePerRequestFilter {
         response.setContentType("application/json");
         response.setHeader("WWW-Authenticate", "ApiKey");
         response.setHeader(ResearchTraceFilter.TRACE_HEADER, traceId);
-        objectMapper.writeValue(response.getWriter(), new DeepResearchErrorResponse(
+        objectMapper.writeValue(response.getWriter(), new DeepResearchErrorResult(
                 ResearchErrorCodeEnum.RESEARCH_UNAUTHORIZED.code(),
                 ResearchErrorCodeEnum.RESEARCH_UNAUTHORIZED.safeMessage(), traceId,
                 clock.instant(), Map.of()));

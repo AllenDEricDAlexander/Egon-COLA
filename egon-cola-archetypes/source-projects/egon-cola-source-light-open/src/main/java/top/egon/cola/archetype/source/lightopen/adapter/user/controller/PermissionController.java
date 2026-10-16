@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.convertor.UserAdapterConvertor;
-import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.dto.GrantPermissionRequest;
+import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.dto.GrantPermissionDTO;
 import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.vo.PermissionTreeVO;
 import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.GrantPermissionCommand;
 import top.egon.cola.archetype.source.lightopen.application.user.manage.PermissionManage;
@@ -33,7 +33,7 @@ public class PermissionController {
     @PostMapping("/roles/{roleCode}/permissions")
     public PermissionResult grantPermission(
             @PathVariable String roleCode,
-            @Valid @RequestBody GrantPermissionRequest request) {
+            @Valid @RequestBody GrantPermissionDTO request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return permissionManage.grantPermission(new GrantPermissionCommand(
                 roleCode,

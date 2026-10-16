@@ -13,7 +13,7 @@ description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风�
 
 生成基础 CRUD 时按 Repo → Domain Service/实现 → Manage/实现 → Light/Web Controller 链路选择 `backend-crud`；Service 不生成 HTTP。DDL 中通用列需要校验，PO 通过 `EgonModel` 继承，不重复声明。v1/过期计划和无归属文件阻断 apply。
 
-列出目标项目中脚手架示例的 Controller、Service、Repository、PO/DAO 和配置；样例 SQL 只有未应用时才可删除，已应用历史只能新增纠正版本。Spec 必须明确真实业务实施时替换或删除哪些样例；样例代码仅供参考，不能作为生产行为保留。
+生成项目开始真实业务工作前，读取 `references/archetype-example-cleanup.md`，检查整个目标项目的全部模块。在 §2.5 记录来源/扫描证据并逐项处理全部未使用样例；只清理当前功能涉及的样例不够。已有项目有遗留、或缺创建历史时也适用。保留有证据的真实业务、必要基础设施和已应用 SQL 历史。Spec 只设计删除/替换，实施按获批清单执行。
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -42,7 +42,11 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
   - `ABSTRACT` 替换为简洁的小写 ASCII kebab-case 摘要，通常为 3–8 个单词。
   - 示例：`docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`。
   - 同一分钟且摘要相同时不得覆盖旧文档，应使用更具体的摘要。
-- 必须以 `assets/spec-template.md` 中的 Template Version 7 为模板，保留所有编号章节，但按 `references/change-surface-and-proportional-depth.zh-CN.md` 分配深度：只完整设计 `Affected` 区域，`Context-only` 和 `Unchanged` 保持简洁，只有 `Not applicable` 才写有证据的 `N/A`。校验器继续按原契约接受既有 Version 2 至 Version 6 Spec。
+- 必须以 `assets/spec-template.md` 中的 Template Version 9 为模板，包含 archetype 清理评估，保留所有编号章节，但按 `references/change-surface-and-proportional-depth.zh-CN.md` 分配深度：只完整设计 `Affected` 区域，`Context-only` 和 `Unchanged` 保持简洁，只有 `Not applicable` 才写有证据的 `N/A`。校验器继续按原契约接受既有 Version 2 至 Version 8 Spec。
+
+## 时间语义与 UTC 规则
+
+时间语义或边界受影响时读取 `references/time-semantics.zh-CN.md`。区分发生时刻（UTC 存储、ISO 8601 `Z` 传输）、纯日期、本地时间、地区调度和时长。业务按明确业务时区计算，前端按明确展示时区转换；`MC-TIME-001` 要求具体边界及兼容证据。本规则不扩大已授权代码/数据/迁移范围。
 
 ## 资源完整性预检
 
@@ -87,7 +91,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 10. 未经用户或决策负责人明确批准，不能标记为 `Accepted`。内部完整、等待审核时为 `Review`；仍有重大未决项时必须为 `Draft`，结论为阻塞。
 11. 所有 `Affected` 区域都要达到适用的详细设计深度：精确路径/包、符号、契约、字段、状态规则、Schema、页面状态、测试用例、兼容与失败语义。`Context-only` 和 `Unchanged` 区域只记录证据、保持不变量、无需修改的原因和聚焦验证。不能编写完整生产实现，也不能重设计相邻层。
 12. 交付前必须对照原始用户需求和当前仓库复核。内部缺陷自行修复，只把仍未解决的重大决策交给用户。
-13. Java 对象必须按真实边界和生命周期职责分类，遵循 `references/pojo-modeling.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。新增或实质修改载体使用 PO、BO、DTO、VO、Query、Command、Event、Request、Response、PageQuery、PageResult 等明确后缀；DAO 表示访问组件。不得默认创建平行类，禁止新增含糊的 `Data`、`Info`、`Param`、`Bean` 载体名。
+13. Java 对象必须按真实边界和生命周期职责分类，遵循 `references/pojo-modeling.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。新增或实质修改载体使用 PO、BO、DTO、VO、Query、Command、Event、Result、PageQuery、PageResult 等明确后缀；DAO 表示访问组件。不得默认创建平行类，禁止新增含糊的 `Data`、`Info`、`Param`、`Bean` 载体名。
 14. 防止类爆炸。每个独立对象和 Mapper 都必须有具体语义依据。PO/ORM Entity 只有在仓库惯例和生命周期依据充分时才能继承；具体业务 Service 默认采用组合与委托，不采用继承。
 15. Java 分包设计前必须把当前项目准确分类为一种允许形态：`references/three-layer-architecture.zh-CN.md` 定义的传统结构，或准确选中的 `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` 脚手架契约（包括明确选中的 Open 变体）。保持该形态及其 Verifier/依赖方向，禁止发明、混搭或重命名层/模块。项目不符合任一形态或证据冲突时，必须作为重大阻断询问用户。本 skill 不创建项目。新业务模块先由 `egon-coding-create-new-module` 从唯一的非 open archetype（`light`、`service`、`web` 或 `agent`）生成。新模块不得选择 `-open` 坐标，也不得复制 `source-projects`。已有 open 或传统三层保持现状。生成器仍不覆盖 open、agent 和传统三层，这些形态不能成为手写 native 目录产物的理由。
 16. 必须使用 `references/complex-scenario-analysis.zh-CN.md` 把 Spec 分类为 `Simple` 或 `Complex`。Complex Spec 在选择架构前必须完成证据图谱、场景矩阵、所有权/一致性分析、质量约束和“证据到决策”结论链；Simple Spec 不得为了形式套用重型分析。
@@ -112,6 +116,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | --- | --- |
 | 所有 Spec | `references/ambiguity-policy.md`、`references/rfc-governance.md`、`references/complex-scenario-analysis.zh-CN.md`、`references/requirements-use-case-analysis.zh-CN.md`、`references/change-surface-and-proportional-depth.zh-CN.md`、`references/minimal-design-and-interface-necessity.zh-CN.md`、`references/review-checklist.md` 和 `assets/spec-template.md` |
 | 所有 Java 设计 | `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`；传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`，COLA 形态读取仓库中准确选中的 Archetype Tree/Verifier |
+| 生成的 archetype 项目进入真实业务，含已有遗留 | 定案 §2.5、变更面、目标文件树和测试前读取 `references/archetype-example-cleanup.md` |
 | 任意 `Affected` HTTP/RPC/事件/Job/内部 Service 契约 | `references/interface-contract-design.zh-CN.md` |
 | 任意 `Affected` 外部 REST 或 GraphQL API | `references/interface-contract-design.zh-CN.md` 和 `references/api-rest-cqe-graphql-openapi.zh-CN.md` |
 | 任意 `Affected` Schema/数据/约束/索引/DDL/分片/数据源/拓扑/事务/锁/持久化所有权表面 | `references/database-design.zh-CN.md` |
@@ -152,7 +157,8 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 字段 | 必需含义 |
 | --- | --- |
 | Document | 当前文件名，使用仓库相对链接或代码值 |
-| Template Version | 当前模板固定为 `7`；既有 Version 2 至 Version 6 文档继续按原规则有效 |
+| Template Version | 当前模板固定为 `9`；既有 Version 2 至 Version 8 文档继续按原规则有效 |
+| Archetype Cleanup | `Required`、`Complete` 或 `Not applicable`，与 §2.5 及当前项目证据一致 |
 | Status | `Draft`、`Review`、`Accepted`、`Implemented`、`Superseded` 或 `Rejected` |
 | Type | `Feature`、`Refactor`、`Bugfix`、`Architecture` 或清晰定义的其他编码类型 |
 | Complexity | `Simple` 或 `Complex` |
@@ -194,6 +200,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
    - 记录真实文件、符号、消费者、调用链、schema、页面、测试和构建命令。
    - 区分仓库/静态证据、推断和未经验证的运行时结论。
    - Caller/Callee 只追踪到足以证明保持边界为止，不能把检查过的上下文隐式变成实施范围。
+   - 判定 archetype 清理触发条件。生成项目的业务工作按 `references/archetype-example-cleanup.md` 扫描全部模块并填写 §2.5，涵盖全部未使用样例链路，不限当前功能；所需清理明确进入范围、REQ、目标路径和验收。触发条件不适用时记录有证据的 `Not applicable`。
 3. **解析设计历史**
    - 搜索当前和旧 Spec 位置。
    - 判断本 Spec 是全新、修订、替代、依赖还是仅相关。
@@ -215,10 +222,12 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
    - 可使用精确签名、字段表、状态转换、文件树和伪代码阐明设计，但不能写生产级完整方法体。
    - 包含选定的用例产物；关系型模型/关系受影响时必须包含 Mermaid ER 图。
    - 每个受影响接口、每张受影响表和每个受影响索引都必须展开；不能为了文档看起来完整而盘点不变元素。
+   - Version 8 Spec 必须保留 §2.5。Required 的每个 Delete/Replace `EXAMPLE-*` 进入 §8 和 §14，对应 `REQ-*` 进入 §4 和 §19；“参考保留”或未定期延后都不能 PASS。
 8. **复核并修复**
    - 执行 `references/review-checklist.md`。
    - 修复遗漏、矛盾、过期路径、含糊占位、追踪断点和无依据的范围膨胀。
    - 逐项人工执行全部阻断型 `MC-*`；失败/阻断必须关闭或改变最终结论，禁止把多项压缩成一句声明。
+   - 全项目样例发现缺失、无依据保留或清理决策未关闭时不得交付 PASS；Plan/Execute 交接必须在首次业务验收前处理清单每个 ID。
 9. **校验并交付**
    - 运行 `scripts/validate_spec.py <spec-path> --strict`。
    - 报告路径、状态、前置关系、假设和未决用户决策。
@@ -283,7 +292,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 只列出表或索引，没有逐项设计 | 每张表和每个索引展开字段、语义、查询/访问证据、索引依据、分片类型、受管 DDL、锁、验证与回滚 |
 | 关系型数据没有 ER 图，或 ER 图遗漏清单表 | 增加 Mermaid `erDiagram`，包含物理名称映射、真实基数/标签和重要 PK/FK/UK 字段，并与每张表详情对齐 |
 | 复杂架构只画一张装饰图 | 分别提供与契约、数据、失败和依赖规则一致的架构图、关键流程图和泳道 Mermaid 图 |
-| 默认在每层都创建 PO/DO/Entity/BO/DTO/VO/Request/Response | 执行类必要性检验；语义完全相同且复用安全时复用，只保留有依据的边界类型 |
+| 默认在每层都创建 PO/DO/Entity/BO/DTO/VO/Result | 执行类必要性检验；语义完全相同且复用安全时复用，只保留有依据的边界类型 |
 | 使用 `DO`、`VO` 或 `Entity` 却不说明仓库语义 | 明确准确职责；当前规范中 `VO` 表示 View Object，`Entity` 必须说明持久化/ORM 语义 |
 | 为减少类数量而把持久化对象直接作为公开契约 | 持久化关注点留在边界内部，只创建确有必要的传输/展示类型 |
 | 为复用代码给业务 Service 设计基类继承树 | 组合显式协作者；只有合理的现有框架扩展契约才允许继承 |
@@ -291,7 +300,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 混用传统分层与 Archetype COLA 职责，或在已选择传统分层时引入 COLA 概念 | 根据仓库证据只选择一种形态；传统分层保持批准的包结构，COLA 则严格遵循所选 `egon-cola-archetype` Tree |
 | 不选择现有传统/准确 Archetype 形态而发明混合架构 | 停止，引用真实 Tree 与 Archetype 证据，结构变更前获得用户决策 |
 | 未检查 Spring/Egon/模块复用就增加依赖或 Helper | 建立复用账本；复用现有能力，或说明已证明缺口和获批影响 |
-| 新载体使用 `Data`、`Info`、`Param` 或 `Bean` | 改成准确 PO/BO/DTO/VO/Query/Command/Event/Request/Response 或行为职责 |
+| 新载体使用 `Data`、`Info`、`Param` 或 `Bean` | 改成准确 PO/BO/DTO/VO/Query/Command/Event/Result 或行为职责 |
 | Manual Check 缺失、失败或未知仍标记 PASS | 关闭全部阻断并补充证据，否则使用 `BLOCKED`/`REVISE` |
 | Controller 直接访问 DAO 或 `service.impl` | 依赖 Service 接口，并把持久化隐藏在实现内部 |
 | 把 Complex 业务规则写成直接逻辑，或遗留 `if/else`/`switch` 分发 | 选择并完整设计强制模式、参与者、注册/选择机制、失败语义和测试 |

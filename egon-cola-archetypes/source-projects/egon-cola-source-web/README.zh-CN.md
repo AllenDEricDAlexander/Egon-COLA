@@ -76,6 +76,8 @@ adapter        -> application, canonical Organization Facade
 starter        -> adapter, infrastructure
 ```
 
+Domain 显式声明父 POM 管理的 Lombok，作用域为 `provided`，保证 code-gen POJO 可编译，不增加运行时依赖。
+
 Infrastructure 实现 Domain 所有的端口。Adapter 不能直接访问 Infrastructure，Starter 只包含组装配置。两个 canonical Facade 都是独立 artifact，不依赖当前生成项目，因此 Web/Service Maven 依赖图不会形成循环。
 
 持久化使用 Common MP Repository 与显式 Mapper XML；Domain Service 不依赖技术 CRUD 类型。

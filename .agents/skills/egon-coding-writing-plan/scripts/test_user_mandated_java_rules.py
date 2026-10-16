@@ -41,7 +41,7 @@ class UserMandatedJavaRulesTest(unittest.TestCase):
 
     def test_current_template_has_exact_rule_matrix_and_markers(self) -> None:
         text = (self.root / "assets/plan-template.md").read_text(encoding="utf-8")
-        self.assertIn("| Template Version | `4` |", text)
+        self.assertIn("| Template Version | `5` |", text)
         start = text.index("### 4.8 User-mandated Java Rule Implementation Matrix")
         end = text.index("\n## 5. Change File Tree", start)
         rows = re.findall(r"(?m)^\| Rule (\d+) \|", text[start:end])
@@ -70,6 +70,30 @@ class UserMandatedJavaRulesTest(unittest.TestCase):
             self.assertIn("@RequiredArgsConstructor(onConstructor_ = @Autowired)", amendment, relative)
             self.assertIn("@Qualifier", amendment, relative)
             self.assertIn("@ConfigurationProperties", amendment, relative)
+
+
+    def test_archetype_naming_contract_keeps_result_and_rejects_request_carriers(self) -> None:
+        for relative in (
+            "references/user-mandated-java-rules.md",
+            "references/user-mandated-java-rules.zh-CN.md",
+        ):
+            text = (self.root / relative).read_text(encoding="utf-8")
+            self.assertIn("`*DTO`", text, relative)
+            self.assertIn("`*Result`", text, relative)
+            self.assertIn("`*PageResult`", text, relative)
+            self.assertIn("`CLEAN`", text, relative)
+        for relative in (
+            "SKILL.md", "SKILL.zh-CN.md",
+            "references/user-mandated-java-rules.md", "references/user-mandated-java-rules.zh-CN.md",
+            "references/java-spring-egon-coding-standards.md", "references/java-spring-egon-coding-standards.zh-CN.md",
+        ):
+            text = (self.root / relative).read_text(encoding="utf-8")
+            for forbidden in (
+                "`Event`, `Request`, `Response`,", "Event、Request、Response、",
+                "may use explicit `*Request`", "protocol-specific `*Request`",
+                "边界可使用明确的 `*Request`", "协议边界可用 `*Request`",
+            ):
+                self.assertNotIn(forbidden, text, relative)
 
 
 if __name__ == "__main__":

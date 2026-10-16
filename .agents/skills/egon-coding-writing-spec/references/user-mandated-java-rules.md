@@ -61,6 +61,8 @@ distinction.
 
 The Spec must record: exact path, type name, role, suffix, source/target layer, mutability model, converter, validation group, and reuse-versus-new decision.
 
+Archetype and code-gen use the same naming contract: protocol-only inputs use `*DTO`, read/write intents use `*Query`/`*Command`, and application/protocol outputs keep `*Result`/`*PageResult` (presentation output keeps `*VO`). Do not introduce project-owned `*Request`/`*Response` carriers or duplicate a type just for a suffix. Preserve framework/third-party contracts, generated protocol types (including Protobuf messages) and unrelated existing APIs. Generated Java paths must match their declared package and public type; compilation, template hashes and `CLEAN` do not prove that contract.
+
 ## Rule 2 — validation at every layer boundary
 
 Repository → DAO is a database-shape boundary only. Validate PO/DAO inputs against CREATE table nullability (`NOT NULL` → `@NotNull`), length, numeric bounds and declared enum values with Jakarta annotations, `@Valid`, `@Validated` and existing Insert(Create)/Update/Delete/Query/Persisted groups. Do not repeat domain/stateful business checks in DAO or rely on `ValidationUtils` as the rule source; the MP mapper interceptor directly invokes Jakarta Validator after fill for inherited CRUD. Unsupported CHECK and later ALTER effects require an agent-owned decision.
@@ -130,6 +132,8 @@ Once classified complex, the Spec must select and fully design at least one appr
 ## Rule 10 — java.time only
 
 Every new or materially changed date/time field, parameter, persistence mapping, JSON field, calculation, duration, timeout, or clock source must use `java.time`. The Spec must name the concrete type (`LocalDate`, `LocalDateTime`, `Instant`, `OffsetDateTime`, `ZonedDateTime`, `Duration`, etc.), timezone, precision, clock source, persistence representation, JSON representation, and conversion boundary. New uses of `java.util.Date`, `Calendar`, or `SimpleDateFormat` fail the rule.
+
+Read `references/time-semantics.md` for the UTC/semantic classification, explicit business/display zones, legacy UTC compatibility and `MC-TIME-001` evidence contract. New Specs use §6.3; new Plans use §4.9; execution verifies the effective decisions and actual checks.
 
 ## Rule 11 — only two code-structure profiles
 

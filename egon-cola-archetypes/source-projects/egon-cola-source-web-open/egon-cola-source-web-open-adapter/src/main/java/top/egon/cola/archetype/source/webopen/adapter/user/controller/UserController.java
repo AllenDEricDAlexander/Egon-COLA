@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.adapter.user.controller;
 
 import top.egon.cola.archetype.source.webopen.adapter.user.pojo.convertor.UserAdapterConverter;
-import top.egon.cola.archetype.source.webopen.adapter.user.pojo.dto.CreateUserRequest;
+import top.egon.cola.archetype.source.webopen.adapter.user.pojo.dto.CreateUserDTO;
 import top.egon.cola.archetype.source.webopen.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.webopen.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.webopen.application.user.pojo.query.UserDetailQuery;
@@ -37,7 +37,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserDetailVO> create(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @Valid @RequestBody CreateUserRequest request) {
+            @Valid @RequestBody CreateUserDTO request) {
         String requestId = idempotencyKey == null ? UUID.randomUUID().toString() : idempotencyKey;
         UserDetailVO body = converter.toVO(userManage.createUser(converter.toCommand(requestId, request)));
         return ResponseEntity.created(URI.create("/api/v1/users/" + body.id())).body(body);

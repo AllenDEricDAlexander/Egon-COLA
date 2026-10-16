@@ -43,6 +43,17 @@ class AgentVerifierTest(unittest.TestCase):
         result = self.verify()
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_package_path_mismatch_is_rejected(self):
+        path = self.project / "deep-research-agent-adapter/src/main/java/it/pkg/adapter/knowledge/pojo/dto/CreateKnowledgeBaseDTO.java"
+        text = path.read_text()
+        path.write_text(text.replace("package it.pkg.adapter.knowledge.pojo.dto;", "package it.pkg.adapter.knowledge.controller;", 1))
+        self.reject("Java package/path mismatch")
+
+    def test_business_request_suffix_is_rejected(self):
+        path = self.project / "deep-research-agent-adapter/src/main/java/it/pkg/adapter/knowledge/pojo/dto/LegacyRequest.java"
+        path.write_text("package it.pkg.adapter.knowledge.pojo.dto;\npublic class LegacyRequest {}\n")
+        self.reject("Business carrier must use DTO/Command/Query or Result/VO")
+
     def test_unknown_rpc_module_is_rejected(self):
         self.add_library("egon-cola-component-rpc-unapproved-5.4.1.jar")
         self.reject("Unapproved Agent RPC/Tianshu runtime library")

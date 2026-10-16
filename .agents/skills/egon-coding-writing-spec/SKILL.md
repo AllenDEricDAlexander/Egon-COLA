@@ -11,7 +11,7 @@ After resource preflight, read `references/backend-code-generation.md` for Java 
 
 For native CRUD, `backend-crud` uses the full Repository → Domain Service → Manage → Controller chain where that profile supports HTTP. Check `EgonModel` fields in DDL and keep them inherited in PO. A v1 or stale plan and unmanaged files block apply; use the v2 generator plan and review the exact file list.
 
-Inventory the archetype’s sample controllers, services, repositories, PO/DAO and configuration, plus sample SQL only while unapplied in the target project. The Spec must identify which examples are replaced or deleted for the real domain; sample code is reference material, not production behavior.
+Before real business work on a generated project, read `references/archetype-example-cleanup.md` and assess the whole target project across all modules. Record the origin/scan evidence and resolve every unused example in §2.5; feature-local cleanup is insufficient. This also applies to existing projects with remnants and missing creation history. Preserve evidenced real business, required infrastructure and applied SQL history. The Spec designs deletion/replacement; implementation follows its approved cleanup inventory.
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -40,7 +40,11 @@ The specification defines **what must be built and why the design is coherent**.
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`.
   - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
-- Start from Template Version 7 in `assets/spec-template.md`. Keep every numbered chapter, but allocate depth using `references/change-surface-and-proportional-depth.md`: fully design `Affected` areas, keep `Context-only` and `Unchanged` areas concise, and use evidence-backed `N/A` only for `Not applicable`. The validator continues to accept existing Version 2 through Version 6 Specs under their original contracts.
+- Start from Template Version 9 in `assets/spec-template.md`, including the archetype-cleanup assessment. Keep every numbered chapter, but allocate depth using `references/change-surface-and-proportional-depth.md`: fully design `Affected` areas, keep `Context-only` and `Unchanged` areas concise, and use evidence-backed `N/A` only for `Not applicable`. The validator continues to accept existing Version 2 through Version 8 Specs under their original contracts.
+
+## Time semantics and UTC policy
+
+When time semantics or boundaries are affected, read `references/time-semantics.md`. Distinguish occurred instants (UTC storage and ISO 8601 `Z` transmission), pure dates, local times, zoned schedules and durations. Use explicit business zones for computation and explicit display zones on the frontend; enforce `MC-TIME-001` with concrete boundary/compatibility evidence. This policy does not expand the authorized code/data/migration scope.
 
 ## Resource-integrity preflight
 
@@ -85,7 +89,7 @@ Do not translate, renumber, correct, shorten, or replace this block with a parap
 10. Do not mark a Spec `Accepted` without explicit user/decision-owner approval. An internally complete draft awaiting approval is `Review`; unresolved major decisions require `Draft` and a blocked conclusion.
 11. Design every `Affected` area at detailed-design depth: exact paths/packages, symbols, contracts, fields, state rules, schema, page states, test cases, compatibility, and failure semantics as applicable. For `Context-only` and `Unchanged` areas, record only the evidence, preserved invariant, reason no change is required, and focused verification. Do not invent full production implementations or redesign adjacent layers.
 12. Review the finished Spec against the original user request and the current repository before delivery. Fix internal defects yourself; surface only unresolved major decisions.
-13. Classify Java objects by their actual boundary and lifecycle roles. Follow `references/pojo-modeling.md` and `references/java-spring-egon-coding-standards.md`. New or materially changed carriers use explicit semantic suffixes such as PO, BO, DTO, VO, Query, Command, Event, Request, Response, PageQuery, or PageResult; DAO names an access component. Do not create parallel classes by default, and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carrier names.
+13. Classify Java objects by their actual boundary and lifecycle roles. Follow `references/pojo-modeling.md` and `references/java-spring-egon-coding-standards.md`. New or materially changed carriers use explicit semantic suffixes such as PO, BO, DTO, VO, Query, Command, Event, Result, PageQuery, or PageResult; DAO names an access component. Do not create parallel classes by default, and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carrier names.
 14. Prevent class explosion. Require a concrete semantic reason for every distinct object and mapper. PO/ORM Entity inheritance is allowed only with repository and lifecycle justification; concrete business services default to composition and delegation rather than inheritance.
 15. Before Java package design, classify the current project as exactly one allowed profile: the traditional structure defined by `references/three-layer-architecture.md`, or the exact selected `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}` contract, including an explicitly selected open variant. Preserve the selected profile and its verifier/dependency direction. Do not invent, hybridize, or rename layers/modules. If the project matches neither profile or the evidence conflicts, treat architecture as a major blocker and ask the user. This skill does not create the project. A new business module is generated first by `egon-coding-create-new-module` from exactly one non-open archetype (`light`, `service`, `web`, or `agent`). Do not select an `-open` artifact for that new module and do not copy `source-projects`. An existing open or traditional tree stays as it is. The generator still does not cover open, agent, or traditional, and those profiles are not a reason to handwrite native catalog output.
 16. Classify every Spec as `Simple` or `Complex` using `references/complex-scenario-analysis.md`. For a Complex Spec, complete the evidence map, scenario matrix, ownership/consistency analysis, quality constraints, and evidence-to-decision conclusion chain before selecting the architecture. Do not burden a Simple Spec with ceremonial analysis.
@@ -110,6 +114,7 @@ Read every applicable reference **completely before drafting the corresponding c
 | --- | --- |
 | Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/change-surface-and-proportional-depth.md`, `references/minimal-design-and-interface-necessity.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
 | Every Java design | `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`; also `references/three-layer-architecture.md` and `references/pojo-modeling.md` for the traditional profile, or the exact selected repository Archetype tree/verifier for the COLA profile |
+| Real business work in a generated archetype project, including existing remnants | `references/archetype-example-cleanup.md` before deciding §2.5, change surface, target tree and tests |
 | Any `Affected` HTTP/RPC/event/job/internal Service contract | `references/interface-contract-design.md` |
 | Any `Affected` external REST or GraphQL API | `references/interface-contract-design.md` and `references/api-rest-cqe-graphql-openapi.md` |
 | Any `Affected` schema/data/constraint/index/DDL/sharding/datasource/topology/transaction/locking/persistence-ownership surface | `references/database-design.md` |
@@ -150,7 +155,8 @@ Use this exact header field set in every Spec:
 | Field | Required meaning |
 | --- | --- |
 | Document | Current filename as a relative repository link or code value |
-| Template Version | `7` for the current template; existing Version 2 through Version 6 documents remain valid under their effective rules |
+| Template Version | `9` for the current template; existing Version 2 through Version 8 documents remain valid under their effective rules |
+| Archetype Cleanup | `Required`, `Complete`, or `Not applicable`, matching §2.5 and its current project evidence |
 | Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
 | Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
 | Complexity | `Simple` or `Complex` |
@@ -192,6 +198,7 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
    - Record real files, symbols, consumers, call chains, schemas, pages, tests, and build commands.
    - Separate repository/static evidence from assumptions and from unverified runtime claims.
    - Trace callers and callees only until the preserved boundary is proven; do not turn inspected context into implicit implementation scope.
+   - Assess the archetype-cleanup trigger. For generated-business work, scan all target modules and complete §2.5 under `references/archetype-example-cleanup.md`; include all unused example chains, not only the touched feature. Make needed cleanup explicit scope, requirements, target paths and acceptance tests. For absent triggers, record evidence-backed `Not applicable`.
 3. **Resolve design history**
    - Search current and legacy Spec locations.
    - Determine whether this Spec is new, amending, superseding, dependent, or merely related.
@@ -213,10 +220,12 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
    - Use exact signatures, field tables, state transitions, file trees, and pseudocode where they clarify design; do not write production-ready method bodies.
    - Include the selected use-case artifact and, when the relational model/relationships are affected, the Mermaid ER diagram.
    - Expand every affected interface and every affected table/index; do not inventory unchanged elements merely to make the document look complete.
+   - Preserve §2.5 in every Version 8 Spec. Required cleanup must trace each Delete/Replace `EXAMPLE-*` through §8 and §14 and its `REQ-*` through §4 and §19; a reference-only or deferred example cannot PASS.
 8. **Review and repair**
    - Apply `references/review-checklist.md`.
    - Repair omissions, contradictions, stale paths, vague placeholders, broken traceability, and unjustified scope expansion.
    - Execute every blocking `MC-*` row manually. Close failures and blockers or change the final verdict; do not summarize several checks into one assertion.
+   - Reject missing whole-project example discovery, unsupported retention or unresolved cleanup decisions. The Plan/Execute handoff must consume every inventory ID before first-business acceptance.
 9. **Validate and deliver**
    - Run `scripts/validate_spec.py <spec-path> --strict`.
    - Report the path, status, predecessor relationships, assumptions, and unresolved user decisions.
@@ -281,7 +290,7 @@ Use exactly one:
 | Listing tables or indexes without per-item design | Expand every table and index with columns, semantics, query/access evidence, index rationale, sharding type, managed DDL, locking, verification, and rollback |
 | Designing relational data without an ER diagram, or drawing an ER diagram that omits inventory tables | Add a Mermaid `erDiagram` with physical-name mapping, actual cardinalities/labels, and material PK/FK/UK fields; reconcile it with every table detail |
 | Using a single decorative diagram for a complex architecture | Provide separate architecture, critical-flow, and swimlane Mermaid views that match contracts, data, failures, and dependency rules |
-| Creating PO/DO/Entity/BO/DTO/VO/Request/Response for every layer by default | Apply the class-necessity test; reuse semantically identical safe types and keep only justified boundaries |
+| Creating PO/DO/Entity/BO/DTO/VO/Result for every layer by default | Apply the class-necessity test; reuse semantically identical safe types and keep only justified boundaries |
 | Using ambiguous `DO`, `VO`, or `Entity` terminology without repository meaning | State the exact role; in the current profile, `VO` means View Object and `Entity` must have an explicit persistence/ORM meaning |
 | Reusing a persistence object as a public contract to reduce classes | Keep persistence concerns behind the boundary and create only the necessary transport/view type |
 | Designing business services through a base-class hierarchy for code reuse | Compose explicit collaborators; allow inheritance only for a justified existing framework extension contract |
@@ -289,7 +298,7 @@ Use exactly one:
 | Mixing traditional-layer and Archetype COLA responsibilities, or adding COLA concepts while the traditional profile is selected | Select exactly one profile from repository evidence; keep traditional work in its approved packages, or follow the selected `egon-cola-archetype` tree exactly |
 | Inventing a hybrid architecture instead of selecting the current traditional or exact Archetype profile | Stop, cite the real tree and Archetype evidence, and obtain a user decision before structural change |
 | Adding a dependency or helper without checking Spring/Egon/module reuse | Build the reuse ledger; use existing capability or document the proven gap and approved impact |
-| Using `Data`, `Info`, `Param`, or `Bean` for a new carrier | Rename it to the exact PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior role |
+| Using `Data`, `Info`, `Param`, or `Bean` for a new carrier | Rename it to the exact PO/BO/DTO/VO/Query/Command/Event/Result or behavior role |
 | Marking the Spec PASS with a missing/failed/unknown Manual Check | Close every blocker and add evidence, or use `BLOCKED`/`REVISE` |
 | Letting a Controller access DAO or `service.impl` directly | Depend on the Service interface and keep persistence behind the implementation |
 | Treating a Complex business rule as direct logic or leaving `if/else`/`switch` dispatch | Select and fully design the mandatory pattern, participants, registration/selection mechanism, failures, and tests |

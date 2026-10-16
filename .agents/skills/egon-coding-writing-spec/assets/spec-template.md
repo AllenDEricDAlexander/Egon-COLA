@@ -3,7 +3,8 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `7` |
+| Template Version | `9` |
+| Archetype Cleanup | `Required / Complete / Not applicable` |
 | Status | `Draft` |
 | Type | `Feature / Refactor / Bugfix / Architecture` |
 | Complexity | `Simple / Complex` |
@@ -50,6 +51,28 @@ For a Complex Spec, trace every material entry/trigger through consumers, data, 
 | Entry/trigger | Current call chain | Data read/written | External dependency | Consumers | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | `<entry>` | `<symbols in order>` | `<stores>` | `<system or None>` | `<callers>` | `<paths/symbols>` |
+
+### 2.5 Archetype example cleanup
+
+Read `references/archetype-example-cleanup.md` for real business work on a generated project. Scan all target modules, including unrelated unused example domains; creation history is helpful but not required. This section is mandatory in Version 8. Use `Required` when cleanup or an ownership/data decision remains, `Complete` after a fresh scan proves no unused example remains, or evidence-backed `Not applicable` when the trigger is absent. Match the header.
+
+Cleanup disposition: `<Required / Complete / Not applicable>`
+
+Target project: `<exact generated business-project root and modules>`
+
+Origin evidence: `<archetype GAV/version and handoff, or current source-comparison/provenance evidence>`
+
+Scan scope: All target modules
+
+Scan evidence: `<current paths, registrations, callers, resources/tests/docs/configuration checked, commands and limits>`
+
+| Example ID | Exact paths/symbols | Origin evidence | Action | Real-business requirement / infrastructure purpose | Incoming references/config/data handling | Acceptance evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `EXAMPLE-001` | `<exact files/directory ownership and registrations>` | `<source comparison/handoff/current behavior>` | Delete / Replace / Real business / Infrastructure / Applied history / Blocked | `<REQ/UC for business or concrete technical purpose>` | `<consumer/Bean/route/XML/config/data consequence>` | `<test/scan criterion and verification limit>` |
+
+Delete/Replace/Real business rows reference §4 and §19 requirements; Real business also names its `UC-*`. Delete/Replace IDs must appear in §8's exact changes and §14's acceptance design, and cleanup must be an `Affected` §3.3 row including §8/§14. Keep required infrastructure and real-business code, not reference-only examples. Applied history is limited to immutable applied `.sql` files; correction uses a new version. Blocked prevents PASS.
+
+For Complete, remove unfinished cleanup rows and provide `Residual evidence:` with fresh absence/real-business evidence. For Not applicable, replace this inventory/fields with `Cleanup disposition: Not applicable` and an evidenced `Reason:`; unrelated maintenance does not require a fictional scan. Do not label a first business feature N/A merely because it changes one module.
 
 ## 3. Goals and Non-goals
 
@@ -184,11 +207,24 @@ Read `references/user-mandated-java-rules.md`. Keep one independent row for ever
 | Rule 3 | Yes / No | `<affected data objects and BaseConverter>` | `<value-object record/class complex Lombok baseline/MapStruct>` | `<models/converters>` | `<constructor/mapping tests>` | PASS / N/A / BLOCKED |
 | Rule 4 | Yes / No | `<business classes/Beans/lombok.config>` | `<@Slf4j/named Bean/@RequiredArgsConstructor/@Qualifier>` | `<business classes/config>` | `<wiring/logging tests or static gate>` | PASS / N/A / BLOCKED |
 | Rule 5 | Yes / No | `<imports/dependencies/existing helpers>` | `<closed utility allowlist>` | `<affected utility call sites>` | `<dependency/import search>` | PASS / N/A / BLOCKED |
-| Rule 6 | Yes / No | `<external JSON contracts>` | `<Jackson annotations/default proof>` | `<DTO/VO/Request/Response/etc.>` | `<serialization/compatibility tests>` | PASS / N/A / BLOCKED |
+| Rule 6 | Yes / No | `<external JSON contracts>` | `<Jackson annotations/default proof>` | `<DTO/VO/Result/etc.>` | `<serialization/compatibility tests>` | PASS / N/A / BLOCKED |
 | Rule 7 | Yes / No | `<all environment profiles>` | `<identical key structure; values may differ>` | `<profile files/properties class>` | `<key-parity/config binding tests>` | PASS / N/A / BLOCKED |
 | Rule 9 | Yes / No | `<business-complexity classification>` | `<mandatory pattern for Complex logic>` | `<participants/files>` | `<variation/branch/pattern tests>` | PASS / N/A / BLOCKED |
-| Rule 10 | Yes / No | `<all affected time fields/APIs>` | `<java.time types and boundary semantics>` | `<exact paths/fields>` | `<time/serialization/persistence tests>` | PASS / N/A / BLOCKED |
+| Rule 10 | Yes / No | `<all affected time fields/APIs>` | `<§6.3 semantic/UTC/business/display/compatibility decisions>` | `<exact paths/fields>` | `<time/serialization/persistence tests>` | PASS / N/A / BLOCKED |
 | Rule 11 | Yes / No | `<current tree/archetype/verifier>` | `<traditional or exact Archetype only>` | `<target package/file tree>` | `<architecture verifier/static gate>` | PASS / N/A / BLOCKED |
+
+
+### 6.3 Time semantics and conversion contract
+
+Read `references/time-semantics.md`. Retain this section for every new document. Use `Time contract: Required` for affected time semantics/boundaries, or `Time contract: Not applicable` with `Reason: <exact unaffected-scope evidence>` and no field rows. This section does not authorize changes outside the effective scope.
+
+Time contract: `<Required / Not applicable>`
+
+| Time ID | Fields/symbols | Semantics | Java/runtime type | Storage policy | Wire policy | Business zone source | Display zone source | Boundary / DST rules | Precision / Clock | Compatibility | Verification |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `TIME-001` | `<exact fields/symbols>` | `<Occurred instant / Pure date / Local time / Zoned schedule / Duration>` | `<exact type>` | `<UTC instant / Pure date / Local time / Local + zone / Duration / Legacy UTC / Not persisted>` | `<UTC Z / Pure date / Local / Local + zone / Duration / Internal>` | `<authoritative zone source/precedence or Not applicable: reason>` | `<user preference/business zone/browser fallback or Not applicable: reason>` | `<input normalization, calendar range and DST gap/overlap policy where relevant>` | `<DB/wire precision, Clock and truncation or Not applicable: reason>` | `<preserved legacy contracts, verified UTC conversion or Not applicable: reason>` | `<TEST-NNN defined in §14 for applicable boundaries>` |
+
+One row may group only fields with identical semantic/boundary policies. Keep canonical English policy tokens in either document language. New occurred instants use UTC storage and ISO 8601 `Z` output; pure dates remain dates. Legacy UTC storage requires exact existing-contract/conversion evidence. Business zones are explicit and independent from server/browser defaults. Map these decisions into affected interface/database/frontend chapters and §14 cases; MC-TIME-001 records the blocking evidence.
 
 ## 7. Architecture Design
 
@@ -584,7 +620,7 @@ Classify every proposed Java object by its repository-defined semantic role. Sta
 | --- | --- | --- | --- | --- | --- |
 | `<Type>` | PO / DTO / View Object / BO / ORM Entity / Query / Command / Event / Request / Response / PageQuery / PageResult | `<owner and crossings>` | `<concrete semantic difference or safe reuse evidence>` | `<MapStruct/MapStructPlus converter or None>` | `REQ-001` |
 
-Do not introduce new ambiguous `DO`, `Data`, `Info`, `Param`, or `Bean` carriers. Do not create parallel PO/Entity/BO/DTO/VO/Request/Response types merely because architectural layers exist. Add a class only for a real ownership, contract, validation/exposure, lifecycle/invariant, persistence, projection, pagination, or independent-versioning boundary. Do not expose a persistence object as a public contract merely to reduce the class count.
+Do not introduce new ambiguous `DO`, `Data`, `Info`, `Param`, or `Bean` carriers. Do not create parallel PO/Entity/BO/DTO/VO/Result types merely because architectural layers exist. Add a class only for a real ownership, contract, validation/exposure, lifecycle/invariant, persistence, projection, pagination, or independent-versioning boundary. Do not expose a persistence object as a public contract merely to reduce the class count.
 
 ### 10.2 Persistence objects, ORM entities, and business data objects
 
@@ -837,6 +873,8 @@ Confirm every explicit request is represented by a `REQ-*` or explicit non-goal 
 
 Confirm paths, symbols, consumers, commands, language/framework choices, migration policy, and test tools against the current baseline.
 
+Reconcile §2.5 with the actual target project's example inventory. Required cleanup must be explicit scope/requirements/file changes/tests and a Plan/Execute handoff covering every ID before first-business acceptance. A Spec can prove the cleanup design, not that implementation files are already removed. Reject reference-only retention and preserve real infrastructure, user-owned business code and applied SQL history.
+
 ### 20.3 Cross-section consistency
 
 Confirm architecture, file tree, interfaces, fields, POJO/entity state, schema, page flows, failure semantics, security, compatibility, tests, and traceability describe one design.
@@ -872,7 +910,7 @@ Read `references/user-mandated-java-rules.md` and `references/java-spring-egon-c
 | `MC-BEAN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<Bean names/Qualifier/lombok.config>` | `<injection result>` | `None / action` |
 | `MC-UTIL-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<utility/dependency evidence>` | `<approved utility result>` | `None / action` |
 | `MC-JSON-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<contract/Jackson/OpenAPI/GraphQL wire evidence>` | `<JSON/schema result>` | `None / action` |
-| `MC-TIME-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<time fields/mapping evidence>` | `<java.time result>` | `None / action` |
+| `MC-TIME-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<time fields/mapping evidence>` | `<UTC/semantic/business/display boundary result>` | `None / action` |
 | `MC-CONFIG-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all-profile key comparison, including docs/GraphQL exposure when affected>` | `<configuration parity result>` | `None / action` |
 | `MC-PATTERN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<complexity classification/pattern evidence>` | `<mandatory Complex pattern or Simple direct result>` | `None / action` |
 | `MC-SCOPE-001` | Applicable | PASS / FAIL / BLOCKED | `<change surface and touched-code evidence>` | `<scope compliance>` | `None / action` |

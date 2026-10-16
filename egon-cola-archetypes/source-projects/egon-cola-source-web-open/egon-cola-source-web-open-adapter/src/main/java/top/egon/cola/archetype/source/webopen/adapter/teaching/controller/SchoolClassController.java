@@ -1,8 +1,8 @@
 package top.egon.cola.archetype.source.webopen.adapter.teaching.controller;
 
 import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.convertor.SchoolClassAdapterConverter;
-import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.AssignUserToClassRequest;
-import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.CreateSchoolClassRequest;
+import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.AssignUserToClassDTO;
+import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.CreateSchoolClassDTO;
 import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.vo.SchoolClassDetailVO;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.SchoolClassManage;
 import top.egon.cola.archetype.source.webopen.application.teaching.pojo.query.SchoolClassDetailQuery;
@@ -36,7 +36,7 @@ public class SchoolClassController {
 
     @PostMapping("/school-classes")
     public ResponseEntity<SchoolClassDetailVO> create(
-            @Valid @RequestBody CreateSchoolClassRequest request,
+            @Valid @RequestBody CreateSchoolClassDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
         SchoolClassDetailVO result = converter.toVO(
@@ -58,7 +58,7 @@ public class SchoolClassController {
     public ResponseEntity<Void> assignUser(
             @PathVariable String gradeId,
             @PathVariable String schoolClassId,
-            @Valid @RequestBody AssignUserToClassRequest request,
+            @Valid @RequestBody AssignUserToClassDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
         schoolClassManage.assignUser(

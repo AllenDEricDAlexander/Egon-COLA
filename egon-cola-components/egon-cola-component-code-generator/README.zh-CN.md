@@ -96,3 +96,17 @@ Update 允许 MP 部分更新省略字段，Persisted 校验已加载行。复�
 `TIMESTAMP 'now'` 会固定为建表时刻；`timezone('UTC', now())` 返回无时区值，不能作为发生时刻列默认值。
 排课起止仍要求调用者显式提供，`deleted_at` 保持 nullable。MP 提案只推导类型，不自动补默认值。
 历史迁移保持不可变；本规则不执行或重写 SQL。
+
+## 生成 Java 契约与模板纠正
+
+计划写出候选文件之前，全部选中 Java 产物必须满足源码路径、声明包和公开类型名一致；
+不一致返回 `JAVA_SOURCE_MISMATCH`，退出码 2。持久化转换器属于
+`infrastructure.<domain>.converter`，Domain Service 实现显式导入它。Archetype 的纯协议
+入参载体使用 `DTO`；`Command`/`Query` 入参与 `Result`/`PageResult` 输出保留语义名称。
+框架类型和生成的协议类型保持不变。
+
+`CLEAN` 只表示选中文件匹配当前模板，不代表架构验收。升级工具/模板后重新生成计划。
+未被人工修改的生成 converter 可以原位更新，基线哈希由 `apply` 维护。Domain Service
+已有业务修改时，整组 apply 必须在写入前停止；只选择未改动的生成文件，将 Service 的
+import 调整单独审阅合并，保留其原始基线和预期差异。不得重置哈希或删除状态来强行
+得到 `CLEAN`。使用干净编译重新生成 MapStruct 实现，确认新包落点并清除旧包残留。

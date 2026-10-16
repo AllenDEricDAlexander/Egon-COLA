@@ -48,13 +48,13 @@ class KnowledgeContractTest {
      * happens.
      */
     private static final Set<String> TYPE_SUFFIXES = Set.of(
-            "BO", "Channel", "Command", "Configuration", "Controller", "Converter", "DAO", "Deserializer",
+            "BO", "Channel", "Command", "Configuration", "Controller", "Converter", "DAO", "DTO", "Deserializer",
             "Enum", "Event", "Exception", "Filter", "Gateway", "Handler", "Impl", "Lease", "Manage",
-            "Metadata", "PO", "Properties", "Repository", "Request", "Runtime", "Service", "Tenant", "VO");
+            "Metadata", "PO", "Properties", "Query", "Repository", "Result", "Runtime", "Service", "Tenant", "VO");
 
     /** Endings that name a carrier without saying what it carries. */
     private static final List<String> FORBIDDEN_SUFFIXES =
-            List.of("Data", "Info", "Param", "Bean", "DTO", "Entity", "Helper", "Utils", "Util");
+            List.of("Data", "Info", "Param", "Bean", "Request", "Response", "Entity", "Helper", "Utils", "Util");
 
     /** One {@code class}/{@code interface}/{@code enum}/{@code record} declaration of a file. */
     private static final Pattern DECLARATION = Pattern.compile(

@@ -88,6 +88,10 @@ public class CodegenCommand {
                 default -> error(out, err, 2, "CONFIG_REQUIRED", "unknown command");
             };
         } catch (Exception exception) {
+            if (exception instanceof OutputPathValidator.PathValidationException failure
+                    && OutputPathValidator.JAVA_SOURCE_MISMATCH.equals(failure.getCode())) {
+                return error(out, err, 2, failure.getCode(), failure.getMessage());
+            }
             if (exception instanceof PostgreDdlAdapter.DdlParseException failure) {
                 int code = "apply".equals(args[0]) ? 6 : 2;
                 return error(out, err, code, code == 6 ? "STALE_PLAN" : failure.getCode(), failure.getMessage());
@@ -248,6 +252,11 @@ public class CodegenCommand {
                                 artifact, table.getLogicalName(), templates.render(artifact, model)));
                     }
                 }
+            }
+        }
+        for (GenerationPlanService.RenderedFile file : files) {
+            if (file.relativePath().endsWith(".java")) {
+                paths.checkJavaSource(file.relativePath(), file.bytes());
             }
         }
         return files;

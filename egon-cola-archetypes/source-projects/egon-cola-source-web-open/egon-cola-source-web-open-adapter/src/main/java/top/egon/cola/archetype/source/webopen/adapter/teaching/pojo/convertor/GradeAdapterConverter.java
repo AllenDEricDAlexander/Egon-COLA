@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.convertor;
 
-import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.CreateGradeRequest;
+import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.CreateGradeDTO;
 import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.vo.GradeDetailVO;
 import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.CreateGradeCommand;
 import top.egon.cola.archetype.source.webopen.application.teaching.pojo.result.GradeDetailResult;
@@ -21,7 +21,7 @@ public interface GradeAdapterConverter extends BaseForwardConverter<GradeDetailR
     @Mapping(target = "requestId", source = "requestId")
     @Mapping(target = "code", source = "request.code")
     @Mapping(target = "name", source = "request.name")
-    CreateGradeCommand toCommand(String requestId, CreateGradeRequest request);
+    CreateGradeCommand toCommand(String requestId, CreateGradeDTO request);
 
     @Override
     GradeDetailVO toTarget(GradeDetailResult source);
@@ -32,7 +32,7 @@ public interface GradeAdapterConverter extends BaseForwardConverter<GradeDetailR
     }
 
     @BeforeMapping
-    default void requireRequest(CreateGradeRequest request) {
+    default void requireRequest(CreateGradeDTO request) {
         Objects.requireNonNull(request, "request");
     }
 

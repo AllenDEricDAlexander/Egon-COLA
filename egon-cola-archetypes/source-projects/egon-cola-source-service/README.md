@@ -71,6 +71,8 @@ Common <- Domain <- Application <- Adapter -> Own Evaluation Facade (protocol on
           Adapter <- Starter -> Infrastructure
 ```
 
+Domain declares the parent-managed Lombok dependency with `provided` scope so code-gen POJOs compile without adding a runtime dependency.
+
 More precisely: Domain depends only on Common; Facade depends on no internal module; Application and Infrastructure depend only on Domain; Adapter depends on Application plus this project's own Facade. Adapter implements the owned Evaluation Facade contract. When enabled at generation, Infrastructure consumes the published Organization Facade contract; neither that artifact nor its provider depends on this generated project. Starter is the composition root, so there is no Web/Service Maven dependency cycle.
 
 ## Example Flows

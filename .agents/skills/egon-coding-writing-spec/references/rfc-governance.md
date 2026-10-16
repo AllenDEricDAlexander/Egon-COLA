@@ -7,7 +7,7 @@
 - The abstract is concise, stable, and specific enough to avoid collisions.
 - Never reuse a path for a different design and never overwrite a predecessor. If a collision occurs, choose a more specific abstract.
 - Header `Document`, `Created`, and `Updated` values must agree with the file and actual history.
-- New Specs use `Template Version: 7` plus `Complexity`, `Complexity Drivers`, `Change Surface`, `Affected Chapters`, the literal-rule compliance matrix, the complete blocking Manual Check catalog, and the API governance/gates when an external API is affected. Version 2 through Version 6 Specs remain valid under their original contracts; older historical Specs remain usable when their design is authoritative. Do not rewrite a predecessor only to upgrade its template.
+- New Specs use `Template Version: 9` plus `Complexity`, `Complexity Drivers`, `Change Surface`, `Affected Chapters`, `Archetype Cleanup`/§2.5, time-semantics contract §6.3, the literal-rule compliance matrix, the complete blocking Manual Check catalog, and the API governance/gates when an external API is affected. Version 2 through Version 8 Specs remain valid under their original contracts; older historical Specs remain usable when their design is authoritative. Do not rewrite a predecessor only to upgrade its template. Existing-business work with archetype remnants still needs the effective cleanup decision under the current skill, even when the authoritative predecessor uses an older template.
 
 ## Status lifecycle
 
@@ -51,3 +51,5 @@ Cite exact locations such as `docs/legacy/identity-design.md §15.1`, using the 
 ## Backlinks and immutability
 
 When creating a Plan, add it to the Spec's `Related Plans` metadata if repository policy permits metadata maintenance. When creating an amendment/supersession, add a metadata-only backlink to the predecessor if safe. Do not make backlink updates when the predecessor is immutable by repository rule; the forward link remains authoritative.
+
+For Version 9, verify §6.3 time applicability and every TIME row against affected fields, §14 cases and MC-TIME-001. Read `references/time-semantics.md`; UTC instant storage/wire, pure-date stability, explicit business/display zones, DST/precision and legacy compatibility require evidence. Older template versions keep their original structural validation; current affected work still needs effective time decisions.

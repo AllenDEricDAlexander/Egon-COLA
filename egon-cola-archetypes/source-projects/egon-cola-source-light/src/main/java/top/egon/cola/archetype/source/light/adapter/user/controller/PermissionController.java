@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.light.adapter.user.pojo.convertor.UserAdapterConvertor;
-import top.egon.cola.archetype.source.light.adapter.user.pojo.dto.GrantPermissionRequest;
+import top.egon.cola.archetype.source.light.adapter.user.pojo.dto.GrantPermissionDTO;
 import top.egon.cola.archetype.source.light.adapter.user.pojo.vo.PermissionTreeVO;
 import top.egon.cola.archetype.source.light.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.light.application.user.pojo.command.GrantPermissionCommand;
@@ -62,7 +62,7 @@ public class PermissionController {
     @RBACAPIResource(code = "egon-cola-source-light.api.permission.grant", permission = "egon-cola-source-light:permission:grant", name = "Grant permission")
     public PermissionResult grantPermission(
             @PathVariable String roleCode,
-            @Valid @RequestBody GrantPermissionRequest request) {
+            @Valid @RequestBody GrantPermissionDTO request) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-light:permission:grant", authorizationProperties.getSystemCode(),
                 "egon-cola-source-light.api.permission.grant", Set.of("permissionCode")));
         RequestContext context = RequestContextHolder.getRequired();

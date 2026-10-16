@@ -125,17 +125,17 @@ class ArchetypeContractConvergenceTest {
     @Test
     void boundaryCarriersLiveInThePojoDirectories() throws IOException {
         for (String path : List.of(
-                "adapter:knowledge/pojo/dto/AskKnowledgeBaseRequest.java",
-                "adapter:knowledge/pojo/dto/CreateKnowledgeBaseRequest.java",
-                "adapter:knowledge/pojo/dto/RetrieveKnowledgeRequest.java",
-                "adapter:knowledge/pojo/dto/UpdateKnowledgeBaseRequest.java",
+                "adapter:knowledge/pojo/dto/AskKnowledgeBaseDTO.java",
+                "adapter:knowledge/pojo/dto/CreateKnowledgeBaseDTO.java",
+                "adapter:knowledge/pojo/dto/RetrieveKnowledgeDTO.java",
+                "adapter:knowledge/pojo/dto/UpdateKnowledgeBaseDTO.java",
                 "adapter:knowledge/pojo/vo/KnowledgeBaseVO.java",
                 "adapter:knowledge/pojo/vo/KnowledgeDocumentVO.java",
                 "adapter:knowledge/pojo/vo/KnowledgeQaEventVO.java",
                 "adapter:knowledge/pojo/vo/KnowledgeQaReferenceVO.java",
                 "adapter:knowledge/pojo/vo/KnowledgeRetrievalVO.java",
                 "adapter:knowledge/pojo/vo/KnowledgeRetrievedChunkVO.java",
-                "adapter:research/pojo/dto/StartDeepResearchRequest.java",
+                "adapter:research/pojo/dto/StartDeepResearchDTO.java",
                 "adapter:research/pojo/vo/DeepResearchEventVO.java",
                 "application:knowledge/pojo/command/AskKnowledgeBaseCommand.java",
                 "application:knowledge/pojo/command/CreateKnowledgeBaseCommand.java",
@@ -456,7 +456,7 @@ class ArchetypeContractConvergenceTest {
         String verifier = read(definition.resolve("src/test/resources/projects/basic/verify.groovy"));
         assertTrue(verifier.contains("infrastructure/research/service/impl/AgentFlowDeepResearchAgentServiceImpl.java"),
                 "the verifier must expect the domain service implementation behind the Service boundary");
-        assertTrue(verifier.contains("adapter/research/pojo/dto/StartDeepResearchRequest.java"),
+        assertTrue(verifier.contains("adapter/research/pojo/dto/StartDeepResearchDTO.java"),
                 "the verifier must expect the inbound carrier in the pojo directory");
         assertTrue(verifier.contains("adapter/research/pojo/vo/DeepResearchEventVO.java"),
                 "the verifier must expect the outbound carrier in the pojo directory");

@@ -58,6 +58,8 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 Spec 必须记录准确路径、类型、职责、后缀、来源/目标层、可变性、Converter、Validation Group 和复用/新增决策。
 
+Archetype 与 code-gen 使用同一命名契约：纯协议入参使用 `*DTO`，读写意图使用 `*Query`/`*Command`，应用/协议输出保留 `*Result`/`*PageResult`（展示输出保留 `*VO`）。不新增项目自有 `*Request`/`*Response` 载体，不因后缀重复建类；保留框架/第三方契约、生成的协议类型（包括 Protobuf 消息）及范围外存量 API。生成 Java 路径必须匹配声明包与公开类型，编译、模板哈希和 `CLEAN` 不能替代该契约。
+
 ## 规则 2——每个层间边界都校验
 
 Repository → DAO 只按数据库表结构约束校验：`NOT NULL`→`@NotNull`、长度、数值范围和 DDL 声明的枚举取值。PO/DAO 入参使用 Jakarta 注解、`@Valid`、`@Validated` 及已有 Insert（Create）/Update/Delete/Query/Persisted 分组。DAO 不重复领域/状态业务校验，不把 `ValidationUtils` 当规则来源；MP Mapper 拦截器负责继承 CRUD 的填充后校验。复杂 CHECK 与后续 ALTER 影响由 agent 决定。
@@ -116,6 +118,8 @@ Gson、Fastjson、混合 Mapper 和序列化对象转换。
 ## 规则 10——只用 java.time
 
 所有新增/实质修改日期时间字段、参数、持久化映射、JSON 字段、计算、Duration、Timeout 和 Clock 都使用 `java.time`。写清具体类型、时区、精度、Clock 来源、持久化表示、JSON 表达和转换边界。新增 `java.util.Date`、`Calendar`、`SimpleDateFormat` 不合格。
+
+读取 `references/time-semantics.zh-CN.md`，落实 UTC/语义分类、显式业务及展示时区、历史 UTC 兼容和 `MC-TIME-001` 证据契约。新 Spec 写 §6.3，新 Plan 写 §4.9，Execute 验证有效决策及实际检查。
 
 ## 规则 11——只允许两种代码结构
 

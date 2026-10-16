@@ -31,6 +31,16 @@ class ArchetypeContractConvergenceTest {
 
     private static final Path TEST = Path.of("src/test/java");
 
+
+    @Test
+    void generatedDomainCarriersHaveCompileOnlyLombok() throws IOException {
+        String pom = Files.readString(Path.of("..", "egon-cola-source-service-domain", "pom.xml"));
+        assertTrue(java.util.regex.Pattern.compile(
+                "(?s)<dependency>\\s*<groupId>org\\.projectlombok</groupId>\\s*"
+                        + "<artifactId>lombok</artifactId>\\s*<scope>provided</scope>\\s*</dependency>")
+                .matcher(pom).find(), "generated domain POJOs require the managed compile-only Lombok dependency");
+    }
+
     @Test
     void domainOnlyExposesServicesAndKeepsPortsOutOfDomain() throws IOException {
         String all = join(mainSources());

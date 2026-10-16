@@ -82,6 +82,8 @@ adapter        -> application, canonical Organization Facade
 starter        -> adapter, infrastructure
 ```
 
+Domain declares the parent-managed Lombok dependency with `provided` scope so code-gen POJOs compile without adding a runtime dependency.
+
 Infrastructure implements Domain-owned ports. Adapter never reaches Infrastructure directly, and Starter contains assembly configuration only. Both canonical Facades are independent artifacts that do not depend on this generated project, so the Web/Service Maven dependency graph cannot cycle.
 
 Persistence uses Common MP repositories and explicit Mapper XML; domain service ports do not inherit technical CRUD types.

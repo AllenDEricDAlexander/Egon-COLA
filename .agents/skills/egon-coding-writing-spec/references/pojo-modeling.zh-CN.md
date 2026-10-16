@@ -17,8 +17,7 @@
 | Query / QO | Query Object | 查询条件对象 | 搜索和过滤输入 |
 | Command / CO | Command Object | 修改意图对象 | 新增、更新、删除等改变状态的用例 |
 | Event | Event Object | 已经发生并被发布的事实 | 具有明确所有者和版本的领域/集成事件载荷 |
-| Request | Request Object | Controller 或 API 输入对象 | 传输校验和请求兼容边界 |
-| Response | Response Object | Controller 或 API 输出对象 | 稳定的传输响应边界 |
+| Result | Result Object | 应用或协议输出 | 输出契约；纯展示输出使用 VO |
 | Form | Form Object | 表单提交对象 | 与 API Request 不同的 UI 表单绑定 |
 | PageQuery | Page Query Object | 分页信息和查询条件 | 分页查询输入 |
 | PageResult | Page Result Object | 分页数据和分页元信息 | 分页查询输出 |
@@ -37,7 +36,7 @@
 
 ## 类必要性检验
 
-不得默认同时创建 `FooPO`、`FooDO`、`FooEntity`、`FooBO`、`FooDTO`、`FooVO`、`FooRequest` 和 `FooResponse`。
+不得默认同时创建 `FooPO`、`FooDO`、`FooEntity`、`FooBO`、`FooDTO`、`FooVO`、`FooCommand` 和 `FooResult`。
 
 只有至少存在一个具体差异时，才能创建独立类型：
 
@@ -51,7 +50,7 @@
 
 如果语义、生命周期、校验、暴露策略和依赖方向确实相同，应复用现有类型，并记录复用安全的理由。
 
-不能为了减少类数量而把 PO 或 ORM Entity 直接作为公开 Request、Response、DTO 或 View Object。持久化注解、内部字段、懒加载关系和 Schema 演进不能泄漏到外部边界。
+不能为了减少类数量而把 PO 或 ORM Entity 直接作为公开 DTO、Result 或 View Object。持久化注解、内部字段、懒加载关系和 Schema 演进不能泄漏到外部边界。
 
 确需两个独立类型时，必须定义准确的转换负责人和字段映射。禁止没有语义边界的空转 Mapper 链和中间对象。
 

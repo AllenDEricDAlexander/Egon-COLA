@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.light.adapter.user.pojo.convertor.UserAdapterConvertor;
-import top.egon.cola.archetype.source.light.adapter.user.pojo.dto.AssignRoleRequest;
+import top.egon.cola.archetype.source.light.adapter.user.pojo.dto.AssignRoleDTO;
 import top.egon.cola.archetype.source.light.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.light.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.light.application.user.pojo.command.AssignRoleCommand;
@@ -56,7 +56,7 @@ public class RoleController {
     @Operation(operationId = "nativeLightRoleAssignRoleV1")
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-light:role:assign')")
     @RBACAPIResource(code = "egon-cola-source-light.api.role.assign", permission = "egon-cola-source-light:role:assign", name = "Assign role")
-    public UserDetailVO assignRole(@PathVariable String userId, @Valid @RequestBody AssignRoleRequest request) {
+    public UserDetailVO assignRole(@PathVariable String userId, @Valid @RequestBody AssignRoleDTO request) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-light:role:assign", authorizationProperties.getSystemCode(),
                 "egon-cola-source-light.api.role.assign", Set.of("roleCode")));
         RequestContext context = RequestContextHolder.getRequired();

@@ -12,8 +12,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.convertor.TeachingAdapterConvertor;
-import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.CreateSchoolClassRequest;
-import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseRequest;
+import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.CreateSchoolClassDTO;
+import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseDTO;
 import top.egon.cola.archetype.source.lightopen.adapter.teaching.validators.TeachingRequestValidator;
 import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.vo.SchoolClassDetailVO;
 import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.CreateSchoolClassCommand;
@@ -43,7 +43,7 @@ public class SchoolClassController {
     private final TeachingAdapterConvertor convertor;
 
     @PostMapping
-    public SchoolClassDetailVO create(@Valid @RequestBody CreateSchoolClassRequest request) {
+    public SchoolClassDetailVO create(@Valid @RequestBody CreateSchoolClassDTO request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toSchoolClassDetail(schoolClassManage.create(new CreateSchoolClassCommand(
                 request.name(), request.semester(), context.operatorId(), context.requestId())));
@@ -74,7 +74,7 @@ public class SchoolClassController {
     public SchoolClassDetailVO schedule(
             @PathVariable String schoolClassId,
             @PathVariable String courseId,
-            @Valid @RequestBody ScheduleCourseRequest request) {
+            @Valid @RequestBody ScheduleCourseDTO request) {
         validator.validateSchedule(request);
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toSchoolClassDetail(schoolClassManage.schedule(new ScheduleCourseCommand(

@@ -13,7 +13,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
 
 import java.io.IOException;
@@ -57,7 +57,7 @@ public class ResearchTraceFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         response.setContentType("application/json");
         response.setHeader(TRACE_HEADER, traceId);
-        objectMapper.writeValue(response.getWriter(), new DeepResearchErrorResponse(
+        objectMapper.writeValue(response.getWriter(), new DeepResearchErrorResult(
                 ResearchErrorCodeEnum.RESEARCH_VALIDATION_ERROR.code(),
                 ResearchErrorCodeEnum.RESEARCH_VALIDATION_ERROR.safeMessage(), traceId,
                 clock.instant(), java.util.Map.of()));

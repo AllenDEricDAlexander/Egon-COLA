@@ -96,7 +96,7 @@ Manual Check verdict rules:
 - [ ] Required compile, typecheck, lint/format, XML/schema, module, integration, or regression gates passed.
 - [ ] Expected GREEN behavior and relevant error paths are covered.
 - [ ] Current Step requirements and effective Spec sections were reread against the implementation.
-- [ ] If this Step introduces real business behavior, Step-owned archetype sample endpoints, services, repositories and configuration were deleted or replaced; unapplied sample SQL was removed or an applied schema was corrected by a new version. No conflicting sample behavior remains.
+- [ ] For generated-project business work, every Spec §2.5 EXAMPLE ID is covered by the Plan. Current-Step Delete/Replace paths and registrations/resources/tests are closed; before first-business acceptance, no unused example chain remains anywhere in the target project. Real-business/infrastructure/history retention has evidence, and applied SQL was corrected only by a new version.
 - [ ] All Literal Rule rows are `PASS` or evidence-backed `N/A`, with Rule 11 `PASS`; evidence was refreshed after the final diff.
 - [ ] All Step Manual Check rows are `PASS` or evidence-backed `N/A`; evidence was refreshed after the final diff.
 - [ ] `git diff --check -- <Step paths>` passed.
@@ -131,3 +131,5 @@ If any required box cannot be checked, keep the Step `In Progress` or mark it `B
 ## Java / CQE contract review
 
 Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.
+
+For affected time boundaries, read `references/time-semantics.md` and compare effective Spec TIME decisions, Plan owning Steps and MC-TIME-001 results. Verify actual UTC persistence/wire conversion, pure-date stability, business-zone ranges/grouping, frontend display/submission, applicable DST/precision and legacy compatibility. Missing required runtime evidence is not PASS; do not start an application, database or browser without authorization.

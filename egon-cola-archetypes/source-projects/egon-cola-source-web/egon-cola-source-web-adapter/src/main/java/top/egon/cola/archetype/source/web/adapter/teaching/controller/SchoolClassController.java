@@ -15,8 +15,8 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor.SchoolClassAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.AssignUserToClassRequest;
-import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateSchoolClassRequest;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.AssignUserToClassDTO;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateSchoolClassDTO;
 import top.egon.cola.archetype.source.web.adapter.teaching.pojo.vo.SchoolClassDetailVO;
 import top.egon.cola.archetype.source.web.application.teaching.manage.SchoolClassManage;
 import top.egon.cola.archetype.source.web.application.teaching.pojo.query.SchoolClassDetailQuery;
@@ -69,7 +69,7 @@ public class SchoolClassController {
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-web:school-class:create')")
     @RBACAPIResource(code = "egon-cola-source-web.api.school-class.create", permission = "egon-cola-source-web:school-class:create", name = "Create")
     public ResponseEntity<SchoolClassDetailVO> create(
-            @Valid @RequestBody CreateSchoolClassRequest request,
+            @Valid @RequestBody CreateSchoolClassDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-web:school-class:create", authorizationProperties.getSystemCode(),
                 "egon-cola-source-web.api.school-class.create", Set.of("name","gradeCode")));
@@ -99,7 +99,7 @@ public class SchoolClassController {
     public ResponseEntity<Void> assignUser(
             @PathVariable String gradeId,
             @PathVariable String schoolClassId,
-            @Valid @RequestBody AssignUserToClassRequest request,
+            @Valid @RequestBody AssignUserToClassDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-web:school-class:assign-user", authorizationProperties.getSystemCode(),
                 "egon-cola-source-web.api.school-class.assign-user", Set.of("userId")));

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseRequest;
 import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.ScheduleCourseCommand;
 import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.convertor.TeachingApplicationConvertorImpl;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.entities.Course;
@@ -22,7 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 class ScheduleUtcConverterTest {
     @Test
     void allWindowCarriersDeclareInstant() throws Exception {
-        for (Class<?> type : new Class<?>[]{ScheduleCourseRequest.class, ScheduleCourseDTO.class, ScheduleCourseCommand.class}) {
+        for (Class<?> type : new Class<?>[]{top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseDTO.class,
+                ScheduleCourseDTO.class, ScheduleCourseCommand.class}) {
             assertThat(type.getDeclaredField("startsAt").getType()).isEqualTo(Instant.class);
             assertThat(type.getDeclaredField("endsAt").getType()).isEqualTo(Instant.class);
         }
@@ -36,9 +36,9 @@ class ScheduleUtcConverterTest {
                 .withPropertyValues("spring.jackson.serialization.write-dates-as-timestamps=false")
                 .run(context -> {
                     ObjectMapper json = context.getBean(ObjectMapper.class);
-                    ScheduleCourseRequest request = assertDoesNotThrow(() -> json.readValue("""
+                    var request = assertDoesNotThrow(() -> json.readValue("""
                             {"startsAt":"2026-10-13T14:07:08.123456789+08:00","endsAt":"2026-10-13T07:07:08.123456789Z"}
-                            """, ScheduleCourseRequest.class));
+                            """, top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseDTO.class));
                     assertThat((Object) request.startsAt()).isEqualTo(Instant.parse("2026-10-13T06:07:08.123456789Z"));
                     ScheduleCourseDTO dto = new ScheduleCourseDTO(1003L, 1002L, request.startsAt(), request.endsAt(), "operator", "request");
                     ScheduleCourseCommand command = new ScheduleCourseCommand(dto.schoolClassId(), dto.courseId(), dto.startsAt(),

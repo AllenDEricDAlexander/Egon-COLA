@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `4` |
+| Template Version | `5` |
 | Status | `Draft` |
 | Created | `YYYY-MM-DD HH:mm ZONE` |
 | Updated | `YYYY-MM-DD HH:mm ZONE` |
@@ -125,8 +125,21 @@ Read `references/user-mandated-java-rules.md`. Preserve each original rule indep
 | Rule 6 | `<Spec §6.2/§9/§10>` | `<external JSON contracts>` | `<contract/tests>` | `<Jackson annotation/default decisions>` | `<serialization/compatibility tests>` | `<Step N>` | PASS / N/A / BLOCKED |
 | Rule 7 | `<Spec §6.2/§15>` | `<all profile files>` | `<base + every environment + properties/tests>` | `<identical key structure>` | `<key-parity/config tests>` | `<Step N>` | PASS / N/A / BLOCKED |
 | Rule 9 | `<Spec §6.2/§13>` | `<flow complexity/variation>` | `<pattern participants/wiring/tests>` | `<mandatory pattern for Complex>` | `<branch/pattern behavior tests>` | `<Step N>` | PASS / N/A / BLOCKED |
-| Rule 10 | `<Spec §6.2/§10/§15>` | `<time fields/imports>` | `<model/converter/persistence/JSON/tests>` | `<java.time/zone/precision/Clock>` | `<time tests + forbidden import search>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 10 | `<Spec §6.2/§10/§15>` | `<time fields/imports>` | `<model/converter/persistence/JSON/tests>` | `<§4.9 UTC/semantics/business/display/precision/Clock/compatibility>` | `<time tests + forbidden import search>` | `<Step N>` | PASS / N/A / BLOCKED |
 | Rule 11 | `<Spec §6.1/§6.2/§8>` | `<current tree/archetype/verifier>` | `<every target file in selected profile>` | `<no hybrid/third structure>` | `<architecture verifier/static gate>` | `Every Step` | PASS / BLOCKED |
+
+
+### 4.9 Time semantics and conversion contract
+
+Read `references/time-semantics.md`. Retain this section for every new document. Use `Time contract: Required` for affected time semantics/boundaries, or `Time contract: Not applicable` with `Reason: <exact unaffected-scope evidence>` and no field rows. This section does not authorize changes outside the effective scope.
+
+Time contract: `<Required / Not applicable>`
+
+| Time ID | Fields/symbols | Semantics | Java/runtime type | Storage policy | Wire policy | Business zone source | Display zone source | Boundary / DST rules | Precision / Clock | Compatibility | Verification |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `TIME-001` | `<exact fields/symbols>` | `<Occurred instant / Pure date / Local time / Zoned schedule / Duration>` | `<exact type>` | `<UTC instant / Pure date / Local time / Local + zone / Duration / Legacy UTC / Not persisted>` | `<UTC Z / Pure date / Local / Local + zone / Duration / Internal>` | `<authoritative zone source/precedence or Not applicable: reason>` | `<user preference/business zone/browser fallback or Not applicable: reason>` | `<input normalization, calendar range and DST gap/overlap policy where relevant>` | `<DB/wire precision, Clock and truncation or Not applicable: reason>` | `<preserved legacy contracts, verified UTC conversion or Not applicable: reason>` | `<Step N; TEST-NNN and exact commands in §8>` |
+
+One row may group only fields with identical semantic/boundary policies. Keep canonical English policy tokens in either document language. New occurred instants use UTC storage and ISO 8601 `Z` output; pure dates remain dates. Legacy UTC storage requires exact existing-contract/conversion evidence. Business zones are explicit and independent from server/browser defaults. Consume the effective Spec time decisions and map each row to owning Steps/files, pseudocode and §8 checks. Material missing decisions return to the Spec; do not invent them.
 
 ## 5. Change File Tree
 
@@ -346,7 +359,7 @@ Complete every row individually after reconciling the Plan with the effective Sp
 | `MC-BEAN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<Bean names/injection/Qualifier/lombok.config>` | `<DI conclusion>` | `<None or action/owner>` |
 | `MC-UTIL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<utility dependency/file evidence>` | `<utility conclusion>` | `<None or action/owner>` |
 | `MC-JSON-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<contract/serializer evidence>` | `<Jackson conclusion>` | `<None or action/owner>` |
-| `MC-TIME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<time fields/converters/contracts>` | `<java.time conclusion>` | `<None or action/owner>` |
+| `MC-TIME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<time fields/converters/contracts>` | `<UTC/semantic/business/display boundary result>` | `<None or action/owner>` |
 | `MC-CONFIG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<all profile files/properties class>` | `<key-parity conclusion>` | `<None or action/owner>` |
 | `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<flow classification/pattern files>` | `<mandatory Complex pattern / Simple direct conclusion>` | `<None or action/owner>` |
 | `MC-SCOPE-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<change tree and untouched paths>` | `<scope conclusion>` | `<None or action/owner>` |

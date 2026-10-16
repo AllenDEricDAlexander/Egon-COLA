@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.user.pojo.convertor;
 
-import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.CreateUserRequest;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.CreateUserDTO;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.web.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.web.application.user.pojo.result.UserDetailResult;
@@ -21,7 +21,7 @@ public interface UserAdapterConverter extends BaseForwardConverter<UserDetailRes
     @Mapping(target = "requestId", source = "requestId")
     @Mapping(target = "name", source = "request.name")
     @Mapping(target = "email", source = "request.email")
-    CreateUserCommand toCommand(String requestId, CreateUserRequest request);
+    CreateUserCommand toCommand(String requestId, CreateUserDTO request);
 
     @Override
     UserDetailVO toTarget(UserDetailResult source);
@@ -32,7 +32,7 @@ public interface UserAdapterConverter extends BaseForwardConverter<UserDetailRes
     }
 
     @BeforeMapping
-    default void requireRequest(CreateUserRequest request) {
+    default void requireRequest(CreateUserDTO request) {
         Objects.requireNonNull(request, "request");
     }
 

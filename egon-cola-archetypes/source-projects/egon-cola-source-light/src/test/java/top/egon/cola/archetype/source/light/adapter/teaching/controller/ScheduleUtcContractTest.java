@@ -155,7 +155,7 @@ class ScheduleUtcContractTest {
             JsonNode document = mapper.readTree(json);
             JsonNode operation = document.path("paths").path("/api/school-classes/{schoolClassId}/courses/{courseId}/schedule").path("post");
             assertThat(operation.path("operationId").asText()).isEqualTo("nativeLightSchoolClassScheduleV1");
-            JsonNode request = document.path("components").path("schemas").path("ScheduleCourseRequest");
+            JsonNode request = document.path("components").path("schemas").path("ScheduleCourseDTO");
             assertThat(request.path("required").toString()).contains("startsAt", "endsAt");
             for (String field : List.of("startsAt", "endsAt")) {
                 assertThat(request.path("properties").path(field).path("type").asText()).isEqualTo("string");

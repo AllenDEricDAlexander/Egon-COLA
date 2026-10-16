@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.convertor.UserAdapterConvertor;
-import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.dto.AssignRoleRequest;
+import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.dto.AssignRoleDTO;
 import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.AssignRoleCommand;
 import top.egon.cola.archetype.source.lightopen.application.user.manage.RoleManage;
@@ -26,7 +26,7 @@ public class RoleController {
     private final UserAdapterConvertor convertor;
 
     @PostMapping
-    public UserDetailVO assignRole(@PathVariable String userId, @Valid @RequestBody AssignRoleRequest request) {
+    public UserDetailVO assignRole(@PathVariable String userId, @Valid @RequestBody AssignRoleDTO request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toTarget(roleManage.assignRole(new AssignRoleCommand(
                 Long.valueOf(userId),

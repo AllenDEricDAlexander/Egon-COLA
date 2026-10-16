@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.user.pojo.convertor;
 
-import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.AssignRoleRequest;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.AssignRoleDTO;
 import top.egon.cola.archetype.source.web.application.user.pojo.command.AssignRoleCommand;
 import org.mapstruct.BeforeMapping;
 import org.mapstruct.AnnotateWith;
@@ -18,10 +18,10 @@ public interface RoleAdapterConverter {
     @Mapping(target = "requestId", source = "requestId")
     @Mapping(target = "userId", source = "userId")
     @Mapping(target = "roleCode", source = "request.roleCode")
-    AssignRoleCommand toCommand(String requestId, Long userId, AssignRoleRequest request);
+    AssignRoleCommand toCommand(String requestId, Long userId, AssignRoleDTO request);
 
     @BeforeMapping
-    default void requireRequest(AssignRoleRequest request) {
+    default void requireRequest(AssignRoleDTO request) {
         Objects.requireNonNull(request, "request");
     }
 }

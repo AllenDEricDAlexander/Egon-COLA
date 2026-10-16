@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.convertor.UserAdapterConvertor;
-import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.dto.CreateUserRequest;
+import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.dto.CreateUserDTO;
 import top.egon.cola.archetype.source.lightopen.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.lightopen.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.lightopen.application.user.manage.UserManage;
@@ -28,7 +28,7 @@ public class UserController {
     private final UserAdapterConvertor convertor;
 
     @PostMapping
-    public UserDetailVO create(@Valid @RequestBody CreateUserRequest request) {
+    public UserDetailVO create(@Valid @RequestBody CreateUserDTO request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toTarget(userManage.create(new CreateUserCommand(
                 request.externalId(),

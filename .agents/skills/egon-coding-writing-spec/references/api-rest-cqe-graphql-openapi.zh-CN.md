@@ -2,6 +2,8 @@
 
 只要外部 HTTP API 被判定为 `Affected`，就必须完整读取本参考。本参考是 `references/interface-contract-design.zh-CN.md` 的专项深化，两份参考同时生效。目标是让第 9 章成为可直接实施的 API 契约，而不是路由或注解清单。
 
+时间字段受影响时读取 `references/time-semantics.zh-CN.md` 并消费 Spec §6.3：发生时刻 UTC 存储/ISO 8601 `Z`，纯日期保持日期，业务计算明确时区，前端展示/提交明确转换和精度。在范围内保留有证据的历史契约；MC-TIME-001 要求真实映射/序列化/日历证据。
+
 ## 1. 权威来源与参考项目吸收原则
 
 按以下优先级使用依据：

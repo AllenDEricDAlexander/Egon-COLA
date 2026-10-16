@@ -29,7 +29,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 ### Java 语义命名
 
-新增/实质修改载体使用准确 `*PO`、`*BO`、`*DTO`、`*VO`、`*Query`、`*Command`、`*Event`、协议 `*Request`/`*Response` 和既有 `*PageQuery`/`*PageResult`；只有真实身份/生命周期才用 `*Entity`。`*DAO` 是访问组件；行为类型使用准确职责后缀。
+新增/实质修改载体使用准确 `*PO`、`*BO`、`*DTO`、`*VO`、`*Query`、`*Command`、`*Event`、协议入参 `*DTO`、输出 `*Result` 和既有 `*PageQuery`/`*PageResult`；只有真实身份/生命周期才用 `*Entity`。`*DAO` 是访问组件；行为类型使用准确职责后缀。
 
 禁止新增 `Data`、`Info`、`Param`、`Bean` 含糊载体。没有真实边界/生命周期差异时不能每层造类。
 
@@ -61,7 +61,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 ### 工具、JSON、时间与配置
 
 - 工具顺序：JDK、已管理 Commons（lang3、collections4、io、text、codec、beanutils）、Guava；Tika 仅真实内容识别；禁止重复 Utils 和随意增加库；BeanUtils 不得用于业务转换；
-- JSON 只用 Spring Boot Jackson；外部 DTO/VO/Request/Response/Command/Query/Event 按协议使用必要 Jackson 注解；禁止 Gson/Fastjson 或序列化映射；
+- JSON 只用 Spring Boot Jackson；外部 DTO/VO/Result/Command/Query/Event 按协议使用必要 Jackson 注解；禁止 Gson/Fastjson 或序列化映射；
 - 新增/触达时间只用 `java.time`，明确时区、精度、Clock、持久化和 JSON；禁止新增 `Date`、`Calendar`、`SimpleDateFormat`；
 - 配置优先带校验 `@ConfigurationProperties`；Key 变化时比较全部环境 Profile，保持相同结构/核心 Key，Value 可不同。
 
@@ -108,6 +108,8 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 ## 最终审核规则
 
 全部 Step 提交后，针对最终 Tree 与 Commit 重新逐项执行 17 项检查，不能只汇总 Step 断言。最终 PASS 要求所有适用项 PASS、所有 N/A 有证据。任何 Manual Check 失败、任何 `Partial`/`Not satisfied` Spec 要求或缺失强制运行时证据都产生 `PARTIAL`；无法确定基线/证据则 `BLOCKED`。只报告缺口，最终审核中不能静默实施。
+
+时间边界还必须遵循 `references/time-semantics.zh-CN.md`：发生时刻 UTC、纯日期语义不偏移、显式业务时区计算及前端展示转换。`MC-TIME-001` 要求适用映射/序列化/日历/夏令时/精度/兼容证据。
 
 
 ## 构造器注入补充规则（2026-10-13）

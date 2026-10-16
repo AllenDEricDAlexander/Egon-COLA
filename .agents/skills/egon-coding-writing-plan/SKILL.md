@@ -11,7 +11,7 @@ After resource preflight, read `references/backend-code-generation.md` for Java 
 
 For native CRUD, `backend-crud` uses the full Repository → Domain Service → Manage → Controller chain where that profile supports HTTP. Check `EgonModel` fields in DDL and keep them inherited in PO. A v1 or stale plan and unmanaged files block apply; use the v2 generator plan and review the exact file list.
 
-Plan explicit deletion/replacement of the generated archetype sample code in the Step that introduces the real business implementation. List exact paths and affected tests/configuration; do not defer cleanup to an unspecified final sweep.
+For business work on a generated project, consume the effective Spec's §2.5 archetype-example inventory. Map every `EXAMPLE-*` and cleanup `REQ-*` to exact paths, registrations/resources/tests and ordered Steps before the first real-business feature is accepted. Cover all unused sample domains in that target project, not just the feature's files. Missing inventory requires a Spec amendment; no reference-only retention or unspecified final cleanup is allowed. Preserve evidenced real business/infrastructure and immutable applied SQL history.
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -39,7 +39,11 @@ The Plan defines **which file is handled first, what is written there, which fil
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/plan/2026-08-15-16-10-account-lockout-implementation.md`.
   - Never overwrite a same-minute/same-abstract document; choose a more specific abstract.
-- Start from Plan Template Version 4 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept Version 2, Version 3, and existing unversioned Plans under their original contracts.
+- Start from Plan Template Version 5 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept Version 2 through Version 4, and existing unversioned Plans under their original contracts.
+
+## Time semantics and UTC policy
+
+When time semantics or boundaries are affected, read `references/time-semantics.md`. Distinguish occurred instants (UTC storage and ISO 8601 `Z` transmission), pure dates, local times, zoned schedules and durations. Use explicit business zones for computation and explicit display zones on the frontend; enforce `MC-TIME-001` with concrete boundary/compatibility evidence. This policy does not expand the authorized code/data/migration scope.
 
 ## Resource-integrity preflight
 

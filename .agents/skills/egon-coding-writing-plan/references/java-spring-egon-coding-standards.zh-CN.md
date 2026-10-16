@@ -40,7 +40,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 ### 语义命名
 
-持久化载体 `*PO`；只有真实身份/生命周期语义才用 `*Entity`；业务载体 `*BO`；传输 `*DTO`；展示 `*VO`；读意图 `*Query`；写意图 `*Command`；事实 `*Event`；协议边界可用 `*Request`/`*Response`；既有分页契约可用 `*PageQuery`/`*PageResult`；访问组件为 `*DAO`。行为类型使用准确职责后缀。
+持久化载体 `*PO`；只有真实身份/生命周期语义才用 `*Entity`；业务载体 `*BO`；传输 `*DTO`；展示 `*VO`；读意图 `*Query`；写意图 `*Command`；事实 `*Event`；纯协议入参使用 `*DTO`，应用/协议输出保留 `*Result`；既有分页契约可用 `*PageQuery`/`*PageResult`；访问组件为 `*DAO`。行为类型使用准确职责后缀。
 
 禁止新增载体使用 `Data`、`Info`、`Param`、`Bean`。没有真实边界或生命周期差异时不能每层造一个类。
 
@@ -70,7 +70,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 ### 工具、JSON、时间与配置
 
 - 工具优先 JDK，其次已管理 Commons（lang3、collections4、io、text、codec、beanutils）或 Guava；Tika 仅真实内容识别；禁止重复 Helper 和额外工具库；BeanUtils 不得用于业务转换；
-- JSON 只用 Spring Boot Jackson；外部 DTO/VO/Request/Response/Command/Query/Event 只按协议需要使用 Jackson 注解；禁止 Gson/Fastjson 与 JSON 映射技巧；
+- JSON 只用 Spring Boot Jackson；外部 DTO/VO/Result/Command/Query/Event 只按协议需要使用 Jackson 注解；禁止 Gson/Fastjson 与 JSON 映射技巧；
 - 新增/触达时间建模只用 `java.time`，明确时区、精度、Clock、持久化和 JSON；禁止新增 `Date`、`Calendar`、`SimpleDateFormat`；
 - 配置优先带校验的 `@ConfigurationProperties`；新增/修改 Key 必须同步所有环境 Profile 的结构和核心 Key 集合，Value 可不同。
 
@@ -111,6 +111,8 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 | `MC-ARCH-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<路径、符号、依赖或规划命令证据>` | `<结论>` | `None / 准确动作和负责人` |
 
 整体 PASS 要求所有适用项 `PASS`，所有不适用项有证据地 `N/A`。缺 ID/证据、`FAIL`、`BLOCKED`、`UNKNOWN` 或未关闭例外一律禁止 PASS。
+
+时间边界还必须遵循 `references/time-semantics.zh-CN.md`：发生时刻 UTC、纯日期语义不偏移、显式业务时区计算及前端展示转换。`MC-TIME-001` 要求适用映射/序列化/日历/夏令时/精度/兼容证据。
 
 
 ## 构造器注入补充规则（2026-10-13）

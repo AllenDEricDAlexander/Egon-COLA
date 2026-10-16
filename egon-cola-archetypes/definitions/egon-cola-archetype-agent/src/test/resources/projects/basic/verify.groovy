@@ -4,6 +4,28 @@ import groovy.xml.XmlSlurper
 def projectDir = new File(basedir, "pom.xml").isFile() ? basedir : context.projectDir
 assert projectDir != null: "Expected generated Deep Research project"
 
+// Source layout is checked before build-output assertions; a clean hash or javac pass is insufficient.
+def contractJavaSources = []
+projectDir.eachFileRecurse(FileType.FILES) { source ->
+    def relative = projectDir.toPath().relativize(source.toPath()).toString().replace('\\', '/')
+    if (!relative.tokenize('/').any { it in ['target', '.egon', '.git'] } &&
+            source.name.endsWith('.java') && relative.contains('src/main/java/')) {
+        contractJavaSources << [file: source, relative: relative.split('src/main/java/', 2)[1]]
+    }
+}
+assert contractJavaSources: 'Expected main Java sources for package/path contract'
+contractJavaSources.each { entry ->
+    if (entry.relative != 'module-info.java') {
+        def declaration = entry.file.getText('UTF-8') =~ /\A(?:\s|\/\/[^\r\n]*|\/\*[\s\S]*?\*\/)*package\s+([\w.]+)\s*;/
+        assert declaration.find(): "Missing Java package: ${entry.file}"
+        def slash = entry.relative.lastIndexOf('/')
+        def expected = slash < 0 ? '' : entry.relative.substring(0, slash).replace('/', '.')
+        assert declaration.group(1) == expected: "Java package/path mismatch: ${entry.file}"
+        def carrier = entry.file.getText('UTF-8') =~ /(?m)^\s*(?:(?:public|protected|private|static|abstract|final|sealed|non-sealed)\s+)*(?:class|interface|record)\s+\w*(?:Request|Response)\b/
+        assert !carrier.find(): "Business carrier must use DTO/Command/Query or Result/VO: ${entry.file}"
+    }
+}
+
 def file = { String path ->
     def result = new File(projectDir, path)
     assert result.isFile(): "Expected generated file ${path}"
@@ -163,7 +185,7 @@ def requiredFiles = [
     "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/research/service/impl/AgentFlowDeepResearchAgentServiceImpl.java",
     "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/research/tool/McpResearchToolFactory.java",
     "${prefix}-adapter/src/main/java/it/pkg/adapter/research/controller/DeepResearchController.java",
-    "${prefix}-adapter/src/main/java/it/pkg/adapter/research/pojo/dto/StartDeepResearchRequest.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/research/pojo/dto/StartDeepResearchDTO.java",
     "${prefix}-adapter/src/main/java/it/pkg/adapter/research/pojo/vo/DeepResearchEventVO.java",
     "${prefix}-starter/src/main/java/it/pkg/starter/DeepResearchApplication.java",
     "${prefix}-starter/src/main/resources/agent/deep-research-flow.yml",

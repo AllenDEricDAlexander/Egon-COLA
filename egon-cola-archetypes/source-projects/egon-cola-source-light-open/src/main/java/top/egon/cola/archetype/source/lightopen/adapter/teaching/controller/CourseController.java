@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.lightopen.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.convertor.TeachingAdapterConvertor;
-import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.CreateCourseRequest;
+import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.CreateCourseDTO;
 import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.vo.CourseDetailVO;
 import top.egon.cola.archetype.source.lightopen.application.teaching.pojo.command.CreateCourseCommand;
 import top.egon.cola.archetype.source.lightopen.application.teaching.manage.CourseManage;
@@ -28,7 +28,7 @@ public class CourseController {
     private final TeachingAdapterConvertor convertor;
 
     @PostMapping
-    public CourseDetailVO create(@Valid @RequestBody CreateCourseRequest request) {
+    public CourseDetailVO create(@Valid @RequestBody CreateCourseDTO request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toTarget(courseManage.create(new CreateCourseCommand(
                 request.code(), request.name(), context.operatorId(), context.requestId())));

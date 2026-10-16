@@ -11,7 +11,7 @@ After resource preflight, read `references/backend-code-generation.md` for Java 
 
 For native CRUD, `backend-crud` uses the full Repository → Domain Service → Manage → Controller chain where that profile supports HTTP. Check `EgonModel` fields in DDL and keep them inherited in PO. A v1 or stale plan and unmanaged files block apply; use the v2 generator plan and review the exact file list.
 
-When a Step introduces real business behavior, delete or replace its archetype sample code in that same Step and verify no conflicting sample endpoint, service, repository, table or configuration remains. Preserve applied SQL history and unrelated user-owned files; correct an applied sample schema only with a new DDL version.
+For generated-project business work, reconcile the effective Spec §2.5 inventory with the Plan before editing. Execute each `EXAMPLE-*` Delete/Replace in its owning Step, including unused domains outside the first feature; before first-business acceptance and final audit, prove no unused executable example or incoming reference remains across target modules. Missing cleanup scope requires a Spec/Plan amendment, not improvised deletion. Retain only evidenced real business, required infrastructure and immutable applied history; preserve user work and correct applied schemas only with a new DDL version.
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -28,6 +28,10 @@ Use section 2 at Step validation and both sections during final Spec review. Ver
 Execute one approved coding Plan sequentially. Complete, verify, and commit exactly one Plan Step before starting the next. After all Steps, audit the delivered repository against the effective Specs and report every unmet, partial, or runtime-unverified requirement.
 
 The Plan controls implementation order. The effective Specs control correctness. A completed Plan is not sufficient when the implementation still violates a Spec.
+
+## Time semantics and UTC policy
+
+When time semantics or boundaries are affected, read `references/time-semantics.md`. Distinguish occurred instants (UTC storage and ISO 8601 `Z` transmission), pure dates, local times, zoned schedules and durations. Use explicit business zones for computation and explicit display zones on the frontend; enforce `MC-TIME-001` with concrete boundary/compatibility evidence. This policy does not expand the authorized code/data/migration scope.
 
 ## Resource-integrity preflight
 

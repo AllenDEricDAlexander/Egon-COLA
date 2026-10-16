@@ -29,9 +29,11 @@ Every Java Plan contains the ten-row matrix in Chapter 4 using original numbers 
 
 ## Rule 1 — exact type inventory and suffix plan
 
-Inventory every created, renamed, or materially changed Java type with path, operation, role, mandatory suffix, consumers, and rename/compatibility impact. POJOs use semantic `PO`, `BO`, `VO`, `DTO`, `Query`, `Command`, `Event`, `Request`, `Response`, `PageQuery`, `PageResult`, or justified `Entity`; access components use `DAO`; behavior classes use exact behavior suffixes.
+Inventory every created, renamed, or materially changed Java type with path, operation, role, mandatory suffix, consumers, and rename/compatibility impact. POJOs use semantic `PO`, `BO`, `VO`, `DTO`, `Query`, `Command`, `Event`, `Result`, `PageQuery`, `PageResult`, or justified `Entity`; access components use `DAO`; behavior classes use exact behavior suffixes.
 
 Plan no `Data`, `Info`, `Param`, `Bean`, or suffixless ambiguous carrier. For each new type, prove a distinct boundary/lifecycle need so suffix compliance does not create class explosion. Pseudocode uses the final exact type name, never a placeholder.
+
+Archetype and code-gen use the same naming contract: protocol-only inputs use `*DTO`, read/write intents use `*Query`/`*Command`, and application/protocol outputs keep `*Result`/`*PageResult` (presentation output keeps `*VO`). Do not introduce project-owned `*Request`/`*Response` carriers or duplicate a type just for a suffix. Preserve framework/third-party contracts, generated protocol types (including Protobuf messages) and unrelated existing APIs. Generated Java paths must match their declared package and public type; compilation, template hashes and `CLEAN` do not prove that contract.
 
 ## Rule 2 — one validation design per affected handoff
 
@@ -78,7 +80,7 @@ Every utility import/dependency is JDK, the named Apache Commons modules, or Gua
 
 ## Rule 6 — Jackson contract files
 
-For every affected external DTO/VO/Request/Response/Command/Query/Event, the file block lists exact Jackson annotations or field-by-field evidence that defaults match the protocol. Include serialization/compatibility tests for names, inclusion, enum/time shape, unknown fields, polymorphism, and sensitive data. No Gson/Fastjson or JSON object conversion.
+For every affected external DTO/VO/Result/Command/Query/Event, the file block lists exact Jackson annotations or field-by-field evidence that defaults match the protocol. Include serialization/compatibility tests for names, inclusion, enum/time shape, unknown fields, polymorphism, and sensitive data. No Gson/Fastjson or JSON object conversion.
 
 ## Rule 7 — all profile files in the change tree
 
@@ -93,6 +95,8 @@ Pseudocode may not leave the variation as `if/else`, `switch`, type/string/refle
 ## Rule 10 — java.time file and field mapping
 
 Every affected date/time symbol uses a concrete `java.time` type. File blocks state zone, precision, Clock source, database/JDBC mapping, JSON format, duration/timeout behavior, compatibility conversion, and tests. New `Date`, `Calendar`, or `SimpleDateFormat` imports are forbidden and must have a static-search gate.
+
+Read `references/time-semantics.md` for the UTC/semantic classification, explicit business/display zones, legacy UTC compatibility and `MC-TIME-001` evidence contract. New Specs use §6.3; new Plans use §4.9; execution verifies the effective decisions and actual checks.
 
 ## Rule 11 — architecture confirmation before file ordering
 

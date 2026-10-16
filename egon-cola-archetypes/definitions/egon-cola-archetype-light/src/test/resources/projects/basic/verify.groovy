@@ -3,6 +3,28 @@ import groovy.xml.XmlSlurper
 
 def generatedProjectDir = new File(basedir, "project/basic")
 
+// Source layout is checked before build-output assertions; a clean hash or javac pass is insufficient.
+def contractJavaSources = []
+generatedProjectDir.eachFileRecurse(FileType.FILES) { source ->
+    def relative = generatedProjectDir.toPath().relativize(source.toPath()).toString().replace('\\', '/')
+    if (!relative.tokenize('/').any { it in ['target', '.egon', '.git'] } &&
+            source.name.endsWith('.java') && relative.contains('src/main/java/')) {
+        contractJavaSources << [file: source, relative: relative.split('src/main/java/', 2)[1]]
+    }
+}
+assert contractJavaSources: 'Expected main Java sources for package/path contract'
+contractJavaSources.each { entry ->
+    if (entry.relative != 'module-info.java') {
+        def declaration = entry.file.getText('UTF-8') =~ /\A(?:\s|\/\/[^\r\n]*|\/\*[\s\S]*?\*\/)*package\s+([\w.]+)\s*;/
+        assert declaration.find(): "Missing Java package: ${entry.file}"
+        def slash = entry.relative.lastIndexOf('/')
+        def expected = slash < 0 ? '' : entry.relative.substring(0, slash).replace('/', '.')
+        assert declaration.group(1) == expected: "Java package/path mismatch: ${entry.file}"
+        def carrier = entry.file.getText('UTF-8') =~ /(?m)^\s*(?:(?:public|protected|private|static|abstract|final|sealed|non-sealed)\s+)*(?:class|interface|record)\s+\w*(?:Request|Response)\b/
+        assert !carrier.find(): "Business carrier must use DTO/Command/Query or Result/VO: ${entry.file}"
+    }
+}
+
 def assertFile = { path ->
     def file = new File(generatedProjectDir, path)
     assert file.isFile(): "Expected file ${path}"
@@ -1046,9 +1068,9 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     "controller/UserController",
     "controller/RoleController",
     "controller/PermissionController",
-    "pojo/dto/CreateUserRequest",
-    "pojo/dto/AssignRoleRequest",
-    "pojo/dto/GrantPermissionRequest",
+    "pojo/dto/CreateUserDTO",
+    "pojo/dto/AssignRoleDTO",
+    "pojo/dto/GrantPermissionDTO",
     "pojo/vo/UserDetailVO",
     "pojo/vo/PermissionTreeVO",
     "pojo/convertor/UserAdapterConvertor",
@@ -1090,9 +1112,9 @@ assertFile("src/main/resources/graphql/user.graphqls")
 [
     "controller/SchoolClassController",
     "controller/CourseController",
-    "pojo/dto/CreateSchoolClassRequest",
-    "pojo/dto/CreateCourseRequest",
-    "pojo/dto/ScheduleCourseRequest",
+    "pojo/dto/CreateSchoolClassDTO",
+    "pojo/dto/CreateCourseDTO",
+    "pojo/dto/ScheduleCourseDTO",
     "pojo/vo/SchoolClassDetailVO",
     "pojo/vo/CourseDetailVO",
     "pojo/convertor/TeachingAdapterConvertor",

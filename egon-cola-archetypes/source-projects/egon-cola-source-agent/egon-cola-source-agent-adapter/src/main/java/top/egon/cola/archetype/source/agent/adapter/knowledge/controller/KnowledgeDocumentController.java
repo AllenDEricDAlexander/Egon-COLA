@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.convertor.KnowledgeDocumentVoConverter;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.vo.KnowledgeDocumentVO;
 import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.UploadKnowledgeDocumentCommand;
@@ -110,13 +110,13 @@ public class KnowledgeDocumentController {
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "The document is stored and queued"),
             @ApiResponse(responseCode = "400", description = "Validation failure or no extractor for the format",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "413", description = "The file exceeds the size limit",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "429", description = "The base holds as many documents as it may",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:upload')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.upload", permission = "egon-cola-source-agent:knowledge-document:upload", name = "Upload a document")
@@ -148,9 +148,9 @@ public class KnowledgeDocumentController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "One page of documents"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:list')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.list", permission = "egon-cola-source-agent:knowledge-document:list", name = "List the documents of a base")
@@ -185,9 +185,9 @@ public class KnowledgeDocumentController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "The document"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The document does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:read')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.read", permission = "egon-cola-source-agent:knowledge-document:read", name = "Get a document")
@@ -209,11 +209,11 @@ public class KnowledgeDocumentController {
     @ApiResponses({
             @ApiResponse(responseCode = "202", description = "The document is queued again"),
             @ApiResponse(responseCode = "400", description = "Validation failure or a request body was sent",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The document does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "409", description = "The document is still in progress or has no text",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:reingest')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.reingest", permission = "egon-cola-source-agent:knowledge-document:reingest", name = "Reprocess a document")
@@ -238,9 +238,9 @@ public class KnowledgeDocumentController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "The document is gone"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The document does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-document:delete')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-document.delete", permission = "egon-cola-source-agent:knowledge-document:delete", name = "Delete a document")

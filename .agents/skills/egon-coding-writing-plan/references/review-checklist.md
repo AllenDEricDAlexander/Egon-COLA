@@ -45,7 +45,7 @@
 - [ ] For Java work, `references/java-spring-egon-coding-standards.md` was read completely and the actual tree was classified as exactly one traditional-layer or exact selected Archetype profile; no hybrid/new layer was invented.
 - [ ] The capability reuse ledger names Spring/Spring Boot Starter, Egon-COLA Component/common infrastructure, and module-local candidates with exact evidence, fit/gap, decision, and owning Step.
 - [ ] Every added dependency/custom replacement has an effective-Spec decision, proven gap, managed version/owner, impact, and validation; otherwise the Plan reuses existing capability.
-- [ ] New/changed Java type names have semantic PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior roles and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carriers.
+- [ ] New/changed Java type names have semantic PO/BO/DTO/VO/Query/Command/Event/Result or behavior roles and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carriers.
 - [ ] Each affected cross-layer input plans Jakarta/Spring Validation, `@Valid`/`@Validated`, groups for reused objects, approved normalization, error mapping, and tests; telephone rules use an approved mature standard rather than a duplicate Validator.
 - [ ] Each object uses the mandated Value-object record/ordinary class Lombok classification; every new affected Converter uses MapStruct/MapStructPlus and mandatory Egon `BaseConverter` without manual/BeanUtils/JSON copying.
 - [ ] Each affected Spring Bean plans a stable explicit name, `@RequiredArgsConstructor`, final qualified dependencies, verified `lombok.config` propagation, and `@Slf4j` for concrete business classes.

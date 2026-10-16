@@ -5,6 +5,7 @@ import [=domainQueryFqn];
 import [=domainServiceFqn];
 import [=poFqn];
 import [=repoPackage].[=repoType];
+import [=persistenceConverterFqn];
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

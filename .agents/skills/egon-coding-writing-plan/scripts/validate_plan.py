@@ -18,8 +18,8 @@ SOURCE_ID_RE = re.compile(
 )
 REQ_ID_RE = re.compile(r"\bREQ-\d{3}\b")
 VALID_STATUSES = {"Draft", "Review", "Ready", "In Progress", "Completed", "Blocked", "Superseded"}
-CURRENT_TEMPLATE_VERSION = 4
-SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4}
+CURRENT_TEMPLATE_VERSION = 5
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5}
 MANUAL_CHECK_IDS = (
     "MC-ARCH-001",
     "MC-REUSE-001",
@@ -227,6 +227,96 @@ def markdown_table_rows(text: str, first_header_cell: str) -> list[list[str]]:
                 rows.append(row_cells)
         return rows
     return []
+
+
+TIME_CONTRACT_TABLE = (
+    "| Time ID | Fields/symbols | Semantics | Java/runtime type | Storage policy | "
+    "Wire policy | Business zone source | Display zone source | Boundary / DST rules | "
+    "Precision / Clock | Compatibility | Verification |"
+)
+TIME_POLICIES = {
+    "Occurred instant": ({"UTC instant", "Legacy UTC"}, {"UTC Z"}, {"Instant", "OffsetDateTime"}),
+    "Pure date": ({"Pure date"}, {"Pure date"}, {"LocalDate"}),
+    "Local time": ({"Local time"}, {"Local", "Local + zone"}, {"LocalTime"}),
+    "Zoned schedule": ({"Local + zone"}, {"Local + zone"}, {"LocalDateTime", "LocalTime", "ZonedDateTime"}),
+    "Duration": ({"Duration"}, {"Duration"}, {"Duration"}),
+}
+
+
+def validate_time_contract(text: str, heading: str) -> list[str]:
+    """Check declared time policies; actual mapping/calendar behavior remains a Manual Check."""
+    if heading not in text:
+        return [f"Missing required time subsection: {heading}"]
+    body = heading_body(text, heading)
+    errors: list[str] = []
+    dispositions = re.findall(r"(?m)^Time contract:[ \t]*(.*)$", body)
+    if len(dispositions) != 1:
+        return ["Time contract requires exactly one applicability declaration"]
+    value = clean(dispositions[0])
+    rows = markdown_table_rows(body, "Time ID")
+    if value not in {"Required", "Not applicable"}:
+        return ["Time contract must be Required or Not applicable"]
+    if value == "Not applicable":
+        reason = re.search(r"(?m)^Reason:\s*(.+)$", body)
+        if not reason or not time_evidence(reason.group(1)):
+            errors.append("Not applicable time contract requires concrete Reason evidence")
+        if rows:
+            errors.append("Not applicable time contract cannot contain TIME rows")
+        return errors
+    if TIME_CONTRACT_TABLE not in body or not rows:
+        errors.append("Required time contract needs the canonical twelve-column table and TIME rows")
+    seen: set[str] = set()
+    for row in rows:
+        if len(row) != 12:
+            errors.append("Time contract row requires exactly twelve columns")
+            continue
+        cells = [clean(cell) for cell in row]
+        time_id, symbols, semantics, runtime_type, storage, wire = cells[:6]
+        if not re.fullmatch(r"TIME-\d{3}", time_id) or time_id in seen:
+            errors.append(f"Time contract requires unique TIME-NNN IDs: {time_id}")
+        seen.add(time_id)
+        if not all(time_evidence(cell) for cell in cells):
+            errors.append(f"{time_id} requires concrete field and boundary evidence in every cell")
+        if semantics not in TIME_POLICIES:
+            errors.append(f"{time_id} has invalid time semantics: {semantics}")
+            continue
+        allowed_storage, allowed_wire, allowed_types = TIME_POLICIES[semantics]
+        if storage not in allowed_storage | {"Not persisted"}:
+            errors.append(f"{time_id} storage policy conflicts with {semantics}: {storage}")
+        if wire not in allowed_wire | {"Internal"}:
+            errors.append(f"{time_id} wire policy conflicts with {semantics}: {wire}")
+        java_types = set(re.findall(r"\b(?:Instant|OffsetDateTime|LocalDate|LocalDateTime|LocalTime|ZonedDateTime|Duration)\b", runtime_type))
+        permitted_types = allowed_types | ({"LocalDateTime"} if storage == "Legacy UTC" else set())
+        if java_types - permitted_types:
+            errors.append(f"{time_id} Java type conflicts with time semantics/storage: {runtime_type}")
+        business_zone = cells[6]
+        if re.search(r"systemDefault|TimeZone\.getDefault|server default|JVM default|OS default|database default|browser|服务器默认|浏览器|系统默认", business_zone, re.IGNORECASE):
+            errors.append(f"{time_id} business zone must be explicit, not a server/browser default")
+        if semantics == "Zoned schedule" and business_zone.startswith("Not applicable"):
+            errors.append(f"{time_id} Zoned schedule requires a region-zone source")
+        if storage == "Legacy UTC":
+            compatibility = cells[10]
+            if not re.search(r"UTC", compatibility, re.IGNORECASE) or not re.search(r"conver|mapping|转换|映射", compatibility, re.IGNORECASE):
+                errors.append(f"{time_id} Legacy UTC requires UTC interpretation and conversion evidence")
+        if not re.search(r"\bTEST-\d{3}\b", cells[11]):
+            errors.append(f"{time_id} requires concrete TEST-NNN verification")
+        if heading.startswith("### 4.") and not re.search(r"\bStep\s+\d+\b", cells[11]):
+            errors.append(f"{time_id} Plan verification requires an owning Step N")
+    time_check = next((row for row in markdown_table_rows(text, "Check ID") if row and clean(row[0]) == "MC-TIME-001"), None)
+    if time_check and len(time_check) > 2 and (clean(time_check[1]) == "Not applicable" or clean(time_check[2]) == "N/A"):
+        errors.append("Required time contract cannot mark MC-TIME-001 Not applicable/N/A")
+    return errors
+
+
+def time_evidence(value: str) -> bool:
+    """Allow explained non-applicability, but reject bare placeholders or missing evidence."""
+    value = clean(value)
+    if value in {"", "N/A", "None", "Unknown", "TBD", "-"} or re.fullmatch(r"<[^>]+>", value):
+        return False
+    if value.startswith("Not applicable"):
+        reason = re.fullmatch(r"Not applicable:[ \t]*(.+)", value)
+        return bool(reason and time_evidence(reason.group(1)))
+    return True
 
 
 def validate_manual_checks(text: str, pass_verdict: bool) -> list[str]:
@@ -451,7 +541,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             errors.append(
                 f"Template Version {template_version} requires the change-unit dependency matrix"
             )
-    if template_version in {3, 4}:
+    if template_version in {3, 4, 5}:
         if "### 4.7 Java, Spring, and Egon-COLA Implementation Standards" not in text:
             errors.append(
                 f"Template Version {template_version} is missing required subsection: "
@@ -464,10 +554,10 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             )
         if "| Need | Candidates inspected | Exact evidence | Fit/gap | Decision |" not in strategy:
             errors.append(f"Template Version {template_version} requires the capability reuse ledger")
-    if template_version == 4:
+    if template_version in {4, 5}:
         literal_heading = "### 4.8 User-mandated Java Rule Implementation Matrix"
         if literal_heading not in text:
-            errors.append(f"Template Version 4 is missing required subsection: {literal_heading}")
+            errors.append(f"Template Version {template_version} is missing required subsection: {literal_heading}")
         strategy = section(text, "## 4. Implementation Strategy and Dependency Order")
         literal_body = heading_body(strategy, literal_heading)
         expected_header = (
@@ -475,7 +565,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             "Pseudocode obligations | Validation gate | Steps | Status/blocker |"
         )
         if expected_header not in literal_body:
-            errors.append("Template Version 4 requires the canonical literal-rule implementation table")
+            errors.append(f"Template Version {template_version} requires the canonical literal-rule implementation table")
         rows = markdown_table_rows(literal_body, "Literal rule")
         actual_rules = [clean(row[0]) for row in rows if row]
         expected_rules = [f"Rule {number}" for number in LITERAL_RULE_NUMBERS]
@@ -530,6 +620,9 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             f"actual={actual_primary_status or 'unknown'}"
         )
 
+    if template_version == 5:
+        errors.extend(validate_time_contract(text, "### 4.9 Time semantics and conversion contract"))
+
     steps = extract_steps(text)
     if not steps:
         errors.append("No '### Step N — ...' implementation Steps found in section 7")
@@ -538,7 +631,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
 
     step_requirements: set[str] = set()
     for step_number, step in steps:
-        if template_version == 4:
+        if template_version in {4, 5}:
             step_markers = STEP_MARKERS_V4
             file_markers = FILE_MARKERS_V4
         elif template_version == 3:
@@ -554,13 +647,13 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             if marker not in step:
                 errors.append(f"Step {step_number} missing required marker: {marker}")
 
-        if template_version in {2, 3, 4}:
+        if template_version in {2, 3, 4, 5}:
             test_first = re.search(r"(?m)^- Test-first gate:\s*(.+)$", step)
             if test_first and not re.match(r"(?:`)?(?:Required|Not applicable)\b", test_first.group(1), re.IGNORECASE):
                 errors.append(
                     f"Step {step_number} Test-first gate must start with Required or Not applicable"
                 )
-        if template_version in {3, 4}:
+        if template_version in {3, 4, 5}:
             manual_line = re.search(r"(?m)^- Manual Checks:\s*(.+)$", step)
             manual_ids = set(MANUAL_CHECK_RE.findall(manual_line.group(1))) if manual_line else set()
             if manual_line and not manual_ids:
@@ -578,7 +671,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                     f"Step {step_number} Manual Checks must include: "
                     + ", ".join(missing_step_checks)
                 )
-        if template_version == 4:
+        if template_version in {4, 5}:
             literal_line = re.search(r"(?m)^- Literal Rules:\s*(.+)$", step)
             literal_numbers = (
                 {int(number) for number in LITERAL_RULE_RE.findall(literal_line.group(1))}
@@ -632,14 +725,14 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                     warnings.append(
                         f"Step {step_number} File {file_number} contains generic, non-implementable pseudocode"
                     )
-                if template_version in {2, 3, 4}:
+                if template_version in {2, 3, 4, 5}:
                     nonempty_lines = [line for line in pseudocode_body.splitlines() if line.strip()]
                     if len(re.sub(r"\s+", " ", pseudocode_body).strip()) < 120 or len(nonempty_lines) < 3:
                         errors.append(
                             f"Step {step_number} File {file_number} pseudocode is too shallow "
                             f"for Template Version {template_version}"
                         )
-            if template_version in {3, 4}:
+            if template_version in {3, 4, 5}:
                 standards = re.search(r"(?m)^- Standards impact:\s*(.+)$", block)
                 standards_ids = set(MANUAL_CHECK_RE.findall(standards.group(1))) if standards else set()
                 if standards and not standards_ids:
@@ -652,7 +745,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                         f"Step {step_number} File {file_number} contains unknown Manual Check IDs: "
                         + ", ".join(unknown_standards_ids)
                     )
-            if template_version == 4:
+            if template_version in {4, 5}:
                 literal_enforcement = re.search(
                     r"(?m)^- Literal rule enforcement:\s*(.+)$", block
                 )
@@ -678,7 +771,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                         + ", ".join(sorted(unknown_file_rules))
                     )
 
-        if template_version in {2, 3, 4} and files:
+        if template_version in {2, 3, 4, 5} and files:
             commit_paths = re.search(r"(?m)^- Commit paths:\s*(.+)$", step)
             if commit_paths:
                 commit_scope = commit_paths.group(1)
@@ -718,7 +811,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     elif status in {"Review", "Ready"} and "BLOCKED — Spec or user decision required" in present_verdicts:
         errors.append(f"Status {status} cannot use the BLOCKED verdict")
 
-    if template_version in {3, 4}:
+    if template_version in {3, 4, 5}:
         errors.extend(
             validate_manual_checks(
                 text,

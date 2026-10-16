@@ -31,6 +31,32 @@ class GenerationUpdateTest {
     private final GenerationApplyService apply = new GenerationApplyService(states, paths);
 
     @Test
+    void correctedConverterUpdatesItsBaselineWithoutOverwritingBusinessEdits(@TempDir Path root) throws Exception {
+        String converter = "src/main/java/example/infrastructure/goods/converter/BrandPersistenceConverter.java";
+        String service = "src/main/java/example/infrastructure/goods/service/impl/BrandDomainServiceImpl.java";
+        String oldConverter = "package example.infrastructure.goods.service.impl;\npublic interface BrandPersistenceConverter {}";
+        String corrected = "package example.infrastructure.goods.converter;\npublic interface BrandPersistenceConverter {}";
+        CodegenPlanBO original = plan(root, List.of(file(converter, "converter", oldConverter),
+                file(service, "domain-impl", "original service")), "schema", "template-1", "component", List.of());
+        assertEquals(GenerationApplyService.APPLIED, applyPlan(root, original, Set.of(), current(root, original), -1).status());
+        Files.writeString(root.resolve(service), "custom business behavior");
+        CodegenPlanBO combined = plan(root, List.of(file(converter, "converter", corrected),
+                file(service, "domain-impl", "service with converter import")), "schema", "template-2", "component", List.of());
+        assertEquals(GenerationApplyService.CONFLICT, applyPlan(root, combined, Set.of(), current(root, combined), -1).status());
+        assertEquals(oldConverter, Files.readString(root.resolve(converter)));
+
+        CodegenPlanBO selected = plan(root, List.of(file(converter, "converter", corrected)),
+                "schema", "template-2", "component", List.of("domain-impl"));
+        assertEquals(GenerationApplyService.APPLIED, applyPlan(root, selected, Set.of(), current(root, selected), -1).status());
+        assertEquals(corrected, Files.readString(root.resolve(converter)));
+        assertEquals("custom business behavior", Files.readString(root.resolve(service)));
+        var baseline = states.load(root).getArtifacts().stream().filter(value -> converter.equals(value.getPath())).findFirst().orElseThrow();
+        assertEquals(GenerationPlanService.sha256(corrected.getBytes(StandardCharsets.UTF_8)), baseline.getPreviousGeneratedHash());
+        assertEquals("NO_CHANGE", plan(root, List.of(file(converter, "converter", corrected)),
+                "schema", "template-2", "component", List.of()).getFiles().get(0).getOperation());
+    }
+
+    @Test
     void repeatedApplyIsStableAndPartialSelectionPreservesCustomFiles(@TempDir Path root) throws Exception {
         CodegenPlanBO first = plan(root, List.of(file("src/OrdersPO.java", "po", "v1"), file("src/OrdersDAO.java", "dao", "v1")),
                 "schema-1", "template-1", "component-1", List.of());

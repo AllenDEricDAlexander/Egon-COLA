@@ -35,9 +35,11 @@ At Step lock, create the ten-row Literal Rule Gate from `references/step-gate-ch
 
 ## Rule 1 — semantic name inspection
 
-For every Java type created, renamed, or materially changed, inspect the final declaration and consumers. POJOs must end in semantic `PO`, `BO`, `VO`, `DTO`, `Query`, `Command`, `Event`, `Request`, `Response`, `PageQuery`, `PageResult`, or justified `Entity`; access components use `DAO`; behavior types use their exact role suffix.
+For every Java type created, renamed, or materially changed, inspect the final declaration and consumers. POJOs must end in semantic `PO`, `BO`, `VO`, `DTO`, `Query`, `Command`, `Event`, `Result`, `PageQuery`, `PageResult`, or justified `Entity`; access components use `DAO`; behavior types use their exact role suffix.
 
 Reject new/touched ambiguous `Data`, `Info`, `Param`, `Bean`, or suffixless carrier names. Verify a distinct boundary/lifecycle reason for every new type to prevent class explosion. Record the type inventory and compile evidence.
+
+Archetype and code-gen use the same naming contract: protocol-only inputs use `*DTO`, read/write intents use `*Query`/`*Command`, and application/protocol outputs keep `*Result`/`*PageResult` (presentation output keeps `*VO`). Do not introduce project-owned `*Request`/`*Response` carriers or duplicate a type just for a suffix. Preserve framework/third-party contracts, generated protocol types (including Protobuf messages) and unrelated existing APIs. Generated Java paths must match their declared package and public type; compilation, template hashes and `CLEAN` do not prove that contract.
 
 ## Rule 2 — validate each affected layer handoff
 
@@ -76,7 +78,7 @@ Inspect touched imports, build manifests, and new helper files. Only JDK, the na
 
 ## Rule 6 — enforce Jackson contracts
 
-Inspect every touched external DTO/VO/Request/Response/Command/Query/Event. Confirm necessary Jackson annotations or field-by-field evidence that defaults exactly match the protocol. Run focused serialization/compatibility tests. Reject Gson/Fastjson imports, mixed ObjectMappers, or JSON conversion tricks.
+Inspect every touched external DTO/VO/Result/Command/Query/Event. Confirm necessary Jackson annotations or field-by-field evidence that defaults exactly match the protocol. Run focused serialization/compatibility tests. Reject Gson/Fastjson imports, mixed ObjectMappers, or JSON conversion tricks.
 
 ## Rule 7 — compare all environment profiles
 
@@ -91,6 +93,8 @@ Reject long `if/else`, `switch`, type/string/reflection dispatch, or direct orch
 ## Rule 10 — reject java.util date/time
 
 Inspect touched imports, fields, APIs, persistence mappings, JSON, calculations, durations, timeouts, and clocks. Require `java.time` with exact zone, precision, Clock, database, and JSON semantics. New `java.util.Date`, `Calendar`, or `SimpleDateFormat` fails even when tests pass.
+
+Read `references/time-semantics.md` for the UTC/semantic classification, explicit business/display zones, legacy UTC compatibility and `MC-TIME-001` evidence contract. New Specs use §6.3; new Plans use §4.9; execution verifies the effective decisions and actual checks.
 
 ## Rule 11 — verify architecture before and after each Step
 

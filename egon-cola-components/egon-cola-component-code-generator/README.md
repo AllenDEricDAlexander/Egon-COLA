@@ -130,3 +130,19 @@ Unsupported or session-dependent temporal defaults fail with `TIME_DEFAULT_UNSUP
 `TIMESTAMP 'now'` freezes the creation-time value; `timezone('UTC', now())` returns a naive value and is
 not an instant-column default. Scheduling endpoints remain required inputs; `deleted_at` stays nullable.
 The MP schema maintainer proposes types without inventing defaults. Historical migrations are immutable.
+
+## Generated Java contract and template corrections
+
+Before staging a plan, all selected Java outputs must match their source path, package and public
+type; a mismatch returns `JAVA_SOURCE_MISMATCH` with exit code 2. Persistence converters belong to
+`infrastructure.<domain>.converter`, and Domain Service implementations import them explicitly.
+Archetype protocol-only input carriers use `DTO`; `Command`/`Query` inputs and `Result`/`PageResult`
+outputs keep their semantic names. Framework and generated protocol types are unchanged.
+
+`CLEAN` means the selected files match the current templates; it is not an architecture verdict.
+After upgrading the tool/templates, create a fresh plan. A previously generated, unedited converter
+can be updated in place, with its baseline hash maintained by `apply`. If a Domain Service contains
+business edits, a combined apply stops before any writes. Select only the unedited generated files,
+and review the import change in the edited service separately. Preserve its recorded baseline and
+expected drift; do not reset hashes or delete state to force `CLEAN`. A clean compile regenerates
+MapStruct implementations in the corrected package and removes stale classes from the old package.

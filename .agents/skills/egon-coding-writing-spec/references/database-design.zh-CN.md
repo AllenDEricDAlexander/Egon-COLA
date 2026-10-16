@@ -4,6 +4,8 @@
 
 > 本文件是 `references/database-design.md` 的全中文审核镜像。第 11 章把 Schema、数据语义、约束、索引、Schema 变更/DDL、分片、数据源拓扑、事务/锁行为或持久化所有权标记为 `Affected` 时必须读取，并使用仓库真实数据库方言、受管 DDL Runner、命名规范和访问技术。DAO 查询单独变化且数据库设计不变时，使用 `references/change-surface-and-proportional-depth.zh-CN.md` 的简洁 `Context-only`/`Unchanged` 写法，不能套用本文件的完整逐表模板。
 
+时间字段受影响时读取 `references/time-semantics.zh-CN.md` 并消费 Spec §6.3：发生时刻 UTC 存储/ISO 8601 `Z`，纯日期保持日期，业务计算明确时区，前端展示/提交明确转换和精度。在范围内保留有证据的历史契约；MC-TIME-001 要求真实映射/序列化/日历证据。
+
 ## 目录
 
 - [持久化、分片与受管 DDL](#持久化分片与受管-ddl)

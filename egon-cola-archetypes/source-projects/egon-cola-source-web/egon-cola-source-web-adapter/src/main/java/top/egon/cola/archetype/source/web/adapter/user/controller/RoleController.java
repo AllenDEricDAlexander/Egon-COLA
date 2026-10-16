@@ -15,7 +15,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.RoleAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.AssignRoleRequest;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.AssignRoleDTO;
 import top.egon.cola.archetype.source.web.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
@@ -64,7 +64,7 @@ public class RoleController {
     @RBACAPIResource(code = "egon-cola-source-web.api.role.assign", permission = "egon-cola-source-web:role:assign", name = "Assign")
     public ResponseEntity<Void> assign(
             @PathVariable String userId,
-            @Valid @RequestBody AssignRoleRequest request,
+            @Valid @RequestBody AssignRoleDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-web:role:assign", authorizationProperties.getSystemCode(),
                 "egon-cola-source-web.api.role.assign", Set.of("roleCode")));

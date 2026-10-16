@@ -30,12 +30,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.convertor.KnowledgeEventConverter;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.convertor.KnowledgeQaCommandConverter;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.convertor.KnowledgeRetrievalVoConverter;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.AskKnowledgeBaseRequest;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.RetrieveKnowledgeRequest;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.AskKnowledgeBaseDTO;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.RetrieveKnowledgeDTO;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.vo.KnowledgeQaEventVO;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.vo.KnowledgeRetrievalVO;
 import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.AskKnowledgeBaseCommand;
@@ -107,9 +107,9 @@ public class KnowledgeQaController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "The matched chunks, possibly none"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "503", description = "The vector store or the embedding endpoint is unavailable",
                     content = @Content(schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
     })
@@ -119,7 +119,7 @@ public class KnowledgeQaController {
             @PathVariable("knowledgeBaseId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "knowledgeBaseId must be 1 to 64 characters of [A-Za-z0-9._-]")
             String knowledgeBaseId,
-            @Valid @RequestBody RetrieveKnowledgeRequest request,
+            @Valid @RequestBody RetrieveKnowledgeDTO request,
             @Parameter(in = ParameterIn.HEADER, name = ResearchTraceFilter.TRACE_HEADER,
                     description = "Optional safe request correlation id")
             @RequestAttribute(ResearchTraceFilter.TRACE_ATTRIBUTE) String traceId) {
@@ -146,16 +146,16 @@ public class KnowledgeQaController {
                             schema = @Schema(implementation = KnowledgeQaEventVO.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                            schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                            schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "406", description = "The client cannot accept an event stream",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                            schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "429", description = "Every answer slot is in use",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                            schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "503", description = "The vector store or the embedding endpoint is unavailable",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
@@ -166,7 +166,7 @@ public class KnowledgeQaController {
             @PathVariable("knowledgeBaseId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "knowledgeBaseId must be 1 to 64 characters of [A-Za-z0-9._-]")
             String knowledgeBaseId,
-            @Valid @RequestBody AskKnowledgeBaseRequest request,
+            @Valid @RequestBody AskKnowledgeBaseDTO request,
             @Parameter(in = ParameterIn.HEADER, name = ResearchTraceFilter.TRACE_HEADER,
                     description = "Optional safe request correlation id")
             @RequestAttribute(ResearchTraceFilter.TRACE_ATTRIBUTE) String traceId,

@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.adapter.user.controller;
 
 import top.egon.cola.archetype.source.webopen.adapter.user.pojo.convertor.RoleAdapterConverter;
-import top.egon.cola.archetype.source.webopen.adapter.user.pojo.dto.AssignRoleRequest;
+import top.egon.cola.archetype.source.webopen.adapter.user.pojo.dto.AssignRoleDTO;
 import top.egon.cola.archetype.source.webopen.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
@@ -31,7 +31,7 @@ public class RoleController {
     @PostMapping("/api/v1/users/{userId}/roles")
     public ResponseEntity<Void> assign(
             @PathVariable String userId,
-            @Valid @RequestBody AssignRoleRequest request,
+            @Valid @RequestBody AssignRoleDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
         roleManage.assignRole(converter.toCommand(requestId,

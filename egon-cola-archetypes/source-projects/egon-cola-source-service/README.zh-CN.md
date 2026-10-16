@@ -66,6 +66,8 @@ Common <- Domain <- Application <- Adapter -> 本工程自有 Evaluation Facade�
           Adapter <- Starter -> Infrastructure
 ```
 
+Domain 显式声明父 POM 管理的 Lombok，作用域为 `provided`，保证 code-gen POJO 可编译，不增加运行时依赖。
+
 更精确地说：Domain 只依赖 Common；Facade 不依赖任何内部模块；Application 与 Infrastructure 只依赖 Domain；Adapter 依赖 Application 与本工程自有 Facade。Adapter 实现自有 Evaluation Facade 契约。仅在生成时启用对端集成后，Infrastructure 才消费已发布的 Organization Facade 契约；对端工件与 provider 都不依赖当前生成项目。Starter 是组合根，因此不存在 Web/Service Maven 循环依赖。
 
 ## 示例流程

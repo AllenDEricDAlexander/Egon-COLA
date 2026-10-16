@@ -8,7 +8,7 @@
 
 生成基础 CRUD 时按 Repo → Domain Service/实现 → Manage/实现 → Light/Web Controller 链路选择 `backend-crud`；Service 不生成 HTTP。DDL 中通用列需要校验，PO 通过 `EgonModel` 继承，不重复声明。v1/过期计划和无归属文件阻断 apply。
 
-当 Step 引入真实业务行为时，在该 Step 内删除或替换相应脚手架样例代码，验证不存在冲突的样例入口、服务、仓储、表或配置；已应用 SQL 历史保持不可变；保留无关的用户文件。
+生成项目的业务工作在编辑前核对有效 Spec §2.5 清单与 Plan。每个 `EXAMPLE-*` 的 Delete/Replace 在所属 Step 落实，包括首个功能以外的未使用样例域；首个业务验收及最终审核前，证明目标全部模块无未使用的可执行样例或引用链。清理范围缺失须补 Spec/Plan，不能临时猜测删除。只保留有证据的真实业务、必要基础设施和不可变的已应用历史；保留用户改动，已应用 Schema 仅新增纠正版本。
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -25,6 +25,10 @@ Read `references/egon-java-cqe-contract.md` after resource preflight for every J
 严格按照一份已获准执行的 coding Plan 逐 Step 落地。每次只完成一个 Step；只有该 Step 已通过验证并形成独立提交后，才能开始下一个 Step。全部 Step 完成后，必须脱离 Plan 的“已完成”结论，重新对照最终生效的 Spec 审核实际仓库，并如实报告所有未满足、部分满足或仅缺少运行时验证的要求。
 
 Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan 全部执行完，不等于实现一定满足 Spec。
+
+## 时间语义与 UTC 规则
+
+时间语义或边界受影响时读取 `references/time-semantics.zh-CN.md`。区分发生时刻（UTC 存储、ISO 8601 `Z` 传输）、纯日期、本地时间、地区调度和时长。业务按明确业务时区计算，前端按明确展示时区转换；`MC-TIME-001` 要求具体边界及兼容证据。本规则不扩大已授权代码/数据/迁移范围。
 
 ## 资源完整性预检
 

@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor;
 
-import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateSchoolClassRequest;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateSchoolClassDTO;
 import top.egon.cola.archetype.source.web.adapter.teaching.pojo.vo.SchoolClassDetailVO;
 import top.egon.cola.archetype.source.web.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.web.application.teaching.pojo.command.AssignUserToClassCommand;
@@ -22,7 +22,7 @@ public interface SchoolClassAdapterConverter extends BaseForwardConverter<School
     @Mapping(target = "requestId", source = "requestId")
     @Mapping(target = "name", source = "request.name")
     @Mapping(target = "gradeCode", source = "request.gradeCode")
-    CreateSchoolClassCommand toCommand(String requestId, CreateSchoolClassRequest request);
+    CreateSchoolClassCommand toCommand(String requestId, CreateSchoolClassDTO request);
 
     @Mapping(target = "requestId", source = "requestId")
     @Mapping(target = "gradeId", source = "gradeId")
@@ -43,7 +43,7 @@ public interface SchoolClassAdapterConverter extends BaseForwardConverter<School
     }
 
     @BeforeMapping
-    default void requireRequest(CreateSchoolClassRequest request) {
+    default void requireRequest(CreateSchoolClassDTO request) {
         Objects.requireNonNull(request, "request");
     }
 

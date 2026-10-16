@@ -78,13 +78,13 @@ public class OrganizationGlobalExceptionHandler {
     }
 
     @ExceptionHandler(OrganizationApplicationException.class)
-    public ResponseEntity<OrganizationErrorResponse> handleApplication(OrganizationApplicationException failure) {
+    public ResponseEntity<OrganizationErrorResult> handleApplication(OrganizationApplicationException failure) {
         ExceptionLogger.log(log, failure);
         return response(status(failure.failureType()), failure.code(), failure.getMessage(), Map.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<OrganizationErrorResponse> handleBodyValidation(MethodArgumentNotValidException failure) {
+    public ResponseEntity<OrganizationErrorResult> handleBodyValidation(MethodArgumentNotValidException failure) {
         Map<String, List<String>> fields = failure.getBindingResult().getFieldErrors().stream()
             .collect(Collectors.groupingBy(error -> error.getField(), LinkedHashMap::new,
                 Collectors.mapping(error -> error.getDefaultMessage() == null ? "invalid" : error.getDefaultMessage(),
@@ -93,7 +93,7 @@ public class OrganizationGlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<OrganizationErrorResponse> handleConstraintValidation(ConstraintViolationException failure) {
+    public ResponseEntity<OrganizationErrorResult> handleConstraintValidation(ConstraintViolationException failure) {
         Map<String, List<String>> fields = failure.getConstraintViolations().stream()
             .collect(Collectors.groupingBy(this::fieldName, LinkedHashMap::new,
                 Collectors.mapping(ConstraintViolation::getMessage, Collectors.toList())));
@@ -101,14 +101,14 @@ public class OrganizationGlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<OrganizationErrorResponse> handleUnexpected(Exception failure) {
+    public ResponseEntity<OrganizationErrorResult> handleUnexpected(Exception failure) {
         ExceptionLogger.log(log, failure);
         return response(HttpStatus.INTERNAL_SERVER_ERROR, "ORG_INTERNAL_ERROR", "internal error", Map.of());
     }
 
-    private ResponseEntity<OrganizationErrorResponse> response(
+    private ResponseEntity<OrganizationErrorResult> response(
             HttpStatus status, String code, String message, Map<String, List<String>> fieldErrors) {
-        return ResponseEntity.status(status).body(new OrganizationErrorResponse(
+        return ResponseEntity.status(status).body(new OrganizationErrorResult(
             code, message, traceId(), Instant.now(), fieldErrors));
     }
 

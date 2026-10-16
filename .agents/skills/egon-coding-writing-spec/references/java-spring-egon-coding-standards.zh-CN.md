@@ -80,9 +80,9 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 - 持久化载体使用 `*PO`；只有具备明确身份和生命周期语义的真实 ORM/DDD 实体才使用 `*Entity`。
 - 业务计算载体使用 `*BO`；传输/集成载体使用 `*DTO`；展示输出使用 `*VO`。
 - 读取意图使用 `*Query`；修改意图使用 `*Command`；已发生事实使用 `*Event`。
-- HTTP/RPC 边界可使用明确的 `*Request`、`*Response`；仓库契约需要时分页使用 `*PageQuery`、`*PageResult`。
+- 纯协议入参载体使用 `*DTO`；读写意图保留 `*Query`/`*Command`。应用/协议输出使用 `*Result`/`*PageResult`；展示输出保留 `*VO`。不新增项目自有 `*Request`、`*Response` 载体。
 - 数据访问组件使用 `*DAO`；DAO 是访问组件，不是 POJO。
-- 其他行为类型使用准确后缀，例如 `*Controller`、`*Service`、`*Repository`、`*Gateway`、`*Converter`、`*Validator`、`*Component`、`*Factory`、`*Strategy`、`*Exception`、`*Result`、`*Enum`。
+- 其他行为类型使用准确后缀，例如 `*Controller`、`*Service`、`*Repository`、`*Gateway`、`*Converter`、`*Validator`、`*Component`、`*Factory`、`*Strategy`、`*Exception`、`*Enum`。
 
 禁止使用 `Data`、`Info`、`Param`、`Bean` 等含糊载体后缀来逃避语义选择。没有真实边界差异时，不能重复创建 PO/BO/DTO/VO/Query/Command/Event。范围外存量含糊名称不是重构授权；新增和实质修改类型必须纠正，无法纠正时报告冲突。
 
@@ -137,7 +137,7 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 ### JSON
 
-统一使用 Spring Boot Jackson。外部 DTO/VO/Request/Response/Command/Query/Event 仅按真实协议需要使用 Jackson 注解，明确字段名、Include/Ignore、枚举、时间、多态、兼容和未知字段策略。禁止引入或混用 Gson、Fastjson，也禁止 JSON 往返转换对象。
+统一使用 Spring Boot Jackson。外部 DTO/VO/Result/Command/Query/Event 仅按真实协议需要使用 Jackson 注解，明确字段名、Include/Ignore、枚举、时间、多态、兼容和未知字段策略。禁止引入或混用 Gson、Fastjson，也禁止 JSON 往返转换对象。
 
 ### 日期时间
 
@@ -192,6 +192,8 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | `MC-ARCH-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<路径、符号、依赖或命令证据>` | `<观察结果>` | `None / 准确下一步和负责人` |
+
+时间边界还必须遵循 `references/time-semantics.zh-CN.md`：发生时刻 UTC、纯日期语义不偏移、显式业务时区计算及前端展示转换。`MC-TIME-001` 要求适用映射/序列化/日历/夏令时/精度/兼容证据。
 
 
 ## 构造器注入补充规则（2026-10-13）

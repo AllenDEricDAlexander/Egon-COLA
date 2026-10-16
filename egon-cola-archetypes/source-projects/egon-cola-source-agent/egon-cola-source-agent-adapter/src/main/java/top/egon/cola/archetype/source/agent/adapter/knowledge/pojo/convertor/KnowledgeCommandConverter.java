@@ -5,8 +5,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.CreateKnowledgeBaseRequest;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.UpdateKnowledgeBaseRequest;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.CreateKnowledgeBaseDTO;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.UpdateKnowledgeBaseDTO;
 import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.CreateKnowledgeBaseCommand;
 import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.UpdateKnowledgeBaseCommand;
 import top.egon.cola.component.common.core.converter.BaseConverter;
@@ -22,7 +22,7 @@ import java.util.Objects;
  * instead of being a mapped field — a caller cannot forge a correlation id through the payload.
  */
 @Mapper(unmappedTargetPolicy = ReportingPolicy.ERROR)
-public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledgeBaseRequest, CreateKnowledgeBaseCommand> {
+public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledgeBaseDTO, CreateKnowledgeBaseCommand> {
 
     KnowledgeCommandConverter INSTANCE = Mappers.getMapper(KnowledgeCommandConverter.class);
 
@@ -30,12 +30,12 @@ public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledge
     String DEFAULT_TRACE_ID = "adapter";
 
     @Override
-    default CreateKnowledgeBaseCommand toTarget(CreateKnowledgeBaseRequest source) {
+    default CreateKnowledgeBaseCommand toTarget(CreateKnowledgeBaseDTO source) {
         return toCreateCommand(source, DEFAULT_TRACE_ID);
     }
 
     /** Maps one create body to its command, stamping the request-scoped correlation id. */
-    default CreateKnowledgeBaseCommand toCreateCommand(CreateKnowledgeBaseRequest source, String traceId) {
+    default CreateKnowledgeBaseCommand toCreateCommand(CreateKnowledgeBaseDTO source, String traceId) {
         Objects.requireNonNull(source, "request must not be null");
         return mapCreate(source, Objects.requireNonNull(traceId, "traceId must not be null"));
     }
@@ -47,7 +47,7 @@ public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledge
     @Mapping(target = "chunkStrategy", source = "chunkStrategy")
     @Mapping(target = "chunkConfig", expression = "java(toChunkingConfig(source.chunkConfig()))")
     @Mapping(target = "traceId", expression = "java(traceId)")
-    CreateKnowledgeBaseCommand mapCreate(CreateKnowledgeBaseRequest source, @Context String traceId);
+    CreateKnowledgeBaseCommand mapCreate(CreateKnowledgeBaseDTO source, @Context String traceId);
 
     @Override
     @Mapping(target = "code", source = "code")
@@ -56,10 +56,10 @@ public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledge
     @Mapping(target = "embeddingModel", source = "embeddingModel")
     @Mapping(target = "chunkStrategy", source = "chunkStrategy")
     @Mapping(target = "chunkConfig", expression = "java(toChunkingConfigRequest(target.chunkConfig()))")
-    CreateKnowledgeBaseRequest toSource(CreateKnowledgeBaseCommand target);
+    CreateKnowledgeBaseDTO toSource(CreateKnowledgeBaseCommand target);
 
     /** Maps one edit body to its command, carrying the path identifier and the traced context. */
-    default UpdateKnowledgeBaseCommand toUpdateCommand(UpdateKnowledgeBaseRequest source, Long knowledgeBaseId,
+    default UpdateKnowledgeBaseCommand toUpdateCommand(UpdateKnowledgeBaseDTO source, Long knowledgeBaseId,
                                                       String traceId) {
         Objects.requireNonNull(source, "request must not be null");
         return mapUpdate(source, Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null"),
@@ -74,15 +74,15 @@ public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledge
     @Mapping(target = "chunkStrategy", source = "chunkStrategy")
     @Mapping(target = "chunkConfig", expression = "java(toChunkingConfig(source.chunkConfig()))")
     @Mapping(target = "traceId", expression = "java(traceId)")
-    UpdateKnowledgeBaseCommand mapUpdate(UpdateKnowledgeBaseRequest source, @Context Long knowledgeBaseId,
+    UpdateKnowledgeBaseCommand mapUpdate(UpdateKnowledgeBaseDTO source, @Context Long knowledgeBaseId,
                                          @Context String traceId);
 
     /** Reverse of the edit direction: the probes come back as the body that would send them again. */
-    default UpdateKnowledgeBaseRequest toUpdateRequest(UpdateKnowledgeBaseCommand target) {
+    default UpdateKnowledgeBaseDTO toUpdateRequest(UpdateKnowledgeBaseCommand target) {
         if (target == null) {
             return null;
         }
-        return new UpdateKnowledgeBaseRequest(target.name(), target.description(), target.code(),
+        return new UpdateKnowledgeBaseDTO(target.name(), target.description(), target.code(),
                 target.embeddingModel(), target.chunkStrategy(), toChunkingConfigRequest(target.chunkConfig()));
     }
 
@@ -95,7 +95,7 @@ public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledge
      * domain refuses it as a validation failure instead of failing on an undefined value.
      */
     default CreateKnowledgeBaseCommand.ChunkingConfigCommand toChunkingConfig(
-            CreateKnowledgeBaseRequest.ChunkingConfigRequest config) {
+            CreateKnowledgeBaseDTO.ChunkingConfigDTO config) {
         if (config == null) {
             return null;
         }
@@ -104,12 +104,12 @@ public interface KnowledgeCommandConverter extends BaseConverter<CreateKnowledge
                 config.overlapTokens(), config.minChunkChars(), config.headingLevels());
     }
 
-    default CreateKnowledgeBaseRequest.ChunkingConfigRequest toChunkingConfigRequest(
+    default CreateKnowledgeBaseDTO.ChunkingConfigDTO toChunkingConfigRequest(
             CreateKnowledgeBaseCommand.ChunkingConfigCommand config) {
         if (config == null) {
             return null;
         }
-        return new CreateKnowledgeBaseRequest.ChunkingConfigRequest(config.maxTokensPerChunk(),
+        return new CreateKnowledgeBaseDTO.ChunkingConfigDTO(config.maxTokensPerChunk(),
                 config.overlapTokens(), config.minChunkChars(), config.headingLevels());
     }
 }

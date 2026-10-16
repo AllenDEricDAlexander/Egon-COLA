@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.adapter.teaching.controller;
 
 import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.convertor.GradeAdapterConverter;
-import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.CreateGradeRequest;
+import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.CreateGradeDTO;
 import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.vo.GradeDetailVO;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.GradeManage;
 import top.egon.cola.archetype.source.webopen.application.teaching.pojo.query.GradeDetailQuery;
@@ -35,7 +35,7 @@ public class GradeController {
 
     @PostMapping
     public ResponseEntity<GradeDetailVO> create(
-            @Valid @RequestBody CreateGradeRequest request,
+            @Valid @RequestBody CreateGradeDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
         GradeDetailVO result = converter.toVO(gradeManage.createGrade(converter.toCommand(requestId, request)));

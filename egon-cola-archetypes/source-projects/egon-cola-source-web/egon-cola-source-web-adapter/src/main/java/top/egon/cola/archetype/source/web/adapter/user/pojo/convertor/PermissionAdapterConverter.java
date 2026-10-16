@@ -1,6 +1,6 @@
 package top.egon.cola.archetype.source.web.adapter.user.pojo.convertor;
 
-import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.GrantPermissionRequest;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.GrantPermissionDTO;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.vo.PermissionTreeVO;
 import top.egon.cola.archetype.source.web.application.user.pojo.command.GrantPermissionCommand;
 import top.egon.cola.archetype.source.web.application.user.pojo.result.PermissionTreeResult;
@@ -24,7 +24,7 @@ public interface PermissionAdapterConverter extends BaseForwardConverter<Permiss
     GrantPermissionCommand toCommand(
             String requestId,
             String roleCode,
-            GrantPermissionRequest request);
+            GrantPermissionDTO request);
 
     @Override
     PermissionTreeVO toTarget(PermissionTreeResult source);
@@ -35,7 +35,7 @@ public interface PermissionAdapterConverter extends BaseForwardConverter<Permiss
     }
 
     @BeforeMapping
-    default void requireRequest(GrantPermissionRequest request) {
+    default void requireRequest(GrantPermissionDTO request) {
         Objects.requireNonNull(request, "request");
     }
 

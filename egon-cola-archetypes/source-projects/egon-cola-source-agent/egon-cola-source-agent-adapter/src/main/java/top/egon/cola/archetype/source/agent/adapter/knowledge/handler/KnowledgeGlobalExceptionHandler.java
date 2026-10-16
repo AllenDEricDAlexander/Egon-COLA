@@ -39,7 +39,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.common.exception.KnowledgeApplicationException;
 import top.egon.cola.archetype.source.agent.common.error.KnowledgeErrorCodeEnum;
 
@@ -117,14 +117,14 @@ public class KnowledgeGlobalExceptionHandler {
     private final Clock clock;
 
     @ExceptionHandler(KnowledgeApplicationException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleApplication(
+    public ResponseEntity<DeepResearchErrorResult> handleApplication(
             KnowledgeApplicationException failure, HttpServletRequest request) {
         ExceptionLogger.log(log, failure);
         return response(failure.code(), failure.traceId(), failure.fieldErrors(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleBodyValidation(
+    public ResponseEntity<DeepResearchErrorResult> handleBodyValidation(
             MethodArgumentNotValidException failure, HttpServletRequest request) {
         Map<String, List<String>> fields = failure.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.groupingBy(error -> error.getField(), LinkedHashMap::new,
@@ -143,7 +143,7 @@ public class KnowledgeGlobalExceptionHandler {
      * property of its own and is reported under the wire name of the parameter that carried it.
      */
     @ExceptionHandler(HandlerMethodValidationException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleParameterValidation(
+    public ResponseEntity<DeepResearchErrorResult> handleParameterValidation(
             HandlerMethodValidationException failure, HttpServletRequest request) {
         Map<String, List<String>> fields = new LinkedHashMap<>();
         for (ParameterValidationResult result : failure.getParameterValidationResults()) {
@@ -160,7 +160,7 @@ public class KnowledgeGlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleConstraintValidation(
+    public ResponseEntity<DeepResearchErrorResult> handleConstraintValidation(
             ConstraintViolationException failure, HttpServletRequest request) {
         Map<String, List<String>> fields = failure.getConstraintViolations().stream()
                 .collect(Collectors.groupingBy(violation -> lastSegment(violation.getPropertyPath().toString()),
@@ -170,7 +170,7 @@ public class KnowledgeGlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleTypeMismatch(
+    public ResponseEntity<DeepResearchErrorResult> handleTypeMismatch(
             MethodArgumentTypeMismatchException failure, HttpServletRequest request) {
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_VALIDATION_ERROR, null,
                 Map.of(parameterName(failure.getParameter(), failure.getName()),
@@ -178,20 +178,20 @@ public class KnowledgeGlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleUnreadable(
+    public ResponseEntity<DeepResearchErrorResult> handleUnreadable(
             HttpMessageNotReadableException failure, HttpServletRequest request) {
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_VALIDATION_ERROR, null, Map.of(), request);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleUnsupportedMedia(
+    public ResponseEntity<DeepResearchErrorResult> handleUnsupportedMedia(
             HttpMediaTypeNotSupportedException failure, HttpServletRequest request) {
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_VALIDATION_ERROR, null, Map.of(), request,
                 HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleNotAcceptable(
+    public ResponseEntity<DeepResearchErrorResult> handleNotAcceptable(
             HttpMediaTypeNotAcceptableException failure, HttpServletRequest request) {
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_NOT_ACCEPTABLE, null, Map.of(), request);
     }
@@ -206,7 +206,7 @@ public class KnowledgeGlobalExceptionHandler {
      * scoped advice can be selected for it.
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleUploadTooLarge(
+    public ResponseEntity<DeepResearchErrorResult> handleUploadTooLarge(
             MaxUploadSizeExceededException failure, HttpServletRequest request) {
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_FILE_TOO_LARGE, null,
                 Map.of("file", List.of("the upload exceeds the size limit")), request);
@@ -214,7 +214,7 @@ public class KnowledgeGlobalExceptionHandler {
 
     /** A multipart body the container could not read at all, which is a malformed request. */
     @ExceptionHandler(MultipartException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleMultipart(
+    public ResponseEntity<DeepResearchErrorResult> handleMultipart(
             MultipartException failure, HttpServletRequest request) {
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_VALIDATION_ERROR, null, Map.of(), request);
     }
@@ -224,13 +224,13 @@ public class KnowledgeGlobalExceptionHandler {
      * endpoint, a key or a fragment of a document.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleUnexpected(
+    public ResponseEntity<DeepResearchErrorResult> handleUnexpected(
             Exception failure, HttpServletRequest request) {
         ExceptionLogger.log(log, failure);
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, null, Map.of(), request);
     }
 
-    private ResponseEntity<DeepResearchErrorResponse> response(KnowledgeErrorCodeEnum code, String traceId,
+    private ResponseEntity<DeepResearchErrorResult> response(KnowledgeErrorCodeEnum code, String traceId,
                                                                Map<String, List<String>> fieldErrors,
                                                                HttpServletRequest request) {
         return response(code, traceId, fieldErrors, request, status(code));
@@ -245,11 +245,11 @@ public class KnowledgeGlobalExceptionHandler {
      * otherwise be told its failure has no writable representation, and the failure decided before the
      * stream opened would be lost as a container error instead of the published code.
      */
-    private ResponseEntity<DeepResearchErrorResponse> response(KnowledgeErrorCodeEnum code, String traceId,
+    private ResponseEntity<DeepResearchErrorResult> response(KnowledgeErrorCodeEnum code, String traceId,
                                                                Map<String, List<String>> fieldErrors,
                                                                HttpServletRequest request, HttpStatus status) {
         String effectiveTrace = traceId == null || traceId.isBlank() ? traceId(request) : traceId;
-        DeepResearchErrorResponse body = new DeepResearchErrorResponse(code.code(), code.safeMessage(),
+        DeepResearchErrorResult body = new DeepResearchErrorResult(code.code(), code.safeMessage(),
                 effectiveTrace, clock.instant(), fieldErrors);
         ResponseEntity.BodyBuilder builder = ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_JSON)

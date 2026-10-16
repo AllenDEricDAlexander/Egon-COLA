@@ -45,7 +45,24 @@ class CodegenAcceptanceTest {
             assertFalse(repositorySource.contains("freemarker"));
             assertTrue(poSource.contains("package com.example.codegenfixture.infrastructure.codegenfixture.po"));
             assertTrue(repositorySource.contains("extends EgonColaRepository"));
-            compile(javaRoot.resolve("src/main/java"), project.resolve("classes"));
+            Path support = javaRoot.resolve("src/main/java/com/example/codegenfixture/support/FixtureErrorMapper.java");
+            Files.createDirectories(support.getParent());
+            Files.writeString(support, """
+                    package com.example.codegenfixture.support;
+                    public final class FixtureErrorMapper {
+                        public static RuntimeException missing(Long id) { return new IllegalStateException("missing:" + id); }
+                        public static RuntimeException zeroRows(String operation, Long id, Long version) {
+                            return new IllegalStateException(operation + ":" + id + ":" + version);
+                        }
+                    }
+                    """);
+            compile(project, project.resolve("classes"));
+            String converter = "com/example/codegenfixture/infrastructure/codegenfixture/converter/OrdersPersistenceConverter";
+            assertTrue(Files.exists(project.resolve("classes/" + converter + ".class")));
+            assertTrue(Files.exists(project.resolve("classes/" + converter + "Impl.class")));
+            assertTrue(Files.exists(project.resolve("annotations/" + converter + "Impl.java")));
+            assertFalse(Files.exists(project.resolve("classes/com/example/codegenfixture/infrastructure/codegenfixture/service/impl/OrdersPersistenceConverterImpl.class")));
+            assertEquals(0, run("check", "--config", config.toString()), lastErr);
         }
         String launcher = Files.readString(Path.of("src/main/java/top/egon/cola/component/codegen/cli/CodegenCommand.java"));
         assertFalse(launcher.contains("SpringApplication"));
@@ -67,14 +84,26 @@ class CodegenAcceptanceTest {
 
     private static void compile(Path sourceRoot, Path classes) throws Exception {
         Files.createDirectories(classes);
-        List<Path> files = Files.walk(sourceRoot).filter(path -> path.toString().endsWith(".java")).toList();
+        List<Path> files;
+        try (var paths = Files.walk(sourceRoot)) {
+            files = paths.filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> path.toString().replace('\\', '/').contains("/src/main/java/"))
+                    .filter(path -> !sourceRoot.relativize(path).startsWith(".egon")).toList();
+        }
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         Path lombok = jar("org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar");
         List<String> arguments = new ArrayList<>();
         arguments.add("-classpath");
-        arguments.add(System.getProperty("java.class.path") + java.io.File.pathSeparator + lombok);
+        arguments.add(System.getProperty("java.class.path") + java.io.File.pathSeparator + lombok
+                + java.io.File.pathSeparator + jar("org/mapstruct/mapstruct/1.6.3/mapstruct-1.6.3.jar")
+                + java.io.File.pathSeparator + jar("org/springframework/spring-web/"
+                + org.springframework.core.SpringVersion.getVersion() + "/spring-web-"
+                + org.springframework.core.SpringVersion.getVersion() + ".jar"));
         arguments.add("-processorpath");
-        arguments.add(lombok.toString());
+        arguments.add(lombok + java.io.File.pathSeparator
+                + jar("org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar"));
+        arguments.add("-s");
+        arguments.add(sourceRoot.resolve("annotations").toString());
         arguments.add("-d");
         arguments.add(classes.toString());
         files.forEach(file -> arguments.add(file.toString()));
@@ -101,7 +130,7 @@ class CodegenAcceptanceTest {
                 %s
                   "input": {"mode": "schema", "schemaFiles": ["%s"]},
                   "logicalTables": ["orders"],
-                  "artifacts": ["po", "dao", "mapper-xml", "repo"],
+                  "artifacts": ["backend-crud"],
                   "existingTypeMappings": {},
                   "fieldPolicies": {"create": ["code"], "update": ["code"], "result": ["code"], "filter": ["code"], "sort": ["id"]},
                   "apiContract": {

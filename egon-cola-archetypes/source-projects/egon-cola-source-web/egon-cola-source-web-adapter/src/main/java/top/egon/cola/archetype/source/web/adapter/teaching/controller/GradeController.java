@@ -15,7 +15,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import top.egon.cola.archetype.source.web.adapter.teaching.pojo.convertor.GradeAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateGradeRequest;
+import top.egon.cola.archetype.source.web.adapter.teaching.pojo.dto.CreateGradeDTO;
 import top.egon.cola.archetype.source.web.adapter.teaching.pojo.vo.GradeDetailVO;
 import top.egon.cola.archetype.source.web.application.teaching.manage.GradeManage;
 import top.egon.cola.archetype.source.web.application.teaching.pojo.query.GradeDetailQuery;
@@ -68,7 +68,7 @@ public class GradeController {
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-web:grade:create')")
     @RBACAPIResource(code = "egon-cola-source-web.api.grade.create", permission = "egon-cola-source-web:grade:create", name = "Create")
     public ResponseEntity<GradeDetailVO> create(
-            @Valid @RequestBody CreateGradeRequest request,
+            @Valid @RequestBody CreateGradeDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-web:grade:create", authorizationProperties.getSystemCode(),
                 "egon-cola-source-web.api.grade.create", Set.of("code","name")));

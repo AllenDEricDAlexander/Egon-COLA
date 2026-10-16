@@ -13,7 +13,7 @@ description: 当编码任务已有明确且经过审核或接受的 Spec，需�
 
 生成基础 CRUD 时按 Repo → Domain Service/实现 → Manage/实现 → Light/Web Controller 链路选择 `backend-crud`；Service 不生成 HTTP。DDL 中通用列需要校验，PO 通过 `EgonModel` 继承，不重复声明。v1/过期计划和无归属文件阻断 apply。
 
-在引入真实业务实现的 Step 中，计划明确删除或替换脚手架样例代码，列出准确路径及受影响测试/配置；不能留到最后笼统清理。
+生成项目的业务工作必须消费有效 Spec §2.5 的样例清单。每个 `EXAMPLE-*` 和清理 `REQ-*` 映射到准确路径、注册/资源/测试及有序 Step，在首个真实业务功能验收前完成。覆盖目标项目全部未使用样例域，不限该功能文件；清单缺失先补 Spec，禁止“参考保留”和未定期的最终清理。保留有证据的真实业务/基础设施及不可变的已应用 SQL 历史。
 
 ## Java / CQE effective contract (2026-09-22)
 
@@ -41,7 +41,11 @@ Plan 定义的是**先处理哪个文件、其中怎么写、接着处理哪个�
   - `ABSTRACT` 替换为简洁的小写 ASCII kebab-case 摘要，通常 3–8 个单词。
   - 示例：`docs/egon/plan/2026-08-15-16-10-account-lockout-implementation.md`。
   - 同一分钟且摘要相同时不能覆盖旧文档，应使用更具体的摘要。
-- 必须以 `assets/plan-template.md` 中的 Plan Template Version 4 为模板，保留全部编号章节。不适用的章节写有证据的 `N/A`。校验器继续按原契约接受 Version 2、Version 3 和既有无版本 Plan。
+- 必须以 `assets/plan-template.md` 中的 Plan Template Version 5 为模板，保留全部编号章节。不适用的章节写有证据的 `N/A`。校验器继续按原契约接受 Version 2 至 Version 4 和既有无版本 Plan。
+
+## 时间语义与 UTC 规则
+
+时间语义或边界受影响时读取 `references/time-semantics.zh-CN.md`。区分发生时刻（UTC 存储、ISO 8601 `Z` 传输）、纯日期、本地时间、地区调度和时长。业务按明确业务时区计算，前端按明确展示时区转换；`MC-TIME-001` 要求具体边界及兼容证据。本规则不扩大已授权代码/数据/迁移范围。
 
 ## 资源完整性预检
 

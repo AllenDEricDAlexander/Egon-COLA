@@ -28,10 +28,10 @@ public class RestTeachingQueryClientImpl implements TeachingQueryClient {
     @Override
     public Optional<ExternalCourse> findExternalCourse(CourseCode code) {
         try {
-            CourseResponse response = restClient.get()
+            CourseResult response = restClient.get()
                     .uri("/courses/{courseCode}", code.value())
                     .retrieve()
-                    .body(CourseResponse.class);
+                    .body(CourseResult.class);
             ExternalCourse course = response == null
                     ? null
                     : new ExternalCourse(new CourseCode(response.code()), response.name());
@@ -42,6 +42,6 @@ public class RestTeachingQueryClientImpl implements TeachingQueryClient {
         }
     }
 
-    private record CourseResponse(String code, String name) {
+    private record CourseResult(String code, String name) {
     }
 }

@@ -1,5 +1,5 @@
 [#if converterKind == "persistence"]
-package [=domainImplPackage];
+package [=persistenceConverterPackage];
 
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;

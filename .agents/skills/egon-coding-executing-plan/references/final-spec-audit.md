@@ -27,6 +27,8 @@ Do not merge unrelated requirements into one row merely to reduce the table size
 
 ## 3. Map evidence
 
+For business work on a generated project, reconcile every effective Spec §2.5 `EXAMPLE-*` with final paths, registration/configuration references, real-business/infrastructure evidence and immutable SQL history. Re-scan all target modules for the retired sample signatures, including unused domains outside the first implemented feature. A missing inventory, unresolved candidate, reference-only sample retention or deferred cleanup is a conformance finding; a validated Spec alone does not prove source deletion.
+
 Use this matrix:
 
 | Requirement ID | Effective Spec source | Expected behavior | Commit evidence | Code/symbol evidence | Test/validation evidence | Status | Gap/impact/next action |
@@ -126,3 +128,5 @@ List every non-passing row with its evidence, impact, and recommended corrective
 ## Java / CQE contract review
 
 Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.
+
+For affected time boundaries, read `references/time-semantics.md` and compare effective Spec TIME decisions, Plan owning Steps and MC-TIME-001 results. Verify actual UTC persistence/wire conversion, pure-date stability, business-zone ranges/grouping, frontend display/submission, applicable DST/precision and legacy compatibility. Missing required runtime evidence is not PASS; do not start an application, database or browser without authorization.

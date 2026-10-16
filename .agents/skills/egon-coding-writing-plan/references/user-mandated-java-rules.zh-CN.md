@@ -29,9 +29,11 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 ## 规则 1——准确类型清单与后缀计划
 
-清单每个 Create/Rename/实质修改 Java 类型的路径、操作、职责、强制后缀、消费者和兼容影响。POJO 使用 PO、BO、VO、DTO、Query、Command、Event、Request、Response、PageQuery、PageResult 或有依据 Entity；访问组件使用 DAO；行为类使用准确行为后缀。
+清单每个 Create/Rename/实质修改 Java 类型的路径、操作、职责、强制后缀、消费者和兼容影响。POJO 使用 PO、BO、VO、DTO、Query、Command、Event、Result、PageQuery、PageResult 或有依据 Entity；访问组件使用 DAO；行为类使用准确行为后缀。
 
 禁止规划 `Data`、`Info`、`Param`、`Bean` 或无后缀含糊载体。每个新类型必须证明独立边界/生命周期需要，避免后缀合规导致类爆炸。伪代码必须使用最终准确类型名。
+
+Archetype 与 code-gen 使用同一命名契约：纯协议入参使用 `*DTO`，读写意图使用 `*Query`/`*Command`，应用/协议输出保留 `*Result`/`*PageResult`（展示输出保留 `*VO`）。不新增项目自有 `*Request`/`*Response` 载体，不因后缀重复建类；保留框架/第三方契约、生成的协议类型（包括 Protobuf 消息）及范围外存量 API。生成 Java 路径必须匹配声明包与公开类型，编译、模板哈希和 `CLEAN` 不能替代该契约。
 
 ## 规则 2——每个受影响交接独立校验
 
@@ -61,7 +63,7 @@ Plan 必须分别枚举并排序：外部输入 -> Controller/Adapter；Controll
 
 ## 规则 6——Jackson 契约文件
 
-每个受影响外部 DTO/VO/Request/Response/Command/Query/Event 文件写准确 Jackson 注解，或逐字段证明默认行为符合协议。增加字段名、Include、Enum/Time、Unknown、Polymorphism、Sensitive 与兼容序列化测试。禁止 Gson/Fastjson 与 JSON 对象转换。
+每个受影响外部 DTO/VO/Result/Command/Query/Event 文件写准确 Jackson 注解，或逐字段证明默认行为符合协议。增加字段名、Include、Enum/Time、Unknown、Polymorphism、Sensitive 与兼容序列化测试。禁止 Gson/Fastjson 与 JSON 对象转换。
 
 ## 规则 7——所有 Profile 文件进入 Tree
 
@@ -76,6 +78,8 @@ Plan 必须分别枚举并排序：外部输入 -> Controller/Adapter；Controll
 ## 规则 10——java.time 文件与字段映射
 
 每个受影响日期时间符号使用准确 `java.time` 类型。文件块写时区、精度、Clock、DB/JDBC、JSON、Duration/Timeout、兼容转换和测试。静态门禁禁止新增 `Date`、`Calendar`、`SimpleDateFormat` Import。
+
+读取 `references/time-semantics.zh-CN.md`，落实 UTC/语义分类、显式业务及展示时区、历史 UTC 兼容和 `MC-TIME-001` 证据契约。新 Spec 写 §6.3，新 Plan 写 §4.9，Execute 验证有效决策及实际检查。
 
 ## 规则 11——文件排序前确认架构
 

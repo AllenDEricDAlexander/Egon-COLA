@@ -52,6 +52,15 @@
 - [ ] Static/source evidence is not presented as live-runtime proof.
 - [ ] No unrelated refactor, new dependency, or architecture layer was smuggled into scope.
 
+## Archetype example cleanup
+
+- [ ] Version 8 header `Archetype Cleanup` matches §2.5: Required, Complete or evidence-backed Not applicable.
+- [ ] First business work or existing remnants trigger discovery across the whole target generated project and all modules, even when the requested feature is local; maintained archetype source repositories are excluded.
+- [ ] Every discovered candidate has origin evidence, exact owned paths/registrations and an EXAMPLE ID. Delete/Replace removes the incoming sample chain; Real business cites accepted REQ/UC and callers; Infrastructure cites actual purpose; Applied history is limited to immutable applied SQL; Blocked prevents PASS.
+- [ ] No example is retained merely for reference or future use. Names alone do not justify deleting real business, infrastructure, data or external contracts.
+- [ ] Required cleanup is Affected in §3.3, maps REQ through §4/§19, and maps Delete/Replace IDs to §8/§14 with exact changes and absence tests.
+- [ ] The handoff requires Plan/Execute to close every candidate before first-business acceptance, without silent widening of an existing approved Plan; document validation does not claim code deletion.
+
 ## REST, CQE, GraphQL, springdoc, and OpenAPI review
 
 - [ ] Every affected external operation has one atomic `API-*` inventory row and detail; a GraphQL row identifies `Query.field`, `Mutation.field`, or `Subscription.field`, not only `/graphql`.
@@ -83,7 +92,7 @@
 - [ ] `MC-ARCH-001` proves exactly one allowed architecture profile from the actual tree, selected Archetype/base package, module dependencies, and verifier; no hybrid or invented layer exists.
 - [ ] `MC-REUSE-001` contains a repository-backed reuse ledger covering JDK/Spring, Spring Boot Starters, Egon-COLA Components/common infrastructure, and module-local candidates.
 - [ ] `MC-DEP-001` proves every added dependency/custom replacement fills a documented gap with version/maintenance/security/operational impact; no duplicate Spring/Egon capability is designed.
-- [ ] `MC-NAME-001` inventories affected Java types and enforces explicit PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior suffixes; no new ambiguous `Data`, `Info`, `Param`, or `Bean` carrier exists.
+- [ ] `MC-NAME-001` inventories affected Java types and enforces explicit PO/BO/DTO/VO/Query/Command/Event/Result or behavior suffixes; no new ambiguous `Data`, `Info`, `Param`, or `Bean` carrier exists.
 - [ ] `MC-VALID-001` maps every affected input boundary to `spring-boot-starter-validation`, Jakarta annotations, `@Valid`/`@Validated`, groups for reused inputs, `ValidationUtils`, normalization, error mapping, and tests; custom validators have a proven gap.
 - [ ] Ordinary POJOs/entities use `class` with `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Accessors(chain = true)`, a context-selected `@Builder` or `@SuperBuilder`, and `@EqualsAndHashCode(callSuper = true)` when superclass state participates in equality. Only immutable value objects may use `record`; see `references/egon-java-cqe-contract.md` for compile-safe root-class exceptions and collection immutability.
 - [ ] `MC-CONVERT-001` assigns MapStruct/MapStructPlus conversion and mandatory Egon `BaseConverter<S,T>` / `BaseForwardConverter<S,T>` integration for every new affected Converter; business code does not bypass it with manual set/get, `BeanUtils.copyProperties`, reflection, JSON mapping, or a local converter abstraction.
@@ -114,7 +123,7 @@
 - [ ] Every proposed Java object has one repository-defined role, owner, boundary, consumers, and a concrete reason to exist or evidence that reuse is safe.
 - [ ] POJO is treated as an umbrella term; DAO/Repository/Mapper/Gateway types are treated as access components, not data carriers.
 - [ ] Ambiguous `DO`, `VO`, and `Entity` terminology is resolved explicitly; `VO` means View Object and `Entity` has an exact persistence/ORM meaning in this profile.
-- [ ] The design does not mechanically create PO/DO/Entity/BO/DTO/VO/Request/Response variants for every layer.
+- [ ] The design does not mechanically create PO/DO/Entity/BO/DTO/VO/Result variants for every layer.
 - [ ] Reused types have the same semantics, lifecycle, validation, exposure, and dependency direction; persistence objects do not leak into public contracts.
 - [ ] Every mapper/conversion crosses a real semantic boundary and has a named owner; no no-op mapping chain exists.
 - [ ] PO/ORM Entity state rules, database constraints, transaction boundaries, locks, idempotency, and error semantics agree.
@@ -197,3 +206,5 @@
 ## Java / CQE contract review
 
 Read `references/egon-java-cqe-contract.md`. Record each applicable concern separately: POJO/value-object/enum; components and MP starter; annotation-driven validation; business columns + deleted_at uniqueness and NULL behavior; Command/Query/Event with actual outbox or MQ delivery; source-grounded DDD or preserved three-layer architecture. Use its existing MC ID mapping and record evidence, gaps and validation limits.
+
+For Version 9, verify §6.3 time applicability and every TIME row against affected fields, §14 cases and MC-TIME-001. Read `references/time-semantics.md`; UTC instant storage/wire, pure-date stability, explicit business/display zones, DST/precision and legacy compatibility require evidence. Older template versions keep their original structural validation; current affected work still needs effective time decisions.

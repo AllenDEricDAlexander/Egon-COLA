@@ -105,6 +105,10 @@ class CodegenCommandTest {
         Path infrastructure = root.resolve("order-service-infrastructure/src/main/java/com/example/order/infrastructure/order");
         Path application = root.resolve("order-service-application/src/main/java/com/example/order/application/order");
         Path adapter = root.resolve("order-service-adapter/src/main/java/com/example/order/adapter/order");
+        assertTrue(Files.readString(infrastructure.resolve("converter/OrdersPersistenceConverter.java"))
+                .startsWith("package com.example.order.infrastructure.order.converter;"));
+        assertTrue(Files.readString(infrastructure.resolve("service/impl/OrdersDomainServiceImpl.java"))
+                .contains("import com.example.order.infrastructure.order.converter.OrdersPersistenceConverter;"));
         assertTrue(Files.readString(infrastructure.resolve("repo/OrdersRepository.java")).contains("EgonColaRepository"));
         assertTrue(Files.readString(infrastructure.resolve("repo/OrdersRepository.java")).contains("selectByQuery"));
         assertTrue(Files.readString(infrastructure.resolve("service/impl/OrdersDomainServiceImpl.java"))

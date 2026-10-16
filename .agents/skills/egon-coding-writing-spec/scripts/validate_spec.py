@@ -16,8 +16,18 @@ DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) \S+$")
 VALID_STATUSES = {"Draft", "Review", "Accepted", "Implemented", "Superseded", "Rejected"}
 VALID_COMPLEXITIES = {"Simple", "Complex"}
 CHANGE_SURFACE_DISPOSITIONS = {"Affected", "Context-only", "Unchanged", "Not applicable"}
-CURRENT_TEMPLATE_VERSION = 7
-SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5, 6, 7}
+CURRENT_TEMPLATE_VERSION = 9
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5, 6, 7, 8, 9}
+ARCHETYPE_CLEANUP_DISPOSITIONS = {"Required", "Complete", "Not applicable"}
+ARCHETYPE_CLEANUP_ACTIONS = {
+    "Delete", "Replace", "Real business", "Infrastructure", "Applied history", "Blocked"
+}
+ARCHETYPE_CLEANUP_HEADING = "### 2.5 Archetype example cleanup"
+ARCHETYPE_CLEANUP_TABLE = (
+    "| Example ID | Exact paths/symbols | Origin evidence | Action | "
+    "Real-business requirement / infrastructure purpose | "
+    "Incoming references/config/data handling | Acceptance evidence |"
+)
 MANUAL_CHECK_IDS = (
     "MC-ARCH-001",
     "MC-REUSE-001",
@@ -231,6 +241,120 @@ def chapter_references(value: str) -> set[int]:
     return {int(number) for number in re.findall(r"§\s*(\d{1,2})\b", value)}
 
 
+def validate_archetype_cleanup(text: str, fields: dict[str, str], status: str) -> list[str]:
+    """Validate the v8 cleanup decision/handoff, not the state of application files."""
+    errors: list[str] = []
+    disposition = clean(fields.get("Archetype Cleanup", ""))
+    if disposition not in ARCHETYPE_CLEANUP_DISPOSITIONS:
+        errors.append("Archetype Cleanup must be Required, Complete or Not applicable")
+
+    background = section(text, "## 2. Background and Current State")
+    if ARCHETYPE_CLEANUP_HEADING not in background:
+        errors.append(f"Template Version 8 is missing required subsection: {ARCHETYPE_CLEANUP_HEADING}")
+        return errors
+    body = heading_body(background, ARCHETYPE_CLEANUP_HEADING)
+
+    def value(label: str) -> str:
+        match = re.search(rf"(?m)^{re.escape(label)}:\s*(.+)$", body)
+        return clean(match.group(1)) if match else ""
+
+    def concrete(evidence: str) -> bool:
+        return clean(evidence).casefold() not in {
+            "", "none", "n/a", "na", "unknown", "later", "reference"
+        } and not any(pattern.search(evidence) for pattern in PLACEHOLDER_PATTERNS)
+
+    if value("Cleanup disposition") != disposition:
+        errors.append("Archetype Cleanup header must match Cleanup disposition in §2.5")
+    rows = markdown_table_rows(body, "Example ID")
+    if disposition == "Not applicable":
+        if not concrete(value("Reason")):
+            errors.append("Not applicable archetype cleanup requires concrete Reason evidence")
+        if rows:
+            errors.append("Not applicable archetype cleanup cannot carry an example inventory")
+        return errors
+    if disposition not in {"Required", "Complete"}:
+        return errors
+
+    for label in ("Target project", "Origin evidence", "Scan evidence"):
+        if not concrete(value(label)):
+            errors.append(f"Archetype cleanup requires concrete {label} in §2.5")
+    if value("Scan scope") != "All target modules":
+        errors.append("Archetype cleanup Scan scope must be All target modules, not feature-local")
+
+    if disposition == "Complete" and not concrete(value("Residual evidence")):
+        errors.append("Complete archetype cleanup requires fresh Residual evidence")
+    if disposition == "Required":
+        if ARCHETYPE_CLEANUP_TABLE not in body or not rows:
+            errors.append("Required archetype cleanup needs the canonical seven-column example inventory")
+        change_rows = markdown_table_rows(section(text, "## 3. Goals and Non-goals"), "Area/layer")
+        cleanup_affected = any(
+            len(row) >= 6
+            and re.search(r"archetype|example|sample|示例|样例|脚手架", row[0], re.IGNORECASE)
+            and clean(row[1]) == "Affected"
+            and {8, 14} <= chapter_references(row[5])
+            for row in change_rows
+        )
+        if not cleanup_affected:
+            errors.append("Required archetype cleanup must be Affected in §3.3 with §8 and §14")
+    elif rows and ARCHETYPE_CLEANUP_TABLE not in body:
+        errors.append("Archetype cleanup inventory requires the canonical seven-column table")
+
+    requirement_text = section(text, "## 4. Requirements and Acceptance Criteria")
+    traceability = section(text, "## 19. Traceability Matrix")
+    requirements = set(re.findall(r"\bREQ-\d{3}\b", requirement_text))
+    traced = set(re.findall(r"\bREQ-\d{3}\b", traceability))
+    use_cases = set(USE_CASE_ID_RE.findall(requirement_text))
+    seen: set[str] = set()
+    actions: list[str] = []
+    for number, row in enumerate(rows, start=1):
+        if len(row) != 7:
+            errors.append(f"Archetype cleanup row {number} requires seven columns; found {len(row)}")
+            continue
+        example_id, paths, origin, action, purpose, references, acceptance = map(clean, row)
+        actions.append(action)
+        if not re.fullmatch(r"EXAMPLE-\d{3}", example_id) or example_id in seen:
+            errors.append(f"Archetype cleanup row {number} needs a unique EXAMPLE-NNN ID: {example_id}")
+        seen.add(example_id)
+        if not all(concrete(cell) for cell in (paths, origin, purpose, references, acceptance)):
+            errors.append(f"{example_id} requires concrete paths, origin, purpose, handling and acceptance evidence")
+        if action not in ARCHETYPE_CLEANUP_ACTIONS:
+            errors.append(f"{example_id} has invalid cleanup action: {action}; reference-only retention is prohibited")
+            continue
+        if action in {"Delete", "Replace", "Real business"}:
+            req_ids = set(re.findall(r"\bREQ-\d{3}\b", purpose))
+            if not req_ids or not req_ids <= requirements or not req_ids <= traced:
+                errors.append(f"{example_id} needs requirements defined in §4 and traced in §19")
+        if action == "Real business":
+            uc_ids = set(USE_CASE_ID_RE.findall(purpose))
+            if not uc_ids or not uc_ids <= use_cases:
+                errors.append(f"{example_id} Real business requires an evidenced UC-NNN in §4")
+        if action == "Applied history" and (
+            ".sql" not in paths.lower()
+            or not re.search(r"\bapplied\b|已应用", origin + " " + references, re.IGNORECASE)
+        ):
+            errors.append(f"{example_id} Applied history is limited to evidenced applied SQL files")
+        if action in {"Delete", "Replace"}:
+            if "*" in paths or "?" in paths:
+                errors.append(f"{example_id} deletion/replacement paths must be exact, not wildcard-only")
+            for chapter, heading in (
+                (8, "## 8. Package Structure and Code File Tree"), (14, "## 14. Test Design")
+            ):
+                if example_id not in section(text, heading):
+                    errors.append(f"{example_id} Delete/Replace must map to exact changes/tests in §{chapter}")
+        if action == "Blocked" and (
+            status in {"Review", "Accepted", "Implemented"}
+            or "PASS — Ready for user review" in text
+        ):
+            errors.append(f"{example_id} Blocked cleanup cannot use a PASS/review-ready verdict")
+
+    pending = {"Delete", "Replace", "Blocked"}
+    if disposition == "Required" and not pending.intersection(actions):
+        errors.append("Required archetype cleanup needs at least one Delete, Replace or Blocked action")
+    if disposition == "Complete" and pending.intersection(actions):
+        errors.append("Complete archetype cleanup cannot contain Delete, Replace or Blocked actions")
+    return errors
+
+
 def validate_change_surface(text: str, fields: dict[str, str]) -> tuple[list[str], set[int]]:
     """Validate Template Version 4 change-surface breadth and chapter alignment."""
     errors: list[str] = []
@@ -294,6 +418,96 @@ def validate_change_surface(text: str, fields: dict[str, str]) -> tuple[list[str
             f"header={sorted(header_chapters)}, matrix={sorted(affected_chapters)}"
         )
     return errors, affected_chapters
+
+
+TIME_CONTRACT_TABLE = (
+    "| Time ID | Fields/symbols | Semantics | Java/runtime type | Storage policy | "
+    "Wire policy | Business zone source | Display zone source | Boundary / DST rules | "
+    "Precision / Clock | Compatibility | Verification |"
+)
+TIME_POLICIES = {
+    "Occurred instant": ({"UTC instant", "Legacy UTC"}, {"UTC Z"}, {"Instant", "OffsetDateTime"}),
+    "Pure date": ({"Pure date"}, {"Pure date"}, {"LocalDate"}),
+    "Local time": ({"Local time"}, {"Local", "Local + zone"}, {"LocalTime"}),
+    "Zoned schedule": ({"Local + zone"}, {"Local + zone"}, {"LocalDateTime", "LocalTime", "ZonedDateTime"}),
+    "Duration": ({"Duration"}, {"Duration"}, {"Duration"}),
+}
+
+
+def validate_time_contract(text: str, heading: str) -> list[str]:
+    """Check declared time policies; actual mapping/calendar behavior remains a Manual Check."""
+    if heading not in text:
+        return [f"Missing required time subsection: {heading}"]
+    body = heading_body(text, heading)
+    errors: list[str] = []
+    dispositions = re.findall(r"(?m)^Time contract:[ \t]*(.*)$", body)
+    if len(dispositions) != 1:
+        return ["Time contract requires exactly one applicability declaration"]
+    value = clean(dispositions[0])
+    rows = markdown_table_rows(body, "Time ID")
+    if value not in {"Required", "Not applicable"}:
+        return ["Time contract must be Required or Not applicable"]
+    if value == "Not applicable":
+        reason = re.search(r"(?m)^Reason:\s*(.+)$", body)
+        if not reason or not time_evidence(reason.group(1)):
+            errors.append("Not applicable time contract requires concrete Reason evidence")
+        if rows:
+            errors.append("Not applicable time contract cannot contain TIME rows")
+        return errors
+    if TIME_CONTRACT_TABLE not in body or not rows:
+        errors.append("Required time contract needs the canonical twelve-column table and TIME rows")
+    seen: set[str] = set()
+    for row in rows:
+        if len(row) != 12:
+            errors.append("Time contract row requires exactly twelve columns")
+            continue
+        cells = [clean(cell) for cell in row]
+        time_id, symbols, semantics, runtime_type, storage, wire = cells[:6]
+        if not re.fullmatch(r"TIME-\d{3}", time_id) or time_id in seen:
+            errors.append(f"Time contract requires unique TIME-NNN IDs: {time_id}")
+        seen.add(time_id)
+        if not all(time_evidence(cell) for cell in cells):
+            errors.append(f"{time_id} requires concrete field and boundary evidence in every cell")
+        if semantics not in TIME_POLICIES:
+            errors.append(f"{time_id} has invalid time semantics: {semantics}")
+            continue
+        allowed_storage, allowed_wire, allowed_types = TIME_POLICIES[semantics]
+        if storage not in allowed_storage | {"Not persisted"}:
+            errors.append(f"{time_id} storage policy conflicts with {semantics}: {storage}")
+        if wire not in allowed_wire | {"Internal"}:
+            errors.append(f"{time_id} wire policy conflicts with {semantics}: {wire}")
+        java_types = set(re.findall(r"\b(?:Instant|OffsetDateTime|LocalDate|LocalDateTime|LocalTime|ZonedDateTime|Duration)\b", runtime_type))
+        permitted_types = allowed_types | ({"LocalDateTime"} if storage == "Legacy UTC" else set())
+        if java_types - permitted_types:
+            errors.append(f"{time_id} Java type conflicts with time semantics/storage: {runtime_type}")
+        business_zone = cells[6]
+        if re.search(r"systemDefault|TimeZone\.getDefault|server default|JVM default|OS default|database default|browser|服务器默认|浏览器|系统默认", business_zone, re.IGNORECASE):
+            errors.append(f"{time_id} business zone must be explicit, not a server/browser default")
+        if semantics == "Zoned schedule" and business_zone.startswith("Not applicable"):
+            errors.append(f"{time_id} Zoned schedule requires a region-zone source")
+        if storage == "Legacy UTC":
+            compatibility = cells[10]
+            if not re.search(r"UTC", compatibility, re.IGNORECASE) or not re.search(r"conver|mapping|转换|映射", compatibility, re.IGNORECASE):
+                errors.append(f"{time_id} Legacy UTC requires UTC interpretation and conversion evidence")
+        if not re.search(r"\bTEST-\d{3}\b", cells[11]):
+            errors.append(f"{time_id} requires concrete TEST-NNN verification")
+        if heading.startswith("### 4.") and not re.search(r"\bStep\s+\d+\b", cells[11]):
+            errors.append(f"{time_id} Plan verification requires an owning Step N")
+    time_check = next((row for row in markdown_table_rows(text, "Check ID") if row and clean(row[0]) == "MC-TIME-001"), None)
+    if time_check and len(time_check) > 2 and (clean(time_check[1]) == "Not applicable" or clean(time_check[2]) == "N/A"):
+        errors.append("Required time contract cannot mark MC-TIME-001 Not applicable/N/A")
+    return errors
+
+
+def time_evidence(value: str) -> bool:
+    """Allow explained non-applicability, but reject bare placeholders or missing evidence."""
+    value = clean(value)
+    if value in {"", "N/A", "None", "Unknown", "TBD", "-"} or re.fullmatch(r"<[^>]+>", value):
+        return False
+    if value.startswith("Not applicable"):
+        reason = re.fullmatch(r"Not applicable:[ \t]*(.+)", value)
+        return bool(reason and time_evidence(reason.group(1)))
+    return True
 
 
 def validate_manual_checks(text: str, pass_verdict: bool) -> list[str]:
@@ -694,6 +908,10 @@ def validate_v2_content(
         errors.append("A Complex Spec must name material Complexity Drivers")
 
     affected_chapters: set[int] = set()
+    if template_version >= 8:
+        errors.extend(validate_archetype_cleanup(text, fields, status))
+    if template_version >= 9:
+        errors.extend(validate_time_contract(text, "### 6.3 Time semantics and conversion contract"))
     if template_version >= 4:
         change_surface_errors, affected_chapters = validate_change_surface(text, fields)
         errors.extend(change_surface_errors)
@@ -1083,6 +1301,8 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             versioned_fields = ["Complexity", "Complexity Drivers"]
             if parsed_template_version >= 4:
                 versioned_fields.extend(["Change Surface", "Affected Chapters"])
+            if parsed_template_version >= 8:
+                versioned_fields.append("Archetype Cleanup")
             for field in versioned_fields:
                 if field not in fields or not clean(fields[field]):
                     errors.append(f"Template Version {parsed_template_version} requires header field: {field}")

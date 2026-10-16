@@ -35,6 +35,6 @@ public class DeepResearchOpenApiConfiguration {
                         .addSchemas("NativeSecurityError", error)
                         .addSchemas("NativeOrBusinessUnavailableError", new ComposedSchema()
                                 .addOneOfItem(new Schema<>().$ref("#/components/schemas/NativeSecurityError"))
-                                .addOneOfItem(new Schema<>().$ref("#/components/schemas/DeepResearchErrorResponse"))));
+                                .addOneOfItem(new Schema<>().$ref("#/components/schemas/DeepResearchErrorResult"))));
     }
 }

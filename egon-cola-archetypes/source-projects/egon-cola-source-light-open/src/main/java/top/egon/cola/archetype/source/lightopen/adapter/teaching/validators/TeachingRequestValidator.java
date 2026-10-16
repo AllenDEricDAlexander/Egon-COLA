@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseRequest;
+import top.egon.cola.archetype.source.lightopen.adapter.teaching.pojo.dto.ScheduleCourseDTO;
 import top.egon.cola.archetype.source.lightopen.facade.teaching.dto.CreateCourseDTO;
 import top.egon.cola.component.common.core.validation.BaseValidator;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
@@ -24,7 +24,7 @@ public class TeachingRequestValidator extends BaseValidator {
         return validationUtils;
     }
 
-    public void validateSchedule(ScheduleCourseRequest request) {
+    public void validateSchedule(ScheduleCourseDTO request) {
         validateBean(request);
         if (!request.startsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS)
                         .isBefore(request.endsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS))) {

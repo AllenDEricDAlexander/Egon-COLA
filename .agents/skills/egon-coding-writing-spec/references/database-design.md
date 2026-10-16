@@ -4,6 +4,8 @@ Reuse the existing MP-SDJ extension starter for all database changes. Read `refe
 
 Read this reference when Chapter 11 marks schema, data semantics, constraints, indexes, schema-change/DDL, sharding, datasource topology, transaction/locking behavior, or persistence ownership as `Affected`. Use the repository's actual database dialect, managed-DDL runner, naming conventions, and access technology. For a DAO query-only change with unchanged database design, use the concise `Context-only`/`Unchanged` treatment from `references/change-surface-and-proportional-depth.md` instead of applying this full per-table template.
 
+For affected time fields, read `references/time-semantics.md` and consume Spec §6.3: occurred instants use UTC storage/ISO 8601 `Z`, pure dates remain dates, business calculations name their zone, and frontend display/submission defines conversion and precision. Preserve evidenced legacy contracts within scope; MC-TIME-001 requires actual mapping/serialization/calendar evidence.
+
 ## Contents
 
 - [Persistence, sharding, and managed DDL](#persistence-sharding-and-managed-ddl)

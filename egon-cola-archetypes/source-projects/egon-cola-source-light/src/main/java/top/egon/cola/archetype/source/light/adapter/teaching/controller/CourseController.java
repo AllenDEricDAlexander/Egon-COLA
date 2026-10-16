@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.light.adapter.teaching.pojo.convertor.TeachingAdapterConvertor;
-import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.CreateCourseRequest;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.CreateCourseDTO;
 import top.egon.cola.archetype.source.light.adapter.teaching.pojo.vo.CourseDetailVO;
 import top.egon.cola.archetype.source.light.application.teaching.manage.CourseManage;
 import top.egon.cola.archetype.source.light.application.teaching.pojo.command.CreateCourseCommand;
@@ -57,7 +57,7 @@ public class CourseController {
     @Operation(operationId = "nativeLightCourseCreateV1")
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-light:course:create')")
     @RBACAPIResource(code = "egon-cola-source-light.api.course.create", permission = "egon-cola-source-light:course:create", name = "Create course")
-    public CourseDetailVO create(@Valid @RequestBody CreateCourseRequest request) {
+    public CourseDetailVO create(@Valid @RequestBody CreateCourseDTO request) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-light:course:create", authorizationProperties.getSystemCode(),
                 "egon-cola-source-light.api.course.create", Set.of("code", "name")));
         RequestContext context = RequestContextHolder.getRequired();

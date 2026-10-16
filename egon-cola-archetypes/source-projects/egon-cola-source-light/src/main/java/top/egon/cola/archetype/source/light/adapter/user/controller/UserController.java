@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.light.adapter.user.pojo.convertor.UserAdapterConvertor;
-import top.egon.cola.archetype.source.light.adapter.user.pojo.dto.CreateUserRequest;
+import top.egon.cola.archetype.source.light.adapter.user.pojo.dto.CreateUserDTO;
 import top.egon.cola.archetype.source.light.adapter.user.pojo.vo.UserDetailVO;
 import top.egon.cola.archetype.source.light.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.light.application.user.pojo.command.CreateUserCommand;
@@ -58,7 +58,7 @@ public class UserController {
     @Operation(operationId = "nativeLightUserCreateV1")
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-light:user:create')")
     @RBACAPIResource(code = "egon-cola-source-light.api.user.create", permission = "egon-cola-source-light:user:create", name = "Create user")
-    public UserDetailVO create(@Valid @RequestBody CreateUserRequest request) {
+    public UserDetailVO create(@Valid @RequestBody CreateUserDTO request) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-light:user:create", authorizationProperties.getSystemCode(),
                 "egon-cola-source-light.api.user.create", Set.of("externalId", "name", "email")));
         RequestContext context = RequestContextHolder.getRequired();

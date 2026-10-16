@@ -2,6 +2,8 @@
 
 Read this reference completely whenever an external HTTP API is `Affected`. It specializes `references/interface-contract-design.md`; both references apply. Its purpose is to make Chapter 9 an implementation-ready API contract, not a list of routes or annotations.
 
+For affected time fields, read `references/time-semantics.md` and consume Spec §6.3: occurred instants use UTC storage/ISO 8601 `Z`, pure dates remain dates, business calculations name their zone, and frontend display/submission defines conversion and precision. Preserve evidenced legacy contracts within scope; MC-TIME-001 requires actual mapping/serialization/calendar evidence.
+
 ## 1. Authority and adaptation policy
 
 Use sources in this order:

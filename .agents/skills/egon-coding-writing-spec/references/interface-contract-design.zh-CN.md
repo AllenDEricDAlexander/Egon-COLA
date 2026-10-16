@@ -170,7 +170,7 @@ Path、Query、Header、Cookie、Multipart 和 Body 分开描述。每个参数�
 | 契约事实 | 仓库证据 | 已确认值 | 置信度/限制 |
 | --- | --- | --- | --- |
 | Method 与应用路由 | Controller Mapping + Context Path | `POST /api/v1/orders` | 静态证据；Gateway 部署前缀未验证 |
-| 成功 Wrapper | 响应类型 + 全局 Advice | `ApiResponse<OrderResponse>` | 已从源码核对序列化设置 |
+| 成功 Wrapper | 响应类型 + 全局 Advice | `ApiResponse<OrderResult>` | 已从源码核对序列化设置 |
 | 错误 Wrapper | Exception Handler | `ApiResponse<ValidationErrorData>` | 依赖超时映射仍需用户决策 |
 | 消费者 | 前端 Client 符号 | `orderClient.createOrder` | 已知一个消费者；外部消费者另行搜索 |
 
@@ -184,7 +184,7 @@ Path、Query、Header、Cookie、Multipart 和 Body 分开描述。每个参数�
 
 | ID | 变更/必要性结论 | 名称/用途 | 类型 | API 风格/CQE 角色 | 消费者 | 所有者 | Method + URL / GraphQL Field / Symbol / Topic | Operation ID/Schema 来源 | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-021` | New/Add：直接创建是独立 Command；不新增参数预查询 | 创建订单 | HTTP | REST Command | 订单创建页 | Order Web 模块 | `POST /api/v1/orders` | `createOrder`；Controller 注解和生成 OAS | Header + `CreateOrderCommand` | `ApiResponse<OrderResponse>` | Bearer Principal；租户来自已验证上下文 | 稳定 HTTP + 业务码 | `Idempotency-Key`；v1 加法兼容 | `REQ-007`、`REQ-008` |
+| `API-021` | New/Add：直接创建是独立 Command；不新增参数预查询 | 创建订单 | HTTP | REST Command | 订单创建页 | Order Web 模块 | `POST /api/v1/orders` | `createOrder`；Controller 注解和生成 OAS | Header + `CreateOrderCommand` | `ApiResponse<OrderResult>` | Bearer Principal；租户来自已验证上下文 | 稳定 HTTP + 业务码 | `Idempotency-Key`；v1 加法兼容 | `REQ-007`、`REQ-008` |
 
 ### API-021 — 创建订单
 
@@ -355,7 +355,7 @@ HTTP `201 Created`。仓库产生响应 Header 时必须写出。完整示例传
 
 ## 列表查询展开示例
 
-列表端点必须使用独立接口 ID，不能被创建示例或共用 `OrderResponse` 类名覆盖。详情还必须说明：
+列表端点必须使用独立接口 ID，不能被创建示例或共用 `OrderResult` 类名覆盖。详情还必须说明：
 
 | 参数 | 必须明确的规则 |
 | --- | --- |

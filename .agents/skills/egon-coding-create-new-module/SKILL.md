@@ -14,7 +14,7 @@ description: >
 
 # Create a business project from a non-open archetype
 
-Generate one Maven project with `archetype:generate` when requested, then stop for review. When the request concerns only the outer parent POM, give the repository-grounded parent/aggregation answer without generating a business project. Do not write a Spec, a Plan, business code, SQL, or codegen output in this skill.
+Generate one Maven project with `archetype:generate` when requested. A scaffold-only request ends with the creation and example-cleanup handoff. If the same user request already includes real business design/implementation, hand the generated project to `egon-coding-writing-spec` within that authorization and follow its review gate. When the request concerns only the outer parent POM, give the repository-grounded parent/aggregation answer without generating a business project. This creation phase does not write a Spec, a Plan, business code, SQL, or codegen output.
 
 ## When this skill applies
 
@@ -31,7 +31,7 @@ If the work changes existing business code, stop and use `egon-coding-writing-sp
 5. Read the archetype version from `egon-cola-archetypes/pom.xml`. For generation run the command in `references/archetype-selection.md` with `./mvnw` from the Egon-COLA repository root. A parent-only answer does not run Maven generation.
 6. If the archetype cannot be resolved, stop and show the Maven error. Ask before any local install. Do not publish or run `scripts/generate_archetypes.sh`.
 7. Run the applicable generation and optional outer-reactor checks in the references. A failure is reported with evidence; do not patch the generated tree to force a pass.
-8. Stop. Report the selected inheritance/aggregation relationship, and for generation the archetype, version, output path, topology, and whether codegen later applies (`light`, `web`, `service`) or does not (`agent`).
+8. Report the selected inheritance/aggregation relationship, and for generation the archetype GAV/version, output path, topology, codegen applicability, and the example-cleanup handoff below. Complete scaffold-only work; when business work was already requested, continue through the Spec skill instead of asking the user to invoke a separate cleanup skill.
 
 ## Egon modules in a new business project
 
@@ -47,8 +47,19 @@ Use the capability placement table in `references/multi-project-parent.md`. The 
 - Do not start the process, database, or browser.
 
 Initial CREATE schemas on native `light`, `web`, and `service` can use `scripts/egon-codegen.sh` for catalog scaffolding, as governed by `egon-coding-writing-spec`. This skill does not restate that catalog. `agent` is a legal non-open archetype and is outside the generator; do not invent its persistence templates.
-The archetype's bundled business code is reference material. Leave it intact during initial project creation; when a later approved implementation adds the real business domain, its Spec/Plan must inventory and delete or replace the sample endpoints, services, persistence and configuration; remove sample SQL only before it is applied, otherwise use a new corrective DDL version in the relevant Step. The generator handles initial CREATE scaffolding only; later ALTER-driven code changes belong to the agent.
+
+## Examples and the first business request
+
+After generation, inspect the actual bundled example chains and report their exact paths/entry registrations, origin GAV/version and whether examples are still present. Report `Example cleanup: Pending business implementation` when examples remain; scaffold generation alone is not a business-ready result. Do not invent example paths from a fixed business-name list.
+
+The first real-business Spec must scan the entire generated project across all modules, including unused example domains unrelated to that first feature. `egon-coding-writing-spec` records every candidate as Delete, Replace, Real business, Infrastructure, Applied history or Blocked in its §2.5 inventory. The approved Plan removes/replaces all unused executable examples before accepting the first real-business feature; reference-only retention is not allowed. Existing partially implemented projects with remnants follow the same rule.
+
+Preserve necessary application/technical wiring and code already implementing an evidenced real requirement. Remove sample SQL only while unapplied; applied history requires a new corrective version. Scope/data/contract uncertainty is resolved in the Spec, not by name-based deletion. This lifecycle applies to the user's generated business project; do not delete examples from Egon-COLA's maintained `source-projects`, `definitions` or `.generated` repositories.
 
 ## Handoff
 
-After a successful generate, the next skill is `egon-coding-writing-spec` on the generated project. Do not start it unless the user asks.
+After a successful generate, the next skill is `egon-coding-writing-spec` on the generated project. Carry the origin and pending-example evidence into its cleanup assessment. Start it when business work is already part of the user's request; otherwise finish the scaffold request with this handoff. A separate cleanup skill is not required.
+
+## Time-contract handoff
+
+Inspect the generated project's actual time types, JDBC/JSON mappings, base/profile time-zone settings and SQL column declarations. Report observed paths and gaps; do not assume every archetype is already UTC-compliant and do not repair business code/configuration/SQL during scaffold-only work. Hand these facts to write-spec: occurred instants use UTC storage and ISO 8601 UTC `Z` transmission, pure dates/local times/durations retain their semantics, and computation/display use explicit business/user zones. Preserve existing UTC-by-convention logical-deletion fields as an evidenced compatibility decision; the first business Spec defines affected conversions and MC-TIME-001 checks. Explicit exceptions or historic corrections require the approved business scope, not automatic migration or old-script edits.

@@ -133,7 +133,7 @@ class OwnedFacadeContractTest {
         for (String retired : List.of("rpc.CourseRpcService", "rpc.ExamRpcService", "rpc.ScoreRpcService",
                 "rpc.EvaluationRpcConverter", "course.CourseFacade", "exam.ExamFacade", "exam.ScoreFacade",
                 "dto.SingleResponse", "dto.PageResponse", "dto.Response",
-                "course.dto.CreateCourseRequest", "exceptions.EvaluationFacadeException",
+                "course.dto.CreateCourseDTO", "exceptions.EvaluationFacadeException",
                 "enums.EvaluationFacadeErrorCode", "utils.EvaluationFacadeAssert")) {
             assertAbsent(RETIRED_SHARED_ROOT + retired);
         }

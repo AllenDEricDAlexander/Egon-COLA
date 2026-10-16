@@ -90,14 +90,14 @@ public class DeepResearchGlobalExceptionHandler {
     private final Clock clock;
 
     @ExceptionHandler(DeepResearchApplicationException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleApplication(
+    public ResponseEntity<DeepResearchErrorResult> handleApplication(
             DeepResearchApplicationException failure, HttpServletRequest request) {
         ExceptionLogger.log(log, failure);
         return response(failure.code(), failure.traceId(), failure.fieldErrors(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleBodyValidation(
+    public ResponseEntity<DeepResearchErrorResult> handleBodyValidation(
             MethodArgumentNotValidException failure, HttpServletRequest request) {
         Map<String, List<String>> fields = failure.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.groupingBy(error -> error.getField(), LinkedHashMap::new,
@@ -107,7 +107,7 @@ public class DeepResearchGlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleConstraintValidation(
+    public ResponseEntity<DeepResearchErrorResult> handleConstraintValidation(
             ConstraintViolationException failure, HttpServletRequest request) {
         Map<String, List<String>> fields = failure.getConstraintViolations().stream()
                 .collect(Collectors.groupingBy(this::fieldName, LinkedHashMap::new,
@@ -116,37 +116,37 @@ public class DeepResearchGlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleUnreadable(
+    public ResponseEntity<DeepResearchErrorResult> handleUnreadable(
             HttpMessageNotReadableException failure, HttpServletRequest request) {
         return response(ResearchErrorCodeEnum.RESEARCH_VALIDATION_ERROR, null, Map.of(), request);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleUnsupportedMedia(
+    public ResponseEntity<DeepResearchErrorResult> handleUnsupportedMedia(
             HttpMediaTypeNotSupportedException failure, HttpServletRequest request) {
         return response(ResearchErrorCodeEnum.RESEARCH_UNSUPPORTED_MEDIA_TYPE, null, Map.of(), request);
     }
 
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleNotAcceptable(
+    public ResponseEntity<DeepResearchErrorResult> handleNotAcceptable(
             HttpMediaTypeNotAcceptableException failure, HttpServletRequest request) {
         return response(ResearchErrorCodeEnum.RESEARCH_NOT_ACCEPTABLE, null, Map.of(), request);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<DeepResearchErrorResponse> handleUnexpected(
+    public ResponseEntity<DeepResearchErrorResult> handleUnexpected(
             Exception failure, HttpServletRequest request) {
         ExceptionLogger.log(log, failure);
         return response(ResearchErrorCodeEnum.RESEARCH_INTERNAL_ERROR, null, Map.of(), request);
     }
 
-    private ResponseEntity<DeepResearchErrorResponse> response(ResearchErrorCodeEnum code, String traceId,
+    private ResponseEntity<DeepResearchErrorResult> response(ResearchErrorCodeEnum code, String traceId,
                                                                 Map<String, List<String>> fieldErrors,
                                                                 HttpServletRequest request) {
         String effectiveTrace = traceId == null || traceId.isBlank() ? traceId(request) : traceId;
         DeepResearchApplicationException failure = new DeepResearchApplicationException(
                 code, effectiveTrace, fieldErrors, null);
-        DeepResearchErrorResponse body = DeepResearchErrorConverter.INSTANCE.toResponse(failure, clock.instant());
+        DeepResearchErrorResult body = DeepResearchErrorConverter.INSTANCE.toResponse(failure, clock.instant());
         HttpStatus status = status(code);
         ResponseEntity.BodyBuilder builder = ResponseEntity.status(status)
                 .header(ResearchTraceFilter.TRACE_HEADER, effectiveTrace);

@@ -26,10 +26,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.adapter.research.pojo.convertor.DeepResearchCommandConverter;
 import top.egon.cola.archetype.source.agent.adapter.research.pojo.convertor.ResearchEventConverter;
-import top.egon.cola.archetype.source.agent.adapter.research.pojo.dto.StartDeepResearchRequest;
+import top.egon.cola.archetype.source.agent.adapter.research.pojo.dto.StartDeepResearchDTO;
 import top.egon.cola.archetype.source.agent.adapter.research.pojo.vo.DeepResearchEventVO;
 import top.egon.cola.archetype.source.agent.application.research.pojo.command.StartDeepResearchCommand;
 import top.egon.cola.archetype.source.agent.application.research.config.DeepResearchRuntimeProperties;
@@ -83,22 +83,22 @@ public class DeepResearchController {
                     content = @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
                             schema = @Schema(implementation = DeepResearchEventVO.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "406", description = "SSE is not accepted",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "415", description = "JSON is not supplied",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "429", description = "Research capacity is exhausted",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "500", description = "Internal failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "503", description = "Research dependency is unavailable",
                     content = @Content(schema = @Schema(ref = "#/components/schemas/NativeOrBusinessUnavailableError")))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:research:start')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.research.start", permission = "egon-cola-source-agent:research:start", name = "Start Deep Research")
     public SseEmitter startDeepResearch(
-            @Valid @RequestBody StartDeepResearchRequest request,
+            @Valid @RequestBody StartDeepResearchDTO request,
             @Parameter(in = ParameterIn.HEADER, name = ResearchTraceFilter.TRACE_HEADER,
                     description = "Optional safe request correlation id")
             @RequestAttribute(ResearchTraceFilter.TRACE_ATTRIBUTE) String traceId,

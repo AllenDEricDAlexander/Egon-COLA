@@ -170,7 +170,7 @@ Use an evidence worksheet before writing the public contract:
 | Contract fact | Repository evidence | Confirmed value | Confidence/limit |
 | --- | --- | --- | --- |
 | Method and application route | Controller mappings + context path | `POST /api/v1/orders` | Static; gateway deployment prefix unverified |
-| Success wrapper | Response type + global advice | `ApiResponse<OrderResponse>` | Serialization settings verified in source |
+| Success wrapper | Response type + global advice | `ApiResponse<OrderResult>` | Serialization settings verified in source |
 | Error wrapper | Exception handler | `ApiResponse<ValidationErrorData>` | Dependency timeout mapping still needs user decision |
 | Consumer | Frontend client symbol | `orderClient.createOrder` | One known consumer; search external consumers separately |
 
@@ -184,7 +184,7 @@ This example demonstrates required depth only. Its route, wrapper, fields, value
 
 | ID | Change/necessity verdict | Name/purpose | Kind | API style/CQE role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-021` | New/Add: direct create is the independent command; no parameter-preflight endpoint | Create order | HTTP | REST Command | Order creation page | Order web module | `POST /api/v1/orders` | `createOrder`; Controller annotations and generated OAS | Headers + `CreateOrderCommand` | `ApiResponse<OrderResponse>` | Bearer principal; tenant from verified context | Stable HTTP + business codes | `Idempotency-Key`; v1 additive compatibility | `REQ-007`, `REQ-008` |
+| `API-021` | New/Add: direct create is the independent command; no parameter-preflight endpoint | Create order | HTTP | REST Command | Order creation page | Order web module | `POST /api/v1/orders` | `createOrder`; Controller annotations and generated OAS | Headers + `CreateOrderCommand` | `ApiResponse<OrderResult>` | Bearer principal; tenant from verified context | Stable HTTP + business codes | `Idempotency-Key`; v1 additive compatibility | `REQ-007`, `REQ-008` |
 
 ### API-021 — Create order
 
@@ -355,7 +355,7 @@ Illustrative validation-error payload:
 
 ## List-query expansion example
 
-A list endpoint is a separate interface ID. It is not covered by the create example or a shared `OrderResponse` class name. Its detail must additionally define:
+A list endpoint is a separate interface ID. It is not covered by the create example or a shared `OrderResult` class name. Its detail must additionally define:
 
 | Parameter | Rule that must be explicit |
 | --- | --- |

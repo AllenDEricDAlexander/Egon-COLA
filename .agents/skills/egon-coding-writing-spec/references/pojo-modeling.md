@@ -17,8 +17,7 @@ Read this reference before writing Spec Chapter 10 and the service-structure par
 | Query / QO | Query Object | Read-condition carrier | Search and filtering inputs |
 | Command / CO | Command Object | Mutation-intent carrier | Create/update/delete or other state-changing use cases |
 | Event | Event Object | Published fact that has already occurred | Domain/integration event payload with an explicit owner and version |
-| Request | Request Object | Controller or API input | Transport validation and request compatibility boundary |
-| Response | Response Object | Controller or API output | Stable transport response boundary |
+| Result | Result Object | Application or protocol output | Output contract; presentation-only output uses VO |
 | Form | Form Object | Form-submission input | UI form binding when distinct from the API request |
 | PageQuery | Page Query Object | Pagination plus query conditions | Paged read input |
 | PageResult | Page Result Object | Paged items plus pagination metadata | Paged read output |
@@ -37,7 +36,7 @@ This profile does not define Aggregate, Domain Service, Repository Port, or DDD 
 
 ## Class-necessity test
 
-Do not create `FooPO`, `FooDO`, `FooEntity`, `FooBO`, `FooDTO`, `FooVO`, `FooRequest`, and `FooResponse` by default.
+Do not create `FooPO`, `FooDO`, `FooEntity`, `FooBO`, `FooDTO`, `FooVO`, `FooCommand`, and `FooResult` by default.
 
 Create a distinct class only when at least one concrete difference requires it:
 
@@ -51,7 +50,7 @@ Create a distinct class only when at least one concrete difference requires it:
 
 Reuse an existing class when semantics, lifecycle, validation, exposure, and dependency direction are genuinely the same. Record why reuse is safe.
 
-Do not reuse a PO or ORM Entity as a public Request, Response, DTO, or View Object merely to reduce the class count. Persistence annotations, internal fields, lazy relationships, and schema evolution must not leak across external boundaries.
+Do not reuse a PO or ORM Entity as a public DTO, Result, or View Object merely to reduce the class count. Persistence annotations, internal fields, lazy relationships, and schema evolution must not leak across external boundaries.
 
 When two distinct classes are necessary, define the exact conversion owner and field mapping. Avoid chains of no-op mappers and intermediate objects that add no semantic boundary.
 

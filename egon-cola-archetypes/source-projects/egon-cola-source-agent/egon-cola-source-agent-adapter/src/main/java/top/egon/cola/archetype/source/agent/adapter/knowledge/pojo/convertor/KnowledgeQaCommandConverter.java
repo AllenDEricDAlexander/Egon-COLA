@@ -5,8 +5,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.AskKnowledgeBaseRequest;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.RetrieveKnowledgeRequest;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.AskKnowledgeBaseDTO;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.RetrieveKnowledgeDTO;
 import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.AskKnowledgeBaseCommand;
 import top.egon.cola.archetype.source.agent.application.knowledge.pojo.command.RetrieveKnowledgeCommand;
 import top.egon.cola.component.common.core.converter.BaseConverter;
@@ -24,7 +24,7 @@ import java.util.Objects;
  * correlation id through the payload.
  */
 @Mapper(unmappedTargetPolicy = ReportingPolicy.ERROR)
-public interface KnowledgeQaCommandConverter extends BaseConverter<AskKnowledgeBaseRequest, AskKnowledgeBaseCommand> {
+public interface KnowledgeQaCommandConverter extends BaseConverter<AskKnowledgeBaseDTO, AskKnowledgeBaseCommand> {
 
     KnowledgeQaCommandConverter INSTANCE = Mappers.getMapper(KnowledgeQaCommandConverter.class);
 
@@ -37,12 +37,12 @@ public interface KnowledgeQaCommandConverter extends BaseConverter<AskKnowledgeB
      * field. The context-carrying translation below is the only one this pair has.
      */
     @Override
-    default AskKnowledgeBaseCommand toTarget(AskKnowledgeBaseRequest source) {
+    default AskKnowledgeBaseCommand toTarget(AskKnowledgeBaseDTO source) {
         throw new UnsupportedOperationException("a question body does not name the knowledge base it is asked of");
     }
 
     /** Maps one question body to its command, carrying the path identifier and the traced context. */
-    default AskKnowledgeBaseCommand toAskCommand(AskKnowledgeBaseRequest source, Long knowledgeBaseId,
+    default AskKnowledgeBaseCommand toAskCommand(AskKnowledgeBaseDTO source, Long knowledgeBaseId,
                                                  String traceId) {
         Objects.requireNonNull(source, "request must not be null");
         return mapAsk(source, Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null"),
@@ -53,17 +53,17 @@ public interface KnowledgeQaCommandConverter extends BaseConverter<AskKnowledgeB
     @Mapping(target = "question", source = "question")
     @Mapping(target = "topK", source = "topK")
     @Mapping(target = "traceId", expression = "java(traceId)")
-    AskKnowledgeBaseCommand mapAsk(AskKnowledgeBaseRequest source, @Context Long knowledgeBaseId,
+    AskKnowledgeBaseCommand mapAsk(AskKnowledgeBaseDTO source, @Context Long knowledgeBaseId,
                                    @Context String traceId);
 
     /** Reverse of the question direction: the body as it was sent, without the request-scoped facts. */
     @Override
     @Mapping(target = "question", source = "question")
     @Mapping(target = "topK", source = "topK")
-    AskKnowledgeBaseRequest toSource(AskKnowledgeBaseCommand target);
+    AskKnowledgeBaseDTO toSource(AskKnowledgeBaseCommand target);
 
     /** Maps one retrieval body to its command, carrying the path identifier and the traced context. */
-    default RetrieveKnowledgeCommand toRetrieveCommand(RetrieveKnowledgeRequest source, Long knowledgeBaseId,
+    default RetrieveKnowledgeCommand toRetrieveCommand(RetrieveKnowledgeDTO source, Long knowledgeBaseId,
                                                        String traceId) {
         Objects.requireNonNull(source, "request must not be null");
         return mapRetrieve(source, Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null"),
@@ -75,12 +75,12 @@ public interface KnowledgeQaCommandConverter extends BaseConverter<AskKnowledgeB
     @Mapping(target = "topK", source = "topK")
     @Mapping(target = "similarityThreshold", source = "similarityThreshold")
     @Mapping(target = "traceId", expression = "java(traceId)")
-    RetrieveKnowledgeCommand mapRetrieve(RetrieveKnowledgeRequest source, @Context Long knowledgeBaseId,
+    RetrieveKnowledgeCommand mapRetrieve(RetrieveKnowledgeDTO source, @Context Long knowledgeBaseId,
                                          @Context String traceId);
 
     /** Reverse of the retrieval direction: the body as it was sent, without the request-scoped facts. */
     @Mapping(target = "query", source = "query")
     @Mapping(target = "topK", source = "topK")
     @Mapping(target = "similarityThreshold", source = "similarityThreshold")
-    RetrieveKnowledgeRequest toRetrieveRequest(RetrieveKnowledgeCommand target);
+    RetrieveKnowledgeDTO toRetrieveRequest(RetrieveKnowledgeCommand target);
 }

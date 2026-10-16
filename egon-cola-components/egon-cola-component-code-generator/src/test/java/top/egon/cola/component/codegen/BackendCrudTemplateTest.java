@@ -82,7 +82,7 @@ class BackendCrudTemplateTest {
         assertTrue(light.get("domain-impl").contains("zeroRows"));
         assertTrue(light.get("manage-impl").contains("domain.getVersion()"));
 
-        exerciseManage(light, output);
+        exerciseManage(light, config(CodegenProfileEnum.LIGHT, withController(true)), output);
     }
 
     @Test
@@ -100,14 +100,14 @@ class BackendCrudTemplateTest {
             assertTrue(sources.get("po").contains("java.time.LocalTime atTime"));
             assertTrue(sources.get("create-command").contains("Instant awareAt"));
             assertTrue(sources.get("result").contains("LocalDate onDate"));
-            exerciseManage(sources, output.resolve(profile.code()));
+            exerciseManage(sources, config, output.resolve(profile.code()));
         }
     }
 
-    private void exerciseManage(Map<String, String> sources, Path output) throws Exception {
+    private void exerciseManage(Map<String, String> sources, CodegenConfigBO config, Path output) throws Exception {
         Path sourceRoot = output.resolve("src");
         Files.createDirectories(sourceRoot);
-        Files.writeString(sourceRoot.resolve("lombok.config"),
+        Files.writeString(output.resolve("lombok.config"),
                 "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier\n");
         write(sourceRoot, "com/example/order/support/OrdersErrorMapper.java", """
                 package com.example.order.support;
@@ -139,12 +139,21 @@ class BackendCrudTemplateTest {
                 continue;
             }
             String fileName = fileName(source.getKey(), source.getValue());
-            String packageName = packageName(source.getValue());
-            write(sourceRoot, packageName.replace('.', '/') + "/" + fileName, source.getValue());
+            String artifact = switch (source.getKey()) {
+                case "create-command", "update-command", "delete-command" -> "command";
+                case "detail-query", "page-query" -> "query";
+                case "create-converter", "update-converter", "delete-converter", "result-converter" -> "application-converter";
+                default -> source.getKey();
+            };
+            String relative = ProjectLayoutStrategy.resolve(config.getProfile()).relativePath(config, artifact, fileName);
+            write(output, relative, source.getValue());
         }
         Path classes = output.resolve("classes");
         Files.createDirectories(classes);
-        List<Path> files = Files.walk(sourceRoot).filter(path -> path.toString().endsWith(".java")).toList();
+        List<Path> files;
+        try (var paths = Files.walk(output)) {
+            files = paths.filter(path -> path.toString().endsWith(".java")).toList();
+        }
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         String classpath = System.getProperty("java.class.path") + java.io.File.pathSeparator + lombokJar()
                 + java.io.File.pathSeparator + mapstructJar();
@@ -159,6 +168,8 @@ class BackendCrudTemplateTest {
         ByteArrayOutputStream log = new ByteArrayOutputStream();
         int compiled = compiler.run(null, log, log, arguments.toArray(String[]::new));
         assertEquals(0, compiled, log.toString(StandardCharsets.UTF_8));
+        assertTrue(Files.exists(classes.resolve("com/example/order/infrastructure/order/converter/OrdersPersistenceConverterImpl.class")));
+        assertFalse(Files.exists(classes.resolve("com/example/order/infrastructure/order/service/impl/OrdersPersistenceConverterImpl.class")));
 
         try (URLClassLoader loader = new URLClassLoader(new URL[]{classes.toUri().toURL()}, getClass().getClassLoader())) {
             Class<?> manageClass = loader.loadClass("com.example.order.application.order.OrdersManageImpl");
@@ -265,11 +276,6 @@ class BackendCrudTemplateTest {
         Path path = root.resolve(relative);
         Files.createDirectories(path.getParent());
         Files.writeString(path, content);
-    }
-
-    private static String packageName(String source) {
-        int start = source.indexOf("package ") + "package ".length();
-        return source.substring(start, source.indexOf(';', start)).trim();
     }
 
     private static String fileName(String key, String source) {

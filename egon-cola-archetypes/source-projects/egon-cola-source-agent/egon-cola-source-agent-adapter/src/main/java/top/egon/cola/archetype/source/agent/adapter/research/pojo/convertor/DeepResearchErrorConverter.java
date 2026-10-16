@@ -5,7 +5,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.common.exception.DeepResearchApplicationException;
 import top.egon.cola.archetype.source.agent.common.error.ResearchErrorCodeEnum;
 import top.egon.cola.component.common.core.converter.BaseConverter;
@@ -15,16 +15,16 @@ import java.util.Map;
 
 /** Static safe mapping from typed application failures to public JSON errors. */
 @Mapper(unmappedTargetPolicy = ReportingPolicy.ERROR)
-public interface DeepResearchErrorConverter extends BaseConverter<DeepResearchApplicationException, DeepResearchErrorResponse> {
+public interface DeepResearchErrorConverter extends BaseConverter<DeepResearchApplicationException, DeepResearchErrorResult> {
 
     DeepResearchErrorConverter INSTANCE = Mappers.getMapper(DeepResearchErrorConverter.class);
 
     @Override
-    default DeepResearchErrorResponse toTarget(DeepResearchApplicationException source) {
+    default DeepResearchErrorResult toTarget(DeepResearchApplicationException source) {
         return toResponse(source, Instant.EPOCH);
     }
 
-    default DeepResearchErrorResponse toResponse(DeepResearchApplicationException source, Instant timestamp) {
+    default DeepResearchErrorResult toResponse(DeepResearchApplicationException source, Instant timestamp) {
         return map(source, timestamp);
     }
 
@@ -33,10 +33,10 @@ public interface DeepResearchErrorConverter extends BaseConverter<DeepResearchAp
     @Mapping(target = "traceId", expression = "java(source.traceId())")
     @Mapping(target = "timestamp", expression = "java(timestamp)")
     @Mapping(target = "fieldErrors", expression = "java(source.fieldErrors())")
-    DeepResearchErrorResponse map(DeepResearchApplicationException source, @Context Instant timestamp);
+    DeepResearchErrorResult map(DeepResearchApplicationException source, @Context Instant timestamp);
 
     @Override
-    default DeepResearchApplicationException toSource(DeepResearchErrorResponse target) {
+    default DeepResearchApplicationException toSource(DeepResearchErrorResult target) {
         if (target == null) {
             return null;
         }

@@ -15,7 +15,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RBACAPIResource
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.convertor.PermissionAdapterConverter;
-import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.GrantPermissionRequest;
+import top.egon.cola.archetype.source.web.adapter.user.pojo.dto.GrantPermissionDTO;
 import top.egon.cola.archetype.source.web.adapter.user.pojo.vo.PermissionTreeVO;
 import top.egon.cola.archetype.source.web.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.web.application.user.pojo.query.PermissionTreeQuery;
@@ -67,7 +67,7 @@ public class PermissionController {
     @RBACAPIResource(code = "egon-cola-source-web.api.permission.grant", permission = "egon-cola-source-web:permission:grant", name = "Grant")
     public ResponseEntity<Void> grant(
             @PathVariable String roleCode,
-            @Valid @RequestBody GrantPermissionRequest request,
+            @Valid @RequestBody GrantPermissionDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-web:permission:grant", authorizationProperties.getSystemCode(),
                 "egon-cola-source-web.api.permission.grant", Set.of("permissionCode")));

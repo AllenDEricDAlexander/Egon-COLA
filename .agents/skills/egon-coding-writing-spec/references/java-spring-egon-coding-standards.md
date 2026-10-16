@@ -82,9 +82,9 @@ Name every new or materially changed Java type by its actual role. A semantic ro
 - Transport/integration carrier: `*DTO`.
 - Presentation/output carrier: `*VO`.
 - Read intent: `*Query`; write intent: `*Command`; published fact: `*Event`.
-- HTTP/RPC-specific boundaries may use explicit `*Request` and `*Response`; pagination may use `*PageQuery` and `*PageResult` when those are the repository contracts.
+- Protocol-only input carriers use `*DTO`; read/write intent keeps `*Query`/`*Command`. Application/protocol outputs use `*Result`/`*PageResult`; presentation outputs keep `*VO`. Do not introduce project-owned `*Request` or `*Response` carriers.
 - Data access component: `*DAO`; it is an access component, not a POJO.
-- Other behavior types use exact role suffixes such as `*Controller`, `*Service`, `*Repository`, `*Gateway`, `*Converter`, `*Validator`, `*Component`, `*Factory`, `*Strategy`, `*Exception`, `*Result`, or `*Enum`.
+- Other behavior types use exact role suffixes such as `*Controller`, `*Service`, `*Repository`, `*Gateway`, `*Converter`, `*Validator`, `*Component`, `*Factory`, `*Strategy`, `*Exception`, or `*Enum`.
 
 Do not use ambiguous carrier suffixes such as `Data`, `Info`, `Param`, or `Bean` to avoid choosing a semantic role. Do not create duplicate PO/BO/DTO/VO/Query/Command/Event types when no real boundary difference exists. Existing ambiguous names outside the touched scope are not a refactoring mandate; new and materially changed types must be corrected or the incompatibility reported.
 
@@ -92,7 +92,7 @@ Do not use ambiguous carrier suffixes such as `Data`, `Info`, `Param`, or `Bean`
 
 Every affected layer-to-layer input boundary must use Jakarta Bean Validation supplied by `spring-boot-starter-validation`; validating only the external Controller/Adapter boundary is insufficient.
 
-- Put constraints on the consumed Request/DTO/Command/Query/Event or method parameters and use `@Valid` for cascaded objects.
+- Put constraints on the consumed DTO/Command/Query/Event or method parameters and use `@Valid` for cascaded objects.
 - Enable method/boundary validation with Spring `@Validated` where required.
 - Reusable input types must use explicit Validation Groups for different operations rather than weakening constraints or duplicating near-identical classes.
 - Prefer Jakarta's native constraints. Use the existing Egon-COLA `ValidationUtils` for explicit/manual validation and group invocation.
@@ -139,7 +139,7 @@ Use JDK APIs first, then the already managed Apache Commons libraries (`commons-
 
 ### JSON
 
-Use Spring Boot's Jackson stack. Apply Jackson annotations to external DTO/VO/Request/Response/Command/Query/Event types only as required by the actual protocol: field names, inclusion/ignore rules, enum values, date/time format, polymorphism, compatibility, and unknown-field behavior. Do not introduce or mix Gson, Fastjson, or JSON round-trip conversion.
+Use Spring Boot's Jackson stack. Apply Jackson annotations to external DTO/VO/Result/Command/Query/Event types only as required by the actual protocol: field names, inclusion/ignore rules, enum values, date/time format, polymorphism, compatibility, and unknown-field behavior. Do not introduce or mix Gson, Fastjson, or JSON round-trip conversion.
 
 ### Date and time
 
@@ -194,6 +194,8 @@ Use this table shape in generated artifacts:
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | `MC-ARCH-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<paths, symbols, dependency or command evidence>` | `<observed result>` | `None / exact next action and owner` |
+
+Time boundaries additionally follow `references/time-semantics.md`: UTC occurred instants, unchanged pure-date semantics, explicit business-zone calculation and frontend display conversion. `MC-TIME-001` requires applicable mapping/serialization/calendar/DST/precision/compatibility evidence.
 
 
 ## Constructor injection amendment (2026-10-13)

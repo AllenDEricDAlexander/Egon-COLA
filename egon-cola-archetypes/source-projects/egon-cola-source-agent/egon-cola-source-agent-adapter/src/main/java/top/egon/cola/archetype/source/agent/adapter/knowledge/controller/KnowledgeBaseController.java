@@ -38,11 +38,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.convertor.KnowledgeCommandConverter;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.convertor.KnowledgeVoConverter;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.CreateKnowledgeBaseRequest;
-import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.UpdateKnowledgeBaseRequest;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.CreateKnowledgeBaseDTO;
+import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.dto.UpdateKnowledgeBaseDTO;
 import top.egon.cola.archetype.source.agent.adapter.knowledge.pojo.vo.KnowledgeBaseVO;
 import top.egon.cola.archetype.source.agent.common.exception.KnowledgeApplicationException;
 import top.egon.cola.archetype.source.agent.application.knowledge.manage.KnowledgeBaseManage;
@@ -99,14 +99,14 @@ public class KnowledgeBaseController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "The created knowledge base"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "409", description = "The code is taken",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-base:create')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-base.create", permission = "egon-cola-source-agent:knowledge-base:create", name = "Create a knowledge base")
     public KnowledgeBaseVO createKnowledgeBase(
-            @Valid @RequestBody CreateKnowledgeBaseRequest request,
+            @Valid @RequestBody CreateKnowledgeBaseDTO request,
             @Parameter(in = ParameterIn.HEADER, name = ResearchTraceFilter.TRACE_HEADER,
                     description = "Optional safe request correlation id")
             @RequestAttribute(ResearchTraceFilter.TRACE_ATTRIBUTE) String traceId) {
@@ -124,7 +124,7 @@ public class KnowledgeBaseController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "One page of knowledge bases"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-base:list')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-base.list", permission = "egon-cola-source-agent:knowledge-base:list", name = "List knowledge bases")
@@ -154,9 +154,9 @@ public class KnowledgeBaseController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "The knowledge base"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-base:read')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-base.read", permission = "egon-cola-source-agent:knowledge-base:read", name = "Get a knowledge base")
@@ -177,9 +177,9 @@ public class KnowledgeBaseController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "The updated knowledge base"),
             @ApiResponse(responseCode = "400", description = "Validation failure or a create-only field was sent",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-base:update')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-base.update", permission = "egon-cola-source-agent:knowledge-base:update", name = "Update a knowledge base")
@@ -187,7 +187,7 @@ public class KnowledgeBaseController {
             @PathVariable("knowledgeBaseId")
             @Pattern(regexp = IDENTIFIER_PATTERN, message = "knowledgeBaseId must be 1 to 64 characters of [A-Za-z0-9._-]")
             String knowledgeBaseId,
-            @Valid @RequestBody UpdateKnowledgeBaseRequest request,
+            @Valid @RequestBody UpdateKnowledgeBaseDTO request,
             @Parameter(in = ParameterIn.HEADER, name = ResearchTraceFilter.TRACE_HEADER,
                     description = "Optional safe request correlation id")
             @RequestAttribute(ResearchTraceFilter.TRACE_ATTRIBUTE) String traceId) {
@@ -206,11 +206,11 @@ public class KnowledgeBaseController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "The knowledge base is gone"),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class))),
             @ApiResponse(responseCode = "409", description = "A document of the base is still in progress",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResult.class)))
     })
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-agent:knowledge-base:delete')")
     @RBACAPIResource(code = "egon-cola-source-agent.api.knowledge-base.delete", permission = "egon-cola-source-agent:knowledge-base:delete", name = "Delete a knowledge base")

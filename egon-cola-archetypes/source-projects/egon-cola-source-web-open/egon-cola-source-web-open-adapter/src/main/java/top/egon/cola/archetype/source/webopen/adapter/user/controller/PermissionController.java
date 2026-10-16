@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.adapter.user.controller;
 
 import top.egon.cola.archetype.source.webopen.adapter.user.pojo.convertor.PermissionAdapterConverter;
-import top.egon.cola.archetype.source.webopen.adapter.user.pojo.dto.GrantPermissionRequest;
+import top.egon.cola.archetype.source.webopen.adapter.user.pojo.dto.GrantPermissionDTO;
 import top.egon.cola.archetype.source.webopen.adapter.user.pojo.vo.PermissionTreeVO;
 import top.egon.cola.archetype.source.webopen.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.webopen.application.user.pojo.query.PermissionTreeQuery;
@@ -34,7 +34,7 @@ public class PermissionController {
     @PostMapping("/api/v1/roles/{roleCode}/permissions")
     public ResponseEntity<Void> grant(
             @PathVariable String roleCode,
-            @Valid @RequestBody GrantPermissionRequest request,
+            @Valid @RequestBody GrantPermissionDTO request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
         permissionManage.grantPermission(converter.toCommand(requestId, roleCode, request));

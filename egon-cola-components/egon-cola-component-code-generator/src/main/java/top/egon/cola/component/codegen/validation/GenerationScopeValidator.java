@@ -123,6 +123,7 @@ public class GenerationScopeValidator {
         model.put("controllerBean", decapitalize(stem + "Controller"));
         model.put("controllerPackage", layout.packageName(config, "controller"));
         model.put("persistenceConverterType", stem + "PersistenceConverter");
+        model.put("persistenceConverterPackage", layout.packageName(config, "persistence-converter"));
         model.put("persistenceConverterFqn", layout.packageName(config, "persistence-converter") + "." + stem + "PersistenceConverter");
         model.put("persistenceConverterBean", decapitalize(stem + "PersistenceConverterImpl"));
         model.put("createConverterType", "Create" + stem + "CommandConverter");

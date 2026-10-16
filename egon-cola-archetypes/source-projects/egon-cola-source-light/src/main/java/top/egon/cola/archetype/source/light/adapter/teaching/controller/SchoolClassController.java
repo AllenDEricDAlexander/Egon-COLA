@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContext;
 import top.egon.cola.archetype.source.light.adapter.filter.RequestContextHolder;
 import top.egon.cola.archetype.source.light.adapter.teaching.pojo.convertor.TeachingAdapterConvertor;
-import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.CreateSchoolClassRequest;
-import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.ScheduleCourseRequest;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.CreateSchoolClassDTO;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.ScheduleCourseDTO;
 import top.egon.cola.archetype.source.light.adapter.teaching.pojo.vo.SchoolClassDetailVO;
 import top.egon.cola.archetype.source.light.adapter.teaching.validators.TeachingRequestValidator;
 import top.egon.cola.archetype.source.light.application.teaching.manage.SchoolClassManage;
@@ -65,7 +65,7 @@ public class SchoolClassController {
     @Operation(operationId = "nativeLightSchoolClassCreateV1")
     @PreAuthorize("hasAuthority('SCOPE_egon-cola-source-light:school-class:create')")
     @RBACAPIResource(code = "egon-cola-source-light.api.school-class.create", permission = "egon-cola-source-light:school-class:create", name = "Create school class")
-    public SchoolClassDetailVO create(@Valid @RequestBody CreateSchoolClassRequest request) {
+    public SchoolClassDetailVO create(@Valid @RequestBody CreateSchoolClassDTO request) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-light:school-class:create", authorizationProperties.getSystemCode(),
                 "egon-cola-source-light.api.school-class.create", Set.of("name", "semester")));
         RequestContext context = RequestContextHolder.getRequired();
@@ -103,7 +103,7 @@ public class SchoolClassController {
     public SchoolClassDetailVO schedule(
             @PathVariable String schoolClassId,
             @PathVariable String courseId,
-            @Valid @RequestBody ScheduleCourseRequest request) {
+            @Valid @RequestBody ScheduleCourseDTO request) {
         fieldWrite.requireWritableFields(new FieldWriteAuthorizationCommand("egon-cola-source-light:school-class:schedule-course", authorizationProperties.getSystemCode(),
                 "egon-cola-source-light.api.school-class.schedule-course", Set.of("startsAt", "endsAt")));
         validator.validateSchedule(request);

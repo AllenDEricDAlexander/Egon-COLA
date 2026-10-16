@@ -61,6 +61,6 @@ class DeepResearchOpenApiTest extends PersistenceTestSupport {
                 .andExpect(jsonPath("$.components.securitySchemes.nativeBearer.type").value("http"))
                 .andExpect(jsonPath("$.components.securitySchemes.nativeBearer.scheme")
                         .value("bearer"))
-                .andExpect(jsonPath("$.components.schemas.DeepResearchErrorResponse").exists());
+                .andExpect(jsonPath("$.components.schemas.DeepResearchErrorResult").exists());
     }
 }

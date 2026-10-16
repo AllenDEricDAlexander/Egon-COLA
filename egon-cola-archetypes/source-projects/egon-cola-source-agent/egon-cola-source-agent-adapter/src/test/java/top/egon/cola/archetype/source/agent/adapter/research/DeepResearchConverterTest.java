@@ -3,11 +3,11 @@ package top.egon.cola.archetype.source.agent.adapter.research;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
+import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResult;
 import top.egon.cola.archetype.source.agent.adapter.research.pojo.convertor.DeepResearchCommandConverter;
 import top.egon.cola.archetype.source.agent.adapter.research.pojo.convertor.DeepResearchErrorConverter;
 import top.egon.cola.archetype.source.agent.adapter.research.pojo.convertor.ResearchEventConverter;
-import top.egon.cola.archetype.source.agent.adapter.research.pojo.dto.StartDeepResearchRequest;
+import top.egon.cola.archetype.source.agent.adapter.research.pojo.dto.StartDeepResearchDTO;
 import top.egon.cola.archetype.source.agent.adapter.research.pojo.vo.DeepResearchEventVO;
 import top.egon.cola.archetype.source.agent.application.research.pojo.command.StartDeepResearchCommand;
 import top.egon.cola.archetype.source.agent.common.exception.DeepResearchApplicationException;
@@ -27,10 +27,10 @@ class DeepResearchConverterTest {
 
     @Test
     void maps_request_defaults_and_preserves_public_command_fields() {
-        StartDeepResearchRequest request = new StartDeepResearchRequest(" topic ", null, null);
+        StartDeepResearchDTO request = new StartDeepResearchDTO(" topic ", null, null);
 
         StartDeepResearchCommand command = DeepResearchCommandConverter.INSTANCE.toCommand(request, "trace-1");
-        StartDeepResearchRequest roundTrip = DeepResearchCommandConverter.INSTANCE.toSource(command);
+        StartDeepResearchDTO roundTrip = DeepResearchCommandConverter.INSTANCE.toSource(command);
 
         assertEquals("topic", command.topic());
         assertEquals(ReportLanguageEnum.ZH_CN, command.reportLanguage());
@@ -47,7 +47,7 @@ class DeepResearchConverterTest {
                 ResearchErrorCodeEnum.RESEARCH_DEPENDENCY_UNAVAILABLE, "trace-1",
                 new IllegalStateException("secret-provider-message"));
 
-        DeepResearchErrorResponse error = DeepResearchErrorConverter.INSTANCE.toResponse(failure, NOW);
+        DeepResearchErrorResult error = DeepResearchErrorConverter.INSTANCE.toResponse(failure, NOW);
         DeepResearchApplicationException restored = DeepResearchErrorConverter.INSTANCE.toSource(error);
         DeepResearchEvent completed = DeepResearchEvent.completed("run-1", 2, "# report", NOW, "trace-1");
         DeepResearchEventVO event = ResearchEventConverter.INSTANCE.toTarget(completed);
@@ -64,14 +64,14 @@ class DeepResearchConverterTest {
     @Test
     void distinguishes_absent_optional_values_from_explicit_null_and_unknown_fields() throws Exception {
         ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        StartDeepResearchRequest absent = mapper.readValue(
-                "{\"topic\":\"agent architecture\"}", StartDeepResearchRequest.class);
+        StartDeepResearchDTO absent = mapper.readValue(
+                "{\"topic\":\"agent architecture\"}", StartDeepResearchDTO.class);
 
         assertNull(absent.reportLanguage());
         assertNull(absent.maxSources());
         assertThrows(Exception.class, () -> mapper.readValue(
-                "{\"topic\":\"agent architecture\",\"maxSources\":null}", StartDeepResearchRequest.class));
+                "{\"topic\":\"agent architecture\",\"maxSources\":null}", StartDeepResearchDTO.class));
         assertThrows(Exception.class, () -> mapper.readValue(
-                "{\"topic\":\"agent architecture\",\"unknown\":true}", StartDeepResearchRequest.class));
+                "{\"topic\":\"agent architecture\",\"unknown\":true}", StartDeepResearchDTO.class));
     }
 }

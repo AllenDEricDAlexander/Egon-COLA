@@ -29,9 +29,11 @@ Read `references/egon-java-cqe-contract.md` for the effective 2026-09-22 modelin
 
 ## 规则 1——语义命名检查
 
-检查每个新增、重命名或实质修改 Java 类型最终声明和消费者。POJO 使用 PO、BO、VO、DTO、Query、Command、Event、Request、Response、PageQuery、PageResult 或有依据 Entity；访问组件用 DAO；行为类型用准确职责后缀。
+检查每个新增、重命名或实质修改 Java 类型最终声明和消费者。POJO 使用 PO、BO、VO、DTO、Query、Command、Event、Result、PageQuery、PageResult 或有依据 Entity；访问组件用 DAO；行为类型用准确职责后缀。
 
 拒绝新增/触达 `Data`、`Info`、`Param`、`Bean` 和无后缀载体。每个新类型要有真实边界/生命周期依据，避免类爆炸。记录类型清单和编译证据。
+
+Archetype 与 code-gen 使用同一命名契约：纯协议入参使用 `*DTO`，读写意图使用 `*Query`/`*Command`，应用/协议输出保留 `*Result`/`*PageResult`（展示输出保留 `*VO`）。不新增项目自有 `*Request`/`*Response` 载体，不因后缀重复建类；保留框架/第三方契约、生成的协议类型（包括 Protobuf 消息）及范围外存量 API。生成 Java 路径必须匹配声明包与公开类型，编译、模板哈希和 `CLEAN` 不能替代该契约。
 
 ## 规则 2——检查每个受影响层间交接
 
@@ -61,7 +63,7 @@ Repository → DAO 只按数据库表结构约束校验：`NOT NULL`→`@NotNull
 
 ## 规则 6——执行 Jackson 契约
 
-检查每个触达外部 DTO/VO/Request/Response/Command/Query/Event。核对必要 Jackson 注解，或逐字段证明默认行为等于协议；执行序列化/兼容测试。拒绝 Gson/Fastjson、混合 ObjectMapper 和 JSON 转换技巧。
+检查每个触达外部 DTO/VO/Result/Command/Query/Event。核对必要 Jackson 注解，或逐字段证明默认行为等于协议；执行序列化/兼容测试。拒绝 Gson/Fastjson、混合 ObjectMapper 和 JSON 转换技巧。
 
 ## 规则 7——比较全部环境 Profile
 
@@ -76,6 +78,8 @@ Repository → DAO 只按数据库表结构约束校验：`NOT NULL`→`@NotNull
 ## 规则 10——拒绝 java.util 日期时间
 
 检查触达 Import、字段、API、持久化、JSON、计算、Duration、Timeout 和 Clock。必须使用 `java.time` 并明确时区、精度、Clock、数据库和 JSON。新增 `java.util.Date`、`Calendar`、`SimpleDateFormat` 即使测试通过也失败。
+
+读取 `references/time-semantics.zh-CN.md`，落实 UTC/语义分类、显式业务及展示时区、历史 UTC 兼容和 `MC-TIME-001` 证据契约。新 Spec 写 §6.3，新 Plan 写 §4.9，Execute 验证有效决策及实际检查。
 
 ## 规则 11——每 Step 前后检查架构
 

@@ -31,7 +31,7 @@ Do not hybridize architectures or duplicate existing capability. Repository cand
 
 ### Semantic Java names
 
-New/materially changed carriers use explicit roles: `*PO`, `*BO`, `*DTO`, `*VO`, `*Query`, `*Command`, `*Event`, protocol-specific `*Request`/`*Response`, and established `*PageQuery`/`*PageResult`. `*Entity` requires real identity/lifecycle semantics. `*DAO` is an access component. Behavior types use exact role suffixes.
+New/materially changed carriers use explicit roles: `*PO`, `*BO`, `*DTO`, `*VO`, `*Query`, `*Command`, `*Event`, protocol-only `*DTO` inputs, `*Result` outputs and established `*PageQuery`/`*PageResult`. `*Entity` requires real identity/lifecycle semantics. `*DAO` is an access component. Behavior types use exact role suffixes.
 
 Do not add ambiguous `Data`, `Info`, `Param`, or `Bean` carrier names. Do not create one object per layer without an actual boundary/lifecycle distinction.
 
@@ -64,7 +64,7 @@ Use MapStruct/MapStructPlus for cross-layer conversion and require every new aff
 
 - utility order: JDK, already-managed Apache Commons (`commons-lang3`, `commons-collections4`, `commons-io`, `commons-text`, `commons-codec`, `commons-beanutils`), then Guava; Tika only for real content identification; no duplicate utility class or casual library;
 - Commons BeanUtils remains prohibited for business conversion;
-- JSON uses Spring Boot Jackson only; apply protocol-required Jackson annotations to external DTO/VO/Request/Response/Command/Query/Event; do not mix Gson/Fastjson or map by serialization;
+- JSON uses Spring Boot Jackson only; apply protocol-required Jackson annotations to external DTO/VO/Result/Command/Query/Event; do not mix Gson/Fastjson or map by serialization;
 - new/touched time code uses `java.time` and explicit zone/precision/Clock/persistence/JSON semantics; no new `Date`, `Calendar`, or `SimpleDateFormat`;
 - prefer validated `@ConfigurationProperties`; whenever a key changes, compare every environment profile and keep the same structure/core key set while allowing different values.
 
@@ -111,6 +111,8 @@ Use the six-column table from `references/step-gate-checklist.md`. Manual inspec
 ## Final audit rule
 
 After all Step commits, repeat all 17 checks against the final tree and commits; do not merely aggregate prior Step assertions. Final PASS requires all applicable checks PASS and every N/A evidence-backed. Any Manual Check failure, any `Partial`/`Not satisfied` Spec requirement, or required missing runtime evidence produces `PARTIAL`; inability to determine the baseline/evidence produces `BLOCKED`. Report gaps; do not silently implement them during the audit.
+
+Time boundaries additionally follow `references/time-semantics.md`: UTC occurred instants, unchanged pure-date semantics, explicit business-zone calculation and frontend display conversion. `MC-TIME-001` requires applicable mapping/serialization/calendar/DST/precision/compatibility evidence.
 
 
 ## Constructor injection amendment (2026-10-13)

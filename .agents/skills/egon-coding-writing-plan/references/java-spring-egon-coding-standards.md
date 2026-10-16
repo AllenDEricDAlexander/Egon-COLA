@@ -45,7 +45,7 @@ Every affected Java file block must name its applicable `MC-*` IDs in `Standards
 - persistence carrier `*PO`; real lifecycle/identity entity `*Entity` only with established semantics;
 - business carrier `*BO`, transport `*DTO`, presentation `*VO`;
 - read intent `*Query`, write intent `*Command`, published fact `*Event`;
-- protocol-specific `*Request`/`*Response`, and established `*PageQuery`/`*PageResult` where applicable;
+- protocol-only `*DTO` inputs, application/protocol `*Result`/`*PageResult` outputs and established `*PageQuery` inputs; do not introduce project-owned `*Request`/`*Response` carriers;
 - access component `*DAO`; other behavior types use their exact role suffix.
 
 Do not introduce ambiguous carrier suffixes `Data`, `Info`, `Param`, or `Bean`. Do not create a type per layer unless a real boundary or lifecycle difference requires it.
@@ -77,7 +77,7 @@ Use MapStruct or MapStructPlus for cross-layer conversion. Every new affected Co
 
 - utilities: JDK first, then already managed Apache Commons (`commons-lang3`, `commons-collections4`, `commons-io`, `commons-text`, `commons-codec`, `commons-beanutils`) or Guava; Tika only for real content identification; no duplicate helper or extra utility library;
 - `commons-beanutils` is not permitted for business conversion;
-- JSON: Spring Boot Jackson only; external DTO/VO/Request/Response/Command/Query/Event uses only protocol-required Jackson annotations; no Gson/Fastjson or JSON mapping trick;
+- JSON: Spring Boot Jackson only; external DTO/VO/Result/Command/Query/Event uses only protocol-required Jackson annotations; no Gson/Fastjson or JSON mapping trick;
 - time: `java.time` only for new/touched modeling, with time zone, precision, Clock, persistence, and JSON semantics; no new `Date`, `Calendar`, or `SimpleDateFormat`;
 - configuration: prefer validated `@ConfigurationProperties`; every added/changed key must be represented with the same structure/core key set in all environment profiles, while values may differ.
 
@@ -118,6 +118,8 @@ Use this exact table shape:
 | `MC-ARCH-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<paths, symbols, dependency or planned command evidence>` | `<observed conclusion>` | `None / exact action and owner` |
 
 An overall PASS requires every applicable row to be `PASS` and every inapplicable row to be evidence-backed `N/A`. Any missing ID/evidence, `FAIL`, `BLOCKED`, `UNKNOWN`, or unresolved exception prohibits PASS.
+
+Time boundaries additionally follow `references/time-semantics.md`: UTC occurred instants, unchanged pure-date semantics, explicit business-zone calculation and frontend display conversion. `MC-TIME-001` requires applicable mapping/serialization/calendar/DST/precision/compatibility evidence.
 
 
 ## Constructor injection amendment (2026-10-13)

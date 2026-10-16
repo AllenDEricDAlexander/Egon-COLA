@@ -4,7 +4,7 @@ import top.egon.cola.component.common.core.exception.ExceptionLogger;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.ScheduleCourseRequest;
+import top.egon.cola.archetype.source.light.adapter.teaching.pojo.dto.ScheduleCourseDTO;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.archetype.source.light.common.exception.TeachingUseCaseException;
@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
         for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
             if (cause instanceof JsonMappingException mapping) {
                 for (JsonMappingException.Reference reference : mapping.getPath()) {
-                    if ((reference.getFrom() == ScheduleCourseRequest.class || reference.getFrom() instanceof ScheduleCourseRequest)
+                    if ((reference.getFrom() == ScheduleCourseDTO.class || reference.getFrom() instanceof ScheduleCourseDTO)
                             && ("startsAt".equals(reference.getFieldName()) || "endsAt".equals(reference.getFieldName()))) {
                         return ResultRecord.failure(ResultCode.VALIDATION_ERROR.getCode(), ResultCode.VALIDATION_ERROR.getStatus(),
                                 reference.getFieldName() + " must be an offset or Z datetime string");

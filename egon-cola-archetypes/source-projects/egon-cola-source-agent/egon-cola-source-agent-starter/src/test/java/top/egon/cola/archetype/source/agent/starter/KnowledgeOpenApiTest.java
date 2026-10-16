@@ -103,12 +103,12 @@ class KnowledgeOpenApiTest extends PersistenceTestSupport {
                         + ".responses['200'].content['text/event-stream']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/knowledge-bases/{knowledgeBaseId}/chat'].post"
                         + ".responses['406'].content['application/json'].schema.$ref")
-                        .value("#/components/schemas/DeepResearchErrorResponse"))
+                        .value("#/components/schemas/DeepResearchErrorResult"))
                 .andExpect(jsonPath("$.paths['/api/v1/knowledge-bases/{knowledgeBaseId}/chat'].post"
                         + ".responses['429'].content['application/json'].schema.$ref")
-                        .value("#/components/schemas/DeepResearchErrorResponse"))
+                        .value("#/components/schemas/DeepResearchErrorResult"))
                 .andExpect(jsonPath("$.components.schemas.KnowledgeQaEventVO").exists())
-                .andExpect(jsonPath("$.components.schemas.DeepResearchErrorResponse").exists())
+                .andExpect(jsonPath("$.components.schemas.DeepResearchErrorResult").exists())
                 .andExpect(jsonPath("$.components.securitySchemes.nativeBearer.scheme").value("bearer"))
                 .andExpect(jsonPath("$.components.schemas.NativeSecurityError.required.length()").value(2))
                 .andExpect(jsonPath("$.components.schemas.NativeSecurityError.additionalProperties").value(false))

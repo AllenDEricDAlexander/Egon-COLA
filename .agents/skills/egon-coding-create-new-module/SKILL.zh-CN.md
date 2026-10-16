@@ -7,7 +7,7 @@ description: 用唯一的非 open Egon-COLA Maven archetype 生成一个真实�
 
 > 本文件是 `SKILL.md` 的全中文审核镜像，不是自动发现入口。修改任一版本时必须同步另一版本。选型表只在 `references/archetype-selection.md`。
 
-用户要求业务项目时，用 `archetype:generate` 生成一个 Maven 项目；仅询问/要求外层父 POM 时，先区分聚合与继承，不顺带生成业务项目。本 skill 不写 Spec、Plan、业务代码、SQL 或 codegen 产物。
+用户要求业务项目时，用 `archetype:generate` 生成一个 Maven 项目。仅创建脚手架的请求以创建结果和样例清理交接结束；同一请求已包含真实业务设计/实施时，在已有授权内把项目交给 `egon-coding-writing-spec`，遵守它的审核门禁。仅询问/要求外层父 POM 时，先区分聚合与继承，不顺带生成业务项目。创建阶段本身不写 Spec、Plan、业务代码、SQL 或 codegen 产物。
 
 ## 何时使用
 
@@ -24,7 +24,7 @@ description: 用唯一的非 open Egon-COLA Maven archetype 生成一个真实�
 5. 从 `egon-cola-archetypes/pom.xml` 读取版本。生成业务项目时在 Egon-COLA 仓库根使用 `./mvnw`；只回答父 POM 时不运行生成命令。
 6. archetype 无法解析时给出 Maven 错误；本地安装前询问用户。不要发布或运行 `scripts/generate_archetypes.sh`。
 7. 完成适用的生成检查及外层 reactor 检查；失败时报告证据，不靠改写生成项目的父 POM 强行通过。
-8. 报告聚合/继承关系；发生生成时再报告 archetype、版本、输出路径、拓扑和后续 codegen 适用范围。
+8. 报告聚合/继承关系；发生生成时再报告 archetype GAV/版本、输出路径、拓扑、codegen 适用范围以及下述样例清理交接。仅创建请求到此完成；已经要求业务工作时继续进入 Spec skill，不要求用户再调用一个清理 skill。
 
 ## 新业务项目如何使用 Egon 模块
 
@@ -41,8 +41,18 @@ description: 用唯一的非 open Egon-COLA Maven archetype 生成一个真实�
 
 native `light`、`web`、`service` 仅在初始 CREATE 建表时用 `scripts/egon-codegen.sh` 生成模板；之后的 ALTER 等结构变更由 agent 按获批 Plan 修改代码。`agent` 是合法的非 open archetype，但不在生成器范围内；不要为它编造持久化模板。
 
-脚手架自带的业务代码是参考样例，创建项目时保留。后续真实业务实施的 Spec/Plan 必须列出要删除或替换的样例入口、服务、持久化代码和配置；样例 SQL 仅在未应用前移除，已应用则新增纠正版本，并在所属 Step 内完成，不能把样例留作生产行为。
+## 示例与首次业务请求
+
+生成后检查实际携带的样例链路，报告准确路径/入口注册、来源 GAV/版本和样例是否仍存在。仍有样例时标记 `Example cleanup: Pending business implementation`；脚手架生成完成不代表业务就绪。不能按固定业务名词编造样例清单。
+
+首次真实业务 Spec 必须检查整个目标生成项目的全部模块，包括与首个功能无关的未使用样例域。`egon-coding-writing-spec` 在 §2.5 清单逐项写 Delete、Replace、Real business、Infrastructure、Applied history 或 Blocked。获批 Plan 必须在首个真实业务功能验收前删除/替换全部未使用的可执行样例，不能以“参考”理由保留。已部分实施但仍有遗留的项目同样适用。
+
+保留真实应用需要的启动/技术接线和已有真实需求证据的业务代码。样例 SQL 仅在未应用时移除，已应用历史只能新增纠正版本。范围、数据和契约有疑问时在 Spec 中解决，不按名称猜测删除。本规则只处理用户生成的业务项目，不删除 Egon-COLA 维护的 `source-projects`、`definitions` 或 `.generated` 中的参考代码。
 
 ## 交接
 
-生成成功后，下一步是对生成项目使用 `egon-coding-writing-spec`。用户没要求就不要开始。
+生成成功后，下一步是对生成项目使用 `egon-coding-writing-spec`，把来源和待清理样例证据带入它的清理评估。用户已在本次请求中要求业务工作时继续进入该 skill；否则只交接并结束创建请求。无需单独的清理 skill。
+
+## 时间契约交接
+
+检查生成项目的真实时间类型、JDBC/JSON 映射、基础及环境配置时区、SQL 列声明，报告已观察路径和差距；不得假定所有 archetype 已符合 UTC，也不得在仅创建脚手架阶段修复业务代码/配置/SQL。向 write-spec 交接：发生时刻 UTC 存储并用 ISO 8601 UTC `Z` 传输，纯日期/本地时间/时长保留自身语义，计算/展示使用明确业务/用户时区。既有约定 UTC 的逻辑删除字段作为有证据的兼容决策保留；首份业务 Spec 定义受影响转换和 MC-TIME-001 检查。例外或历史纠正必须进入获批业务范围，不能自动迁移或编辑旧脚本。

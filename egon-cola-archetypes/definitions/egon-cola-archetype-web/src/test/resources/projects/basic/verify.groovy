@@ -4,6 +4,38 @@ import groovy.xml.XmlSlurper
 def projectDir = new File(basedir, "pom.xml").isFile() ? basedir : context.projectDir
 assert projectDir != null: "Expected generated Web project"
 
+// Native code-gen domain POJOs use the existing managed compile-only Lombok dependency.
+def codegenDomainModules = projectDir.listFiles().findAll { it.isDirectory() && it.name.endsWith('-domain') }
+assert codegenDomainModules.size() == 1: 'Expected exactly one generated Domain module'
+def codegenDomainPom = new XmlSlurper(false, false).parse(new File(codegenDomainModules[0], 'pom.xml'))
+def codegenDomainLombok = codegenDomainPom.dependencies.dependency.find {
+    it.groupId.text() == 'org.projectlombok' && it.artifactId.text() == 'lombok'
+}
+assert codegenDomainLombok && codegenDomainLombok.scope.text() == 'provided': 'Domain code-gen requires compile-only Lombok'
+assert !codegenDomainLombok.version.text(): 'Domain Lombok version must remain parent-managed'
+
+// Source layout is checked before build-output assertions; a clean hash or javac pass is insufficient.
+def contractJavaSources = []
+projectDir.eachFileRecurse(FileType.FILES) { source ->
+    def relative = projectDir.toPath().relativize(source.toPath()).toString().replace('\\', '/')
+    if (!relative.tokenize('/').any { it in ['target', '.egon', '.git'] } &&
+            source.name.endsWith('.java') && relative.contains('src/main/java/')) {
+        contractJavaSources << [file: source, relative: relative.split('src/main/java/', 2)[1]]
+    }
+}
+assert contractJavaSources: 'Expected main Java sources for package/path contract'
+contractJavaSources.each { entry ->
+    if (entry.relative != 'module-info.java') {
+        def declaration = entry.file.getText('UTF-8') =~ /\A(?:\s|\/\/[^\r\n]*|\/\*[\s\S]*?\*\/)*package\s+([\w.]+)\s*;/
+        assert declaration.find(): "Missing Java package: ${entry.file}"
+        def slash = entry.relative.lastIndexOf('/')
+        def expected = slash < 0 ? '' : entry.relative.substring(0, slash).replace('/', '.')
+        assert declaration.group(1) == expected: "Java package/path mismatch: ${entry.file}"
+        def carrier = entry.file.getText('UTF-8') =~ /(?m)^\s*(?:(?:public|protected|private|static|abstract|final|sealed|non-sealed)\s+)*(?:class|interface|record)\s+\w*(?:Request|Response)\b/
+        assert !carrier.find(): "Business carrier must use DTO/Command/Query or Result/VO: ${entry.file}"
+    }
+}
+
 def file = { String path ->
     def result = new File(projectDir, path)
     assert result.isFile(): "Expected generated file ${path}"
@@ -175,7 +207,7 @@ def expectedFiles = [
     "${prefix}-application/src/main/java/it/pkg/application/support/IdempotentCommand.java",
     "${prefix}-application/src/main/java/it/pkg/application/teaching/pojo/command/CreateGradeCommand.java",
     "${prefix}-application/src/main/java/it/pkg/application/user/pojo/result/UserDetailResult.java",
-    "${prefix}-adapter/src/main/java/it/pkg/adapter/user/pojo/dto/CreateUserRequest.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/user/pojo/dto/CreateUserDTO.java",
     "${prefix}-adapter/src/main/java/it/pkg/adapter/teaching/pojo/vo/GradeDetailVO.java",
     "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/teaching/dao/GradeDAO.java",
     "${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/teaching/po/GradePO.java",
