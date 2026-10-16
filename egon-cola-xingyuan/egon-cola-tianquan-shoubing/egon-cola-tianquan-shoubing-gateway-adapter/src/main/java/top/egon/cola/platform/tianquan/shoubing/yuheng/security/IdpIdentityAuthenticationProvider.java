@@ -46,6 +46,9 @@ public final class IdpIdentityAuthenticationProvider
      */
     public static final String PROVIDER_ID = "tianquan-shoubing-jwt";
 
+    /** 同次验签 proof 的 canonical issuer；仅用于 adapter-owned 可信属性。 */
+    public static final String VERIFIED_ISSUER_ATTRIBUTE = "tianquan-shoubing.issuer";
+
     /**
      * 访问令牌验证端口。
      *
@@ -151,6 +154,9 @@ public final class IdpIdentityAuthenticationProvider
         }
         IdpPrincipal principal = verification.principal();
         Map<String, String> attributes = new LinkedHashMap<>();
+        if (verification.proof() != null) {
+            attributes.put(VERIFIED_ISSUER_ATTRIBUTE, verification.proof().issuer().toString());
+        }
         attributes.put("tianquan-shoubing.token-id", principal.tokenId());
         attributes.put("tianquan-shoubing.issued-at", principal.issuedAt().toString());
         attributes.put("tianquan-shoubing.expires-at", principal.expiresAt().toString());

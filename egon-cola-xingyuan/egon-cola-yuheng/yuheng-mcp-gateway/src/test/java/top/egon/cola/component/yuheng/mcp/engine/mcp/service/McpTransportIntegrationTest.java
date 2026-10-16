@@ -36,6 +36,56 @@ public class McpTransportIntegrationTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
+    void preservesSecurityStatusesWithoutDispatchingBusinessOrStartingAListener() {
+        var runtimeServer = new McpRuntimeServer("server-1", "orders", "Orders", null, null,
+                Set.of(McpProtocolDialect.STABLE_2025_11_25),
+                "https://resource.egon.top/yuheng-mcp", 30, true);
+        var rules = new McpRuleCompiler().compile(new McpRuleContent(List.of(runtimeServer),
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
+        var dispatcher = org.mockito.Mockito.mock(McpMethodDispatcher.class);
+        var store = org.mockito.Mockito.mock(top.egon.cola.component.yuheng.mcp.common.transport.McpSessionStore.class);
+        for (int status : List.of(401, 403, 503)) {
+            var failure = new top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException(
+                    "SECURITY_" + status, status, "UNAVAILABLE",
+                    Map.of("www-authenticate", List.of("Bearer realm=\"mcp\"")));
+            var handler = new McpEngineHttpHandler(() -> rules, dispatcher, store,
+                    new SharedMcpTransportStore(), (request, selected) -> Mono.error(failure),
+                    MAPPER, Clock.systemUTC(), Duration.ofMinutes(30), Duration.ofMillis(20), 65536);
+            var response = handler.handle(new top.egon.cola.component.yuheng.mcp.common.transport.McpHttpRequest(
+                    "POST", "/mcp/orders", Map.of("content-type", "application/json"),
+                    "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}",
+                    Map.of())).block(Duration.ofSeconds(2));
+            assertEquals(status, response.status());
+            assertEquals("Bearer realm=\"mcp\"", response.header("www-authenticate"));
+            String body = reactor.core.publisher.Flux.from(response.body())
+                    .map(bytes -> new String(bytes, java.nio.charset.StandardCharsets.UTF_8))
+                    .collectList().map(parts -> String.join("", parts)).block(Duration.ofSeconds(2));
+            assertTrue(body.contains("\"error\":\"SECURITY_" + status + "\""));
+        }
+        org.mockito.Mockito.verifyNoInteractions(dispatcher, store);
+    }
+
+    @Test
+    void keepsInitializationAndMissingSessionProtocolShapesInProcess() throws Exception {
+        var handler = handler(new SharedMcpTransportStore());
+        var initialized = handler.handle(new top.egon.cola.component.yuheng.mcp.common.transport.McpHttpRequest(
+                "POST", "/mcp/orders", Map.of("content-type", "application/json"),
+                "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}",
+                Map.of())).block(Duration.ofSeconds(2));
+        assertEquals(200, initialized.status());
+        assertNotNull(initialized.header("mcp-session-id"));
+        String body = reactor.core.publisher.Flux.from(initialized.body())
+                .map(bytes -> new String(bytes, java.nio.charset.StandardCharsets.UTF_8))
+                .collectList().map(parts -> String.join("", parts)).block(Duration.ofSeconds(2));
+        assertEquals("2025-11-25", MAPPER.readTree(body).path("result").path("protocolVersion").asText());
+        var missingSession = handler.handle(new top.egon.cola.component.yuheng.mcp.common.transport.McpHttpRequest(
+                "POST", "/mcp/orders", Map.of("content-type", "application/json", "mcp-protocol-version", "2025-11-25"),
+                "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"ping\",\"params\":{}}", Map.of()))
+                .block(Duration.ofSeconds(2));
+        assertEquals(400, missingSession.status());
+    }
+
+    @Test
     void exposesStableRcAndMetadataWithoutApiFallback() throws Exception {
         SharedMcpTransportStore store = new SharedMcpTransportStore();
         McpEngineHttpHandler mcp = handler(store);

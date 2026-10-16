@@ -46,6 +46,11 @@ import top.egon.cola.component.yuheng.runtime.operation.adapter.DefaultGatewayOp
 import top.egon.cola.component.yuheng.runtime.operation.service.EngineGatewayOperationInvoker;
 import top.egon.cola.component.yuheng.runtime.operation.adapter.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.yuheng.runtime.rpc.adapter.RpcProviderChannelCache;
+import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeServer;
+import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
+import top.egon.cola.component.yuheng.core.security.GatewaySecurityPolicy;
+import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
+import top.egon.cola.component.yuheng.runtime.security.service.GatewaySecurityPolicyCompiler;
 import top.egon.cola.component.yuheng.runtime.rule.service.GatewayRuleActivationApplier;
 import top.egon.cola.component.yuheng.runtime.rule.service.GatewayRuleApplierRegistrar;
 import top.egon.cola.component.yuheng.runtime.rule.repository.GatewayRuleChunkStore;
@@ -535,7 +540,6 @@ public class McpGatewayEngineConfiguration {
      * @param gatewayClock 参数 网关Clock；parameter gateway clock。
      * @param properties 参数 properties；parameter properties。
      * @param mcpProperties 参数 MCPProperties；parameter mcp properties。
-     * @param issuer 参数 issuer；parameter issuer。
      * @return 返回 网关MCPHttp处理器 的处理结果；returns the result of the operation.
      */
     @Bean("gatewayMcpHttpHandler")
@@ -561,11 +565,7 @@ public class McpGatewayEngineConfiguration {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             @Qualifier("gatewayClock") Clock gatewayClock,
             McpGatewayEngineProperties properties,
-            McpRuntimeProperties mcpProperties,
-            @Value(
-                    "${egon.cola.platform.tianquan.shoubing.yuheng.issuer:"
-                            + "http://127.0.0.1:18120}"
-            ) String issuer) {
+            McpRuntimeProperties mcpProperties) {
         mcpProperties.validate();
         Duration sessionTtl = mcpProperties.getSessionTtl();
         Duration streamWait = mcpProperties.getStreamWait();
@@ -758,7 +758,7 @@ public class McpGatewayEngineConfiguration {
                 sessionStore,
                 new McpGatewayIdentityAuthenticator(
                         new GatewaySecurityChain(capabilities),
-                        issuer,
+                        server -> managedSecurityPolicy(activation, capabilities, server),
                         properties.nodeId(),
                         gatewayClock
                 ),
@@ -774,6 +774,34 @@ public class McpGatewayEngineConfiguration {
                         Integer.MAX_VALUE
                 ))
         );
+    }
+
+    /**
+     * 从单次 active 读取中绑定唯一发布策略，避免跨 release 拼接 server 与 scope。
+     * Resolves the server and its explicit policy from one immutable active snapshot.
+     */
+    private static GatewaySecurityPolicy managedSecurityPolicy(
+            GatewayRuleActivationApplier<McpGatewayCompiledRulesDTO> activation,
+            GatewaySecurityCapabilityRegistry capabilities,
+            McpRuntimeServer server) {
+        var active = activation.active();
+        if (active == null || !activation.status().ready()
+                || !server.enabled()
+                || !server.equals(active.mcpRules().serversByCode().get(server.serverCode()))) {
+            throw GatewaySecurityException.providerError();
+        }
+        String operationId = "yuheng.mcp." + server.serverCode();
+        var matches = active.snapshot().content().securityPolicies().stream()
+                .filter(policy -> "SECURITY".equals(policy.type()))
+                .filter(policy -> policy.configuration().get("operationIds") instanceof List<?> ids
+                        && ids.contains(operationId))
+                .toList();
+        if (matches.size() != 1) {
+            throw GatewaySecurityException.providerError();
+        }
+        var source = matches.getFirst();
+        return new GatewaySecurityPolicyCompiler(capabilities).compile(matches,
+                Map.of(source.policyId(), Set.of(GatewayProtocol.HTTP))).get(source.policyId());
     }
 
     /**

@@ -155,7 +155,8 @@ class IdpGatewaySecurityProviderTest {
         assertThat(decision.principal().attributes())
                 .doesNotContainKeys("tianquan-shoubing.session-id", "tianquan-shoubing.token-version", "tianquan-shoubing.resource-uri")
                 .containsEntry("tianquan-shoubing.token-id", "token-1")
-                .containsEntry("tianquan-shoubing.audience", "platform");
+                .containsEntry("tianquan-shoubing.audience", "platform")
+                .doesNotContainKey("tianquan-shoubing.issuer");
         assertThatThrownBy(() -> new IdpTrustedIdentityMapper()
                 .map(context(decision.principal())))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -198,13 +199,32 @@ class IdpGatewaySecurityProviderTest {
         var evidence = (top.egon.cola.platform.tianquan.shoubing.yuheng.security.domain.GatewayVerifiedIdentityBO)
                 principal.trustedAuthenticationEvidence();
         assertThat(evidence.proof()).isSameAs(proof);
+        assertThat(principal.attributes()).containsEntry("tianquan-shoubing.issuer", proof.issuer().toString());
         assertThat(evidence.verifiedScopes()).containsExactlyInAnyOrderElementsOf(scopes);
         assertThat(context(GatewayPrincipal.anonymous()).withPrincipal(principal).principal().trustedAuthenticationEvidence()).isSameAs(evidence);
         assertThat(principal.attributes()).doesNotContainKey("tianquan-shoubing.service-scopes");
         var identity = new IdpTrustedIdentityMapper().map(context(principal));
         assertThat(identity.httpHeaders()).doesNotContainKeys("Authorization", "scope", "proof", "trustedAuthenticationEvidence", "X-Egon-Service-Scopes");
-        assertThat(identity.httpHeaders().values()).doesNotContain("original-bearer", proof.tokenRef(), proof.clientRef());
-        assertThat(identity.rpcMetadata().values()).doesNotContain("original-bearer", proof.tokenRef(), proof.clientRef());
+        assertThat(identity.httpHeaders().values()).doesNotContain("original-bearer", proof.tokenRef(), proof.clientRef(), proof.issuer().toString());
+        assertThat(identity.rpcMetadata().values()).doesNotContain("original-bearer", proof.tokenRef(), proof.clientRef(), proof.issuer().toString());
+    }
+
+    @Test
+    void mapsEachUserIssuerOnlyFromTheSameVerifiedProof() {
+        var user = new IdentityPrincipal("identity-1", "1001", "token-1", Set.of("platform"),
+                NOW, NOW.plusSeconds(300),
+                top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext.password());
+        for (String issuer : List.of("https://idp.example/tenants/1001", "https://idp.example/tenants/1002")) {
+            var proof = new top.egon.cola.platform.tianquan.shoubing.starter.security.domain.TokenAuditProofBO(
+                    URI.create(issuer), URI.create("https://api.example/resource"), null, "a".repeat(64), "b".repeat(64));
+            var provider = new IdpIdentityAuthenticationProvider((context, token) ->
+                    new IdpGatewayJwtVerifier.Verification(user, AuthenticationFailure.NONE, null, Set.of("billing:read"), proof));
+            var decision = Mono.from(provider.authenticate(context(GatewayPrincipal.anonymous()),
+                    new GatewayCredential("bearer", "signed-token", Map.of("issuer", "https://attacker.example")))).block();
+            assertThat(decision.decision()).isEqualTo(SecurityDecision.ALLOW);
+            assertThat(decision.principal().attributes()).containsEntry(
+                    IdpIdentityAuthenticationProvider.VERIFIED_ISSUER_ATTRIBUTE, issuer);
+        }
     }
 
     @Test

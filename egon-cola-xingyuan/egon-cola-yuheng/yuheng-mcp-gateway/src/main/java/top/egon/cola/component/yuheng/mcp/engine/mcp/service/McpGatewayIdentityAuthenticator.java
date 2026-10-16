@@ -1,6 +1,7 @@
 package top.egon.cola.component.yuheng.mcp.engine.mcp.service;
 
 import reactor.core.publisher.Mono;
+import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.yuheng.contract.protocol.AccessZone;
 import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
@@ -21,6 +22,7 @@ import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
 import top.egon.cola.component.yuheng.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.yuheng.core.security.SecurityFailureMode;
 import top.egon.cola.component.yuheng.runtime.security.service.GatewaySecurityChain;
+import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.yuheng.mcp.common.transport.McpHttpRequest;
 
 import java.time.Clock;
@@ -32,13 +34,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 /**
- * Adapts the fixed Tianquan-Shoubing identity-only Gateway security chain to MCP ingress.
+ * Adapts the published Gateway security policy to MCP ingress; retains the legacy constructor.
  * 补充说明 / Supplementary summary: {@code McpGatewayIdentityAuthenticator} 是类型，位于当前 Gateway 模块的相关包中，负责MCP网关身份Authenticator相关的职责与边界。
  * English supplement: {@code McpGatewayIdentityAuthenticator} is a type in the current Gateway module; it owns the mcp gateway identity authenticator-related responsibility and boundary.
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
 public final class McpGatewayIdentityAuthenticator
         implements McpEngineHttpHandler.IdentityAuthenticator {
 
@@ -78,6 +82,9 @@ public final class McpGatewayIdentityAuthenticator
      */
     private final String issuer;
 
+    /** Managed hosts resolve the explicit published policy for each selected server. */
+    private final Function<McpRuntimeServer, GatewaySecurityPolicy> policies;
+
     /**
      * 中文说明：保存 引擎NodeId 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpGatewayIdentityAuthenticator} 在其生命周期内读取或更新。
      * English summary: Holds the state, dependency, or configuration represented by engine node id; its type is {@code String}, and {@code McpGatewayIdentityAuthenticator} reads or updates it during its lifecycle.
@@ -111,6 +118,23 @@ public final class McpGatewayIdentityAuthenticator
             Clock clock) {
         this.security = Objects.requireNonNull(security, "security");
         this.issuer = required(issuer, "issuer");
+        this.policies = null;
+        this.engineNodeId = required(engineNodeId, "engineNodeId");
+        this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    /**
+     * 使用原激活快照绑定的策略；issuer 只能取自同次验签属性。
+     * Uses the published policy strategy and the issuer from the same verified identity.
+     */
+    public McpGatewayIdentityAuthenticator(
+            GatewaySecurityChain security,
+            Function<McpRuntimeServer, GatewaySecurityPolicy> policies,
+            String engineNodeId,
+            Clock clock) {
+        this.security = Objects.requireNonNull(security, "security");
+        this.policies = Objects.requireNonNull(policies, "policies");
+        this.issuer = null;
         this.engineNodeId = required(engineNodeId, "engineNodeId");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -128,9 +152,30 @@ public final class McpGatewayIdentityAuthenticator
     public Mono<Map<String, Object>> authenticate(
             McpHttpRequest request,
             McpRuntimeServer server) {
+        if (policies == null) {
+            return authenticate(request, server, IDENTITY_ONLY_POLICY)
+                    .onErrorResume(ignored -> Mono.empty());
+        }
+        return Mono.fromSupplier(() -> {
+                    GatewaySecurityPolicy policy = policies.apply(server);
+                    if (policy == null || policy.authenticationMode() != AuthenticationMode.REQUIRED
+                            || policy.requiredOAuthScopes().isEmpty()) {
+                        throw GatewaySecurityException.providerError();
+                    }
+                    return policy;
+                })
+                .onErrorMap(error -> !(error instanceof GatewaySecurityException),
+                        error -> GatewaySecurityException.providerError())
+                .flatMap(policy -> authenticate(request, server, policy));
+    }
+
+    private Mono<Map<String, Object>> authenticate(
+            McpHttpRequest request,
+            McpRuntimeServer server,
+            GatewaySecurityPolicy policy) {
         Instant startedAt = clock.instant();
         Instant deadline = startedAt.plus(
-                IDENTITY_ONLY_POLICY.providerTimeout()
+                policy.providerTimeout()
         );
         String requestId = UUID.randomUUID().toString();
         String traceId = traceId(request, requestId);
@@ -141,7 +186,7 @@ public final class McpGatewayIdentityAuthenticator
                 GatewayProtocol.HTTP,
                 "yuheng.mcp." + server.serverCode(),
                 null,
-                IDENTITY_ONLY_POLICY.policyId(),
+                policy.policyId(),
                 request.path(),
                 request.method(),
                 Set.of(),
@@ -187,7 +232,7 @@ public final class McpGatewayIdentityAuthenticator
         return security.execute(
                         exchange,
                         auth,
-                        IDENTITY_ONLY_POLICY,
+                        policy,
                         GatewayProtocol.HTTP
                 )
                 .map(result -> identity(
@@ -198,8 +243,7 @@ public final class McpGatewayIdentityAuthenticator
                                         .tokenReference(),
                         request,
                         server.resourceUri()
-                ))
-                .onErrorResume(ignored -> Mono.empty());
+                ));
     }
 
     /**
@@ -219,13 +263,18 @@ public final class McpGatewayIdentityAuthenticator
             McpHttpRequest request,
             String resourceUri) {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>();
-        result.put("identity.issuer", issuer);
+        String verifiedIssuer = policies == null ? issuer
+                : principal.attributes().get("tianquan-shoubing.issuer");
+        if (verifiedIssuer == null || verifiedIssuer.isBlank()) {
+            throw GatewaySecurityException.providerError();
+        }
         result.put("identity.subject", principal.principalId());
         result.put("callerId", principal.principalId());
         result.put("identity.tenant-id", principal.tenantId());
         result.put("tenantId", principal.tenantId());
         result.put("identity.resource-uri", required(resourceUri, "resourceUri"));
         principal.attributes().forEach(result::put);
+        result.put("identity.issuer", verifiedIssuer);
         if (bearer != null) {
             result.put("originalBearerToken", "Bearer " + bearer);
         }

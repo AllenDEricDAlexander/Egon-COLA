@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import lombok.extern.slf4j.Slf4j;
+import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpJsonRpcRequest;
 import top.egon.cola.component.yuheng.contract.mcp.protocol.McpJsonRpcResponse;
@@ -41,6 +43,7 @@ import java.util.function.Supplier;
  * English supplement: {@code McpEngineHttpHandler} is a mcp engine http handler handler in the current Gateway module; it owns the mcp engine http handler-related responsibility and boundary.
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
 public final class McpEngineHttpHandler {
 
     /**
@@ -248,6 +251,16 @@ public final class McpEngineHttpHandler {
             return Mono.just(error(413, "MCP_BODY_TOO_LARGE", null));
         }
         return Mono.defer(() -> route(request))
+                .onErrorResume(
+                        GatewaySecurityException.class,
+                        failure -> {
+                            McpHttpResponse response = error(failure.httpStatus(), failure.code(), null);
+                            LinkedHashMap<String, List<String>> headers = new LinkedHashMap<>(response.headers());
+                            headers.putAll(failure.responseHeaders());
+                            return Mono.just(new McpHttpResponse(response.status(), headers,
+                                    response.body(), response.flushPerEvent()));
+                        }
+                )
                 .onErrorResume(
                         McpTransportException.class,
                         failure -> Mono.just(error(
