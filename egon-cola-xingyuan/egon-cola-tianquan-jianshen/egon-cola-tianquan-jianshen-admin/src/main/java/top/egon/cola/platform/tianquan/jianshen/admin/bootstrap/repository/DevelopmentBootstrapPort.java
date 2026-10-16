@@ -1,5 +1,9 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.repository;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.domain.dto.ResolvedPlatformBootstrapCommandDTO;
+
 /**
      * 类型 `DevelopmentBootstrapPort` 位于 `Rbac3DevelopmentBootstrap` 内，是接口，用于承载 `Bootstrap Port` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
      * Type `DevelopmentBootstrapPort` is an interface inside `Rbac3DevelopmentBootstrap` and carries the responsibility, state, or contract for `Bootstrap Port`; callers normally use it through its public API, Spring assembly, or implementation relationship.
@@ -21,4 +25,14 @@ package top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.repository;
          * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
          */
         void bootstrap(String tenantId, String identitySub);
+
+        /** Bind verified catalog facts before the existing resource owners run. */
+        default void bindResolvedApplications(@NotNull @Valid ResolvedPlatformBootstrapCommandDTO command) {
+            throw new UnsupportedOperationException("RESOLVED_BOOTSTRAP_UNAVAILABLE");
+        }
+
+        /** Initialize only the resolved platform roles after real resources exist. */
+        default void bootstrapResolved(@NotNull @Valid ResolvedPlatformBootstrapCommandDTO command) {
+            throw new UnsupportedOperationException("RESOLVED_BOOTSTRAP_UNAVAILABLE");
+        }
     }

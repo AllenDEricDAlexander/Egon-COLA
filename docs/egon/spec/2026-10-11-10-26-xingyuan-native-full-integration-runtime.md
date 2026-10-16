@@ -39,17 +39,20 @@
 
 ### R1.2 精确文件清单及必要性
 
-路径别名与主 Spec相同，另设 SA=S/egon-cola-tianquan-shoubing-admin、JA=J/egon-cola-tianquan-jianshen-admin、YW=Y/yuheng-admin-web。下面声明的是源码文件；runtime keys/证书/结果只生成在 target，禁止提交。
+路径别名与主 Spec相同，另设 SA=S/egon-cola-tianquan-shoubing-admin、JA=J/egon-cola-tianquan-jianshen-admin、YW=Y/yuheng-admin-web、TA=egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin。下面声明的是源码文件；runtime keys/证书/结果只生成在 target，禁止提交。
 
 | Change | Exact path | 职责 / Add-Keep-Merge 判定 |
 | --- | --- | --- |
 | CREATE | scripts/unified-xingyuan/isolated-integration.sh | 9个原子子命令入口；现有脚本触及旧状态且无 Edge/TLS 生命周期，Add |
+| CREATE | scripts/unified-xingyuan/lib/isolated_integration.py | 原嵌入 Python 实现的私有标准库模块；复用目标/PID/归属校验，独立调用同样 preflight；无新依赖/公开命令 |
 | CREATE | scripts/unified-xingyuan/lib/isolated-integration.sh | 目标/PID/文件守卫及固定进程参数；复用原 common helpers，不新建业务服务，Add |
 | CREATE | scripts/regression/test-isolated-integration-contract.sh | /tmp 假 CLI recorder 验证误写守卫/语法/命令选择；无DB/Redis/socket，Add |
 | CREATE | SA/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningIT.java | opt-in 入口、写库前 target gate、分阶段最小真实 Spring 装配；技术 JUnit 类，Add |
 | CREATE | SA/src/test/java/top/egon/cola/platform/tianquan/shoubing/admin/integration/IsolatedOAuthProvisioningComponent.java | 实际身份/租户/realm/key/client/resource/grant事务与恢复；一个 managed Component，Add |
+| CREATE | TA/src/test/java/top/egon/cola/component/tianshu/admin/integration/IsolatedTianshuCatalogProvisioningIT.java | 获批冷启动：仅显式opt-in的本模块NONE夹具经原DdcBizService/DdcAppService建立真实基础目录，默认无设施；不加Admin依赖 |
 | CREATE | JA/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/integration/IsolatedAuthorizationProvisioningIT.java | 独立 JA owner 的真实catalog review/role/resource/field-rule/投影准备，不引入SA→JA test依赖，Add |
 | CREATE | YW/playwright.integration.config.ts | 从已有 Playwright1.62.0解析；testDir只选真实live场景，无自动webServer，Add |
+| MODIFY | YW/playwright.config.ts | 只排除 e2e/integration 的默认发现；保留既有 13 fixture cases/webServer，真实场景只由专用 config 显式运行，必要调用方兼容 |
 | CREATE | YW/e2e/integration/xingyuan-identity-integration.spec.ts | Portal/四管理端真实 Code、逐资源 CLI AT、SSO、step-up/logout、安全 UI，Add |
 | CREATE | Y/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/integration/XingyuanResourceAuthorizationIT.java | 真实逐资源issuer/aud/scope/租户/撤销与HTTP拒绝验证，Add |
 | CREATE | 同目录/XingyuanNativeAuthenticationIT.java | 从真实generated artifact发起native RPC、实际注册/HMAC/credential/cache与finally证据，Add |
@@ -59,14 +62,27 @@
 | MODIFY | docs/operations/unified-identity-mcp-local-runbook.md | 新协议live gate与未验证边界，Keep |
 | MODIFY | scripts/README.md | 生命周期脚本归属及无Docker限制，Keep |
 
-Provision 顶层 Java 文件限定上述 **3个**：SA IT、SA Component、JA IT；不再增独立 BootstrapService、Coordinator、Registry、Handler hierarchy。目录登记/field-rule写入使用主 Spec native附录中的生产真实 owner/CLI，不复制一套 test DAO。技术 DTO/VO/Result/验证组、最小 TestConfiguration、报告 Converter 如确有不同语义，作为具名嵌套类型放上述文件，不能以“字段少”把可变 carrier 改为 record。
+| CREATE | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/bootstrap/domain/dto/ResolvedPlatformBootstrapCommandDTO.java | §12.49获批修订：限定四个平台及真实目录引用的初始化命令 |
+
+| MODIFY | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/bootstrap/repository/DevelopmentBootstrapPort.java | §12.49获批修订：兼容旧 bootstrap 的 additive resolved operation |
+
+| CREATE | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan/jianshen/admin/bootstrap/ResolvedPlatformBootstrapContractTest.java | §12.49获批修订：真实 bootstrap owner 的受控行为 RED/GREEN |
+
+| MODIFY | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/bootstrap/repository/jpa/JpaDevelopmentTopologyBootstrapRepository.java | §12.49获批修订：已知初始行锁/CAS绑定及完整真实新行构造 |
+
+Provision 顶层 Java 文件限定上述 **4个**：SA IT、SA Component、TA IT、JA IT；不再增独立 BootstrapService、Coordinator、Registry、Handler hierarchy。天枢基础目录先经TA夹具的原服务建立，JA现本地 bootstrap owner 通过真实目录复查后仅绑定无业务依赖的系统初始行；缺当前拓扑行时用真实引用沿原职责创建，仅允许已批准 §12.50 的无业务依赖、未修改系统初始行绑定当前应用编码，同时保留应用 ID 与原权限所有权；已使用数据不变。新 resolved operation 保留旧 bootstrap 调用兼容，无新HTTP/RPC/Flyway/依赖；角色、准入、Business grant与快照激活仍经原owner。后续目录登记/field-rule写入使用主 Spec native附录中的生产真实 owner/CLI，不复制一套 test DAO。技术 DTO/VO/Result/验证组、最小 TestConfiguration、报告 Converter 如确有不同语义，作为具名嵌套类型放上述文件，不能以“字段少”把可变 carrier 改为 record。
+
+原 SAS Converter 两个生成 @Component 的 Bean 名为 sasAuthorizationConverterImpl/sasRegisteredClientConverterImpl；§12.59 的独立三路径 DI 纠正使 TenantAuthorizationServiceImpl/TenantRegisteredClientRepository 的三处 Qualifier 与实际名字一致。无新 Bean 别名、生产接口/依赖/业务规则或迁移；真实无数据库 Spring 装配测试独立验证。
 
 ### R1.3 Java类型、Bean、DI与验证
+
+SA/JA/TA 的显式 NONE context 使用 Spring 原生 AnnotationBeanNameGenerator，使导入的原组件 Bean 名与主应用 component scan 一致；不扩大扫描或新建代理 owner。原生审核输入先绑定四实际 artifact 的 buildId、catalog SHA 及 application namespace，再验证独立权限 mapping、字段上限和精确角色清单；formal token-index 只选择对应真实 Tianshu PUBLIC USER Client 的未到期私有输入，后续服务仍执行真实 Bearer 验证，文件检查本身不证明授权成功。
 
 | Type | 后缀/表示 | Bean及依赖 | 验证/转换/日志 |
 | --- | --- | --- | --- |
 | IsolatedOAuthProvisioningIT | IT技术测试；非业务Bean | JUnit入口控制两最小context；不扫描main；装配边界可按exact name取component | env opt-in；Guard先于DataSource/DDL；元数据错误不输出Throwable敏感message |
 | IsolatedOAuthProvisioningComponent | Component行为 | @Component("isolatedOAuthProvisioningComponent")、@Slf4j、@RequiredArgsConstructor；所有final依赖@Qualifier | @Validated；方法入参@Valid；原生constraint+Common ValidationUtils仅用于nonproxy manual路径 |
+| IsolatedTianshuCatalogProvisioningIT | IT技术测试；天枢本模块原owner | NONE最小TestConfiguration、原MP/managed DDL与service；无main/provider/scheduler | manifest/OID/owner/真实actor/tenant与阶段配方，默认无I/O |
 | IsolatedAuthorizationProvisioningIT | IT技术测试；JA内独立owner | Spring/JUnit受管参数通过exact qualifiers注入真实services；无handwritten业务注入ctor | catalog、role、field DTO原注解/版本约束；审计/Outbox原机制 |
 | IsolatedIntegrationManifestDTO及嵌套DatabaseTargetDTO/ProcessTargetDTO/CredentialReferenceDTO | DTO可变class，标准@Data/@NoArgsConstructor/@AllArgsConstructor/@Accessors(chain=true)/@Builder；集合防御复制 | 普通输入对象不加@RequiredArgsConstructor；不另建Bean | Strict Jackson duplicate/unknown/trailing校验；@Valid list；仅保护文件引用，无password/token字面值 |
 | IsolatedProvisioningBO | BO普通class，标准Lombok/Builder | component内部已验证阶段结果；secret不进入报告BO | Default/Prepare/Provision/Runtime验证组按边界；@ToString.Exclude/必要@JsonIgnore排除secret临时值 |
@@ -104,6 +120,10 @@ intent manifest是不可变的批准目标，不放未知tid或fakeJWT；runtime
 | catalogFiles/policyFiles | 必需 | taskroot内regular file≤2MiB、SHA256绑定、strictschema | 用户批准测试定义；不可换成旧DB bootstrap输入 |
 
 主stdin不是secret入口；unknown/duplicate flags、query重名、未知JSONscalar类型、null/blank/pathescape均失败。常规callback code/state/password从专用program内存/文件处理，不经过CLI argv/stdout；shell不得set -x。
+
+私有 identity-provisioning.json 与真实 runtime-registry 另保留显式 cliResources：resourceKey、原 owner 的 resourceServerId、default/tenant-b 各实际 PUBLIC clientId、已审核的目标只读 readPath；subjects 取真实 IdentityFacts 的 admin/viewer 标识并排除诊断 toString。cliResources 不改变 immutable manifest 顶层 schema，也不授权任意 issuer/audience/scope 或增加生产接口。准备前验证配方中的 Client/Resource 关系，消费时再按已提交真实 Client/Resource facts 精确解析；不得按显示名猜 Client、将 CONFIDENTIAL BFF Client 复用为 PUBLIC 或导出 BFF Token。PUBLIC flow 只生成私有正式测试输入，此时不请求业务目标，probeStatus明确为null；真实资源启动后的200/403及副作用证明由必需R6用例独立产生，不能把输入生成当业务授权通过。
+
+私有 runtime-registry 还保留原 owner 已提交的 realms（TrustedRealmBO：真实 issuer/realmKey/realmType/storagePartitionId/businessTenantId/trustVersion；无私钥或 Client secret），供配置生成逐字消费。完整 registry 私有读/写的明确上限为2 MiB；manifest、公开 R3 Result、阶段/DB receipt 保持128 KiB。所有文件继续受原 owner/0600/0700/no-symlink、strict JSON、run/hash 与模型集合上限约束，不增加任何 client/resource/scope/grant 数量或生产协议。配置不能猜默认 trustVersion、tenant ID 或 Client；实际资格仍由原 SDK/owner/PDP 验证。
 
 ### R2.2 每次mutation之前的double gate
 
@@ -227,7 +247,7 @@ Secret从真实Client create/rotate返回只写一次受保护staging文件，�
 ### CLI-003 start-control-plane — 原身份及授权控制面
 
 0. Add，解决真实Directory/授权初始化依赖；不运行frontend/业务consumer，不伪造readiness。
-1. exact start-control-plane --manifest --result。query消费committedidentityreceipt；开启task AS/Directory RPC、JA、Tianshu、Yuheng Admin及专用nginx的标准AS协议入口，随后Edge。**tasknginx先将/platform/**、/tenants/**直接HTTPS转发AS**，标准SAS仍自行CSRF/PKCE/Client/Scope验证；不改productionguard。Edge的Boot issuer-uri startup discovery会访问public28443，此入口不能再依赖尚未启动Edge。不启动Vite/native/业务引擎。
+1. exact start-control-plane --manifest --result。query消费committedidentityreceipt；先由TA最小NONE夹具执行本任务新库的原managed DDL/基础目录 owner 前置阶段并记录独立receipt，再开启task AS/Directory RPC、JA、Tianshu、Yuheng Admin及专用nginx的标准AS协议入口，随后Edge。**tasknginx先将/platform/**、/tenants/**直接HTTPS转发AS**，标准SAS仍自行CSRF/PKCE/Client/Scope验证；不改productionguard。Edge的Boot issuer-uri startup discovery会访问public28443，此入口不能再依赖尚未启动Edge。不启动Vite/native/业务引擎。
 2. 输入：真实kernel事实/SSL/qualifiedconfig/artifactHashes；端口空闲；taskPID锁。无--repair/--skip-security。
 3. 成功：exit0/RUNNING；监听器实际alive、metadata/Directory功能可用、PID/启动时刻已记录。业务授权/所有lease尚未完成时readiness可DOWN，结果不得把alive写成READY。
 4. 错误：占用/PID冲突exit3；失败启动exit6/7，只记录和保留task进程，不kill外部占用者。
@@ -254,6 +274,8 @@ Secret从真实Client create/rotate返回只写一次受保护staging文件，�
 5. 逻辑：使用CLI-003已有真实Edge/协议入口及CLI-006formalAT；真实Tianshu注册/Definitions/Yuheng路由发布按原owner完成→引擎→5Vite→4generated样例。Edge对未就绪upstream依原协议503，最后必要lease/route/readiness真实UP；不通过假route宣称先通。同源resource registration/route token由production代码处理，不靠proxyfakeauth。
 6. 兼容/verification：真实lease/resource/build一致；issuer/redirect/SAN都匹配；invalidBearer/headers不可进入业务。原用户进程/端口不改变。
 
+CLI005 的 source bridge 以两个 CLI004 phase 各自 canonical stepId 区分授权凭据，交叉核对原六个控制面 PID/启动时间与 ledger；所有待启动的进程端口先检查无 foreign listener。正式输入绑定每个审核 cliResource 的 A/B 与 admin/viewer，真实 PUBLIC USER Client、scopes、资源和私有文件 hash/expiry，任何 SERVICE、跨租户或缺项在启动前失败。十二个新增进程捕获身份后立即落盘；重试仅复查仍存活身份，不因健康暂不可用而重启。原 root health 与 readiness 实际 UP、五同源 mount 返回对应 Vite client HTML 后才输出 RUNNING；不将 cookie/session、listener401/403/404/503或受控 transport 当业务验收。task profile 仅启用原 Boot health probes，保留 normal readiness group 与 lease/audit/SDK 约束。CLI002 原计数只确认 idp 一个 DB，其余全目标命令保留九 DB，不改原 Result 计数语义。
+
 ### CLI-006 authorize-cli — 正式PUBLIC Client单资源Code/S256
 
 0. Add，独立正式CLI输入生成；不是BFF tokenexport、不发新tokenAPI。
@@ -261,8 +283,11 @@ Secret从真实Client create/rotate返回只写一次受保护staging文件，�
 2. 输入：commitregistry里的PUBLIC USERClient/exactredirect/minimalscope；AS真实login/consent页面；passwordfile由程序内读入不echo；resource单值，不能任意issuer/scope。
 3. 成功：exit0/COMMITTED，真实AS授权code兑换的AT只写output0600；index绑定tenant+client+resource+issuer+expiry，安全result只记身份类别/目标key/计数，不能stdout/rawclaims。RT必须无（PUBLIC）。
 4. 错误：cancel/login/consentdenial是FAILED/exit8；nonce/state/iss/redirect不符exit3；AS503/expiredtokenexit6；不自动fallback/fake/signJWT。
-5. 逻辑：程序内SecureRandom verifier/state/nonce→真实authorizationRequest S256→真实AS form_csrf+password→真实consent→callback校验→服务端POST token+verifier→目标本地verify/用户信息合同验证→privatefile/index发布。code一次，retry从新的正式flow重启；不重用code。
+5. 逻辑：程序内SecureRandom verifier/state/nonce→真实authorizationRequest S256→真实AS form_csrf+password→真实consent→callback校验→服务端POST token+verifier→本地签名/精确声明及真实AS UserInfo验证→privatefile/index发布。此阶段只生成正式输入，index的probeStatus明确为null（NOT_RUN），不请求尚未启动的资源；启动后的R6实际资源调用、Scope∧PDP、SQL隔离与WRITE验证仍为必需。code一次，retry从新的正式flow重启；不重用code。
 6. 兼容/verification：不能提取BFF AT/RT或读browserCookie当CLIinput；wrongverifier/state/iss回调拒绝；两tenant/每resource分别取AT；full gate使用actualcaller，不page.route。
+
+
+正式输入重取的实现边界：full入口保存已验证的确切tenant/resource/admin-or-viewer清单及冻结registry；长BFF后只对这些原客户端/资源/scope重新完成Code/S256/nonce/UserInfo，不新增client、grant或身份。每项独立所属进程、全新0600 AT/result，旧文件保留；CLI006 R3及当前index须新鲜、身份不变、新路径/摘要/有效期正确，复制旧AT、换tenant或扩大scope拒绝。全部新输入再次统一验证未过期后才进入PG/native/resource；显式formal-inputs进度/汇总和公开steps保留来源，UNKNOWN_COMMIT停止且不重试。取消/timeout只TERM原创建handle所属npm组并保存出生/终态，无法确认时保留现场。900秒预算仍硬限，不能为凑时长修改真实TTL/时钟或接受过期材料。
 
 ### CLI-007 verify — 全矩阵真实验收
 
@@ -273,6 +298,12 @@ Secret从真实Client create/rotate返回只写一次受保护staging文件，�
 4. 错误：assertionexit8；requiredinputexit4；partialfailureexit7；恢复状态未知exit9，retainevidence，不自动结束Goal。
 5. 逻辑：TLS/metadata→tenant A SSO/bootstrap→logout全部A族→NEW显式actualtenant B registration正常Code→五页面同alias/同route实际issuerB/tokenB→B refresh/stepup/全部族logout→按resource业务PDP/SQL→native注册RPC/servicecache→audit/readiness→preservation。PUBLIC CLI的B AT只证明自己的正式调用族，不替代此BFF链；每case证据来源和expectedstate按R6。full还必须执行OutboxTransactionRollbackIT的jpaRoleResourceAndMpOutboxRollback、jpaRoleResourceAndMpOutboxAppendFault、jpaRoleResourceAndMpOutboxCommit三个真实PG门禁，实际selector #jpaRoleResourceAndMpOutbox*，非0执行/0skip；受控mock/旧JDBC case不计此证明。
 6. 兼容/verification：不把MockMvc/H2/typecheck/fixtureE2E计livePASS；报告typechecks/controlled/real各自scope；原旧liveIT claim/revocation更新但不扩大skip容忍。
+
+CLI007 的执行证明使用实际 Surefire 报告：原3.2.5 plugin.xml 无 reportsDirectory user property，保留原 module/target/surefire-reports；按本次开始时间与旧 fingerprint 拒绝旧文件，class/method 与 suite/testcase 数量相符、各方法一次且无 skip/failure/error。XML UTF8≤4MiB、无DTD/entity、owner/no-symlink/稳定文件；公开结果只引用经过投影的方法数及 SHA。私有 JVM @argfile 通过原 argLine property 给测试 fork 信任任务 CA，password 不入 argv。固定 module/selector、UTC/offline/no-skip 与最小环境保留，不能接受任意测试类/外部 JVM 注入。
+
+新增私有 case receipt 供对应真实 runner 写入 attempt/cases/<runner>/LIVE-NNN.json：schemaVersion/runId/manifestSha256/caseId/runner/status(PASSED)/executedAt(UTC Z)/testClass/testMethod/proofs 必需；proofs 为 attempt 内相对 taskroot 的 path+sha256 列表（1–32）。消费方将 class/method 绑定本次已执行测试，检查时间、完整状态、文件私有性/路径及实际 hash；单个 schema 校验/受控 receipt 测试不能代替业务断言或实际网络/DB结果。Playwright afterEach 额外只写安全 title hash/status/retry/实际执行数，不保留密码/请求步骤。所有短测试子进程使用创建句柄和 ps 的 PID/start/command/processgroup 身份，源码测试只启动有限 CPU 子进程验证 TERM 边界，不启动平台或设施。
+
+CLI007 总编排先核实际 runner 源码/必需方法与前置凭据，缺源码exit4且不创建子进程。独立 verification.lock 防并发完整验证；每次 fresh attempt/intent 冻结测试源码SHA，结束复查。SA oracle READY 后才运行原浏览器，两创建句柄并行观察，不因轮询超时重启；二者正常终止且原报告、A/B四阶段及实际浏览器完成记录确认后，才依次执行三PG门禁、native与resource测试。Resource runner在其他case后实际执行LIVE023的task stop/原设施保留，Parent还要复查原18ledger已STOPPED；单个case声明PASSED不能代替停止。Native的LIVE011–015及Resource的其他编号必须各有对应实际执行方法与私有proof，满24才发布PASSED。source-only/controlled pipeline 的完整模拟不计实际liveCase；未实现的runner、缺baseline或缺proof继续失败，不用空实现补绿。失败保留材料并只收束创建的短测试进程。
 
 ### CLI-008 status — 当前handle、元数据与状态
 
@@ -350,7 +381,7 @@ service→web只申请目标实际published组织namespace的user:read、school-
 - 原roleactivation选择/替换仍调用原真实owner并检查tenant/user、SOD/auth_time。roleprojection/activation/snapshot必须≥新policy/authversion且fields真实WRITE才可写；emptyrules或writablefalse必拒绝。
 - register-application-catalog与replace-role-field-rules离线子命令由native附录逐原子CLI合同拥有，本附录CLI-004只复用它们/真实管理owner。Spring配置用保护的SPRING_CONFIG_ADDITIONAL_LOCATION/env，不混入旧bootstrap CLI只允许的业务flags。
 
-### R4.4 天枢biz/app→鉴神真实application前置（无第四fixture/新API）
+### R4.4 天枢biz/app→鉴神真实application前置（获批第四fixture、无新生产API）
 
 现真实路径根为D/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/与JA/src/main/java/top/egon/cola/platform/tianquan/jianshen/admin/：
 
@@ -363,7 +394,7 @@ service→web只申请目标实际published组织namespace的user:read、school-
 
 **ID辨别**：当前JpaTenantApplicationRepository.toAuthorizationScope返回的ApplicationAuthorizationScopeVO.applicationId实际为tenant entitlement.getId，并不是Global ApplicationPO.id。随后registerDeploymentCatalog按真实applicationCode/业务owner查global应用，其ResultVO.applicationId才用于Role/field writer；checkpoint必须分别存ddcApplicationPublicId、tenantEntitlementId和globalApplicationId，不凭同名“applicationId”互换。
 
-原DdcManagementClient已有get/list业务/应用及config upsert/publish，但**没有createBiz/createApp**，不能发明管理RPC。选用已存在上述HTTP owner时先CLI-004 phaseplatform→CLI-006正式Tianshu scope AT→CLI-004 phasenative。payload先Common原Insert group，成功后的公开id再由真实RPC catalog复读enabled/owner及namespace；不借旧prepare导入/SQLfake。若首次basicplatformfixture尚依赖该catalog，执行前必须用已批准本任务最小existingowner准备该真实基础数据，缺输入明确失败，不假关闭eligibility。
+原DdcManagementClient已有get/list业务/应用及config upsert/publish，但**没有createBiz/createApp**，不能发明管理RPC。选用已存在上述HTTP owner时先CLI-004 phaseplatform→CLI-006正式Tianshu scope AT→CLI-004 phasenative。payload先Common原Insert group，成功后的公开id再由真实RPC catalog复读enabled/owner及namespace；不借旧prepare导入/SQLfake。首次 platform 冷启动先由新增 TA 夹具调用本模块原 DdcBizService/DdcAppService 建立基础真实目录，再由 JA bootstrap owner 的 bindResolvedApplications 验证并绑定/创建当前四应用；随后原资源 owner 建立资源，bootstrapResolved 复用原角色初始化。两步均复查真实目录，旧三参调用保留，未使用系统占位行才允许锁/CAS 绑定，已有业务依赖或异同绑定冲突失败；§12.50 获批后，当前编码缺行时先查固定系统初始 ID/旧编码，确认零业务依赖和初始权限未修改，才在同一 CAS 中绑定当前编码和目录 ID；保留应用 ID、权限 ID/permission_code/application_id，不改历史迁移或目录 publicId。当前与初始行都不存在才完整创建新行。准入、Business grant、显式角色激活及 snapshot/version READY 后才提交 platform receipt，缺输入明确失败，不关闭 eligibility。
 
 Yuheng config/HMAC/Definition/route准备继续调用原已批准应用服务/管理接口；天枢业务/应用前置在CLI-004，不拖到CLI-005 aftercatalog。收到成功body仍核对真实lease/catalog/build/source，不手写SQL注入registration，不让CIfrontend MENU/ROUTE/ACTION scanner冒充API/GraphQL catalog。凡用于gate的native API/GraphQL/RPC资源必须通过上述真实部署目录登记并显式review/Grant。
 
@@ -416,7 +447,7 @@ task CA/leaf PKCS12与PEM采用openssl/keytool；OAuth RSA签名key分开。私�
 
 SAS本身也不信任外部Host来选issuer：当前AuthorizationServerConfiguration.multipleIssuersAllowed(true)后，ExactIssuerContextFilter取协议path并以配置publicOriginRoot拼接，再经TenantIssuerService.resolveExactIssuer查真实registry，覆盖AuthorizationServerContext issuer并finally恢复。任务必须保留这一顺序、路径不rewrite成根OAuth、publicOrigin固定28443；proxy/spring.forward处理只服务正确publicredirect/callback，不覆盖trustedrealm判定。每issuer元数据的issuer/authorization_endpoint/token_endpoint/userinfo_endpoint/jwks_uri及回调iss都逐项exactcanonicalHTTPS核查。Origin/Host/Forwarded伪造case不能改变选定tenantissuer/redirect，否则live失败。
 
-nginx安全access-log仅method、$uri（不含query）、status、受限request-id；不得$request/$request_uri/$args或Cookie/Authorization/POSTbody，避免code/state/verifier/password泄露。Spring/NettyDEBUG wire logging不得用于token/login链；test报告存有限脱敏请求元数据。
+nginx安全access-log仅method、$uri（不含query）、status、受限request-id；不得$request/$request_uri/$args或Cookie/Authorization/POSTbody，避免code/state/verifier/password泄露。Spring/NettyDEBUG wire logging不得用于token/login链；test报告存有限脱敏请求元数据。 脚本在 bootstrap/nginx -t 前复核 task PID、私有日志/TLS 路径、禁止外部 include/module、固定 loopback listener、冻结上游与 proxy_ssl_verify；内部端口健康探测使用原 task 双用途 leaf 做 mTLS，公共28443不附加客户端证书。
 
 同公共origin：
 - /bff/**、/oauth2/authorization/**、/login/oauth2/code/**经真实Edge。
@@ -535,7 +566,7 @@ DEC-008待批准的两tenant浏览器recipe：先以default alias正常建立ten
 
 PUBLIC CLI 的授权码产生自己的 authorization family，它的 AT **不是** BFF另一次code flow的held AT。BFF logout 后，只看Cookie/session401不足以证明AS已撤销BFF族，也不能把独立CLI AT重放401当成正确预期。CLI自己的token/family撤销在独立case测试，未撤销CLI族应保留原合法状态。
 
-oracle只复用SA本任务新库的IsolatedOAuthProvisioningIT/IsolatedOAuthProvisioningComponent，不新增生产端点、第四fixture或浏览器/BFF导出能力。实际source是oauth/service/impl/TenantAuthorizationServiceImpl.java、Bean **tenantAuthorizationService**，实现标准OAuth2AuthorizationService；不是不存在的NativeOAuth2AuthorizationService类名。findById(String id)在@Transactional(readOnly=true)内通过tenantIssuerService.resolveCurrentIssuer取trustedrealm、oAuthAuthorizationRepository.findById只接受ACTIVE且未absoluteexpired，loadCurrentTokens走真实repository/cipher，再SasAuthorizationConverterImpl materialize原OAuth2Authorization。
+oracle只复用SA本任务新库的IsolatedOAuthProvisioningIT/IsolatedOAuthProvisioningComponent，不新增生产端点、额外oracle fixture或浏览器/BFF导出能力。实际source是oauth/service/impl/TenantAuthorizationServiceImpl.java、Bean **tenantAuthorizationService**，实现标准OAuth2AuthorizationService；不是不存在的NativeOAuth2AuthorizationService类名。findById(String id)在@Transactional(readOnly=true)内通过tenantIssuerService.resolveCurrentIssuer取trustedrealm、oAuthAuthorizationRepository.findById只接受ACTIVE且未absoluteexpired，loadCurrentTokens走真实repository/cipher，再SasAuthorizationConverterImpl materialize原OAuth2Authorization。
 
 加密存储已从真实source核实：token/domain/po/OAuthTokenPO的tokenCiphertext、metadataCiphertext不供测试自解析；OAuthTokenRepositoryImpl.findByAuthorization→toTarget→OAuthTokenConverter.tokenValueFromStorage调用原OAuthPayloadCipherComponent.decrypt(trustedRealm,"token-value",tokenDigest,ciphertext)，metadata同原token-metadata目的域；TenantAuthorizationServiceImpl.loadCurrentTokens按原规则选每type当前token。helper只用标准findById的materialized access token，不能另写AAD/envelope/parser，也不能拿原授权的旧rotation版本假作当前BFF held族。tenantIssuerService和AuthorizationServerContextHolder必须真实issuer作用域，finally恢复调用前context；不产生HTTP身份或公开后台查询入口。
 
@@ -548,6 +579,20 @@ oracle只复用SA本任务新库的IsolatedOAuthProvisioningIT/IsolatedOAuthProv
 7. 每资源heldfamily分别验证；并发refresh/logout按主Edge生命周期/fence门禁取得最终held族。oracle内存退出即释放，尽量擦可变buffer；JavaString不可保证擦除，禁止留长生命周期field/secretcache。私有CLI族单独调用标准真实revoke或原owner，再使用它自己的AT断言。无需token-exchange、假JWT、从session导出或放宽aud。
 
 真实同DS JPA+MP Outbox原子性先依DEC-007获准的最小组件修订完成，原当前组件只接受DataSourceTransactionManager，**不能假定JA JpaTransactionManager已支持**。对应review步骤须证明同一连接enlist、业务/epoch/Outbox同时rollback及aftercommit再投影；不可用双TM/REQUIRES_NEW/复制OutboxDAO。未批准/未GREEN前不得执行并宣称native field/projection真实准备通过。
+
+观察器实现仍位于原 SA IT：独立 NONE context 只装配原 tenantAuthorizationService、token issue/read repository/cipher、完整每 resource SDK verifier 与原 HMAC receipt owner，无生产 provider/filter/scheduler。使用已验证 shoubing profile/registry SHA 与同任务 Redis，观察器自身 spool 独立，不能打开/重放主 AS spool。原 SAS Converter 的依赖名称沿实际 Spring Bean。
+
+浏览器各阶段通过一次原 /bff/session 触发各未过期 client 的实际 verifyClient/USED，记录纯时间窗；SA 只在实际 realm/已知用户/client/resource 上匹配唯一事件及 STORED receipt，再读原 owner materialized 当前 token。BEGIN→当前候选窗口上限900秒，以覆盖合法300–600秒刷新等待；最多500候选/审计行，不能取 latest。REFRESH 必须另有原 IdP REFRESH_TOKEN_ROTATED，使用原 clientPK 摘要（不同于 USED 的 clientId 摘要）；新 code 或仅新 issuedAt 不替代刷新。STEP_UP 核原 owner 的当前 ID Token auth_time、issuer/sub/audience。四业务只读接口分别保留原 raw-list、ResultRecord、PageResultRecord 形状，不统一改 API；重放 body 由 JDK 分块 consumer 限128KiB，HTTP超时仍覆盖整个响应。
+
+Portal edge-ui 原资源没有业务 route/path，仅是 OIDC 身份入口，其族使用原 AS UserInfo 做同 AT 200(sub)→401，并明确记为 IDENTITY；不以其 UserInfo 证明四资源业务权限。四实际资源族各走原 scope∧PDP API。HOLD 只有五个真实 baseline200 都完成才发布 READY，原 AT 留在 helper 局部内存；收到真实 logoutCONFIRMED 后逐个同请求重放，401返回之后再检查仍未到期，不能用自然过期充数。REFRESH/STEP_UP/HOLD/REPLAY 分别投影4/1/5/5份安全 tuple/hash/status 证明，由 MapStruct/BaseForward 显式排除 token/subject。源默认测试的 mocks 只证明边界/类型，所有真实 owner/HTTP/PG/SAS 的执行仍须 Step18。
+
+各 verify 尝试可用 task evidence/verify-UUID 独立目录，由 xingyuan.isolated.evidence-directory 与 XINGYUAN_VERIFICATION_EVIDENCE_DIRECTORY 共同指定，0700/owner/no-symlink/run/hash 验证。原手工缺省 evidence 兼容；旧失败尝试文件保留，不混读/覆盖。此为私有 test coordination，无新生产 API。
+
+两个旧compatibility IT沿用同目录原helper的手工enabled入口供旧TopologyIT，隔离模式另以XING显式开启并核manifest/registry/token-index及shoubing profile SHA；只读复用原严格Python manifest validator，不启动设施。当前tenant_id/client_id/USER/TENANT/singletonaud从原SDK TenantIssuerAuthenticationManagerComponent验签后核对，并真实调用UserInfo及受保护资源；本地claims解析不当授权成功。独立A/B formal族不冒充BFF。原native namespace从已SHA绑定审核目录得出，不使用/api/mock/read。
+
+旧撤销用例对该formalAT先真实200，再发无token内容的摘要绑定READY请求；必须等原SAowner的CONFIRMED+denyApplied确认，核run/hash/issuer/clientPK/tenant/resource及authorization摘要和时间后，同AT401且仍未到期。不能自行写CONFIRMED。原native实际SQL隔离证明还需包含A/B行hash与伪造header返回行hash=A，缺证明失败；两个兼容用例不替代完整LIVE013/007。共享test helper为必要直接依赖；suite仅添加仓库已有managed Lombok到test scope，不变版本/生产依赖，保留规定DTO/构造/日志风格。
+
+PUBLIC正式族的撤销确认仍由原SA IT的独立opt-in revokeFormalFamily入口承担，不创建新生产接口。原TokenRevocationService对ACCESS只撤JTI、CODE/REFRESH撤authorization family；PUBLIC无RT，故由原repository在已验证的同一authorization内取唯一CODE digest，交原revoke命令，不重放code、不revokeSubject/client。原SDK验签/issuer与当前owner access-token摘要、PUBLIC USER clientPK、租户、资源、subject、authorization摘要及未到期检查全部一致后才允许该事务。CODE缺失/多条/foreign/type错拒绝；RUNNING凭据保留未知结果，后续只读reconcile，不盲重做。原shared deny reader已REVOKED且原SASfindById不再ACTIVE之后才发布CONFIRMED；默认关闭/受控测试不证明实际撤销生效。此入口目前还需接入正式验证runner的短进程桥，不能把它的源码存在当端到端用例完成。
 
 ### R6.2 必需case与主Spec trace
 
@@ -578,15 +623,35 @@ oracle只复用SA本任务新库的IsolatedOAuthProvisioningIT/IsolatedOAuthProv
 | LIVE-023 / TEST-030/032 | stop+preservationfinalaudit | 原DBOID/原Redisnamespace/原nginxPID+port不变；任务data/secret/evidence保留，requiredcases全可核对 |
 | LIVE-024 / TEST-022/023 | PDP已授但USER业务scope不足，scope充足但PDP未授；签名route未声明/被篡改requiredOAuthScopes | 各资源实际scope∧PDP都满足才执行；缺scope403/PERMISSION_DENIED、缺细权限同样拒绝；missing/malformed/unsignedroutefail-closed，业务handler0；旧Grant不扩大，新route发布与grantownerreceipt分别证明 |
 
+Light SQL隔离的具体源码入口为XingyuanResourceAuthorizationIT#nativeLightSqlIsolationMatchesTheSameFormalTenantCalls，默认关闭。通过原POST/GET业务接口创建/读取两tenant行，以任务light库只读SQL核对真实id/tenant/字段，伪造tenant头不能改变签名身份；原USER_NOT_FOUND合同是400，不假定404。native-tenant-isolation.json绑定本run/hash、真实resource/两tenant、当前正式AT摘要、两条真实业务行ID、HTTP/SQL摘要和UTC时间；旧兼容IT仅用经校验的行ID构造冻结本任务native-light读取URL，不能用一个静态by-ID路径假称两个不同tenant行均成功。已有ext-1业务行时拒绝自动重插；本局部源码用例不等于完整runner、24项LIVE或Outbox/远程HTTP依赖已通过。
+
+BFF四业务族刷新按实际realm的四个alias及原Edge使用的Spring默认60秒刷新窗口等待max(TTL)−60+1秒；identity-only alias不纳入四族窗口。原provider的61/59秒边界有普通无网络契约检查，实际REFRESH_TOKEN_ROTATED/USED/同族校验仍必需。SERVICE缓存观察先完成真实初始验签并发出私有READY，再与BFF等待并行；父须同时等三进程成功及新鲜零skip缓存JUnit和完整结果，不能用READY或早期退出算通过。长浏览器与缓存观察完成后，父以明确FORMAL_CODE_INPUTS阶段逐项调用原CLI006正式PUBLIC Code流程，使用新私有输出、逐项新鲜凭据和完整index复核；该阶段不续用BFF RT。当前完整Resource/Native矩阵仍未接齐，真实运行未验证。
+
+原生SERVICE缓存的局部源码入口为XingyuanNativeAuthenticationIT#configuredNativeServiceClientsRenewThroughTheRealAsWithSingleFlight，默认关闭。四个实际原生profile按真实注册和审核grant构造请求，原SDK及Spring Client Credentials通过真实HTTPS AS取token，原SDK验签后核对issuer/clientPK/clientId/appId/context/tenant/aud/scopes；真实UTC过期窗口内观察缓存命中与续取，不用invalidate或虚拟时钟替代临期。第二次实际AS响应在交还缓存前有界等待8个调用者经原SDK指标确认未命中，再核对8返回同一新摘要、总计两次成功token响应且无RT。该响应计数不是AS全局请求/PG审计计数，也不证明运行应用已完成HTTP/RPC出站。固定native-service-cache.json只含白名单身份key及token摘要、计数、四角色和UTC时间；完整LIVE011/014及其他requiredcases仍须各自真实证据。
+
+full前置纯time plan从实际registry逐realm取唯一四业务BFF alias和严格整数TTL，计算原60秒窗口的顺序等待下界；下界达到operationSeconds即exit2，不创建验收intent/子进程或重新Code输入。有效计划写入本次intent供审计，但不是全部阶段的保证时长；预算仍以实际deadline为准，不改真实TTL/时钟。
+
+RPC局部源码actualGeneratedPeerContractsUseHmacDiscoveryAndServiceCredentials从SHA-bound实际生成Boot JAR中选择唯一审核namespace的facade，原RpcContractValidator校验真实PB/grpc契约，原DdcRpcClientFactory查HMAC目录，再经原RpcDirectClientFactory/IdpRpcClientCredentialInterceptorFactory调用。对两方向/两tenant明确只读缺行请求，原业务not-found envelope和无Token的UNAUTHENTICATED分别核对；不把业务缺行当业务数据正例或零handler证据。注册lease的准入Resource取provider实际registration-resource-uri（沿原fallback），RPC业务aud另取其TENANT resource，不混淆两者。固定native-rpc-contract-probe.json标注STANDALONE_NOT_FOUND_PROTOCOL，完整LIVE014仍需原App内出站、实际有数据正例、scope/revoke/PDP与handler/SQL/audit证明。
+
+Service→Web数据正例局部源码nativeServiceReadsUsersCreatedByTheActualNativeWebApi通过原NativeWeb USER API创建并回读两tenant任务标记用户，再用原SERVICE RPC消费者读取实际返回ID；id/name/email/status必须匹配HTTP实测，B凭据读A行须ORG_NOT_FOUND，缺Token仍UNAUTHENTICATED。固定native-rpc-user-read.json标注STANDALONE_SERVICE_TO_WEB_DATA，只保留摘要/租约/租户等白名单metadata。此独立消费者正例不等于运行App内部双向出站或完整LIVE014；Web→Service数据正例、scope/revoke/PDP/handler及其他SQL/audit门禁仍必需。原生角色批准前该入口默认关闭，尚无真实数据写入或运行证明。
+
+Light GraphQL局部源码nativeLightGraphQlAliasesUseTheSameVerifiedTenantAsRest复用当前正式A/B族和已完成实际REST/SQL数据证明的行ID，以POST/graphql的两个user alias各自匹配同tenant REST四字段；data带errors不能判成功。伪造tenant头不得改变A数据，B读取A行要求原nullable alias null/USER_NOT_FOUND envelope，裸请求HTTP401后再次A正常。固定native-light-graphql.json标注LIGHT_GRAPHQL_TWO_TENANT_READ并绑定当前两正式族/SQL证明/run/hash/UTC/安全摘要；这不替代14个roots全部授权、真正业务worker异步/cancel、strictDENY审计去重或完整LIVE013。当前入口默认关闭，真实GraphQL尚未执行。
+
+Agent局部源码nativeAgentKnowledgeBasesKeepTenantAndAuthorizationBoundariesWithoutInference仅用SHA-bound现有logical model配置调用原knowledge-bases create/get/list，不调用模型。两tenant同task-code各创建一库，原接口回读/分页须匹配冻结配置及独立实际ID；B读A返回原KNOWLEDGE_BASE_NOT_FOUND，伪造头不改租户，viewer新code创建403后admin查询为0，裸请求401。固定native-agent-knowledge.json标注AGENT_KNOWLEDGE_METADATA_ONLY，保存安全摘要/当前正式族/实际ID/UTC而不保存数据明文；不替代ingest文件/Outbox/异步审计、Agent平台出站或外部推理门禁，真实数据创建目前未执行。
+
 观察本地验签需counter/计时与JWK HTTP请求计数或AS匿名安全accessmetadata证明，不输出Token本身。不可通过关闭AS整进程来证明JWKS本地cache然后对正常业务sharedrevocation做无依据降级。服务不可用gate用任务独占endpoint/路由的明确受控故障，不停止共享PG/Redis。
 
 真正跨节点HA、持久卷掉电、生产网络/CA安装、JWK定期轮换负载不由单本机实例证明，最终报告独立列未验证；不能用这些部署未验事项缩减本机完整集成requiredcases。
+
+原数据库维度另以prepare建库前的private original-databases.json记录pg_database名称/OID/owner（排除本任务九名，不进旧schema）。resume缺该before但已有task事实时UNKNOWN_COMMIT，原库删除/OID或owner改变拒绝；外部新增库不导致误判。父full冻结该基线，在实际owned stop后经固定maintenance只读连接再比对，固定proof标注ORIGINAL_DATABASE_IDENTITIES_ONLY。该局部证明不能代替旧表内容、Redis namespace、原nginx和全部LIVE023证据，当前真实PG保留验收尚未执行。
+
+原nginx维度另以private original-nginx.json保存prepare建库前实际ps/lsof观察的PID/UID/start/group/command SHA/TCP端口，参数只存摘要；没有控制nginx的动作。before缺失且已有task事实时拒绝倒造，原PID/身份/监听漂移或不可读失败；新增无关进程允许。父冻结基线并在任务stop后复查，固定proof标注ORIGINAL_NGINX_IDENTITIES_AND_PORTS_ONLY。该维度不覆盖nginx配置内容、Redis namespace或全部LIVE023，真实系统nginx验收尚未执行。
 
 ## R7. 文档/Plan合并门禁与执行证据
 
 本附录仅补主规范，不授权当前写Spec/Plan阶段实施代码/运行。后续Plan按SDK→平台/Edge→native/前端→派生→guard/provision→live→finalaudit，每逻辑Step单focusedcommit；实际artifact/baseline/结果必须绑定当前HEAD。
 
-- 主 Spec/Plan必须采用exact同一CLI-ID、9subcommands、3顶层provision文件、Playwright位置、processcap32/DBcap12及冻结九DB/端口。
+- 主 Spec/Plan必须采用exact同一CLI-ID、9subcommands、4顶层provision文件、Playwright位置、processcap32/DBcap12及冻结九DB/端口。
 - DEC-004已批准每resourceAT+同Session，DEC-005已批准真实internalfieldwriter/目录registration，DEC-006已批准scope∧PDP/signedrequiredOAuthScopes；独立resource Client/currentpublicsub门禁和旧Grant不自动扩权一致，所有pending/onlydeny代替positive的文字需删除。
 - catalog fieldCount是机械声明，不是已授权field规则数量；REGISTERED_PENDING_REVIEW不能当roleGrant/WRITE；CONFIRMED不等于projectionready。
 - 示例RootArtifactId是真实命名空间，不用light/org/eval等shortalias取代actualcatalog/sourceidentity。
@@ -598,7 +663,7 @@ oracle只复用SA本任务新库的IsolatedOAuthProvisioningIT/IsolatedOAuthProv
 
 | MC / literal rule | 附录设计证据与结论 |
 | --- | --- |
-| MC-ARCH-001 / Rule11 | R1.2 src/test同模块、三现有owner/四源family结构保留；不新层/module/生产bootstrap |
+| MC-ARCH-001 / Rule11 | R1.2 src/test同模块、四个明确provision文件/四源family结构保留；不新层/module/生产bootstrap |
 | MC-REUSE-001 / Rule11 | R4实际DDL/repository/cipher/service/Outbox与R5现有TLS/SDK能力；不复制nativecatalog/field DAO |
 | MC-DEP-001 | R1.1 resolvedPlaywright1.62.0，JDK/Spring/当前Maven依赖；本附录无新dependency |
 | MC-NAME-001 / Rule1 | R1.3每技术/行为/carrier/converter suffix明确，IT不是suffixless业务类 |
@@ -617,3 +682,28 @@ oracle只复用SA本任务新库的IsolatedOAuthProvisioningIT/IsolatedOAuthProv
 | MC-BLOCKER-001 | 本附录已明确设计owner/合同与DEC-004/005批准边界；主代理做组内ID/key/profile/receiver最终一致性审查。实现与全部live未进行是后续执行证据边界，不单凭文档声称实施PASS |
 
 标准matrix的设计行不等于已实施门禁；完整十条literal原文及独立17项MC状态由主 Spec §20权威保留。本附录无其他文件写入权，主代理合并最终IDs/links/keys并strict验证主Spec/Plan。
+
+### R6 用户接受的 Agent 运行输入缺口（2026-10-15）
+
+用户明确答复“暂不提供，保留 Agent 运行未验证”。本轮不提供模型/embedding/MCP配置，不用假key/地址、test fake bean或生产防护降级让Agent启动，不调用外部模型。Agent接入源码、原六层业务、安全默认测试和真实生成构建义务保持；其依赖这些输入的实际启动/平台出站/外部provider运行证据明确未验证，作为用户接受的运行缺口保留。其他平台与非Open模块的接入及验证要求不变。
+
+R6 full24矩阵不能将Agent未执行用例记为PASSED、不能把required skip当运行成功；局部/其他平台证据与该缺口分别报告，不伪造完整full通过。该决定只针对Agent外部配置输入，不批准§12.55独立provisioner/临时管理策略，不解除任何生产鉴权或字段WRITE约束。
+
+
+### R4 补充：已批准的隔离 provisioner（2026-10-15）
+
+用户已明确批准 Plan §12.55。为遵守原 AssignmentFacade 的 SELF_PRIVILEGE_ESCALATION_DENIED，隔离准备通过原 IdpBootstrapService 新建独立 xingyuan-it-provisioner 身份，以原 TenantMembershipService 建立两租户 ACTIVE membership；admin/viewer 交互身份与其权限均保持原合同。新增私有 secretFiles.provisioner-password，按既有保护目录/强口令规则准备，CLI-002 owner 运行前必须验证。私有 registry 另存 provisioningSubject，必须与 subjects.admin、subjects.viewer 不同；subjects 仍恰好两个交互键，不把该身份加入正式 token/BFF 用户选择。口令不进入 registry、public结果、argv或日志。
+
+原 JA Directory 客户端须真实 batchGet 三身份并核对两租户各三条 ACTIVE membership，control-plane-clients 私有 READY 凭据 membershipCount=6；这不是创建三套登录用户的同义声明。JA 后续须通过原 UserCrudFacade 将该真实 sub 建为租户用户，且无业务角色、BusinessAccess、OAuth Client/Grant 或 activated root。
+
+原生角色准备使用原 ManagementPolicyFacade，按确切目标用户和确切新角色建立最多10分钟、仅ASSIGN_ROLE、禁止继承扩张、reason/ticket必填、风险和assignment时长有限的临时策略；由该独立身份调用原 AssignmentFacade，成功后以原 disable 关闭并回读确认。失败/未知提交必须保留原证据并停止盲重试；最终验证该身份无业务授权且临时策略均已禁用。不得改生产自授权防护、直接写assignment、伪造STRONG事实或扩大Client/Grant。本批准不等于实现/运行验收通过，Agent已接受运行未验证决定保持不变。
+
+
+### MCP原接线执行澄清（Plan §12.120，用户已批准，2026-10-15）
+
+受管理MCP入口以已有operationId `yuheng.mcp.<serverCode>`精确匹配已激活签名快照中SECURITY policy的既有configuration.operationIds；每次从一次active读取核同一server id/code/resourceUri及enabled状态，必须恰好一条绑定。MCP角色现没有预存security编译map，复用现有GatewaySecurityPolicyCompiler及原capabilities编译同一条已发布policy；不扩展DTO或引入另一缓存。缺快照、未ready、server不一致、绑定缺失/歧义、空/非法必需业务scope或配置错误均失败闭合503，业务调用为零；不得从token/header猜scope或使用identity-only静态默认策略。原scope AND per-capability PDP/approval/installation合同继续适用。
+
+原身份adapter仅在内部可信attributes增加同次已验证TokenAuditProofBO的canonical issuer；managed MCP identity.issuer只消费该值，不读身份header或使用单一配置issuer回退。保留旧公开authenticator构造器ABI及旧off-policy兼容行为，当前managed工厂使用Function策略。GatewaySecurityException沿原HTTP renderer保持401/403/503及原响应头/错误JSON形状；普通业务/协议错误语义保持。范围为§12.120列明四生产文件及三个测试，不新增公开接口、权限、依赖、配置key或DDL。此为源码/定向受控验证；真实多issuer MCP/PG/Redis验收仍归Step18，Step17完成后停止。
+
+
+§12.125 已批准的 MCP 严格请求接线澄清：整次原 handler route/dispatcher 用同一 Core AuthorizationObservationScope，认证成功只在本机传递原 GatewayAuthContext 引用，进入 session/capability 前移除 opaque 字段。managed fine PDP 核同一 scope 引用、issuer/resource/subject/tenant/USER audience/token/time 与原 verified proof/scopes，复用原 denyOnce 和 authorizationDenied；确认失败、缺可信证据/marker、授权依赖或版本 fence 均503、业务0。完成/异常/cancel 由唯一外层 owner close。原 dispatcher 会把实际 capability 拒绝转换成 JSON-RPC response；仅同请求已经严格确认的 MCP_FORBIDDEN 恢复原403 renderer，依赖故障即使被列表过滤/dispatcher 包装仍恢复503；普通协议/业务错误与按权限过滤列表的既有成功形状保留。身份/安全错误强制 no-store，原挑战头保留。旧 loader/authenticator 构造器保留，原已存在 Shoubing gateway-adapter 仅 runtime→compile、同GAV同版本，无新制品/配置/权限/DDL。无实际服务/数据库/Redis/HTTP运行证明，Step17只关闭源码/受控门禁，完成后停止于Step18之前。

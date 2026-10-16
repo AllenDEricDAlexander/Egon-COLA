@@ -1,6 +1,18 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.repository.jpa;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.validation.Valid;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.domain.dto.ResolvedPlatformBootstrapCommandDTO;
+import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.domain.dto.ResolvedPlatformBootstrapCommandDTO.PlatformCatalogBindingDTO;
+import top.egon.cola.platform.tianquan.jianshen.admin.iam.business.service.DdcCatalogGateway;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -19,6 +31,10 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.rolere
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.Objects;
 import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.repository.DevelopmentBootstrapPort;
 import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
@@ -34,7 +50,10 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userro
  *
  * PostgreSQL-backed, idempotent local topology bootstrap guarded by an advisory lock.
  */
-@Repository
+@Repository("jpaDevelopmentTopologyBootstrapRepository")
+@Validated
+@Slf4j
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class JpaDevelopmentTopologyBootstrapRepository
         implements DevelopmentBootstrapPort {
 
@@ -62,7 +81,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `JpaDevelopmentTopologyBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `JpaDevelopmentTopologyBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final EntityManager entityManager;
+    @Qualifier("jpaSharedEM_entityManagerFactory") private final EntityManager entityManager;
     /**
      * 字段 `clock` 表示 `JpaDevelopmentTopologyBootstrapRepository` 中与 `clock` 相关的状态、依赖、配置或结果（声明类型 `Clock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `clock` stores the `clock`-related state, dependency, configuration, or result of `JpaDevelopmentTopologyBootstrapRepository` (declared type `Clock`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -70,8 +89,17 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * 含义与用法：读取、传递或更新 `clock` 时应保持 `JpaDevelopmentTopologyBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `clock`, preserve `JpaDevelopmentTopologyBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final Clock clock;
-    private final TenantAuthorizationStateRepository authorizationState;
+    @Qualifier("idpClock") private final Clock clock;
+    @Qualifier("jpaTenantAuthorizationStateRepository") private final TenantAuthorizationStateRepository authorizationState;
+    private static final List<String> CURRENT_PLATFORM_CODES = List.of(
+            "tianquan-jianshen-admin", "tianquan-shoubing-admin", "yuheng-admin", "tianshu-admin");
+    private static final List<String> LEGACY_PLATFORM_CODES = List.of(
+            "rbac3-admin", "idp-admin", "gateway-admin", "ddc-admin");
+    private static final List<String> LEGACY_APPLICATION_IDS = List.of("rbac3", "idp", "gateway-admin", "ddc");
+    private static final List<String> PLATFORM_BUSINESS_CODES = List.of("permission", "identity", "platform", "platform");
+
+    @Qualifier("ddcCatalogGateway") private final DdcCatalogGateway catalog;
+    @Qualifier("egonColaValidationUtils") private final ValidationUtils validation;
 
     /**
      * 构造器 `JpaDevelopmentTopologyBootstrapRepository` 用于创建并初始化 `JpaDevelopmentTopologyBootstrapRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -88,10 +116,9 @@ public class JpaDevelopmentTopologyBootstrapRepository
             EntityManager entityManager,
             Clock clock,
             TenantAuthorizationStateRepository authorizationState) {
-        this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.clock = Objects.requireNonNull(clock, "clock");
-        this.authorizationState = Objects.requireNonNull(
-                authorizationState, "authorizationState");
+        this(Objects.requireNonNull(entityManager, "entityManager"),
+                Objects.requireNonNull(clock, "clock"),
+                Objects.requireNonNull(authorizationState, "authorizationState"), null, null);
     }
 
     /**
@@ -107,6 +134,10 @@ public class JpaDevelopmentTopologyBootstrapRepository
     @Override
     @Transactional
     public void bootstrap(String tenantId, String identitySub) {
+        bootstrap(tenantId, identitySub, Rbac3DevelopmentTopology.applications());
+    }
+
+    private void bootstrap(String tenantId, String identitySub, List<ApplicationDefinitionVO> definitions) {
         acquireLock();
         Instant now = clock.instant();
         Long normalizedTenantId = normalizeTenantId(tenantId);
@@ -129,7 +160,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
             changed = true;
         }
 
-        for (var definition : Rbac3DevelopmentTopology.applications()) {
+        for (var definition : definitions) {
             changed |= ensureApplication(normalizedTenantId, user.getId(), definition, now);
         }
         if (changed) {
@@ -137,6 +168,230 @@ public class JpaDevelopmentTopologyBootstrapRepository
             user.advanceAuthorizationVersion(user.getAuthVersion(), ACTOR, now);
         }
         entityManager.flush();
+    }
+
+    /**
+     * Resolves all catalog facts before any write. Locks also fence concurrent role,
+     * entitlement and Business grants while unused system placeholders are rebound.
+     */
+    @Override
+    @Transactional(timeout = 30)
+    public void bindResolvedApplications(@NotNull @Valid ResolvedPlatformBootstrapCommandDTO command) {
+        List<PlatformCatalogBindingDTO> bindings = verifiedBindings(command);
+        acquireLock();
+        entityManager.createNativeQuery("""
+                lock table rbac3_business_participation, rbac3_data_rule, rbac3_field_definition,
+                    rbac3_field_rule, rbac3_operation_sod_rule, rbac3_permission, rbac3_resource,
+                    rbac3_resource_api_binding, rbac3_role, rbac3_role_closure, rbac3_role_inheritance,
+                    rbac3_role_resource_grant, rbac3_service_permission, rbac3_service_principal,
+                    rbac3_sod_set, rbac3_tenant_application, rbac3_user_active_role, rbac3_user_business_access
+                    in share row exclusive mode
+                """).executeUpdate();
+        Map<String, ApplicationPO> applications = new LinkedHashMap<>();
+        for (var binding : bindings) {
+            ApplicationPO application = findApplication(null, binding.getApplicationCode());
+            String legacyCode = LEGACY_PLATFORM_CODES.get(platformIndex(binding.getApplicationCode()));
+            if (!legacyCode.equals(binding.getApplicationCode())) {
+                ApplicationPO initial = entityManager.find(ApplicationPO.class,
+                        8000000000000000001L + platformIndex(binding.getApplicationCode()));
+                if (initial == null) { initial = findApplication(null, legacyCode); }
+                if (application != null && initial != null && !application.getId().equals(initial.getId())) {
+                    throw new IllegalStateException("RESOLVED_BOOTSTRAP_BINDING_CONFLICT");
+                }
+                if (application == null) { application = initial; }
+            }
+            if (application != null) {
+                entityManager.lock(application, LockModeType.PESSIMISTIC_WRITE);
+                requireBindableApplication(application, binding);
+            }
+            applications.put(binding.getApplicationCode(), application);
+        }
+        Instant now = clock.instant();
+        for (var binding : bindings) {
+            ApplicationPO application = applications.get(binding.getApplicationCode());
+            if (application == null) {
+                var definition = platformDefinition(binding.getApplicationCode());
+                entityManager.persist(new ApplicationPO(SnowflakeIdGenerator.nextLongId(),
+                        normalizeTenantId(command.getTenantId()), binding.getDdcApplicationId(), binding.getDdcBusinessId(),
+                        binding.getApplicationCode(), definition.applicationName(), definition.displayPriority(), ACTOR, now));
+            } else if (!sameCatalogBinding(application, binding)) {
+                int updated = entityManager.createNativeQuery("""
+                        update rbac3_application
+                           set application_code = :canonicalApplicationCode,
+                               ddc_application_id = :applicationPublicId, ddc_business_id = :businessPublicId,
+                               version = version + 1, updated_by = :actor, updated_at = :now
+                         where id = :applicationId and application_code = :applicationCode
+                           and version = :expectedVersion and created_by = :seedActor and updated_by = :seedActor
+                           and ddc_application_id = :oldApplicationId and ddc_business_id = :oldBusinessId
+                           and status = 'ACTIVE'
+                        """)
+                        .setParameter("canonicalApplicationCode", binding.getApplicationCode())
+                        .setParameter("applicationPublicId", binding.getDdcApplicationId())
+                        .setParameter("businessPublicId", binding.getDdcBusinessId())
+                        .setParameter("actor", ACTOR).setParameter("now", now)
+                        .setParameter("applicationId", application.getId())
+                        .setParameter("applicationCode", application.getApplicationCode())
+                        .setParameter("expectedVersion", application.getVersion()).setParameter("seedActor", "flyway-v10")
+                        .setParameter("oldApplicationId", application.getDdcApplicationId())
+                        .setParameter("oldBusinessId", application.getDdcBusinessId()).executeUpdate();
+                if (updated != 1) {
+                    throw new IllegalStateException("RESOLVED_BOOTSTRAP_BINDING_CONFLICT");
+                }
+                entityManager.refresh(application);
+            }
+        }
+        entityManager.flush();
+    }
+
+    /** Reuses the existing role/grant algorithm only after the platform resources exist. */
+    @Override
+    @Transactional(timeout = 30)
+    public void bootstrapResolved(@NotNull @Valid ResolvedPlatformBootstrapCommandDTO command) {
+        bindResolvedApplications(command);
+        List<ApplicationDefinitionVO> definitions = command.getApplications().stream()
+                .map(binding -> platformDefinition(binding.getApplicationCode())).toList();
+        bootstrap(command.getTenantId(), command.getIdentitySub(), definitions);
+    }
+
+    private List<PlatformCatalogBindingDTO> verifiedBindings(ResolvedPlatformBootstrapCommandDTO command) {
+        if (catalog == null || validation == null) {
+            throw new IllegalStateException("RESOLVED_BOOTSTRAP_UNAVAILABLE");
+        }
+        validation.validate(Objects.requireNonNull(command, "command"));
+        normalizeTenantId(command.getTenantId());
+        required(command.getIdentitySub(), "identitySub");
+        List<PlatformCatalogBindingDTO> bindings = command.getApplications().stream()
+                .map(binding -> new PlatformCatalogBindingDTO(binding.getApplicationCode(), binding.getBusinessCode(),
+                        binding.getDdcApplicationId(), binding.getDdcBusinessId())).toList();
+        Set<String> codes = new HashSet<>();
+        Set<String> publicIds = new HashSet<>();
+        for (var binding : bindings) {
+            if (!codes.add(binding.getApplicationCode()) || !publicIds.add(binding.getDdcApplicationId())) {
+                throw new IllegalArgumentException("RESOLVED_BOOTSTRAP_INVALID_PLATFORMS");
+            }
+            int index = platformIndex(binding.getApplicationCode());
+            if (!PLATFORM_BUSINESS_CODES.get(index).equals(binding.getBusinessCode())) {
+                throw new IllegalArgumentException("RESOLVED_BOOTSTRAP_INVALID_BUSINESS");
+            }
+        }
+        if (!codes.equals(Set.copyOf(CURRENT_PLATFORM_CODES)) && !codes.equals(Set.copyOf(LEGACY_PLATFORM_CODES))) {
+            throw new IllegalArgumentException("RESOLVED_BOOTSTRAP_INVALID_PLATFORMS");
+        }
+        for (var binding : bindings) {
+            var business = catalog.findBusiness(binding.getDdcBusinessId())
+                    .orElseThrow(() -> new IllegalStateException("RESOLVED_BOOTSTRAP_CATALOG_UNAVAILABLE"));
+            var application = catalog.findApplication(binding.getDdcApplicationId())
+                    .orElseThrow(() -> new IllegalStateException("RESOLVED_BOOTSTRAP_CATALOG_UNAVAILABLE"));
+            if (!business.enabled() || !application.applicationEnabled() || !application.businessEnabled()
+                    || !binding.getDdcBusinessId().equals(business.ddcBusinessId())
+                    || !binding.getBusinessCode().equals(business.bizCode())
+                    || !binding.getDdcApplicationId().equals(application.ddcApplicationId())
+                    || !binding.getDdcBusinessId().equals(application.ddcBusinessId())
+                    || !binding.getBusinessCode().equals(application.bizCode())
+                    || !binding.getApplicationCode().equals(application.appCode())) {
+                throw new IllegalStateException("RESOLVED_BOOTSTRAP_CATALOG_MISMATCH");
+            }
+        }
+        return bindings;
+    }
+
+    private void requireBindableApplication(ApplicationPO application, PlatformCatalogBindingDTO binding) {
+        if (application.getStatus() != top.egon.cola.platform.tianquan.jianshen.admin.iam.application.domain.enums.ApplicationStatusEnum.ACTIVE) {
+            throw new IllegalStateException("RESOLVED_BOOTSTRAP_BINDING_CONFLICT");
+        }
+        int index = platformIndex(binding.getApplicationCode());
+        boolean systemSeed = application.getId().equals(8000000000000000001L + index)
+                && (LEGACY_PLATFORM_CODES.get(index).equals(application.getApplicationCode())
+                    || CURRENT_PLATFORM_CODES.get(index).equals(application.getApplicationCode()))
+                && "flyway-v10".equals(application.getCreatedBy());
+        if (sameCatalogBinding(application, binding)) {
+            if (!systemSeed && !ACTOR.equals(application.getCreatedBy())) {
+                throw new IllegalStateException("RESOLVED_BOOTSTRAP_BINDING_CONFLICT");
+            }
+            return;
+        }
+        if (!systemSeed || !LEGACY_PLATFORM_CODES.get(index).equals(application.getApplicationCode())
+                || application.getVersion() != 0 || !"flyway-v10".equals(application.getUpdatedBy())
+                || !LEGACY_APPLICATION_IDS.get(index).equals(application.getDdcApplicationId())
+                || !PLATFORM_BUSINESS_CODES.get(index).equals(application.getDdcBusinessId())) {
+            throw new IllegalStateException("RESOLVED_BOOTSTRAP_BINDING_CONFLICT");
+        }
+        Number dependencies = (Number) entityManager.createNativeQuery("""
+                select (select count(*) from rbac3_role where application_id = :applicationId)
+                     + (select count(*) from rbac3_tenant_application where application_id = :applicationId)
+                     + (select count(*) from rbac3_user_business_access where ddc_business_id = :businessId)
+                     + (select count(*) from rbac3_business_participation where application_id = :applicationId)
+                     + (select count(*) from rbac3_data_rule where application_id = :applicationId)
+                     + (select count(*) from rbac3_field_definition where application_id = :applicationId)
+                     + (select count(*) from rbac3_field_rule where application_id = :applicationId)
+                     + (select count(*) from rbac3_operation_sod_rule where application_id = :applicationId)
+                     + (select count(*) from rbac3_resource where application_id = :applicationId)
+                     + (select count(*) from rbac3_resource_api_binding where application_id = :applicationId)
+                     + (select count(*) from rbac3_role_closure where application_id = :applicationId)
+                     + (select count(*) from rbac3_role_inheritance where application_id = :applicationId)
+                     + (select count(*) from rbac3_role_resource_grant where application_id = :applicationId)
+                     + (select count(*) from rbac3_service_permission where application_id = :applicationId)
+                     + (select count(*) from rbac3_service_principal where application_id = :applicationId)
+                     + (select count(*) from rbac3_sod_set where application_id = :applicationId)
+                     + (select count(*) from rbac3_user_active_role where application_id = :applicationId)
+                """).setParameter("applicationId", application.getId())
+                .setParameter("businessId", application.getDdcBusinessId()).getSingleResult();
+        if (dependencies.longValue() != 0) {
+            throw new IllegalStateException("RESOLVED_BOOTSTRAP_APPLICATION_IN_USE");
+        }
+        Number changedPermissions = (Number) entityManager.createNativeQuery("""
+                select count(*) from rbac3_permission
+                 where application_id = :applicationId and (
+                     version <> 0 or status <> 'ACTIVE' or source_type <> 'MANUAL'
+                     or permission_code not in (:seedPermissionCodes) or permission_name <> permission_code
+                     or not (
+                         (id > 8100000000000000000 and id < 8100000000000001000
+                          and created_by = 'flyway-v10' and updated_by = 'flyway-v10'
+                          and description = 'Built-in local platform capability')
+                         or (id = 8110000000000000001 and permission_code = 'system:about:read'
+                             and created_by = 'flyway-v12' and updated_by = 'flyway-v12'
+                             and description = 'Read the current RBAC3 authorization context for the administration web client')
+                     ))
+                """).setParameter("applicationId", application.getId())
+                .setParameter("seedPermissionCodes", initialPermissionCodes(index)).getSingleResult();
+        if (changedPermissions.longValue() != 0) {
+            throw new IllegalStateException("RESOLVED_BOOTSTRAP_INITIAL_PERMISSION_CHANGED");
+        }
+    }
+
+    private static List<String> initialPermissionCodes(int index) {
+        var permissions = new java.util.ArrayList<>(Rbac3DevelopmentTopology.applications().get(index).permissions().stream()
+                .map(code -> switch (index) {
+                    case 1 -> code.replace("tianquan-shoubing:", "idp:");
+                    case 2 -> code.replace("yuheng:", "gateway:");
+                    case 3 -> code.replace("TIANSHU_", "DDC_");
+                    default -> code;
+                }).toList());
+        if (index == 0) { permissions.add("system:about:read"); }
+        return List.copyOf(permissions);
+    }
+
+    private static boolean sameCatalogBinding(ApplicationPO application, PlatformCatalogBindingDTO binding) {
+        return binding.getApplicationCode().equals(application.getApplicationCode())
+                && binding.getDdcApplicationId().equals(application.getDdcApplicationId())
+                && binding.getDdcBusinessId().equals(application.getDdcBusinessId());
+    }
+
+    private static int platformIndex(String code) {
+        int index = CURRENT_PLATFORM_CODES.indexOf(code);
+        if (index < 0) {
+            index = LEGACY_PLATFORM_CODES.indexOf(code);
+        }
+        if (index < 0) {
+            throw new IllegalArgumentException("RESOLVED_BOOTSTRAP_INVALID_PLATFORM");
+        }
+        return index;
+    }
+
+    private static ApplicationDefinitionVO platformDefinition(String code) {
+        var definition = Rbac3DevelopmentTopology.applications().get(platformIndex(code));
+        return new ApplicationDefinitionVO(code, definition.applicationName(), definition.roleCode(),
+                definition.displayPriority(), definition.permissions());
     }
 
     /**

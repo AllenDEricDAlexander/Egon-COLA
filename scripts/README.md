@@ -100,6 +100,22 @@ Plan 收尾（final audit）时，`work/` 里每个脚本必须被显式三选�
 
 ---
 
+### 当前隔离接入入口（Step17 实施中）
+
+`unified-xingyuan/isolated-integration.sh` 只接受九个公开命令：`prepare`、`provision-identity`、`start-control-plane`、`provision-authorization`、`start-consumers`、`authorize-cli`、`verify`、`status`、`stop`。Bash 负责严格参数和 opt-in，`lib/isolated-integration.sh` 转交同目录标准库 `isolated_integration.py`；后者不是额外的公开 CLI。
+
+完整命令、两个 authorization phase、保护文件、退出码和恢复规则见[联调手册第7节](../docs/runbooks/unified-identity-local.md#7-新隔离接入-harnessstep17-实施中)及[Runtime Spec](../docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration-runtime.md)。入口限定本任务新九库、Redis DB1–15、HTTPS28443 和冻结进程表，禁止 Docker；status 只读，其余命令要求 `XINGYUAN_ISOLATED_INTEGRATION=true`。它不代替已有旧栈脚本。
+
+`bash scripts/regression/test-isolated-integration-contract.sh` 运行默认无外部设施的合同回归；受控传输/临时流水线输出不能当成24项 LIVE 已通过。原生授权phase及native/resource两个完整组合runner已有真实owner链源码，路由/MCP细权限/协议审计/异步上下文与最后保留门禁已接线；Step17源码审查与实际构建见Plan最新执行记录，真实联调仍未执行。原生目录、鉴神准入/注册/审核及角色分配按既定CLI004native顺序调用；独立子阶段COMMITTED不能当作完整授权通过。私有 `formal-revoke` 桥只服务既有测试的精确 AT 摘要请求，通过固定 SA owner selector 和实际 JUnit 证明确认撤销；不得作为任意目标撤销工具。
+
+所有 task manifest、secret、token、PID、运行配置与证据都保留在忽略的任务运行目录，不提交仓库；停止仅 TERM 经归属核验的任务进程，保留数据。UNKNOWN_COMMIT 应先只读核实，不盲重跑，不 DROP/FLUSHDB/repair。
+
+prepare会在首次任务修改前保存原DB身份、nginx进程/监听和非任务Redis库键摘要基线，恢复及最终owned stop后严格复核。Redis只读采集需要7+和现有读取权限，原键仅允许已到原定时间的自然过期；不可读、超限、原值/TTL/服务身份漂移都失败。before缺失不能补造；三种局部proof不代表完整LIVE-023或旧服务健康。默认回归只使用受控CLI，不访问实际PG/Redis/nginx。 另有显式file-only profile盘点，读取SHA绑定的12个实际Boot JAR，报告仅配置键/引用名与未解析标记；它不生成完整运行配置或启动应用。
+
+---
+
 ## 6. 命名约定
 
 新增脚本用 kebab-case（`maven-deploy.sh`、`check-*.py`、`test-*.sh`）。`bump_cola_version.sh` 与 `generate_archetypes.sh` 是历史 snake_case 例外，因 CI 与 skill 已写死，不改名。
+
+私有 `native-build-provenance` 只执行显式离线源码导出、原全七族生成/检查/构建，四种native真实制品与安全测试、三Open保留事实写入私有证明；`start-consumers`在任何启动前要求该SHA冻结证明。命令、保护文件和当前源码变化处理见[本机手册](../docs/runbooks/unified-identity-local.md#7-新隔离接入-harnessstep17-实施中)。它不启动设施或补造LIVE运行证据。

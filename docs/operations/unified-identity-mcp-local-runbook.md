@@ -88,3 +88,28 @@ scripts/unified-xingyuan/stop-local-stack.sh
 ```
 
 仅处理受管PID，保留数据库/Redis、secret、spool、日志和证据。缺注册配置/MP事实时回受控准备；issuer/credentialVersion不匹配时核对正式注册，不能恢复旧根协议或复制旧hash。USER过期时由操作者重新正式授权；MCP B问题先核对角色artifact、18184/18183和独立instance ID。真实设施或浏览器问题需要用户运行证据。
+
+## 本任务独立隔离入口（Step17 实施中）
+
+新入口是 `scripts/unified-xingyuan/isolated-integration.sh`，准确输入、九命令顺序、错误与恢复合同见[本机手册第7节](../runbooks/unified-identity-local.md#7-新隔离接入-harnessstep17-实施中)。它不会复用本页旧 181xx 栈；任务 MCP 为28185/28186，API Engine 为28180/28182，Edge 为28200，任务 nginx 提供固定 HTTPS28443 同源入口。任务 PG 九库及 Redis DB1–15 必须先通过 owner/OID/manifest 守卫，禁止 Docker。
+
+先 prepare → provision-identity → start-control-plane → provision-authorization/platform，再由 authorize-cli 取得真实 Tianshu USER 输入；原生目录/角色/字段规则及 snapshot READY 后，按审核 registry 取得每个资源、两租户的独立 PUBLIC 输入，才允许 start-consumers。native phase 和两个完整组合 runner 已接线；默认关闭，真实设施与跨进程验收仍须 Step18 明确 opt-in。下游未启动的503或输入缺失不能改成成功。
+
+MCP 运行仍保留真实 SERVICE registration、精确 Resource/scope、HMAC、目录准入、PDP 和审计 readiness。PUBLIC 输入生成只校验真实 AS/UserInfo，`probeStatus:null` 不证明 MCP/HTTP/RPC 权限。完整 verify 必须执行实际资源请求、Scope∧PDP、字段 WRITE、两 tenant SQL 隔离及原 owner 的真实撤销证明；没有外部 LLM 输入时不宣称推理已验收。
+
+五个逻辑 BFF alias 在 A/B 两个真实 issuer 下必须各自对应真实 CONFIDENTIAL 客户端与独立 AT/RT。浏览器按 A 全部退出→显式 B 新授权→B refresh/step-up→B 全部退出执行；原 AS owner 证明各族同 AT 退出前200、未自然过期的退出后401。PUBLIC CLI 族的独立撤销测试不能替代该证明。
+
+status 只读；stop 只处理当前 manifest/ledger 逐项匹配的任务进程并保留数据、secret、spool 与证据。原 DB OID/Redis namespace/nginx PID及端口的保留核查仍是最后 LIVE-023 门禁。当前只有源码/受控检查，真实 MCP/browser/PG/Redis/跨进程验收尚未执行。
+
+原设施before文件original-databases.json、original-nginx.json、original-redis.json都必须保留。Redis检查使用Redis 7+只读脚本，记录非任务库原键类型、值摘要和绝对到期时间，允许自然过期、拒绝提前丢失/值或TTL改变；超限/不可读明确失败，不更改ACL或清库。最终三项均在owned stop后复读，任何单项proof不能替代完整LIVE-023；容量、指纹与观测局限见[联调手册](../runbooks/unified-identity-local.md#7-新隔离接入-harnessstep17-实施中)。
+
+原生目录准备的独立测试入口IsolatedAuthorizationProvisioningIT#provisionNativeMetadataCatalog已接入原天枢HTTPS28150 bizs/apps API：使用先前CLI006正式PUBLIC/USER天枢输入，经服务端原鉴权创建并回读实际目录ID。首次POST前记录私有evidence/native-metadata.json RUNNING；未知写不盲重试，COMMITTED只允许显式resume只读复核；不修改已有目录，不猜ID。该入口默认禁用，现由CLI004native完整owner链按序调用，不能将独立子阶段当作原生授权成功或直接跳到启动消费者；真实调用留待完整Step17门禁后执行。
+
+原生目录到鉴神的独立入口IsolatedAuthorizationProvisioningIT#provisionNativeCatalogReview已接线：要求metadata与平台授权均已COMMITTED，真实Directory/membership及天枢目录归属有效；原owner对两tenant准入四应用，再注册、显式审核permission、配置映射与字段定义。租户准入记录ID与全局应用ID分别处理。首次写前保存evidence/native-catalog-review.json RUNNING，完整回读后才COMMITTED；中断不盲重跑，COMMITTED显式resume只读核对目录/映射/准入摘要。它不创建角色/grant/assignment/activation，不重新授予平台权限，也不代表CLI004native完成；该真实入口默认关闭，仍需完整Step17闭环后联调。
+
+
+任务 MCP 复用原玉衡 Resource URI、正式 USER 输入与原 `LOCAL_OPERATION`。唯一任务 server 为 `xingyuan-it-<runUUID>`，内部资源 URI 为 `egon://xingyuan-it-<runUUID>/scopes`，实际调用已发现的玉衡 scopes GET；HTTPS 业务地址不能用作内部 URI。原 profile 的既有 `egon.cola.platform.tianquan.jianshen.system-code` 必须显式为当前 registry 的实际 `yuheng-admin`，不能保留 `mock-backend`。
+
+full 先完成六项 Biz scope/完整性故障和原 owner 恢复，再发布精确二 policy/一 route/一 server/一 resource。唯一细权限为 `mcp:xingyuan-it-<runUUID>:resource:scopes:read`，通过原鉴神 PermissionCatalog、catalog/mapping、Role/Grant/Assignment/Activation owner 准备，只给两租户原 admin 任务角色，保留旧 active roles，viewer 不授。审核模板、SHA/private mode、异步观测计数和未知结果处理见[本机手册第7节](../runbooks/unified-identity-local.md#7-新隔离接入-harnessstep17-实施中)的 `policies/mcp-authorization.json` 说明；不增加公开 CLI 命令或生产 scope/Client/Grant。
+
+initialize 只建立会话，实际验收调用 `resources/read`：正例/恢复各进入原业务一次，缺 scope、缺细权限、错 audience、裸请求业务零调用。审计成功转发有 MCP 与玉衡两个 USED，403 为 USED+DENY，PG/Stream/签名 STORED receipt 与原 spool 清理逐条关联；20个实际事件与28个候选路径分别记录，签名协议无 receiver 字段时不补造归属。此处只有源码和受控门禁，实际运行仍归 Step18。
