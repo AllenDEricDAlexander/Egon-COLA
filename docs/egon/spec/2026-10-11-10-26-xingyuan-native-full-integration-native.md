@@ -2171,3 +2171,20 @@ A-HTTP-01/12/13 已有业务依赖503 body DeepResearchErrorResponse 保持；�
 
 
 §12.125 已批准的 MCP 严格请求接线澄清：整次原 handler route/dispatcher 用同一 Core AuthorizationObservationScope，认证成功只在本机传递原 GatewayAuthContext 引用，进入 session/capability 前移除 opaque 字段。managed fine PDP 核同一 scope 引用、issuer/resource/subject/tenant/USER audience/token/time 与原 verified proof/scopes，复用原 denyOnce 和 authorizationDenied；确认失败、缺可信证据/marker、授权依赖或版本 fence 均503、业务0。完成/异常/cancel 由唯一外层 owner close。原 dispatcher 会把实际 capability 拒绝转换成 JSON-RPC response；仅同请求已经严格确认的 MCP_FORBIDDEN 恢复原403 renderer，依赖故障即使被列表过滤/dispatcher 包装仍恢复503；普通协议/业务错误与按权限过滤列表的既有成功形状保留。身份/安全错误强制 no-store，原挑战头保留。旧 loader/authenticator 构造器保留，原已存在 Shoubing gateway-adapter 仅 runtime→compile、同GAV同版本，无新制品/配置/权限/DDL。无实际服务/数据库/Redis/HTTP运行证明，Step17只关闭源码/受控门禁，完成后停止于Step18之前。
+
+### Step19 最终实施审计 — 78原子合同与生成证明（PARTIAL，2026-10-16）
+
+审计时HEAD为e8117274b。四个非Open模板的78条既有暴露接入已随Step11（fea7f5f73）、Step12（b9a515391）、Step13（3c7723f1a）、Step14（c6a677096）提交；源码→生成的一致性与Open不变性由Step16（a064f2545）承担。Step18真实隔离运行经用户2026-10-16明确批准跳过。判定 **PARTIAL — required runtime evidence remains unverified**。完整台账见[实施Plan](../plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md) §12.128。
+
+`Satisfied` — 本次实际复跑的生成与边界门禁全部exit0：
+
+| Gate | 观察结果 |
+| --- | --- |
+| `bash scripts/generate_archetypes.sh check` | 七族deterministic且与当前workspace一致：agent 254、light 438、light-open 428、service 346、service-open 353、web 453、web-open 431文件 |
+| `python3 scripts/checks/check-native-archetype-boundaries.py` | domain framework/security、raw identity、frozen wire fixtures PASS；light 394、service 287、web 387、agent 227 源码/配置/文档文件，native必需依赖齐全 |
+| `python3 scripts/checks/check-archetype-family-boundaries.py` | 经纠正提交e8117274b后exit0；Open兼容与Agent最小依赖边界PASS |
+| `python3 scripts/checks/check-archetype-dependency-ownership.py` | seven source parents、Components BOM、Commons、ShardingSphere owners PASS |
+
+该门禁在审计首次运行时真实失败（`ERROR: light: incorrect initialization manifest`，exit1）。追因为b634e4b2d给Light加入已批准的forward ALTER `V20261015_001__scope_user_uniqueness_to_tenant.sql`（Rule 11要求的业务唯一键组合`deleted_at`），使light族MP-SDJ受管manifest变为两个script，而门禁仍断言非agent族恰好一个script。经用户批准以focused纠正提交e8117274b修正并复跑转绿；light-open维持单script与byte/mode/hash冻结，逐script checksum校验未放宽，已应用SQL与历史未改写。Agent族原有的「恰好一条forward model correction」特例保持不变。
+
+`Runtime unverified`：78条原子合同的真实REST/GraphQL/RPC/SSE无旁路行为；Light/Web的真实JWT/tenant/PDP与denied零write、SQL租户隔离、async context/finally；Service↔Web native Unary与direct registry的真实lease/HMAC/catalog/fullMethod绑定及gRPC状态；Agent六层业务在真实Client/resource/token/inbound guard下的保持；15类显式写语义的真实WRITE/READ拒写与projection/activation版本推进。Step17已为这些提供固定证明的生产消费源码与默认关闭入口，但源码入口、fixture与模拟不构成live证据。外部模型推理未提供输入，依原边界保持未验证，不宣称已验。

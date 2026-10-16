@@ -864,3 +864,33 @@ Verdict: **PASS — Ready for user review**。用户已明确confirmed批准本�
 
 
 §12.125 已批准的 MCP 严格请求接线澄清：整次原 handler route/dispatcher 用同一 Core AuthorizationObservationScope，认证成功只在本机传递原 GatewayAuthContext 引用，进入 session/capability 前移除 opaque 字段。managed fine PDP 核同一 scope 引用、issuer/resource/subject/tenant/USER audience/token/time 与原 verified proof/scopes，复用原 denyOnce 和 authorizationDenied；确认失败、缺可信证据/marker、授权依赖或版本 fence 均503、业务0。完成/异常/cancel 由唯一外层 owner close。原 dispatcher 会把实际 capability 拒绝转换成 JSON-RPC response；仅同请求已经严格确认的 MCP_FORBIDDEN 恢复原403 renderer，依赖故障即使被列表过滤/dispatcher 包装仍恢复503；普通协议/业务错误与按权限过滤列表的既有成功形状保留。身份/安全错误强制 no-store，原挑战头保留。旧 loader/authenticator 构造器保留，原已存在 Shoubing gateway-adapter 仅 runtime→compile、同GAV同版本，无新制品/配置/权限/DDL。无实际服务/数据库/Redis/HTTP运行证明，Step17只关闭源码/受控门禁，完成后停止于Step18之前。
+
+### 20.11 最终实施审计（Step19，PARTIAL，2026-10-16）
+
+状态：**PARTIAL — required runtime evidence remains unverified**。审计时HEAD为e8117274b。Steps1–17各有一条focused语义commit并通过各自门禁；Step18的真实隔离运行经用户于2026-10-16明确批准跳过（本机缺少经人工核对的`intent-manifest.json`、PostgreSQL/Redis凭据文件、九角色secret文件及两租户真实owner提交的issuer/registration/clientID registry导出），因此24项LIVE、九CLI与两phase没有产生任何真实结果。§20.5的设计PASS与本节的实施判定互不替代。
+
+本轮完整的Step台账、实际门禁命令与观察、Manual Check与Literal Rule逐项结果记录在[实施Plan](../plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md) §12.128，不在此重复。
+
+按document+REQ限定的本轮需求状态：
+
+| Requirement | 状态 | 实施证据 | 未验证边界 |
+| --- | --- | --- | --- |
+| REQ-001 | Runtime unverified | Steps1–7/15（82bdaa76f…97bfe5ac3）的入口guard与安全链源码 | 真实SSO与全入口live |
+| REQ-002 | Runtime unverified | Steps1/2/5–7及受控测试 | 真实重复verify/deny与marker生命周期 |
+| REQ-003 | Runtime unverified | Steps3–6/11–14 | 真实403与RPC status |
+| REQ-004 | Runtime unverified | Steps4/5/11–14 | 真实跨tenant SQL/缓存/worker |
+| REQ-005 | Runtime unverified | Step7（46a20f041）/Step15（97bfe5ac3） | 两租户真实Code链、exactaud、全token退出 |
+| REQ-006 | Runtime unverified | Steps11–14；Step16生成门禁本次exit0 | REST/GraphQL/RPC/SSE真实无旁路 |
+| REQ-007 | Runtime unverified | Steps9/10/11/13/14/15 | 15类writeintent真实WRITE/READ拒写 |
+| REQ-008 | Satisfied | Steps1/11–16的真实0.2.5制品typecheck与当前Starter安装；无版本升级 | 本次未重跑制品安装，沿Step15/16提交结论 |
+| REQ-009 | Satisfied | 本次`generate_archetypes.sh check` exit0、七族deterministic；native/family/dependency三门禁exit0；四native IT随a064f2545 | 无 |
+| REQ-010 | Runtime unverified | Step17（e99c004d7）harness；contract test本次exit0 | 24项LIVE、新库/TLS/任务进程/真实浏览器与owned stop保留证据 |
+| REQ-011 | Satisfied | Steps1–17逐Step一条focused commit；全程无Docker/数据库/浏览器启动 | Step18无commit（用户批准跳过） |
+| REQ-012 | Satisfied | 本节与Plan §12.128逐项记录实际门禁、跳过原因、失败门禁与未验证边界 | 无 |
+| REQ-013 | Runtime unverified | Steps9/10；Step8（b575455ee）同DS JPA+MP源码与受控测试 | `jpaRoleResourceAndMpOutbox*`三case真实PG执行 |
+
+§19 Traceability的历史裸REQ-014–048按document-qualified解释处理：自身加固与OAuth基线REQ为baseline兼容，本轮不重新执行旧migration；旧阶段的no-generator过程排除已由本轮完整接入与真实生成明确替代，不得以同名裸ID宣称本轮新增运行验收。
+
+审计期间发现并经用户批准闭合的唯一缺陷：`scripts/checks/check-archetype-family-boundaries.py`自b634e4b2d（Light已批准forward ALTER使manifest变为两个script）起持续exit1，门禁仍断言非agent族恰好一个script，并因此遮蔽其末行Open/Agent边界检查。以focused纠正提交e8117274b归属originating Step16门禁修正，复跑转绿；light-open保持单script与byte冻结，逐script checksum校验未放宽，已应用SQL与历史未改。
+
+DEC-001–008在设计阶段均已获用户confirmed；本节不新增设计决策。跨节点HA、持久卷掉电、生产网络/CA安装、JWK定期轮换负载与外部付费模型推理依原边界保持未验证，本轮不缩减这些边界，也不以本机源码/受控证据冒充。要将本Spec推进到实施`PASS`，必须按Runtime附录R6在具备真实manifest与registry导出的本机完成24项LIVE并保留owned stop证据。

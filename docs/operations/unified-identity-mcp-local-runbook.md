@@ -113,3 +113,11 @@ status 只读；stop 只处理当前 manifest/ledger 逐项匹配的任务进程
 full 先完成六项 Biz scope/完整性故障和原 owner 恢复，再发布精确二 policy/一 route/一 server/一 resource。唯一细权限为 `mcp:xingyuan-it-<runUUID>:resource:scopes:read`，通过原鉴神 PermissionCatalog、catalog/mapping、Role/Grant/Assignment/Activation owner 准备，只给两租户原 admin 任务角色，保留旧 active roles，viewer 不授。审核模板、SHA/private mode、异步观测计数和未知结果处理见[本机手册第7节](../runbooks/unified-identity-local.md#7-新隔离接入-harnessstep17-实施中)的 `policies/mcp-authorization.json` 说明；不增加公开 CLI 命令或生产 scope/Client/Grant。
 
 initialize 只建立会话，实际验收调用 `resources/read`：正例/恢复各进入原业务一次，缺 scope、缺细权限、错 audience、裸请求业务零调用。审计成功转发有 MCP 与玉衡两个 USED，403 为 USED+DENY，PG/Stream/签名 STORED receipt 与原 spool 清理逐条关联；20个实际事件与28个候选路径分别记录，签名协议无 receiver 字段时不补造归属。此处只有源码和受控门禁，实际运行仍归 Step18。
+
+## Step19 审计后的实际状态（2026-10-16）
+
+本手册的RPC/MCP运行流程与深度验收**本轮未执行**。Step18真实隔离运行经用户于2026-10-16明确批准跳过（本机缺少经人工核对的`intent-manifest.json`、凭据/secret文件与两租户真实registry导出）。第92节的本任务隔离入口源码已随Step17（e99c004d7）提交，其契约回归在2026-10-16实测exit0。
+
+当前未验证项：`resources/read`的真实正例与恢复、每租户业务一次进入、缺scope／缺细权限／错audience／裸请求的业务零调用、MCP与玉衡两次独立验签的两个USED、403的USED+DENY、PG／Stream／签名STORED receipt与原spool清理的逐条关联、20个实际事件与28个候选路径的比对，以及真实多issuer MCP/PG/Redis验收。唯一细权限`mcp:xingyuan-it-<runUUID>:resource:scopes:read`未创建，二policy／一route／一server／一resource未发布，两租户admin任务角色未授予，旧active roles未改动。
+
+未启动nginx、PostgreSQL、Redis、玉衡或任何MCP服务进程，未改动本机TLS或端口占用。源码与受控门禁的结论见[实施Plan §12.128](../egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md)；真实运行验收仍归Step18，不能以受控门禁或模拟替代。

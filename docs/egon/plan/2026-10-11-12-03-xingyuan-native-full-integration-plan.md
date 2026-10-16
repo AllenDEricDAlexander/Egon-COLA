@@ -13890,3 +13890,124 @@ Step17对主Spec逐项源代码职责复核；下表不替代18/19的全量运�
 R6的24项均已有实际断言/固定证明生产消费源码：Resource负责001–010/016–024，Native负责011–015；015只有明确接受的Agent运行延后可UNVERIFIED，其余缺证据必须失败。001为原设施只读保留+真实guard、002原JPA三case、003issuer、004/005/007/008/018/019/020原browser/oracle、006原resourcegrant+平台+MCP、009原tamper/sharedstate/恢复、010正式Code、011servicecache/peer、012本次真实构建的原reader、013REST/SQL/GraphQL worker、014原双向RPC、016field、017LLMguard/原knowledge元数据、021原四协议PG/Stream/receipt及PUBLIC revoke、022spool/readiness、023最后ownedstop、024scope/PDP/六Biz发布故障与MCP。尚无本任务实际24case运行结果。
 
 临时验证harness处置：永久化的CLI/owner/runtime guard与typed测试已归本Step33路径；原一次性诊断仅保留受保护日志/摘要与只读证据，未升格成另一生产工具；scripts/work只剩.gitkeep，无未定脚本。旧失败构建目录保留，绝不补写PASSED；本次新正式构建由原producer生成，验证用临时manifest/reader目录自动删除。此审查未运行平台服务、真实PG/Redis/nginx、浏览器、外部模型，也未push/PR/release。
+
+### 12.128. Step19 EffectiveSpecs最终审计（PARTIAL，Step18按用户批准跳过，2026-10-16）
+
+本节是Step19的最终审计记录。审计时HEAD为e8117274b；Steps1–17各有一条focused语义commit，Step18的真实隔离运行**未执行**，Step19只提交本审计文档diff。最终判定为 **PARTIAL — required runtime evidence remains unverified**，不得解读为24项LIVE或生产就绪已通过。
+
+Step18跳过属用户明确批准的执行顺序偏离：用户于2026-10-16回复「这个不太方便跑，如果跑不了，就跳过18吧。我确认了」。跳过原因是本机实机前置不具备——缺少经人工核对的`intent-manifest.json`、PostgreSQL/Redis凭据文件、九角色secret文件，以及两租户真实owner提交的issuer/registration/clientID registry导出（Plan Step18明确「不在intent捏造」）。因此九CLI、两phase、24项LIVE与owned stop保留证据全部没有产生。Step18的commit path `docs/egon/evidence/2026-10-11-xingyuan-native-full-integration-runtime.md` 未创建：没有真实结果时写该文件等于伪造，Plan与执行skill均禁止。
+
+#### Step提交台账
+
+| Step | 提交 | 语义 |
+| --- | --- | --- |
+| 1 | 82bdaa76f | feat(shoubing): reuse strict observation across hosts and async requests |
+| 2 | 233144d0d | feat(yuheng): carry verified identity evidence through gateway context |
+| 3 | 62b88d974 | feat(yuheng): enforce signed mandatory scopes across data planes |
+| 4 | 6243ad64b | feat(shoubing): authorize service RPC with trusted target bindings |
+| 5 | 9ffc2d8e8 | fix(xingyuan): require scopes and trusted identity on administration APIs |
+| 6 | 1408dc92a | fix(yuheng): verify documentation service tokens with full security pipeline |
+| 7 | 46a20f041 | feat(yuheng): isolate BFF resource tokens and fence all-session logout |
+| 8 | b575455ee | fix(outbox): join same-datasource JPA local transactions |
+| 9 | cdc45dffa | feat(jianshen): register deployment catalogs without grants |
+| 10 | 2f01b7937 | feat(jianshen): replace explicit role field rules atomically |
+| 11 | fea7f5f73 | feat(archetype-light): enforce Xingyuan identity and permissions |
+| 12 | b9a515391 | feat(archetype-service): secure tenant service RPC calls |
+| 13 | 3c7723f1a | feat(archetype-web): enforce Xingyuan user and service boundaries |
+| 14 | c6a677096 | feat(archetype-agent): integrate trusted Xingyuan bearer context |
+| 15 | 97bfe5ac3 | feat(frontends): integrate Xingyuan SDK registrations and mounts |
+| 16 | a064f2545 | build(archetypes): verify native identity integration across generated families |
+| 17 | e99c004d7 | test(xingyuan): add guarded local integration workflow and real family oracle |
+| 18 | 无 | 用户批准跳过；无真实运行证据 |
+| 19 | 本审计提交 | docs(xingyuan): audit complete platform and native identity integration |
+
+Step13与Step15的实际commit语义与Plan原拟文案不同（原拟 `feat(archetype-web): enforce trusted identity across native entries`、`feat(xingyuan-web): bind resource login and mounted navigation`），范围一致，按实际提交记录，不回改历史。Steps1–17之间另有18条focused纠正提交（ee414cb64、b90a5918e、b3f251f5f、aab401358、6019000a5、27b680fc7、1853d9710、f8c260a13、545606c98、25aecaa4d、6573721ff、b634e4b2d、8ef5eb2e7、3f29600f4、1e56adc5c、b23561dd1、ca4804163、89ac88cc4），均保留在历史中未被改写。
+
+#### 本次审计实际执行的门禁
+
+| Gate | 实际命令 | 观察结果 |
+| --- | --- | --- |
+| 文档 | `python3 .agents/skills/egon-coding-writing-spec/scripts/validate_spec.py --strict docs/egon/spec/2026-10-11-10-26-xingyuan-native-full-integration.md` | exit0；PASS: structure/metadata/links/traceability valid |
+| 文档 | `python3 .agents/skills/egon-coding-writing-plan/scripts/validate_plan.py --strict docs/egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md` | exit0；PASS: metadata/Spec links/file Steps/requirement coverage valid |
+| Diff/scope | `git diff --check`；`git status --short`；`git log --oneline --max-count=24` | whitespace CLEAN；审计前worktree干净；每Step一条focused commit可核 |
+| Generated | `bash scripts/generate_archetypes.sh check` | exit0；七族（agent 254/light 438/light-open 428/service 346/service-open 353/web 453/web-open 431文件）deterministic且与当前workspace一致 |
+| Generated | `python3 scripts/checks/check-native-archetype-boundaries.py` | exit0；domain/security/raw identity/frozen wire fixtures PASS；light 394、service 287、web 387、agent 227文件，native依赖齐全 |
+| Generated | `python3 scripts/checks/check-archetype-family-boundaries.py` | 首次exit1 `ERROR: light: incorrect initialization manifest`；按本节纠正提交e8117274b后exit0，并恢复其原被遮蔽的末行 `PASS: Open compatibility and Agent minimal dependency boundaries` |
+| Generated | `python3 scripts/checks/check-archetype-dependency-ownership.py` | exit0；seven source parents/Components BOM/Commons/ShardingSphere owners PASS |
+| Harness | `bash scripts/regression/test-isolated-integration-contract.sh` | exit0；6组PASS、0 failure/error；全程临时目录内以stub替换psql/createdb/redis-cli/nginx/java/node/npm/mvnw，零外部设施 |
+| Runtime evidence | Step18的24case逐项人工字段核对 | **未执行** — Step18跳过，无`full.json`/token index/handle可读 |
+
+按Plan Step19「已GREEN的受控suite不无理由整轮重跑」，Steps1–17已提交的Maven/Vitest受控suite本次未重跑；其结论沿各Step提交时记录，不在本节冒充新证据。
+
+#### 审计期间发现的缺陷与纠正
+
+`check-archetype-family-boundaries.py`在本次审计中真实失败（exit1）。追因：a064f2545（Step16）写定该门禁时light族manifest只有1个script；b634e4b2d为Light加入已批准的forward ALTER `V20261015_001__scope_user_uniqueness_to_tenant.sql`（即Rule 11要求的业务唯一键组合`deleted_at`），manifest变为2个script，但未同步该门禁的「恰好1个」断言。该门禁自b634e4b2d起一直失败，并因`failures`非空而遮蔽其末行Open/Agent边界检查。
+
+经用户批准，以一条focused纠正提交e8117274b修正，归属originating Step16门禁：`expected_scripts = 2 if family == "light" else 1`，沿用同函数既有`expected = 5 if family.startswith("service") else 8`写法。light-open仍为1个script保持byte冻结，紧随其后的逐script checksum循环未改动，manifest完整性不变。已批准的ALTER本身正确，无需回改。
+
+#### 需求状态
+
+| Requirement | 状态 | 证据 | 未验证边界 |
+| --- | --- | --- | --- |
+| REQ-001 全消费方完整打通 | Runtime unverified | Steps1–7/15提交的入口guard与安全链源码 | 真实SSO/全入口live未执行（LIVE-004/005） |
+| REQ-002 单verify/strictaudit/proof/metrics | Runtime unverified | Steps1/2/5–7提交及受控测试 | 真实重复verify/deny、marker生命周期live未执行（LIVE-009/021） |
+| REQ-003 USERscope∧PDP、SERVICE最小scope | Runtime unverified | Steps3–6/11–14提交 | 真实403/RPC status live未执行（LIVE-006/024） |
+| REQ-004 verifiedtenant+actor与数据隔离 | Runtime unverified | Steps4/5/11–14提交 | 真实跨tenant SQL/缓存/worker live未执行（LIVE-007/013） |
+| REQ-005 每resource独立client/token+单canonical BFF | Runtime unverified | Step7/15提交 | 两租户真实Code链、exactaud、全token退出live未执行（LIVE-005/019） |
+| REQ-006 四nonopen全78既有暴露接入 | Runtime unverified | Steps11–14提交；Step16生成门禁本次exit0 | REST/GQL/RPC/SSE真实无旁路live未执行（LIVE-013/014） |
+| REQ-007 操作/page/button/字段写 | Runtime unverified | Steps9/10/11/13/14/15提交 | 15writeintent真实WRITE/READ拒写live未执行（LIVE-016） |
+| REQ-008 actual0.2.5与必要内部依赖 | Satisfied | Steps1/11–16提交的真实制品typecheck与当前Starter安装证据；无版本升级 | 本次未重跑制品安装；沿Step15/16提交结论 |
+| REQ-009 source生成四native、Open byte/mode/hash保留 | Satisfied | 本次`generate_archetypes.sh check` exit0七族deterministic；三个boundary门禁exit0（含e8117274b修正）；四native IT随Step16提交 | 无 |
+| REQ-010 新库/namespace/TLS/任务进程/真实浏览器 | Runtime unverified | Step17 harness提交，contract test本次exit0 | 24项LIVE、九CLI、两phase、owned stop保留证据全部未产生 |
+| REQ-011 noDocker/最小代码/逐Step提交 | Satisfied | Steps1–17各一条focused commit；本次全程未启动Docker、数据库、浏览器或应用；纠正提交path-limited单文件 | Step18无commit（用户批准跳过） |
+| REQ-012 诚实最终审计 | Satisfied | 本节逐项记录实际门禁、跳过原因、失败门禁与未验证边界，判定PARTIAL | 无 |
+| REQ-013 显式catalog与真实role fieldwriter | Runtime unverified | Steps9/10提交；Step8同DS JPA+MP源码与受控测试 | `jpaRoleResourceAndMpOutboxRollback`/`AppendFault`/`Commit`三case真实PG执行未进行（LIVE-002/016） |
+
+历史裸REQ-014–048按Plan §7末段的document-qualified解释处理：自身加固REQ-014–019、OAuth基线及当前代码修订REQ-020–048为baseline兼容，本轮不重新执行旧migration；旧阶段的no-generator过程排除已由本轮完整接入与真实生成明确替代。本节不把这些裸ID当作本轮新增运行任务。
+
+R6的24项LIVE（LIVE-001至LIVE-024）全部为`Runtime unverified`。Step17已为其提供固定证明的生产消费源码与默认关闭入口，但源码入口、fixture与模拟不等于live结果，本节不以其替代。
+
+#### Manual Check
+
+| Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| MC-ARCH-001 | Applicable | PASS | 本次仅改一个门禁脚本断言与七份文档；boundary门禁exit0确认七族/四native边界与Agent六层未变 | 无架构/分层/模块变化 | None |
+| MC-REUSE-001 | Applicable | PASS | 纠正沿用同函数既有`expected`写法，未新增helper或第二套门禁 | 复用现有判定结构 | None |
+| MC-DEP-001 | Applicable | PASS | `git diff`显示无POM/依赖/插件/版本改动；dependency-ownership门禁exit0 | 无新依赖 | None |
+| MC-NAME-001 | Applicable | PASS | 新增局部变量`expected_scripts`，沿脚本既有命名风格 | 无Java类型/后缀变化 | None |
+| MC-VALID-001 | Applicable | N/A | 本Step无跨层数据输入；门禁自身的manifest/family/checksum校验未弱化，逐script checksum循环原样保留 | 无层间handoff | 证据见上，非豁免 |
+| MC-MODEL-001 | Applicable | N/A | 无POJO/实体/DDL/唯一键改动；light的已批准ALTER属b634e4b2d既有历史，未改写 | 无模型变更 | 证据见上 |
+| MC-CONVERT-001 | Applicable | N/A | 无Converter改动 | — | 证据见上 |
+| MC-LOG-001 | Applicable | PASS | 门禁输出仍为原family/文件计数文案；文档只记录commit hash、路径、exit码与计数 | 无token/password/PID/secret进入Git | None |
+| MC-BEAN-001 | Applicable | N/A | 无Spring Bean或注入改动 | — | 证据见上 |
+| MC-UTIL-001 | Applicable | PASS | 纠正只用Python内建比较；无新库 | 无工具依赖变化 | None |
+| MC-JSON-001 | Applicable | PASS | 门禁仍以`json.loads`读原manifest，未扩展字段或放宽解析 | 无JSON契约变化 | None |
+| MC-TIME-001 | Applicable | N/A | 本Step无时间语义/边界改动；文档日期为Asia/Shanghai明示 | 无时间合同变更 | 证据见上 |
+| MC-CONFIG-001 | Applicable | PASS | 无profile/配置key改动；`light`与`light-open`的脚本数期望分别固定，未引入可配置回退 | 多环境配置未受影响 | None |
+| MC-PATTERN-001 | Applicable | N/A | 单一断言纠正，无复杂业务流程 | — | 证据见上 |
+| MC-SCOPE-001 | Applicable | PASS | 纠正提交e8117274b仅一个文件；本审计提交仅Plan Step19列明的七份文档；全程path-limited staging，未用`git add -A`/`.` | 无越界文件、无Step18证据文件伪造 | None |
+| MC-TEST-001 | Applicable | PASS | 纠正后三个boundary门禁与generation check各自exit0；harness contract test exit0/6 PASS/0 failure；24项LIVE明确记为未执行 | 未以fixture或模拟冒充live；无SKIP充当通过 | None |
+| MC-BLOCKER-001 | Applicable | PASS | 审计发现的唯一缺陷已经用户批准并以e8117274b闭合且复跑转绿；Step18跳过与全部`Runtime unverified`项逐条记录 | 无未声明违规、无被弱化的门禁 | 真实运行验收仍为Pending，归Step18 |
+
+#### Literal Rules
+
+| Literal rule | Applicability | Status | Diff/path evidence | Validation evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rule 1 | N/A | N/A | 本Step diff只含Python门禁脚本与Markdown文档，无Java | 三boundary门禁exit0 | 无Java POJO命名面 | 证据见上，非豁免 |
+| Rule 2 | N/A | N/A | 无Java层间handoff改动 | 同上 | — | 证据见上 |
+| Rule 3 | N/A | N/A | 无Java POJO/record/Lombok改动 | 同上 | — | 证据见上 |
+| Rule 4 | N/A | N/A | 无业务类/Bean/注入改动 | 同上 | — | 证据见上 |
+| Rule 5 | N/A | N/A | 无Java工具类引入 | 同上 | — | 证据见上 |
+| Rule 6 | N/A | N/A | 无Java枚举/Jackson改动 | 同上 | — | 证据见上 |
+| Rule 7 | N/A | N/A | 无Spring多环境配置文件改动 | MC-CONFIG-001 PASS | — | 证据见上 |
+| Rule 9 | N/A | N/A | 无复杂业务逻辑改动 | 同上 | — | 证据见上 |
+| Rule 10 | N/A | N/A | 无Java日期类型改动 | 同上 | — | 证据见上 |
+| Rule 11 | Applicable | PASS | 保持既有三层/Archetype DDD结构与模块边界；light的已批准forward ALTER继续以`egon-mp-sdj-ext-starter` manifest分布式管理，门禁纠正使其唯一键组合`deleted_at`的历史得到承认而非绕过；未改动任何SQL或已应用历史 | generation check七族deterministic、三boundary门禁exit0 | MP-SDJ受管DDL与模块边界完整 | None；真实PG唯一键/软删语义验证仍归Step18 |
+
+#### 本次未执行的动作
+
+未启动任何应用、PostgreSQL、Redis、nginx、浏览器、外部模型或Docker；未创建或改动任何数据库；未push、未开PR、未merge、未release。`scripts/work/`无未定脚本（本次未新建临时harness）。原PG/Redis/nginx设施未被触碰。
+
+#### 判定
+
+**PARTIAL — Spec requirements are unmet or unverified**。4项需求（REQ-008/009/011/012）`Satisfied`，9项需求（REQ-001/002/003/004/005/006/007/010/013）`Runtime unverified`，24项LIVE全部未执行。源码、生成与受控门禁在本次审计中全部转绿；跨节点HA、持久卷掉电、生产网络/CA安装、JWK轮换负载与外部付费模型推理依原边界保持未验证，不因本轮缩减。要取得`PASS`，必须按Step18原合同在具备人工核对manifest与真实registry导出的本机完成九CLI、两phase与24项LIVE，并保留owned stop证据。

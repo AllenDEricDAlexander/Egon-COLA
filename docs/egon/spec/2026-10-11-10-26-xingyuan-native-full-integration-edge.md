@@ -1765,3 +1765,13 @@ Verdict: **PASS — Ready for user review**。用户已明确confirmed批准本�
 
 
 §12.125 已批准的 MCP 严格请求接线澄清：整次原 handler route/dispatcher 用同一 Core AuthorizationObservationScope，认证成功只在本机传递原 GatewayAuthContext 引用，进入 session/capability 前移除 opaque 字段。managed fine PDP 核同一 scope 引用、issuer/resource/subject/tenant/USER audience/token/time 与原 verified proof/scopes，复用原 denyOnce 和 authorizationDenied；确认失败、缺可信证据/marker、授权依赖或版本 fence 均503、业务0。完成/异常/cancel 由唯一外层 owner close。原 dispatcher 会把实际 capability 拒绝转换成 JSON-RPC response；仅同请求已经严格确认的 MCP_FORBIDDEN 恢复原403 renderer，依赖故障即使被列表过滤/dispatcher 包装仍恢复503；普通协议/业务错误与按权限过滤列表的既有成功形状保留。身份/安全错误强制 no-store，原挑战头保留。旧 loader/authenticator 构造器保留，原已存在 Shoubing gateway-adapter 仅 runtime→compile、同GAV同版本，无新制品/配置/权限/DDL。无实际服务/数据库/Redis/HTTP运行证明，Step17只关闭源码/受控门禁，完成后停止于Step18之前。
+
+### Step19 最终实施审计 — BFF/SDK/host 范围（PARTIAL，2026-10-16）
+
+审计时HEAD为e8117274b。本附录负责的Edge五协议、每资源registration选择（DEC-008）、前端真实制品与同源挂载在源码层已随Step7（46a20f041）、Step15（97bfe5ac3）提交并通过各自受控门禁；Step18真实隔离运行经用户2026-10-16明确批准跳过，因此本附录的全部live合同没有真实结果。判定 **PARTIAL — required runtime evidence remains unverified**。完整台账见[实施Plan](../plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md) §12.128。
+
+`Runtime unverified`（无一例外）：五逻辑alias在同route下按canonical issuer唯一选择realreg；A全部logout→NEW显式B实际registration真实Code→五页面issuerB/tokenB；B的refresh、prompt=login/max_age=0 step-up与全部族logout CONFIRMED；每tenant每资源不同CONFIDENTIAL clientId与独立AT/RT；24/55/20/9 scope与singleton aud；同BFF session的createdAt不被重置；HTTP401对应同AT未自然过期的BFF族。R6.1.1要求的实际held AT与AS唯一USED proof关联亦未取得。
+
+`Satisfied`：本次`bash scripts/generate_archetypes.sh check` exit0确认七族派生deterministic，前端所在host的制品边界未漂移；`python3 scripts/checks/check-archetype-dependency-ownership.py` exit0确认依赖owner未变。Step15提交的0.2.5真实制品typecheck与`VITE_BASE_PATH`/`VITE_OAUTH_REGISTRATION_ID`既有键沿用（PC-003）未因本轮审计改动，本次未重跑其typecheck，沿Step15结论。
+
+DEC-008的服务端alias/default/issuer map合同在源码与配置键层面保留，未引入fallback、新端点、新query或新公开API；quoted bracket Binder键形态未改。本次审计未启动Edge、nginx、浏览器或任何AS，未改动任何registration配置值。真实Binder与tenantB链验证仍归Step18，不能以fixture页面、类型检查或CLI签发的B令牌替代。

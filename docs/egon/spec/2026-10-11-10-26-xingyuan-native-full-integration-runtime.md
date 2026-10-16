@@ -707,3 +707,23 @@ R6 full24矩阵不能将Agent未执行用例记为PASSED、不能把required ski
 
 
 §12.125 已批准的 MCP 严格请求接线澄清：整次原 handler route/dispatcher 用同一 Core AuthorizationObservationScope，认证成功只在本机传递原 GatewayAuthContext 引用，进入 session/capability 前移除 opaque 字段。managed fine PDP 核同一 scope 引用、issuer/resource/subject/tenant/USER audience/token/time 与原 verified proof/scopes，复用原 denyOnce 和 authorizationDenied；确认失败、缺可信证据/marker、授权依赖或版本 fence 均503、业务0。完成/异常/cancel 由唯一外层 owner close。原 dispatcher 会把实际 capability 拒绝转换成 JSON-RPC response；仅同请求已经严格确认的 MCP_FORBIDDEN 恢复原403 renderer，依赖故障即使被列表过滤/dispatcher 包装仍恢复503；普通协议/业务错误与按权限过滤列表的既有成功形状保留。身份/安全错误强制 no-store，原挑战头保留。旧 loader/authenticator 构造器保留，原已存在 Shoubing gateway-adapter 仅 runtime→compile、同GAV同版本，无新制品/配置/权限/DDL。无实际服务/数据库/Redis/HTTP运行证明，Step17只关闭源码/受控门禁，完成后停止于Step18之前。
+
+### Step19 最终实施审计 — 24项LIVE与保留真相（PARTIAL，2026-10-16）
+
+审计时HEAD为e8117274b。本附录R6要求的24项LIVE **全部未执行**。Step18经用户于2026-10-16明确批准跳过：本机不具备其前置输入——缺少经人工核对的`intent-manifest.json`、`postgres`/`redis`凭据文件、九角色`secretFiles`，以及两租户真实owner提交的issuer/registration/clientID registry导出（Plan Step18明确「不在intent捏造」），亦缺少带真实SHA的`artifacts`清单。判定 **PARTIAL — required runtime evidence remains unverified**。完整台账见[实施Plan](../plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md) §12.128。
+
+| 项目 | 状态 |
+| --- | --- |
+| LIVE-001 至 LIVE-024（全24项） | Runtime unverified — 未执行 |
+| 九CLI（prepare / provision-identity / start-control-plane / provision-authorization platform+native / authorize-cli / start-consumers / verify / status / stop） | 未调用 |
+| 两phase（platform、native）真实授权facts | 未产生 |
+| `OutboxTransactionRollbackIT#jpaRoleResourceAndMpOutboxRollback` / `AppendFault` / `Commit` | 真实PG执行未进行（LIVE-002） |
+| 九个新任务数据库、Redis DB、TLS 28443、任务进程与真实浏览器 | 未创建、未启动 |
+| owned stop后的PG/Redis/nginx保留比对（LIVE-023） | 未取得；原设施全程未被触碰 |
+| `docs/egon/evidence/2026-10-11-xingyuan-native-full-integration-runtime.md` | 未创建 — 无真实结果时写该文件等于伪造 |
+
+因此`original-databases.json`、`original-nginx.json`等prepare前基线，以及任何run-scoped OID/PID/cert/token index/receipt都不存在；本轮没有任何task DB、secret或evidence需要保留或清理，也没有半provision或UNKNOWN_COMMIT状态遗留。`target/`下三个`xingyuan-integration-*`目录来自Step17受控contract测试，非真实运行产物。
+
+本次实际执行并exit0的唯一运行相关门禁为`bash scripts/regression/test-isolated-integration-contract.sh`（6组PASS、0 failure/error）。该测试全程在临时目录内以stub替换`psql`/`createdb`/`redis-cli`/`nginx`/`java`/`node`/`npm`/`mvnw`，零外部设施；它证明九CLI的guard、owner dispatch与受控准备/恢复契约成立，**不**证明任何LIVE case通过，其内部模拟的24case不计作live。
+
+R6既有的「真正跨节点HA、持久卷掉电、生产网络/CA安装、JWK定期轮换负载不由单本机实例证明」边界继续保持未验证，并且本轮不得以其缩减24项required live case——这些case本身同样仍未执行。要将本附录推进到`PASS`，必须在具备人工核对manifest与真实registry导出的本机按R2–R6完成全部24项并保留owned stop证据。

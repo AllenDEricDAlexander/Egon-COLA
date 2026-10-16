@@ -368,3 +368,16 @@ egon.cola.platform.tianquan.jianshen.system-code=yuheng-admin
 MCP 验收必须实际调用 `resources/read`；initialize 只用于建立会话。每租户正例/恢复各进入原玉衡业务一次，缺细权限、缺 scope、错 audience 和裸请求均业务零调用。审计按实际 trace 读取 PG、Stream 与签名 STORED receipt：成功转发经过 MCP 和玉衡两次独立验签，两个 USED 必须同一原 proof；403 为一个 USED 和一个 DENY。签名事件协议没有 receiver 字段，因此不补造来源；对成功事件同时检查两个已知 spool 的候选文件，20 个实际事件对应28个需确认已消失的候选路径。这不等于删除28个事件，也不改变生产审计协议。
 
 Light/Web 的 test-only Query.user 装饰器把原已封装安全 snapshot 的 callback 交给一个有界 worker，原 delegate 仅执行一次。私有计数只有 `differentThread`、`matchedContext`、`finallyRestored`、`failure`；正例两个 alias 必须2/2/2/0，scope 拒绝仍须换线程/恢复且原业务零调用。上下文只在内存比较，不导出 principal、tenant、token、proof、方法参数或业务结果。异步 HTTP、MCP/PG/Redis/browser 和外部模型运行仍未执行。
+
+## 8. Step19 审计后的实际状态（2026-10-16）
+
+本手册第2、5、6节的所有运行命令**仍未由本轮执行**。Step18的真实隔离联调经用户于2026-10-16明确批准跳过，原因是本机缺少其前置输入：经人工核对的`intent-manifest.json`、`postgres`/`redis`凭据文件、九角色secret文件，以及两租户真实owner提交的issuer/registration/clientID registry导出。第7节的隔离harness源码已随Step17（e99c004d7）提交完毕，其契约回归`bash scripts/regression/test-isolated-integration-contract.sh`在2026-10-16实测exit0（6组PASS、0 failure/error，全程以stub替换psql/createdb/redis-cli/nginx/java/node/npm/mvnw，零外部设施）。
+
+因此当前本机状态：
+
+- 未创建任何新数据库；`egon_identity_local`、`egon_rbac3_unified_identity_local`、`egon_gateway_local`、`egon_tianshu_local`及其数据未被触碰。
+- 未启动应用、PostgreSQL、Redis、Edge、nginx、浏览器或Docker；未导入任何身份/OAuth/租户数据。
+- 未写入任何run-scoped secret、token index、cert或receipt；`target/`下的`xingyuan-integration-*`目录来自Step17受控contract测试，不是真实运行产物，也不含有效凭据。
+- 没有半provision、UNKNOWN_COMMIT或待恢复的durable intent遗留。
+
+要执行真实验收，操作者需先按第1节备齐私密凭据文件与registry配置，再按Step18的九CLI顺序运行；在那之前，第5节的24项LIVE与第6节的owned stop保留比对一律记为`Runtime unverified`，不能用源码门禁、fixture页面、类型检查或CLI签发的令牌替代。逐项审计结论见[实施Plan §12.128](../egon/plan/2026-10-11-12-03-xingyuan-native-full-integration-plan.md)。
