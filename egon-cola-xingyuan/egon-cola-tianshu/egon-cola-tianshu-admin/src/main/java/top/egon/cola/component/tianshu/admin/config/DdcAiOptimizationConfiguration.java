@@ -16,16 +16,22 @@ import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextEx
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiModelPort;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiOptimizationService;
 import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiJudgeContextLoader;
 import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiJudgeStrategy;
 import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiOptimizerStrategy;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
+import top.egon.cola.component.tianshu.admin.service.ai.job.DdcAiFeedbackRetentionScanner;
 import top.egon.cola.component.tianshu.admin.service.ai.job.DdcAiJudgeScanner;
+import top.egon.cola.component.tianshu.admin.service.ai.job.DdcAiOptimizationScanner;
 import top.egon.cola.component.tianshu.admin.service.ai.job.DdcAiTenantJobRunner;
 import top.egon.cola.component.tianshu.admin.service.ai.model.YuhengLlmModelAdapter;
 import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
+import java.time.Clock;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -120,5 +126,36 @@ public class DdcAiOptimizationConfiguration {
     public ExecutorService ddcAiOptimizationExecutor(@Qualifier(PROPERTIES_BEAN) DdcAiOptimizationProperties properties) {
         return Executors.newFixedThreadPool(properties.getOptimization().getMaxConcurrentRuns(),
                 new CustomizableThreadFactory("tianshu-ai-opt-"));
+    }
+
+    @Bean("ddcAiOptimizationScanner")
+    @ConditionalOnProperty(prefix = CHANNEL_PREFIX, name = "enabled", havingValue = "true")
+    public DdcAiOptimizationScanner ddcAiOptimizationScanner(
+            @Qualifier("ddcAiOptimizationService") DdcAiOptimizationService optimizationService,
+            @Qualifier("ddcAiOptimizationExecutor") ExecutorService executor,
+            @Qualifier("ddcAiTenantJobRunner") DdcAiTenantJobRunner tenantJobRunner,
+            @Qualifier(PROPERTIES_BEAN) DdcAiOptimizationProperties properties,
+            @Qualifier("ddcPublishClock") Clock clock) {
+        return new DdcAiOptimizationScanner(optimizationService, executor, tenantJobRunner,
+                properties.getOptimization().getMaxConcurrentRuns(), localInstanceId(), clock);
+    }
+
+    @Bean("ddcAiFeedbackRetentionScanner")
+    public DdcAiFeedbackRetentionScanner ddcAiFeedbackRetentionScanner(
+            @Qualifier("ddcAiFeedbackService") DdcAiFeedbackService feedbackService,
+            @Qualifier("ddcAiTenantJobRunner") DdcAiTenantJobRunner tenantJobRunner) {
+        return new DdcAiFeedbackRetentionScanner(feedbackService, tenantJobRunner);
+    }
+
+    /** 运行租约持有者：主机名加进程号，最长 128 字符。 / Run lease owner: host name plus PID, at most 128 chars. */
+    static String localInstanceId() {
+        String host;
+        try {
+            host = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException | RuntimeException unavailable) {
+            host = "unknown-host";
+        }
+        String id = host + ":" + ProcessHandle.current().pid();
+        return id.length() <= 128 ? id : id.substring(id.length() - 128);
     }
 }

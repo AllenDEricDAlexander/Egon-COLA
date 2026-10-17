@@ -270,6 +270,9 @@
                                         <include>**/DdcLegacyMigrationIT.java</include>
                                         <include>**/DdcConfigOutboxIntegrationTest.java</include>
                                         <include>**/DdcLifecycleUniqueIT.java</include>
+                                        <include>**/DdcAiFeedbackPersistenceIT.java</include>
+                                        <include>**/DdcAiOptimizationConcurrencyIT.java</include>
+                                        <include>**/DdcAiOptimizationPublishIT.java</include>
                                     </includes>
                                 </configuration>
                             </execution>
