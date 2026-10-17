@@ -70,6 +70,20 @@ public final class DdcRedisKeys {
     }
 
     /**
+     * 生成 AI Prompt/Skill 发布事实 Topic，与配置 Topic 共享同一作用域 hash tag。
+     * Generates the AI Prompt/Skill publication topic sharing the configuration scope hash tag.
+     *
+     * @param tenantId 存储租户标识。 storage tenant identifier
+     * @param bizCode  业务编码。 business code
+     * @param env      环境编码。 environment code
+     * @param appCode  应用编码。 application code
+     * @return AI 发布 Topic 名称。 AI publication topic name
+     */
+    public static String aiTopic(Long tenantId, String bizCode, String env, String appCode) {
+        return buildKey(tenantId, configTag(tenantId, bizCode, env, appCode), "ai", "topic");
+    }
+
+    /**
      * 生成发布幂等记录键。 Generates a publication-idempotency key.
      *
      * @param bizCode  业务编码。 business code

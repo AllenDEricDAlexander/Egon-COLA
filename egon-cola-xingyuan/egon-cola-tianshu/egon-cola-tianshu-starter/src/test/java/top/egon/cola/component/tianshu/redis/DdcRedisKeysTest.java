@@ -127,6 +127,26 @@ class DdcRedisKeysTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void aiTopicUsesTenantScopedV4PrefixAndAiSuffix() {
+        String aiTopic = DdcRedisKeys.aiTopic(42L, "xingyuan", "dev", "order-service");
+        String configTopic = DdcRedisKeys.topic(42L, "xingyuan", "dev", "order-service");
+
+        assertThat(aiTopic).matches("^tianshu:v4:tenant:42:\\{[a-f0-9]{64}}:ai:topic$");
+        assertThat(hashTag(aiTopic)).isEqualTo(hashTag(configTopic));
+        assertThat(aiTopic).isNotEqualTo(configTopic);
+        assertThat(hashTag(DdcRedisKeys.aiTopic(43L, "xingyuan", "dev", "order-service")))
+                .isNotEqualTo(hashTag(aiTopic));
+    }
+
+    @Test
+    void aiTopicRejectsMissingTenant() {
+        assertThatThrownBy(() -> DdcRedisKeys.aiTopic(null, "xingyuan", "dev", "order-service"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DdcRedisKeys.aiTopic(0L, "xingyuan", "dev", "order-service"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     private String hashTag(String key) {
         return key.substring(key.indexOf('{') + 1, key.indexOf('}'));
     }
