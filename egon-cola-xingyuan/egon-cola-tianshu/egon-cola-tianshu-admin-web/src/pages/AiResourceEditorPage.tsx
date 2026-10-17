@@ -35,6 +35,8 @@ import type {
 import { useAuth } from '../auth/AuthContext'
 import AdminPageHeader from '../components/page/AdminPageHeader'
 import { formatTime } from '../lib/query'
+import AiFeedbackPanel from './AiFeedbackPanel'
+import AiOptimizationPanel from './AiOptimizationPanel'
 import AiVersionsPanel from './AiVersionsPanel'
 
 type DraftBuffer = {
@@ -427,7 +429,7 @@ export default function AiResourceEditorPage() {
   const handleTabChange = (key: string) => {
     setActiveTab(key)
     const next = new URLSearchParams(searchParams)
-    if (key === 'draft') {
+    if (key === 'draft' || key === 'optimization') {
       next.delete('versionNo')
     } else if (!next.has('versionNo') && resource.currentVersionNo !== null) {
       next.set('versionNo', resource.currentVersionNo)
@@ -626,6 +628,16 @@ export default function AiResourceEditorPage() {
                 onResourceChanged={updatePublishedResource}
                 onPendingOperationChange={setPendingVersionOperation}
               />
+            ),
+          },
+          {
+            key: 'optimization',
+            label: '反馈与优化',
+            children: (
+              <Space orientation="vertical" size="large" className="tianshu-ai-page">
+                <AiOptimizationPanel resourceId={resource.id} />
+                <AiFeedbackPanel resourceId={resource.id} />
+              </Space>
             ),
           },
         ]}

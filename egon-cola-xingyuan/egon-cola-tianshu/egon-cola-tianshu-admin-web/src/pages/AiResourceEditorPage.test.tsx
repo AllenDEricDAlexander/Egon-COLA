@@ -37,6 +37,12 @@ const authContext = vi.hoisted(() => {
 })
 
 vi.mock('../api/ai', () => aiApi)
+vi.mock('./AiOptimizationPanel', () => ({
+  default: ({ resourceId }: { resourceId: string }) => <div data-testid="optimization-panel">{resourceId}</div>,
+}))
+vi.mock('./AiFeedbackPanel', () => ({
+  default: ({ resourceId }: { resourceId: string }) => <div data-testid="feedback-panel">{resourceId}</div>,
+}))
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     identity: 'admin',
@@ -134,6 +140,21 @@ describe('AiResourceEditorPage', () => {
   afterEach(() => {
     cleanup()
     setDdcExpectedTenantId(undefined)
+  })
+
+  it('shows the optimization tab and keeps the draft buffer when switching back', async () => {
+    const { router } = renderEditor()
+    const textarea = await screen.findByLabelText('Prompt 正文')
+    fireEvent.change(textarea, { target: { value: '未保存的编辑' } })
+
+    fireEvent.click(screen.getByRole('tab', { name: '反馈与优化' }))
+
+    expect(await screen.findByTestId('optimization-panel')).toHaveTextContent('810001')
+    expect(screen.getByTestId('feedback-panel')).toHaveTextContent('810001')
+    expect(router.state.location.search).not.toContain('versionNo')
+
+    fireEvent.click(screen.getByRole('tab', { name: '草稿编辑' }))
+    expect(screen.getByLabelText('Prompt 正文')).toHaveValue('未保存的编辑')
   })
 
   it('saves the full Prompt draft using the loaded decimal revision and exact text', async () => {

@@ -370,3 +370,147 @@ export type DdcAiVersionPageParams = {
 export type DdcAiPublicationPageParams = DdcAiVersionPageParams & {
   requestId?: string
 }
+
+export type DdcAiPolicyState = 'ARMED' | 'AWAITING_PUBLISH' | 'CONVERGED' | 'EXHAUSTED' | 'PAUSED'
+
+export type DdcAiRunState = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED'
+
+export type DdcAiRunTrigger = 'SCHEDULED' | 'MANUAL'
+
+export type DdcAiRunErrorCode =
+  | 'MODEL_AUTH'
+  | 'MODEL_TIMEOUT'
+  | 'MODEL_ERROR'
+  | 'MODEL_RATE_LIMITED'
+  | 'INVALID_OUTPUT'
+  | 'BASE_CHANGED'
+  | 'DRAFT_DIRTY'
+  | 'PUBLISH_CONFLICT'
+  | 'LEASE_EXPIRED'
+  | 'NOT_PUBLISHED'
+
+export type DdcAiOutcome = 'SUCCESS' | 'FAILURE' | 'UNKNOWN'
+
+export type DdcAiScoreSource = 'EXPLICIT' | 'JUDGE' | 'NONE'
+
+export type DdcAiJudgeState = 'NOT_REQUIRED' | 'PENDING' | 'JUDGING' | 'DONE' | 'FAILED'
+
+export type DdcAiOptimizationEvaluation = {
+  evaluatedAt: string | null
+  versionId: string | null
+  versionNo: string | null
+  sampleCount: number | null
+  averageScore: string | null
+  pendingJudgeCount: number | null
+}
+
+export type DdcAiOptimizationPolicyFields = {
+  enabled: boolean
+  scoreThreshold: number
+  minSamples: number
+  /** ISO-8601 duration, e.g. PT24H. */
+  evaluationWindow: string
+  maxIterations: number
+  /** ISO-8601 duration, e.g. PT1H. */
+  cooldown: string
+  autoPublish: boolean
+  judgeEnabled: boolean
+  optimizerModelAlias: string
+  judgeModelAlias: string
+  optimizerInstruction: string
+}
+
+export type DdcAiOptimizationPolicyResult = DdcAiOptimizationPolicyFields & {
+  resourceId: string
+  persisted: boolean
+  revision: string
+  state: DdcAiPolicyState
+  iterationsDone: number
+  consecutiveFailures: number
+  activeRunId: string | null
+  convergedAt: string | null
+  evaluation: DdcAiOptimizationEvaluation | null
+}
+
+export type DdcAiOptimizationPolicyCommand = DdcAiOptimizationPolicyFields & {
+  expectedRevision: string
+  rearm: boolean
+}
+
+export type DdcAiOptimizationTriggerCommand = {
+  note: string
+}
+
+export type DdcAiOptimizationRunResult = {
+  id: string
+  resourceId: string
+  policyId: string
+  runNo: string
+  iterationNo: number
+  trigger: DdcAiRunTrigger
+  state: DdcAiRunState
+  baseVersionId: string
+  baseVersionNo: string | null
+  sampleCount: number
+  averageScore: string | null
+  thresholdSnapshot: number
+  windowStart: string
+  windowEnd: string
+  modelAlias: string
+  promptTokens: number | null
+  completionTokens: number | null
+  producedVersionId: string | null
+  producedVersionNo: string | null
+  publicationId: string | null
+  autoPublished: boolean
+  errorCode: DdcAiRunErrorCode | null
+  errorMessage: string | null
+  requestId: string | null
+  note: string
+  startedAt: string | null
+  finishedAt: string | null
+  createdAt: string
+  createdBy: string
+}
+
+export type DdcAiUsageFeedbackResult = {
+  id: string
+  resourceId: string
+  versionId: string
+  versionNo: string | null
+  usageId: string
+  reporterCredentialId: string
+  bizCode: string
+  env: string
+  appCode: string
+  outcome: DdcAiOutcome
+  explicitScore: number | null
+  judgeScore: number | null
+  effectiveScore: number | null
+  scoreSource: DdcAiScoreSource
+  judgeState: DdcAiJudgeState
+  judgeAttempts: number
+  judgeError: string | null
+  inputExcerpt: string | null
+  outputExcerpt: string | null
+  latencyMs: number | null
+  occurredAt: string
+  traceId: string | null
+  judgedAt: string | null
+  createdAt: string
+}
+
+export type DdcAiOptimizationRunPageParams = {
+  state?: DdcAiRunState
+  pageNo?: number
+  pageSize?: number
+}
+
+export type DdcAiUsageFeedbackPageParams = {
+  versionNo?: string
+  outcome?: DdcAiOutcome
+  scoreSource?: DdcAiScoreSource
+  maxScore?: number
+  pageNo?: number
+  pageSize?: number
+}

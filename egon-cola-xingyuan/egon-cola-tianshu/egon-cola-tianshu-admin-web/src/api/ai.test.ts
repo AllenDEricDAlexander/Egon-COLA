@@ -4,14 +4,20 @@ import {
   deleteAiResource,
   ddcAiQueryKeys,
   getAiResource,
+  getAiOptimizationPolicy,
+  getAiOptimizationRun,
   getAiVersion,
+  pageAiOptimizationRuns,
   pageAiPublications,
   pageAiResources,
+  pageAiUsageFeedback,
   pageAiVersions,
   promoteAiVersion,
   publishAiDraft,
   replaceAiDraft,
+  replaceAiOptimizationPolicy,
   rollbackAiPublication,
+  triggerAiOptimizationRun,
 } from './ai'
 import {beginDdcSession, setDdcExpectedTenantId} from './client'
 import type {
@@ -238,5 +244,50 @@ describe('Tianshu AI REST client', () => {
     setDdcExpectedTenantId(undefined)
     expect(() => getAiResource('810001')).toThrow('verified Tianshu tenant')
     expect(vi.mocked(fetch)).not.toHaveBeenCalled()
+  })
+  it('reads and replaces the optimization policy with a PUT and revision CAS', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(record({resourceId: '810001', revision: '1'})))
+
+    await getAiOptimizationPolicy('810001')
+    await replaceAiOptimizationPolicy('810001', {
+      expectedRevision: '0', rearm: false, enabled: true, scoreThreshold: 80, minSamples: 20,
+      evaluationWindow: 'PT24H', maxIterations: 5, cooldown: 'PT1H', autoPublish: false, judgeEnabled: true,
+      optimizerModelAlias: 'gpt-opt', judgeModelAlias: 'gpt-judge', optimizerInstruction: '',
+    })
+
+    const [getUrl] = vi.mocked(fetch).mock.calls[0]
+    const [putUrl, putInit] = vi.mocked(fetch).mock.calls[1]
+    expect(getUrl).toBe('/api/v1/tianshu/ai/resources/810001/optimization-policy')
+    expect(putUrl).toBe('/api/v1/tianshu/ai/resources/810001/optimization-policy')
+    expect(putInit?.method).toBe('PUT')
+    expect(JSON.parse(String(putInit?.body))).toMatchObject({expectedRevision: '0', evaluationWindow: 'PT24H'})
+    expect(() => replaceAiOptimizationPolicy('810001', {
+      expectedRevision: '-1', rearm: false, enabled: true, scoreThreshold: 80, minSamples: 20,
+      evaluationWindow: 'PT24H', maxIterations: 5, cooldown: 'PT1H', autoPublish: false, judgeEnabled: true,
+      optimizerModelAlias: 'gpt-opt', judgeModelAlias: 'gpt-judge', optimizerInstruction: '',
+    })).toThrow('expectedRevision')
+  })
+
+  it('triggers a run with an Idempotency-Key and reads runs and feedback by exact paths', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse(record({id: '88', state: 'PENDING'}), 202))
+      .mockResolvedValueOnce(jsonResponse(pageRecord([])))
+      .mockResolvedValueOnce(jsonResponse(record({id: '88', state: 'RUNNING'})))
+      .mockResolvedValueOnce(jsonResponse(pageRecord([])))
+
+    await triggerAiOptimizationRun('810001', 'opt_request_000001', {note: 'now'})
+    await pageAiOptimizationRuns('810001', {state: 'FAILED', pageNo: 2, pageSize: 10})
+    await getAiOptimizationRun('810001', '88')
+    await pageAiUsageFeedback('810001', {versionNo: '3', outcome: 'FAILURE', scoreSource: 'JUDGE', maxScore: 60})
+
+    const calls = vi.mocked(fetch).mock.calls
+    expect(calls[0][0]).toBe('/api/v1/tianshu/ai/resources/810001/optimization-runs')
+    expect(calls[0][1]?.method).toBe('POST')
+    expect(new Headers(calls[0][1]?.headers).get('Idempotency-Key')).toBe('opt_request_000001')
+    expect(calls[1][0]).toBe('/api/v1/tianshu/ai/resources/810001/optimization-runs?state=FAILED&pageNo=2&pageSize=10')
+    expect(calls[2][0]).toBe('/api/v1/tianshu/ai/resources/810001/optimization-runs/88')
+    expect(calls[3][0]).toBe('/api/v1/tianshu/ai/resources/810001/usage-feedback?versionNo=3&outcome=FAILURE'
+      + '&scoreSource=JUDGE&maxScore=60&pageNo=1&pageSize=20')
+    expect(() => triggerAiOptimizationRun('810001', 'short', {note: ''})).toThrow('requestId')
   })
 })

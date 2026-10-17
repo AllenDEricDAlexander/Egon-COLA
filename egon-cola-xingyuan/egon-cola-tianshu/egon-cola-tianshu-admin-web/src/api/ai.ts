@@ -8,6 +8,11 @@ import {
 import type {
   DdcAiCreateCommand,
   DdcAiDraftCommand,
+  DdcAiOptimizationPolicyCommand,
+  DdcAiOptimizationPolicyResult,
+  DdcAiOptimizationRunPageParams,
+  DdcAiOptimizationRunResult,
+  DdcAiOptimizationTriggerCommand,
   DdcAiPublicationPageParams,
   DdcAiPublicationResult,
   DdcAiPromotionCommand,
@@ -16,6 +21,8 @@ import type {
   DdcAiResourceResult,
   DdcAiResourceSummary,
   DdcAiRollbackCommand,
+  DdcAiUsageFeedbackPageParams,
+  DdcAiUsageFeedbackResult,
   DdcAiVersionPageParams,
   DdcAiVersionResult,
   DdcAiVersionSummary,
@@ -78,6 +85,16 @@ export const ddcAiQueryKeys = {
     createDdcTenantQueryKey(requireTenant(), 'ai', 'version', resourceId, versionNo),
   publications: (resourceId: string, params: DdcAiPublicationPageParams) =>
     createDdcTenantQueryKey(requireTenant(), 'ai', 'publications', resourceId, params),
+  optimizationPolicy: (resourceId: string) =>
+    createDdcTenantQueryKey(requireTenant(), 'ai', 'optimization-policy', resourceId),
+  optimizationRunsAll: (resourceId: string) =>
+    createDdcTenantQueryKey(requireTenant(), 'ai', 'optimization-runs', resourceId),
+  optimizationRuns: (resourceId: string, params: DdcAiOptimizationRunPageParams) =>
+    createDdcTenantQueryKey(requireTenant(), 'ai', 'optimization-runs', resourceId, params),
+  optimizationRun: (resourceId: string, runId: string) =>
+    createDdcTenantQueryKey(requireTenant(), 'ai', 'optimization-run', resourceId, runId),
+  usageFeedback: (resourceId: string, params: DdcAiUsageFeedbackPageParams) =>
+    createDdcTenantQueryKey(requireTenant(), 'ai', 'usage-feedback', resourceId, params),
 }
 
 export const pageAiResources = (
@@ -204,4 +221,73 @@ export const pageAiPublications = (
     pageSize: query.pageSize ?? 20,
   })
   return ddcPageApi<DdcAiPublicationResult>(`${resourcePath(resourceId)}/publications?${search}`, options)
+}
+
+export const getAiOptimizationPolicy = (
+  resourceId: string,
+  options: RequestOptions = {},
+): Promise<DdcAiOptimizationPolicyResult> => {
+  requireTenant()
+  return ddcApi<DdcAiOptimizationPolicyResult>(`${resourcePath(resourceId)}/optimization-policy`, options)
+}
+
+export const replaceAiOptimizationPolicy = (
+  resourceId: string,
+  command: DdcAiOptimizationPolicyCommand,
+  options: RequestOptions = {},
+): Promise<DdcAiOptimizationPolicyResult> => {
+  requireTenant()
+  assertLongString(command.expectedRevision, 'expectedRevision', true)
+  return ddcApi<DdcAiOptimizationPolicyResult>(`${resourcePath(resourceId)}/optimization-policy`,
+    { ...options, method: 'PUT', body: command })
+}
+
+export const triggerAiOptimizationRun = (
+  resourceId: string,
+  requestId: string,
+  command: DdcAiOptimizationTriggerCommand,
+  options: RequestOptions = {},
+): Promise<DdcAiOptimizationRunResult> => {
+  requireTenant()
+  return ddcApi<DdcAiOptimizationRunResult>(`${resourcePath(resourceId)}/optimization-runs`,
+    mutationOptions(requestId, command, options))
+}
+
+export const pageAiOptimizationRuns = (
+  resourceId: string,
+  query: DdcAiOptimizationRunPageParams = {},
+  options: RequestOptions = {},
+): Promise<PageResultRecord<DdcAiOptimizationRunResult>> => {
+  requireTenant()
+  const search = queryString({ state: query.state, pageNo: query.pageNo ?? 1, pageSize: query.pageSize ?? 20 })
+  return ddcPageApi<DdcAiOptimizationRunResult>(`${resourcePath(resourceId)}/optimization-runs?${search}`, options)
+}
+
+export const getAiOptimizationRun = (
+  resourceId: string,
+  runId: string,
+  options: RequestOptions = {},
+): Promise<DdcAiOptimizationRunResult> => {
+  requireTenant()
+  assertLongString(runId, 'runId', false)
+  return ddcApi<DdcAiOptimizationRunResult>(
+    `${resourcePath(resourceId)}/optimization-runs/${encodeURIComponent(runId)}`, options)
+}
+
+export const pageAiUsageFeedback = (
+  resourceId: string,
+  query: DdcAiUsageFeedbackPageParams = {},
+  options: RequestOptions = {},
+): Promise<PageResultRecord<DdcAiUsageFeedbackResult>> => {
+  requireTenant()
+  if (query.versionNo !== undefined) assertLongString(query.versionNo, 'versionNo', false)
+  const search = queryString({
+    versionNo: query.versionNo,
+    outcome: query.outcome,
+    scoreSource: query.scoreSource,
+    maxScore: query.maxScore,
+    pageNo: query.pageNo ?? 1,
+    pageSize: query.pageSize ?? 20,
+  })
+  return ddcPageApi<DdcAiUsageFeedbackResult>(`${resourcePath(resourceId)}/usage-feedback?${search}`, options)
 }
