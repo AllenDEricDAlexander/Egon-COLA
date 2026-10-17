@@ -334,7 +334,7 @@ mvn -B archetype:generate \
 
 生成完成后，把目标目录作为新项目根目录，使用 IDEA 打开生成工程的 `pom.xml`。如果要使用本地构建的 Archetype，先执行 `./mvnw clean install`，再在命令中增加 `-DarchetypeCatalog=local`。
 
-请参阅 [Open 脚手架架构总览](egon-cola-archetypes/open-source-archetype-architecture.md) 和 [Open 脚手架代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)，了解模块责任、协议边界、手工 SQL 和真实基础设施验证边界。
+请参阅 [脚手架架构总览](egon-cola-archetypes/docs/architecture-overview.md) 和 [Open 脚手架代码规范](egon-cola-archetypes/docs/open-archetype-code-style.md)，了解模块责任、协议边界、手工 SQL 和真实基础设施验证边界。
 
 ### 引入组件
 
@@ -502,9 +502,10 @@ Egon-COLA/  # 三层 Reactor 根目录：脚手架、组件与平台
 推荐先阅读：
 
 - [组件架构指南](egon-cola-components/egon-cola-components-architecture.md)
-- [Archetype 架构 Mermaid 图](egon-cola-archetypes/architecture-mermaid-diagrams.md)
-- [Open 脚手架架构总览](egon-cola-archetypes/open-source-archetype-architecture.md)
-- [Open 脚手架代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)
+- [Archetype 文档索引](egon-cola-archetypes/README.md)
+- [Archetype 架构 Mermaid 图](egon-cola-archetypes/docs/architecture-diagrams.md)
+- [脚手架架构总览](egon-cola-archetypes/docs/architecture-overview.md)
+- [Open 脚手架代码规范](egon-cola-archetypes/docs/open-archetype-code-style.md)
 - [统一身份本地 Runbook](docs/runbooks/unified-identity-local.md)
 - [Maven 发布指南](scripts/maven-deploy.md)
 - [统一身份与 MCP 本地 Runbook](docs/operations/unified-identity-mcp-local-runbook.md)

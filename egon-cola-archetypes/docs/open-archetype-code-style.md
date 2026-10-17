@@ -1,6 +1,6 @@
 # Open-source Archetype Code Style
 
-Updated: 2026-09-22. The native and Open products share the [Java/component/CQE standard](code-style-abstract.md). Apply its class/value-object distinction, scenario-based Builder choice, enum mapping, annotation-driven validation, MP repository contract and soft-delete business uniqueness rules.
+Updated: 2026-09-22. The native and Open products share the [Java/component/CQE standard](coding-standard.md). Apply its class/value-object distinction, scenario-based Builder choice, enum mapping, annotation-driven validation, MP repository contract and soft-delete business uniqueness rules.
 
 ## Source ownership
 
@@ -8,7 +8,7 @@ Edit normal projects under `source-projects/egon-cola-source-*-open` and curated
 
 ## Product boundaries
 
-Light Open is one module with domain-first packages and `start`. Service/Web Open contain seven modules: common, facade, domain, application, infrastructure, adapter, starter. Follow the [source-derived module tables](open-source-archetype-architecture.md), each product's POM and architecture tests.
+Light Open is one module with domain-first packages and `start`. Service/Web Open contain seven modules: common, facade, domain, application, infrastructure, adapter, starter. Follow the [source-derived module tables](architecture-overview.md), each product's POM and architecture tests.
 
 Domain owns business service ports and value semantics; it does not extend `EgonColaIService` or technical PO-generic CRUD. Infrastructure implements ports and owns sibling `dao`, `po`, `converter`, `repo` packages, explicit Mapper XML, ShardingSphere, cache and outbound clients. Adapter owns HTTP/GraphQL where supported, RPC providers and MQ consumers. Facade owns this product's local Proto contract; consumed peer contracts are separate artifacts, not duplicate local protocol trees.
 

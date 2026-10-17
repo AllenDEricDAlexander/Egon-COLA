@@ -23,7 +23,7 @@ record 必须具有不可变值语义，不能仅因为 DTO/Query/Command/Event 
 
 ## 包、注释与业务实现
 
-DDD 使用当前产品的领域优先目录，不自建第三套架构；准确模块依赖与端口位置见[架构总览](open-source-archetype-architecture.md)。简单三层结构保持现状。注释沿用相邻代码风格，解释业务含义、约束、事务/并发或兼容原因，不机械复述字段和方法。
+DDD 使用当前产品的领域优先目录，不自建第三套架构；准确模块依赖与端口位置见[架构总览](architecture-overview.md)。简单三层结构保持现状。注释沿用相邻代码风格，解释业务含义、约束、事务/并发或兼容原因，不机械复述字段和方法。
 
 业务类使用 @Slf4j、稳定显式 Spring Bean 名；依赖注入按项目约定使用 final 字段、@RequiredArgsConstructor 和 @Qualifier，核对 lombok.config 的注解传播。日志保留业务标识与失败阶段，不能输出秘密或不必要个人信息。不要为注入需求在 POJO 上叠加构造器注解。
 
@@ -63,6 +63,14 @@ DDD 使用当前产品的领域优先目录，不自建第三套架构；准确�
 
 验证并发新建、删除后重建、多次软删除时间戳碰撞、恢复冲突、跨租户、业务列 NULL 和跨分片唯一性。联合键并不自动解决所有历史重复；具体升级应先验证旧数据。DDL 统一使用 MP-SDJ Starter 分布式管理；纠正新增 SQL 版本和 SHA-256 Manifest，已应用 SQL/history 不可改写，本次文档更新不执行数据库变更。
 
+## 分布式 DDL 管理约束
+
+统一复用 `egon-mp-sdj-ext-starter` 对应的 `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`，不再选用 Flyway。使用组件 `EgonColaPostgreDdlRunner`、显式物理 PRIMARY/schema/role 目标、SQL 版本与 SHA-256 Manifest；数据源与拓扑由 Starter 管理，业务项目不得复制本地 Bootstrapper 或并行使用 MP 默认 IDdl/DdlApplicationRunner。
+
+schema advisory transaction lock 协调多实例；每份 SQL 与 ddl_history 同连接同事务提交。跨物理目标不是全局原子事务，后续目标失败不撤销前面已提交目标；必须设计续跑与幂等。未知提交结果先用新连接核实再决定重试。检查锁/语句/拓扑超时、脚本前缀、checksum 与路由指纹；非空未受管库或漂移不能自动 DROP、repair 或接管历史。
+
+一个逻辑变更新增一个下一版本 SQL 和 Manifest 条目，不改写已应用 SQL/history。配置基于 `egon.cola.component.mybatis-plus.ddl` 与现有 profile；实际接线及真实 PostgreSQL 并发/失败恢复需要独立验证，文档不声称已完成运行时迁移。
+
 ## CQE：Command、Query、Event
 
 | 角色 | 责任 |
@@ -88,11 +96,3 @@ Web 的 `RabbitMqMessageServiceImpl` 在 afterCommit 发布 RabbitMQ，失败记
 ## 验证与交付
 
 检查模型/枚举、注解校验、组件与依赖边界、唯一键生命周期、CQE 真实投递及失败行为。先运行最小相关编译/测试，再运行适用架构与生成检查。源码、H2 或进程内测试不证明真实 PostgreSQL/ShardingSphere/MQ 验收；不自动启动应用、数据库、浏览器或容器。
-
-## 分布式 DDL 管理约束
-
-统一复用 `egon-mp-sdj-ext-starter` 对应的 `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`，不再选用 Flyway。使用组件 `EgonColaPostgreDdlRunner`、显式物理 PRIMARY/schema/role 目标、SQL 版本与 SHA-256 Manifest；数据源与拓扑由 Starter 管理，业务项目不得复制本地 Bootstrapper 或并行使用 MP 默认 IDdl/DdlApplicationRunner。
-
-schema advisory transaction lock 协调多实例；每份 SQL 与 ddl_history 同连接同事务提交。跨物理目标不是全局原子事务，后续目标失败不撤销前面已提交目标；必须设计续跑与幂等。未知提交结果先用新连接核实再决定重试。检查锁/语句/拓扑超时、脚本前缀、checksum 与路由指纹；非空未受管库或漂移不能自动 DROP、repair 或接管历史。
-
-一个逻辑变更新增一个下一版本 SQL 和 Manifest 条目，不改写已应用 SQL/history。配置基于 `egon.cola.component.mybatis-plus.ddl` 与现有 profile；实际接线及真实 PostgreSQL 并发/失败恢复需要独立验证，文档不声称已完成运行时迁移。

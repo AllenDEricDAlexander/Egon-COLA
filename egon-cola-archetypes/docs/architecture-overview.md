@@ -5,9 +5,9 @@ Updated: 2026-09-22. This overview is grounded in normal source-project POMs and
 ## Source of truth
 
 - `source-projects/egon-cola-source-*`: normal Java/resources/tests and module POMs.
-- `definitions/egon-cola-archetype-*`: packaging descriptors and distributed architecture documents.
+- `definitions/egon-cola-archetype-*`: packaging descriptors, `verify.groovy` integration tests and curated `architecture-docs/architecture.md` (read by the tests, not shipped to generated projects).
 - `.generated`: derived ignored packaging inputs; never hand-edit them.
-- The [coding standard](code-style-abstract.md) specifies target Java/MP/CQE rules. Structure follows current code; any older source behavior conflicting with the newly requested standard is an explicit migration gap, not proof of compliance.
+- The [coding standard](coding-standard.md) specifies target Java/MP/CQE rules. Structure follows current code; any older source behavior conflicting with the newly requested standard is an explicit migration gap, not proof of compliance.
 
 ## Product selection
 
@@ -26,7 +26,7 @@ Arrows below mean consumer depends on provider. These are direct, non-test sibli
 
 ### agent
 
-Source: [egon-cola-source-agent](source-projects/egon-cola-source-agent/pom.xml).
+Source: [egon-cola-source-agent](../source-projects/egon-cola-source-agent/pom.xml).
 
 | Module | Direct sibling dependencies |
 | --- | --- |
@@ -39,19 +39,19 @@ Source: [egon-cola-source-agent](source-projects/egon-cola-source-agent/pom.xml)
 
 ### light
 
-Source: [egon-cola-source-light](source-projects/egon-cola-source-light/pom.xml).
+Source: [egon-cola-source-light](../source-projects/egon-cola-source-light/pom.xml).
 
 Single Maven module; package direction is enforced by its architecture configuration/tests.
 
 ### light-open
 
-Source: [egon-cola-source-light-open](source-projects/egon-cola-source-light-open/pom.xml).
+Source: [egon-cola-source-light-open](../source-projects/egon-cola-source-light-open/pom.xml).
 
 Single Maven module; package direction is enforced by its architecture configuration/tests.
 
 ### service
 
-Source: [egon-cola-source-service](source-projects/egon-cola-source-service/pom.xml).
+Source: [egon-cola-source-service](../source-projects/egon-cola-source-service/pom.xml).
 
 | Module | Direct sibling dependencies |
 | --- | --- |
@@ -65,7 +65,7 @@ Source: [egon-cola-source-service](source-projects/egon-cola-source-service/pom.
 
 ### service-open
 
-Source: [egon-cola-source-service-open](source-projects/egon-cola-source-service-open/pom.xml).
+Source: [egon-cola-source-service-open](../source-projects/egon-cola-source-service-open/pom.xml).
 
 | Module | Direct sibling dependencies |
 | --- | --- |
@@ -79,7 +79,7 @@ Source: [egon-cola-source-service-open](source-projects/egon-cola-source-service
 
 ### web
 
-Source: [egon-cola-source-web](source-projects/egon-cola-source-web/pom.xml).
+Source: [egon-cola-source-web](../source-projects/egon-cola-source-web/pom.xml).
 
 | Module | Direct sibling dependencies |
 | --- | --- |
@@ -93,7 +93,7 @@ Source: [egon-cola-source-web](source-projects/egon-cola-source-web/pom.xml).
 
 ### web-open
 
-Source: [egon-cola-source-web-open](source-projects/egon-cola-source-web-open/pom.xml).
+Source: [egon-cola-source-web-open](../source-projects/egon-cola-source-web-open/pom.xml).
 
 | Module | Direct sibling dependencies |
 | --- | --- |
@@ -123,10 +123,6 @@ CQE means Command, Query, Event. Event uses Egon transactional outbox or actual 
 
 Use source module architecture tests/plugin configuration and packaging verifier checks for the selected variant. No universal graph overrides an observed product POM. Source tests, H2 fixtures and in-process RPC checks do not prove live PostgreSQL replication/routing, Nacos/Tianshu registration, broker delivery, remote RPC/TLS or container deployment. Generator checks prove deterministic packaging, not runtime acceptance.
 
-## 分布式 DDL 管理约束
+## Distributed DDL management
 
-统一复用 `egon-mp-sdj-ext-starter` 对应的 `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`，不再选用 Flyway。使用组件 `EgonColaPostgreDdlRunner`、显式物理 PRIMARY/schema/role 目标、SQL 版本与 SHA-256 Manifest；数据源与拓扑由 Starter 管理，业务项目不得复制本地 Bootstrapper 或并行使用 MP 默认 IDdl/DdlApplicationRunner。
-
-schema advisory transaction lock 协调多实例；每份 SQL 与 ddl_history 同连接同事务提交。跨物理目标不是全局原子事务，后续目标失败不撤销前面已提交目标；必须设计续跑与幂等。未知提交结果先用新连接核实再决定重试。检查锁/语句/拓扑超时、脚本前缀、checksum 与路由指纹；非空未受管库或漂移不能自动 DROP、repair 或接管历史。
-
-一个逻辑变更新增一个下一版本 SQL 和 Manifest 条目，不改写已应用 SQL/history。配置基于 `egon.cola.component.mybatis-plus.ddl` 与现有 profile；实际接线及真实 PostgreSQL 并发/失败恢复需要独立验证，文档不声称已完成运行时迁移。
+The managed DDL rules are specified once, in the [coding standard](coding-standard.md#分布式-ddl-管理约束): the `egon-mp-sdj-ext-starter` runner, explicit physical targets, versioned SQL with a SHA-256 manifest, no Flyway, and no rewriting of applied SQL or history. They apply to all six Light/Service/Web products and to Agent; Agent's remaining Flyway configuration is the migration gap described above, not an allowed alternative.

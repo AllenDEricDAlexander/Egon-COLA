@@ -1,6 +1,6 @@
 # Egon-COLA 脚手架架构图
 
-更新：2026-09-22。准确的各产品直接 Maven 依赖见[架构总览](open-source-archetype-architecture.md)；新增与修改代码遵循[编码规范](code-style-abstract.md)。下面箭头分别说明依赖或运行调用，不能混用。
+更新：2026-09-22。准确的各产品直接 Maven 依赖见[架构总览](architecture-overview.md)；新增与修改代码遵循[编码规范](coding-standard.md)。下面箭头分别说明依赖或运行调用，不能混用。
 
 ## 业务层依赖（箭头为依赖方指向被依赖方）
 

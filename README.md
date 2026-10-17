@@ -333,7 +333,7 @@ mvn -B archetype:generate \
 
 To generate from the locally built archetype catalog, add `-DarchetypeCatalog=local` after installing the repository with `./mvnw clean install`.
 
-See the [Open archetype architecture overview](egon-cola-archetypes/open-source-archetype-architecture.md) and [Open archetype code style](egon-cola-archetypes/open-source-archetype-code-style.md) for module ownership, protocol boundaries, manual SQL, and live-infrastructure limits.
+See the [archetype architecture overview](egon-cola-archetypes/docs/architecture-overview.md) and [Open archetype code style](egon-cola-archetypes/docs/open-archetype-code-style.md) for module ownership, protocol boundaries, manual SQL, and live-infrastructure limits.
 
 ### Add a component
 
@@ -501,9 +501,10 @@ Egon-COLA/  # Three-tier reactor root: archetypes, components, and platforms
 Recommended reading order:
 
 - [Component architecture guide](egon-cola-components/egon-cola-components-architecture.md)
-- [Archetype architecture Mermaid diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md)
-- [Open archetype architecture overview](egon-cola-archetypes/open-source-archetype-architecture.md)
-- [Open archetype code style](egon-cola-archetypes/open-source-archetype-code-style.md)
+- [Archetype documentation index](egon-cola-archetypes/README.md)
+- [Archetype architecture Mermaid diagrams](egon-cola-archetypes/docs/architecture-diagrams.md)
+- [Archetype architecture overview](egon-cola-archetypes/docs/architecture-overview.md)
+- [Open archetype code style](egon-cola-archetypes/docs/open-archetype-code-style.md)
 - [Unified identity local runbook](docs/runbooks/unified-identity-local.md)
 - [Maven deployment guide](scripts/maven-deploy.md)
 - [Unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md)
