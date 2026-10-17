@@ -13,7 +13,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiNode;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiNodeType;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiPublicationReceipt;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiRevisionResult;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillDraftUpload;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillPublishRequest;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiVersionHead;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiPublicationReceiptResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiRevisionResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionHeadResult;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiPromptResult;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillResult;
@@ -337,6 +346,146 @@ class DdcAiResourceRpcProviderTest {
                 .addReports(usage("01JAX0M7Q9K2R5T8V1W4X7Y0Z1", "810001", "2026-10-17T04:58:12Z")).build()))
                 .isInstanceOfSatisfying(io.grpc.StatusRuntimeException.class, failure ->
                         assertThat(failure.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.PERMISSION_DENIED));
+    }
+
+    @Test
+    void getVersionHeadReturnsUnpublishedHeadWithoutVersion() {
+        DdcAiResourceService service = mock(DdcAiResourceService.class);
+        DdcAiResourceRpcProvider provider = provider(service);
+        when(service.getVersionHead(any())).thenReturn(DdcAiVersionHeadResult.builder().resourceId(RESOURCE_ID)
+                .resourceKey("refund-skill").resourceRevision(3L).published(false).build());
+
+        AiVersionHead head = withPrincipal(principal(TENANT_ID, Set.of("prod-*")),
+                () -> provider.getVersionHead(query("refund-skill", null)));
+
+        assertThat(head.getPublished()).isFalse();
+        assertThat(head.hasVersionId()).isFalse();
+        assertThat(head.hasVersionNo()).isFalse();
+        assertThat(head.hasContentSha256()).isFalse();
+        assertThat(head.getResourceRevision()).isEqualTo("3");
+        verify(service).getVersionHead(argThat(value -> value.resourceId().equals(RESOURCE_ID)
+                && value.versionNo() == null && value.resourceKey().equals("refund-skill")));
+    }
+
+    @Test
+    void getVersionHeadReturnsCurrentVersionHeadAndRejectsAPinnedVersion() {
+        DdcAiResourceService service = mock(DdcAiResourceService.class);
+        DdcAiResourceRpcProvider provider = provider(service);
+        when(service.getVersionHead(any())).thenReturn(DdcAiVersionHeadResult.builder().resourceId(RESOURCE_ID)
+                .resourceKey("refund-skill").versionId(VERSION_ID).versionNo(4L).contentSha256(HASH)
+                .resourceRevision(9L).published(true).build());
+
+        AiVersionHead head = withPrincipal(principal(TENANT_ID, Set.of("prod-*")),
+                () -> provider.getVersionHead(query("refund-skill", null)));
+
+        assertThat(head.getPublished()).isTrue();
+        assertThat(head.getVersionId()).isEqualTo("820004");
+        assertThat(head.getVersionNo()).isEqualTo(4L);
+        assertThat(head.getContentSha256()).isEqualTo(HASH);
+        assertThatThrownBy(() -> withPrincipal(principal(TENANT_ID, Set.of("prod-*")),
+                () -> provider.getVersionHead(query("refund-skill", 4L))))
+                .isInstanceOfSatisfying(StatusRuntimeException.class, failure -> {
+                    assertThat(failure.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+                    assertThat(failure.getTrailers().get(DdcRpcStatusExceptionMapper.ERROR_DETAIL).getCode())
+                            .isEqualTo("TIANSHU_AI_VALIDATION_ERROR");
+                });
+    }
+
+    @Test
+    void replaceSkillDraftConvertsTheWholeTreeAndReturnsTheRevisionReceipt() {
+        DdcAiResourceService service = mock(DdcAiResourceService.class);
+        DdcAiResourceRpcProvider provider = provider(service);
+        when(service.replaceSkillDraft(any())).thenReturn(DdcAiRevisionResult.builder().resourceId(RESOURCE_ID)
+                .resourceRevision(4L).draftSha256(HASH).draftMatchesCurrent(false).build());
+
+        AiRevisionResult receipt = withPrincipal(writer(),
+                () -> provider.replaceSkillDraft(upload("3")));
+
+        assertThat(receipt.getResourceId()).isEqualTo("810001");
+        assertThat(receipt.getResourceRevision()).isEqualTo("4");
+        assertThat(receipt.getDraftSha256()).isEqualTo(HASH);
+        assertThat(receipt.getDraftMatchesCurrent()).isFalse();
+        verify(service).replaceSkillDraft(argThat(command -> command.getResourceId().equals(RESOURCE_ID)
+                && "3".equals(command.getExpectedRevision())
+                && command.getNamespaceCode().equals(SCOPE.namespaceCode())
+                && command.getContent().getPromptText() == null
+                && command.getContent().getNodes().size() == 2
+                && command.getContent().getNodes().get(0).getNodeType() == DdcAiNodeTypeEnum.DIRECTORY
+                && "# refund".equals(command.getContent().getNodes().get(1).getContent())));
+    }
+
+    @Test
+    void replaceSkillDraftMapsRevisionConflictAndKindMismatchToTypedStatuses() {
+        DdcAiResourceService service = mock(DdcAiResourceService.class);
+        DdcAiResourceRpcProvider provider = provider(service);
+        when(service.replaceSkillDraft(any()))
+                .thenThrow(new CommonException(56303, "TIANSHU_AI_REVISION_CONFLICT", "stale"))
+                .thenThrow(new CommonException(56308, "TIANSHU_AI_KIND_MISMATCH", "kind"));
+
+        assertThatThrownBy(() -> withPrincipal(writer(), () -> provider.replaceSkillDraft(upload("3"))))
+                .isInstanceOfSatisfying(StatusRuntimeException.class, failure -> {
+                    assertThat(failure.getStatus().getCode()).isEqualTo(Status.Code.ABORTED);
+                    assertThat(failure.getTrailers().get(DdcRpcStatusExceptionMapper.ERROR_DETAIL).getCode())
+                            .isEqualTo("TIANSHU_AI_REVISION_CONFLICT");
+                });
+        assertThatThrownBy(() -> withPrincipal(writer(), () -> provider.replaceSkillDraft(upload("3"))))
+                .isInstanceOfSatisfying(StatusRuntimeException.class, failure ->
+                        assertThat(failure.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT));
+    }
+
+    @Test
+    void replaceSkillDraftRejectsInvalidUploadsBeforeTheService() {
+        DdcAiResourceService service = mock(DdcAiResourceService.class);
+        DdcAiResourceRpcProvider provider = provider(service);
+        when(service.replaceSkillDraft(any())).thenThrow(new jakarta.validation.ConstraintViolationException(
+                "invalid", Set.of()));
+
+        assertThatThrownBy(() -> withPrincipal(writer(), () -> provider.replaceSkillDraft(
+                upload("3").toBuilder().setResourceId("not-a-number").build())))
+                .isInstanceOfSatisfying(StatusRuntimeException.class, failure ->
+                        assertThat(failure.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT));
+        assertThatThrownBy(() -> provider.replaceSkillDraft(upload("3")))
+                .isInstanceOfSatisfying(StatusRuntimeException.class, failure ->
+                        assertThat(failure.getStatus().getCode()).isEqualTo(Status.Code.PERMISSION_DENIED));
+    }
+
+    @Test
+    void publishSkillDraftUsesRequestIdAndReturnsReceipt() {
+        DdcAiResourceService service = mock(DdcAiResourceService.class);
+        DdcAiResourceRpcProvider provider = provider(service);
+        when(service.publishSkillDraft(any())).thenReturn(DdcAiPublicationReceiptResult.builder()
+                .publicationId(555L).resourceId(RESOURCE_ID).targetVersionId(VERSION_ID).targetVersionNo(4L)
+                .resourceRevision(8L).contentSha256(HASH).build());
+
+        AiPublicationReceipt receipt = withPrincipal(writer(), () -> provider.publishSkillDraft(
+                AiSkillPublishRequest.newBuilder().setNamespaceCode(SCOPE.namespaceCode())
+                        .setResourceKey("refund-skill").setResourceId(Long.toString(RESOURCE_ID))
+                        .setExpectedRevision("7").setRequestId("auth-0123456789abcdef")
+                        .setChangeNote("from authoring").build()));
+
+        assertThat(receipt.getPublicationId()).isEqualTo("555");
+        assertThat(receipt.getTargetVersionId()).isEqualTo("820004");
+        assertThat(receipt.getTargetVersionNo()).isEqualTo(4L);
+        assertThat(receipt.getResourceRevision()).isEqualTo("8");
+        assertThat(receipt.getContentSha256()).isEqualTo(HASH);
+        verify(service).publishSkillDraft(argThat(command -> command.getResourceId().equals(RESOURCE_ID)
+                && "auth-0123456789abcdef".equals(command.getRequestId())
+                && "7".equals(command.getExpectedRevision())
+                && "from authoring".equals(command.getChangeNote())));
+    }
+
+    private DdcServicePrincipal writer() {
+        return principal(TENANT_ID, Set.of("prod-*"), "assistant-app", "prod", "retail",
+                Set.of("AI_READ", "AI_WRITE", "AI_PUBLISH"));
+    }
+
+    private AiSkillDraftUpload upload(String expectedRevision) {
+        return AiSkillDraftUpload.newBuilder().setNamespaceCode(SCOPE.namespaceCode()).setResourceKey("refund-skill")
+                .setResourceId(Long.toString(RESOURCE_ID)).setExpectedRevision(expectedRevision)
+                .setDisplayName("Refund").setDescription("")
+                .addFiles(AiNode.newBuilder().setPath("").setNodeType(AiNodeType.DIRECTORY))
+                .addFiles(AiNode.newBuilder().setPath("SKILL.md").setNodeType(AiNodeType.FILE).setContent("# refund"))
+                .build();
     }
 
     private static AiUsageReport usage(String usageId, String resourceId, String occurredAt) {

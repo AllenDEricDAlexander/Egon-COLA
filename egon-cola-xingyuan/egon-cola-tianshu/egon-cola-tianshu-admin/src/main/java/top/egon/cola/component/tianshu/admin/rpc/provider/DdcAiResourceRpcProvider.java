@@ -66,7 +66,7 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
     @Override
     public AiPromptResult getPrompt(@NotNull @Valid AiResourceQuery query) {
         return invoke("GetPrompt", () -> {
-            requireAiReadPrincipal();
+            requireServicePrincipal();
             DdcAiResourceQuery selector = selector(query);
             DdcAiVersionResult published = resourceService.getPublishedVersion(selector, DdcAiKindEnum.PROMPT);
             if (published.getVersion().getKind() == null
@@ -89,7 +89,7 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
     @Override
     public AiSkillResult getSkill(@NotNull @Valid AiResourceQuery query) {
         return invoke("GetSkill", () -> {
-            requireAiReadPrincipal();
+            requireServicePrincipal();
             DdcAiResourceQuery selector = selector(query);
             DdcAiVersionResult published = resourceService.getPublishedVersion(selector, DdcAiKindEnum.SKILL);
             if (published.getVersion().getKind() == null
@@ -112,7 +112,7 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
     @Override
     public AiUsageReportReceipt reportUsage(@NotNull @Valid AiUsageReportBatch batch) {
         return invoke("ReportUsage", () -> {
-            requireAiReadPrincipal();
+            requireServicePrincipal();
             if (batch.getReportsCount() < 1 || batch.getReportsCount() > MAX_REPORT_BATCH) {
                 throw new CommonException(56320, "TIANSHU_AI_FEEDBACK_INVALID",
                         "AI usage report batch must contain 1..100 reports");
@@ -122,23 +122,31 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
     }
 
     @Override
-    public AiVersionHead getVersionHead(AiResourceQuery query) {
-        throw unimplemented("GetVersionHead");
+    public AiVersionHead getVersionHead(@NotNull @Valid AiResourceQuery query) {
+        return invoke("GetVersionHead", () -> {
+            requireServicePrincipal();
+            if (query.hasVersionNo()) {
+                throw new CommonException(56301, "TIANSHU_AI_VALIDATION_ERROR",
+                        "A version head query must not set version_no");
+            }
+            return syncConverter.toProto(resourceService.getVersionHead(selector(query)));
+        });
     }
 
     @Override
-    public AiRevisionResult replaceSkillDraft(AiSkillDraftUpload upload) {
-        throw unimplemented("ReplaceSkillDraft");
+    public AiRevisionResult replaceSkillDraft(@NotNull @Valid AiSkillDraftUpload upload) {
+        return invoke("ReplaceSkillDraft", () -> {
+            requireServicePrincipal();
+            return syncConverter.toProto(resourceService.replaceSkillDraft(syncConverter.toUploadCommand(upload)));
+        });
     }
 
     @Override
-    public AiPublicationReceipt publishSkillDraft(AiSkillPublishRequest request) {
-        throw unimplemented("PublishSkillDraft");
-    }
-
-    private static StatusRuntimeException unimplemented(String method) {
-        return Status.UNIMPLEMENTED.withDescription("Tianshu AI method is not available yet: " + method)
-                .asRuntimeException();
+    public AiPublicationReceipt publishSkillDraft(@NotNull @Valid AiSkillPublishRequest request) {
+        return invoke("PublishSkillDraft", () -> {
+            requireServicePrincipal();
+            return syncConverter.toProto(resourceService.publishSkillDraft(syncConverter.toPublishCommand(request)));
+        });
     }
 
     private DdcAiResourceQuery selector(AiResourceQuery query) {
@@ -205,7 +213,7 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
                 failure.getMessage(), failure.isRetryable());
     }
 
-    private void requireAiReadPrincipal() {
+    private void requireServicePrincipal() {
         try {
             DdcServicePrincipal.current();
         } catch (IllegalStateException missingPrincipal) {

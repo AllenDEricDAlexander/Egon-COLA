@@ -58,6 +58,10 @@ import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiNodeTypeEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiScopeDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiResourceQuery;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiSkillDraftUploadCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiSkillPublishCommand;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiPublicationReceiptResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionHeadResult;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
 
 import java.nio.charset.StandardCharsets;
@@ -552,6 +556,109 @@ class DdcAiVersionServiceTest {
 
         assertThat(page.getRecords()).containsExactly(result);
         assertThat(page.getRecords().get(0).getTargetVersionNo()).isEqualTo(4L);
+    }
+
+    @Test
+    void getVersionHeadReflectsCurrentVersionOrUnpublishedRoot() {
+        executeTransactionCallbacksInline(readTransactionTemplate);
+        DdcAiResourceBO published = resource(RESOURCE_ID, 9L).setCurrentVersionId(820004L).setCurrentVersionNo(4L);
+        DdcAiResourceBO unpublished = resource(RESOURCE_ID + 1, 2L).setCurrentVersionId(null).setCurrentVersionNo(null);
+        when(resourceRepository.findActiveForShareById(RESOURCE_ID)).thenReturn(Optional.of(published));
+        when(resourceRepository.findActiveForShareById(RESOURCE_ID + 1)).thenReturn(Optional.of(unpublished));
+        when(versionRepository.findActiveById(820004L)).thenReturn(Optional.of(promptVersion(820004L, 4L)));
+
+        DdcAiVersionHeadResult head = service.getVersionHead(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "review-order", null, RESOURCE_ID));
+        DdcAiVersionHeadResult empty = service.getVersionHead(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "review-order", null, RESOURCE_ID + 1));
+
+        assertThat(head.getPublished()).isTrue();
+        assertThat(head.getVersionId()).isEqualTo(820004L);
+        assertThat(head.getVersionNo()).isEqualTo(4L);
+        assertThat(head.getContentSha256()).isEqualTo(HASH);
+        assertThat(head.getResourceRevision()).isEqualTo(9L);
+        assertThat(empty.getPublished()).isFalse();
+        assertThat(empty.getVersionId()).isNull();
+        assertThat(empty.getResourceRevision()).isEqualTo(2L);
+        verify(scopeValidator).assertCanRead(published);
+        verifyNoInteractions(draftNodeRepository);
+        assertThatThrownBy(() -> service.getVersionHead(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "other-key", null, RESOURCE_ID)))
+                .isInstanceOfSatisfying(CommonException.class, failure -> assertThat(failure.getCode()).isEqualTo(56302));
+        assertThatThrownBy(() -> service.getVersionHead(
+                new DdcAiResourceQuery(SCOPE.namespaceCode(), "review-order", 4L, RESOURCE_ID)))
+                .isInstanceOfSatisfying(CommonException.class, failure -> assertThat(failure.getCode()).isEqualTo(56301));
+    }
+
+    @Test
+    void replaceSkillDraftRejectsAPromptRootBeforeWritingTheDraft() {
+        executeTransactionCallbacksInline(commandTransactionTemplate);
+        DdcAiResourceBO prompt = resource(RESOURCE_ID, 3L);
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(prompt));
+
+        assertThatThrownBy(() -> service.replaceSkillDraft(DdcAiSkillDraftUploadCommand.builder()
+                .namespaceCode(SCOPE.namespaceCode()).resourceKey("review-order").resourceId(RESOURCE_ID)
+                .expectedRevision("3").displayName("Refund").description("")
+                .content(DdcAiContentDTO.builder().nodes(List.of()).build()).build()))
+                .isInstanceOfSatisfying(CommonException.class, failure -> assertThat(failure.getCode()).isEqualTo(56308));
+
+        verify(scopeValidator).assertCanWrite(prompt);
+        verify(resourceRepository, never()).findActiveForUpdateById(any());
+        verify(resourceRepository, never()).update(any());
+        verifyNoInteractions(draftNodeRepository);
+    }
+
+    @Test
+    void publishSkillDraftChecksIdentityAndReturnsTheTargetDigestWithoutAReadPermission() {
+        prepareCommandContext();
+        executeTransactionCallbacksInline(readTransactionTemplate);
+        String digest = "b".repeat(64);
+        when(skillStrategy.kind()).thenReturn(DdcAiKindEnum.SKILL);
+        DdcAiResourceBO skill = resource(RESOURCE_ID, 7L).setKind(DdcAiKindEnum.SKILL).setDraftPrompt(null)
+                .setResourceKey("refund-skill");
+        when(resourceRepository.findActiveById(RESOURCE_ID)).thenReturn(Optional.of(skill));
+        when(resourceRepository.findActiveForUpdateById(RESOURCE_ID)).thenReturn(Optional.of(skill));
+        when(resourceRepository.update(skill)).thenAnswer(invocation -> {
+            skill.setVersion(skill.getVersion() + 1);
+            return Optional.of(skill);
+        });
+        when(resourceConverter.toInternalLong("7")).thenReturn(7L);
+        when(contentStrategyRegistry.get(DdcAiKindEnum.SKILL)).thenReturn(skillStrategy);
+        when(skillStrategy.prepare(any(DdcAiContentDTO.class))).thenReturn(
+                new DdcAiContentStrategy.PreparedContent(null, List.of(), digest, Map.of(), 0, 0));
+        when(draftNodeRepository.findActiveByResourceId(RESOURCE_ID)).thenReturn(List.of());
+        when(publicationRepository.findByTenantRequestId(REQUEST_ID)).thenReturn(Optional.empty());
+        when(versionRepository.insertVersion(any(DdcAiVersionBO.class))).thenAnswer(invocation ->
+                ((DdcAiVersionBO) invocation.getArgument(0)).setId(VERSION_ID).setCreateTime(CREATED_AT));
+        when(versionNodeRepository.insertAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(publicationRepository.insertPublication(any(DdcAiPublicationBO.class))).thenAnswer(invocation ->
+                ((DdcAiPublicationBO) invocation.getArgument(0)).setId(PUBLICATION_ID).setCreateTime(CREATED_AT));
+        when(publicationConverter.toResult(any(DdcAiPublicationBO.class))).thenReturn(DdcAiPublicationResult.builder()
+                .publicationId(PUBLICATION_ID).resourceId(RESOURCE_ID).operation("PUBLISH").targetVersionId(VERSION_ID)
+                .targetVersionNo(3L).resourceRevision(8L).targetCreated(false).createdAt(CREATED_AT).build());
+        when(versionRepository.findActiveById(VERSION_ID)).thenReturn(Optional.of(
+                promptVersion(VERSION_ID, 3L).setKind(DdcAiKindEnum.SKILL).setContentSha256(digest)));
+
+        DdcAiPublicationReceiptResult receipt = service.publishSkillDraft(skillPublish("refund-skill"));
+
+        assertThat(receipt.getPublicationId()).isEqualTo(PUBLICATION_ID);
+        assertThat(receipt.getTargetVersionId()).isEqualTo(VERSION_ID);
+        assertThat(receipt.getTargetVersionNo()).isEqualTo(3L);
+        assertThat(receipt.getResourceRevision()).isEqualTo(8L);
+        assertThat(receipt.getContentSha256()).isEqualTo(digest);
+        verify(publicationNotifier).enqueue(any(DdcAiPublicationBO.class), org.mockito.ArgumentMatchers.same(skill),
+                org.mockito.ArgumentMatchers.eq(digest), org.mockito.ArgumentMatchers.anyString());
+        verify(scopeValidator, never()).assertCanRead(any());
+
+        assertThatThrownBy(() -> service.publishSkillDraft(skillPublish("other-key")))
+                .isInstanceOfSatisfying(CommonException.class, failure -> assertThat(failure.getCode()).isEqualTo(56302));
+        verify(versionRepository, times(1)).insertVersion(any(DdcAiVersionBO.class));
+    }
+
+    private DdcAiSkillPublishCommand skillPublish(String resourceKey) {
+        return DdcAiSkillPublishCommand.builder().namespaceCode(SCOPE.namespaceCode()).resourceKey(resourceKey)
+                .resourceId(RESOURCE_ID).expectedRevision("7").requestId(REQUEST_ID).changeNote("from authoring")
+                .build();
     }
 
     private void prepareCommandContext() {

@@ -7,6 +7,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiSkillDraftUploadCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiSkillPublishCommand;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiPublicationReceiptResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiRevisionResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionHeadResult;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDeleteCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
@@ -73,6 +78,15 @@ public interface DdcAiResourceService {
     @Validated(EgonColaModelValidationGroups.Query.class)
     DdcPageResult<DdcAiVersionSummaryDTO> pageVersions(
             @NotNull(groups = EgonColaModelValidationGroups.Query.class) @Valid DdcAiVersionPageQuery query);
+
+    /** RPC-004：只读版本头；查询不得固定版本号。 / RPC-004: read-only version head; the query must not pin a version. */
+    DdcAiVersionHeadResult getVersionHead(@NotNull @Valid DdcAiResourceQuery query);
+
+    /** RPC-005：校验 Skill 身份后整树替换草稿并返回修订回执。 / RPC-005: replaces a Skill draft after identity checks. */
+    DdcAiRevisionResult replaceSkillDraft(@NotNull @Valid DdcAiSkillDraftUploadCommand command);
+
+    /** RPC-006：校验 Skill 身份后幂等发布草稿。 / RPC-006: publishes a Skill draft idempotently after identity checks. */
+    DdcAiPublicationReceiptResult publishSkillDraft(@NotNull @Valid DdcAiSkillPublishCommand command);
 
     @Validated(EgonColaModelValidationGroups.Query.class)
     DdcPageResult<DdcAiPublicationResult> pagePublications(

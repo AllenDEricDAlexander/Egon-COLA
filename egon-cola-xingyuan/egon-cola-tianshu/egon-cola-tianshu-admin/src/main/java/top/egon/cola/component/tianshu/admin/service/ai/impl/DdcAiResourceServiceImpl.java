@@ -20,6 +20,11 @@ import top.egon.cola.component.tianshu.admin.model.bo.DdcAiPublicationBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiResourceBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiVersionBO;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiVersionNodeBO;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiSkillDraftUploadCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiSkillPublishCommand;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiPublicationReceiptResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiRevisionResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionHeadResult;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDeleteCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
@@ -315,6 +320,98 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
             return DdcPageResult.<DdcAiPublicationResult>builder().records(records).total(rows.getTotal())
                     .pageNo(rows.getPageNo()).pageSize(rows.getPageSize()).build();
         });
+    }
+
+    @Override
+    public DdcAiVersionHeadResult getVersionHead(DdcAiResourceQuery query) {
+        if (query.versionNo() != null) throw badRequest("A version head query must not pin a version");
+        return readTransactionTemplate.execute(status -> {
+            DdcAiResourceBO resource = readableResource(query.resourceId());
+            requireSyncIdentity(resource, query.namespaceCode(), query.resourceKey());
+            DdcAiVersionHeadResult.DdcAiVersionHeadResultBuilder head = DdcAiVersionHeadResult.builder()
+                    .resourceId(resource.getId()).resourceKey(resource.getResourceKey())
+                    .resourceRevision(resource.getVersion());
+            if (resource.getCurrentVersionId() == null) return head.published(false).build();
+            DdcAiVersionBO version = currentVersion(resource.getId(), resource.getCurrentVersionId());
+            return head.published(true).versionId(version.getId()).versionNo(version.getVersionNo())
+                    .contentSha256(version.getContentSha256()).build();
+        });
+    }
+
+    @Override
+    public DdcAiRevisionResult replaceSkillDraft(DdcAiSkillDraftUploadCommand command) {
+        DdcAiIdQuery query = new DdcAiIdQuery(command.getResourceId());
+        DdcAiDraftCommand draft = DdcAiDraftCommand.builder().expectedRevision(command.getExpectedRevision())
+                .displayName(command.getDisplayName()).description(command.getDescription())
+                .draft(command.getContent()).build();
+        return observeAiCommand(Long.toString(query.id()), "DRAFT_SAVE", null,
+                () -> executeWithLifecycleRetries(() -> {
+                    DdcAiResourceBO candidate = resourceRepository.findActiveById(query.id())
+                            .orElseThrow(DdcAiResourceServiceImpl::notFound);
+                    scopeValidator.assertCanWrite(candidate);
+                    requireSkillSyncTarget(candidate, command.getNamespaceCode(), command.getResourceKey());
+                    DdcAiResourceResult saved = replaceDraftInTransaction(query, draft);
+                    String draftSha256 = strategy(DdcAiKindEnum.SKILL).prepare(command.getContent()).contentHash();
+                    String currentVersionId = saved.getResource().getCurrentVersionId();
+                    String currentSha256 = currentVersionId == null ? null
+                            : currentVersion(query.id(), Long.parseLong(currentVersionId)).getContentSha256();
+                    return DdcAiRevisionResult.builder().resourceId(query.id())
+                            .resourceRevision(Long.parseLong(saved.getResource().getRevision()))
+                            .draftSha256(draftSha256)
+                            .draftMatchesCurrent(Objects.equals(draftSha256, currentSha256)).build();
+                }), result -> null);
+    }
+
+    @Override
+    public DdcAiPublicationReceiptResult publishSkillDraft(DdcAiSkillPublishCommand command) {
+        DdcAiIdQuery query = new DdcAiIdQuery(command.getResourceId());
+        DdcAiPublishCommand publish = DdcAiPublishCommand.builder()
+                .expectedRevision(command.getExpectedRevision()).changeNote(command.getChangeNote()).build();
+        String requestId = command.getRequestId();
+        return observeAiCommand(Long.toString(query.id()), DdcAiPublicationOperationEnum.PUBLISH.getValue(), requestId,
+                () -> {
+                    DdcAiPublicationResult receipt;
+                    try {
+                        receipt = commandTransactionTemplate.execute(status -> {
+                            DdcAiResourceBO candidate = resourceRepository.findActiveById(query.id())
+                                    .orElseThrow(DdcAiResourceServiceImpl::notFound);
+                            scopeValidator.assertCanPublish(candidate);
+                            requireSkillSyncTarget(candidate, command.getNamespaceCode(), command.getResourceKey());
+                            return publishInTransaction(query, requestId, publish);
+                        });
+                    } catch (DataIntegrityViolationException failure) {
+                        if (!isPublicationRequestConflict(failure)) throw failure;
+                        receipt = replayAfterPublicationConflict(query, requestId, DdcAiPublicationOperationEnum.PUBLISH,
+                                publish.getExpectedRevision(), null, publish.getChangeNote(), failure);
+                    }
+                    DdcAiPublicationResult published = receipt;
+                    String contentSha256 = readTransactionTemplate.execute(status ->
+                            currentVersion(query.id(), published.getTargetVersionId()).getContentSha256());
+                    return DdcAiPublicationReceiptResult.builder().publicationId(published.getPublicationId())
+                            .resourceId(published.getResourceId()).targetVersionId(published.getTargetVersionId())
+                            .targetVersionNo(published.getTargetVersionNo())
+                            .resourceRevision(published.getResourceRevision()).contentSha256(contentSha256).build();
+                }, result -> Long.toString(result.getTargetVersionId()));
+    }
+
+    /** 同步通道的资源身份：namespace 与 key 必须与持久化资源一致。 / Sync identity: namespace and key must match. */
+    private void requireSyncIdentity(DdcAiResourceBO resource, String namespaceCode, String resourceKey) {
+        if (!Objects.equals(resource.getNamespaceCode(), namespaceCode)
+                || !Objects.equals(resource.getResourceKey(), resourceKey)) {
+            throw notFound();
+        }
+    }
+
+    private void requireSkillSyncTarget(DdcAiResourceBO resource, String namespaceCode, String resourceKey) {
+        requireSyncIdentity(resource, namespaceCode, resourceKey);
+        if (resource.getKind() != DdcAiKindEnum.SKILL) throw kindMismatch();
+    }
+
+    private DdcAiVersionBO currentVersion(Long resourceId, Long versionId) {
+        DdcAiVersionBO version = versionRepository.findActiveById(versionId)
+                .orElseThrow(DdcAiResourceServiceImpl::contentIntegrityFailure);
+        if (!Objects.equals(resourceId, version.getResourceId())) throw contentIntegrityFailure();
+        return version;
     }
 
     private DdcAiPublicationResult publishInTransaction(DdcAiIdQuery query, String requestId,
