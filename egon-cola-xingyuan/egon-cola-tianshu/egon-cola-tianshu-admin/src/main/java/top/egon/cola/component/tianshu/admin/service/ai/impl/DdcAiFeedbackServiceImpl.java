@@ -35,7 +35,6 @@ import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
 import top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiScopeValidator;
 import top.egon.cola.component.tianshu.model.ai.DdcAiUsageReportStatusEnum;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -156,8 +155,8 @@ public class DdcAiFeedbackServiceImpl implements DdcAiFeedbackService {
                 .judgeState(report.getExplicitScore() != null
                         ? DdcAiJudgeStatePersistenceEnum.NOT_REQUIRED : DdcAiJudgeStatePersistenceEnum.PENDING)
                 .judgeAttempts((short) 0)
-                .inputExcerpt(truncateUtf8(report.getInputExcerpt(), properties.getFeedback().getMaxInputExcerptBytes()))
-                .outputExcerpt(truncateUtf8(report.getOutputExcerpt(), properties.getFeedback().getMaxOutputExcerptBytes()))
+                .inputExcerpt(DdcAiText.truncateUtf8(report.getInputExcerpt(), properties.getFeedback().getMaxInputExcerptBytes()))
+                .outputExcerpt(DdcAiText.truncateUtf8(report.getOutputExcerpt(), properties.getFeedback().getMaxOutputExcerptBytes()))
                 .latencyMs(report.getLatencyMs())
                 .occurredAt(report.getOccurredAt())
                 .traceId(report.getTraceId())
@@ -271,21 +270,6 @@ public class DdcAiFeedbackServiceImpl implements DdcAiFeedbackService {
 
     private static boolean containsNul(String value) {
         return value != null && value.indexOf('\u0000') >= 0;
-    }
-
-    /** 按 UTF-8 字节上限截断且不切断代码点。 / Truncates to a UTF-8 byte limit without splitting a code point. */
-    static String truncateUtf8(String value, int maxBytes) {
-        if (value == null || value.getBytes(StandardCharsets.UTF_8).length <= maxBytes) return value;
-        int bytes = 0;
-        int index = 0;
-        while (index < value.length()) {
-            int codePoint = value.codePointAt(index);
-            int width = codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
-            if (bytes + width > maxBytes) break;
-            bytes += width;
-            index += Character.charCount(codePoint);
-        }
-        return value.substring(0, index);
     }
 
     private static DdcAiUsageReportReceiptResult.ItemResult rejected(String usageId, String reason) {

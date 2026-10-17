@@ -10,7 +10,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import org.springframework.web.client.RestClient;
+import top.egon.cola.component.tianshu.admin.repository.DdcAiOptimizationPolicyRepository;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
+import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiModelPort;
+import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiJudgeContextLoader;
+import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiJudgeStrategy;
+import top.egon.cola.component.tianshu.admin.service.ai.job.DdcAiJudgeScanner;
+import top.egon.cola.component.tianshu.admin.service.ai.job.DdcAiTenantJobRunner;
 import top.egon.cola.component.tianshu.admin.service.ai.model.YuhengLlmModelAdapter;
 import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client;
 
@@ -30,6 +39,9 @@ public class DdcAiOptimizationConfiguration {
             "egon.cola.component.tianshu.admin.ai-top.egon.cola.component.tianshu.admin.config.DdcAiOptimizationProperties";
 
     static final String CHANNEL_PREFIX = "egon.cola.component.tianshu.admin.ai.optimization";
+
+    static final String TENANT_PROPERTIES_BEAN =
+            "egon.cola.component.tianshu.admin.tenancy-top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantAdminProperties";
 
     @Bean("ddcAiModelRestClient")
     @ConditionalOnProperty(prefix = CHANNEL_PREFIX, name = "enabled", havingValue = "true")
@@ -56,6 +68,28 @@ public class DdcAiOptimizationConfiguration {
             @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
             @Qualifier(PROPERTIES_BEAN) DdcAiOptimizationProperties properties) {
         return new YuhengLlmModelAdapter(client, oauth2Client, objectMapper, properties.getModel());
+    }
+
+    @Bean("ddcAiTenantJobRunner")
+    public DdcAiTenantJobRunner ddcAiTenantJobRunner(
+            @Qualifier(TENANT_PROPERTIES_BEAN) DdcTenantAdminProperties tenantProperties,
+            @Qualifier("ddcTenantRegistry") DdcTenantRegistry tenantRegistry,
+            @Qualifier("ddcTenantContextExecutor") DdcTenantContextExecutor tenantContextExecutor) {
+        return new DdcAiTenantJobRunner(tenantProperties, tenantRegistry, tenantContextExecutor);
+    }
+
+    @Bean("ddcAiJudgeScanner")
+    @ConditionalOnProperty(prefix = CHANNEL_PREFIX, name = "enabled", havingValue = "true")
+    public DdcAiJudgeScanner ddcAiJudgeScanner(
+            @Qualifier("ddcAiFeedbackService") DdcAiFeedbackService feedbackService,
+            @Qualifier("ddcAiOptimizationPolicyRepository") DdcAiOptimizationPolicyRepository policyRepository,
+            @Qualifier("ddcAiJudgeContextLoader") DdcAiJudgeContextLoader contextLoader,
+            @Qualifier("ddcDefaultAiJudgeStrategy") DdcAiJudgeStrategy strategy,
+            @Qualifier("ddcAiModelPort") DdcAiModelPort modelPort,
+            @Qualifier("ddcAiTenantJobRunner") DdcAiTenantJobRunner tenantJobRunner,
+            @Qualifier(PROPERTIES_BEAN) DdcAiOptimizationProperties properties) {
+        return new DdcAiJudgeScanner(feedbackService, policyRepository, contextLoader, strategy, modelPort,
+                tenantJobRunner, properties);
     }
 
     @Bean(name = "ddcAiOptimizationExecutor", destroyMethod = "shutdown")
