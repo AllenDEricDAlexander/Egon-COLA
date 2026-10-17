@@ -18,10 +18,13 @@ import org.springframework.context.annotation.Configuration;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
+import top.egon.cola.component.tianshu.ai.authoring.DdcAiSkillAuthoringWatcher;
+import top.egon.cola.component.tianshu.ai.authoring.DdcAiSkillTreeReader;
 import top.egon.cola.component.tianshu.ai.feedback.DdcAiUsageReporter;
 import top.egon.cola.component.tianshu.ai.feedback.DefaultDdcAiUsageReporter;
 import top.egon.cola.component.tianshu.ai.observability.DdcAiStarterMetrics;
 import top.egon.cola.component.tianshu.ai.observability.MicrometerDdcAiStarterMetrics;
+import top.egon.cola.component.tianshu.ai.properties.DdcAiAuthoringProperties;
 import top.egon.cola.component.tianshu.ai.properties.DdcAiStarterProperties;
 import top.egon.cola.component.tianshu.ai.properties.DdcAiWatchedResourceDTO;
 import top.egon.cola.component.tianshu.ai.properties.DdcAiWorkspaceProperties;
@@ -65,6 +68,8 @@ public class DdcAiStarterAutoConfiguration {
     static final String FEEDBACK_PREFIX = DdcAiStarterProperties.PREFIX + ".feedback";
 
     static final String WORKSPACE_PREFIX = DdcAiStarterProperties.PREFIX + ".skill.workspace";
+
+    static final String AUTHORING_PREFIX = DdcAiStarterProperties.PREFIX + ".skill.authoring";
 
     static final String SCOPE_PROPERTIES_BEAN =
             "egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties";
@@ -185,6 +190,47 @@ public class DdcAiStarterAutoConfiguration {
                 service, watchIndex(properties.getSkill().getWorkspace().getResources()), executor.getObject());
         return new DdcRedisTopicSubscription<>(List.of(redisson.getTopic(topic, StringCodec.INSTANCE)), String.class,
                 listener);
+    }
+
+    @Bean("ddcAiSkillTreeReader")
+    @ConditionalOnProperty(prefix = AUTHORING_PREFIX, name = "enabled", havingValue = "true")
+    public DdcAiSkillTreeReader ddcAiSkillTreeReader() {
+        return new DdcAiSkillTreeReader();
+    }
+
+    @Bean(name = "ddcAiAuthoringExecutor", destroyMethod = "shutdownNow")
+    @ConditionalOnProperty(prefix = AUTHORING_PREFIX, name = "enabled", havingValue = "true")
+    public ScheduledExecutorService ddcAiAuthoringExecutor() {
+        return Executors.newSingleThreadScheduledExecutor(new CustomizableThreadFactory("tianshu-ai-authoring-"));
+    }
+
+    @Bean(name = "ddcAiSkillAuthoringWatcher", initMethod = "start", destroyMethod = "stop")
+    @ConditionalOnProperty(prefix = AUTHORING_PREFIX, name = "enabled", havingValue = "true")
+    public DdcAiSkillAuthoringWatcher ddcAiSkillAuthoringWatcher(
+            ObjectProvider<DdcAiSyncClient> syncClient,
+            @Qualifier(PROPERTIES_BEAN) DdcAiStarterProperties properties,
+            @Qualifier("ddcAiSkillTreeReader") DdcAiSkillTreeReader reader,
+            @Qualifier("ddcAiStarterMetrics") DdcAiStarterMetrics metrics,
+            @Qualifier("ddcAiAuthoringExecutor") ScheduledExecutorService executor,
+            ObjectProvider<ObjectMapper> objectMapper) {
+        DdcAiAuthoringProperties authoring = properties.getSkill().getAuthoring();
+        DdcAiWorkspaceProperties workspace = properties.getSkill().getWorkspace();
+        if (authoring.getRoot() == null || !Files.isDirectory(authoring.getRoot())) {
+            throw new IllegalStateException(
+                    "egon.cola.component.tianshu.ai.skill.authoring.root must be an existing directory");
+        }
+        if (workspace.getRoot() != null && workspace.getRoot().toAbsolutePath().normalize()
+                .equals(authoring.getRoot().toAbsolutePath().normalize())) {
+            throw new IllegalStateException("tianshu ai authoring root must differ from workspace root");
+        }
+        watchIndex(authoring.getResources());
+        DdcAiSyncClient sync = syncClient.getIfAvailable();
+        if (sync == null) {
+            throw new IllegalStateException(
+                    "egon.cola.component.tianshu.ai.skill.authoring.enabled requires a DdcAiSyncClient adapter");
+        }
+        return new DdcAiSkillAuthoringWatcher(sync, reader, authoring, stateMapper(objectMapper), metrics,
+                Clock.systemUTC(), executor);
     }
 
     static Map<String, DdcAiWatchedResourceDTO> watchIndex(List<DdcAiWatchedResourceDTO> resources) {

@@ -146,4 +146,23 @@ class DdcAiStarterAutoConfigurationTest {
                 .withBean(DdcSkillClient.class, () -> mock(DdcSkillClient.class))
                 .withBean(DdcAiSyncClient.class, () -> mock(DdcAiSyncClient.class));
     }
+    @Test
+    void authoringEnabledRegistersWatcherAndRejectsASharedRoot(@TempDir Path authoringRoot, @TempDir Path other) {
+        runner.withPropertyValues("egon.cola.component.tianshu.ai.skill.authoring.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.authoring.root=" + authoringRoot,
+                        "egon.cola.component.tianshu.ai.skill.authoring.poll-interval=1h")
+                .withBean(DdcAiSyncClient.class, () -> mock(DdcAiSyncClient.class))
+                .run(context -> assertThat(context).hasNotFailed().hasBean("ddcAiSkillAuthoringWatcher")
+                        .hasBean("ddcAiSkillTreeReader"));
+        runner.withPropertyValues("egon.cola.component.tianshu.ai.skill.authoring.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.authoring.root=" + authoringRoot,
+                        "egon.cola.component.tianshu.ai.skill.workspace.root=" + authoringRoot)
+                .withBean(DdcAiSyncClient.class, () -> mock(DdcAiSyncClient.class))
+                .run(context -> assertThat(context).hasFailed().getFailure().rootCause()
+                        .hasMessageContaining("authoring root must differ from workspace root"));
+        runner.withPropertyValues("egon.cola.component.tianshu.ai.skill.authoring.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.authoring.root=" + other)
+                .run(context -> assertThat(context).hasFailed().getFailure().rootCause()
+                        .hasMessageContaining("requires a DdcAiSyncClient adapter"));
+    }
 }

@@ -111,7 +111,7 @@ public class DdcAiSkillMaterializer {
     }
 
     /** 解析相对路径并拒绝越界、绝对路径与控制字符。 / Resolves a relative path, rejecting escapes and control chars. */
-    static Path safeResolve(Path base, String relative) {
+    public static Path safeResolve(Path base, String relative) {
         if (relative == null) throw new IllegalArgumentException("AI workspace path is required");
         if (relative.isEmpty()) return base;
         if (relative.startsWith("/") || relative.endsWith("/") || relative.indexOf('\\') >= 0
