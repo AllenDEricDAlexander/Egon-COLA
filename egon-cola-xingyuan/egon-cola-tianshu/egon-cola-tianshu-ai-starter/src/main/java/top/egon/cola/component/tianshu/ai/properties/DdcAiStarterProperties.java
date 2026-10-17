@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.validation.annotation.Validated;
 
 /**
@@ -28,6 +29,7 @@ public class DdcAiStarterProperties {
     @NotNull
     @Valid
     @Builder.Default
+    @NestedConfigurationProperty
     private DdcAiFeedbackProperties feedback = new DdcAiFeedbackProperties();
 
     @NotNull
@@ -46,11 +48,13 @@ public class DdcAiStarterProperties {
         @NotNull
         @Valid
         @Builder.Default
+        @NestedConfigurationProperty
         private DdcAiWorkspaceProperties workspace = new DdcAiWorkspaceProperties();
 
         @NotNull
         @Valid
         @Builder.Default
+        @NestedConfigurationProperty
         private DdcAiAuthoringProperties authoring = new DdcAiAuthoringProperties();
     }
 }
