@@ -51,6 +51,7 @@ ACK, operation, and configuration-client projection data.
 |---|---|
 | `egon-cola-tianshu-starter` | Transport-neutral SDK runtime and ports: ConfigData, `@DdcValue`, selective refresh, ACK, leases, management and registry contracts |
 | `egon-cola-tianshu-http-registration-starter` | Spring HTTP service registration, Tianshu lease heartbeat/recovery, and registration metadata contributor SPI |
+| `egon-cola-tianshu-ai-starter` | Downstream AI starter: non-blocking usage-feedback reporter, published Skill workspace (atomic materialization, Redis publication subscription, reconcile) and authoring-directory upload with optional auto publish |
 | `egon-cola-component-rpc-tianshu-adapter` | Composition adapter under `components/rpc`: protobuf contracts, direct gRPC clients/providers, HMAC metadata, and Spring Boot wiring |
 | `egon-cola-tianshu-admin` | Human REST Admin plus direct gRPC facades, PostgreSQL persistence, Redis cache/leases, and synchronous publish state machine |
 | `egon-cola-tianshu-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-tianshu-admin-web/README.md` |
@@ -98,6 +99,20 @@ catalogs and snapshots rather than the Admin page contract.
 The Admin manages tenant-scoped Prompt text and Skill file trees. Skill files are stored as text; the UI does not add format-specific rendering. Published versions are immutable. Consumers pin a resource with both `resourceId` and `versionNo`; same-tenant promotion copies a selected source snapshot into an explicit target scope while preserving existing target drafts.
 
 The Starter exposes separate `egon.cola.component.tianshu.prompt.enabled` and `skill.enabled` switches, both disabled by default. Direct callers must configure a positive `TIANSHU_TENANT_ID` and, when Redis is enabled, a tenant-scoped `TIANSHU_REDIS_USERNAME`. Prompt/Skill RPC reads require the read-only `AI_READ` operation. See the [Prompt/Skill rollout and migration runbook](docs/tianshu-ai-migration-runbook.md) for tenant setup, DDL readiness, V9 import, rollback limits, and the opt-in PostgreSQL/Redis integration profile.
+
+### Usage feedback and automatic optimization
+
+Downstream applications report each Prompt/Skill use through `DdcAiUsageReporter` (`ReportUsage`, operation `AI_REPORT`). Reports are queued in memory, sent in batches of up to 100 and deduplicated by `usageId`. Samples without an explicit score are scored by an LLM judge through the Yuheng gateway. Each resource can have one optimization policy: when the average score of the current version over the evaluation window drops below the threshold, Admin asks the optimizer model for an improved Prompt or Skill, writes it as a draft and, if the policy enables `autoPublish`, publishes it. Every publish, rollback and promotion emits a tenant-scoped publication event through the transactional outbox. The admin console shows the policy, runs and feedback in the "反馈与优化" tab.
+
+`egon-cola-tianshu-ai-starter` adds three independent switches:
+
+```yaml
+egon.cola.component.tianshu.ai.feedback.enabled: true
+egon.cola.component.tianshu.ai.skill.workspace: { enabled: true, root: /var/lib/app/skills, subscription-enabled: true, resources: [ { namespaceCode: ns-a, resourceKey: order-skill, resourceId: 123 } ] }
+egon.cola.component.tianshu.ai.skill.authoring: { enabled: false, root: /var/lib/app/skill-authoring }
+```
+
+The workspace materializes published Skills under `versions/v{n}` and switches a `current` marker atomically; the authoring watcher uploads a local directory as a draft (`AI_WRITE`) and can publish it (`AI_PUBLISH`). See the runbook section "AI 反馈与自动优化（DDL-201）" for deployment order, credentials and conflict handling.
 
 ## Starter Package Layout
 

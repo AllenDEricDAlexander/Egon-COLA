@@ -102,3 +102,89 @@ DDL IT 会在专用数据库创建临时 schema，并让 Tianshu DDL 创建 `ego
 ```
 
 Profile 未启用时不会运行 `DdcConfigOutboxIntegrationTest`；普通 `mvn test` 只运行 mock/contract 测试。此文档本身不执行 DDL、导入、Redis ACL 探测或上述 Failsafe 命令。
+
+## AI 反馈与自动优化（DDL-201）
+
+本节覆盖使用反馈、LLM-as-judge 评分、按策略自动优化以及下游 `egon-cola-tianshu-ai-starter` 的上线顺序。文档本身不执行 DDL、凭据变更或模型调用。
+
+### 部署顺序
+
+1. 先升级 Admin。新脚本 `V20261017_001__tianshu_ai_feedback_optimization.sql` 创建 `ddc_ai_usage_feedback`、`ddc_ai_optimization_policy`、`ddc_ai_optimization_run` 三张表；按“PostgreSQL DDL 初始化”一节先 `validate` 再 `initialize`，确认 DDL 历史出现该版本后再继续。
+2. Admin 运行正常后，再升级使用 RPC-Tianshu Adapter 的下游与 `egon-cola-tianshu-ai-starter`。新 RPC 方法只追加不修改，旧下游不受影响；新下游连接旧 Admin 时会得到 `UNIMPLEMENTED`，工作区对账只记录告警并在下个周期重试。
+3. 最后在验证模型连通性之后开启 `TIANSHU_AI_OPTIMIZATION_ENABLED=true`。关闭时只装配反馈接收与保留期清理，评分与优化作业不运行。
+
+### 玉衡模型通道
+
+Admin 以 SERVICE 令牌调用玉衡 OpenAI 兼容网关 `/v1/chat/completions`。上线前在统一身份登记 Admin 的 SERVICE client，并配置：
+
+```text
+TIANSHU_AI_MODEL_BASE_URL
+TIANSHU_AI_MODEL_RESOURCE_URI
+TIANSHU_AI_MODEL_REGISTRATION_ID
+TIANSHU_AI_MODEL_APP_ID
+TIANSHU_AI_MODEL_SCOPES
+TIANSHU_AI_OPTIMIZATION_ENABLED
+```
+
+通道开启但缺少 `TIANSHU_AI_MODEL_BASE_URL` 时 Admin 启动失败并报 `TIANSHU_AI_MODEL_BASE_URL_REQUIRED`。模型 401/403 记为 `MODEL_AUTH`，超时记为 `MODEL_TIMEOUT`，429 记为 `MODEL_RATE_LIMITED`。
+
+### RPC 凭据与操作权限
+
+- 只上报使用反馈的下游：runtime 凭据 `allowed-operations` 追加 `AI_REPORT`，并保持既有 `AI_READ`。
+- 需要 Skill 工作区的下游：保留 `AI_READ`（`GetSkill`、`GetVersionHead`）。
+- 需要创作上传的下游：另配凭据追加 `AI_WRITE`（`ReplaceSkillDraft`）与 `AI_PUBLISH`（`PublishSkillDraft`），并用 namespace 模式限制到创作空间。上传与发布不需要 `AI_READ`，但首次上传会调用 `GetVersionHead` 获取基线修订，因此创作凭据同样需要 `AI_READ`。
+- 先在 Admin 扩展凭据，再升级下游配置；顺序颠倒时下游收到 `PERMISSION_DENIED`。
+
+### 下游 ai-starter 配置
+
+```yaml
+egon:
+  cola:
+    component:
+      tianshu:
+        skill:
+          enabled: true
+        ai:
+          feedback:
+            enabled: true
+          skill:
+            workspace:
+              enabled: true
+              root: /var/lib/app/skills
+              subscription-enabled: true
+              resources:
+                - namespaceCode: ns-a
+                  resourceKey: order-skill
+                  resourceId: 123
+            authoring:
+              enabled: false
+              root: /var/lib/app/skill-authoring
+```
+
+`subscription-enabled` 会单独触发 Tianshu Redisson 客户端创建，因此需要 `TIANSHU_TENANT_ID` 与 `TIANSHU_REDIS_USERNAME`。工作区与创作目录必须是不同根目录，否则启动失败。
+
+### 运行处置
+
+- 策略 `PAUSED`：连续 3 次运行失败后自动暂停。查看运行列表中的 `error_code`，修复模型或权限问题后，在“反馈与优化”页签使用“保存并重新启用”。
+- 运行卡在 `RUNNING`：租约过期后由扫描器回收为 `FAILED(LEASE_EXPIRED)`，无需人工改库。
+- 创作上传 `CONFLICT`：远端草稿已被他人修改。先拉取远端当前版本并合并到创作目录，再删除目录内的 `.tianshu-authoring-state.json` 或调用 `DdcAiSkillAuthoringWatcher#resync`，下一次轮询会以服务端最新修订为基线重新上传。
+- 工作区落盘异常：`current` 标记只在新版本完整落盘后切换；删除资源目录下的 `state.json` 会让下一次对账重新拉取。
+
+### 物理清理
+
+保留期作业只做软删除，每租户每周期最多 20 批、每批 1000 行。确有容量压力时，可在维护窗口执行：
+
+```sql
+DELETE FROM ddc_ai_usage_feedback_t0
+WHERE deleted_at IS NOT NULL AND deleted_at < now() - interval '90 days';
+```
+
+### 集成测试
+
+三个新增 IT 与既有 AI IT 共用 `tianshu-ai-persistence-it` Profile 和环境变量；`DdcAiOptimizationPublishIT` 另外使用 `TIANSHU_AI_PERSISTENCE_IT_OUTBOX_*`，要求 Tianshu 表与 `egon_outbox` 位于同一个数据库：
+
+```text
+DdcAiFeedbackPersistenceIT
+DdcAiOptimizationConcurrencyIT
+DdcAiOptimizationPublishIT
+```

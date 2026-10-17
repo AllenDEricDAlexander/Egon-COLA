@@ -44,6 +44,7 @@ Admin HTTP 仅保留给人工管理 API 和 Actuator 健康检查。各 Admin �
 |---|---|
 | `egon-cola-tianshu-starter` | 传输无关 SDK 运行时与端口：ConfigData、`@DdcValue`、选择性刷新、ACK、租约、管理和注册契约 |
 | `egon-cola-tianshu-http-registration-starter` | Spring HTTP 服务注册、Tianshu 租约心跳/恢复和注册元数据贡献 SPI |
+| `egon-cola-tianshu-ai-starter` | 下游 AI Starter：非阻塞使用反馈上报、已发布 Skill 工作区（原子落盘、Redis 发布订阅、周期对账）与创作目录上传（可选自动发布） |
 | `egon-cola-component-rpc-tianshu-adapter` | 位于 `components/rpc` 的组装适配器：Protobuf 契约、直连 gRPC Client/Provider、HMAC Metadata 和 Spring Boot 装配 |
 | `egon-cola-tianshu-admin` | 人工 REST Admin 与直连 gRPC Facade、PostgreSQL 持久化、Redis 缓存/租约和同步发布状态机 |
 | `egon-cola-tianshu-admin-web` | 独立管理控制台（React + antd + Vite，纯 Node 工程，不进 Maven reactor）；构建与部署说明见 `egon-cola-tianshu-admin-web/README.md` |
@@ -89,6 +90,20 @@ RPC 机器客户端仍消费完整目录和快照，不使用 Admin 分页契约
 Admin 管理按 tenant 隔离的 Prompt 文本和 Skill 文件树。Skill 文件以文本保存，界面不提供按文件格式定制的渲染。发布版本不可变；消费者同时固定 `resourceId` 与 `versionNo`。同 tenant 内可将指定源版本复制发布到明确的目标 scope，目标现有草稿保持不变。
 
 Starter 分别提供 `egon.cola.component.tianshu.prompt.enabled` 和 `skill.enabled` 开关，默认关闭。直接调用方必须配置正数 `TIANSHU_TENANT_ID`；Redis 启用时还必须配置该 tenant 的 `TIANSHU_REDIS_USERNAME`。Prompt/Skill RPC 读取只需要只读 `AI_READ` 操作权限。tenant 登记、DDL 就绪、V9 导入、回滚边界及 opt-in PostgreSQL/Redis 集成测试见 [Prompt/Skill 上线与迁移手册](docs/tianshu-ai-migration-runbook.md)。
+
+### 使用反馈与自动优化
+
+下游通过 `DdcAiUsageReporter` 上报每次 Prompt/Skill 使用（`ReportUsage`，操作权限 `AI_REPORT`）。上报先进入内存队列，按每批最多 100 条发送，并以 `usageId` 去重。没有显式分数的样本由经玉衡网关调用的 LLM 评分。每个资源可配置一个优化策略：当前版本在评估窗口内的平均分低于阈值时，Admin 调用优化模型生成改进后的 Prompt 或 Skill 写入草稿；策略开启 `autoPublish` 时直接发布。每次发布、回滚与推广都会通过事务性 Outbox 发出租户级发布事件。管理台在“反馈与优化”页签展示策略、运行与反馈。
+
+`egon-cola-tianshu-ai-starter` 提供三个相互独立的开关：
+
+```yaml
+egon.cola.component.tianshu.ai.feedback.enabled: true
+egon.cola.component.tianshu.ai.skill.workspace: { enabled: true, root: /var/lib/app/skills, subscription-enabled: true, resources: [ { namespaceCode: ns-a, resourceKey: order-skill, resourceId: 123 } ] }
+egon.cola.component.tianshu.ai.skill.authoring: { enabled: false, root: /var/lib/app/skill-authoring }
+```
+
+工作区把已发布 Skill 落盘到 `versions/v{n}` 并原子切换 `current` 标记；创作监视器把本地目录作为草稿上传（`AI_WRITE`），并可继续发布（`AI_PUBLISH`）。部署顺序、凭据与冲突处置见手册“AI 反馈与自动优化（DDL-201）”一节。
 
 ## Starter 分包
 
