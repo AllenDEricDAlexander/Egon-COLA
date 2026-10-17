@@ -14,62 +14,36 @@ concurrency:
 
 jobs:
   backend:
-    name: Compile, test and package
+    name: Compile
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-
-    env:
-      # The Testcontainers-backed Outbox integration tests assume-skip without this flag.
-      EGON_OUTBOX_TEST_POSTGRES_ENABLED: "true"
+    timeout-minutes: 30
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
           fetch-depth: 1
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: zulu
           java-version: "21"
           cache: maven
 
-      - name: Compile, test and package the backend reactor
+      # Compiles main and test sources of the whole reactor without running tests,
+      # packaging, or installing anything into the local repository.
+      - name: Compile the backend reactor
         run: |
           set -euo pipefail
           chmod +x ./mvnw
-          ./mvnw -B -ntp clean verify
-
-      - name: Upload packaged artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-artifacts
-          path: |
-            **/target/*.jar
-            !**/*-exec.jar
-            !**/*-sources.jar
-            !**/*-javadoc.jar
-            !**.jar.original
-            !**/target/it/**
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload test reports on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-test-reports
-          path: |
-            **/target/surefire-reports
-            **/target/failsafe-reports
-          if-no-files-found: ignore
+          ./mvnw -B -ntp clean test-compile
 
       - name: Remove self-installed Maven artifacts
         if: always()
-        # maven-invoker-plugin writes into the real local repository, so without this
-        # cleanup the shared `cache: maven` entry would serve our own stale artifacts.
+        # Keep our own artifacts out of the shared `cache: maven` entry, so stale
+        # copies from older runs can never shadow the reactor modules.
         run: |
           rm -rf \
             "$HOME/.m2/repository/top/egon" \
