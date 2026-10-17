@@ -14,6 +14,7 @@ import top.egon.cola.component.rpc.tianshu.security.DdcRpcOperation;
 import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -30,6 +31,30 @@ public final class DdcRpcStatusExceptionMapper
                     ProtoUtils.metadataMarshaller(
                             DdcRpcErrorDetail.getDefaultInstance())
             );
+
+    /**
+     * Admin AI 业务状态串到稳定业务码的映射，用于在客户端恢复类型化异常。
+     * / Admin AI business status strings mapped to stable business codes for typed client-side restoration.
+     */
+    private static final Map<String, Integer> AI_STATUS_CODES = Map.ofEntries(
+            Map.entry("TIANSHU_AI_VALIDATION_ERROR", 56301),
+            Map.entry("TIANSHU_AI_NOT_FOUND", 56302),
+            Map.entry("TIANSHU_AI_REVISION_CONFLICT", 56303),
+            Map.entry("TIANSHU_AI_DUPLICATE_RESOURCE_KEY", 56304),
+            Map.entry("TIANSHU_AI_IDEMPOTENCY_CONFLICT", 56305),
+            Map.entry("TIANSHU_AI_NOT_PUBLISHED", 56306),
+            Map.entry("TIANSHU_AI_SCOPE_FORBIDDEN", 56307),
+            Map.entry("TIANSHU_AI_KIND_MISMATCH", 56308),
+            Map.entry("TIANSHU_AI_CONTENT_INTEGRITY", 56309),
+            Map.entry("TIANSHU_AI_REQUEST_TOO_LARGE", 56312),
+            Map.entry("TIANSHU_AI_VERSION_COUNTER_EXHAUSTED", 56314),
+            Map.entry("TIANSHU_AI_LIFECYCLE_CONFLICT", 56316),
+            Map.entry("TIANSHU_AI_FEEDBACK_INVALID", 56320),
+            Map.entry("TIANSHU_AI_FEEDBACK_SKEW", 56321),
+            Map.entry("TIANSHU_AI_OPTIMIZATION_DISABLED", 56322),
+            Map.entry("TIANSHU_AI_RUN_ACTIVE", 56323),
+            Map.entry("TIANSHU_AI_POLICY_STATE", 56324),
+            Map.entry("TIANSHU_AI_RUN_NOT_FOUND", 56325));
 
     /** 服务端异常链映射入口。 / Server-side failure-chain mapping entry point. */
     @Override
@@ -129,6 +154,10 @@ public final class DdcRpcStatusExceptionMapper
                     value.getStatus(),
                     detail.getMessage()
             );
+        }
+        Integer aiCode = AI_STATUS_CODES.get(detail.getCode());
+        if (aiCode != null) {
+            return new DdcException(aiCode, detail.getCode(), detail.getMessage());
         }
         return null;
     }

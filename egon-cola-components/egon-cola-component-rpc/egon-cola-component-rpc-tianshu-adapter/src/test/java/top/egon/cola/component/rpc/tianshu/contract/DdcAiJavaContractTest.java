@@ -235,7 +235,8 @@ class DdcAiJavaContractTest {
         assertThat(top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAiResourceServiceGrpc
                         .getServiceDescriptor().getMethods())
                 .extracting(method -> method.getBareMethodName())
-                .containsExactly("GetPrompt", "GetSkill");
+                .containsExactly("GetPrompt", "GetSkill", "ReportUsage", "GetVersionHead",
+                        "ReplaceSkillDraft", "PublishSkillDraft");
     }
 
     private static DdcAiNodeDTO node(String path, DdcAiNodeTypeEnum nodeType, String content) {

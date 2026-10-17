@@ -73,6 +73,10 @@ public final class DdcRpcOperationResolver {
         values.put(MANAGEMENT + "ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
         values.put(AI_RESOURCE + "GetPrompt", DdcRpcOperation.AI_READ);
         values.put(AI_RESOURCE + "GetSkill", DdcRpcOperation.AI_READ);
+        values.put(AI_RESOURCE + "ReportUsage", DdcRpcOperation.AI_REPORT);
+        values.put(AI_RESOURCE + "GetVersionHead", DdcRpcOperation.AI_READ);
+        values.put(AI_RESOURCE + "ReplaceSkillDraft", DdcRpcOperation.AI_WRITE);
+        values.put(AI_RESOURCE + "PublishSkillDraft", DdcRpcOperation.AI_PUBLISH);
         return Map.copyOf(values);
     }
 }

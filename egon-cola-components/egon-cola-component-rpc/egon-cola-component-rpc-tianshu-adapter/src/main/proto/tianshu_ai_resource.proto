@@ -9,6 +9,10 @@ option java_outer_classname = "DdcAiResourceProto";
 service DdcAiResourceService {
   rpc GetPrompt(AiResourceQuery) returns (AiPromptResult);
   rpc GetSkill(AiResourceQuery) returns (AiSkillResult);
+  rpc ReportUsage(AiUsageReportBatch) returns (AiUsageReportReceipt);
+  rpc GetVersionHead(AiResourceQuery) returns (AiVersionHead);
+  rpc ReplaceSkillDraft(AiSkillDraftUpload) returns (AiRevisionResult);
+  rpc PublishSkillDraft(AiSkillPublishRequest) returns (AiPublicationReceipt);
 }
 
 message AiResourceQuery {
@@ -49,4 +53,93 @@ message AiSkillResult {
   int64 version_no = 4;
   string content_sha256 = 5;
   repeated AiNode files = 6;
+}
+
+enum AiOutcome {
+  AI_OUTCOME_UNSPECIFIED = 0;
+  AI_OUTCOME_SUCCESS = 1;
+  AI_OUTCOME_FAILURE = 2;
+  AI_OUTCOME_UNKNOWN = 3;
+}
+
+message AiUsageReport {
+  string usage_id = 1;
+  string namespace_code = 2;
+  string resource_key = 3;
+  string resource_id = 4;
+  string version_id = 5;
+  int64 version_no = 6;
+  AiOutcome outcome = 7;
+  optional int32 explicit_score = 8;
+  optional string input_excerpt = 9;
+  optional string output_excerpt = 10;
+  optional int32 latency_ms = 11;
+  string occurred_at = 12;
+  optional string trace_id = 13;
+}
+
+message AiUsageReportBatch {
+  repeated AiUsageReport reports = 1;
+}
+
+enum AiUsageReportStatus {
+  AI_USAGE_REPORT_STATUS_UNSPECIFIED = 0;
+  AI_USAGE_REPORT_ACCEPTED = 1;
+  AI_USAGE_REPORT_ACCEPTED_DUPLICATE = 2;
+  AI_USAGE_REPORT_REJECTED = 3;
+}
+
+message AiUsageReportItemReceipt {
+  string usage_id = 1;
+  AiUsageReportStatus status = 2;
+  optional string reason = 3;
+}
+
+message AiUsageReportReceipt {
+  repeated AiUsageReportItemReceipt items = 1;
+}
+
+message AiVersionHead {
+  string resource_id = 1;
+  string resource_key = 2;
+  optional string version_id = 3;
+  optional int64 version_no = 4;
+  optional string content_sha256 = 5;
+  string resource_revision = 6;
+  bool published = 7;
+}
+
+message AiSkillDraftUpload {
+  string namespace_code = 1;
+  string resource_key = 2;
+  string resource_id = 3;
+  string expected_revision = 4;
+  string display_name = 5;
+  string description = 6;
+  repeated AiNode files = 7;
+}
+
+message AiRevisionResult {
+  string resource_id = 1;
+  string resource_revision = 2;
+  string draft_sha256 = 3;
+  bool draft_matches_current = 4;
+}
+
+message AiSkillPublishRequest {
+  string namespace_code = 1;
+  string resource_key = 2;
+  string resource_id = 3;
+  string expected_revision = 4;
+  string request_id = 5;
+  string change_note = 6;
+}
+
+message AiPublicationReceipt {
+  string publication_id = 1;
+  string resource_id = 2;
+  string target_version_id = 3;
+  int64 target_version_no = 4;
+  string resource_revision = 5;
+  string content_sha256 = 6;
 }

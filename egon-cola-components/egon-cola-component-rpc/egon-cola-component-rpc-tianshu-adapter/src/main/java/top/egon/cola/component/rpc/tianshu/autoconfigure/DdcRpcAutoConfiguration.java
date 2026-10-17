@@ -9,6 +9,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
@@ -18,6 +19,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
+import top.egon.cola.component.tianshu.api.client.DdcAiFeedbackClient;
+import top.egon.cola.component.tianshu.api.client.DdcAiSyncClient;
 import top.egon.cola.component.tianshu.api.client.DdcPromptClient;
 import top.egon.cola.component.tianshu.api.client.DdcSkillClient;
 import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
@@ -185,6 +188,43 @@ public class DdcRpcAutoConfiguration {
     @ConditionalOnMissingBean(DdcSkillClient.class)
     public DdcSkillClient ddcAiSkillRpcClient(
             @Qualifier("ddcAiSkillRpcClientHandle") DdcRpcClientHandle<DdcSkillClient> handle) {
+        return handle.client();
+    }
+
+    @Bean(name = "ddcAiFeedbackRpcClientHandle", destroyMethod = "close")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.tianshu.ai.feedback",
+            name = "enabled",
+            havingValue = "true")
+    @ConditionalOnMissingBean(DdcAiFeedbackClient.class)
+    public DdcRpcClientHandle<DdcAiFeedbackClient> ddcAiFeedbackRpcClientHandle(
+            DdcRpcClientFactory factory) {
+        return factory.feedbackClient();
+    }
+
+    @Bean("ddcAiFeedbackRpcClient")
+    @ConditionalOnBean(name = "ddcAiFeedbackRpcClientHandle")
+    @ConditionalOnMissingBean(DdcAiFeedbackClient.class)
+    public DdcAiFeedbackClient ddcAiFeedbackRpcClient(
+            @Qualifier("ddcAiFeedbackRpcClientHandle") DdcRpcClientHandle<DdcAiFeedbackClient> handle) {
+        return handle.client();
+    }
+
+    @Bean(name = "ddcAiSyncRpcClientHandle", destroyMethod = "close")
+    @ConditionalOnExpression(
+            "${egon.cola.component.tianshu.ai.skill.workspace.enabled:false} || "
+                    + "${egon.cola.component.tianshu.ai.skill.authoring.enabled:false}")
+    @ConditionalOnMissingBean(DdcAiSyncClient.class)
+    public DdcRpcClientHandle<DdcAiSyncClient> ddcAiSyncRpcClientHandle(
+            DdcRpcClientFactory factory) {
+        return factory.syncClient();
+    }
+
+    @Bean("ddcAiSyncRpcClient")
+    @ConditionalOnBean(name = "ddcAiSyncRpcClientHandle")
+    @ConditionalOnMissingBean(DdcAiSyncClient.class)
+    public DdcAiSyncClient ddcAiSyncRpcClient(
+            @Qualifier("ddcAiSyncRpcClientHandle") DdcRpcClientHandle<DdcAiSyncClient> handle) {
         return handle.client();
     }
 

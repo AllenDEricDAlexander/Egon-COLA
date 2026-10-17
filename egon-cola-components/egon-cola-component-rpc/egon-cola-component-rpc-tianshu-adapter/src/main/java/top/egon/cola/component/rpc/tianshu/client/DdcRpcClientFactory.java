@@ -9,6 +9,8 @@ import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFact
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
 import top.egon.cola.component.rpc.tianshu.client.ai.DdcAiProtoConverter;
+import top.egon.cola.component.rpc.tianshu.client.ai.RpcDdcAiFeedbackClient;
+import top.egon.cola.component.rpc.tianshu.client.ai.RpcDdcAiSyncClient;
 import top.egon.cola.component.rpc.tianshu.client.ai.RpcDdcPromptClient;
 import top.egon.cola.component.rpc.tianshu.client.ai.RpcDdcSkillClient;
 import top.egon.cola.component.rpc.tianshu.client.config.RpcDdcConfigClient;
@@ -25,6 +27,8 @@ import top.egon.cola.component.rpc.tianshu.mapping.DdcRegistryProtoMapper;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcRpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.tianshu.security.DdcRpcClientInterceptorFactory;
 import top.egon.cola.component.rpc.tianshu.security.DdcRpcCredential;
+import top.egon.cola.component.tianshu.api.client.DdcAiFeedbackClient;
+import top.egon.cola.component.tianshu.api.client.DdcAiSyncClient;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.api.client.DdcPromptClient;
@@ -180,6 +184,36 @@ public final class DdcRpcClientFactory {
         try {
             return new DdcRpcClientHandle<>(
                     new RpcDdcSkillClient(direct.client(), aiProtoConverter,
+                            new DdcRpcStatusExceptionMapper(), ddcProperties),
+                    direct);
+        } catch (RuntimeException failure) {
+            direct.close();
+            throw failure;
+        }
+    }
+
+    public DdcRpcClientHandle<DdcAiFeedbackClient> feedbackClient() {
+        RpcDirectClientHandle<DdcAiResourceRpc> direct = create(
+                DdcAiResourceRpc.class,
+                () -> rpcProperties.runtimeCredential());
+        try {
+            return new DdcRpcClientHandle<>(
+                    new RpcDdcAiFeedbackClient(direct.client(), aiProtoConverter,
+                            new DdcRpcStatusExceptionMapper()),
+                    direct);
+        } catch (RuntimeException failure) {
+            direct.close();
+            throw failure;
+        }
+    }
+
+    public DdcRpcClientHandle<DdcAiSyncClient> syncClient() {
+        RpcDirectClientHandle<DdcAiResourceRpc> direct = create(
+                DdcAiResourceRpc.class,
+                () -> rpcProperties.runtimeCredential());
+        try {
+            return new DdcRpcClientHandle<>(
+                    new RpcDdcAiSyncClient(direct.client(), aiProtoConverter,
                             new DdcRpcStatusExceptionMapper(), ddcProperties),
                     direct);
         } catch (RuntimeException failure) {

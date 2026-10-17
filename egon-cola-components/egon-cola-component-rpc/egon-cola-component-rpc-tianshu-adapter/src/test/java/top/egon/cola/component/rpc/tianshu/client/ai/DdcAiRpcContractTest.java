@@ -12,6 +12,15 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiPromptResult;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillResult;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAiResourceServiceGrpc;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiOutcome;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillDraftUpload;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillPublishRequest;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReport;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportBatch;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportStatus;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiVersionHead;
+import top.egon.cola.component.rpc.tianshu.security.DdcRpcOperation;
+import top.egon.cola.component.rpc.tianshu.security.DdcRpcOperationResolver;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcRpcStatusExceptionMapper;
 import top.egon.cola.component.tianshu.api.client.DdcPromptClient;
 import top.egon.cola.component.tianshu.api.client.DdcSkillClient;
@@ -33,17 +42,53 @@ class DdcAiRpcContractTest {
     private static final String HASH = "a".repeat(64);
 
     @Test
-    void typedFacadeExposesOnlyTheTwoIdempotentAiReadMethods() throws NoSuchMethodException {
+    void typedFacadeExposesReadFeedbackAndSyncMethodsWithIdempotencyMarkers() throws NoSuchMethodException {
         EgonRpcService service = DdcAiResourceRpc.class.getAnnotation(EgonRpcService.class);
 
         assertThat(service).isNotNull();
         assertThat(service.grpcClass()).isEqualTo(DdcAiResourceServiceGrpc.class);
-        assertThat(DdcAiResourceRpc.class.getDeclaredMethods()).hasSize(2);
-        assertMethod("getPrompt", "GetPrompt");
-        assertMethod("getSkill", "GetSkill");
+        assertThat(DdcAiResourceRpc.class.getDeclaredMethods()).hasSize(6);
+        assertMethod("getPrompt", "GetPrompt", AiResourceQuery.class, true);
+        assertMethod("getSkill", "GetSkill", AiResourceQuery.class, true);
+        assertMethod("getVersionHead", "GetVersionHead", AiResourceQuery.class, true);
+        assertMethod("reportUsage", "ReportUsage", AiUsageReportBatch.class, false);
+        assertMethod("replaceSkillDraft", "ReplaceSkillDraft", AiSkillDraftUpload.class, false);
+        assertMethod("publishSkillDraft", "PublishSkillDraft", AiSkillPublishRequest.class, false);
         assertThat(DdcAiResourceServiceGrpc.getServiceDescriptor().getMethods())
                 .extracting(method -> method.getBareMethodName())
-                .containsExactlyInAnyOrder("GetPrompt", "GetSkill");
+                .containsExactlyInAnyOrder("GetPrompt", "GetSkill", "ReportUsage", "GetVersionHead",
+                        "ReplaceSkillDraft", "PublishSkillDraft");
+    }
+
+    @Test
+    void newAiOperationsResolveToDedicatedPermissions() {
+        DdcRpcOperationResolver resolver = new DdcRpcOperationResolver();
+        String prefix = "egon.tianshu.v1.DdcAiResourceService/";
+
+        assertThat(resolver.resolve(prefix + "ReportUsage")).isEqualTo(DdcRpcOperation.AI_REPORT);
+        assertThat(resolver.resolve(prefix + "GetVersionHead")).isEqualTo(DdcRpcOperation.AI_READ);
+        assertThat(resolver.resolve(prefix + "ReplaceSkillDraft")).isEqualTo(DdcRpcOperation.AI_WRITE);
+        assertThat(resolver.resolve(prefix + "PublishSkillDraft")).isEqualTo(DdcRpcOperation.AI_PUBLISH);
+        assertThat(DdcRpcOperation.AI_REPORT.getCode()).isEqualTo(20);
+        assertThat(DdcRpcOperation.AI_WRITE.getCode()).isEqualTo(21);
+        assertThat(DdcRpcOperation.AI_PUBLISH.getCode()).isEqualTo(22);
+        assertThat(DdcRpcOperation.AI_PUBLISH.management()).isFalse();
+    }
+
+    @Test
+    void protoMessagesCarryOptionalFieldsAndPrefixedEnums() {
+        AiUsageReport report = AiUsageReport.newBuilder().setUsageId("u").setOccurredAt("2026-10-17T00:00:00Z")
+                .setOutcome(AiOutcome.AI_OUTCOME_SUCCESS).build();
+        AiVersionHead head = AiVersionHead.newBuilder().setResourceId("1").setResourceKey("k")
+                .setResourceRevision("0").setPublished(false).build();
+
+        assertThat(report.hasExplicitScore()).isFalse();
+        assertThat(report.hasInputExcerpt()).isFalse();
+        assertThat(report.hasTraceId()).isFalse();
+        assertThat(head.hasVersionNo()).isFalse();
+        assertThat(head.hasContentSha256()).isFalse();
+        assertThat(AiUsageReportStatus.AI_USAGE_REPORT_ACCEPTED_DUPLICATE.getNumber()).isEqualTo(2);
+        assertThat(AiOutcome.AI_OUTCOME_UNKNOWN.getNumber()).isEqualTo(3);
     }
 
     @Test
@@ -146,12 +191,13 @@ class DdcAiRpcContractTest {
         verify(rpc).getSkill(argThat(request -> hasExpectedRoot(request, 4L)));
     }
 
-    private void assertMethod(String javaName, String rpcName) throws NoSuchMethodException {
-        EgonRpcMethod method = DdcAiResourceRpc.class.getMethod(javaName,
-                AiResourceQuery.class).getAnnotation(EgonRpcMethod.class);
+    private void assertMethod(String javaName, String rpcName, Class<?> requestType, boolean idempotent)
+            throws NoSuchMethodException {
+        EgonRpcMethod method = DdcAiResourceRpc.class.getMethod(javaName, requestType)
+                .getAnnotation(EgonRpcMethod.class);
         assertThat(method).isNotNull();
         assertThat(method.name()).isEqualTo(rpcName);
-        assertThat(method.idempotent()).isTrue();
+        assertThat(method.idempotent()).isEqualTo(idempotent);
     }
 
     private boolean hasExpectedRoot(AiResourceQuery request, long versionNo) {

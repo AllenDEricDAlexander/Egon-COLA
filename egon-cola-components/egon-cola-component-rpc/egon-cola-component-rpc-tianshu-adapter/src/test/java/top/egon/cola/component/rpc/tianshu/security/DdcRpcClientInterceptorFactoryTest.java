@@ -91,7 +91,11 @@ class DdcRpcClientInterceptorFactoryTest {
                 Map.entry("GetApp", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
                 Map.entry("ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
                 Map.entry("GetPrompt", DdcRpcOperation.AI_READ),
-                Map.entry("GetSkill", DdcRpcOperation.AI_READ)
+                Map.entry("GetSkill", DdcRpcOperation.AI_READ),
+                Map.entry("ReportUsage", DdcRpcOperation.AI_REPORT),
+                Map.entry("GetVersionHead", DdcRpcOperation.AI_READ),
+                Map.entry("ReplaceSkillDraft", DdcRpcOperation.AI_WRITE),
+                Map.entry("PublishSkillDraft", DdcRpcOperation.AI_PUBLISH)
         );
 
         assertThat(resolver.operationsByBareMethod()).containsExactlyInAnyOrderEntriesOf(expected);
