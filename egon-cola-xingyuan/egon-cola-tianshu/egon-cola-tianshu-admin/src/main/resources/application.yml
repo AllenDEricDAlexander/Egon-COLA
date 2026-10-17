@@ -174,6 +174,36 @@ egon:
             heartbeat-interval-seconds: 10
             fail-fast: ${TIANSHU_SELF_REGISTRATION_FAIL_FAST:false}
         admin:
+          ai:
+            optimization:
+              enabled: ${TIANSHU_AI_OPTIMIZATION_ENABLED:false}
+              scan-interval: 60s
+              run-lease: 10m
+              max-concurrent-runs: 2
+              sample-limit: 20
+            judge:
+              scan-interval: 30s
+              batch-size: 50
+              max-attempts: 3
+              max-context-bytes: 16384
+              lease: 5m
+            model:
+              base-url: "${TIANSHU_AI_MODEL_BASE_URL:}"
+              resource-uri: "${TIANSHU_AI_MODEL_RESOURCE_URI:}"
+              registration-id: "${TIANSHU_AI_MODEL_REGISTRATION_ID:}"
+              app-id: "${TIANSHU_AI_MODEL_APP_ID:}"
+              scopes: "${TIANSHU_AI_MODEL_SCOPES:}"
+              connect-timeout: 3s
+              read-timeout: 120s
+              max-output-tokens: 8192
+              temperature: 0.2
+            feedback:
+              retention: 30d
+              retention-scan-interval: 1h
+              max-batch: 100
+              max-clock-skew: 5m
+              max-input-excerpt-bytes: 8192
+              max-output-excerpt-bytes: 32768
           security:
             local-dev: ${TIANSHU_ADMIN_SECURITY_LOCAL_DEV:false}
             jwt:
@@ -205,7 +235,7 @@ egon:
                 env-patterns: ${TIANSHU_RPC_RUNTIME_ENV_PATTERNS:*}
                 biz-code-patterns: ${TIANSHU_RPC_RUNTIME_BIZ_CODE_PATTERNS:*}
                 namespace-patterns: ${TIANSHU_RPC_RUNTIME_NAMESPACE_PATTERNS:*}
-                allowed-operations: SDK_REGISTER,SDK_HEARTBEAT,SDK_OFFLINE,CONFIG_PULL,PUBLISH_ACK,AI_READ
+                allowed-operations: SDK_REGISTER,SDK_HEARTBEAT,SDK_OFFLINE,CONFIG_PULL,PUBLISH_ACK,AI_READ,AI_REPORT
               - credential-id: ${TIANSHU_RPC_REGISTRY_CREDENTIAL_ID:registry}
                 access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
                 secret: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}

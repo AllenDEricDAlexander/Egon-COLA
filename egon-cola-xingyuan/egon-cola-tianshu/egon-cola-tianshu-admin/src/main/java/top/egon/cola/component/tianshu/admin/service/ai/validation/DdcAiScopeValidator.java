@@ -55,8 +55,13 @@ public class DdcAiScopeValidator {
         return resolveNamespaceId(scope, Permission.PUBLISH);
     }
 
+    /** 下游使用上报的作用域解析；只读，不锁父级。 / Scope resolution for downstream usage reports; read-only, no parent locks. */
+    public Long resolveNamespaceIdForReport(@NotNull @Valid DdcAiScopeDTO scope) {
+        return resolveNamespaceId(scope, Permission.REPORT);
+    }
+
     private Long resolveNamespaceId(DdcAiScopeDTO scope, Permission permission) {
-        if (permission != Permission.READ) {
+        if (permission.locksParents()) {
             resourceRepository.lockScopeParentsForShare(scope);
             invalidateScopeCache(scope);
         }
@@ -90,6 +95,10 @@ public class DdcAiScopeValidator {
         assertResourceScope(resource, Permission.PUBLISH);
     }
 
+    public void assertCanReport(@NotNull @Valid DdcAiResourceBO resource) {
+        assertResourceScope(resource, Permission.REPORT);
+    }
+
     private void assertResourceScope(DdcAiResourceBO resource, Permission permission) {
         String namespaceCode = resource.getNamespaceCode();
         if (namespaceCode == null) {
@@ -111,6 +120,9 @@ public class DdcAiScopeValidator {
             DdcAiScopeDTO scope) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {
+            if (permission == Permission.REPORT) {
+                throw scopeForbidden();
+            }
             if (!authentication.isAuthenticated()
                     || !(authentication.getPrincipal() instanceof Rbac3UserDetails user)) {
                 throw scopeForbidden();
@@ -128,6 +140,13 @@ public class DdcAiScopeValidator {
             return;
         }
 
+        if (DdcAiSystemActor.current().isPresent()) {
+            if (MDC.get("tenantId") == null || MDC.get("tenantId").isBlank()) {
+                throw scopeForbidden();
+            }
+            return;
+        }
+
         DdcServicePrincipal principal;
         try {
             principal = DdcServicePrincipal.current();
@@ -136,13 +155,12 @@ public class DdcAiScopeValidator {
         }
         boolean namespaceAllowed = principal.namespacePatterns().stream()
                 .anyMatch(pattern -> PatternMatchUtils.simpleMatch(pattern, scope.namespaceCode()));
-        if (permission != Permission.READ
-                || !"SDK".equals(principal.clientType())
+        if (!"SDK".equals(principal.clientType())
                 || !Objects.equals(MDC.get("tenantId"), Long.toString(principal.tenantId()))
                 || !Objects.equals(principal.bizCode(), scope.bizCode())
                 || !Objects.equals(principal.env(), scope.env())
                 || !Objects.equals(principal.appCode(), scope.appCode())
-                || !principal.allowedOperations().contains("AI_READ")
+                || !principal.allowedOperations().contains(permission.rpcOperation())
                 || !namespaceAllowed) {
             throw scopeForbidden();
         }
@@ -166,8 +184,25 @@ public class DdcAiScopeValidator {
     }
 
     private enum Permission {
-        READ,
-        WRITE,
-        PUBLISH
+        READ("AI_READ", false),
+        WRITE("AI_WRITE", true),
+        PUBLISH("AI_PUBLISH", true),
+        REPORT("AI_REPORT", false);
+
+        private final String rpcOperation;
+        private final boolean locksParents;
+
+        Permission(String rpcOperation, boolean locksParents) {
+            this.rpcOperation = rpcOperation;
+            this.locksParents = locksParents;
+        }
+
+        String rpcOperation() {
+            return rpcOperation;
+        }
+
+        boolean locksParents() {
+            return locksParents;
+        }
     }
 }
