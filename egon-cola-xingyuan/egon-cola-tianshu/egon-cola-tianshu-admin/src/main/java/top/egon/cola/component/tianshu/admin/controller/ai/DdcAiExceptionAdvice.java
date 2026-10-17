@@ -72,12 +72,12 @@ public class DdcAiExceptionAdvice {
 
     private HttpStatus httpStatus(int code) {
         return switch (code) {
-            case 56301, 56308 -> HttpStatus.BAD_REQUEST;
-            case 56302, 56306 -> HttpStatus.NOT_FOUND;
+            case 56301, 56308, 56320, 56321 -> HttpStatus.BAD_REQUEST;
+            case 56302, 56306, 56325 -> HttpStatus.NOT_FOUND;
             case 56307 -> HttpStatus.FORBIDDEN;
-            case 56303, 56304, 56305, 56311, 56314 -> HttpStatus.CONFLICT;
+            case 56303, 56304, 56305, 56311, 56314, 56323, 56324 -> HttpStatus.CONFLICT;
             case 56312 -> HttpStatus.PAYLOAD_TOO_LARGE;
-            case 56310, 56313 -> HttpStatus.SERVICE_UNAVAILABLE;
+            case 56310, 56313, 56322 -> HttpStatus.SERVICE_UNAVAILABLE;
             case 56309, 56999 -> HttpStatus.INTERNAL_SERVER_ERROR;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };

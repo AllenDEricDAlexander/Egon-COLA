@@ -21,6 +21,8 @@ import org.springdoc.webmvc.core.configuration.SpringDocWebMvcConfiguration;
 import top.egon.cola.component.tianshu.admin.config.DdcAiOpenApiConfiguration;
 import top.egon.cola.component.tianshu.admin.config.DdcAiWebConfiguration;
 import top.egon.cola.component.tianshu.admin.controller.ai.DdcAiResourceController;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiOptimizationService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 
 import java.util.stream.StreamSupport;
@@ -40,6 +42,8 @@ class DdcAiOpenApiContractTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @MockBean(name = "ddcAiResourceService") private DdcAiResourceService service;
+    @MockBean(name = "ddcAiOptimizationService") private DdcAiOptimizationService optimizationService;
+    @MockBean(name = "ddcAiFeedbackService") private DdcAiFeedbackService feedbackService;
 
     @Test
     void generatedTianshuOpenApiContainsEveryRestOperationAndExactSecurityContract() throws Exception {
@@ -62,6 +66,27 @@ class DdcAiOpenApiContractTest {
         assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/rollbacks", "post", "rollbackAiPublication", "200");
         assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/promotions", "post", "promoteAiVersion", "201");
         assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/publications", "get", "pageAiPublications", "200");
+        assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/optimization-policy", "get",
+                "getAiOptimizationPolicy", "200");
+        assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/optimization-policy", "put",
+                "replaceAiOptimizationPolicy", "200");
+        assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/optimization-runs", "post",
+                "triggerAiOptimizationRun", "202");
+        assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/optimization-runs", "get",
+                "pageAiOptimizationRuns", "200");
+        assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/optimization-runs/{runId}", "get",
+                "getAiOptimizationRun", "200");
+        assertOperation(paths, "/api/v1/tianshu/ai/resources/{id}/usage-feedback", "get",
+                "pageAiUsageFeedback", "200");
+        JsonNode trigger = paths.path("/api/v1/tianshu/ai/resources/{id}/optimization-runs").path("post");
+        assertHeaderParameter(trigger, "Idempotency-Key", true);
+        assertThat(trigger.path("responses").path("202").path("headers").has("Location")).isTrue();
+        assertThat(trigger.path("responses").has("503")).isTrue();
+        assertThat(paths.path("/api/v1/tianshu/ai/resources/{id}/optimization-runs").path("get")
+                .path("parameters").findValuesAsText("name")).contains("state", "pageNo", "pageSize");
+        assertThat(paths.path("/api/v1/tianshu/ai/resources/{id}/usage-feedback").path("get")
+                .path("parameters").findValuesAsText("name"))
+                .contains("versionNo", "outcome", "scoreSource", "maxScore", "pageNo", "pageSize");
         assertParameterPattern(resourcePage, "bizCode", "^[^\\p{Cntrl}]+$");
 
         JsonNode scheme = api.path("components").path("securitySchemes").path("tianshuBearerAuth");

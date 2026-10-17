@@ -29,6 +29,8 @@ import top.egon.cola.component.tianshu.admin.model.vo.DdcAiResourceResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionResult;
 import top.egon.cola.component.tianshu.admin.rpc.provider.DdcAiResourceRpcProvider;
 import top.egon.cola.component.tianshu.admin.security.rpc.DdcServicePrincipal;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiOptimizationService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.model.ai.DdcAiContentDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
@@ -80,6 +82,12 @@ class DdcEndToEndContractTest {
 
     @MockBean(name = "ddcAiResourceService")
     private DdcAiResourceService service;
+
+    @MockBean(name = "ddcAiOptimizationService")
+    private DdcAiOptimizationService optimizationService;
+
+    @MockBean(name = "ddcAiFeedbackService")
+    private DdcAiFeedbackService feedbackService;
 
     @Test
     void restDraftPublishPromotionAndDirectRpcReadKeepOneFixedSnapshotAndSeparateReceipts() throws Exception {

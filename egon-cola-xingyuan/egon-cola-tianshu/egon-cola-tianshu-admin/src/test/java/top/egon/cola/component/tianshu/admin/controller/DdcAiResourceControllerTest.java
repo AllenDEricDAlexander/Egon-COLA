@@ -32,6 +32,8 @@ import top.egon.cola.component.tianshu.admin.model.vo.DdcAiResourceResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.security.management.DdcAdminAuthenticationEntryPoint;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiOptimizationService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.model.ai.DdcAiContentDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
@@ -73,6 +75,8 @@ class DdcAiResourceControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private RequestMappingHandlerAdapter handlerAdapter;
     @MockBean(name = "ddcAiResourceService") private DdcAiResourceService service;
+    @MockBean(name = "ddcAiOptimizationService") private DdcAiOptimizationService optimizationService;
+    @MockBean(name = "ddcAiFeedbackService") private DdcAiFeedbackService feedbackService;
 
     @Test
     void pageAiResourcesBindsOnlyDeclaredScopeKindAndPagingParameters() throws Exception {

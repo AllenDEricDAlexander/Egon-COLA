@@ -29,6 +29,8 @@ import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.service.cache.DdcCacheService;
 import top.egon.cola.component.tianshu.admin.service.config.DdcConfigService;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiOptimizationService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.tianshu.admin.service.publish.DdcPublishTaskQueryService;
@@ -147,6 +149,12 @@ class DdcAdminSecurityIntegrationTest {
 
     @MockBean(name = "ddcAiResourceService")
     private DdcAiResourceService aiResourceService;
+
+    @MockBean(name = "ddcAiOptimizationService")
+    private DdcAiOptimizationService aiOptimizationService;
+
+    @MockBean(name = "ddcAiFeedbackService")
+    private DdcAiFeedbackService aiFeedbackService;
 
     @MockBean
     private IdpBearerAuthenticationFilter idpBearerAuthenticationFilter;

@@ -19,6 +19,8 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiOptimizationPolicyCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiOptimizationTriggerCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiPromotionCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiRollbackCommand;
@@ -68,7 +70,9 @@ public class DdcAiWebConfiguration {
                 DdcAiDraftCommand.class,
                 DdcAiPublishCommand.class,
                 DdcAiRollbackCommand.class,
-                DdcAiPromotionCommand.class
+                DdcAiPromotionCommand.class,
+                DdcAiOptimizationPolicyCommand.class,
+                DdcAiOptimizationTriggerCommand.class
         );
 
         private final ObjectMapper strictObjectMapper;

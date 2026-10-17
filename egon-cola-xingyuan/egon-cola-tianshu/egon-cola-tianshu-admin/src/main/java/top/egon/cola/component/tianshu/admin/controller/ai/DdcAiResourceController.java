@@ -16,6 +16,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,20 +38,31 @@ import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiCreateCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDeleteCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiDraftCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiOptimizationPolicyCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiOptimizationTriggerCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiPromotionCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiPublishCommand;
 import top.egon.cola.component.tianshu.admin.model.command.DdcAiRollbackCommand;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcAiResourceSummaryDTO;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcAiVersionSummaryDTO;
+import top.egon.cola.component.tianshu.admin.model.enums.DdcAiOutcomePersistenceEnum;
+import top.egon.cola.component.tianshu.admin.model.enums.DdcAiRunStatePersistenceEnum;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiIdQuery;
+import top.egon.cola.component.tianshu.admin.model.query.DdcAiOptimizationRunPageQuery;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiPageQuery;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiPublicationPageQuery;
+import top.egon.cola.component.tianshu.admin.model.query.DdcAiUsageFeedbackPageQuery;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiVersionPageQuery;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiVersionQuery;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiOptimizationPolicyResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiOptimizationRunResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiPublicationResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiResourceResult;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiUsageFeedbackResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionResult;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiOptimizationService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
@@ -83,6 +95,12 @@ public class DdcAiResourceController {
 
     @Qualifier("ddcAiResourceService")
     private final DdcAiResourceService aiResourceService;
+
+    @Qualifier("ddcAiOptimizationService")
+    private final DdcAiOptimizationService optimizationService;
+
+    @Qualifier("ddcAiFeedbackService")
+    private final DdcAiFeedbackService feedbackService;
 
     @Operation(operationId = "pageAiResources", summary = "浏览范围内资源",
             security = @SecurityRequirement(name = "tianshuBearerAuth"))
@@ -453,6 +471,198 @@ public class DdcAiResourceController {
         return noStore(DdcAdminPageSupport.result(aiResourceService.pagePublications(query)));
     }
 
+    @Operation(operationId = "getAiOptimizationPolicy", summary = "读取优化策略与评估快照",
+            security = @SecurityRequirement(name = "tianshuBearerAuth"))
+    @Parameters({
+            @Parameter(name = TENANT_HEADER, in = ParameterIn.HEADER, required = true)
+    })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Optimization policy, or defaults when not persisted",
+                    headers = @io.swagger.v3.oas.annotations.headers.Header(name = "Cache-Control", schema = @Schema(type = "string", example = "no-store"))),
+            @ApiResponse(responseCode = "400", description = "Invalid resource id", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "403", description = "Scope permission denied", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "404", description = "Resource not found", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "503", description = "Tenant or persistence unavailable", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "500", description = "Unexpected failure", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class)))
+    })
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
+    @GetMapping("/{id}/optimization-policy")
+    public ResponseEntity<ResultRecord<DdcAiOptimizationPolicyResult>> getOptimizationPolicy(
+            @Parameter(description = "Resource ID, positive decimal string", required = true,
+                    schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @PathVariable("id") Long id) {
+        return noStore(ResultRecord.success(optimizationService.getPolicy(new DdcAiIdQuery(id))));
+    }
+
+    @Operation(operationId = "replaceAiOptimizationPolicy", summary = "完整替换优化策略",
+            security = @SecurityRequirement(name = "tianshuBearerAuth"))
+    @Parameters({
+            @Parameter(name = TENANT_HEADER, in = ParameterIn.HEADER, required = true)
+    })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Optimization policy replaced",
+                    headers = @io.swagger.v3.oas.annotations.headers.Header(name = "Cache-Control", schema = @Schema(type = "string", example = "no-store"))),
+            @ApiResponse(responseCode = "400", description = "Invalid policy", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "403", description = "Scope permission denied", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "404", description = "Resource not found", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "409", description = "Stale revision or rearm while a run is active", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "413", description = "Request body too large", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "503", description = "Tenant or persistence unavailable", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "500", description = "Unexpected failure", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class)))
+    })
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
+    @PutMapping(path = "/{id}/optimization-policy", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ResultRecord<DdcAiOptimizationPolicyResult>> replaceOptimizationPolicy(
+            @Parameter(description = "Resource ID, positive decimal string", required = true,
+                    schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @PathVariable("id") Long id,
+            @Valid @RequestBody DdcAiOptimizationPolicyCommand command) {
+        return noStore(ResultRecord.success(optimizationService.replacePolicy(new DdcAiIdQuery(id), command)));
+    }
+
+    @Operation(operationId = "triggerAiOptimizationRun", summary = "手动触发一次优化运行",
+            security = @SecurityRequirement(name = "tianshuBearerAuth"))
+    @Parameters({
+            @Parameter(name = TENANT_HEADER, in = ParameterIn.HEADER, required = true),
+            @Parameter(name = IDEMPOTENCY_HEADER, in = ParameterIn.HEADER, required = true,
+                    schema = @Schema(type = "string", pattern = IDEMPOTENCY_PATTERN, minLength = 16, maxLength = 64))
+    })
+    @ApiResponses({
+            @ApiResponse(responseCode = "202", description = "Optimization run accepted",
+                    headers = {
+                            @io.swagger.v3.oas.annotations.headers.Header(name = "Location", schema = @Schema(type = "string")),
+                            @io.swagger.v3.oas.annotations.headers.Header(name = "Cache-Control", schema = @Schema(type = "string", example = "no-store"))
+                    }),
+            @ApiResponse(responseCode = "400", description = "Invalid command or resource not published", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "403", description = "Scope permission denied", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "404", description = "Resource not found", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "409", description = "Active run or idempotency conflict", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "413", description = "Request body too large", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "503", description = "Optimization channel disabled or persistence unavailable", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "500", description = "Unexpected failure", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class)))
+    })
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
+    @PostMapping(path = "/{id}/optimization-runs", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ResultRecord<DdcAiOptimizationRunResult>> triggerOptimizationRun(
+            @Parameter(description = "Resource ID, positive decimal string", required = true,
+                    schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @PathVariable("id") Long id,
+            @org.springframework.web.bind.annotation.RequestHeader(IDEMPOTENCY_HEADER)
+            @NotBlank @Size(min = 16, max = 64) @Pattern(regexp = IDEMPOTENCY_PATTERN) String requestId,
+            @Valid @RequestBody DdcAiOptimizationTriggerCommand command) {
+        DdcAiOptimizationRunResult run = optimizationService.trigger(new DdcAiIdQuery(id), requestId, command);
+        return ResponseEntity.accepted()
+                .location(runLocation(id, run.getId()))
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(ResultRecord.success(run));
+    }
+
+    @Operation(operationId = "pageAiOptimizationRuns", summary = "分页浏览优化运行",
+            security = @SecurityRequirement(name = "tianshuBearerAuth"))
+    @Parameters({
+            @Parameter(name = TENANT_HEADER, in = ParameterIn.HEADER, required = true)
+    })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paged optimization runs, newest first",
+                    headers = @io.swagger.v3.oas.annotations.headers.Header(name = "Cache-Control", schema = @Schema(type = "string", example = "no-store"))),
+            @ApiResponse(responseCode = "400", description = "Invalid query", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "403", description = "Scope permission denied", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "404", description = "Resource not found", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "503", description = "Tenant or persistence unavailable", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "500", description = "Unexpected failure", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class)))
+    })
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
+    @GetMapping("/{id}/optimization-runs")
+    public ResponseEntity<PageResultRecord<DdcAiOptimizationRunResult>> pageOptimizationRuns(
+            @Parameter(description = "Resource ID, positive decimal string", required = true,
+                    schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @PathVariable("id") Long id,
+            @Parameter(description = "Optional run state filter", schema = @Schema(type = "string",
+                    allowableValues = {"PENDING", "RUNNING", "SUCCEEDED", "FAILED", "SKIPPED"}))
+            @RequestParam(value = "state", required = false) DdcAiRunStatePersistenceEnum state,
+            @Parameter(description = "One-based page number", schema = @Schema(type = "integer", minimum = "1"))
+            @RequestParam(value = "pageNo", defaultValue = "1") @Min(1) int pageNo,
+            @Parameter(description = "Page size, 1..100", schema = @Schema(type = "integer", minimum = "1", maximum = "100"))
+            @RequestParam(value = "pageSize", defaultValue = "20") @Min(1) @Max(100) int pageSize) {
+        DdcAiOptimizationRunPageQuery query = DdcAiOptimizationRunPageQuery.builder().resourceId(id).state(state)
+                .pageNo(pageNo).pageSize(pageSize).build();
+        return noStore(DdcAdminPageSupport.result(optimizationService.pageRuns(query)));
+    }
+
+    @Operation(operationId = "getAiOptimizationRun", summary = "读取单个优化运行",
+            security = @SecurityRequirement(name = "tianshuBearerAuth"))
+    @Parameters({
+            @Parameter(name = TENANT_HEADER, in = ParameterIn.HEADER, required = true)
+    })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Optimization run",
+                    headers = @io.swagger.v3.oas.annotations.headers.Header(name = "Cache-Control", schema = @Schema(type = "string", example = "no-store"))),
+            @ApiResponse(responseCode = "400", description = "Invalid resource or run id", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "403", description = "Scope permission denied", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "404", description = "Resource or run not found", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "503", description = "Tenant or persistence unavailable", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "500", description = "Unexpected failure", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class)))
+    })
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
+    @GetMapping("/{id}/optimization-runs/{runId}")
+    public ResponseEntity<ResultRecord<DdcAiOptimizationRunResult>> getOptimizationRun(
+            @Parameter(description = "Resource ID, positive decimal string", required = true,
+                    schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @PathVariable("id") Long id,
+            @Parameter(description = "Run ID, positive decimal string", required = true,
+                    schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @PathVariable("runId") Long runId) {
+        return noStore(ResultRecord.success(optimizationService.getRun(new DdcAiIdQuery(id), runId)));
+    }
+
+    @Operation(operationId = "pageAiUsageFeedback", summary = "分页浏览使用反馈",
+            security = @SecurityRequirement(name = "tianshuBearerAuth"))
+    @Parameters({
+            @Parameter(name = TENANT_HEADER, in = ParameterIn.HEADER, required = true)
+    })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paged usage feedback, newest first",
+                    headers = @io.swagger.v3.oas.annotations.headers.Header(name = "Cache-Control", schema = @Schema(type = "string", example = "no-store"))),
+            @ApiResponse(responseCode = "400", description = "Invalid query", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "401", description = "Authentication required", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "403", description = "Scope permission denied", content = @Content(mediaType = JSON, schema = @Schema(oneOf = {DdcAdminSecurityErrorResult.class, ResultRecord.class}))),
+            @ApiResponse(responseCode = "404", description = "Resource not found", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "503", description = "Tenant or persistence unavailable", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class))),
+            @ApiResponse(responseCode = "500", description = "Unexpected failure", content = @Content(mediaType = JSON, schema = @Schema(implementation = ResultRecord.class)))
+    })
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
+    @GetMapping("/{id}/usage-feedback")
+    public ResponseEntity<PageResultRecord<DdcAiUsageFeedbackResult>> pageUsageFeedback(
+            @Parameter(description = "Resource ID, positive decimal string", required = true,
+                    schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @PathVariable("id") Long id,
+            @Parameter(description = "Optional exact version number", schema = @Schema(type = "string", pattern = LONG_ID_PATTERN))
+            @RequestParam(value = "versionNo", required = false) @Positive Long versionNo,
+            @Parameter(description = "Optional outcome filter", schema = @Schema(type = "string",
+                    allowableValues = {"SUCCESS", "FAILURE", "UNKNOWN"}))
+            @RequestParam(value = "outcome", required = false) DdcAiOutcomePersistenceEnum outcome,
+            @Parameter(description = "Optional score source filter", schema = @Schema(type = "string",
+                    allowableValues = {"EXPLICIT", "JUDGE", "NONE"}))
+            @RequestParam(value = "scoreSource", required = false) @Pattern(regexp = "^(EXPLICIT|JUDGE|NONE)$")
+            String scoreSource,
+            @Parameter(description = "Only samples whose effective score is at most this value",
+                    schema = @Schema(type = "integer", minimum = "0", maximum = "100"))
+            @RequestParam(value = "maxScore", required = false) @Min(0) @Max(100) Integer maxScore,
+            @Parameter(description = "One-based page number", schema = @Schema(type = "integer", minimum = "1"))
+            @RequestParam(value = "pageNo", defaultValue = "1") @Min(1) int pageNo,
+            @Parameter(description = "Page size, 1..100", schema = @Schema(type = "integer", minimum = "1", maximum = "100"))
+            @RequestParam(value = "pageSize", defaultValue = "20") @Min(1) @Max(100) int pageSize) {
+        DdcAiUsageFeedbackPageQuery query = DdcAiUsageFeedbackPageQuery.builder().resourceId(id).versionNo(versionNo)
+                .outcome(outcome).scoreSource(scoreSource).maxScore(maxScore).pageNo(pageNo).pageSize(pageSize)
+                .build();
+        return noStore(DdcAdminPageSupport.result(feedbackService.pageFeedback(query)));
+    }
+
     private ResponseEntity<ResultRecord<DdcAiPublicationResult>> createdVersion(
             DdcAiPublicationResult result, Long resourceId) {
         return ResponseEntity.created(versionLocation(resourceId, result.getTargetVersionNo()))
@@ -462,6 +672,10 @@ public class DdcAiResourceController {
 
     private URI resourceLocation(String resourceId) {
         return URI.create(BASE_PATH + "/" + resourceId);
+    }
+
+    private URI runLocation(Long resourceId, Long runId) {
+        return URI.create(BASE_PATH + "/" + resourceId + "/optimization-runs/" + runId);
     }
 
     private URI versionLocation(Long resourceId, Long versionNo) {
