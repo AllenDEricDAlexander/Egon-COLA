@@ -101,4 +101,8 @@ public class DdcAiUsageFeedbackBO {
 
     @Size(max = 64, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String traceId;
+
+    /** 使用版本号（由版本表连接得到）。 / Used version number joined from the version table. */
+    @JsonIgnore
+    private Long versionNo;
 }

@@ -2,6 +2,7 @@ package top.egon.cola.component.tianshu.admin.model.po;
 
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.baomidou.mybatisplus.annotation.TableName;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -105,27 +106,27 @@ public class DdcAiOptimizationRunPO extends EgonModel<DdcAiOptimizationRunPO> {
     @Pattern(regexp = "^[a-z0-9][a-z0-9-]{0,63}$", groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String modelAlias;
 
-    @TableField(value = "prompt_sha256")
+    @TableField(value = "prompt_sha256", updateStrategy = FieldStrategy.ALWAYS)
     @Pattern(regexp = "^[0-9a-f]{64}$", groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String promptSha256;
 
-    @TableField(value = "output_sha256")
+    @TableField(value = "output_sha256", updateStrategy = FieldStrategy.ALWAYS)
     @Pattern(regexp = "^[0-9a-f]{64}$", groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String outputSha256;
 
-    @TableField(value = "prompt_tokens")
+    @TableField(value = "prompt_tokens", updateStrategy = FieldStrategy.ALWAYS)
     @Min(value = 0, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Integer promptTokens;
 
-    @TableField(value = "completion_tokens")
+    @TableField(value = "completion_tokens", updateStrategy = FieldStrategy.ALWAYS)
     @Min(value = 0, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Integer completionTokens;
 
-    @TableField(value = "produced_version_id")
+    @TableField(value = "produced_version_id", updateStrategy = FieldStrategy.ALWAYS)
     @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Long producedVersionId;
 
-    @TableField(value = "publication_id")
+    @TableField(value = "publication_id", updateStrategy = FieldStrategy.ALWAYS)
     @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Long publicationId;
 
@@ -133,10 +134,10 @@ public class DdcAiOptimizationRunPO extends EgonModel<DdcAiOptimizationRunPO> {
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Boolean autoPublished;
 
-    @TableField(value = "error_code")
+    @TableField(value = "error_code", updateStrategy = FieldStrategy.ALWAYS)
     private DdcAiRunErrorCodeEnum errorCode;
 
-    @TableField(value = "error_message")
+    @TableField(value = "error_message", updateStrategy = FieldStrategy.ALWAYS)
     @Size(max = 512, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String errorMessage;
 
@@ -145,16 +146,26 @@ public class DdcAiOptimizationRunPO extends EgonModel<DdcAiOptimizationRunPO> {
     @Size(max = 512, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String note;
 
-    @TableField(value = "lease_owner")
+    @TableField(value = "lease_owner", updateStrategy = FieldStrategy.ALWAYS)
     @Size(max = 128, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String leaseOwner;
 
-    @TableField(value = "lease_until")
+    @TableField(value = "lease_until", updateStrategy = FieldStrategy.ALWAYS)
     private Instant leaseUntil;
 
-    @TableField(value = "started_at")
+    @TableField(value = "started_at", updateStrategy = FieldStrategy.ALWAYS)
     private Instant startedAt;
 
-    @TableField(value = "finished_at")
+    @TableField(value = "finished_at", updateStrategy = FieldStrategy.ALWAYS)
     private Instant finishedAt;
+
+    /** 基线版本号（连接得到）。 / Base version number (joined). */
+    @JsonIgnore
+    @TableField(exist = false)
+    private Long baseVersionNo;
+
+    /** 产物版本号（连接得到）。 / Produced version number (joined). */
+    @JsonIgnore
+    @TableField(exist = false)
+    private Long producedVersionNo;
 }

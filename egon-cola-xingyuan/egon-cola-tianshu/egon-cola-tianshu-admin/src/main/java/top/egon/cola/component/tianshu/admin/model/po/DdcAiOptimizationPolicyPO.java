@@ -2,6 +2,7 @@ package top.egon.cola.component.tianshu.admin.model.po;
 
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.baomidou.mybatisplus.annotation.TableName;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -109,26 +110,31 @@ public class DdcAiOptimizationPolicyPO extends EgonModel<DdcAiOptimizationPolicy
     @Min(value = 0, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Short consecutiveFailures;
 
-    @TableField(value = "last_evaluated_at")
+    @TableField(value = "last_evaluated_at", updateStrategy = FieldStrategy.ALWAYS)
     private Instant lastEvaluatedAt;
 
-    @TableField(value = "last_evaluated_version_id")
+    @TableField(value = "last_evaluated_version_id", updateStrategy = FieldStrategy.ALWAYS)
     @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Long lastEvaluatedVersionId;
 
-    @TableField(value = "last_average_score")
+    @TableField(value = "last_average_score", updateStrategy = FieldStrategy.ALWAYS)
     @DecimalMin(value = "0", groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     @DecimalMax(value = "100", groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private BigDecimal lastAverageScore;
 
-    @TableField(value = "last_sample_count")
+    @TableField(value = "last_sample_count", updateStrategy = FieldStrategy.ALWAYS)
     @Min(value = 0, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Integer lastSampleCount;
 
-    @TableField(value = "active_run_id")
+    @TableField(value = "active_run_id", updateStrategy = FieldStrategy.ALWAYS)
     @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Long activeRunId;
 
-    @TableField(value = "converged_at")
+    @TableField(value = "converged_at", updateStrategy = FieldStrategy.ALWAYS)
     private Instant convergedAt;
+
+    /** 最近评估的版本号（连接得到）。 / Last evaluated version number (joined). */
+    @JsonIgnore
+    @TableField(exist = false)
+    private Long lastEvaluatedVersionNo;
 }

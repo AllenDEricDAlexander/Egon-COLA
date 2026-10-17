@@ -111,4 +111,8 @@ public class DdcAiOptimizationPolicyBO {
     private Long activeRunId;
 
     private Instant convergedAt;
+
+    /** 最近评估的版本号（连接得到）。 / Last evaluated version number (joined). */
+    @JsonIgnore
+    private Long lastEvaluatedVersionNo;
 }

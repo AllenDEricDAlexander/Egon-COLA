@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcAiOptimizationRunMapper">
+    <resultMap id="DdcAiOptimizationRunPOResultMap"
+               type="top.egon.cola.component.tianshu.admin.model.po.DdcAiOptimizationRunPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="resourceId" column="resource_id"/>
+        <result property="policyId" column="policy_id"/>
+        <result property="runNo" column="run_no"/>
+        <result property="iterationNo" column="iteration_no"/>
+        <result property="trigger" column="trigger"/>
+        <result property="requestId" column="request_id"/>
+        <result property="requestSha256" column="request_sha256"/>
+        <result property="state" column="state"/>
+        <result property="baseVersionId" column="base_version_id"/>
+        <result property="sampleCount" column="sample_count"/>
+        <result property="averageScore" column="average_score"/>
+        <result property="thresholdSnapshot" column="threshold_snapshot"/>
+        <result property="windowStart" column="window_start"/>
+        <result property="windowEnd" column="window_end"/>
+        <result property="modelAlias" column="model_alias"/>
+        <result property="promptSha256" column="prompt_sha256"/>
+        <result property="outputSha256" column="output_sha256"/>
+        <result property="promptTokens" column="prompt_tokens"/>
+        <result property="completionTokens" column="completion_tokens"/>
+        <result property="producedVersionId" column="produced_version_id"/>
+        <result property="publicationId" column="publication_id"/>
+        <result property="autoPublished" column="auto_published"/>
+        <result property="errorCode" column="error_code"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="note" column="note"/>
+        <result property="leaseOwner" column="lease_owner"/>
+        <result property="leaseUntil" column="lease_until"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="finishedAt" column="finished_at"/>
+        <result property="baseVersionNo" column="base_version_no"/>
+        <result property="producedVersionNo" column="produced_version_no"/>
+    </resultMap>
+
+    <sql id="RunColumns">
+        r.id, r.tenant_id, r.create_user_id, r.create_time, r.update_user_id, r.update_time, r.deleted_at, r.version,
+        r.resource_id, r.policy_id, r.run_no, r.iteration_no, r."trigger", r.request_id, r.request_sha256, r.state,
+        r.base_version_id, r.sample_count, r.average_score, r.threshold_snapshot, r.window_start, r.window_end,
+        r.model_alias, r.prompt_sha256, r.output_sha256, r.prompt_tokens, r.completion_tokens,
+        r.produced_version_id, r.publication_id, r.auto_published, r.error_code, r.error_message, r.note,
+        r.lease_owner, r.lease_until, r.started_at, r.finished_at
+    </sql>
+
+    <sql id="RunWithVersions">
+        SELECT <include refid="RunColumns"/>, bv.version_no AS base_version_no, pv.version_no AS produced_version_no
+        FROM ddc_ai_optimization_run r
+        LEFT JOIN ddc_ai_version bv ON bv.tenant_id = r.tenant_id AND bv.resource_id = r.resource_id
+            AND bv.id = r.base_version_id
+        LEFT JOIN ddc_ai_version pv ON pv.tenant_id = r.tenant_id AND pv.resource_id = r.resource_id
+            AND pv.id = r.produced_version_id
+    </sql>
+
+    <select id="selectActiveById" resultMap="DdcAiOptimizationRunPOResultMap">
+        <include refid="RunWithVersions"/>
+        WHERE r.tenant_id = #{tenantId} AND r.id = #{id} AND r.deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="DdcAiOptimizationRunPOResultMap">
+        <include refid="RunWithVersions"/>
+        WHERE r.tenant_id = #{tenantId} AND r.deleted_at IS NULL
+          AND r.id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY r.id
+    </select>
+
+    <select id="selectByRequestId" resultMap="DdcAiOptimizationRunPOResultMap">
+        <include refid="RunWithVersions"/>
+        WHERE r.tenant_id = #{tenantId} AND r.request_id = #{requestId} AND r.deleted_at IS NULL
+    </select>
+
+    <select id="selectMaxRunNo" resultType="long">
+        SELECT COALESCE(MAX(r.run_no), 0)
+        FROM ddc_ai_optimization_run r
+        WHERE r.tenant_id = #{tenantId} AND r.resource_id = #{resourceId}
+    </select>
+
+    <select id="selectActiveRunForResource" resultMap="DdcAiOptimizationRunPOResultMap">
+        <include refid="RunWithVersions"/>
+        WHERE r.tenant_id = #{tenantId} AND r.resource_id = #{resourceId} AND r.deleted_at IS NULL
+          AND r.state IN ('PENDING', 'RUNNING')
+    </select>
+
+    <select id="selectLatestFinished" resultMap="DdcAiOptimizationRunPOResultMap">
+        <include refid="RunWithVersions"/>
+        WHERE r.tenant_id = #{tenantId} AND r.resource_id = #{resourceId} AND r.deleted_at IS NULL
+          AND r.state IN ('SUCCEEDED', 'FAILED', 'SKIPPED')
+        ORDER BY r.finished_at DESC, r.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectPendingIds" resultType="java.lang.Long">
+        SELECT r.id
+        FROM ddc_ai_optimization_run r
+        WHERE r.tenant_id = #{tenantId} AND r.deleted_at IS NULL AND r.state = 'PENDING'
+        ORDER BY r.id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectExpiredRunning" resultMap="DdcAiOptimizationRunPOResultMap">
+        <include refid="RunWithVersions"/>
+        WHERE r.tenant_id = #{tenantId} AND r.deleted_at IS NULL AND r.state = 'RUNNING'
+          AND r.lease_until &lt; #{now}
+        ORDER BY r.id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectPage" resultMap="DdcAiOptimizationRunPOResultMap">
+        <include refid="RunWithVersions"/>
+        WHERE r.tenant_id = #{tenantId} AND r.deleted_at IS NULL AND r.resource_id = #{query.resourceId}
+        <if test="query.state != null">AND r.state = #{query.state}</if>
+        ORDER BY r.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT count(*)
+        FROM ddc_ai_optimization_run r
+        WHERE r.tenant_id = #{tenantId} AND r.deleted_at IS NULL AND r.resource_id = #{query.resourceId}
+        <if test="query.state != null">AND r.state = #{query.state}</if>
+    </select>
+</mapper>

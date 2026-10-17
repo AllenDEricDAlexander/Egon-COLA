@@ -132,4 +132,12 @@ public class DdcAiOptimizationRunBO {
     private Instant startedAt;
 
     private Instant finishedAt;
+
+    /** 基线版本号（连接得到）。 / Base version number (joined). */
+    @JsonIgnore
+    private Long baseVersionNo;
+
+    /** 产物版本号（连接得到）。 / Produced version number (joined). */
+    @JsonIgnore
+    private Long producedVersionNo;
 }

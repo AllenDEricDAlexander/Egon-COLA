@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.tianshu.admin.dao.DdcAiUsageFeedbackMapper">
+    <resultMap id="DdcAiUsageFeedbackPOResultMap"
+               type="top.egon.cola.component.tianshu.admin.model.po.DdcAiUsageFeedbackPO">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="createUserId" column="create_user_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUserId" column="update_user_id"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="version" column="version"/>
+        <result property="resourceId" column="resource_id"/>
+        <result property="versionId" column="version_id"/>
+        <result property="usageId" column="usage_id"/>
+        <result property="reporterCredentialId" column="reporter_credential_id"/>
+        <result property="bizCode" column="biz_code"/>
+        <result property="envCode" column="env_code"/>
+        <result property="appCode" column="app_code"/>
+        <result property="outcome" column="outcome"/>
+        <result property="explicitScore" column="explicit_score"/>
+        <result property="judgeScore" column="judge_score"/>
+        <result property="judgeState" column="judge_state"/>
+        <result property="judgeAttempts" column="judge_attempts"/>
+        <result property="judgeLeaseUntil" column="judge_lease_until"/>
+        <result property="judgedAt" column="judged_at"/>
+        <result property="judgeError" column="judge_error"/>
+        <result property="inputExcerpt" column="input_excerpt"/>
+        <result property="outputExcerpt" column="output_excerpt"/>
+        <result property="latencyMs" column="latency_ms"/>
+        <result property="occurredAt" column="occurred_at"/>
+        <result property="traceId" column="trace_id"/>
+        <result property="versionNo" column="version_no"/>
+    </resultMap>
+
+    <sql id="FeedbackColumns">
+        f.id, f.tenant_id, f.create_user_id, f.create_time, f.update_user_id, f.update_time, f.deleted_at, f.version,
+        f.resource_id, f.version_id, f.usage_id, f.reporter_credential_id, f.biz_code, f.env_code, f.app_code,
+        f.outcome, f.explicit_score, f.judge_score, f.judge_state, f.judge_attempts, f.judge_lease_until,
+        f.judged_at, f.judge_error, f.input_excerpt, f.output_excerpt, f.latency_ms, f.occurred_at, f.trace_id
+    </sql>
+
+    <sql id="FeedbackWithVersion">
+        SELECT <include refid="FeedbackColumns"/>, v.version_no AS version_no
+        FROM ddc_ai_usage_feedback f
+        LEFT JOIN ddc_ai_version v ON v.tenant_id = f.tenant_id AND v.resource_id = f.resource_id
+            AND v.id = f.version_id
+    </sql>
+
+    <sql id="PageFilter">
+        WHERE f.tenant_id = #{tenantId} AND f.deleted_at IS NULL AND f.resource_id = #{query.resourceId}
+        <if test="query.versionNo != null">AND v.version_no = #{query.versionNo}</if>
+        <if test="query.outcome != null">AND f.outcome = #{query.outcome}</if>
+        <if test="query.scoreSource == 'EXPLICIT'">AND f.explicit_score IS NOT NULL</if>
+        <if test="query.scoreSource == 'JUDGE'">AND f.explicit_score IS NULL AND f.judge_score IS NOT NULL</if>
+        <if test="query.scoreSource == 'NONE'">AND f.explicit_score IS NULL AND f.judge_score IS NULL</if>
+        <if test="query.maxScore != null">AND COALESCE(f.explicit_score, f.judge_score) &lt;= #{query.maxScore}</if>
+    </sql>
+
+    <select id="selectActiveById" resultMap="DdcAiUsageFeedbackPOResultMap">
+        <include refid="FeedbackWithVersion"/>
+        WHERE f.tenant_id = #{tenantId} AND f.id = #{id} AND f.deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="DdcAiUsageFeedbackPOResultMap">
+        <include refid="FeedbackWithVersion"/>
+        WHERE f.tenant_id = #{tenantId} AND f.deleted_at IS NULL
+          AND f.id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY f.id
+    </select>
+
+    <select id="selectClaimableForJudge" resultMap="DdcAiUsageFeedbackPOResultMap" timeout="5">
+        SELECT <include refid="FeedbackColumns"/>
+        FROM ddc_ai_usage_feedback f
+        WHERE f.tenant_id = #{tenantId} AND f.deleted_at IS NULL
+          AND f.resource_id IN <foreach collection="resourceIds" item="r" open="(" separator="," close=")">#{r}</foreach>
+          AND f.explicit_score IS NULL AND f.judge_attempts &lt; #{maxAttempts}
+          AND (f.judge_state = 'PENDING' OR (f.judge_state = 'JUDGING' AND f.judge_lease_until &lt; #{now}))
+        ORDER BY f.occurred_at, f.id
+        LIMIT #{limit}
+        FOR UPDATE SKIP LOCKED
+    </select>
+
+    <select id="selectScoreAggregate"
+            resultType="top.egon.cola.component.tianshu.admin.model.po.DdcAiScoreAggregatePO">
+        SELECT
+            SUM(CASE WHEN COALESCE(f.explicit_score, f.judge_score) IS NOT NULL THEN 1 ELSE 0 END) AS sample_count,
+            SUM(COALESCE(f.explicit_score, f.judge_score)) AS score_sum,
+            SUM(CASE WHEN f.judge_state IN ('PENDING', 'JUDGING') THEN 1 ELSE 0 END) AS pending_judge_count
+        FROM ddc_ai_usage_feedback f
+        WHERE f.tenant_id = #{tenantId} AND f.deleted_at IS NULL
+          AND f.resource_id = #{resourceId} AND f.version_id = #{versionId}
+          AND f.occurred_at &gt;= #{windowStart} AND f.occurred_at &lt; #{windowEnd}
+    </select>
+
+    <select id="selectWorst" resultMap="DdcAiUsageFeedbackPOResultMap">
+        <include refid="FeedbackWithVersion"/>
+        WHERE f.tenant_id = #{tenantId} AND f.deleted_at IS NULL
+          AND f.resource_id = #{resourceId} AND f.version_id = #{versionId}
+          AND f.occurred_at &gt;= #{windowStart} AND f.occurred_at &lt; #{windowEnd}
+          AND COALESCE(f.explicit_score, f.judge_score) IS NOT NULL
+        ORDER BY COALESCE(f.explicit_score, f.judge_score) ASC, f.occurred_at DESC, f.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectPage" resultMap="DdcAiUsageFeedbackPOResultMap">
+        <include refid="FeedbackWithVersion"/>
+        <include refid="PageFilter"/>
+        ORDER BY f.occurred_at DESC, f.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT count(*)
+        FROM ddc_ai_usage_feedback f
+        LEFT JOIN ddc_ai_version v ON v.tenant_id = f.tenant_id AND v.resource_id = f.resource_id
+            AND v.id = f.version_id
+        <include refid="PageFilter"/>
+    </select>
+
+    <select id="selectExpiredIdsForUpdate" resultType="java.lang.Long" timeout="5">
+        SELECT f.id
+        FROM ddc_ai_usage_feedback f
+        WHERE f.tenant_id = #{tenantId} AND f.deleted_at IS NULL AND f.occurred_at &lt; #{before}
+        ORDER BY f.id
+        LIMIT #{limit}
+        FOR UPDATE SKIP LOCKED
+    </select>
+
+    <update id="softDeleteByIds">
+        UPDATE ddc_ai_usage_feedback
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+            version = version + 1,
+            update_user_id = #{updateUserId},
+            update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+          AND id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </update>
+
+    <update id="deleteVersionedById">
+        UPDATE ddc_ai_usage_feedback
+        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
+            version = version + 1,
+            update_user_id = #{et.updateUserId},
+            update_time = #{et.updateTime}
+        WHERE tenant_id = #{et.tenantId} AND id = #{et.id} AND version = #{et.version} AND deleted_at IS NULL
+    </update>
+</mapper>

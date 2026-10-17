@@ -2,6 +2,7 @@ package top.egon.cola.component.tianshu.admin.model.po;
 
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.baomidou.mybatisplus.annotation.TableName;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -75,7 +76,7 @@ public class DdcAiUsageFeedbackPO extends EgonModel<DdcAiUsageFeedbackPO> {
     @Max(value = 100, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Short explicitScore;
 
-    @TableField(value = "judge_score")
+    @TableField(value = "judge_score", updateStrategy = FieldStrategy.ALWAYS)
     @Min(value = 0, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     @Max(value = 100, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Short judgeScore;
@@ -90,13 +91,13 @@ public class DdcAiUsageFeedbackPO extends EgonModel<DdcAiUsageFeedbackPO> {
     @Max(value = 10, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Short judgeAttempts;
 
-    @TableField(value = "judge_lease_until")
+    @TableField(value = "judge_lease_until", updateStrategy = FieldStrategy.ALWAYS)
     private Instant judgeLeaseUntil;
 
-    @TableField(value = "judged_at")
+    @TableField(value = "judged_at", updateStrategy = FieldStrategy.ALWAYS)
     private Instant judgedAt;
 
-    @TableField(value = "judge_error")
+    @TableField(value = "judge_error", updateStrategy = FieldStrategy.ALWAYS)
     @Size(max = 64, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String judgeError;
 
@@ -117,4 +118,9 @@ public class DdcAiUsageFeedbackPO extends EgonModel<DdcAiUsageFeedbackPO> {
     @TableField(value = "trace_id", updateStrategy = FieldStrategy.NEVER)
     @Size(max = 64, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private String traceId;
+
+    /** 使用版本号（由版本表连接得到）。 / Used version number joined from the version table. */
+    @JsonIgnore
+    @TableField(exist = false)
+    private Long versionNo;
 }
