@@ -32,6 +32,7 @@
     <modules>
         <module>egon-cola-tianshu-starter</module>
         <module>egon-cola-tianshu-http-registration-starter</module>
+        <module>egon-cola-tianshu-ai-starter</module>
         <module>egon-cola-tianshu-admin</module>
         <module>egon-cola-tianshu-test</module>
     </modules>

@@ -120,6 +120,11 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
+                <artifactId>egon-cola-tianshu-ai-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-tianshu-admin</artifactId>
                 <version>${project.version}</version>
             </dependency>
