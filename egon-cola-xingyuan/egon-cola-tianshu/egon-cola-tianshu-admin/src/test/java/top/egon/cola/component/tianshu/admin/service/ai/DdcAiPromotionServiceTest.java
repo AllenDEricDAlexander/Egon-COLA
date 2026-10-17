@@ -85,6 +85,12 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DdcAiPromotionServiceTest {
 
+    private final top.egon.cola.component.tianshu.admin.service.ai.notification.DdcAiPublicationNotifier publicationNotifier =
+            org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.service.ai.notification.DdcAiPublicationNotifier.class);
+    @SuppressWarnings("unchecked")
+    private final org.springframework.beans.factory.ObjectProvider<DdcAiOptimizationService> optimizationService =
+            org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+
     private static final long TENANT_ID = 1001L;
     private static final long SOURCE_RESOURCE_ID = 810001L;
     private static final long EXISTING_TARGET_ID = 810002L;
@@ -132,7 +138,8 @@ class DdcAiPromotionServiceTest {
         service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, scopeValidator,
                 resourceConverter, draftNodeConverter, versionRepository, versionNodeRepository,
                 publicationRepository, versionConverter, publicationConverter, resourceResultConverter,
-                meterRegistry, strategyRegistry, readTransactionTemplate, commandTransactionTemplate);
+                meterRegistry, strategyRegistry, readTransactionTemplate, commandTransactionTemplate,
+                publicationNotifier, optimizationService);
     }
 
     @AfterEach

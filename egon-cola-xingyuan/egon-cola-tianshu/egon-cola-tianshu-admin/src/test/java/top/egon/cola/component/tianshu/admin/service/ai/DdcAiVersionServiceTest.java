@@ -85,6 +85,12 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DdcAiVersionServiceTest {
 
+    private final top.egon.cola.component.tianshu.admin.service.ai.notification.DdcAiPublicationNotifier publicationNotifier =
+            org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.service.ai.notification.DdcAiPublicationNotifier.class);
+    @SuppressWarnings("unchecked")
+    private final org.springframework.beans.factory.ObjectProvider<DdcAiOptimizationService> optimizationService =
+            org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+
     private static final long TENANT_ID = 1001L;
     private static final long RESOURCE_ID = 810001L;
     private static final long VERSION_ID = 820001L;
@@ -122,7 +128,8 @@ class DdcAiVersionServiceTest {
         service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, scopeValidator,
                 resourceConverter, draftNodeConverter, versionRepository, versionNodeRepository,
                 publicationRepository, versionConverter, publicationConverter, resourceResultConverter,
-                meterRegistry, contentStrategyRegistry, readTransactionTemplate, commandTransactionTemplate);
+                meterRegistry, contentStrategyRegistry, readTransactionTemplate, commandTransactionTemplate,
+                publicationNotifier, optimizationService);
     }
 
     @AfterEach
@@ -189,6 +196,9 @@ class DdcAiVersionServiceTest {
         assertThat(resource.getDraftPrompt()).isEqualTo(PROMPT);
         assertThat(committedReceipt.get().getTargetVersionNo()).isEqualTo(3L);
         assertThat(committedReceipt.get().getRequestSha256()).matches("^[0-9a-f]{64}$");
+        verify(publicationNotifier).enqueue(org.mockito.ArgumentMatchers.same(committedReceipt.get()),
+                org.mockito.ArgumentMatchers.same(resource), org.mockito.ArgumentMatchers.eq(prepared.contentHash()),
+                org.mockito.ArgumentMatchers.anyString());
 
         simulateConcurrentCommit.set(true);
         requestLookups.set(0);
@@ -282,6 +292,8 @@ class DdcAiVersionServiceTest {
         assertThat(resource.getLastVersionNo()).isEqualTo(6L);
         assertThat(resource.getDraftPrompt()).isEqualTo("draft edited after version 2");
         assertThat(metricCount("ROLLBACK", "success")).isEqualTo(1.0);
+        verify(publicationNotifier).enqueue(any(DdcAiPublicationBO.class), org.mockito.ArgumentMatchers.same(resource),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
         verify(versionRepository, never()).insertVersion(any(DdcAiVersionBO.class));
         verify(versionNodeRepository, never()).insertAll(any());
         verify(draftNodeRepository, never()).findActiveByResourceId(RESOURCE_ID);

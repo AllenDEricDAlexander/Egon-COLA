@@ -34,6 +34,39 @@ public class DdcOutboxConfiguration {
         return new DdcYamlConfigValidator(properties.getMaxConfigBytes());
     }
 
+    @Bean("ddcAiPublicationOutboxRoute")
+    public DdcAiPublicationOutboxRouteDTO ddcAiPublicationOutboxRoute() {
+        return new DdcAiPublicationOutboxRouteDTO("tianshu.ai-publication", "1");
+    }
+
+    /**
+     * EVENT-103 的 Outbox 路由：固定通道、schema 与租户 AI Topic 目的地。
+     * / Outbox route of EVENT-103: fixed channel, schema and tenant AI-topic destination.
+     */
+    public record DdcAiPublicationOutboxRouteDTO(String channel, String schemaVersion) {
+
+        public static final Pattern TOPIC_PATTERN = Pattern.compile(
+                "^tianshu:v4:tenant:[1-9][0-9]*:\\{[a-f0-9]{64}}:ai:topic$");
+
+        public DdcAiPublicationOutboxRouteDTO {
+            if (!"tianshu.ai-publication".equals(channel) || !"1".equals(schemaVersion)) {
+                throw new IllegalArgumentException("Invalid Tianshu ai-publication Outbox route");
+            }
+        }
+
+        public String eventType() {
+            return "TIANSHU_AI_PUBLICATION";
+        }
+
+        public String destination(Long tenantId, String bizCode, String env, String appCode) {
+            String destination = DdcRedisKeys.aiTopic(tenantId, bizCode, env, appCode);
+            if (!TOPIC_PATTERN.matcher(destination).matches()) {
+                throw new IllegalStateException("AI_TOPIC_DESTINATION_INVALID");
+            }
+            return destination;
+        }
+    }
+
     @Bean("ddcConfigDispatchOutboxRoute")
     public DdcConfigDispatchOutboxRouteDTO ddcConfigDispatchOutboxRoute() {
         return new DdcConfigDispatchOutboxRouteDTO("tianshu.config-dispatch", "1");

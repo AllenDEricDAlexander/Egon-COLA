@@ -51,6 +51,9 @@ import top.egon.cola.component.tianshu.admin.repository.DdcAiVersionRepository;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiScopeValidator;
 import top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiSystemActor;
+import top.egon.cola.component.tianshu.admin.service.ai.notification.DdcAiPublicationNotifier;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiOptimizationService;
+import org.springframework.beans.factory.ObjectProvider;
 import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiContentStrategy.PreparedContent;
 import top.egon.cola.component.tianshu.model.ai.DdcAiContentDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
@@ -141,6 +144,12 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
 
     @Qualifier("ddcAiCommandTransactionTemplate")
     private final TransactionTemplate commandTransactionTemplate;
+
+    @Qualifier("ddcAiPublicationNotifier")
+    private final DdcAiPublicationNotifier publicationNotifier;
+
+    @Qualifier("ddcAiOptimizationService")
+    private final ObjectProvider<DdcAiOptimizationService> optimizationService;
 
     @Override
     public DdcAiResourceResult create(DdcAiCreateCommand command) {
@@ -347,7 +356,9 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
                 .requestSha256(requestSha256).previousVersionId(previousVersionId)
                 .targetVersionId(insertedVersion.getId()).targetVersionNo(versionNo).sourceVersionId(null)
                 .resultRevision(updated.getVersion()).targetCreated(false).build();
-        return publicationResult(publicationRepository.insertPublication(publication));
+        DdcAiPublicationBO receipt = publicationRepository.insertPublication(publication);
+        publicationNotifier.enqueue(receipt, updated, prepared.contentHash(), authenticatedActor());
+        return publicationResult(receipt);
     }
 
     private DdcAiPublicationResult rollbackInTransaction(DdcAiIdQuery query, String requestId,
@@ -383,7 +394,9 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
                 .requestSha256(requestSha256).previousVersionId(previousVersionId)
                 .targetVersionId(target.getId()).targetVersionNo(target.getVersionNo()).sourceVersionId(null)
                 .resultRevision(updated.getVersion()).targetCreated(false).build();
-        return publicationResult(publicationRepository.insertPublication(publication));
+        DdcAiPublicationBO receipt = publicationRepository.insertPublication(publication);
+        publicationNotifier.enqueue(receipt, updated, target.getContentSha256(), authenticatedActor());
+        return publicationResult(receipt);
     }
 
     private DdcAiPublicationResult promoteInTransaction(DdcAiIdQuery sourceQuery,
@@ -490,7 +503,9 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
                 .targetVersionId(insertedVersion.getId()).targetVersionNo(targetVersionNo)
                 .sourceVersionId(sourceVersion.getId()).resultRevision(updatedTarget.getVersion())
                 .targetCreated(targetCreated).build();
-        return publicationResult(publicationRepository.insertPublication(publication));
+        DdcAiPublicationBO receipt = publicationRepository.insertPublication(publication);
+        publicationNotifier.enqueue(receipt, updatedTarget, snapshot.contentHash(), authenticatedActor());
+        return publicationResult(receipt);
     }
 
     private DdcAiResourceBO readableResource(Long resourceId) {
@@ -891,6 +906,7 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
             if (!draftNodeRepository.delete(node)) throw revisionConflict();
         }
         if (!resourceRepository.delete(resource)) throw revisionConflict();
+        optimizationService.ifAvailable(service -> service.onResourceDeleted(resource.getId()));
     }
 
     private DdcAiResourceBO lockWritableResource(DdcAiResourceBO candidate) {

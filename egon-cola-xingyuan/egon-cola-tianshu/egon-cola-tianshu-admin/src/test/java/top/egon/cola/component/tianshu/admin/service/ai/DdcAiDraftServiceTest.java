@@ -84,6 +84,12 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DdcAiDraftServiceTest {
 
+    private final top.egon.cola.component.tianshu.admin.service.ai.notification.DdcAiPublicationNotifier publicationNotifier =
+            org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.service.ai.notification.DdcAiPublicationNotifier.class);
+    @SuppressWarnings("unchecked")
+    private final org.springframework.beans.factory.ObjectProvider<DdcAiOptimizationService> optimizationService =
+            org.mockito.Mockito.mock(org.springframework.beans.factory.ObjectProvider.class);
+
     private static final DdcAiScopeDTO SCOPE = new DdcAiScopeDTO("retail", "dev-space", "dev", "assistant-app");
     private static final long TENANT_ID = 1001L;
     private static final long NAMESPACE_ID = 71L;
@@ -115,7 +121,8 @@ class DdcAiDraftServiceTest {
         service = new DdcAiResourceServiceImpl(resourceRepository, draftNodeRepository, scopeValidator,
                 resourceConverter, draftNodeConverter, versionRepository, versionNodeRepository,
                 publicationRepository, versionConverter, publicationConverter, resultConverter, meterRegistry,
-                strategyRegistry, readTransactionTemplate, commandTransactionTemplate);
+                strategyRegistry, readTransactionTemplate, commandTransactionTemplate,
+                publicationNotifier, optimizationService);
     }
 
     @AfterEach
