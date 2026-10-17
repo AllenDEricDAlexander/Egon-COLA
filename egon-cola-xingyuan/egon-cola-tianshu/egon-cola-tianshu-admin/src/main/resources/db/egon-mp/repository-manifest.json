@@ -10,6 +10,11 @@
       "version": "20260928_001",
       "path": "db/egon-mp/V20260928_001__tianshu_instance_business_key.sql",
       "sha256": "3700ddc8c7653c275cd0dd8d53ff6d7ae449d99f95da13e2ca34b52da80a1a9b"
+    },
+    {
+      "version": "20261017_001",
+      "path": "db/egon-mp/V20261017_001__tianshu_ai_feedback_optimization.sql",
+      "sha256": "ea388ac5115c1e6e35604cf52da16599c17e8be43fbe41d0e8cddb3d3a2ecac6"
     }
   ]
 }

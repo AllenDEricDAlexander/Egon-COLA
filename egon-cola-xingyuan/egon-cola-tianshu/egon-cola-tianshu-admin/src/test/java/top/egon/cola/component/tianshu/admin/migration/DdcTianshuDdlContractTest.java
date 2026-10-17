@@ -54,6 +54,10 @@ class DdcTianshuDdlContractTest {
     private static final String TIANSHU_SQL = "db/egon-mp/V20260922_001__tianshu_platform.sql";
     private static final String TIANSHU_INSTANCE_KEY_SQL =
             "db/egon-mp/V20260928_001__tianshu_instance_business_key.sql";
+    private static final String TIANSHU_AI_OPTIMIZATION_SQL =
+            "db/egon-mp/V20261017_001__tianshu_ai_feedback_optimization.sql";
+    private static final Set<String> TIANSHU_AI_OPTIMIZATION_TABLES = Set.of(
+            "ddc_ai_usage_feedback_t0", "ddc_ai_optimization_policy_t0", "ddc_ai_optimization_run_t0");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Pattern CREATE_TABLE = Pattern.compile(
             "(?im)^\\s*CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?(?:public\\.)?([a-z0-9_]+)");
@@ -102,15 +106,38 @@ class DdcTianshuDdlContractTest {
 
         assertThat(manifest.path("family").asText()).isEqualTo("tianshu");
         assertThat(typedManifest.family()).isEqualTo("tianshu");
-        assertThat(manifest.path("scripts").size()).isEqualTo(2);
+        assertThat(manifest.path("scripts").size()).isEqualTo(3);
         JsonNode v001 = manifest.path("scripts").get(0);
         JsonNode v002 = manifest.path("scripts").get(1);
+        JsonNode v003 = manifest.path("scripts").get(2);
         assertThat(v001.path("version").asText()).isEqualTo("20260922_001");
         assertThat(v001.path("path").asText()).isEqualTo(TIANSHU_SQL);
         assertThat(v001.path("sha256").asText()).isEqualTo(sha256(requiredResource(TIANSHU_SQL)));
         assertThat(v002.path("version").asText()).isEqualTo("20260928_001");
         assertThat(v002.path("path").asText()).isEqualTo(TIANSHU_INSTANCE_KEY_SQL);
         assertThat(v002.path("sha256").asText()).isEqualTo(sha256(requiredResource(TIANSHU_INSTANCE_KEY_SQL)));
+        assertThat(v003.path("version").asText()).isEqualTo("20261017_001");
+        assertThat(v003.path("path").asText()).isEqualTo(TIANSHU_AI_OPTIMIZATION_SQL);
+        assertThat(v003.path("sha256").asText()).isEqualTo(sha256(requiredResource(TIANSHU_AI_OPTIMIZATION_SQL)));
+    }
+
+    @Test
+    void aiOptimizationDdlAddsThreeTenantScopedTablesOnly() throws Exception {
+        String sql = new String(requiredResource(TIANSHU_AI_OPTIMIZATION_SQL), java.nio.charset.StandardCharsets.UTF_8);
+        Matcher tables = CREATE_TABLE.matcher(sql);
+        List<String> actualTables = new java.util.ArrayList<>();
+        while (tables.find()) {
+            actualTables.add(tables.group(1).toLowerCase(java.util.Locale.ROOT));
+        }
+        assertThat(actualTables).containsExactlyInAnyOrderElementsOf(TIANSHU_AI_OPTIMIZATION_TABLES);
+        String normalizedSql = sql.toLowerCase(java.util.Locale.ROOT);
+        assertThat(Pattern.compile("create\\s+unique\\s+index\\s+uk_ai_optimization_policy_lifecycle\\s+on\\s+"
+                + "ddc_ai_optimization_policy_t0\\s*\\([^;]*\\bdeleted_at\\b[^;]*\\)\\s*;", Pattern.DOTALL)
+                .matcher(normalizedSql).find()).isTrue();
+        assertThat(Pattern.compile("create\\s+unique\\s+index\\s+uk_ai_optimization_policy_live\\s+on\\s+"
+                + "ddc_ai_optimization_policy_t0\\s*\\([^;]*\\)\\s+where\\s+deleted_at\\s+is\\s+null\\s*;", Pattern.DOTALL)
+                .matcher(normalizedSql).find()).isTrue();
+        assertThat(normalizedSql).doesNotContain("egon_outbox", "ddl_history");
     }
 
     @Test
@@ -242,7 +269,7 @@ class DdcTianshuDdlContractTest {
         assertThat(sharding.getTransactionDefaultType()).isEqualTo("LOCAL");
         assertThat(sharding.getDataSources()).singleElement()
                 .satisfies(source -> assertThat(source.role()).isEqualTo(EgonColaShardingProperties.DataSourceRoleEnum.PRIMARY));
-        assertThat(sharding.getTables()).hasSize(18);
+        assertThat(sharding.getTables()).hasSize(21);
         assertThat(sharding.getTables()).containsKeys(TIANSHU_TABLES.stream()
                 .filter(table -> !"ddl_history".equals(table))
                 .map(table -> table.replaceFirst("_t0$", ""))

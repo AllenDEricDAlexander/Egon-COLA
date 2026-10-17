@@ -16,6 +16,13 @@ import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.tianshu.contract.DdcAiResourceRpc;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiPromptResult;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiPublicationReceipt;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiRevisionResult;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillDraftUpload;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillPublishRequest;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportBatch;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportReceipt;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiVersionHead;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillResult;
 import top.egon.cola.component.rpc.tianshu.client.ai.DdcAiProtoConverter;
@@ -90,6 +97,31 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
                     .build();
             return protoConverter.toProto(response);
         });
+    }
+
+    @Override
+    public AiUsageReportReceipt reportUsage(AiUsageReportBatch batch) {
+        throw unimplemented("ReportUsage");
+    }
+
+    @Override
+    public AiVersionHead getVersionHead(AiResourceQuery query) {
+        throw unimplemented("GetVersionHead");
+    }
+
+    @Override
+    public AiRevisionResult replaceSkillDraft(AiSkillDraftUpload upload) {
+        throw unimplemented("ReplaceSkillDraft");
+    }
+
+    @Override
+    public AiPublicationReceipt publishSkillDraft(AiSkillPublishRequest request) {
+        throw unimplemented("PublishSkillDraft");
+    }
+
+    private static StatusRuntimeException unimplemented(String method) {
+        return Status.UNIMPLEMENTED.withDescription("Tianshu AI method is not available yet: " + method)
+                .asRuntimeException();
     }
 
     private DdcAiResourceQuery selector(AiResourceQuery query) {

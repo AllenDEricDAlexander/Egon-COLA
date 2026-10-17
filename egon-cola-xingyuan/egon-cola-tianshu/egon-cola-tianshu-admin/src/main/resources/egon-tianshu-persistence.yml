@@ -41,6 +41,9 @@ egon:
             ddc_ai_draft_node: { type: STANDARD_TENANT_ID }
             ddc_ai_version_node: { type: STANDARD_TENANT_ID }
             ddc_ai_publication: { type: STANDARD_TENANT_ID }
+            ddc_ai_usage_feedback: { type: STANDARD_TENANT_ID }
+            ddc_ai_optimization_policy: { type: STANDARD_TENANT_ID }
+            ddc_ai_optimization_run: { type: STANDARD_TENANT_ID }
             egon_cola_outbox_message: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
             ddl_history: { type: SINGLE, data-source: tianshu_0, schema: egon_outbox }
       transactional-outbox:
