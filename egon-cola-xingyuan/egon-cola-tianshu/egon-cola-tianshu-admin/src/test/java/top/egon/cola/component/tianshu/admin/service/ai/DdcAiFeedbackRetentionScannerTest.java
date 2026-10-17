@@ -43,8 +43,8 @@ class DdcAiFeedbackRetentionScannerTest {
     void stopsAfterTheRoundCapEvenWhenEveryBatchIsFull() {
         when(feedbackService.purgeExpired(1000)).thenReturn(1000);
 
-        assertThat(scanner.scanRetention()).isEqualTo(100_000);
+        assertThat(scanner.scanRetention()).isEqualTo(20_000);
 
-        verify(feedbackService, times(100)).purgeExpired(1000);
+        verify(feedbackService, times(20)).purgeExpired(1000);
     }
 }

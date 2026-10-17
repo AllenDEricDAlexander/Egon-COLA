@@ -15,7 +15,7 @@ import java.util.Objects;
 public class DdcAiFeedbackRetentionScanner {
 
     static final int BATCH = 1000;
-    static final int MAX_ROUNDS = 100;
+    static final int MAX_ROUNDS = 20;
 
     private final DdcAiFeedbackService feedbackService;
     private final DdcAiTenantJobRunner tenantJobRunner;
