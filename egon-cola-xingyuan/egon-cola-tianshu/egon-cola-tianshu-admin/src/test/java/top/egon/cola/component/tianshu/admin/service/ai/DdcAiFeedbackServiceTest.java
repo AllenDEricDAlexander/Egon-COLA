@@ -103,6 +103,26 @@ class DdcAiFeedbackServiceTest {
     }
 
     @Test
+    void unscopedReporterIsAttributedToTheAuthorizedResourceScope() {
+        DdcServicePrincipal unscoped = new DdcServicePrincipal("runtime", "SDK", Set.of("*"), Set.of("*"),
+                Set.of("*"), Set.of("AI_REPORT"), null, null, null, 42L, "tenant-42", Set.of("*"));
+        Context context = unscoped.bind(Context.current());
+        Context previous = context.attach();
+        try {
+            service.accept(DdcAiUsageReportBatchCommand.builder()
+                    .reports(List.of(report("01JAX0M7Q9K2R5T8V1W4X7Y0ZB"))).build());
+        } finally {
+            context.detach(previous);
+        }
+
+        ArgumentCaptor<DdcAiUsageFeedbackBO> inserted = ArgumentCaptor.forClass(DdcAiUsageFeedbackBO.class);
+        verify(feedbackRepository).insert(inserted.capture());
+        assertThat(inserted.getValue().getBizCode()).isEqualTo("retail");
+        assertThat(inserted.getValue().getEnvCode()).isEqualTo("prod");
+        assertThat(inserted.getValue().getAppCode()).isEqualTo("assistant-app");
+    }
+
+    @Test
     void explicitScoreSkipsJudging() {
         accept(report("01JAX0M7Q9K2R5T8V1W4X7Y0ZB").toBuilder().explicitScore(30).build());
 

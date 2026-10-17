@@ -28,6 +28,18 @@ import top.egon.cola.component.tianshu.admin.repository.DdcAiResourceRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
 import top.egon.cola.component.tianshu.admin.security.rpc.DdcServicePrincipal;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiOutcome;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReport;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportBatch;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportItemReceipt;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportReceipt;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportStatus;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiUsageReportBatchCommand;
+import top.egon.cola.component.tianshu.admin.model.command.DdcAiUsageReportCommand;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiSyncCommandConverterImpl;
+import top.egon.cola.component.tianshu.admin.model.vo.DdcAiUsageReportReceiptResult;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
+import top.egon.cola.component.tianshu.model.ai.DdcAiUsageReportStatusEnum;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiScopeValidator;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
@@ -82,13 +94,19 @@ class DdcAiResourceRpcProviderTest {
                     assertThat(constructor.getParameters()[1].getAnnotation(
                             org.springframework.beans.factory.annotation.Qualifier.class).value())
                             .isEqualTo("ddcAiProtoConverterImpl");
+                    assertThat(constructor.getParameters()[2].getAnnotation(
+                            org.springframework.beans.factory.annotation.Qualifier.class).value())
+                            .isEqualTo("ddcAiFeedbackService");
+                    assertThat(constructor.getParameters()[3].getAnnotation(
+                            org.springframework.beans.factory.annotation.Qualifier.class).value())
+                            .isEqualTo("ddcAiSyncCommandConverterImpl");
                 });
     }
 
     @Test
     void promptReadDelegatesToTheSinglePublishedVersionServiceQuery() {
         DdcAiResourceService service = mock(DdcAiResourceService.class);
-        DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(service, new DdcAiProtoConverterImpl());
+        DdcAiResourceRpcProvider provider = provider(service);
         DdcAiVersionResult published = versionResult(DdcAiKindEnum.PROMPT,
                 DdcAiContentDTO.builder().promptText("approved prompt").nodes(List.of()).build());
         when(service.getPublishedVersion(any(), eq(DdcAiKindEnum.PROMPT))).thenReturn(published);
@@ -112,7 +130,7 @@ class DdcAiResourceRpcProviderTest {
     @Test
     void skillReadReturnsTheCompleteTreeAndPreservesDirectoryAndEmptyFilePresence() {
         DdcAiResourceService service = mock(DdcAiResourceService.class);
-        DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(service, new DdcAiProtoConverterImpl());
+        DdcAiResourceRpcProvider provider = provider(service);
         DdcAiVersionResult published = versionResult(DdcAiKindEnum.SKILL,
                 DdcAiContentDTO.builder().nodes(List.of(
                         DdcAiNodeDTO.builder().path("").nodeType(DdcAiNodeTypeEnum.DIRECTORY).build(),
@@ -135,7 +153,7 @@ class DdcAiResourceRpcProviderTest {
     @Test
     void knownAiScopeFailureKeepsPermissionStatusAndTypedTrailer() {
         DdcAiResourceService service = mock(DdcAiResourceService.class);
-        DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(service, new DdcAiProtoConverterImpl());
+        DdcAiResourceRpcProvider provider = provider(service);
         when(service.getPublishedVersion(any(), eq(DdcAiKindEnum.PROMPT)))
                 .thenThrow(new CommonException(56307, "TIANSHU_AI_SCOPE_FORBIDDEN",
                         "AI permission is required for the requested namespace"));
@@ -155,7 +173,7 @@ class DdcAiResourceRpcProviderTest {
     @Test
     void unpublishedResourceRemainsANotFoundStatusForAiConsumers() {
         DdcAiResourceService service = mock(DdcAiResourceService.class);
-        DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(service, new DdcAiProtoConverterImpl());
+        DdcAiResourceRpcProvider provider = provider(service);
         when(service.getPublishedVersion(any(), eq(DdcAiKindEnum.PROMPT)))
                 .thenThrow(new CommonException(56306, "TIANSHU_AI_NOT_PUBLISHED",
                         "Resource has no published version"));
@@ -253,6 +271,90 @@ class DdcAiResourceRpcProviderTest {
         return query.build();
     }
 
+    @Test
+    void reportUsageDelegatesToFeedbackServiceAndPreservesOrder() {
+        DdcAiFeedbackService feedbackService = mock(DdcAiFeedbackService.class);
+        DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(mock(DdcAiResourceService.class),
+                new DdcAiProtoConverterImpl(), feedbackService, new DdcAiSyncCommandConverterImpl());
+        when(feedbackService.accept(org.mockito.ArgumentMatchers.any())).thenReturn(DdcAiUsageReportReceiptResult.builder()
+                .items(java.util.List.of(
+                        receiptItem("01JAX0M7Q9K2R5T8V1W4X7Y0Z1", DdcAiUsageReportStatusEnum.ACCEPTED, null),
+                        receiptItem("01JAX0M7Q9K2R5T8V1W4X7Y0Z2", DdcAiUsageReportStatusEnum.ACCEPTED_DUPLICATE, null),
+                        receiptItem("bad", DdcAiUsageReportStatusEnum.REJECTED, "INVALID_FIELD")))
+                .build());
+        AiUsageReportBatch batch = AiUsageReportBatch.newBuilder()
+                .addReports(usage("01JAX0M7Q9K2R5T8V1W4X7Y0Z1", "810001", "2026-10-17T04:58:12.345Z"))
+                .addReports(usage("01JAX0M7Q9K2R5T8V1W4X7Y0Z2", "810001", "2026-10-17T04:58:13Z"))
+                .addReports(usage("bad", "not-a-number", "yesterday"))
+                .build();
+
+        AiUsageReportReceipt receipt = withPrincipal(principal(TENANT_ID, Set.of("*")), () -> provider.reportUsage(batch));
+
+        assertThat(receipt.getItemsList()).extracting(AiUsageReportItemReceipt::getStatus).containsExactly(
+                AiUsageReportStatus.AI_USAGE_REPORT_ACCEPTED, AiUsageReportStatus.AI_USAGE_REPORT_ACCEPTED_DUPLICATE,
+                AiUsageReportStatus.AI_USAGE_REPORT_REJECTED);
+        assertThat(receipt.getItems(2).getReason()).isEqualTo("INVALID_FIELD");
+        org.mockito.ArgumentCaptor<DdcAiUsageReportBatchCommand> sent =
+                org.mockito.ArgumentCaptor.forClass(DdcAiUsageReportBatchCommand.class);
+        verify(feedbackService).accept(sent.capture());
+        assertThat(sent.getValue().getReports()).extracting(DdcAiUsageReportCommand::getUsageId)
+                .containsExactly("01JAX0M7Q9K2R5T8V1W4X7Y0Z1", "01JAX0M7Q9K2R5T8V1W4X7Y0Z2", "bad");
+        assertThat(sent.getValue().getReports().get(0).getResourceId()).isEqualTo(810001L);
+        assertThat(sent.getValue().getReports().get(0).getOccurredAt())
+                .isEqualTo(java.time.Instant.parse("2026-10-17T04:58:12.345Z"));
+        assertThat(sent.getValue().getReports().get(2).getResourceId()).isNull();
+        assertThat(sent.getValue().getReports().get(2).getOccurredAt()).isNull();
+    }
+
+    @Test
+    void reportUsageRejectsEmptyOrOversizedBatchWithFeedbackInvalidTrailer() {
+        DdcAiFeedbackService feedbackService = mock(DdcAiFeedbackService.class);
+        DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(mock(DdcAiResourceService.class),
+                new DdcAiProtoConverterImpl(), feedbackService, new DdcAiSyncCommandConverterImpl());
+        AiUsageReportBatch.Builder oversized = AiUsageReportBatch.newBuilder();
+        for (int index = 0; index < 101; index++) {
+            oversized.addReports(usage("01JAX0M7Q9K2R5T8V1W4X7Y0Z" + index, "810001", "2026-10-17T04:58:12Z"));
+        }
+
+        for (AiUsageReportBatch batch : java.util.List.of(AiUsageReportBatch.getDefaultInstance(), oversized.build())) {
+            assertThatThrownBy(() -> withPrincipal(principal(TENANT_ID, Set.of("*")), () -> provider.reportUsage(batch)))
+                    .isInstanceOfSatisfying(io.grpc.StatusRuntimeException.class, failure -> {
+                        assertThat(failure.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INVALID_ARGUMENT);
+                        assertThat(failure.getTrailers().get(
+                                top.egon.cola.component.rpc.tianshu.mapping.DdcRpcStatusExceptionMapper.ERROR_DETAIL)
+                                .getCode()).isEqualTo("TIANSHU_AI_FEEDBACK_INVALID");
+                    });
+        }
+        org.mockito.Mockito.verifyNoInteractions(feedbackService);
+    }
+
+    @Test
+    void reportUsageRequiresAnAuthenticatedPrincipal() {
+        DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(mock(DdcAiResourceService.class),
+                new DdcAiProtoConverterImpl(), mock(DdcAiFeedbackService.class), new DdcAiSyncCommandConverterImpl());
+
+        assertThatThrownBy(() -> provider.reportUsage(AiUsageReportBatch.newBuilder()
+                .addReports(usage("01JAX0M7Q9K2R5T8V1W4X7Y0Z1", "810001", "2026-10-17T04:58:12Z")).build()))
+                .isInstanceOfSatisfying(io.grpc.StatusRuntimeException.class, failure ->
+                        assertThat(failure.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.PERMISSION_DENIED));
+    }
+
+    private static AiUsageReport usage(String usageId, String resourceId, String occurredAt) {
+        return AiUsageReport.newBuilder().setUsageId(usageId).setNamespaceCode("prod-space")
+                .setResourceKey("review-order").setResourceId(resourceId).setVersionId("820004").setVersionNo(4L)
+                .setOutcome(AiOutcome.AI_OUTCOME_FAILURE).setOccurredAt(occurredAt).build();
+    }
+
+    private static DdcAiUsageReportReceiptResult.ItemResult receiptItem(String usageId,
+            DdcAiUsageReportStatusEnum status, String reason) {
+        return DdcAiUsageReportReceiptResult.ItemResult.builder().usageId(usageId).status(status).reason(reason).build();
+    }
+
+    private DdcAiResourceRpcProvider provider(DdcAiResourceService service) {
+        return new DdcAiResourceRpcProvider(service, new DdcAiProtoConverterImpl(),
+                mock(DdcAiFeedbackService.class), new DdcAiSyncCommandConverterImpl());
+    }
+
     private DdcServicePrincipal principal(long tenantId, Set<String> namespacePatterns) {
         return principal(tenantId, namespacePatterns, "assistant-app", "prod", "retail", Set.of("AI_READ"));
     }
@@ -299,6 +401,16 @@ class DdcAiResourceRpcProviderTest {
         @Bean("ddcAiProtoConverterImpl")
         DdcAiProtoConverterImpl ddcAiProtoConverter() {
             return new DdcAiProtoConverterImpl();
+        }
+
+        @Bean("ddcAiFeedbackService")
+        DdcAiFeedbackService ddcAiFeedbackService() {
+            return mock(DdcAiFeedbackService.class);
+        }
+
+        @Bean("ddcAiSyncCommandConverterImpl")
+        DdcAiSyncCommandConverterImpl ddcAiSyncCommandConverter() {
+            return new DdcAiSyncCommandConverterImpl();
         }
     }
 }

@@ -33,6 +33,10 @@ import java.util.regex.Pattern;
 @Slf4j
 public final class DdcRpcServerInterceptor implements ServerInterceptor {
 
+    /** 需要 namespace 授权的 AI 操作。 / AI operations that require namespace authorization. */
+    private static final Set<DdcRpcOperation> AI_OPERATIONS = java.util.EnumSet.of(
+            DdcRpcOperation.AI_READ, DdcRpcOperation.AI_REPORT, DdcRpcOperation.AI_WRITE, DdcRpcOperation.AI_PUBLISH);
+
     private static final Pattern HEX_64 = Pattern.compile("[0-9a-f]{64}");
     private static final Pattern NONCE = Pattern.compile("[\\x21-\\x7e]{1,128}");
     private static final Pattern TENANT_ID = Pattern.compile("[1-9][0-9]{0,18}");
@@ -155,8 +159,8 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                 scope.bizCode())) {
             throw denied();
         }
-        if (operation == DdcRpcOperation.AI_READ
-                && !permitsNamespace(namespacePatterns, scope.namespaceCode())) {
+        if (AI_OPERATIONS.contains(operation)
+                && !permitsNamespaces(namespacePatterns, scope.namespaceCodes())) {
             throw denied();
         }
         consumeNonce(credential, signed.nonce(), timestamp, now, skew, operation);
@@ -256,6 +260,11 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                  AI_READ -> false;
             default -> true;
         };
+    }
+
+    private boolean permitsNamespaces(Set<String> patterns, Set<String> namespaceCodes) {
+        return !namespaceCodes.isEmpty()
+                && namespaceCodes.stream().allMatch(namespaceCode -> permitsNamespace(patterns, namespaceCode));
     }
 
     private boolean permitsNamespace(Set<String> patterns, String namespaceCode) {

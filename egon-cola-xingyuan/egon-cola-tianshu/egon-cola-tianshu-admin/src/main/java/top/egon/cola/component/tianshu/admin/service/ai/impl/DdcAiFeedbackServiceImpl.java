@@ -148,9 +148,9 @@ public class DdcAiFeedbackServiceImpl implements DdcAiFeedbackService {
                 .versionId(report.getVersionId())
                 .usageId(report.getUsageId())
                 .reporterCredentialId(principal.credentialId())
-                .bizCode(principal.bizCode())
-                .envCode(principal.env())
-                .appCode(principal.appCode())
+                .bizCode(principal.bizCode() != null ? principal.bizCode() : resource.get().getBizCode())
+                .envCode(principal.env() != null ? principal.env() : resource.get().getEnvCode())
+                .appCode(principal.appCode() != null ? principal.appCode() : resource.get().getAppCode())
                 .outcome(enumConverter.toPersistenceOutcome(report.getOutcome()))
                 .explicitScore(report.getExplicitScore() == null ? null : report.getExplicitScore().shortValue())
                 .judgeState(report.getExplicitScore() != null

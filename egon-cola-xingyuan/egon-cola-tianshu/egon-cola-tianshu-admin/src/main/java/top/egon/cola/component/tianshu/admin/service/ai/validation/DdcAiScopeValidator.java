@@ -157,13 +157,24 @@ public class DdcAiScopeValidator {
                 .anyMatch(pattern -> PatternMatchUtils.simpleMatch(pattern, scope.namespaceCode()));
         if (!"SDK".equals(principal.clientType())
                 || !Objects.equals(MDC.get("tenantId"), Long.toString(principal.tenantId()))
-                || !Objects.equals(principal.bizCode(), scope.bizCode())
-                || !Objects.equals(principal.env(), scope.env())
-                || !Objects.equals(principal.appCode(), scope.appCode())
+                || !scopeMatches(principal.bizCode(), principal.bizCodePatterns(), scope.bizCode())
+                || !scopeMatches(principal.env(), principal.envPatterns(), scope.env())
+                || !scopeMatches(principal.appCode(), principal.appCodePatterns(), scope.appCode())
                 || !principal.allowedOperations().contains(permission.rpcOperation())
                 || !namespaceAllowed) {
             throw scopeForbidden();
         }
+    }
+
+    /**
+     * 请求自带作用域时精确比较；未带作用域的 AI 写请求按凭据模式匹配资源作用域。
+     * / Compares exactly when the request carried a scope; unscoped AI writes match the resource scope against the
+     * credential patterns.
+     */
+    private static boolean scopeMatches(String principalValue, java.util.Set<String> patterns, String expected) {
+        if (expected == null) return false;
+        if (principalValue != null) return principalValue.equals(expected);
+        return patterns.stream().anyMatch(pattern -> PatternMatchUtils.simpleMatch(pattern, expected));
     }
 
     private static CommonException scopeForbidden() {

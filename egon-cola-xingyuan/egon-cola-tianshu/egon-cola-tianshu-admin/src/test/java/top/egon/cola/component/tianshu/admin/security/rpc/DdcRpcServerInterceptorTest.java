@@ -20,6 +20,10 @@ import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantBindingDT
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantContextExecutor;
 import top.egon.cola.component.tianshu.admin.security.tenancy.DdcTenantRegistry;
 import top.egon.cola.component.tianshu.admin.service.config.DdcConfigFacade;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillDraftUpload;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillPublishRequest;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReport;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportBatch;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAiResourceServiceGrpc;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcConfigRuntimeServiceGrpc;
@@ -414,6 +418,84 @@ class DdcRpcServerInterceptorTest {
         headers.put(DdcRpcMetadataKeys.CONTRACT_VERSION,
                 DdcRpcCanonicalRequest.CONTRACT_VERSION);
         return headers;
+    }
+
+    @Test
+    void aiReportUploadAndPublishRequireEveryNamespaceGrant() {
+        DdcAdminProperties properties = properties(List.of(
+                credential(List.of("AI_REPORT", "AI_WRITE", "AI_PUBLISH"), List.of("app-a"))));
+        interceptor = interceptor(properties, new InMemoryDdcNonceStore(100), List.of("orders-*"));
+        var report = DdcAiResourceServiceGrpc.getReportUsageMethod();
+        AiUsageReportBatch mixed = AiUsageReportBatch.newBuilder()
+                .addReports(usage("orders-api")).addReports(usage("billing-api")).build();
+        RecordingServerCall<?, ?> mixedCall = invoke(report, mixed,
+                signed(report.getFullMethodName(), mixed, NOW.toEpochMilli(), "ai-report-mixed"),
+                ignored -> facade.pull("must", "not", "run"));
+        assertThat(mixedCall.status().getCode()).isEqualTo(Status.Code.PERMISSION_DENIED);
+
+        AiUsageReportBatch granted = AiUsageReportBatch.newBuilder()
+                .addReports(usage("orders-api")).addReports(usage("orders-web")).build();
+        RecordingServerCall<?, ?> grantedCall = invoke(report, granted,
+                signed(report.getFullMethodName(), granted, NOW.toEpochMilli(), "ai-report-granted"),
+                ignored -> principal.set(DdcServicePrincipal.current()));
+        assertThat(grantedCall.status()).isNull();
+        assertThat(principal.get().allowedOperations()).contains("AI_REPORT");
+        assertThat(principal.get().appCode()).isNull();
+
+        var upload = DdcAiResourceServiceGrpc.getReplaceSkillDraftMethod();
+        AiSkillDraftUpload foreignUpload = AiSkillDraftUpload.newBuilder().setNamespaceCode("billing-api")
+                .setResourceKey("refund").setResourceId("7").setExpectedRevision("1").build();
+        RecordingServerCall<?, ?> uploadCall = invoke(upload, foreignUpload,
+                signed(upload.getFullMethodName(), foreignUpload, NOW.toEpochMilli(), "ai-upload-denied"),
+                ignored -> facade.pull("must", "not", "run"));
+        assertThat(uploadCall.status().getCode()).isEqualTo(Status.Code.PERMISSION_DENIED);
+
+        var publish = DdcAiResourceServiceGrpc.getPublishSkillDraftMethod();
+        AiSkillPublishRequest grantedPublish = AiSkillPublishRequest.newBuilder().setNamespaceCode("orders-api")
+                .setResourceKey("refund").setResourceId("7").setExpectedRevision("1")
+                .setRequestId("auth-0123456789abcdef").build();
+        RecordingServerCall<?, ?> publishCall = invoke(publish, grantedPublish,
+                signed(publish.getFullMethodName(), grantedPublish, NOW.toEpochMilli(), "ai-publish-granted"),
+                ignored -> principal.set(DdcServicePrincipal.current()));
+        assertThat(publishCall.status()).isNull();
+        verifyNoInteractions(facade);
+    }
+
+    @Test
+    void aiReportIsAWriteThatFailsClosedWhenTheNonceStoreIsDown() {
+        DdcAdminProperties properties = properties(List.of(credential(List.of("AI_REPORT"), List.of("app-a"))));
+        interceptor = interceptor(properties, (credentialId, nonce, ttl) -> {
+            throw new IllegalStateException("redis down");
+        }, List.of("orders-*"));
+        var report = DdcAiResourceServiceGrpc.getReportUsageMethod();
+        AiUsageReportBatch batch = AiUsageReportBatch.newBuilder().addReports(usage("orders-api")).build();
+
+        RecordingServerCall<?, ?> call = invoke(report, batch,
+                signed(report.getFullMethodName(), batch, NOW.toEpochMilli(), "ai-report-nonce-down"),
+                ignored -> facade.pull("must", "not", "run"));
+
+        assertThat(call.status().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
+        assertThat(errorCode(call)).isEqualTo("TIANSHU_NONCE_STORE_UNAVAILABLE");
+    }
+
+    @Test
+    void emptyReportBatchIsInvalidBeforeAuthorization() {
+        DdcAdminProperties properties = properties(List.of(credential(List.of("AI_REPORT"), List.of("app-a"))));
+        interceptor = interceptor(properties, new InMemoryDdcNonceStore(100), List.of("orders-*"));
+        var report = DdcAiResourceServiceGrpc.getReportUsageMethod();
+        AiUsageReportBatch empty = AiUsageReportBatch.getDefaultInstance();
+
+        RecordingServerCall<?, ?> call = invoke(report, empty,
+                signed(report.getFullMethodName(), empty, NOW.toEpochMilli(), "ai-report-empty"),
+                ignored -> facade.pull("must", "not", "run"));
+
+        assertThat(call.status().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+    }
+
+    private static AiUsageReport usage(String namespaceCode) {
+        return AiUsageReport.newBuilder().setUsageId("01JAX0M7Q9K2R5T8V1W4X7Y0ZB").setNamespaceCode(namespaceCode)
+                .setResourceKey("refund").setResourceId("7").setVersionId("9").setVersionNo(1L)
+                .setOccurredAt("2026-08-09T08:00:00Z").build();
     }
 
     private DdcRpcServerInterceptor interceptor(

@@ -29,7 +29,9 @@ import top.egon.cola.component.rpc.tianshu.client.ai.DdcAiProtoConverter;
 import top.egon.cola.component.tianshu.admin.model.vo.DdcAiVersionResult;
 import top.egon.cola.component.tianshu.admin.security.rpc.DdcRpcProviderExceptionMapper;
 import top.egon.cola.component.tianshu.admin.security.rpc.DdcServicePrincipal;
+import top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
+import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiSyncCommandConverter;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
 import top.egon.cola.component.tianshu.model.ai.DdcAiResourceQuery;
 import top.egon.cola.component.tianshu.model.ai.DdcPromptResult;
@@ -47,11 +49,19 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
 
     private static final Pattern POSITIVE_DECIMAL = Pattern.compile("[1-9][0-9]{0,18}");
 
+    private static final int MAX_REPORT_BATCH = 100;
+
     @Qualifier("ddcAiResourceService")
     private final DdcAiResourceService resourceService;
 
     @Qualifier("ddcAiProtoConverterImpl")
     private final DdcAiProtoConverter protoConverter;
+
+    @Qualifier("ddcAiFeedbackService")
+    private final DdcAiFeedbackService feedbackService;
+
+    @Qualifier("ddcAiSyncCommandConverterImpl")
+    private final DdcAiSyncCommandConverter syncConverter;
 
     @Override
     public AiPromptResult getPrompt(@NotNull @Valid AiResourceQuery query) {
@@ -100,8 +110,15 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
     }
 
     @Override
-    public AiUsageReportReceipt reportUsage(AiUsageReportBatch batch) {
-        throw unimplemented("ReportUsage");
+    public AiUsageReportReceipt reportUsage(@NotNull @Valid AiUsageReportBatch batch) {
+        return invoke("ReportUsage", () -> {
+            requireAiReadPrincipal();
+            if (batch.getReportsCount() < 1 || batch.getReportsCount() > MAX_REPORT_BATCH) {
+                throw new CommonException(56320, "TIANSHU_AI_FEEDBACK_INVALID",
+                        "AI usage report batch must contain 1..100 reports");
+            }
+            return syncConverter.toProto(feedbackService.accept(syncConverter.toTarget(batch)));
+        });
     }
 
     @Override
@@ -172,13 +189,14 @@ public class DdcAiResourceRpcProvider implements DdcAiResourceRpc {
 
     private StatusRuntimeException mapAiFailure(CommonException failure) {
         Status status = switch (failure.getCode()) {
-            case 56301, 56308 -> Status.INVALID_ARGUMENT;
-            case 56302, 56306 -> Status.NOT_FOUND;
+            case 56301, 56308, 56320, 56321 -> Status.INVALID_ARGUMENT;
+            case 56302, 56306, 56325 -> Status.NOT_FOUND;
             case 56303, 56314, 56316 -> Status.ABORTED;
             case 56304, 56305 -> Status.ALREADY_EXISTS;
             case 56307 -> Status.PERMISSION_DENIED;
             case 56309 -> Status.INTERNAL;
-            case 56310, 56313 -> Status.UNAVAILABLE;
+            case 56310, 56313, 56322 -> Status.UNAVAILABLE;
+            case 56323, 56324 -> Status.FAILED_PRECONDITION;
             case 56311 -> Status.FAILED_PRECONDITION;
             case 56312 -> Status.RESOURCE_EXHAUSTED;
             default -> Status.INTERNAL;

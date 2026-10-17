@@ -120,6 +120,19 @@ class DdcAiScopeValidatorAuthorityTest {
     }
 
     @Test
+    void unscopedRpcPrincipalIsAuthorizedByCredentialPatterns() {
+        DdcServicePrincipal unscoped = new DdcServicePrincipal("runtime", "SDK", Set.of("assistant-*"),
+                Set.of("prod"), Set.of("*"), Set.of("AI_WRITE"), null, null, null, 42L, "tenant-42", Set.of("prod-*"));
+        DdcServicePrincipal foreign = new DdcServicePrincipal("runtime", "SDK", Set.of("billing-*"),
+                Set.of("prod"), Set.of("*"), Set.of("AI_WRITE"), null, null, null, 42L, "tenant-42", Set.of("prod-*"));
+
+        assertThatCode(() -> withPrincipal(unscoped, () -> validator.assertCanWrite(resource())))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(() -> withPrincipal(foreign, () -> validator.assertCanWrite(resource())))
+                .isInstanceOf(CommonException.class);
+    }
+
+    @Test
     void systemActorRejectsMalformedIdentity() {
         assertThatThrownBy(() -> DdcAiSystemActor.bind("user:alice", () -> null))
                 .isInstanceOf(IllegalArgumentException.class);

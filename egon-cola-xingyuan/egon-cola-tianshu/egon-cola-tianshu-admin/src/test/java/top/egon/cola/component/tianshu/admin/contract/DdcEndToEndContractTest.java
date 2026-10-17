@@ -165,7 +165,9 @@ class DdcEndToEndContractTest {
                         && command.getExpectedTargetRevision() == null), eq("promote_order_0001"));
 
         DdcAiResourceRpcProvider provider = new DdcAiResourceRpcProvider(service,
-                new DdcAiProtoConverterImpl());
+                new DdcAiProtoConverterImpl(),
+                org.mockito.Mockito.mock(top.egon.cola.component.tianshu.admin.service.ai.DdcAiFeedbackService.class),
+                new top.egon.cola.component.tianshu.admin.model.convertor.DdcAiSyncCommandConverterImpl());
         AiPromptResult prompt = withPrincipal(principal(TENANT_ID), () -> provider.getPrompt(targetQuery()));
         assertThat(prompt.getResourceId()).isEqualTo(Long.toString(TARGET_RESOURCE_ID));
         assertThat(prompt.getVersionId()).isEqualTo(Long.toString(TARGET_VERSION_ID));

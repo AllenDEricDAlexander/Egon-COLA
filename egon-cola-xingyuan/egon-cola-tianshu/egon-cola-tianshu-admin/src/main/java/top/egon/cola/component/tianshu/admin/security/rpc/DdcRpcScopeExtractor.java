@@ -3,6 +3,9 @@ package top.egon.cola.component.tianshu.admin.security.rpc;
 import com.google.protobuf.Message;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AcknowledgePublishRequest;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiResourceQuery;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillDraftUpload;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiSkillPublishRequest;
+import top.egon.cola.component.rpc.tianshu.contract.proto.v1.AiUsageReportBatch;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DeleteConfigRequest;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DeregisterServiceRequest;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.FindConfigRequest;
@@ -91,8 +94,19 @@ public final class DdcRpcScopeExtractor {
             case MANAGEMENT + "GetInstances" -> managementQuery(
                     type(request, GetInstancesRequest.class));
             case AI_RESOURCE + "GetPrompt",
-                 AI_RESOURCE + "GetSkill" -> aiReadScope(
+                 AI_RESOURCE + "GetSkill",
+                 AI_RESOURCE + "GetVersionHead" -> aiReadScope(
                     type(request, AiResourceQuery.class));
+            case AI_RESOURCE + "ReportUsage" -> aiReportScope(
+                    type(request, AiUsageReportBatch.class));
+            case AI_RESOURCE + "ReplaceSkillDraft" -> aiResourceScope(
+                    type(request, AiSkillDraftUpload.class).getNamespaceCode(),
+                    type(request, AiSkillDraftUpload.class).getResourceKey(),
+                    type(request, AiSkillDraftUpload.class).getResourceId());
+            case AI_RESOURCE + "PublishSkillDraft" -> aiResourceScope(
+                    type(request, AiSkillPublishRequest.class).getNamespaceCode(),
+                    type(request, AiSkillPublishRequest.class).getResourceKey(),
+                    type(request, AiSkillPublishRequest.class).getResourceId());
             default -> throw new IllegalArgumentException(
                     "Unknown Tianshu RPC method");
         };
@@ -111,6 +125,30 @@ public final class DdcRpcScopeExtractor {
     private Scope managementScope(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcScope scope) {
         return required("MANAGEMENT", scope);
+    }
+
+    /**
+     * 上报批的作用域：业务作用域取自凭据，批内全部 namespace 都需授权。
+     * / Scope of a report batch: business scope comes from the credential and every namespace in the batch is checked.
+     */
+    private Scope aiReportScope(AiUsageReportBatch batch) {
+        if (batch.getReportsCount() == 0) throw new IllegalArgumentException("AI usage report batch is empty");
+        java.util.LinkedHashSet<String> namespaces = new java.util.LinkedHashSet<>();
+        for (var report : batch.getReportsList()) {
+            if (!text(report.getNamespaceCode())) {
+                throw new IllegalArgumentException("AI usage report namespace is required");
+            }
+            namespaces.add(report.getNamespaceCode());
+        }
+        return new Scope("SDK", null, null, null, namespaces.iterator().next(), java.util.Set.copyOf(namespaces));
+    }
+
+    private Scope aiResourceScope(String namespaceCode, String resourceKey, String resourceId) {
+        if (!text(namespaceCode) || !text(resourceKey) || resourceId == null
+                || !resourceId.matches("[1-9][0-9]{0,18}")) {
+            throw new IllegalArgumentException("AI namespace, resource key and positive resourceId are required");
+        }
+        return new Scope("SDK", null, null, null, namespaceCode);
     }
 
     private Scope aiReadScope(AiResourceQuery query) {
@@ -224,14 +262,24 @@ public final class DdcRpcScopeExtractor {
             String appCode,
             String env,
             String bizCode,
-            String namespaceCode) {
+            String namespaceCode,
+            java.util.Set<String> namespaceCodes) {
+
+        public Scope {
+            namespaceCodes = namespaceCodes != null ? java.util.Set.copyOf(namespaceCodes)
+                    : namespaceCode == null ? java.util.Set.of() : java.util.Set.of(namespaceCode);
+        }
+
+        public Scope(String clientType, String appCode, String env, String bizCode, String namespaceCode) {
+            this(clientType, appCode, env, bizCode, namespaceCode, null);
+        }
 
         public Scope(String clientType, String appCode, String env, String bizCode) {
-            this(clientType, appCode, env, bizCode, null);
+            this(clientType, appCode, env, bizCode, null, null);
         }
 
         private static Scope unscoped(String clientType) {
-            return new Scope(clientType, null, null, null, null);
+            return new Scope(clientType, null, null, null, null, null);
         }
     }
 }
