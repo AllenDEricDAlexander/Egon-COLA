@@ -19,7 +19,7 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Accessors(chain = true)
-@Builder
+@Builder(toBuilder = true)
 public class DdcAiWatchedResourceDTO {
 
     @NotBlank

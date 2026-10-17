@@ -3,6 +3,10 @@ package top.egon.cola.component.tianshu.ai.autoconfigure;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.redisson.api.RTopic;
+import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -10,10 +14,21 @@ import top.egon.cola.component.tianshu.ai.feedback.DdcAiUsageReporter;
 import top.egon.cola.component.tianshu.ai.feedback.DefaultDdcAiUsageReporter;
 import top.egon.cola.component.tianshu.ai.observability.DdcAiStarterMetrics;
 import top.egon.cola.component.tianshu.ai.observability.MicrometerDdcAiStarterMetrics;
+import top.egon.cola.component.tianshu.ai.workspace.DdcAiSkillWorkspace;
 import top.egon.cola.component.tianshu.api.client.DdcAiFeedbackClient;
+import top.egon.cola.component.tianshu.api.client.DdcAiSyncClient;
+import top.egon.cola.component.tianshu.api.client.DdcSkillClient;
+import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
+import top.egon.cola.component.tianshu.redis.DdcRedisTopicSubscription;
+
+import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class DdcAiStarterAutoConfigurationTest {
 
@@ -68,5 +83,67 @@ class DdcAiStarterAutoConfigurationTest {
         runner.withClassLoader(new FilteredClassLoader("io.micrometer.core"))
                 .run(context -> assertThat(context.getBean(DdcAiStarterMetrics.class))
                         .isSameAs(DdcAiStarterMetrics.NOOP));
+    }
+    @Test
+    void workspaceEnabledRegistersWorkspaceServiceAndScheduler(@TempDir Path root) {
+        workspaceRunner(root).run(context -> assertThat(context)
+                .hasNotFailed()
+                .hasBean("ddcAiSkillWorkspace")
+                .hasBean("ddcAiWorkspaceReconcileScheduler")
+                .hasSingleBean(DdcAiSkillWorkspace.class)
+                .doesNotHaveBean("ddcAiPublicationSubscription"));
+    }
+
+    @Test
+    void workspaceEnabledFailsWithoutSkillReadsOrSyncClient(@TempDir Path root) {
+        runner.withPropertyValues("egon.cola.component.tianshu.ai.skill.workspace.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.workspace.root=" + root)
+                .run(context -> assertThat(context).hasFailed().getFailure().rootCause()
+                        .hasMessageContaining("requires egon.cola.component.tianshu.skill.enabled"));
+        runner.withPropertyValues("egon.cola.component.tianshu.skill.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.workspace.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.workspace.root=" + root)
+                .withBean(DdcSkillClient.class, () -> mock(DdcSkillClient.class))
+                .run(context -> assertThat(context).hasFailed().getFailure().rootCause()
+                        .hasMessageContaining("DdcSkillClient and DdcAiSyncClient adapters"));
+    }
+
+    @Test
+    void subscriptionEnabledRegistersListenerWithTenantTopic(@TempDir Path root) {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RTopic topic = mock(RTopic.class);
+        String expected = DdcRedisKeys.aiTopic(42L, "xingyuan", "dev", "order");
+        when(redisson.getTopic(expected, StringCodec.INSTANCE)).thenReturn(topic);
+
+        workspaceRunner(root)
+                .withPropertyValues("egon.cola.component.tianshu.ai.skill.workspace.subscription-enabled=true",
+                        "egon.cola.component.tianshu.tenant-id=42",
+                        "egon.cola.component.tianshu.biz-code=xingyuan",
+                        "egon.cola.component.tianshu.env=dev",
+                        "egon.cola.component.tianshu.app-code=order")
+                .withBean("ddcRedissonClient", RedissonClient.class, () -> redisson)
+                .run(context -> {
+                    assertThat(context).hasNotFailed().hasBean("ddcAiPublicationSubscription");
+                    assertThat(context.getBean("ddcAiPublicationSubscription", DdcRedisTopicSubscription.class)
+                            .isActive()).isTrue();
+                    verify(topic).addListener(eq(String.class), any());
+                });
+    }
+
+    @Test
+    void subscriptionWithoutWorkspaceFailsFast() {
+        runner.withPropertyValues("egon.cola.component.tianshu.ai.skill.workspace.subscription-enabled=true")
+                .withBean("ddcRedissonClient", RedissonClient.class, () -> mock(RedissonClient.class))
+                .run(context -> assertThat(context).hasFailed().getFailure().rootCause()
+                        .hasMessageContaining("requires egon.cola.component.tianshu.ai.skill.workspace.enabled"));
+    }
+
+    private ApplicationContextRunner workspaceRunner(Path root) {
+        return runner.withPropertyValues("egon.cola.component.tianshu.skill.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.workspace.enabled=true",
+                        "egon.cola.component.tianshu.ai.skill.workspace.root=" + root,
+                        "egon.cola.component.tianshu.ai.skill.workspace.reconcile-interval=1h")
+                .withBean(DdcSkillClient.class, () -> mock(DdcSkillClient.class))
+                .withBean(DdcAiSyncClient.class, () -> mock(DdcAiSyncClient.class));
     }
 }

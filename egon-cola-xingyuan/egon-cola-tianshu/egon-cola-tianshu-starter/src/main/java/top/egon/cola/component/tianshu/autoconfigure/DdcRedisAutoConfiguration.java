@@ -20,8 +20,9 @@ import top.egon.cola.component.tianshu.redis.DdcRedisClientFactory;
 public class DdcRedisAutoConfiguration {
 
     /**
-     * 在配置远程生命周期或服务注册任一启用时创建唯一 Tianshu Redisson 客户端。 /
-     * Creates the sole Tianshu Redisson client when either remote configuration lifecycle or service registry is enabled.
+     * 在配置远程生命周期、服务注册或 AI Skill 工作区订阅任一启用时创建唯一 Tianshu Redisson 客户端。 /
+     * Creates the sole Tianshu Redisson client when the remote configuration lifecycle, the service registry or the AI
+     * Skill workspace subscription is enabled.
      *
      * @param properties Tianshu 属性 / Tianshu properties
      * @return 共享 Redisson 客户端 / shared Redisson client
@@ -31,7 +32,8 @@ public class DdcRedisAutoConfiguration {
     @ConditionalOnExpression(
             "(${egon.cola.component.tianshu.enabled:false} && "
                     + "${egon.cola.component.tianshu.redis.enabled:true}) || "
-                    + "${egon.cola.component.tianshu.registry.enabled:false}"
+                    + "${egon.cola.component.tianshu.registry.enabled:false} || "
+                    + "${egon.cola.component.tianshu.ai.skill.workspace.subscription-enabled:false}"
     )
     public RedissonClient ddcRedissonClient(
             @Qualifier("egon.cola.component.tianshu-top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties")

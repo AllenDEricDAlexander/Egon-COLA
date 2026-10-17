@@ -42,4 +42,29 @@ class DdcRedisAutoConfigurationTest {
             );
         }
     }
+
+    @Test
+    void createsClientWhenOnlyAiWorkspaceSubscriptionEnabled() {
+        RedissonClient client = mock(RedissonClient.class);
+
+        try (MockedStatic<Redisson> redisson = mockStatic(Redisson.class)) {
+            redisson.when(() -> Redisson.create(any(Config.class))).thenReturn(client);
+            new ApplicationContextRunner()
+                    .withConfiguration(AutoConfigurations.of(DdcRedisAutoConfiguration.class))
+                    .withPropertyValues(
+                            "egon.cola.component.tianshu.tenant-id=42",
+                            "egon.cola.component.tianshu.redis.username=tenant-42",
+                            "egon.cola.component.tianshu.ai.skill.workspace.subscription-enabled=true"
+                    )
+                    .run(context -> assertThat(context.getBean("ddcRedissonClient")).isSameAs(client));
+        }
+    }
+
+    @Test
+    void createsNoClientWhenNoRedisConsumerIsEnabled() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(DdcRedisAutoConfiguration.class))
+                .withPropertyValues("egon.cola.component.tianshu.ai.skill.workspace.enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean("ddcRedissonClient"));
+    }
 }
