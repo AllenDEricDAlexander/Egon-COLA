@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.tianshu.admin.model.enums.DdcAiPolicyStatePersistenceEnum;
+import top.egon.cola.component.tianshu.admin.service.ai.validation.ValidDurationRange;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -56,6 +57,7 @@ public class DdcAiOptimizationPolicyBO {
     private Integer minSamples;
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
+    @ValidDurationRange(minSeconds = 300, maxSeconds = 2592000, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Duration evaluationWindow;
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
@@ -64,6 +66,7 @@ public class DdcAiOptimizationPolicyBO {
     private Short maxIterations;
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
+    @ValidDurationRange(minSeconds = 60, maxSeconds = 604800, groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})
     private Duration cooldown;
 
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class})

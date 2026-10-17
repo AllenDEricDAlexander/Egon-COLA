@@ -50,6 +50,7 @@ import top.egon.cola.component.tianshu.admin.repository.DdcAiVersionNodeReposito
 import top.egon.cola.component.tianshu.admin.repository.DdcAiVersionRepository;
 import top.egon.cola.component.tianshu.admin.service.ai.DdcAiResourceService;
 import top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiScopeValidator;
+import top.egon.cola.component.tianshu.admin.service.ai.validation.DdcAiSystemActor;
 import top.egon.cola.component.tianshu.admin.service.ai.impl.DdcAiContentStrategy.PreparedContent;
 import top.egon.cola.component.tianshu.model.ai.DdcAiContentDTO;
 import top.egon.cola.component.tianshu.model.ai.DdcAiKindEnum;
@@ -685,6 +686,10 @@ public class DdcAiResourceServiceImpl implements DdcAiResourceService {
     }
 
     private String authenticatedActor() {
+        Optional<String> systemActor = DdcAiSystemActor.current();
+        if (systemActor.isPresent() && SecurityContextHolder.getContext().getAuthentication() == null) {
+            return systemActor.get();
+        }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof Rbac3UserDetails user)
                 || user.identitySub() == null || user.identitySub().isBlank()) {

@@ -21,11 +21,21 @@ public class DdcAiPromptTemplateLoader {
 
     static final String BASE = "tianshu/ai/prompts/";
     static final String JUDGE = "judge-system.txt";
+    static final String OPTIMIZE_PROMPT = "optimize-prompt-system.txt";
+    static final String OPTIMIZE_SKILL = "optimize-skill-system.txt";
 
     private final Map<String, String> templates = new ConcurrentHashMap<>();
 
     public String judgeSystem() {
         return template(JUDGE);
+    }
+
+    public String optimizePromptSystem() {
+        return template(OPTIMIZE_PROMPT);
+    }
+
+    public String optimizeSkillSystem() {
+        return template(OPTIMIZE_SKILL);
     }
 
     String template(String name) {
