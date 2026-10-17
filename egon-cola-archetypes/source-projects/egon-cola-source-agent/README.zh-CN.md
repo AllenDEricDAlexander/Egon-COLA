@@ -46,7 +46,17 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 额外文件补充 `application.yml` 和选中的 `application-{profile}.yml`，不替换默认配置位置；
 要求文件必须存在时去掉 `optional:`。密码和密钥继续通过现有环境变量/secrets 注入，不写入 `run.*`。
 
-## 运行合同
+## 构建与验证
+
+不启动服务即可运行 source 校验：
+
+```bash
+./mvnw -B -ntp clean verify
+```
+
+生成的 archetype 由仓库 archetype 脚本独立验证。该 source project 不包含消息中间件、RPC、GraphQL endpoint 或 UI；其持久面是 knowledge 的库表、迁移与 outbox 队列，以及已接线但尚无查询接入的二级缓存。
+
+## 运行契约
 
 研究操作是 `POST /api/v1/deep-research/runs`，请求为 JSON，响应为 `text/event-stream`。请求体包含 `topic`、可选 `reportLanguage`（`ZH_CN` 或 `EN_US`，默认 `ZH_CN`）以及可选 `maxSources`（默认 `8`，范围 `3..20`）。必须提供已验签 USER 的 `Authorization: Bearer`；`X-Trace-Id` 可选，缺失时由服务端生成。
 
@@ -54,7 +64,7 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 
 固定工作流为 `Planner -> ParallelResearch -> Writer`；并行节点包含 `EvidenceResearcher`、`CounterpointResearcher`、`FreshnessResearcher`。搜索回调来自一个配置的 MCP SSE 服务。请求不能选择模型、MCP 地址、密钥、工具或 prompt。
 
-## 知识库接口
+## 知识库契约
 
 knowledge 域在 `/api/v1/knowledge-bases` 与 `/api/v1/knowledge-documents` 下新增 12 个操作。它们与研究域共用同一个 USER Bearer 身份边界（`X-Trace-Id` 同样可选），失败时返回同一个 JSON 错误体——包括成功响应是事件流的问答接口。
 
@@ -77,7 +87,7 @@ knowledge 域在 `/api/v1/knowledge-bases` 与 `/api/v1/knowledge-documents` 下
 
 检索入参为 `query`（必填、trim、至多 2000 字符）、`topK`（1 到 50，缺省取组件配置的默认值 8）与 `similarityThreshold`（0.0 到 1.0）。问答入参为 `question`（必填、trim、至多 2000 字符、不含控制字符）与 `topK`，事件依次为携带引用列表的 `knowledge.started`、零到多个携带 `delta` 的 `knowledge.progress`，以及恰好一个 `knowledge.completed` 或 `knowledge.failed` 作为最后一个事件。上传进度通过轮询文档详情观察。
 
-## 摄取状态机
+## 知识库摄取状态
 
 `DocumentIngestStatusEnum` 与一次摄取任务的 outbox 状态一一映射；下表即状态机，未列出的迁移一律拒绝。
 
@@ -115,7 +125,7 @@ knowledge 域部署有四个配置键无法满足的前提：
 3. 租户与审计 actor 来自 Tianquan-Shoubing 已验签 USER；必须配置可信 issuer registry 与本宿主 resource URI，请求租户/actor 头不能授信。
 4. 知识问答与研究 run 共用同一个 API Key 与同一套进程内容量模型，但各有独立容量池：一方饱和不会拒绝另一方，进程重启后两者都不会保留。
 
-## 环境配置合同
+## 环境配置契约
 
 开发和生产环境必须从外部提供 `DEEP_RESEARCH_MODEL_BASE_URL`、`DEEP_RESEARCH_MODEL_API_KEY`、`DEEP_RESEARCH_MODEL_NAME`、`DEEP_RESEARCH_MCP_BASE_URI`、`DEEP_RESEARCH_MCP_SSE_ENDPOINT` 与 `DEEP_RESEARCH_MCP_API_KEY`，knowledge 域还须提供上表中的 `AGENT_DB_*` 与 `AGENT_KNOWLEDGE_EMBEDDING_*`。运行限制使用 `DEEP_RESEARCH_MAX_*`、`DEEP_RESEARCH_HEARTBEAT_INTERVAL` 与 `AGENT_KNOWLEDGE_*`。source 中不提交凭据、供应商 URL 或可用 secret；test profile 使用 fake `ChatModel` 与 fake `ToolCallback`、关闭 RAG 组件且不执行 Flyway，因此既不连接网络也不访问 PostgreSQL。
 
@@ -132,15 +142,15 @@ curl --fail-with-body --no-buffer \
 
 `reportMarkdown` 是不可信的模型输出，渲染前必须清理。服务端不会重试付费模型或 MCP 调用；重试会产生新的计费 run。进程重启后进程内 Session 与报告都会消失。生产环境关闭 API 文档；TLS、代理头与 secret 投递由部署负责。
 
-## 校验
+## 星垣身份与授权
 
-不启动服务即可运行 source 校验：
+13 个业务操作同时要求对应 `egon-cola-source-agent:<intent>` consented scope 与 Jianshen 资源权限；chat 隐藏协商 handler 使用相同 `knowledge:chat` 权限，通过后才回答406。知识库创建/更新与文档上传还要求实际提交字段集合的显式 WRITE 规则。生成项目将 source namespace 替换为 root artifact ID。目录注册保持 pending，必须由操作者审阅并显式授予权限和字段规则。
 
-```bash
-./mvnw -B -ntp clean verify
-```
+宿主拥有单一 stateless 安全链，完整校验 issuer/JWK/撤销状态并严格投递 APPLICATION 审计。缺身份401，scope/资源/字段拒绝403，安全状态或审计不可用503；安全 body 仅 code/message 且 no-store。原业务响应、SSE 事件及容量/cancel 语义保持。API key 与默认租户0不再赋予身份。
 
-生成的 archetype 由仓库 archetype 脚本独立验证。该 source project 不包含消息中间件、RPC、GraphQL endpoint 或 UI；其持久面是 knowledge 的库表、迁移与 outbox 队列，以及已接线但尚无查询接入的二级缓存。
+各环境从外部提供 `TIANQUAN_SHOUBING_*`、`NATIVE_TENANT_*`、`OAUTH_REVOCATION_*`、`NATIVE_OAUTH_AUDIT_*`、`TIANQUAN_JIANSHEN_*` 与 `RBAC3_RUNTIME_*`。Tianshu 技术注册复用固定 control registration、HMAC 凭据与 TLS；Agent 无业务 RPC provider 或虚构 peer binding。文档治理默认关闭；显式启用后现有 `/v3/api-docs/**` 窄 SERVICE 链执行完整验签并要求 `yuheng.openapi.read`。
+
+入库队列在文档写入前将可信 actor ID、类型与租户写入原 Outbox 私有 headers。worker 校验后绑定配置的 MP 审计键并恢复先前 MDC。没有这些事实的历史任务返回 typed retry，由原 dead-letter 策略处理，不补 system actor。离线 HTTP/SSE/SDK/H2 测试不代表真实 SSO、Redis、PostgreSQL、Tianshu 或模型供应商已联通。
 
 ## 知识库 Repository 迁移
 
@@ -163,13 +173,3 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 时间线使用 `Instant`。Light/Service 的排课与考试 Command 遵循公共微秒契约；本模板不新增排课或考试功能。UTC 示例为 `2026-10-13T01:00:00.123456Z`。`LocalDate` 和 `LocalTime` 表示纯日期和墙钟时间，不做时区转换。既有 `LocalDateTime deletedAt` 仍为可空的 Legacy UTC token：NULL 表示活动，删除、version 和 tenant 规则保持兼容。
 
 未部署的 Light/Service 初始化源仅将窗口列改为 `TIMESTAMP(6) WITH TIME ZONE`，既有 manifest 摘要与源字节一致；这不迁移已部署数据，也不修复已有 SQL 历史。排课唯一键既有差距不纳入本次范围。真实 PostgreSQL/JDBC 验收与离线/H2 测试分开。
-
-## Xingyuan 原生安全接入
-
-13 个业务操作同时要求对应 `egon-cola-source-agent:<intent>` consented scope 与 Jianshen 资源权限；chat 隐藏协商 handler 使用相同 `knowledge:chat` 权限，通过后才回答406。知识库创建/更新与文档上传还要求实际提交字段集合的显式 WRITE 规则。生成项目将 source namespace 替换为 root artifact ID。目录注册保持 pending，必须由操作者审阅并显式授予权限和字段规则。
-
-宿主拥有单一 stateless 安全链，完整校验 issuer/JWK/撤销状态并严格投递 APPLICATION 审计。缺身份401，scope/资源/字段拒绝403，安全状态或审计不可用503；安全 body 仅 code/message 且 no-store。原业务响应、SSE 事件及容量/cancel 语义保持。API key 与默认租户0不再赋予身份。
-
-各环境从外部提供 `TIANQUAN_SHOUBING_*`、`NATIVE_TENANT_*`、`OAUTH_REVOCATION_*`、`NATIVE_OAUTH_AUDIT_*`、`TIANQUAN_JIANSHEN_*` 与 `RBAC3_RUNTIME_*`。Tianshu 技术注册复用固定 control registration、HMAC 凭据与 TLS；Agent 无业务 RPC provider 或虚构 peer binding。文档治理默认关闭；显式启用后现有 `/v3/api-docs/**` 窄 SERVICE 链执行完整验签并要求 `yuheng.openapi.read`。
-
-入库队列在文档写入前将可信 actor ID、类型与租户写入原 Outbox 私有 headers。worker 校验后绑定配置的 MP 审计键并恢复先前 MDC。没有这些事实的历史任务返回 typed retry，由原 dead-letter 策略处理，不补 system actor。离线 HTTP/SSE/SDK/H2 测试不代表真实 SSO、Redis、PostgreSQL、Tianshu 或模型供应商已联通。

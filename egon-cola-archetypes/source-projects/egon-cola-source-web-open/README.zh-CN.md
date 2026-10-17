@@ -6,109 +6,6 @@
 Maven 模块。Gateway 属于外部部署平台，生成物不包含 Gateway 组件、路由或
 `spring-cloud-starter-gateway`。
 
-
-```text
-egon-cola-source-web-open-common
-egon-cola-source-web-open-domain
-egon-cola-source-web-open-application
-egon-cola-source-web-open-facade
-egon-cola-source-web-open-infrastructure
-egon-cola-source-web-open-adapter
-egon-cola-source-web-open-starter
-```
-
-`facade` 保存本工程自有的 Organization Proto 源码及其 Dubbo Triple 生成类；Adapter
-实现十个组织 Provider 方法；Infrastructure 负责 MyBatis-Plus、ShardingSphere、Redis/MQ
-adapter，以及消费对端 Service Open facade 工件的标准 gRPC Evaluation client。
-
-Organization 契约由本工程自身的 `-facade` 模块发布；被消费的 Evaluation 契约始终是外部
-发布的工件，生成的 POM 通过 generation 时显式给出的对端 facade 坐标属性解析它。生成消费方
-之前必须先发布对端的 `parent`、`common` 与 `facade`，且两个 facade 互不依赖，Maven 图因此
-保持无环。
-
-
-技术矩阵为 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba
-2025.0.0.0、Dubbo 3.3.6、Nacos 3.0.3（Compose 镜像）、gRPC 1.73.0、Protobuf 3.x、
-MyBatis-Plus 3.5.16、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 Egon
-组件为 Common core/ID、Common MyBatis-Plus starter、Common 二级缓存 starter 与 Dynamic
-Thread Pool starter。
-
-项目明确不使用 Spring Data JPA、Flyway、Liquibase、Gateway starter 和 UUID 业务主键，
-也不再复制对端协议：唯一的外部契约是由 Service Open 工程发布的 Evaluation facade 工件。
-Adapter 会在调用方未带 `Idempotency-Key` 时用 `UUID.randomUUID()` 生成 trace/幂等关联
-请求号，该值不进入任何业务列。
-`OpenArchitectureTest`、`OpenPeerFacadeContractTest` 和生成物 verifier 会重复检查这些边界。
-
-
-业务 ID 统一为 `Long`，由 Common Snowflake `LongIdGenerator` 生成。每个运行实例必须
-设置唯一 `EGON_ID_MACHINE_ID`；test profile 使用机器号 `0`。HTTP 与 GraphQL 在 wire 边界保持十进制字符串 ID。
-
-旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
-
-旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
-
-旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
-
-
-以下三个文件是本工程唯一拥有的 wire contract，并会复制到生成项目；Evaluation 协议位于
-对端 facade 工件中：
-
-```text
-facade/src/main/proto/organization/v1/user.proto
-facade/src/main/proto/organization/v1/teaching.proto
-facade/src/main/proto/google/protobuf/empty.proto
-```
-
-组织服务使用 Dubbo Triple，group 为 `student-management-organization`、version 为
-`1.0.0`，dev/prod 协议为 `tri`。Evaluation 使用带 managed channel 和可配置 deadline
-的 `GrpcEvaluationQueryClientImpl`，不做隐式重试；测试用 in-process gRPC server。
-
-导出的 group 与 version 硬编码在 `adapter/teaching/rpc/SchoolClassRpcProvider` 与
-`adapter/user/rpc/UserRpcProvider` 构造的 `ServiceBean` 定义中，任何环境变量都不会改变它们。
-出站方向只有 `app.integrations.evaluation.grpc-target` 与 `.grpc-deadline` 被读取，因此
-`EVALUATION_GRPC_TARGET`（默认 `localhost:50051`）与 `EVALUATION_GRPC_DEADLINE`（默认 `PT3S`）
-才是真正生效的部署覆盖项。客户端由激活的 Spring profile 选择（`dev`/`prod` 使用 gRPC 客户端，
-`test` 使用 `LocalEvaluationQueryClientImpl`），因此 `EVALUATION_FACADE_ENABLED`、
-`EVALUATION_COURSE_FACADE_GROUP`、`EVALUATION_EXAM_FACADE_GROUP`、
-`EVALUATION_SCORE_FACADE_GROUP` 与 `EVALUATION_FACADE_SERVICE_VERSION` 只是绑定了没有生产代码
-读取的配置，改值不产生任何效果。
-
-
-Controller 和 GraphQL Resolver 只位于 Adapter：
-
-```text
-/api/v1/**
-/graphql
-/v3/api-docs
-/swagger-ui.html
-```
-
-Starter 提供 Springdoc 文档与 UI。test profile 使用 H2、本地 cache、本地事件发布和
-确定性的 Evaluation stub，不打开 Nacos、Redis、RabbitMQ 或远程 gRPC socket。
-
-
-Starter 只创建一个 Boot `applicationTaskExecutor`，安装 `DtpTaskDecorator`，默认池边界为：
-
-```text
-core=8，max=32，queue=1000，keep-alive=60s
-```
-
-dev/prod 启用 Dynamic Thread Pool Redis registry/report；test 关闭 DTP 外部连接但仍
-验证 executor、decorator 和 ID generator。Compose 示例使用
-`nacos/nacos-server:v3.0.3`，并要求显式机器号。
-
-
-```bash
-bash ./mvnw -B -ntp clean verify
-bash ./mvnw -pl egon-cola-source-web-open-starter -am spring-boot:run
-docker compose --env-file deploy/env/.env.example \
-  --file deploy/compose/compose.docker.yaml up -d --build
-```
-
-第一条命令会运行模块测试、Proto/Triple 测试、OpenAPI/DTP context 测试和 ArchUnit。
-这些测试不等价于真实 Nacos、Redis、PostgreSQL、RabbitMQ、跨 JVM RPC 或外部 Gateway
-拓扑证明；dev/prod 的运维服务和密钥由操作者提供。
-
 ## Maven Profiles 与外部启动参数
 
 每次选择 `dev`、`test`、`prod` 中一个环境 profile，未指定时使用 `dev` 默认值。
@@ -142,9 +39,119 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 额外文件补充 `application.yml` 和选中的 `application-{profile}.yml`，不替换默认配置位置；
 要求文件必须存在时去掉 `optional:`。密码和密钥继续通过现有环境变量/secrets 注入，不写入 `run.*`。
 
+## 构建与验证
+
+```bash
+bash ./mvnw -B -ntp clean verify
+bash ./mvnw -pl egon-cola-source-web-open-starter -am spring-boot:run
+docker compose --env-file deploy/env/.env.example \
+  --file deploy/compose/compose.docker.yaml up -d --build
+```
+
+第一条命令会运行模块测试、Proto/Triple 测试、OpenAPI/DTP context 测试和 ArchUnit。
+这些测试不等价于真实 Nacos、Redis、PostgreSQL、RabbitMQ、跨 JVM RPC 或外部 Gateway
+拓扑证明；dev/prod 的运维服务和密钥由操作者提供。
+
+## 技术栈
+
+技术矩阵为 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba
+2025.0.0.0、Dubbo 3.3.6、Nacos 3.0.3（Compose 镜像）、gRPC 1.73.0、Protobuf 3.x、
+MyBatis-Plus 3.5.16、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 Egon
+组件为 Common core/ID、Common MyBatis-Plus starter、Common 二级缓存 starter 与 Dynamic
+Thread Pool starter。
+
+项目明确不使用 Spring Data JPA、Flyway、Liquibase、Gateway starter 和 UUID 业务主键，
+也不再复制对端协议：唯一的外部契约是由 Service Open 工程发布的 Evaluation facade 工件。
+Adapter 会在调用方未带 `Idempotency-Key` 时用 `UUID.randomUUID()` 生成 trace/幂等关联
+请求号，该值不进入任何业务列。
+`OpenArchitectureTest`、`OpenPeerFacadeContractTest` 和生成物 verifier 会重复检查这些边界。
+
+## 模块
+
+```text
+egon-cola-source-web-open-common
+egon-cola-source-web-open-domain
+egon-cola-source-web-open-application
+egon-cola-source-web-open-facade
+egon-cola-source-web-open-infrastructure
+egon-cola-source-web-open-adapter
+egon-cola-source-web-open-starter
+```
+
+`facade` 保存本工程自有的 Organization Proto 源码及其 Dubbo Triple 生成类；Adapter
+实现十个组织 Provider 方法；Infrastructure 负责 MyBatis-Plus、ShardingSphere、Redis/MQ
+adapter，以及消费对端 Service Open facade 工件的标准 gRPC Evaluation client。
+
+Organization 契约由本工程自身的 `-facade` 模块发布；被消费的 Evaluation 契约始终是外部
+发布的工件，生成的 POM 通过 generation 时显式给出的对端 facade 坐标属性解析它。生成消费方
+之前必须先发布对端的 `parent`、`common` 与 `facade`，且两个 facade 互不依赖，Maven 图因此
+保持无环。
+
+## RPC 契约
+
+以下三个文件是本工程唯一拥有的 wire contract，并会复制到生成项目；Evaluation 协议位于
+对端 facade 工件中：
+
+```text
+facade/src/main/proto/organization/v1/user.proto
+facade/src/main/proto/organization/v1/teaching.proto
+facade/src/main/proto/google/protobuf/empty.proto
+```
+
+组织服务使用 Dubbo Triple，group 为 `student-management-organization`、version 为
+`1.0.0`，dev/prod 协议为 `tri`。Evaluation 使用带 managed channel 和可配置 deadline
+的 `GrpcEvaluationQueryClientImpl`，不做隐式重试；测试用 in-process gRPC server。
+
+导出的 group 与 version 硬编码在 `adapter/teaching/rpc/SchoolClassRpcProvider` 与
+`adapter/user/rpc/UserRpcProvider` 构造的 `ServiceBean` 定义中，任何环境变量都不会改变它们。
+出站方向只有 `app.integrations.evaluation.grpc-target` 与 `.grpc-deadline` 被读取，因此
+`EVALUATION_GRPC_TARGET`（默认 `localhost:50051`）与 `EVALUATION_GRPC_DEADLINE`（默认 `PT3S`）
+才是真正生效的部署覆盖项。客户端由激活的 Spring profile 选择（`dev`/`prod` 使用 gRPC 客户端，
+`test` 使用 `LocalEvaluationQueryClientImpl`），因此 `EVALUATION_FACADE_ENABLED`、
+`EVALUATION_COURSE_FACADE_GROUP`、`EVALUATION_EXAM_FACADE_GROUP`、
+`EVALUATION_SCORE_FACADE_GROUP` 与 `EVALUATION_FACADE_SERVICE_VERSION` 只是绑定了没有生产代码
+读取的配置，改值不产生任何效果。
+
+## API 端点
+
+Controller 和 GraphQL Resolver 只位于 Adapter：
+
+```text
+/api/v1/**
+/graphql
+/v3/api-docs
+/swagger-ui.html
+```
+
+Starter 提供 Springdoc 文档与 UI。test profile 使用 H2、本地 cache、本地事件发布和
+确定性的 Evaluation stub，不打开 Nacos、Redis、RabbitMQ 或远程 gRPC socket。
+
+## ID 与持久化
+
+业务 ID 统一为 `Long`，由 Common Snowflake `LongIdGenerator` 生成。每个运行实例必须
+设置唯一 `EGON_ID_MACHINE_ID`；test profile 使用机器号 `0`。HTTP 与 GraphQL 在 wire 边界保持十进制字符串 ID。
+
+持久化使用 Common MP Repository 与显式 Mapper XML；Domain Service 不依赖技术 CRUD 类型。
+
+旧手工 SQL 为只读档案；当前初始化与运行契约见下方 Repository/PostgreSQL 章节。
+
+应用不会创建或迁移表。执行手工 SQL 前先备份每个物理主库，失败即停止，回滚使用经审核的前向 SQL 或备份恢复。
+
+## 运行治理
+
+Starter 只创建一个 Boot `applicationTaskExecutor`，安装 `DtpTaskDecorator`，默认池边界为：
+
+```text
+core=8，max=32，queue=1000，keep-alive=60s
+```
+
+dev/prod 启用 Dynamic Thread Pool Redis registry/report；test 关闭 DTP 外部连接但仍
+验证 executor、decorator 和 ID generator。Compose 示例使用
+`nacos/nacos-server:v3.0.3`，并要求显式机器号。
+
 ## Repository、CQE 与 PostgreSQL
 
-本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
+本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 契约。
 
 `APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。该文件只是孤立的参考资料：没有任何测试、POM 或配置加载它，其中的 `CLASS_BASED` `algorithmClassName` 指向的类也不会生成。工程实际使用的 `config-style: STRATEGY` 拓扑由组件自带的 `EgonColaLongTenantShardingAlgorithm` 与 `EgonColaTenantBusinessComplexShardingAlgorithm` 完成同样的路由。
 
@@ -165,7 +172,7 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
 不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。
 
-## 2026-09-22 Java / CQE 维护规范
+## Java 与 CQE 编码规范
 
 普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。
 

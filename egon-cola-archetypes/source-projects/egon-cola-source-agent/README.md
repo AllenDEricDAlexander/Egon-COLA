@@ -13,7 +13,7 @@ The project consumes `egon-cola-component-agent-flow-starter` for Agent Flow exe
 
 The source reactor is verified with Java 21, Spring Boot 3.5.16, Spring AI 1.1.8, Springdoc 2.8.17, and Google ADK 0.7.0 through the Components starter. Only the generated `egon-cola-archetype-agent` definition becomes a public Archetype archetype.
 
-## Maven Profiles And External Launch Arguments
+## Maven Profiles and External Launch Arguments
 
 Use one environment profile at a time: `dev`, `test`, or `prod`; omitted profiles use
 `dev` defaults. These profiles configure application startup, while Surefire keeps
@@ -52,7 +52,17 @@ slashes for Windows paths. Extra configuration supplements `application.yml` and
 selected `application-{profile}.yml`; omit `optional:` when the file must exist. Keep
 credentials in the existing environment/secrets mechanism, never in `run.*` properties.
 
-## Runtime contract
+## Build and Verification
+
+Run the source checks without starting a service:
+
+```bash
+./mvnw -B -ntp clean verify
+```
+
+The generated archetype is validated separately by the repository archetype scripts. The source project contains no message broker, RPC, GraphQL endpoint, or UI; its durable surface is the knowledge schema with its migrations and the outbox queue, over the two-level cache that no query has opted into yet.
+
+## Runtime Contract
 
 The research operation is `POST /api/v1/deep-research/runs`. It consumes JSON and produces `text/event-stream`. The request body accepts `topic`, optional `reportLanguage` (`ZH_CN` or `EN_US`, default `ZH_CN`), and optional `maxSources` (default `8`, bounded to `3..20`). An authenticated USER `Authorization: Bearer` header is required; `X-Trace-Id` is optional and is generated when absent.
 
@@ -60,7 +70,7 @@ Each accepted request creates one process-local Agent Flow session and one non-i
 
 The fixed flow is `Planner -> ParallelResearch -> Writer`; the parallel node contains `EvidenceResearcher`, `CounterpointResearcher`, and `FreshnessResearcher`. Search callbacks come from one configured MCP SSE service. Model and MCP clients are never selected by the request.
 
-## Knowledge contract
+## Knowledge Contract
 
 The knowledge domain adds twelve operations under `/api/v1/knowledge-bases` and `/api/v1/knowledge-documents`. They use the same USER Bearer authentication and the same optional `X-Trace-Id` as research, and they answer their failures with the same JSON error body — including the answer endpoint, whose success is an event stream.
 
@@ -83,7 +93,7 @@ The knowledge domain adds twelve operations under `/api/v1/knowledge-bases` and 
 
 Retrieval takes `query` (required, trimmed, at most 2000 characters), `topK` (1 to 50, defaulting to the component's configured default of 8) and `similarityThreshold` (0.0 to 1.0). The answer stream takes `question` (required, trimmed, at most 2000 characters, no control characters) and `topK`, and emits `knowledge.started` with the retrieved references, zero or more `knowledge.progress` increments carrying `delta`, and exactly one `knowledge.completed` or `knowledge.failed` as its last event. An upload is observed by polling the document.
 
-## Knowledge ingest states
+## Knowledge Ingest States
 
 `DocumentIngestStatusEnum` mirrors the outbox states of a queued ingest; the table below is the state machine, and a transition that is not in it is rejected.
 
@@ -98,7 +108,7 @@ Retrieval takes `query` (required, trimmed, at most 2000 characters), `topK` (1 
 
 A document in a non-terminal state is refused a reprocess with `409`. A retried delivery never re-parses the original: it re-chunks and re-embeds the text already stored in `knowledge_document.content`.
 
-## Knowledge configuration
+## Knowledge Configuration
 
 | Key | Environment variable | Meaning |
 | --- | --- | --- |
@@ -121,7 +131,7 @@ A deployment of the knowledge domain has four prerequisites that no configuratio
 3. The tenant and audit actor come from the verified Tianquan-Shoubing USER. Configure the trusted issuer registry and own resource URI; ingress tenant/actor headers do not establish identity.
 4. Knowledge answers and research runs share the USER security boundary and the same process-local capacity model, each with its own pool: saturating one does not refuse the other, and neither survives a restart.
 
-## Environment contract
+## Environment Contract
 
 Development and production require externally supplied values for `DEEP_RESEARCH_MODEL_BASE_URL`, `DEEP_RESEARCH_MODEL_API_KEY`, `DEEP_RESEARCH_MODEL_NAME`, `DEEP_RESEARCH_MCP_BASE_URI`, `DEEP_RESEARCH_MCP_SSE_ENDPOINT`, and `DEEP_RESEARCH_MCP_API_KEY`, and for the knowledge domain the `AGENT_DB_*` and `AGENT_KNOWLEDGE_EMBEDDING_*` values listed above. Runtime limits use the `DEEP_RESEARCH_MAX_*`, `DEEP_RESEARCH_HEARTBEAT_INTERVAL` and `AGENT_KNOWLEDGE_*` variables. No credential, provider URL, or usable secret is committed in this source project. The test profile uses a fake `ChatModel` and fake `ToolCallback`, a closed RAG component and no Flyway run, so it never opens a network connection or touches PostgreSQL.
 
@@ -138,17 +148,17 @@ curl --fail-with-body --no-buffer \
 
 `reportMarkdown` is untrusted model output and must be sanitized before rendering. The server does not retry paid model or MCP calls; a retry is a new billable run. The in-memory session and report disappear on process restart. Production API documentation is disabled; TLS, proxy headers, and secret delivery belong to deployment.
 
-## Verification
+## Xingyuan Identity and Authorization
 
-Run the source checks without starting a service:
+All 13 business operations require their exact `egon-cola-source-agent:<intent>` consented scope and a Jianshen resource permission. The hidden chat negotiation handler uses the same `knowledge:chat` permission before returning 406. Create/update knowledge bases and document upload additionally require explicit WRITE rules for their submitted field sets. Generated projects replace the source namespace with the root artifact ID. Catalog registration remains pending until an operator reviews it and explicitly grants permissions and field rules.
 
-```bash
-./mvnw -B -ntp clean verify
-```
+The host owns one stateless chain with complete issuer/JWK/revocation checks and strict APPLICATION audit delivery. Missing identity answers 401; denied scope/resource/field answers 403; unavailable security state or audit answers 503. These security bodies contain only code/message and use no-store. Existing business replies, SSE events and capacity/cancel semantics stay unchanged. API keys and default tenant zero no longer authenticate callers.
 
-The generated archetype is validated separately by the repository archetype scripts. The source project contains no message broker, RPC, GraphQL endpoint, or UI; its durable surface is the knowledge schema with its migrations and the outbox queue, over the two-level cache that no query has opted into yet.
+Configure the `TIANQUAN_SHOUBING_*`, `NATIVE_TENANT_*`, `OAUTH_REVOCATION_*`, `NATIVE_OAUTH_AUDIT_*`, `TIANQUAN_JIANSHEN_*` and `RBAC3_RUNTIME_*` external values in every environment. Tianshu technical registration uses its existing fixed control registration, HMAC credentials and TLS; the Agent exposes no business RPC provider or invented peer binding. Documentation governance defaults off and, when explicitly enabled, the existing narrow `/v3/api-docs/**` SERVICE chain requires complete verification and `yuheng.openapi.read`.
 
-## Knowledge Repository migration
+Ingestion captures trusted actor ID, actor kind and tenant into the existing private Outbox headers before the document write. Workers validate those facts, use the configured MP audit keys and restore the previous MDC. Historical tasks without these facts return a typed retry and follow the existing dead-letter policy; they never acquire a system actor. Offline HTTP/SSE/SDK/H2 tests do not establish live SSO, Redis, PostgreSQL, Tianshu or model-provider integration.
+
+## Knowledge Repository Migration
 
 Knowledge queries now use bound Mapper XML. Updates enforce tenant, active row, expected version and expected ingest status. `deleted_at` is a nullable UTC LocalDateTime and `version` starts at zero. The field-specific JSONB handler is retained.
 
@@ -156,7 +166,7 @@ The project standard is now MP-SDJ distributed managed DDL, but this source proj
 
 Set `EGON_ID_MACHINE_ID` for production. Default H2/fake-model tests do not run PostgreSQL migrations or vector integrations; perform those checks manually on a dedicated database.
 
-## Two-level cache
+## Two-Level Cache
 
 `application.yml`, `application-dev.yml` and `application-prod.yml` ship the cache starter with `egon.cola.component.cache.enabled=true`; `test` keeps the same keys
 with `enabled: false` so unit and module runs never require Redis. `infrastructure/config/RedisConfig.java` carries
@@ -169,20 +179,10 @@ shared `key-prefix`, `tenant-mdc-key` and batch/lock budgets; only the values di
 the `egon-cola-component-common-cache-spring-boot-starter` documentation in the Egon-COLA repository
 for keys, conditions, combined operations, transactions and sync limitations.
 
-## UTC time contract
+## UTC Time Contract
 
 All four profiles serialize Java time as ISO strings and declare Jackson UTC. The JVM launch arguments use `-Duser.timezone=UTC`; the existing container templates default to `TZ=UTC` and the same JVM flag. Agent has no container template. Business display zones belong to callers.
 
 Timeline values use `Instant`. Light/Service scheduling and exam Commands follow the shared microsecond contract; this template adds no scheduling or exam feature. An example UTC value is `2026-10-13T01:00:00.123456Z`. `LocalDate` and `LocalTime` represent dates and wall-clock times without zone conversion. Existing `LocalDateTime deletedAt` remains a nullable legacy UTC token: NULL means active, and deletion/version/tenant rules remain unchanged.
 
 The undeployed Light/Service initialization sources use `TIMESTAMP(6) WITH TIME ZONE` for window columns; their existing manifest checksums match the source bytes. This does not migrate deployed data or repair existing SQL history. Existing scheduling uniqueness gaps are outside this change. Real PostgreSQL/JDBC acceptance is separate from offline and H2 tests.
-
-## Xingyuan native security
-
-All 13 business operations require their exact `egon-cola-source-agent:<intent>` consented scope and a Jianshen resource permission. The hidden chat negotiation handler uses the same `knowledge:chat` permission before returning 406. Create/update knowledge bases and document upload additionally require explicit WRITE rules for their submitted field sets. Generated projects replace the source namespace with the root artifact ID. Catalog registration remains pending until an operator reviews it and explicitly grants permissions and field rules.
-
-The host owns one stateless chain with complete issuer/JWK/revocation checks and strict APPLICATION audit delivery. Missing identity answers 401; denied scope/resource/field answers 403; unavailable security state or audit answers 503. These security bodies contain only code/message and use no-store. Existing business replies, SSE events and capacity/cancel semantics stay unchanged. API keys and default tenant zero no longer authenticate callers.
-
-Configure the `TIANQUAN_SHOUBING_*`, `NATIVE_TENANT_*`, `OAUTH_REVOCATION_*`, `NATIVE_OAUTH_AUDIT_*`, `TIANQUAN_JIANSHEN_*` and `RBAC3_RUNTIME_*` external values in every environment. Tianshu technical registration uses its existing fixed control registration, HMAC credentials and TLS; the Agent exposes no business RPC provider or invented peer binding. Documentation governance defaults off and, when explicitly enabled, the existing narrow `/v3/api-docs/**` SERVICE chain requires complete verification and `yuheng.openapi.read`.
-
-Ingestion captures trusted actor ID, actor kind and tenant into the existing private Outbox headers before the document write. Workers validate those facts, use the configured MP audit keys and restore the previous MDC. Historical tasks without these facts return a typed retry and follow the existing dead-letter policy; they never acquire a system actor. Offline HTTP/SSE/SDK/H2 tests do not establish live SSO, Redis, PostgreSQL, Tianshu or model-provider integration.

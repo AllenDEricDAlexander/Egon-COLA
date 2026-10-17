@@ -37,6 +37,18 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 额外文件补充 `application.yml` 和选中的 `application-{profile}.yml`，不替换默认配置位置；
 要求文件必须存在时去掉 `optional:`。密码和密钥继续通过现有环境变量/secrets 注入，不写入 `run.*`。
 
+## 构建与验证
+
+Springdoc 在 `/v3/api-docs` 提供 OpenAPI 文档，在 `/swagger-ui.html` 提供 Swagger UI。
+
+```bash
+# 生成后的项目
+./mvnw -B -ntp clean verify
+./mvnw -B -ntp -DskipTests package
+```
+
+`verify` 执行 `OpenArchitectureTest`，它按源码文本检查：`archunit-junit5` 虽在测试 classpath 上，但没有任何测试 import `com.tngtech`，因此分层方向是靠文件内容审查而非字节码分析得出的。`test`/`verify` 是静态和生成工程检查，不代表真实 Nacos、Redis、PostgreSQL、RabbitMQ 或外部服务拓扑已经可用。
+
 ## 技术栈
 
 - Java 21、Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3。
@@ -89,9 +101,9 @@ common         -> no business layer
 
 只有 `common.exception` 里的异常根类型可以跨层出现，其他 `common` 类型不得离开本层。生成的 `OpenArchitectureTest` 会检查向内依赖，并拒绝 Domain/Application 直接依赖持久化或传输框架。
 
-## 公共合同
+## 公共契约
 
-各层复用 common-core 合同，不再各自造轮子：
+各层复用 common-core 契约，不再各自造轮子：
 
 - 异常：`common/exception` 的根类型继承组件的 `BusinessException` / `CommonException` 链，对外稳定错误码是 `getStatus()` 字符串，数字型 `getCode()` 不参与传输。
 - 枚举：手写业务枚举实现 `EgonEnum`，序列化取声明的 `code` 而不是 `ordinal()`。
@@ -104,7 +116,7 @@ common         -> no business layer
 
 持久化使用 Common MP Repository 与显式 Mapper XML；Domain Service 不依赖技术 CRUD 类型。
 
-旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
+旧手工 SQL 为只读档案；当前初始化与运行契约见下方 Repository/PostgreSQL 章节。
 
 ShardingSphere 按正数 `tenant_id` 路由 `light_school_classes` 与 `light_class_course_schedules`，使用稳定的正数 Long 分片算法。班级与排课必须携带同一个根键；跨分片流程由调用方通过业务幂等和补偿处理。
 
@@ -114,34 +126,9 @@ Spring Boot 的 `applicationTaskExecutor` 是唯一的应用异步执行器，�
 
 `test` profile 设置 `egon.cola.component.dtp.enabled=false`，关闭 DTP 上报和 Nacos，并关闭 RabbitMQ、Redis、外部 HTTP。该 profile 的 `application-test.yml` 仍写着 PostgreSQL 地址，但没有任何测试绑定这套拓扑：持久化测试从 `src/test/java/.../support/PersistenceTestSupport.java` 出发，由它提供隔离的 H2 数据源和受控依赖。因此生成测试不需要在线基础设施。`dev`/`prod` Compose 示例会显式传入机器 ID 和 DTP Redis/上报配置。
 
-## API 与命令
-
-Springdoc 在 `/v3/api-docs` 提供 OpenAPI 文档，在 `/swagger-ui.html` 提供 Swagger UI。
-
-```bash
-# 生成后的项目
-./mvnw -B -ntp clean verify
-./mvnw -B -ntp -DskipTests package
-```
-
-`verify` 执行 `OpenArchitectureTest`，它按源码文本检查：`archunit-junit5` 虽在测试 classpath 上，但没有任何测试 import `com.tngtech`，因此分层方向是靠文件内容审查而非字节码分析得出的。`test`/`verify` 是静态和生成工程检查，不代表真实 Nacos、Redis、PostgreSQL、RabbitMQ 或外部服务拓扑已经可用。
-
-## 容器交付
-
-使用环境示例和六个 Compose 变体之一：
-
-```bash
-docker compose --env-file deploy/env/.env.example \
-  -f deploy/compose/compose.docker.yaml up -d --build
-```
-
-开发和生产示例均使用 Nacos `nacos/nacos-server:v3.0.3`。请通过运维持有的环境文件提供数据库、Redis/RabbitMQ、Nacos 凭据及唯一的 `EGON_ID_MACHINE_ID`。archetype 生成过程不会启动应用，也不会执行数据库 SQL。
-
-配置加密继续使用 `EGON_CONFIG_DECRYPT_KEY` 或 `EGON_CONFIG_DECRYPT_KEY_FILE` 提供 32 字节密钥；不要提交凭据或密钥。
-
 ## Repository、CQE 与 PostgreSQL
 
-本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
+本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 契约。
 
 `APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。该文件只是孤立的参考资料：没有任何测试、POM 或配置加载它，其中的 `CLASS_BASED` `algorithmClassName` 指向的类也不会生成。工程实际使用的 `config-style: STRATEGY` 拓扑由组件自带的 `EgonColaLongTenantShardingAlgorithm` 与 `EgonColaTenantBusinessComplexShardingAlgorithm` 完成同样的路由。
 
@@ -162,7 +149,7 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 `updateCachedById`（Agent 按业务自行声明）。普通 CRUD
 不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。
 
-## 2026-09-22 Java / CQE 维护规范
+## Java 与 CQE 编码规范
 
 普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。
 
@@ -175,3 +162,16 @@ Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明�
 未部署的 Light/Service 初始化源仅将窗口列改为 `TIMESTAMP(6) WITH TIME ZONE`，既有 manifest 摘要与源字节一致；这不迁移已部署数据，也不修复已有 SQL 历史。排课唯一键既有差距不纳入本次范围。真实 PostgreSQL/JDBC 验收与离线/H2 测试分开。
 
 排课 REST body 必须使用带 offset 的字符串，例如 `{"startsAt":"2026-10-13T09:00:00.123456789+08:00","endsAt":"2026-10-13T09:30:00.123456789+08:00"}`。无 offset 和数值时间被拒绝；响应使用 Application/Domain 投影中的规范 UTC 值。
+
+## 容器交付
+
+使用环境示例和六个 Compose 变体之一：
+
+```bash
+docker compose --env-file deploy/env/.env.example \
+  -f deploy/compose/compose.docker.yaml up -d --build
+```
+
+开发和生产示例均使用 Nacos `nacos/nacos-server:v3.0.3`。请通过运维持有的环境文件提供数据库、Redis/RabbitMQ、Nacos 凭据及唯一的 `EGON_ID_MACHINE_ID`。archetype 生成过程不会启动应用，也不会执行数据库 SQL。
+
+配置加密继续使用 `EGON_CONFIG_DECRYPT_KEY` 或 `EGON_CONFIG_DECRYPT_KEY_FILE` 提供 32 字节密钥；不要提交凭据或密钥。

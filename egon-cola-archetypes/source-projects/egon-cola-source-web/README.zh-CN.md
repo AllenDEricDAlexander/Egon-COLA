@@ -37,83 +37,7 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 额外文件补充 `application.yml` 和选中的 `application-{profile}.yml`，不替换默认配置位置；
 要求文件必须存在时去掉 `optional:`。密码和密钥继续通过现有环境变量/secrets 注入，不写入 `run.*`。
 
-## 模块
-
-```text
-egon-cola-source-web-common
-egon-cola-source-web-facade
-egon-cola-source-web-domain
-egon-cola-source-web-application
-egon-cola-source-web-infrastructure
-egon-cola-source-web-adapter
-egon-cola-source-web-starter
-```
-
-## 领域优先包布局
-
-业务代码先按领域组织，再按技术职责组织：
-
-```text
-domain/user/entities
-application/teaching/manage/impl
-application/user/pojo/command
-infrastructure/teaching/po
-infrastructure/user/repo
-adapter/teaching/pojo/dto
-adapter/user/facade/impl
-```
-
-共享运行时能力保留在各自的层根包中。外部 Evaluation 边界位于 `infrastructure/client/evaluation`，这是有意保留的例外；领域侧只持有 `domain/teaching/service` 端口与值对象。
-
-## 依赖方向
-
-```text
-common         -> no generated module
-domain         -> common
-application    -> domain
-infrastructure -> domain, 可选的 Evaluation Facade
-adapter        -> application, canonical Organization Facade
-starter        -> adapter, infrastructure
-```
-
-Domain 显式声明父 POM 管理的 Lombok，作用域为 `provided`，保证 code-gen POJO 可编译，不增加运行时依赖。
-
-Infrastructure 实现 Domain 所有的端口。Adapter 不能直接访问 Infrastructure，Starter 只包含组装配置。两个 canonical Facade 都是独立 artifact，不依赖当前生成项目，因此 Web/Service Maven 依赖图不会形成循环。
-
-持久化使用 Common MP Repository 与显式 Mapper XML；Domain Service 不依赖技术 CRUD 类型。
-
-## 领域
-
-完整的 `user` 垂直领域负责创建和查询用户、分配角色、授予权限、缓存用户读取结果，并发布已提交的变更。
-
-完整的 `teaching` 垂直领域负责创建和查询成绩与学校班级、缓存查询结果，并发布已提交的变更。用户与班级的分配是一个同时使用两个 Domain repository 的 Application 事务；`school_class_users` 是权威的成员关系。
-
-## 集成职责
-
-- Adapter 负责 HTTP `/api/v1/**`、GraphQL `/graphql`、入站 RabbitMQ command、COLA RPC Facade export、请求校验、过滤器和协议转换。
-- Infrastructure 负责 Common MyBatis-Plus 持久化、受管 PostgreSQL DDL、Redis adapter、出站 RabbitMQ event、Application 方法日志 AOP，以及可选的 Evaluation Facade 客户端适配器。
-- Starter 负责 OpenAPI 组装、运行时 profile、Actuator、Prometheus、Jackson、异步执行和配置解密。
-- Organization 契约由本工程自己的 Facade 模块发布。若生成时同时提供 `evaluation-facade.group-id`、`evaluation-facade.artifact-id`、`evaluation-facade.version` 与 `evaluation-facade.package` 四项，Evaluation 契约作为外部工件接入；若四项全部省略，则不生成对端依赖、客户端、领域服务和值对象及相关配置。
-
-若选择生成，Evaluation 查询客户端是暂未使用的集成基础能力；当前没有 Application 用例调用它。
-
-RabbitMQ command 使用总计三次尝试、有限退避和死信队列。领域事件在提交后发布。该示例会报告事件发布耗尽，但不声称具备事务 outbox 的投递保证。
-
-## 运行时 Profile
-
-`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、外部 Tianshu 和 COLA RPC 集成。
-
-Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2、内存缓存/幂等 adapter、本地事件发布器、确定性的 Evaluation 查询 stub、已关闭的 RabbitMQ 与 外部 Tianshu 连接，以及已关闭的 COLA RPC provider/consumer 与 registry。
-
-`prod` 仅用于 `main` 分支的运行时构建和部署。仅在提供可选对端坐标时，`dev` 与 `prod` 才使用 COLA RPC Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0`）。
-
-- Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
-
-## 错误契约
-
-HTTP 失败使用包含 `code`、`message`、`traceId`、`timestamp` 和 `fieldErrors` 的稳定响应体。状态语义为：`400` 校验失败，`403` 禁止访问，`404` 资源不存在，`409` 冲突，`422` Domain 拒绝，`503` 必需依赖不可用，`500` 未预期失败。GraphQL 通过 error extensions 暴露相同字段；Facade 失败携带相同 code 和 trace ID。
-
-## 命令
+## 构建与验证
 
 验证所有模块：
 
@@ -140,6 +64,137 @@ printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-
 
 `ConfigCipherCli` 不接受任何参数，明文从标准输入读取；`exec:java` 在 Maven 自身的 JVM 中运行，
 上面的管道才能送达。将输出的 `ENC(v1:...)` 值填入配置。
+
+## 模块
+
+```text
+egon-cola-source-web-common
+egon-cola-source-web-facade
+egon-cola-source-web-domain
+egon-cola-source-web-application
+egon-cola-source-web-infrastructure
+egon-cola-source-web-adapter
+egon-cola-source-web-starter
+```
+
+## 领域优先结构
+
+业务代码先按领域组织，再按技术职责组织：
+
+```text
+domain/user/entities
+application/teaching/manage/impl
+application/user/pojo/command
+infrastructure/teaching/po
+infrastructure/user/repo
+adapter/teaching/pojo/dto
+adapter/user/facade/impl
+```
+
+共享运行时能力保留在各自的层根包中。外部 Evaluation 边界位于 `infrastructure/client/evaluation`，这是有意保留的例外；领域侧只持有 `domain/teaching/service` 端口与值对象。
+
+## 依赖图
+
+```text
+common         -> no generated module
+domain         -> common
+application    -> domain
+infrastructure -> domain, 可选的 Evaluation Facade
+adapter        -> application, canonical Organization Facade
+starter        -> adapter, infrastructure
+```
+
+Domain 显式声明父 POM 管理的 Lombok，作用域为 `provided`，保证 code-gen POJO 可编译，不增加运行时依赖。
+
+Infrastructure 实现 Domain 所有的端口。Adapter 不能直接访问 Infrastructure，Starter 只包含组装配置。两个 canonical Facade 都是独立 artifact，不依赖当前生成项目，因此 Web/Service Maven 依赖图不会形成循环。
+
+持久化使用 Common MP Repository 与显式 Mapper XML；Domain Service 不依赖技术 CRUD 类型。
+
+## 领域
+
+完整的 `user` 垂直领域负责创建和查询用户、分配角色、授予权限、缓存用户读取结果，并发布已提交的变更。
+
+完整的 `teaching` 垂直领域负责创建和查询成绩与学校班级、缓存查询结果，并发布已提交的变更。用户与班级的分配是一个同时使用两个 Domain repository 的 Application 事务；`school_class_users` 是权威的成员关系。
+
+## 运行 Profile 与集成
+
+`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、外部 Tianshu 和 COLA RPC 集成。
+
+Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2、内存缓存/幂等 adapter、本地事件发布器、确定性的 Evaluation 查询 stub、已关闭的 RabbitMQ 与 外部 Tianshu 连接，以及已关闭的 COLA RPC provider/consumer 与 registry。
+
+`prod` 仅用于 `main` 分支的运行时构建和部署。仅在提供可选对端坐标时，`dev` 与 `prod` 才使用 COLA RPC Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0`）。
+
+- Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
+
+## 集成职责
+
+- Adapter 负责 HTTP `/api/v1/**`、GraphQL `/graphql`、入站 RabbitMQ command、COLA RPC Facade export、请求校验、过滤器和协议转换。
+- Infrastructure 负责 Common MyBatis-Plus 持久化、受管 PostgreSQL DDL、Redis adapter、出站 RabbitMQ event、Application 方法日志 AOP，以及可选的 Evaluation Facade 客户端适配器。
+- Starter 负责 OpenAPI 组装、运行时 profile、Actuator、Prometheus、Jackson、异步执行和配置解密。
+- Organization 契约由本工程自己的 Facade 模块发布。若生成时同时提供 `evaluation-facade.group-id`、`evaluation-facade.artifact-id`、`evaluation-facade.version` 与 `evaluation-facade.package` 四项，Evaluation 契约作为外部工件接入；若四项全部省略，则不生成对端依赖、客户端、领域服务和值对象及相关配置。
+
+若选择生成，Evaluation 查询客户端是暂未使用的集成基础能力；当前没有 Application 用例调用它。
+
+RabbitMQ command 使用总计三次尝试、有限退避和死信队列。领域事件在提交后发布。该示例会报告事件发布耗尽，但不声称具备事务 outbox 的投递保证。
+
+## 错误契约
+
+HTTP 失败使用包含 `code`、`message`、`traceId`、`timestamp` 和 `fieldErrors` 的稳定响应体。状态语义为：`400` 校验失败，`403` 禁止访问，`404` 资源不存在，`409` 冲突，`422` Domain 拒绝，`503` 必需依赖不可用，`500` 未预期失败。GraphQL 通过 error extensions 暴露相同字段；Facade 失败携带相同 code 和 trace ID。
+
+## 原生 RPC 与 Tianshu
+
+本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 10 个 organization unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Evaluation 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms，`EVALUATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+
+`dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
+
+文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、完整授柄SERVICE验证与 `yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
+
+`test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 Tianshu 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 Tianshu/Tianquan-Shoubing、TLS 或容器互通。
+
+## 星垣身份与授权
+
+10个REST与10个GraphQL root均要求面向当前精确资源的已验证USER Token、对应egon-cola-source-web:<intent> delegation scope，以及独立的namespace RBAC资源/permission。业务与MP审计actor/tenant只来自可信主体，actor/role/tenant headers不授权；仅liveness/readiness公共。REST/GraphQL写入在用例前按实际提交字段检查当前role field rules，field定义cap本身不授WRITE。
+
+10个native RPC方法要求已验证TENANT SERVICE身份、固定audience与本方法scope。共同SDK严格确认usage proof并在finally恢复callback tenant/actor/kind；facade metadata仅传递trace/幂等，不构造SYSTEM或伪USER。GraphQL使用immutable身份/scope/proof/trace和框架callback Adapter/Decorator，aliases共用一次已确认DENY marker；依赖/审计Unavailable不降为普通拒绝。
+
+三个evaluation只读调用仅GetCourse/GetExam/GetScore，scope来自目标发布namespace。填写organization.integrations.evaluation.application-namespace、固定group/version（默认1.0.0）、精确目标resource URI、独立client registrations及SDK可信tenant-registration map。未知/错配binding在创建出站proxy前拒绝，不增加USER relay或DTO选target回退。
+
+运行配置需要明确HTTPS trusted issuer/JWK、严格撤销endpoint/epoch、独立control/tenant client凭据和独占audit spool/HMAC key。SDK Servlet自动注册关闭，由应用持有observation→IdP→RBAC→authorization→可信业务context链。RPC默认TLS，明文仅显式loopback例外；高优先级文档窄链在治理启用时验证完整SERVICE与yuheng.openapi.read，关闭治理也不公开文档。目录登记不自动授权。external-off测试提供明确SDK事实，不代表真实PG/Redis/TLS/注册/SSO/浏览器已验。
+
+## Repository、CQE 与 PostgreSQL
+
+本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 契约。
+
+`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。该文件只是孤立的参考资料：没有任何测试、POM 或配置加载它，其中的 `CLASS_BASED` `algorithmClassName` 指向的类也不会生成。工程实际使用的 `config-style: STRATEGY` 拓扑由组件自带的 `EgonColaLongTenantShardingAlgorithm` 与 `EgonColaTenantBusinessComplexShardingAlgorithm` 完成同样的路由。
+
+算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
+
+数据源与拓扑由 Common MyBatis-Plus 组件统一管理，并提供受管 `EgonColaPostgreDdlRunner` bean。显式传入目标后，它按 `repository-manifest.json` 对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql`：空库首次初始化，受管库验证 checksum/前缀/路由指纹，非空未受管库报 REBUILD_REQUIRED。生成的工程内没有任何代码调用该 bean，因此启动不会建表；首次使用前必须由使用者接入该调用，或用外部迁移工具执行同一份 SQL。`db/migration/sharding/**` 下的 `B*`/`V*` 旧脚本原样保留作档案，不再作为本脚手架运行入口。
+
+读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
+
+每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
+
+默认测试使用隔离 H2 和受控依赖。本工程不含 PostgreSQL 门控测试：`-Degon.pg.*` 与 `EGON_TEST_PG_*` 不被任何 POM、YAML 或测试读取，也没有测试启动或提供数据库。PG/SS 真实路由、迁移和性能 EXPLAIN 由使用者手动验收，没有失败不等于通过。
+
+## 二级缓存
+
+`application.yml`、`application-dev.yml`、`application-prod.yml` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/OrganizationRedisConfig.java` 已带 `@EnableCaching`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
+Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
+`updateCachedById`（Agent 按业务自行声明）。普通 CRUD
+不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。
+
+## Java 与 CQE 编码规范
+
+普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。
+
+## UTC 时间契约
+
+四套 profile 均使用 ISO 字符串并声明 Jackson UTC；JVM 启动参数包含 `-Duser.timezone=UTC`，已有容器模板默认 `TZ=UTC` 并设置同一 JVM 参数。Agent 没有容器模板。业务展示时区由调用方决定。
+
+时间线使用 `Instant`。Light/Service 的排课与考试 Command 遵循公共微秒契约；本模板不新增排课或考试功能。UTC 示例为 `2026-10-13T01:00:00.123456Z`。`LocalDate` 和 `LocalTime` 表示纯日期和墙钟时间，不做时区转换。既有 `LocalDateTime deletedAt` 仍为可空的 Legacy UTC token：NULL 表示活动，删除、version 和 tenant 规则保持兼容。
+
+未部署的 Light/Service 初始化源仅将窗口列改为 `TIMESTAMP(6) WITH TIME ZONE`，既有 manifest 摘要与源字节一致；这不迁移已部署数据，也不修复已有 SQL 历史。排课唯一键既有差距不纳入本次范围。真实 PostgreSQL/JDBC 验收与离线/H2 测试分开。
 
 ## 容器交付
 
@@ -172,58 +227,3 @@ SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl egon-cola-source-web-starter spring-b
 ```
 
 敏感值应放在环境变量、挂载文件、`config/application-secrets.yml` 或 `configtree:/run/secrets/` 中。不要提交凭据或解密密钥。
-
-## 原生 RPC、Tianshu 与远程查询
-
-本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 10 个 organization unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例。仅在生成时启用可选的 Evaluation 对端集成后，远程查询才使用对应领域服务、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂；此时需要配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms，`EVALUATION_FACADE_APP_CODE` 填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
-
-`dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
-
-文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、完整授柄SERVICE验证与 `yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
-
-`test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 Tianshu 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 Tianshu/Tianquan-Shoubing、TLS 或容器互通。
-
-## Repository、CQE 与 PostgreSQL
-
-本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
-
-`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。该文件只是孤立的参考资料：没有任何测试、POM 或配置加载它，其中的 `CLASS_BASED` `algorithmClassName` 指向的类也不会生成。工程实际使用的 `config-style: STRATEGY` 拓扑由组件自带的 `EgonColaLongTenantShardingAlgorithm` 与 `EgonColaTenantBusinessComplexShardingAlgorithm` 完成同样的路由。
-
-算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
-
-数据源与拓扑由 Common MyBatis-Plus 组件统一管理，并提供受管 `EgonColaPostgreDdlRunner` bean。显式传入目标后，它按 `repository-manifest.json` 对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql`：空库首次初始化，受管库验证 checksum/前缀/路由指纹，非空未受管库报 REBUILD_REQUIRED。生成的工程内没有任何代码调用该 bean，因此启动不会建表；首次使用前必须由使用者接入该调用，或用外部迁移工具执行同一份 SQL。`db/migration/sharding/**` 下的 `B*`/`V*` 旧脚本原样保留作档案，不再作为本脚手架运行入口。
-
-读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
-
-每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
-
-默认测试使用隔离 H2 和受控依赖。本工程不含 PostgreSQL 门控测试：`-Degon.pg.*` 与 `EGON_TEST_PG_*` 不被任何 POM、YAML 或测试读取，也没有测试启动或提供数据库。PG/SS 真实路由、迁移和性能 EXPLAIN 由使用者手动验收，没有失败不等于通过。
-
-## 二级缓存
-
-`application.yml`、`application-dev.yml`、`application-prod.yml` 均以 `egon.cola.component.cache.enabled=true` 交付；`test` 保留同样的键但设为 `enabled: false`，让单元与模块测试不依赖 Redis。`infrastructure/config/OrganizationRedisConfig.java` 已带 `@EnableCaching`，配置好 Redis 连接即可直接使用二级缓存。mp-sd-ext 基类已移除缓存端口耦合，具体
-Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
-`updateCachedById`（Agent 按业务自行声明）。普通 CRUD
-不再隐式失效缓存，其他写入和删除入口也须声明失效。所有 profile 都声明同一组五个 TTL 键（`l1-expire`、`l1-jitter`、`l2-expire`、`l2-jitter`、`null-expire`）以及共享的 `key-prefix`、`tenant-mdc-key` 与批量/锁预算，只有取值随环境不同。Key、条件、组合操作、事务与同步加载限制详见 Egon-COLA 仓库中的 `egon-cola-component-common-cache-spring-boot-starter` 文档。
-
-## 2026-09-22 Java / CQE 维护规范
-
-普通实体使用 class，仅不可变值对象可用 record。普通构造目标使用 @Builder，包含父类字段的构建使用兼容继承链的 @SuperBuilder。持久化枚举使用 @EnumValue，前端 JSON 使用 @JsonValue。必须复用 Components 和 Common MP Repository。校验基于原生/自定义约束、@Valid、@Validated 与分组，ValidationUtils 仅作通用手工触发。软删除业务唯一键必须组合业务列与 deleted_at，并验证有效行 NULL 语义。Event 经 Egon 事务 Outbox 或实际 MQ 投递，明确事务、失败和消费幂等。现有代码及旧 SQL 应按新规范逐项复核；本文档更新不代表已经迁移。
-
-## UTC 时间契约
-
-四套 profile 均使用 ISO 字符串并声明 Jackson UTC；JVM 启动参数包含 `-Duser.timezone=UTC`，已有容器模板默认 `TZ=UTC` 并设置同一 JVM 参数。Agent 没有容器模板。业务展示时区由调用方决定。
-
-时间线使用 `Instant`。Light/Service 的排课与考试 Command 遵循公共微秒契约；本模板不新增排课或考试功能。UTC 示例为 `2026-10-13T01:00:00.123456Z`。`LocalDate` 和 `LocalTime` 表示纯日期和墙钟时间，不做时区转换。既有 `LocalDateTime deletedAt` 仍为可空的 Legacy UTC token：NULL 表示活动，删除、version 和 tenant 规则保持兼容。
-
-未部署的 Light/Service 初始化源仅将窗口列改为 `TIMESTAMP(6) WITH TIME ZONE`，既有 manifest 摘要与源字节一致；这不迁移已部署数据，也不修复已有 SQL 历史。排课唯一键既有差距不纳入本次范围。真实 PostgreSQL/JDBC 验收与离线/H2 测试分开。
-
-## 星垣身份与授权
-
-10个REST与10个GraphQL root均要求面向当前精确资源的已验证USER Token、对应egon-cola-source-web:<intent> delegation scope，以及独立的namespace RBAC资源/permission。业务与MP审计actor/tenant只来自可信主体，actor/role/tenant headers不授权；仅liveness/readiness公共。REST/GraphQL写入在用例前按实际提交字段检查当前role field rules，field定义cap本身不授WRITE。
-
-10个native RPC方法要求已验证TENANT SERVICE身份、固定audience与本方法scope。共同SDK严格确认usage proof并在finally恢复callback tenant/actor/kind；facade metadata仅传递trace/幂等，不构造SYSTEM或伪USER。GraphQL使用immutable身份/scope/proof/trace和框架callback Adapter/Decorator，aliases共用一次已确认DENY marker；依赖/审计Unavailable不降为普通拒绝。
-
-三个evaluation只读调用仅GetCourse/GetExam/GetScore，scope来自目标发布namespace。填写organization.integrations.evaluation.application-namespace、固定group/version（默认1.0.0）、精确目标resource URI、独立client registrations及SDK可信tenant-registration map。未知/错配binding在创建出站proxy前拒绝，不增加USER relay或DTO选target回退。
-
-运行配置需要明确HTTPS trusted issuer/JWK、严格撤销endpoint/epoch、独立control/tenant client凭据和独占audit spool/HMAC key。SDK Servlet自动注册关闭，由应用持有observation→IdP→RBAC→authorization→可信业务context链。RPC默认TLS，明文仅显式loopback例外；高优先级文档窄链在治理启用时验证完整SERVICE与yuheng.openapi.read，关闭治理也不公开文档。目录登记不自动授权。external-off测试提供明确SDK事实，不代表真实PG/Redis/TLS/注册/SSO/浏览器已验。
