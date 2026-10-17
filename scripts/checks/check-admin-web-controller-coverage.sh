@@ -46,7 +46,7 @@ assert_contains "$platform_root/egon-cola-yuheng/yuheng-admin-web/src/layouts/Ad
 assert_contains "$platform_root/egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.tsx" 'openapiSnapshotDocument'
 assert_contains "$root/scripts/unified-xingyuan/start-local-stack.sh" 'UNIFIED_XINGYUAN_ADVERTISED_HOST:-127.0.0.1'
 
-if ! python3 "$root/scripts/unified-xingyuan/controller_ui_coverage.py" --repo-root "$root" --format text; then
+if ! python3 "$root/scripts/checks/controller_ui_coverage.py" --repo-root "$root" --format text; then
   printf '%s\n' 'ASSERTION FAILED: external Controller/UI coverage has unexplained management methods' >&2
   exit 1
 fi
