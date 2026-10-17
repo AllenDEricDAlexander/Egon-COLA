@@ -376,7 +376,7 @@ modules.each { module ->
 def livingArchitectureDoc = null
 def architectureCursor = projectDir
 while (architectureCursor != null && livingArchitectureDoc == null) {
-    def definitionDoc = new File(architectureCursor, "architecture-docs/multi-project-multi-module-architecture.md")
+    def definitionDoc = new File(architectureCursor, "architecture-docs/architecture.md")
     def legacyDoc = new File(architectureCursor, "multi-project-multi-module-architecture.md")
     if (definitionDoc.isFile()) {
         livingArchitectureDoc = definitionDoc
