@@ -21,18 +21,16 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.dtp.executor.ThreadManage;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import top.egon.cola.component.dtp.domain.DynamicThreadPoolService;
 import top.egon.cola.component.dtp.domain.IDynamicThreadPoolService;
-import top.egon.cola.component.dtp.executor.ManagedExecutor;
 import top.egon.cola.component.dtp.executor.ManagedExecutorRegistry;
-import top.egon.cola.component.dtp.executor.adapter.BoundedVirtualThreadManagedExecutor;
-import top.egon.cola.component.dtp.executor.adapter.ThreadPoolExecutorManagedExecutor;
-import top.egon.cola.component.dtp.executor.adapter.ThreadPoolTaskExecutorManagedExecutor;
-import top.egon.cola.component.dtp.executor.virtual.BoundedVirtualThreadExecutor;
 import top.egon.cola.component.dtp.metrics.DtpMeterBinder;
 import top.egon.cola.component.dtp.registry.IRegistry;
 import top.egon.cola.component.dtp.registry.model.DtpConfigChangeMessage;
@@ -42,10 +40,6 @@ import top.egon.cola.component.dtp.trigger.job.ThreadPoolDataReportJob;
 import top.egon.cola.component.dtp.trigger.listener.ThreadPoolConfigAdjustListener;
 
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @ClassName: DynamicThreadPoolAutoConfig
@@ -99,41 +93,74 @@ public class DynamicThreadPoolAutoConfig {
         return objectMapper;
     }
 
-    @Bean
+    @Bean("redisRegistry")
     public IRegistry redisRegistry(@Qualifier("dynamicThreadRedissonClient") RedissonClient dynamicThreadRedissonClient) {
         return new RedisRegistry(dynamicThreadRedissonClient);
     }
 
-    @Bean
+    @Bean("managedExecutorRegistry")
     public ManagedExecutorRegistry managedExecutorRegistry(ApplicationContext applicationContext,
-                                                          DynamicThreadPoolAutoProperties properties,
-                                                          Map<String, ThreadPoolExecutor> threadPoolExecutorMap,
-                                                          Map<String, ThreadPoolTaskExecutor> threadPoolTaskExecutorMap,
-                                                          Map<String, BoundedVirtualThreadExecutor> boundedVirtualThreadExecutorMap) {
+                                                            DynamicThreadPoolAutoProperties properties) {
         String appName = resolveAppName(applicationContext, properties);
-        String instanceId = resolveInstanceId(applicationContext, properties, appName);
-        List<ManagedExecutor> managedExecutors = new ArrayList<>();
-        threadPoolExecutorMap.forEach((executorName, executor) ->
-                managedExecutors.add(new ThreadPoolExecutorManagedExecutor(appName, instanceId, executorName, executor))
-        );
-        threadPoolTaskExecutorMap.forEach((executorName, executor) ->
-                managedExecutors.add(new ThreadPoolTaskExecutorManagedExecutor(appName, instanceId, executorName, executor))
-        );
-        boundedVirtualThreadExecutorMap.forEach((executorName, executor) ->
-                managedExecutors.add(new BoundedVirtualThreadManagedExecutor(appName, instanceId, executorName, executor))
-        );
-        return new ManagedExecutorRegistry(managedExecutors);
+        return new ManagedExecutorRegistry(appName, resolveInstanceId(applicationContext, properties, appName), properties);
+    }
+
+    /** 保留手工调用自动配置工厂的历史签名；正常自动发现使用初始化后登记。 */
+    public ManagedExecutorRegistry managedExecutorRegistry(ApplicationContext context, DynamicThreadPoolAutoProperties properties,
+            java.util.Map<String, java.util.concurrent.ThreadPoolExecutor> platform,
+            java.util.Map<String, org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor> spring,
+            java.util.Map<String, top.egon.cola.component.dtp.executor.virtual.BoundedVirtualThreadExecutor> virtual) {
+        ManagedExecutorRegistry registry = managedExecutorRegistry(context, properties);
+        platform.forEach(registry::registerBean);
+        spring.forEach(registry::registerBean);
+        virtual.forEach(registry::registerBean);
+        return registry;
+    }
+
+    @Bean("dtpExecutorBeanPostProcessor")
+    public static DtpExecutorBeanPostProcessor dtpExecutorBeanPostProcessor(
+            @Qualifier("managedExecutorRegistry") ObjectProvider<ManagedExecutorRegistry> registry) {
+        return new DtpExecutorBeanPostProcessor(registry);
+    }
+
+    @Bean("dtpValidator")
+    public LocalValidatorFactoryBean dtpValidator() {
+        return new LocalValidatorFactoryBean();
+    }
+
+    @Bean("dtpValidationUtils")
+    public ValidationUtils dtpValidationUtils(@Qualifier("dtpValidator") jakarta.validation.Validator validator) {
+        return new ValidationUtils(validator);
+    }
+
+    @Bean("threadManage")
+    public ThreadManage threadManage(@Qualifier("managedExecutorRegistry") ManagedExecutorRegistry registry,
+                                      @Qualifier("dynamicThreadPollService") IDynamicThreadPoolService service,
+                                      @Qualifier("dtpValidationUtils") ValidationUtils validation) {
+        return new ThreadManage(registry, service, validation);
     }
 
     @Bean("dynamicThreadPollService")
-    public DynamicThreadPoolService dynamicThreadPollService(ManagedExecutorRegistry managedExecutorRegistry) {
-        return new DynamicThreadPoolService(managedExecutorRegistry);
+    public DynamicThreadPoolService dynamicThreadPollService(
+            @Qualifier("managedExecutorRegistry") ManagedExecutorRegistry managedExecutorRegistry,
+            @Qualifier("dtpValidationUtils") ValidationUtils validation) {
+        return new DynamicThreadPoolService(managedExecutorRegistry, validation);
     }
 
-    @Bean
-    public ThreadPoolConfigAdjustListener threadPoolConfigAdjustListener(IDynamicThreadPoolService dynamicThreadPoolService,
-                                                                         IRegistry registry) {
-        return new ThreadPoolConfigAdjustListener(dynamicThreadPoolService, registry);
+    public DynamicThreadPoolService dynamicThreadPollService(ManagedExecutorRegistry registry) {
+        return new DynamicThreadPoolService(registry);
+    }
+
+    public ThreadPoolConfigAdjustListener threadPoolConfigAdjustListener(IDynamicThreadPoolService service, IRegistry registry) {
+        return new ThreadPoolConfigAdjustListener(service, registry);
+    }
+
+    @Bean("threadPoolConfigAdjustListener")
+    public ThreadPoolConfigAdjustListener threadPoolConfigAdjustListener(
+            @Qualifier("dynamicThreadPollService") IDynamicThreadPoolService dynamicThreadPoolService,
+            @Qualifier("redisRegistry") IRegistry registry, ApplicationContext context, DynamicThreadPoolAutoProperties properties) {
+        String appName = resolveAppName(context, properties);
+        return new ThreadPoolConfigAdjustListener(dynamicThreadPoolService, registry, appName, resolveInstanceId(context, properties, appName));
     }
 
     @Bean(name = "dynamicThreadPoolRedisTopic")
@@ -170,14 +197,15 @@ public class DynamicThreadPoolAutoConfig {
     }
 
     @Configuration
+    @EnableConfigurationProperties(DynamicThreadPoolAutoProperties.class)
     @EnableScheduling
     @ConditionalOnProperty(prefix = "egon.cola.component.dtp.report", name = "enabled", havingValue = "true", matchIfMissing = true)
     static class DtpReportConfiguration {
 
-        @Bean
+        @Bean("threadPoolDataReportJob")
         public ThreadPoolDataReportJob threadPoolDataReportJob(IDynamicThreadPoolService dynamicThreadPoolService,
-                                                               IRegistry registry) {
-            return new ThreadPoolDataReportJob(dynamicThreadPoolService, registry);
+                                                               IRegistry registry, DynamicThreadPoolAutoProperties properties) {
+            return new ThreadPoolDataReportJob(dynamicThreadPoolService, registry, properties);
         }
 
     }
@@ -186,7 +214,7 @@ public class DynamicThreadPoolAutoConfig {
     @ConditionalOnClass(name = "io.micrometer.core.instrument.MeterRegistry")
     static class DtpMetricsConfiguration {
 
-        @Bean
+        @Bean("dtpMeterBinder")
         @ConditionalOnBean(MeterRegistry.class)
         public DtpMeterBinder dtpMeterBinder(ManagedExecutorRegistry managedExecutorRegistry) {
             return new DtpMeterBinder(managedExecutorRegistry);

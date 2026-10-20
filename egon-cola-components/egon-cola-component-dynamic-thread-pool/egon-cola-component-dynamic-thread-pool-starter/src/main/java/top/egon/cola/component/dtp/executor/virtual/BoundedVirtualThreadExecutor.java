@@ -1,6 +1,7 @@
 package top.egon.cola.component.dtp.executor.virtual;
 
 import top.egon.cola.component.dtp.context.DtpContextAwareExecutorService;
+import top.egon.cola.component.dtp.context.DtpTaskObserver;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +35,15 @@ import java.util.concurrent.atomic.AtomicLong;
 public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
 
     private final String threadNamePrefix;
+
+    private volatile DtpTaskObserver taskObserver;
+
+    public synchronized void setTaskObserver(DtpTaskObserver observer) {
+        if (taskObserver != null && taskObserver != observer) {
+            throw new IllegalStateException("virtual executor already has an observer");
+        }
+        taskObserver = Objects.requireNonNull(observer, "observer");
+    }
 
     private final AdjustableSemaphore semaphore;
 
@@ -191,23 +201,26 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
     }
 
     private void schedule(Runnable command, boolean countOutcome) {
+        DtpTaskObserver observer = taskObserver;
+        Runnable observed = observer == null ? command : observer.decorate(command, false);
         submittedTasks.incrementAndGet();
         if (!semaphore.tryAcquire()) {
             rejectedTasks.incrementAndGet();
+            if (observer != null) { observer.rejected(observed); }
             throw new RejectedExecutionException("Virtual executor concurrency limit exceeded");
         }
         boolean accepted = false;
         try {
             if (command instanceof MetricsFutureTask<?>) {
-                delegate.execute(command);
+                delegate.execute(observed);
             } else {
                 delegate.execute(() -> {
                     runningTasks.incrementAndGet();
                     try {
                         if (countOutcome) {
-                            runAndCount(command);
+                            runAndCount(observed);
                         } else {
-                            command.run();
+                            observed.run();
                         }
                     } finally {
                         runningTasks.decrementAndGet();
@@ -217,6 +230,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
             }
             accepted = true;
         } catch (RejectedExecutionException e) {
+            if (observer != null) { observer.rejected(observed); }
             rejectedTasks.incrementAndGet();
             throw e;
         } finally {
@@ -281,7 +295,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         return threadNamePrefix;
     }
 
-    public void updateConcurrencyLimit(int concurrencyLimit) {
+    public synchronized void updateConcurrencyLimit(int concurrencyLimit) {
         if (concurrencyLimit <= 0) {
             throw new IllegalArgumentException("concurrencyLimit must be positive");
         }

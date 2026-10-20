@@ -1,10 +1,23 @@
 package top.egon.cola.component.dtp.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.EqualsAndHashCode;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.experimental.Accessors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
 
@@ -20,6 +33,7 @@ import java.time.Duration;
 @Setter
 @ToString
 @EqualsAndHashCode
+@Validated
 public class DynamicThreadPoolAutoProperties {
 
     private boolean enabled = true;
@@ -31,6 +45,10 @@ public class DynamicThreadPoolAutoProperties {
     private Registry registry = new Registry();
 
     private Report report = new Report();
+
+    @Valid
+    @NotNull
+    private Observation observation = new Observation();
 
     @Getter
     @Setter
@@ -54,6 +72,7 @@ public class DynamicThreadPoolAutoProperties {
 
         private int port = 6379;
 
+        @ToString.Exclude
         private String password;
 
         private int database = 0;
@@ -86,6 +105,70 @@ public class DynamicThreadPoolAutoProperties {
 
         private Duration interval = Duration.ofSeconds(20);
 
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @Builder
+    public static class Observation {
+
+        @Builder.Default
+        private boolean enabled = true;
+
+        @NotNull
+        @Builder.Default
+        private Duration slowTaskThreshold = Duration.ofSeconds(30);
+
+        @NotNull
+        @Builder.Default
+        private Duration queueWaitThreshold = Duration.ofSeconds(5);
+
+        @Valid
+        @NotNull
+        @Builder.Default
+        private Alarm alarm = new Alarm();
+
+        @JsonIgnore
+        @AssertTrue(message = "observation thresholds must be positive and fit nanoseconds")
+        public boolean isDurationValid() {
+            return positiveDuration(slowTaskThreshold) && positiveDuration(queueWaitThreshold);
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @Builder
+    public static class Alarm {
+
+        private boolean enabled;
+
+        @DecimalMin(value = "0", inclusive = false)
+        @DecimalMax("1")
+        @Builder.Default
+        private double queueUsageThreshold = 0.8;
+
+        @Min(1)
+        @Builder.Default
+        private int consecutiveSamples = 3;
+
+        @NotNull
+        @Builder.Default
+        private Duration cooldown = Duration.ofSeconds(60);
+
+        @JsonIgnore
+        @AssertTrue(message = "alarm cooldown must be positive and fit nanoseconds")
+        public boolean isDurationValid() {
+            return positiveDuration(cooldown);
+        }
+    }
+
+    private static boolean positiveDuration(Duration value) {
+        return value != null && !value.isZero() && !value.isNegative()
+                && value.compareTo(Duration.ofNanos(Long.MAX_VALUE)) <= 0;
     }
 
 }

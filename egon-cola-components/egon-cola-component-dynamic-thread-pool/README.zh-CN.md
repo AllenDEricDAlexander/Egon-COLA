@@ -344,3 +344,76 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-thread-pool/egon-cola-component-dynamic-thread-pool-admin -am test
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-thread-pool/egon-cola-component-dynamic-thread-pool-test -am -Dsurefire.failIfNoSpecifiedTests=false test
 ```
+
+## ThreadManage 统一管理（兼容增强）
+
+推荐为新池使用 `ThreadManage`；已有原始 Bean、`ManagedExecutorRegistry.get/list`、Runnable/Callable/Supplier、Dtp 包装、DtpThreads 和 TraceRoute 模板均保留。管理器复用同一注册表，不建立静态全局池。初始化后发现原始 Bean，不替换类型或覆盖用户 TaskDecorator/拒绝策略。
+
+```java
+@Bean("emailExecutor")
+public ThreadPoolTaskExecutor emailExecutor(@Qualifier("threadManage") ThreadManage threadManage) {
+    return threadManage.newThreadPool(new ThreadPoolCreateCommand()
+            .setExecutorName("emailExecutor")
+            .setCorePoolSize(4)
+            .setMaximumPoolSize(16)
+            .setQueueCapacity(1000));
+}
+```
+
+类型分别为 `top.egon.cola.component.dtp.executor.ThreadManage`、`top.egon.cola.component.dtp.domain.model.entity.ThreadPoolCreateCommand`；返回值仍是 Spring `ThreadPoolTaskExecutor`，支持按原 Bean 名注入和 `@Async("emailExecutor")`。Bean 名与命令名称应一致；别名指向同一原对象。相同名称/创建定义复用原池，不同对象或定义冲突则拒绝，不会覆盖已有任务；动态调参不会重置创建定义。
+
+```java
+ManagedExecutor executor = threadManage.executor("emailExecutor");
+executor.execute(() -> sendEmail());
+Future<String> result = executor.submit(() -> loadMessage());
+ExecutorSnapshot snapshot = executor.snapshot();
+```
+
+原生 `Runnable`/`Callable` 可以直接提交。新池在每次提交时捕获 MDC，有 traceId 时继续传递，没有时为普通后台任务建立根上下文。旧 `DtpRunnable.wrap`、`DtpCallable.wrap`、`DtpSupplier.wrap` 仍在包装时捕获，包括显式空上下文；退出时恢复执行线程原来的完整 MDC，CallerRuns 也遵守相同规则。HTTP Trace Filter 仍需业务显式引入 Trace Spring Boot Starter，DTP 只传递 Trace Core。
+
+### 任务监控与可观测边界
+
+保留原 `dtp.executor.*` Gauge 和 Redis snapshot，新增下列指标：
+
+| 指标 | 含义 |
+| --- | --- |
+| `dtp.task.submitted` | 已进入观察边界的提交次数，包含拒绝尝试 |
+| `dtp.task.succeeded` / `failed` / `cancelled` | 被真实委托或受控 Future 确认的结果；取消不算失败 |
+| `dtp.task.rejected` | 已观测的拒绝处理事件；CallerRuns 后仍可能成功 |
+| `dtp.task.queue.wait` / `execution` | 排队与执行耗时 Timer；默认不开直方图 |
+| `dtp.executor.queue.capacity` / `queue.resizable` | 实际队列容量与是否支持动态改容 |
+| `dtp.executor.observation.complete` | 完整观测能力标识；0 表示禁用或存在无法完整观察的路径 |
+
+任务指标使用 appName、instanceId、executorName、executorKind、virtual；traceId 不作为标签。异常/拒绝/慢任务日志带池身份与 Trace，按池限频，不输出任务对象、参数、完整 MDC 或密码。正常成功不逐条打 INFO。原 completedTaskCount 保持原有执行器口径，不能与新业务终态 Counter 混为一谈。
+
+完整观察适用于新池的 execute/submit、受控 invokeAll/invokeAny。已有外接池通过 adapter 获得上下文与执行观察，但不修改其拒绝处理器；自定义静默丢弃无法完整推断，能力标识为0。直接调用未增强的原 Bean 或从 getThreadPoolExecutor() 取得底层对象会绕过相应提交边界。
+
+`CompletableFuture.runAsync/supplyAsync` 必须显式传入治理 executor 才传播 MDC。JDK 内部 AsynchronousCompletionTask 不公开 stage 结果，因此仅记录提交/耗时并将完整能力标识置0，不把其 Runnable 返回当作业务成功；stage 异常仍通过原 CompletableFuture 读取。需要完整终态统计时使用受控 `ExecutorService.submit`。这项增强不改变异步 stage、Future.cancel 或原拒绝策略的行为。
+
+### 动态调整与生命周期
+
+原 resize 接口增加可选 `queueCapacity`；缺省或 null 表示不改队列。core/max、keepAliveSeconds、allowCoreThreadTimeOut 与虚拟 concurrencyLimit 继续支持。参数和目标能力全部验证后原地更新，按实际执行器串行，Spring getter 与底层线程参数保持一致。
+
+新池使用可调容量 FIFO 队列，扩容唤醒阻塞生产者；缩容低于应用时积压量时整次拒绝，不清理、不丢任务、不重建执行器。capacity=0 创建 SynchronousQueue，运行中不切换队列类型。原固定队列仍能调线程数，改容量会明确失败。虚拟线程只调并发上限，缩容不打断正在执行的任务。
+
+`ThreadManage.changeThreadPool(ExecutorUpdateCommand)` 返回当前进程真实 UpdateResult；Admin 原 Boolean 仍只表示发布成功，通过原快照/审计确认生效。Redis 命令先过滤目标、校验 envelope/payload，再以目标身份和 messageId 去重（10分钟/最多10000条）；同 ID 不同内容拒绝。审计写失败不回滚已生效配置，并继续尝试报告实际快照。不保证持久投递、跨重启去重、全局排序或 version CAS；重启仍以创建配置为基线。
+
+工厂池转为 Spring Bean 后交由 Spring 关闭；非 Bean 工厂池由 ThreadManage 关闭，外部池沿用原生命周期。新池优雅 shutdown，最多等待30秒后记录未终止状态，不自动强杀任务。先升级目标 starter，再在 Admin 使用新队列字段。组件样例保留原离线注册配置；上述新工厂 Bean 路径由无 Redis 的 Context 回归测试覆盖。
+
+```yaml
+egon:
+  cola:
+    component:
+      dtp:
+        observation:
+          enabled: true
+          slow-task-threshold: 30s
+          queue-wait-threshold: 5s
+          alarm:
+            enabled: false
+            queue-usage-threshold: 0.8
+            consecutive-samples: 3
+            cooldown: 60s
+```
+
+告警复用 report.interval：启用后队列使用率达到阈值并连续采样满足次数，或出现拒绝增量时记录压力告警；SynchronousQueue 不计算队列占比。告警不自动改线程数，不强制中断慢任务；慢任务日志在执行结束时诊断。Admin 使用 OpenAPI 3，文档路径 `/v3/api-docs`；dev/test 可启用，base/prod 默认关闭，不增加 UI 或认证机制。

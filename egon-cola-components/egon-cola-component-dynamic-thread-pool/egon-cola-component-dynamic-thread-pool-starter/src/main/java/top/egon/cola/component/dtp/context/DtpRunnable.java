@@ -1,5 +1,6 @@
 package top.egon.cola.component.dtp.context;
 
+import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.common.trace.thread.TraceRouteRunnable;
 
 import java.util.Objects;
@@ -11,10 +12,22 @@ import java.util.Objects;
  **/
 public final class DtpRunnable extends TraceRouteRunnable {
 
+    private final TraceContext context;
+
     private final Runnable delegate;
 
     private DtpRunnable(Runnable delegate) {
+        this(delegate, TraceContext.capture());
+    }
+
+    private DtpRunnable(Runnable delegate, TraceContext context) {
+        super(context);
+        this.context = context;
         this.delegate = delegate;
+    }
+
+    TraceContext context() {
+        return context;
     }
 
     public static Runnable wrap(Runnable runnable) {
@@ -27,6 +40,13 @@ public final class DtpRunnable extends TraceRouteRunnable {
 
     @Override
     protected void doRun() {
-        delegate.run();
+        DtpTaskObserver.effectiveContext();
+        try {
+            delegate.run();
+            DtpTaskObserver.wrappedOutcome(null);
+        } catch (RuntimeException | Error e) {
+            DtpTaskObserver.wrappedOutcome(e);
+            throw e;
+        }
     }
 }

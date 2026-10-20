@@ -8,6 +8,8 @@ import top.egon.cola.component.dtp.executor.ManagedExecutor;
 import top.egon.cola.component.dtp.executor.virtual.BoundedVirtualThreadExecutor;
 
 import java.time.Instant;
+import top.egon.cola.component.dtp.context.DtpTaskObserver;
+import lombok.extern.slf4j.Slf4j;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -23,6 +25,7 @@ import java.util.concurrent.TimeoutException;
  * @description 有界虚拟线程托管执行器
  * @Date        下午9:52 2026/6/29
  **/
+@Slf4j
 public class BoundedVirtualThreadManagedExecutor extends AbstractExecutorService implements ManagedExecutor {
 
     private final String appName;
@@ -33,13 +36,23 @@ public class BoundedVirtualThreadManagedExecutor extends AbstractExecutorService
 
     private final BoundedVirtualThreadExecutor executor;
 
-    public BoundedVirtualThreadManagedExecutor(String appName, String instanceId, String executorName,
-                                               BoundedVirtualThreadExecutor executor) {
+    private final DtpTaskObserver observer;
+
+    public BoundedVirtualThreadManagedExecutor(String appName, String instanceId, String executorName, BoundedVirtualThreadExecutor executor) {
+        this(appName, instanceId, executorName, executor, null);
+    }
+
+    public BoundedVirtualThreadManagedExecutor(String appName, String instanceId, String executorName, BoundedVirtualThreadExecutor executor, DtpTaskObserver observer) {
         this.appName = appName;
         this.instanceId = instanceId;
         this.executorName = executorName;
         this.executor = Objects.requireNonNull(executor, "executor");
+        this.observer = observer;
+        if (observer != null) { executor.setTaskObserver(observer); }
     }
+
+    @Override
+    public DtpTaskObserver taskObserver() { return observer; }
 
     @Override
     public void execute(Runnable command) {
@@ -150,11 +163,16 @@ public class BoundedVirtualThreadManagedExecutor extends AbstractExecutorService
     }
 
     @Override
-    public UpdateResult update(ExecutorUpdateCommand command) {
+    public synchronized UpdateResult update(ExecutorUpdateCommand command) {
         ExecutorSnapshot before = snapshot();
         UpdateResult result = new UpdateResult();
         result.setBefore(before);
         try {
+            if (command == null || command.getCorePoolSize() != null || command.getMaximumPoolSize() != null
+                    || command.getQueueCapacity() != null || command.getKeepAliveSeconds() != null
+                    || command.getAllowCoreThreadTimeOut() != null) {
+                throw new IllegalArgumentException("platform thread pool parameters are not supported by virtual executors");
+            }
             if (command.getConcurrencyLimit() == null) {
                 result.setSuccess(false);
                 result.setMessage("concurrencyLimit must not be null");

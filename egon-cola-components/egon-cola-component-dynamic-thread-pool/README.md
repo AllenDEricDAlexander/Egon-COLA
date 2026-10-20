@@ -344,3 +344,46 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-thread-pool/egon-cola-component-dynamic-thread-pool-admin -am test
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-thread-pool/egon-cola-component-dynamic-thread-pool-test -am -Dsurefire.failIfNoSpecifiedTests=false test
 ```
+
+## Unified ThreadManage management (compatible extension)
+
+Use the Spring Bean `threadManage` for new pools. Existing executor Beans, `ManagedExecutorRegistry.get/list`, Runnable/Callable/Supplier, all Dtp wrappers, DtpThreads, and TraceRoute templates remain available. The existing registry is the only catalog; initialized Beans are registered without replacing their types or user decorators/rejection handlers.
+
+```java
+@Bean("emailExecutor")
+public ThreadPoolTaskExecutor emailExecutor(@Qualifier("threadManage") ThreadManage threadManage) {
+    return threadManage.newThreadPool(new ThreadPoolCreateCommand()
+            .setExecutorName("emailExecutor")
+            .setCorePoolSize(4).setMaximumPoolSize(16).setQueueCapacity(1000));
+}
+
+ManagedExecutor executor = threadManage.executor("emailExecutor");
+executor.execute(() -> sendEmail());
+Future<String> message = executor.submit(() -> loadMessage());
+```
+
+Import `top.egon.cola.component.dtp.executor.ThreadManage` and `top.egon.cola.component.dtp.domain.model.entity.ThreadPoolCreateCommand`. The factory returns a Spring ThreadPoolTaskExecutor, retaining named injection and @Async compatibility. Use the same Bean and pool name; aliases share the original object. Concurrent identical definitions return one pool; conflicting objects/definitions are rejected. Runtime resizing does not reset the creation definition.
+
+New pools capture MDC at submission and create a root context for ordinary background tasks without a traceId. Explicit legacy wrappers keep their original capture time, including empty context. Execution, failure, nesting and CallerRuns restore the previous MDC. HTTP Trace auto-configuration still requires the explicit Trace Spring Boot Starter; DTP depends only on Trace Core.
+
+### Metrics and observation boundaries
+
+Existing `dtp.executor.*` gauges and Redis snapshots remain. New function counters are `dtp.task.submitted`, `succeeded`, `failed`, `cancelled`, `rejected`; timers are `dtp.task.queue.wait` and `dtp.task.execution`. Gauges `dtp.executor.queue.capacity`, `queue.resizable`, and `observation.complete` describe capacity and supported observation. A rejection event can be followed by successful CallerRuns execution. Cancellation is separate from failure. Existing completedTaskCount retains its original executor-specific meaning.
+
+Tags remain appName, instanceId, executorName, executorKind and virtual. traceId belongs in diagnostic logs, never metric labels. Failure, rejection and completed slow-task diagnostics are rate limited per pool and omit task payloads, full MDC and passwords. Histograms and pressure alarms are disabled by default.
+
+New pools observe execute/submit and controlled invokeAll/invokeAny. Adopted pools gain adapter context/execution observation without modifying their rejection handlers, so silent custom drops cannot be inferred completely; observation.complete is 0. Raw Bean calls or direct getThreadPoolExecutor() access can bypass instrumentation.
+
+Pass the managed executor explicitly to CompletableFuture.runAsync/supplyAsync for MDC propagation. JDK AsynchronousCompletionTask hides the stage result: record submission/timing and mark observation incomplete rather than count its Runnable return as business success. Read errors from the original CompletableFuture; use controlled ExecutorService.submit for complete terminal counters. Legacy Future.cancel and rejection-policy behavior is preserved.
+
+### Resizing, delivery and lifecycle
+
+The existing resize endpoint accepts optional nullable queueCapacity. New FIFO queues support live capacity changes; expansion wakes producers, and shrinking below the live backlog rejects the whole command without changing thread parameters, dropping tasks or replacing the executor. Zero capacity selects SynchronousQueue only at creation. Fixed existing queues retain thread-size updates and explicitly reject queue resizing. Core/max/keepAlive/core timeout changes are serialized per actual executor and keep Spring metadata in sync. Virtual executors retain concurrency-limit adjustment without interrupting running tasks.
+
+ThreadManage.changeThreadPool returns the local UpdateResult. The Admin Boolean still confirms Redis publication only; use existing snapshots/audits to confirm application. Validate matching envelope/payload identity, filter non-target instances and deduplicate by target plus messageId for 10 minutes / at most 10000 entries. Reject conflicting payloads under one ID. Audit failure never pretends the applied configuration rolled back, and reporting the actual snapshot is attempted independently. No durable delivery, restart deduplication, global ordering or version CAS is implied. Upgrade target starters before sending the new field.
+
+Spring owns factory pools exposed as Beans. ThreadManage closes non-Bean factory pools, while external pools retain their original lifecycle. New pools shut down gracefully and wait at most 30 seconds without forcibly killing tasks. Existing offline sample configuration is retained; the new factory Bean path has isolated Context coverage.
+
+Configuration keys below `egon.cola.component.dtp.observation`: enabled=true, slow-task-threshold=30s, queue-wait-threshold=5s; alarm.enabled=false, queue-usage-threshold=0.8, consecutive-samples=3, cooldown=60s. Pressure checks reuse the reporting interval; zero-buffer queues have no queue-use ratio. Alarms never resize pools automatically. Slow execution is diagnosed after completion, without interrupting tasks.
+
+Admin generates OpenAPI 3 at /v3/api-docs, enabled in dev/test and disabled by default in base/prod. No Swagger UI, database, authentication mechanism or additional management service is introduced.

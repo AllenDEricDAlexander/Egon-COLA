@@ -9,18 +9,29 @@ import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
 import top.egon.cola.component.dtp.executor.ManagedExecutor;
 
 import java.time.Instant;
+import lombok.extern.slf4j.Slf4j;
+import top.egon.cola.component.dtp.context.DtpTaskObserver;
+import top.egon.cola.component.dtp.executor.support.ResizableCapacityBlockingQueue;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
+import java.util.concurrent.RunnableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.util.Collection;
+import top.egon.cola.component.dtp.executor.support.ThreadPoolResizeSupport;
+import top.egon.cola.component.dtp.executor.managed.DtpThreadPoolTaskExecutor;
 
 /**
  * @author      有罗敷的马同学
  * @description Spring 线程池托管执行器
  * @Date        下午11:15 2026/6/29
  **/
+@Slf4j
 public class ThreadPoolTaskExecutorManagedExecutor extends AbstractExecutorService implements ManagedExecutor {
 
     private final String appName;
@@ -31,22 +42,58 @@ public class ThreadPoolTaskExecutorManagedExecutor extends AbstractExecutorServi
 
     private final ThreadPoolTaskExecutor executor;
 
-    public ThreadPoolTaskExecutorManagedExecutor(String appName, String instanceId, String executorName,
-                                                 ThreadPoolTaskExecutor executor) {
+    private final DtpTaskObserver observer;
+
+    public ThreadPoolTaskExecutorManagedExecutor(String appName, String instanceId, String executorName, ThreadPoolTaskExecutor executor) {
+        this(appName, instanceId, executorName, executor, executor instanceof DtpThreadPoolTaskExecutor pool ? pool.taskObserver() : null);
+    }
+
+    public ThreadPoolTaskExecutorManagedExecutor(String appName, String instanceId, String executorName, ThreadPoolTaskExecutor executor, DtpTaskObserver observer) {
         this.appName = appName;
         this.instanceId = instanceId;
         this.executorName = executorName;
         this.executor = Objects.requireNonNull(executor, "executor");
+        this.observer = observer;
+    }
+
+    @Override
+    public DtpTaskObserver taskObserver() { return observer; }
+
+    @Override
+    protected <T> RunnableFuture<T> newTaskFor(Callable<T> task) {
+        return observer == null ? super.newTaskFor(task) : observer.future(task, executor instanceof DtpThreadPoolTaskExecutor);
+    }
+
+    @Override
+    protected <T> RunnableFuture<T> newTaskFor(Runnable task, T value) {
+        return observer == null ? super.newTaskFor(task, value) : observer.future(task, value, executor instanceof DtpThreadPoolTaskExecutor);
+    }
+
+    @Override
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+        if (observer == null) { return super.invokeAny(tasks); }
+        try { return observer.invokeAny(this, tasks, false, 0, executor instanceof DtpThreadPoolTaskExecutor); }
+        catch (TimeoutException e) { throw new AssertionError(e); }
+    }
+
+    @Override
+    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        return observer == null ? super.invokeAny(tasks, timeout, unit)
+                : observer.invokeAny(this, tasks, true, unit.toNanos(timeout), executor instanceof DtpThreadPoolTaskExecutor);
     }
 
     @Override
     public void execute(Runnable command) {
-        executor.execute(DtpRunnable.wrap(command));
+        if (executor instanceof DtpThreadPoolTaskExecutor) { executor.execute(command); }
+        else if (observer == null) { executor.execute(DtpRunnable.wrap(command)); }
+        else { observer.dispatch(observer.decorate(command, false), executor); }
     }
 
     @Override
     public void shutdown() {
-        executor.getThreadPoolExecutor().shutdown();
+        if (executor instanceof DtpThreadPoolTaskExecutor) { executor.shutdown(); }
+        else { executor.getThreadPoolExecutor().shutdown(); }
     }
 
     @Override
@@ -106,94 +153,37 @@ public class ThreadPoolTaskExecutorManagedExecutor extends AbstractExecutorServi
         snapshot.setPoolSize(threadPoolExecutor.getPoolSize());
         snapshot.setTaskCount(threadPoolExecutor.getTaskCount());
         snapshot.setCompletedTaskCount(threadPoolExecutor.getCompletedTaskCount());
-        snapshot.setQueueType(queue.getClass().getSimpleName());
-        snapshot.setQueueSize(queue.size());
-        snapshot.setRemainingCapacity(queue.remainingCapacity());
+        ThreadPoolResizeSupport.queueSnapshot(queue, snapshot);
+        if (taskObserver() != null) {
+            snapshot.setSubmittedTasks(taskObserver().submittedTasks());
+            snapshot.setFailedTasks(taskObserver().failedTasks());
+            snapshot.setRejectedTasks(taskObserver().rejectedTasks());
+        }
         snapshot.setReportTime(Instant.now());
         return snapshot;
     }
 
     @Override
     public UpdateResult update(ExecutorUpdateCommand command) {
-        ExecutorSnapshot before = snapshot();
-        UpdateResult result = new UpdateResult();
-        result.setBefore(before);
-        try {
-            String validationMessage = validate(command);
-            if (validationMessage != null) {
+        synchronized (executor.getThreadPoolExecutor()) {
+            UpdateResult result = new UpdateResult();
+            result.setBefore(snapshot());
+            try {
+                ThreadPoolResizeSupport.update(executor.getThreadPoolExecutor(), executor, command);
+                result.setSuccess(true);
+                result.setMessage("success");
+            } catch (RuntimeException e) {
                 result.setSuccess(false);
-                result.setMessage(validationMessage);
-                result.setAfter(snapshot());
-                return result;
+                result.setMessage(e.getMessage());
             }
-            if (command.getCorePoolSize() != null && command.getMaximumPoolSize() != null) {
-                resize(command.getCorePoolSize(), command.getMaximumPoolSize());
-            }
-            ThreadPoolExecutor threadPoolExecutor = executor.getThreadPoolExecutor();
-            if (Boolean.FALSE.equals(command.getAllowCoreThreadTimeOut())) {
-                executor.setAllowCoreThreadTimeOut(false);
-            }
-            if (command.getKeepAliveSeconds() != null) {
-                executor.setKeepAliveSeconds(command.getKeepAliveSeconds().intValue());
-            }
-            if (Boolean.TRUE.equals(command.getAllowCoreThreadTimeOut())) {
-                executor.setAllowCoreThreadTimeOut(true);
-            }
-            if (command.getKeepAliveSeconds() != null) {
-                threadPoolExecutor.setKeepAliveTime(command.getKeepAliveSeconds(), TimeUnit.SECONDS);
-            }
-            result.setSuccess(true);
-            result.setMessage("success");
-        } catch (RuntimeException e) {
-            result.setSuccess(false);
-            result.setMessage(e.getMessage());
+            result.setAfter(snapshot());
+            return result;
         }
-        result.setAfter(snapshot());
-        return result;
     }
 
-    private void resize(int newCore, int newMax) {
-        ThreadPoolExecutor threadPoolExecutor = executor.getThreadPoolExecutor();
-        if (newMax < threadPoolExecutor.getCorePoolSize()) {
-            executor.setCorePoolSize(newCore);
-            executor.setMaxPoolSize(newMax);
-            return;
-        }
-        executor.setMaxPoolSize(newMax);
-        executor.setCorePoolSize(newCore);
-    }
-
-    private String validate(ExecutorUpdateCommand command) {
-        boolean hasCorePoolSize = command.getCorePoolSize() != null;
-        boolean hasMaximumPoolSize = command.getMaximumPoolSize() != null;
-        if (hasCorePoolSize != hasMaximumPoolSize) {
-            return "corePoolSize and maximumPoolSize must be provided together";
-        }
-        if (hasCorePoolSize) {
-            if (command.getCorePoolSize() <= 0 || command.getMaximumPoolSize() <= 0) {
-                return "corePoolSize and maximumPoolSize must be positive";
-            }
-            if (command.getCorePoolSize() > command.getMaximumPoolSize()) {
-                return "corePoolSize must <= maximumPoolSize";
-            }
-        }
-        ThreadPoolExecutor threadPoolExecutor = executor.getThreadPoolExecutor();
-        boolean targetAllowCoreThreadTimeOut = command.getAllowCoreThreadTimeOut() != null
-                ? command.getAllowCoreThreadTimeOut()
-                : threadPoolExecutor.allowsCoreThreadTimeOut();
-        long targetKeepAliveSeconds = command.getKeepAliveSeconds() != null
-                ? command.getKeepAliveSeconds()
-                : threadPoolExecutor.getKeepAliveTime(TimeUnit.SECONDS);
-        if (targetKeepAliveSeconds < 0) {
-            return "keepAliveSeconds must be >= 0";
-        }
-        if (targetAllowCoreThreadTimeOut && targetKeepAliveSeconds <= 0) {
-            return "keepAliveSeconds must be > 0 when allowCoreThreadTimeOut is true";
-        }
-        if (targetKeepAliveSeconds > Integer.MAX_VALUE) {
-            return "keepAliveSeconds must be <= " + Integer.MAX_VALUE;
-        }
-        return null;
+    @Override
+    public boolean supportsQueueResize() {
+        return executor.getThreadPoolExecutor().getQueue() instanceof ResizableCapacityBlockingQueue<?>;
     }
 
     @Override

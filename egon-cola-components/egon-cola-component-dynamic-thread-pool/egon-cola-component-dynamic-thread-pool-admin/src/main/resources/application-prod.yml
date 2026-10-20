@@ -5,6 +5,15 @@ egon:
   cola:
     component:
       dtp:
+        observation:
+          enabled: true
+          slow-task-threshold: 30s
+          queue-wait-threshold: 5s
+          alarm:
+            enabled: false
+            queue-usage-threshold: 0.8
+            consecutive-samples: 3
+            cooldown: 60s
         registry:
           redis:
             host: ${EGON_COLA_DTP_REDIS_HOST:127.0.0.1}
@@ -35,3 +44,8 @@ logging:
   level:
     root: info
   config: classpath:logback-spring.xml
+
+springdoc:
+  api-docs:
+    enabled: false
+    version: openapi_3_0

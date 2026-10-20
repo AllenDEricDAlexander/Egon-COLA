@@ -6,6 +6,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.dtp.admin.trigger.converter.ResizeExecutorConverter;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RBucket;
 import org.redisson.api.RKeys;
@@ -67,6 +71,12 @@ public class DynamicThreadPoolControllerTest {
 
     @Mock
     private RTopic mockRTopic;
+
+    @Spy
+    private ResizeExecutorConverter converter = Mappers.getMapper(ResizeExecutorConverter.class);
+
+    @Mock
+    private ValidationUtils validation;
 
     @InjectMocks
     private DynamicThreadPoolController controller;

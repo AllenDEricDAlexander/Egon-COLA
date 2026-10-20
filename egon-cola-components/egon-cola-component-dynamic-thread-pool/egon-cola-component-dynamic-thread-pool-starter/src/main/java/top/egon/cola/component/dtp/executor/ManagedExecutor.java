@@ -6,6 +6,7 @@ import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
 import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
 
 import java.util.concurrent.ExecutorService;
+import top.egon.cola.component.dtp.context.DtpTaskObserver;
 
 /**
  * @author      有罗敷的马同学
@@ -31,5 +32,9 @@ public interface ManagedExecutor extends ExecutorService {
     boolean supportsVirtualThread();
 
     boolean supportsQueueMetrics();
+
+    default boolean supportsQueueResize() { return false; }
+
+    default DtpTaskObserver taskObserver() { return null; }
 
 }

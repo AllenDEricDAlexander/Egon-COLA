@@ -17,3 +17,17 @@ logging:
   level:
     root: info
   config: classpath:logback-spring.xml
+
+egon:
+  cola:
+    component:
+      dtp:
+        observation:
+          enabled: true
+          slow-task-threshold: 30s
+          queue-wait-threshold: 5s
+          alarm:
+            enabled: false
+            queue-usage-threshold: 0.8
+            consecutive-samples: 3
+            cooldown: 60s

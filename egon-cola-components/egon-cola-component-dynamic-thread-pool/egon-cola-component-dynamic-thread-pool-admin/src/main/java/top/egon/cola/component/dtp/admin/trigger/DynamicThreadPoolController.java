@@ -1,6 +1,18 @@
 package top.egon.cola.component.dtp.admin.trigger;
 
-import jakarta.annotation.Resource;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.dtp.admin.trigger.converter.ResizeExecutorConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
 import org.redisson.api.RKeys;
@@ -40,12 +52,24 @@ import java.util.UUID;
  * @Version: 1.0
  */
 @Slf4j
-@RestController
+@RestController("dynamicThreadPoolController")
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 @RequestMapping("/api/v1/dtp")
 public class DynamicThreadPoolController {
 
-    @Resource
-    public RedissonClient redissonClient;
+    @Qualifier("redissonClient")
+    public final RedissonClient redissonClient;
+
+    @Qualifier("resizeExecutorConverter")
+    private final ResizeExecutorConverter resizeExecutorConverter;
+
+    @Qualifier("dtpAdminValidationUtils")
+    private final ValidationUtils validation;
+
+    @Bean("dtpAdminValidationUtils")
+    public static ValidationUtils dtpAdminValidationUtils(Validator validator) {
+        return new ValidationUtils(validator);
+    }
 
     @GetMapping("/apps")
     public Response<Set<String>> queryApps() {
@@ -101,6 +125,11 @@ public class DynamicThreadPoolController {
         }
     }
 
+    @Operation(operationId = "resizeDtpExecutor", summary = "Publish executor resize request",
+            description = "Success confirms Redis publication only. Confirm application through existing snapshots and audit events.",
+            tags = "Dynamic thread pool")
+    @ApiResponses({@ApiResponse(responseCode = "200", useReturnTypeSchema = true, description = "Original Response<Boolean>: publication result, not application acknowledgment"),
+            @ApiResponse(responseCode = "400", content = @Content(schema = @Schema(type = "object", description = "Existing Spring MVC binding error representation")), description = "Malformed JSON or invalid field type")})
     @PostMapping("/apps/{appName}/instances/{instanceId}/executors/{executorName}/resize")
     public Response<Boolean> resizeExecutor(@PathVariable String appName,
                                             @PathVariable String instanceId,
@@ -114,12 +143,7 @@ public class DynamicThreadPoolController {
             ExecutorKind executorKind = request.getExecutorKind();
             DtpConfigChangeMessage message = buildConfigChangeMessage(appName, instanceId, executorName,
                     executorKind, request.getOperator());
-            ExecutorUpdateCommand command = buildBaseCommand(appName, instanceId, executorName,
-                    executorKind, request.getOperator());
-            command.setCorePoolSize(request.getCorePoolSize());
-            command.setMaximumPoolSize(request.getMaximumPoolSize());
-            command.setKeepAliveSeconds(request.getKeepAliveSeconds());
-            command.setAllowCoreThreadTimeOut(request.getAllowCoreThreadTimeOut());
+            ExecutorUpdateCommand command = resizeExecutorConverter.toCommand(request, appName, instanceId, executorName);
             message.setPayload(command);
             redissonClient.getTopic(DtpRedisKeys.changeTopic(appName)).publish(message);
             return Response.success(true);
@@ -184,6 +208,8 @@ public class DynamicThreadPoolController {
                 && (request.getKeepAliveSeconds() == null || request.getKeepAliveSeconds() <= 0)) {
             return "keepAliveSeconds must be positive when allowCoreThreadTimeOut is true";
         }
+        try { validation.validate(request, ExecutorUpdateCommand.PlatformResize.class); }
+        catch (ConstraintViolationException e) { return "invalid resize parameters"; }
         return null;
     }
 

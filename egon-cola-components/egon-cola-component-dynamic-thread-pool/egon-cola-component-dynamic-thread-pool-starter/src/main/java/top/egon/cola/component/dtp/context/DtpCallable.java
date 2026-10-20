@@ -1,5 +1,6 @@
 package top.egon.cola.component.dtp.context;
 
+import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.common.trace.thread.TraceRouteCallable;
 
 import java.util.Objects;
@@ -12,10 +13,22 @@ import java.util.concurrent.Callable;
  **/
 public final class DtpCallable<V> extends TraceRouteCallable<V> {
 
+    private final TraceContext context;
+
     private final Callable<V> delegate;
 
     private DtpCallable(Callable<V> delegate) {
+        this(delegate, TraceContext.capture());
+    }
+
+    private DtpCallable(Callable<V> delegate, TraceContext context) {
+        super(context);
+        this.context = context;
         this.delegate = delegate;
+    }
+
+    TraceContext context() {
+        return context;
     }
 
     public static <V> Callable<V> wrap(Callable<V> callable) {
@@ -28,6 +41,14 @@ public final class DtpCallable<V> extends TraceRouteCallable<V> {
 
     @Override
     protected V doCall() throws Exception {
-        return delegate.call();
+        DtpTaskObserver.effectiveContext();
+        try {
+            V result = delegate.call();
+            DtpTaskObserver.wrappedOutcome(null);
+            return result;
+        } catch (Exception | Error e) {
+            DtpTaskObserver.wrappedOutcome(e);
+            throw e;
+        }
     }
 }
