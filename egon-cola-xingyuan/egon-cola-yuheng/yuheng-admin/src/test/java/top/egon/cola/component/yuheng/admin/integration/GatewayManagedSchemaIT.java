@@ -60,13 +60,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * 中文说明：{@code GatewayManagedSchemaIT} 在真实 Postgres 上验收受管 DDL 的库级这一半——只有
  * MyBatis→guard→ShardingSphere→PG 这条路径真跑起来才算数：受管 runner 以 {@code SHARD} 角色把 {@code db/egon-mp}
- * 清单里的唯一一版 SQL 应用到一张空 schema，49 张逻辑 {@code *_t0} 表与 {@code ddl_history} 就位；SQL 文本里声明的
+ * 清单里的唯一一版 SQL 应用到一张空 schema，42 张逻辑 {@code *_t0} 表与 {@code ddl_history} 就位；SQL 文本里声明的
  * 每一个命名约束/索引都必须被库真实物化（既不少也不多）；软删除业务唯一键必须真的把 {@code deleted_at} 纳入组合键、
  * “存活”唯一键必须真的排除已删行；重复软删除在同一微秒必须真的冲突；pgvector 列必须真的是 {@code vector} 类型。
  * 期望值全部来自 SQL 文本本身而不是库现状的镜像，因此本类不会把“实现后来长什么样”反向固化成断言。
  * English summary: {@code GatewayManagedSchemaIT} accepts the database half of the managed DDL on a real Postgres, which
  * only counts through the MyBatis→guard→ShardingSphere→PG path: the managed runner applies the single SQL version of the
- * {@code db/egon-mp} manifest as role {@code SHARD} into an empty schema, the 49 logical {@code *_t0} tables plus
+ * {@code db/egon-mp} manifest as role {@code SHARD} into an empty schema, the 42 logical {@code *_t0} tables plus
  * {@code ddl_history} exist, every named constraint and index declared in the SQL text is really materialized (neither
  * missing nor invented), a soft-delete business key really carries {@code deleted_at} while the "active" key really
  * excludes deleted rows, a repeated soft delete in the same microsecond really collides, and the pgvector column really
@@ -75,13 +75,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  *
  * 用法 / Usage: 仅在显式提供专用隔离验收数据库及 {@code YUHENG_MANAGED_TEST_POSTGRES_URL/USER/PASSWORD} 时运行。
  * 脚本把物理表固定创建在 {@code public}，因此目标数据库必须为空且已由操作者安装 pgvector；若 runner 本轮返回
- * {@code APPLIED}，本类只删除脚本声明的49张表与 {@code ddl_history}，绝不删除 public schema、扩展或其它对象。
+ * {@code APPLIED}，本类只删除脚本声明的42张表与 {@code ddl_history}，绝不删除 public schema、扩展或其它对象。
  * 另一个随机schema只用于验证未知非空目标被拒绝。缺环境变量时本类整体不执行——那正是 Plan §8
  * "PG/sharding/vector" 闸门的“缺环境必须标 SKIPPED 未验收”，不能当作 GREEN。
  * 库级不变量之外的读写语义（CAS 谓词、0 行不判成功、租户注入）由 {@code GatewayPublicationMpTest} 等受守卫 MP 边界
  * 测试负责，本类不重复。/ Run only when a dedicated isolated acceptance database is supplied explicitly. The script
  * targets {@code public}, so the database must be empty and pgvector must already be installed by the operator. When this
- * run reports {@code APPLIED}, only the 49 declared tables and {@code ddl_history} are removed; the public schema,
+ * run reports {@code APPLIED}, only the 42 declared tables and {@code ddl_history} are removed; the public schema,
  * extension, and unrelated objects are retained. A random secondary schema is used only for the unknown-nonempty-target
  * rejection case. Without the three variables the class does not execute at all — exactly the Plan's "missing environment
  * is reported SKIPPED, never accepted" gate, not GREEN. Read/write semantics beyond the database invariants belong to
@@ -99,8 +99,8 @@ class GatewayManagedSchemaIT {
 
     private static final String MANIFEST_RESOURCE = "db/egon-mp/repository-manifest.json";
 
-    /** 逻辑表数量，与 Spec 修订 §7 的 49 张表一致 / the 49 logical tables of the revised Spec section 7. */
-    private static final int DECLARED_TABLE_COUNT = 49;
+    /** 逻辑表数量，与 Spec 修订 §7 的 42 张表一致 / the 42 logical tables of the revised Spec section 7. */
+    private static final int DECLARED_TABLE_COUNT = 42;
 
     private static final Pattern DECLARED_TABLE = Pattern.compile("CREATE TABLE public\\.([a-z0-9_]+) \\(");
 
@@ -151,7 +151,7 @@ class GatewayManagedSchemaIT {
     }
 
     @Test
-    @DisplayName("受管 runner 以 SHARD 角色应用清单，49 张逻辑表与 ddl_history 恰好就位")
+    @DisplayName("受管 runner 以 SHARD 角色应用清单，42 张逻辑表与 ddl_history 恰好就位")
     void appliesTheDeclaredTablesAndRegistersExactlyOneManagedVersion() throws SQLException {
         assertThat(manifest.family()).isEqualTo("web");
         assertThat(manifest.scripts()).hasSize(1);

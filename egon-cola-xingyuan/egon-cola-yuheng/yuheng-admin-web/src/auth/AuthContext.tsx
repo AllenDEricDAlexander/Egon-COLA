@@ -1,11 +1,16 @@
 import {createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react'
 import {createGatewayAuthClient, createHttpClient} from '@egon-cola/xingyuan-admin-web-shared'
 import type {AuthorizationBootstrap} from '../api/types'
+import {workspaceBootstrapPath, type WorkspaceResource} from './workspaceResource'
 
 const gatewayOrigin = import.meta.env.VITE_YUHENG_ORIGIN ?? ''
 const gatewayAuth = createGatewayAuthClient({
   baseUrl: gatewayOrigin,
   registrationId: import.meta.env.VITE_OAUTH_REGISTRATION_ID ?? 'edge-yuheng',
+})
+const knowledgeAuth = createGatewayAuthClient({
+  baseUrl: gatewayOrigin,
+  registrationId: import.meta.env.VITE_YAOGUANG_OAUTH_REGISTRATION_ID ?? 'edge-yaoguang',
 })
 let authErrorHandler: (() => void) | undefined
 const httpClient = createHttpClient({
@@ -17,6 +22,7 @@ const httpClient = createHttpClient({
 export {gatewayAuth, httpClient}
 
 type AuthState = {
+  workspace: WorkspaceResource
   loading: boolean
   authorization?: AuthorizationBootstrap
   error?: string
@@ -27,7 +33,8 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
-export const AuthProvider = ({children}: PropsWithChildren) => {
+export const AuthProvider = ({children, resource = 'yuheng'}: PropsWithChildren<{resource?: WorkspaceResource}>) => {
+  const authClient = resource === 'yaoguang' ? knowledgeAuth : gatewayAuth
   const [loading, setLoading] = useState(true)
   const [authorization, setAuthorization] = useState<AuthorizationBootstrap>()
   const [error, setError] = useState<string>()
@@ -45,7 +52,7 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
   const refreshAuthorization = useCallback(async () => {
     const requestedGeneration = nextGeneration()
     try {
-      const value = await gatewayAuth.bootstrap<AuthorizationBootstrap>()
+      const value = await authClient.bootstrap<AuthorizationBootstrap>(workspaceBootstrapPath(resource))
       if (requestedGeneration === generation.current) setAuthorization(value)
     } catch (failure) {
       if (requestedGeneration === generation.current) clearAuthorization()
@@ -53,24 +60,24 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
     } finally {
       if (requestedGeneration === generation.current) setLoading(false)
     }
-  }, [clearAuthorization, nextGeneration])
+  }, [authClient, resource, clearAuthorization, nextGeneration])
 
   const login = useCallback(() => {
     clearAuthorization()
     setLoading(true)
     setError(undefined)
     try {
-      gatewayAuth.login()
+      authClient.login()
     } catch (failure) {
       setLoading(false)
       setError(failure instanceof Error ? failure.message : '登录失败')
     }
-  }, [clearAuthorization])
+  }, [authClient, clearAuthorization])
 
   const logout = useCallback(async () => {
     const requestedGeneration = clearAuthorization()
     try {
-      const result = await gatewayAuth.logout()
+      const result = await authClient.logout()
       if (requestedGeneration !== generation.current) return
       setError(result.remoteState === 'CONFIRMED'
         ? undefined
@@ -80,13 +87,13 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
         setError(failure instanceof Error ? failure.message : '统一身份退出失败')
       }
     }
-  }, [clearAuthorization])
+  }, [authClient, clearAuthorization])
 
   useEffect(() => {
     let active = true
     const requestedGeneration = generation.current
     authErrorHandler = clearAuthorization
-    void gatewayAuth.bootstrap<AuthorizationBootstrap>()
+    void authClient.bootstrap<AuthorizationBootstrap>(workspaceBootstrapPath(resource))
       .then((value) => {
         if (active && requestedGeneration === generation.current) setAuthorization(value)
       })
@@ -101,11 +108,11 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
       nextGeneration()
       if (authErrorHandler === clearAuthorization) authErrorHandler = undefined
     }
-  }, [clearAuthorization, nextGeneration])
+  }, [authClient, resource, clearAuthorization, nextGeneration])
 
   const value = useMemo(
-    () => ({loading, authorization, error, login, logout, refreshAuthorization}),
-    [authorization, error, loading, login, logout, refreshAuthorization],
+    () => ({workspace: resource, loading, authorization, error, login, logout, refreshAuthorization}),
+    [resource, authorization, error, loading, login, logout, refreshAuthorization],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

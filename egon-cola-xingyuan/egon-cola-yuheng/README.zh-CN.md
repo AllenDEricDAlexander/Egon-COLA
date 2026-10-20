@@ -7,6 +7,8 @@ Netty 数据面、Spring Boot 管理控制面、面向 Provider 的上报 starte
 Provider 租约运行时。Admin 通过 Tianshu 发布不可变规则版本；Engine 发现 Provider、
 选择健康实例，并转发 HTTP 和 unary RPC 流量。
 
+企业知识库与 LLM Wiki 已迁入 [Yaoguang](../egon-cola-yaoguang/README.md)。LLM Gateway 及渠道、模型配置继续由 Yuheng 持有，前端仍复用现有管理界面。
+
 ## 架构
 
 ```text

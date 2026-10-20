@@ -67,7 +67,7 @@ Persist each Engine's LKG directory independently. Tianshu Redis and the distrib
 Redis must use separate instances and data volumes. Initialize two PostgreSQL databases so
 that Tianshu and Yuheng Admin Flyway histories cannot interfere with each other.
 The knowledge/Wiki plane stores embeddings in `vector` columns, so the PostgreSQL image must already ship pgvector and
-a privileged role must run `CREATE EXTENSION vector` inside `gateway_admin`; the application role never creates
+a privileged role must run `CREATE EXTENSION vector` inside the separate Yaoguang database; the application role never creates
 extensions. The LLM engine ships no application configuration and no Dockerfile, so `compose.llm.yml` expects the
 operator to supply both through the two mounted directories it declares.
 
@@ -229,7 +229,7 @@ tags. Collector unavailability does not affect Yuheng business responses.
 
 ## Managed schema and empty-target rebuild
 
-- All 49 Yuheng tables — the pre-existing gateway tables plus the knowledge/Wiki/LLM ones — come from one managed
+- All 42 Yuheng tables — the gateway and LLM configuration tables — come from one managed
   script, `yuheng-admin/src/main/resources/db/egon-mp/20260922_001_yuheng_schema.sql`, registered in
   `repository-manifest.json` as family `web` with a single entry. Its `sha256` is the digest of the final SQL bytes;
   it is never guessed and never hand-edited.
@@ -300,3 +300,5 @@ tags. Collector unavailability does not affect Yuheng business responses.
 - Static rendering/unit tests do not prove live Tianquan-Shoubing integration, TLS handshakes, browser flows or HA. Complete those runtime gates before production rollout.
 
 Health-check and TLS syntax follows the [HAProxy3.1 configuration reference](https://docs.haproxy.org/3.1/configuration.html).
+
+Knowledge/Wiki startup and its independent nine-table database are documented in [Yaoguang](../../egon-cola-yaoguang/README.md).

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.component.yaoguang.admin.observability.dao.GatewayAuditLogDAO">
+    <resultMap id="GatewayAuditLogResultMap" type="top.egon.cola.component.yaoguang.admin.observability.domain.po.GatewayAuditLogRecordPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+        <result column="version" property="version"/>
+        <result column="actor_id" property="actorId"/>
+        <result column="actor_type" property="actorType"/>
+        <result column="source" property="source"/>
+        <result column="request_id" property="requestId"/>
+        <result column="trace_id" property="traceId"/>
+        <result column="resource_type" property="resourceType"/>
+        <result column="resource_id" property="resourceId"/>
+        <result column="action" property="action"/>
+        <result column="before_summary" property="beforeSummary" jdbcType="OTHER" typeHandler="top.egon.cola.component.yaoguang.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="after_summary" property="afterSummary" jdbcType="OTHER" typeHandler="top.egon.cola.component.yaoguang.admin.shared.dao.typehandler.GatewayJsonbTypeHandler"/>
+        <result column="successful" property="successful"/>
+        <result column="error_code" property="errorCode"/>
+        <result column="occurred_at" property="occurredAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+</mapper>

@@ -132,6 +132,20 @@ spring:
               - profile
               - offline_access
               - yuheng:read
+          edge-yaoguang-a:
+            provider: edge-issuer-a
+            client-id: ${EGON_YUHENG_EDGE_YAOGUANG_A_CLIENT_ID}
+            client-secret: ${EGON_YUHENG_EDGE_YAOGUANG_A_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "${EGON_YUHENG_EDGE_PUBLIC_ORIGIN}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - offline_access
+              - yuheng:knowledge:read
+              - yuheng:knowledge:write
+              - yuheng:knowledge:admin
           edge-yuheng-b:
             provider: edge-issuer-b
             client-id: ${EGON_YUHENG_EDGE_YUHENG_B_CLIENT_ID}
@@ -144,6 +158,20 @@ spring:
               - profile
               - offline_access
               - yuheng:read
+          edge-yaoguang-b:
+            provider: edge-issuer-b
+            client-id: ${EGON_YUHENG_EDGE_YAOGUANG_B_CLIENT_ID}
+            client-secret: ${EGON_YUHENG_EDGE_YAOGUANG_B_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "${EGON_YUHENG_EDGE_PUBLIC_ORIGIN}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - offline_access
+              - yuheng:knowledge:read
+              - yuheng:knowledge:write
+              - yuheng:knowledge:admin
           edge-biz-a:
             provider: edge-issuer-a
             client-id: ${EGON_YUHENG_EDGE_BIZ_A_CLIENT_ID}
@@ -270,6 +298,14 @@ spring:
                 - Path=/api/v1/tianshu/**
               filters:
                 - EdgeResourceAuthorization=edge-tianshu
+            - id: yaoguang-admin
+              uri: ${egon.yuheng.edge.resources.edge-yaoguang.resource-uri}
+              metadata:
+                edge-registration-id: edge-yaoguang
+              predicates:
+                - Path=/api/v1/yuheng/admin/knowledge-bases,/api/v1/yuheng/admin/knowledge-bases/**,/api/v1/yuheng/admin/knowledge-jobs/**,/api/v1/yaoguang/auth/bootstrap
+              filters:
+                - EdgeResourceAuthorization=edge-yaoguang
             - id: yuheng-admin
               uri: ${egon.yuheng.edge.resources.edge-yuheng.resource-uri}
               metadata:
@@ -322,6 +358,7 @@ egon:
         - /xingyuan/tianquan-jianshen/roles
         - /xingyuan/tianshu/registry
         - /xingyuan/yuheng/dashboard
+        - /xingyuan/yuheng/knowledge
       resources:
         edge-ui:
           resource-server-id: ${EGON_YUHENG_EDGE_UI_RESOURCE_SERVER_ID}
@@ -378,6 +415,17 @@ egon:
           request-paths: [/api/v1/yuheng/admin/**, /api/v1/auth/bootstrap]
           scopes: [openid, profile, offline_access, yuheng:read]
           return-path: /xingyuan/yuheng/dashboard
+        edge-yaoguang:
+          resource-server-id: ${EGON_YUHENG_EDGE_YAOGUANG_RESOURCE_SERVER_ID}
+          resource-uri: ${EGON_YUHENG_EDGE_YAOGUANG_RESOURCE_URI}
+          default-registration-id: edge-yaoguang-a
+          issuer-registration-ids:
+            "[${EGON_YUHENG_EDGE_OIDC_ISSUER}]": edge-yaoguang-a
+            "[${EGON_YUHENG_EDGE_OIDC_B_ISSUER}]": edge-yaoguang-b
+          route-ids: [yaoguang-admin]
+          request-paths: [/api/v1/yuheng/admin/knowledge-bases, /api/v1/yuheng/admin/knowledge-bases/**, /api/v1/yuheng/admin/knowledge-jobs/**, /api/v1/yaoguang/auth/bootstrap]
+          scopes: [openid, profile, offline_access, yuheng:knowledge:read, yuheng:knowledge:write, yuheng:knowledge:admin]
+          return-path: /xingyuan/yuheng/knowledge
         edge-biz:
           resource-server-id: ${EGON_YUHENG_EDGE_BIZ_RESOURCE_SERVER_ID}
           resource-uri: ${EGON_YUHENG_EDGE_BIZ_RESOURCE_URI}

@@ -1,0 +1,264 @@
+spring:
+  application:
+    name: egon-cola-yaoguang-admin
+  profiles:
+    default: local
+  config:
+    import:
+      - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/yaoguang-admin.properties
+      - optional:tianshu:application.yml
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+  flyway:
+    enabled: false
+
+server:
+  ssl:
+    enabled: true
+    key-store: ${YAOGUANG_ADMIN_TLS_KEY_STORE}
+    key-store-type: PKCS12
+    key-store-password: ${YAOGUANG_ADMIN_TLS_KEY_STORE_PASSWORD}
+  address: 0.0.0.0
+  port: ${YAOGUANG_ADMIN_PORT:8090}
+  shutdown: graceful
+
+springdoc:
+  api-docs:
+    enabled: ${YAOGUANG_ADMIN_HTTP_OPENAPI_ENABLED:false}
+    version: OPENAPI_3_1
+  group-configs:
+    - group: yaoguang-admin
+      paths-to-match:
+        - /api/v1/yuheng/admin/knowledge-bases/**
+        - /api/v1/yuheng/admin/knowledge-jobs/**
+        - /api/v1/yaoguang/auth/bootstrap
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+yaoguang:
+  persistence:
+    tenant-id: ${YAOGUANG_PERSISTENCE_TENANT_ID}
+    identity-tenant-id: ${YAOGUANG_PERSISTENCE_IDENTITY_TENANT_ID}
+    service-user-id: ${YAOGUANG_PERSISTENCE_SERVICE_USER_ID}
+    expected-schema-version: ${YAOGUANG_PERSISTENCE_EXPECTED_SCHEMA_VERSION}
+    expected-schema-sha256: ${YAOGUANG_PERSISTENCE_EXPECTED_SCHEMA_SHA256}
+    managed-ddl-enabled: true
+  knowledge:
+    enabled: ${YAOGUANG_KNOWLEDGE_ENABLED:false}
+    worker-enabled: ${YAOGUANG_KNOWLEDGE_WORKER_ENABLED:false}
+    model-client:
+      base-url: ${YAOGUANG_LLM_BASE_URL:}
+      service-token-ref: ${YAOGUANG_LLM_SERVICE_TOKEN_REF:}
+
+egon:
+  cola:
+    platform:
+      tianquan:
+        shoubing:
+          usage-observation:
+            enabled: true
+            receiver: YAOGUANG_ADMIN
+            fallback-issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+            allow-local-plaintext: false
+          trusted-issuers:
+            tenant-a:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_A_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_A_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_A_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_A_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_A_TRUST_VERSION}
+            tenant-b:
+              issuer: ${TIANQUAN_SHOUBING_TENANT_B_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_TENANT_B_JWKS_URI}
+              realm-key: ${TIANQUAN_SHOUBING_TENANT_B_REALM_KEY}
+              realm-type: TENANT
+              tenant-id: ${TIANQUAN_SHOUBING_TENANT_B_ID}
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_TENANT_B_TRUST_VERSION}
+            platform:
+              issuer: ${TIANQUAN_SHOUBING_PLATFORM_ISSUER}
+              jwks-uri: ${TIANQUAN_SHOUBING_PLATFORM_JWKS_URI}
+              realm-key: platform
+              realm-type: PLATFORM
+              status: ACTIVE
+              trust-version: ${TIANQUAN_SHOUBING_PLATFORM_TRUST_VERSION}
+          revocation:
+            primary-endpoint: ${YAOGUANG_ADMIN_OAUTH_PRIMARY_REDIS_ADDRESS}
+            mode: STRICT_SHARED
+            timeout: PT0.5S
+            epoch: ${YAOGUANG_ADMIN_OAUTH_REVOCATION_EPOCH}
+          audit:
+            stream: ${YAOGUANG_ADMIN_OAUTH_AUDIT_STREAM}
+            spool-directory: ${YAOGUANG_ADMIN_OAUTH_AUDIT_SPOOL_DIRECTORY}
+            spool-max-bytes: ${YAOGUANG_ADMIN_OAUTH_AUDIT_SPOOL_MAX_BYTES:1073741824}
+            hmac-key-file: ${YAOGUANG_ADMIN_OAUTH_AUDIT_HMAC_KEY_FILE}
+            delivery:
+              receipt-ttl: PT1H
+              confirmation-timeout: PT30S
+              batch-size: 100
+          enabled: ${UNIFIED_IDENTITY_ENABLED:true}
+          register-filter: false
+          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+          resource-server-id: ${YAOGUANG_ADMIN_RESOURCE_SERVER_ID}
+          resource-uri: ${YAOGUANG_ADMIN_RESOURCE_URI}
+        jianshen:
+          user-scope-policy:
+            enabled: true
+            permission-scopes:
+              "[yuheng:knowledge:admin]": ["yuheng:knowledge:admin"]
+              "[yuheng:knowledge:read]": ["yuheng:knowledge:read"]
+              "[yuheng:knowledge:write]": ["yuheng:knowledge:write"]
+          enabled: ${UNIFIED_IDENTITY_ENABLED:true}
+          register-filter: false
+          system-code: yaoguang-admin
+          runtime:
+            redis-enabled: true
+            redis-address: ${YAOGUANG_AUTHORIZATION_REDIS_ADDRESS}
+            database: ${YAOGUANG_AUTHORIZATION_REDIS_DATABASE:0}
+          authorization:
+            endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT}
+            service-token:
+              enabled: ${YAOGUANG_TIANQUAN_JIANSHEN_SERVICE_TOKEN_ENABLED:true}
+              resource-uri: ${YAOGUANG_TIANQUAN_JIANSHEN_SERVICE_TOKEN_RESOURCE_URI}
+              scopes: ${YAOGUANG_TIANQUAN_JIANSHEN_SERVICE_TOKEN_SCOPES}
+    component:
+      mybatis-plus:
+        ddl:
+          enabled: true
+        tenant-id:
+          ignored-tables: [ddl_history]
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: yaoguang_0
+              logical-name: yaoguang_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: ${YAOGUANG_DATABASE_URL}
+              username: ${YAOGUANG_DATABASE_USERNAME}
+              password: ${YAOGUANG_DATABASE_PASSWORD}
+          tables:
+            yaoguang_knowledge_base:
+              type: STANDARD_TENANT_ID
+            yaoguang_knowledge_document:
+              type: STANDARD_TENANT_ID
+            yaoguang_knowledge_revision:
+              type: STANDARD_TENANT_ID
+            yaoguang_knowledge_chunk:
+              type: STANDARD_TENANT_ID
+            yaoguang_knowledge_job:
+              type: STANDARD_TENANT_ID
+            yaoguang_wiki_page:
+              type: STANDARD_TENANT_ID
+            yaoguang_wiki_revision:
+              type: STANDARD_TENANT_ID
+            yaoguang_idempotency_record:
+              type: STANDARD_TENANT_ID
+            yaoguang_audit_log:
+              type: STANDARD_TENANT_ID
+            ddl_history:
+              type: SINGLE
+              data-source: yaoguang_0
+              schema: public
+      rpc:
+        tls:
+          enabled: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TLS_ENABLED:false}
+          development-plaintext: ${TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}}
+          certificate-chain-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      tianshu:
+        tenant-id: ${TIANSHU_TENANT_ID:}
+        enabled: ${TIANSHU_ENABLED:false}
+        biz-code: ${YAOGUANG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}
+        env: ${DEPLOYMENT_ENV}
+        app-code: ${YAOGUANG_ADMIN_RESOURCE_APP_CODE:yaoguang-admin}
+        max-config-bytes: ${TIANSHU_MAX_CONFIG_BYTES:1048576}
+        rpc:
+          target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
+          load-balancing-policy: round_robin
+          tls:
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:true}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
+          auth:
+            runtime:
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY:}
+            registry:
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
+            management:
+              access-key: ${TIANSHU_RPC_MANAGEMENT_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_MANAGEMENT_SECRET_KEY:}
+        redis:
+          username: ${TIANSHU_REDIS_USERNAME:}
+          enabled: true
+          mode: ${TIANSHU_REDIS_MODE:SINGLE}
+          host: ${TIANSHU_REDIS_HOST:127.0.0.1}
+          port: ${TIANSHU_REDIS_PORT:6379}
+          password: ${TIANSHU_REDIS_PASSWORD:}
+          database: ${TIANSHU_REDIS_DATABASE:0}
+        registry:
+          enabled: ${TIANSHU_REGISTRY_ENABLED:false}
+          http:
+            enabled: ${YAOGUANG_ADMIN_TIANSHU_REGISTRATION_ENABLED:false}
+            service-name: yaoguang-admin
+            version: ${YAOGUANG_ADMIN_VERSION:5.3.2}
+            protocol: http
+            advertised-host: ${YAOGUANG_ADMIN_TIANSHU_ADVERTISED_HOST:127.0.0.1}
+            port: ${YAOGUANG_ADMIN_TIANSHU_ADVERTISED_PORT:0}
+            metadata:
+              yuheng.component: admin
+      yuheng:
+        openapi:
+          enabled: ${YAOGUANG_ADMIN_HTTP_OPENAPI_ENABLED:false}
+          publish-to-tianshu: ${YAOGUANG_ADMIN_HTTP_OPENAPI_PUBLISH_TO_TIANSHU:true}
+          published-groups:
+            - yaoguang-admin
+          biz-code: ${YAOGUANG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}
+          application-code: ${YAOGUANG_ADMIN_RESOURCE_APP_CODE:yaoguang-admin}
+          resource-uri: ${YAOGUANG_ADMIN_RESOURCE_URI:}
+          artifact-version: ${YAOGUANG_ADMIN_VERSION:local}
+          build-id: ${YAOGUANG_ADMIN_BUILD_ID:local}
+        reporting:
+          enabled: ${YAOGUANG_ADMIN_YUHENG_REPORTING_ENABLED:false}
+          admin-base-url: ${YAOGUANG_ADMIN_BASE_URL:}
+          biz-code: ${YAOGUANG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}
+          application-code: ${YAOGUANG_ADMIN_RESOURCE_APP_CODE:yaoguang-admin}
+          application-name: Yuheng Admin
+          env: ${DEPLOYMENT_ENV:local}
+          namespace: ${DEPLOYMENT_NAMESPACE:default}
+          artifact-version: ${YAOGUANG_ADMIN_VERSION:local}
+          build-id: ${YAOGUANG_ADMIN_BUILD_ID:local}
+          declared-hosts: ${YAOGUANG_ADMIN_DECLARED_HOSTS:127.0.0.1}
+          fail-fast: true
+          access-key: ${YUHENG_REPORT_ACCESS_KEY:}
+          secret-key: ${YUHENG_REPORT_SECRET_KEY:}
+          state-file: ${YUHENG_REPORT_STATE_FILE:}
+
+management.endpoint.health.group.readiness.include: ["readinessState", "gatewayAdminAuditReadiness"]
+
+mybatis-plus:
+  mapper-locations: classpath*:mybatis/mapper/**/*.xml,classpath*:mapper/**/*.xml

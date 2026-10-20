@@ -8,18 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeAnswerCommandDTO;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeBaseCommandDTO;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeMemberDTO;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeUploadCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmChannelCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmModelCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmRouteBindingDTO;
-import top.egon.cola.component.yuheng.admin.wiki.domain.dto.WikiDraftCommandDTO;
-import top.egon.cola.component.yuheng.admin.wiki.domain.dto.WikiGenerationCommandDTO;
-import top.egon.cola.component.yuheng.admin.wiki.domain.dto.WikiPublicationCommandDTO;
-import top.egon.cola.component.yuheng.admin.wiki.domain.dto.WikiSourceDTO;
-import top.egon.cola.component.yuheng.admin.wiki.domain.dto.WikiTransitionCommandDTO;
 
 import java.util.List;
 
@@ -43,16 +34,7 @@ public class GatewayAiJsonConfiguration implements WebMvcConfigurer {
     private static final List<Class<?>> AI_CARRIER_TYPES = List.of(
             LlmChannelCommandDTO.class,
             LlmModelCommandDTO.class,
-            LlmRouteBindingDTO.class,
-            KnowledgeBaseCommandDTO.class,
-            KnowledgeMemberDTO.class,
-            KnowledgeUploadCommandDTO.class,
-            KnowledgeAnswerCommandDTO.class,
-            WikiGenerationCommandDTO.class,
-            WikiDraftCommandDTO.class,
-            WikiPublicationCommandDTO.class,
-            WikiSourceDTO.class,
-            WikiTransitionCommandDTO.class
+            LlmRouteBindingDTO.class
     );
 
     /**

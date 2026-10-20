@@ -55,6 +55,7 @@
     <modules>
         <module>egon-cola-tianshu</module>
         <module>egon-cola-yuheng</module>
+        <module>egon-cola-yaoguang</module>
         <module>egon-cola-tianquan-jianshen</module>
         <module>egon-cola-tianquan-shoubing</module>
     </modules>

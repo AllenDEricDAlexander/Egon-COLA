@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgePageVO;
+import top.egon.cola.component.yuheng.admin.llm.domain.vo.LlmPageVO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmChannelCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmModelCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.vo.LlmChannelVO;
@@ -98,7 +98,7 @@ public class LlmConfigurationController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/channels")
-    public KnowledgePageVO<LlmChannelVO> listLlmChannels(
+    public LlmPageVO<LlmChannelVO> listLlmChannels(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return llmConfigurationService.listChannels(page, size);
@@ -157,7 +157,7 @@ public class LlmConfigurationController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/models")
-    public KnowledgePageVO<LlmModelVO> listLlmModelConfigurations(
+    public LlmPageVO<LlmModelVO> listLlmModelConfigurations(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return llmConfigurationService.listModels(page, size);

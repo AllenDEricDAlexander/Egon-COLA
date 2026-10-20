@@ -52,7 +52,7 @@ class YuhengAiConformanceTest {
     private static final Path ENGINE_MAIN = Path.of("../yuheng-llm-gateway/src/main/java");
 
     /** 中文说明：AI 平面在 admin 内的三个业务包 / the three AI-plane business packages inside admin. */
-    private static final List<String> AI_PACKAGES = List.of("knowledge", "llm", "wiki");
+    private static final List<String> AI_PACKAGES = List.of("llm");
 
     /** 中文说明：受管 DDL 的唯一脚本与清单 / the single managed-DDL script and its manifest. */
     private static final String MANAGED_SCRIPT = "db/egon-mp/20260922_001_yuheng_schema.sql";
@@ -65,8 +65,8 @@ class YuhengAiConformanceTest {
     /** 中文说明：受管 DDL 声明版本 / the declared managed-DDL version. */
     private static final String SCHEMA_VERSION = "20260922_001";
 
-    /** 中文说明：49 张逻辑表全部单分片落位 / every one of the 49 logical tables lands on one shard. */
-    private static final int DECLARED_TABLE_COUNT = 49;
+    /** 中文说明：42 张逻辑表全部单分片落位 / every one of the 42 logical tables lands on one shard. */
+    private static final int DECLARED_TABLE_COUNT = 42;
 
     /** 中文说明：MP 基线列 / the MyBatis-Plus baseline columns every managed table must carry. */
     private static final List<String> BASELINE_COLUMNS = List.of("id", "tenant_id", "create_user_id", "create_time",
@@ -129,7 +129,7 @@ class YuhengAiConformanceTest {
     }
 
     @Test
-    @DisplayName("49 张受管表全部单分片落位并携带 MP 基线列")
+    @DisplayName("42 张受管表全部单分片落位并携带 MP 基线列")
     void everyManagedTableIsSingleShardAndCarriesTheMybatisPlusBaseline() throws IOException {
         Map<String, String> tables = tableBlocks();
 
@@ -274,7 +274,7 @@ class YuhengAiConformanceTest {
             }
         }
 
-        assertThat(carriers).as("the AI plane exposes request-body commands to validate").isGreaterThanOrEqualTo(9);
+        assertThat(carriers).as("the AI plane exposes request-body commands to validate").isEqualTo(2);
     }
 
     @Test

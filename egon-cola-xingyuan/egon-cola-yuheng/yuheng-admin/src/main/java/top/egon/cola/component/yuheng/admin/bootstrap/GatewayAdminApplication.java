@@ -25,7 +25,6 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
         "top.egon.cola.component.yuheng.admin.catalog.dao",
         "top.egon.cola.component.yuheng.admin.credential.dao",
         "top.egon.cola.component.yuheng.admin.group.dao",
-        "top.egon.cola.component.yuheng.admin.knowledge.dao",
         "top.egon.cola.component.yuheng.admin.llm.dao",
         "top.egon.cola.component.yuheng.admin.mcp.dao",
         "top.egon.cola.component.yuheng.admin.observability.dao",
@@ -33,8 +32,7 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
         "top.egon.cola.component.yuheng.admin.release.dao",
         "top.egon.cola.component.yuheng.admin.reporting.dao",
         "top.egon.cola.component.yuheng.admin.routing.dao",
-        "top.egon.cola.component.yuheng.admin.shared.dao",
-        "top.egon.cola.component.yuheng.admin.wiki.dao"
+        "top.egon.cola.component.yuheng.admin.shared.dao"
 })
 public class GatewayAdminApplication {
 

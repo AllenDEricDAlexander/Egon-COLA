@@ -1,10 +1,11 @@
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {ConfigProvider, Result} from 'antd'
 import zhCN from 'antd/locale/zh_CN'
-import {lazy, Suspense, type ReactNode} from 'react'
-import {createBrowserRouter, Navigate, RouterProvider} from 'react-router-dom'
+import {lazy, Suspense, useEffect, type ReactNode} from 'react'
+import {createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation} from 'react-router-dom'
 import {CapabilityProvider, type Capability} from './capabilities'
 import {AuthProvider} from '../auth/AuthContext'
+import {workspaceResource} from '../auth/workspaceResource'
 import {LoginPage} from '../auth/LoginPage'
 import {RequireAuth, RequireCapability} from '../auth/RouteGuards'
 import {LoadingBlock} from '../components/QueryState'
@@ -125,7 +126,20 @@ const guarded = (capability: Capability, node: ReactNode) => (
   <RequireCapability capability={capability}>{node}</RequireCapability>
 )
 
-const router = createBrowserRouter([
+const WorkspaceAuthBoundary = () => {
+  const location = useLocation()
+  const resource = workspaceResource(location.pathname, location.search)
+  useEffect(() => {
+    return () => { queryClient.clear() }
+  }, [resource])
+  return (
+    <AuthProvider key={resource} resource={resource}>
+      <CapabilityProvider><Outlet /></CapabilityProvider>
+    </AuthProvider>
+  )
+}
+
+const router = createBrowserRouter([{element: <WorkspaceAuthBoundary />, children: [
   { path: '/login', element: <LoginPage /> },
   {
     path: '/',
@@ -213,7 +227,7 @@ const router = createBrowserRouter([
       { path: '*', element: <Result status="404" title="404" subTitle="页面不存在" /> },
     ],
   },
-], {basename: basePath})
+]}], {basename: basePath})
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -241,13 +255,9 @@ export const App = () => (
     }}
   >
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CapabilityProvider>
-          <Suspense fallback={<LoadingBlock />}>
-            <RouterProvider router={router} />
-          </Suspense>
-        </CapabilityProvider>
-      </AuthProvider>
+      <Suspense fallback={<LoadingBlock />}>
+        <RouterProvider router={router} />
+      </Suspense>
     </QueryClientProvider>
   </ConfigProvider>
 )

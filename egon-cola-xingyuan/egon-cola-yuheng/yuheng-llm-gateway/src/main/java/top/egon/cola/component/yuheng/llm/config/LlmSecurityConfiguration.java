@@ -64,7 +64,7 @@ public class LlmSecurityConfiguration {
     }
     private static final String BUSINESS_ENTERED = LlmSecurityConfiguration.class.getName() + ".businessEntered";
     private static final Map<String, LlmProtocolEnum> PROTOCOLS = Map.of(
-            "/v1/models", LlmProtocolEnum.OPENAI_CHAT, "/v1/chat/completions", LlmProtocolEnum.OPENAI_CHAT,
+            "/v1/models", LlmProtocolEnum.OPENAI_CHAT, "/v1/model-policies", LlmProtocolEnum.OPENAI_CHAT, "/v1/chat/completions", LlmProtocolEnum.OPENAI_CHAT,
             "/v1/embeddings", LlmProtocolEnum.OPENAI_EMBEDDING, "/v1/responses", LlmProtocolEnum.OPENAI_RESPONSES,
             "/v1/messages", LlmProtocolEnum.ANTHROPIC_MESSAGES);
 
@@ -89,7 +89,7 @@ public class LlmSecurityConfiguration {
                 .addFilterBefore(protocol, IdpSecurityObservationFilter.class)
                 .addFilterAfter(projection, AuthorizationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.GET, "/v1/models").access(scope("yuheng:llm:read"))
+                        .requestMatchers(HttpMethod.GET, "/v1/models", "/v1/model-policies").access(scope("yuheng:llm:read"))
                         .requestMatchers(HttpMethod.POST, "/v1/chat/completions", "/v1/embeddings", "/v1/responses", "/v1/messages")
                         .access(scope("yuheng:llm:invoke")).anyRequest().denyAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, failure) ->
@@ -182,7 +182,7 @@ public class LlmSecurityConfiguration {
 
     @Bean(name = "llmSecurityOpenApiCustomizer")
     org.springdoc.core.customizers.GlobalOpenApiCustomizer llmSecurityOpenApiCustomizer() {
-        Map<String, String> scopes = Map.of("listLlmModels", "yuheng:llm:read", "createLlmChatCompletion", "yuheng:llm:invoke",
+        Map<String, String> scopes = Map.of("listLlmModels", "yuheng:llm:read", "describeLlmModelPolicies", "yuheng:llm:read", "createLlmChatCompletion", "yuheng:llm:invoke",
                 "createLlmEmbeddings", "yuheng:llm:invoke", "createLlmResponse", "yuheng:llm:invoke", "createLlmMessage", "yuheng:llm:invoke");
         return document -> {
             if (document.getPaths() == null) { return; }

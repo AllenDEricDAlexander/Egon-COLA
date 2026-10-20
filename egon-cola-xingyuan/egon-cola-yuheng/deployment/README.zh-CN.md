@@ -64,7 +64,7 @@ Demo project。
 使用不同实例和数据卷。PostgreSQL 需初始化两个数据库，避免 Tianshu 与 Yuheng Admin 的
 Flyway 历史互相干扰。
 PostgreSQL 初始化两个 Database，避免 Tianshu 与 Yuheng Admin 的 Flyway 历史互相污染。
-知识/Wiki 平面用 `vector` 列存嵌入向量，因此 PostgreSQL 镜像必须自带 pgvector，并由特权角色在 `gateway_admin` 内
+知识/Wiki 平面用 `vector` 列存嵌入向量，因此 PostgreSQL 镜像必须自带 pgvector，并由特权角色在独立 Yaoguang 库内
 执行 `CREATE EXTENSION vector`；应用角色永不创建扩展。LLM engine 不自带应用配置，也不自带 Dockerfile，
 `compose.llm.yml` 只声明两个挂载目录，其余由部署方补齐。
 
@@ -214,7 +214,7 @@ MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
 
 ## 受管 Schema 与空库重建
 
-- 全部 49 张 Yuheng 表——既有网关表加知识/Wiki/LLM 表——只由一个受管脚本产出：
+- 全部 42 张 Yuheng 表——网关与 LLM 配置表——只由一个受管脚本产出：
   `yuheng-admin/src/main/resources/db/egon-mp/20260922_001_yuheng_schema.sql`，并在 `repository-manifest.json`
   以 `family: web`、单条目登记。其中的 `sha256` 是最终 SQL 字节的摘要，不猜、不手改。
 - 只有 `yuheng-admin` 承担 DDL 职责。LLM engine 等所有消费方必须保持
@@ -246,7 +246,7 @@ MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
 - 修复只向前走：新增脚本版本与清单项，并重算摘要。绝不修改已应用脚本或其已登记 checksum，也不重写 `ddl_history`。
 - 早于 `20260922_001` 的二进制不能连上新库，因此二进制回退需要一个独立且为空的旧 schema（独立库），而不是就地降级；
   任何两个版本都不得共用一个 schema。
-- 验收边界：受管 DDL、49 张表、生命周期键与向量维度检查由 `GatewayManagedSchemaIT` 在真实 PostgreSQL 上验收，
+- 验收边界：受管 DDL、42 张表与生命周期键检查由 `GatewayManagedSchemaIT` 在真实 PostgreSQL 上验收，
   该测试仅在 `YUHENG_MANAGED_TEST_POSTGRES_URL` 指向被授权的一次性库时才启用。静态闸口只证形态与历史；扩展可用性、
   负载下的分片路由与真实重建仍属部署平台负责的运行期证据。
 
@@ -276,3 +276,5 @@ MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
 - 当前静态渲染/单元测试不等于 Tianquan-Shoubing 联调、mTLS 握手、浏览器或真实 HA 验收。生产上线前必须完成相应运行验收。
 
 代理健康检查与 TLS 参数参考 [HAProxy 3.1 官方配置说明](https://docs.haproxy.org/3.1/configuration.html)。
+
+知识库/Wiki 的独立启动配置与九张表的空库基线参见 [Yaoguang](../../egon-cola-yaoguang/README.md)。

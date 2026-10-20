@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgePageVO;
+import top.egon.cola.component.yuheng.admin.llm.domain.vo.LlmPageVO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmChannelCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmModelCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.vo.LlmChannelVO;
@@ -44,7 +44,7 @@ public interface LlmConfigurationService {
      * @param size 参数 页大小，1–100；parameter effective page size.
      * @return 返回 渠道分页投影；returns the paged channel projection.
      */
-    KnowledgePageVO<LlmChannelVO> listChannels(
+    LlmPageVO<LlmChannelVO> listChannels(
             @Min(1) int page,
             @Min(1)
             @Max(100) int size
@@ -98,7 +98,7 @@ public interface LlmConfigurationService {
      * @param size 参数 页大小，1–100；parameter effective page size.
      * @return 返回 模型分页投影；returns the paged model projection.
      */
-    KnowledgePageVO<LlmModelVO> listModels(
+    LlmPageVO<LlmModelVO> listModels(
             @Min(1) int page,
             @Min(1)
             @Max(100) int size

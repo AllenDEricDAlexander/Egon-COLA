@@ -5747,7 +5747,7 @@ public class IsolatedOAuthProvisioningIT {
             while (matcher.find()) {
                 if (!tables.add(matcher.group(1))) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
             }
-            if (tables.size() != 50 || !tables.remove("ddl_history") || tables.stream().anyMatch(name -> !name.endsWith("_t0"))) {
+            if (tables.size() != 43 || !tables.remove("ddl_history") || tables.stream().anyMatch(name -> !name.endsWith("_t0"))) {
                 throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
             }
             Map<String, String> values = new java.util.TreeMap<>();

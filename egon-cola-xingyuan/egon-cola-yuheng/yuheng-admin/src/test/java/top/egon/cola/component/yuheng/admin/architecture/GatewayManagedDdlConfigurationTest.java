@@ -43,21 +43,21 @@ import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceProperties;
 /**
  * 中文说明：{@code GatewayManagedDdlConfigurationTest} 固定 Step 9 的切换合同：MyBatis-Plus 是唯一数据源/TM，
  * 装配中不得再残留 JPA/Flyway/ORM 运行期类型；空库基线必须把 yuheng 各模块声明的<b>每一个</b> {@code @TableName}
- * 落成恰好一张 {@code *_t0} 物理表（合计 49 张）、自带 {@code ddl_history}，且不含组件 runner 禁止的
+ * 落成恰好一张 {@code *_t0} 物理表（合计 42 张）、自带 {@code ddl_history}，且不含组件 runner 禁止的
  * {@code DROP}/事务控制/{@code CONCURRENTLY} 语句；manifest 的 family 只能取组件允许的六个值之一（本项目为
  * {@code web}），其 sha256 必须等于<b>最终 SQL 字节</b>的摘要——绝不为了通过检查而改哈希；期望版本或摘要与
  * manifest 不一致时，工厂必须在触达拓扑与任何连接动作<b>之前</b>失败关闭。
  * English summary: {@code GatewayManagedDdlConfigurationTest} pins the Step 9 cutover contract: MyBatis-Plus is the only
  * datasource/transaction manager and no JPA, Flyway or ORM runtime type may remain in the wiring; the empty-database
  * baseline must materialise <b>every</b> {@code @TableName} declared across the yuheng modules as exactly one
- * {@code *_t0} physical table (49 in total), ship its own {@code ddl_history}, and contain no statement the component
+ * {@code *_t0} physical table (42 in total), ship its own {@code ddl_history}, and contain no statement the component
  * runner forbids ({@code DROP}, transaction control, {@code CONCURRENTLY}); the manifest family must be one the component
  * accepts ({@code web} here) and its sha256 must equal the digest of the <b>final SQL bytes</b> — the hash is never
  * edited to force a pass; and a mismatching expected version or checksum must fail closed <b>before</b> the factory
  * touches the topology or any connection.
  *
  * 用法 / Usage: 纯源码/资源合同测试，不启动 Spring Boot 上下文、Docker 或数据库（与同目录架构测试一致）；
- * 它把 49 表基线与 MP 模型双向对齐，但真实 MyBatis→guard→ShardingSphere→PG 建表和空库 ready 判定仍属运行期待证。
+ * 它把 42 表基线与 MP 模型双向对齐，但真实 MyBatis→guard→ShardingSphere→PG 建表和空库 ready 判定仍属运行期待证。
  */
 class GatewayManagedDdlConfigurationTest {
 
@@ -103,8 +103,8 @@ class GatewayManagedDdlConfigurationTest {
     void baselineMaterialisesEveryMappedModelAsOnePhysicalNode() {
         Set<String> baselineTables = tablesIn(baselineSql);
 
-        assertThat(mappedTables).hasSize(49);
-        assertThat(baselineTables).hasSize(50).contains(TECHNICAL_TABLE);
+        assertThat(mappedTables).hasSize(42);
+        assertThat(baselineTables).hasSize(43).contains(TECHNICAL_TABLE);
         assertThat(baselineTables).filteredOn(name -> !TECHNICAL_TABLE.equals(name))
                 .allMatch(name -> name.endsWith("_t0"), "every business table must use the _t0 node suffix");
         assertThat(baselineTables)

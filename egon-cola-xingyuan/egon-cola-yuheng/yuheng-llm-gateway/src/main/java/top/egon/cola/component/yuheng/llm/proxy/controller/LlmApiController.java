@@ -54,6 +54,7 @@ import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmDeploymentEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.enums.LlmProtocolEnum;
 import top.egon.cola.component.yuheng.llm.proxy.domain.exception.LlmInvocationException;
 import top.egon.cola.component.yuheng.llm.proxy.domain.vo.LlmInvocationResultVO;
+import top.egon.cola.component.yuheng.llm.proxy.domain.vo.LlmModelPolicyVO;
 import top.egon.cola.component.yuheng.llm.proxy.repository.LlmConfigurationRepository;
 import top.egon.cola.component.yuheng.llm.proxy.service.LlmInvocationService;
 import top.egon.cola.component.yuheng.llm.proxy.service.LlmProtocolStrategy;
@@ -619,6 +620,62 @@ public class LlmApiController {
     }
 
     /**
+     * 中文说明：为知识宿主查询至多两个别名的安全策略，不进行推理或暴露上游配置。
+     * English summary: Reads safe policy facts for at most two aliases, without inference or upstream configuration.
+     */
+    @Operation(operationId = "describeLlmModelPolicies", summary = "Read authorized model policies",
+            parameters = @io.swagger.v3.oas.annotations.Parameter(name = "model", required = true,
+                    in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+                    array = @io.swagger.v3.oas.annotations.media.ArraySchema(minItems = 1, maxItems = 2, uniqueItems = true,
+                            schema = @Schema(type = "string", pattern = "[a-z0-9][a-z0-9-]{0,63}"))))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Safe model policies",
+                    content = @Content(array = @io.swagger.v3.oas.annotations.media.ArraySchema(
+                            schema = @Schema(implementation = LlmModelPolicyVO.class)))),
+            @ApiResponse(responseCode = "400", description = "Invalid model query"),
+            @ApiResponse(responseCode = "401", description = "Verified identity required"),
+            @ApiResponse(responseCode = "403", description = "Read scope or model authorization denied"),
+            @ApiResponse(responseCode = "404", description = "Model unavailable"),
+            @ApiResponse(responseCode = "503", description = "Policy query unavailable")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/v1/model-policies")
+    public ResponseEntity<List<LlmModelPolicyVO>> describeLlmModelPolicies(
+            HttpServletRequest request) {
+        String subject = authenticatedSubject(request);
+        String[] models = request.getParameterValues("model");
+        if (models == null || models.length < 1 || models.length > 2
+                || !request.getParameterMap().keySet().equals(Set.of("model"))
+                || request.getContentLengthLong() > 0 || request.getHeader("Transfer-Encoding") != null) {
+            throw new LlmInvocationException(400, "unsupported_parameter", "model", "One or two model parameters are required", false);
+        }
+        List<LlmModelPolicyVO> policies = new java.util.ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (String key : models) {
+            if (key == null || !key.matches("[a-z0-9][a-z0-9-]{0,63}") || !seen.add(key)) {
+                throw new LlmInvocationException(400, "unsupported_parameter", "model", "Model aliases must be distinct valid keys", false);
+            }
+            LlmModelSnapshotBO model = configurationRepository.findSnapshot(key)
+                    .filter(value -> Boolean.TRUE.equals(value.getEnabled()))
+                    .orElseThrow(() -> new LlmInvocationException(404, "model_unavailable", "model", "The model alias is unavailable", false));
+            if (model.getAllowedSubjects() == null || !model.getAllowedSubjects().contains(subject)) {
+                throw new LlmInvocationException(403, "model_forbidden", "model", "The identity cannot use the model alias", false);
+            }
+            List<LlmModelSnapshotBO.RouteBO> routes = model.getRoutes();
+            boolean enabled = routes != null && !routes.isEmpty() && routes.stream().allMatch(route -> route != null
+                    && route.getChannel() != null && Boolean.TRUE.equals(route.getChannel().getEnabled()));
+            List<LlmDeploymentEnum> deployments = routes == null ? List.of() : routes.stream()
+                    .filter(java.util.Objects::nonNull).map(LlmModelSnapshotBO.RouteBO::getChannel)
+                    .filter(java.util.Objects::nonNull).map(LlmModelSnapshotBO.ChannelBO::getDeployment)
+                    .filter(java.util.Objects::nonNull).distinct().sorted(Comparator.comparing(Enum::name)).toList();
+            policies.add(new LlmModelPolicyVO(
+                    model.getModelKey(), model.getKind(), model.getProtocols(), model.getRevision(),
+                    model.getDimensions(), model.getEmbeddingSpaceId(), enabled, deployments));
+        }
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(policies);
+    }
+
+    /**
      * 中文说明：四个推理端点唯一的编排入口：有界读正文 → 只验形态 → 取可信主体 → 构造命令 →
      * {@code invoke} 授权与路由 → 复核首条候选 route → 同协议 {@code exchange} → 按 {@code stream} 位交
      * {@link LlmServletStreamComponent} 出字节。全程没有一处按协议分支：协议只作为参数传下去，编解码、上游出网、
@@ -636,6 +693,18 @@ public class LlmApiController {
      * @param response 参数 当前响应；parameter the current response.
      * @throws IOException 写出失败；raised when the write-out fails.
      */
+    private Set<LlmDeploymentEnum> allowedDeployments(HttpServletRequest request) {
+        List<String> values = Collections.list(request.getHeaders("X-Egon-Llm-Egress-Policy"));
+        if (values.isEmpty()) {
+            return EnumSet.allOf(LlmDeploymentEnum.class);
+        }
+        if (values.size() != 1 || !Set.of("LOCAL_ONLY", "ALLOW_CLOUD").contains(values.get(0))) {
+            throw new LlmInvocationException(400, "unsupported_parameter", "X-Egon-Llm-Egress-Policy", "The egress policy is invalid", false);
+        }
+        return "LOCAL_ONLY".equals(values.get(0)) ? EnumSet.of(LlmDeploymentEnum.LOCAL)
+                : EnumSet.allOf(LlmDeploymentEnum.class);
+    }
+
     private void invokeEntry(LlmProtocolEnum protocol, HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         Instant started = Instant.now();
@@ -647,7 +716,7 @@ public class LlmApiController {
                 .stream(requiredStreamFlag(payload))
                 .payload(payload)
                 .callerSubject(authenticatedSubject(request))
-                .allowedDeployments(EnumSet.allOf(LlmDeploymentEnum.class))
+                .allowedDeployments(allowedDeployments(request))
                 .requiredCapabilities(requiredCapabilities(payload))
                 .build();
         LlmInvocationResultVO routed = llmInvocationService.invoke(command);

@@ -16,12 +16,10 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.mock.http.MockHttpInputMessage;
 import top.egon.cola.component.common.core.enums.EgonEnum;
 import top.egon.cola.component.yuheng.admin.config.GatewayAiJsonConfiguration;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.dto.KnowledgeBaseCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmModelCommandDTO;
 import top.egon.cola.component.yuheng.admin.llm.domain.enums.LlmModelKindEnum;
 import top.egon.cola.component.yuheng.admin.llm.domain.enums.LlmProtocolEnum;
 import top.egon.cola.component.yuheng.admin.shared.domain.validation.ExecuteGroup;
-import top.egon.cola.component.yuheng.admin.wiki.domain.dto.WikiTransitionCommandDTO;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -250,27 +248,6 @@ class AiCarrierContractTest {
     }
 
     @Test
-    void wikiTransitionConstraintsFireOnlyWithinExecuteGroup()
-            throws Exception {
-        Set<String> defaultPaths = violatedPaths(
-                new WikiTransitionCommandDTO());
-        assertTrue(defaultPaths.isEmpty(),
-                "The reused transition carrier must stay silent outside its"
-                        + " execution group: " + defaultPaths);
-
-        Set<String> executePaths = violatedPaths(
-                new WikiTransitionCommandDTO(), ExecuteGroup.class);
-        assertTrue(executePaths.contains("event"),
-                "ExecuteGroup must reject a transition without an event: "
-                        + executePaths);
-        assertTrue(executePaths.contains("expectedPageRevision"),
-                "ExecuteGroup must reject a missing page CAS revision: "
-                        + executePaths);
-
-        assertGroupsDeclaredOnTransitionCarrier();
-    }
-
-    @Test
     void aiCarrierJsonBindingRejectsUnknownPropertiesWithoutTouchingGlobalMapper()
             throws Exception {
         MappingJackson2HttpMessageConverter converter =
@@ -288,7 +265,7 @@ class AiCarrierContractTest {
                 + "\"reviewStatus\":\"APPROVED\"}";
         assertThrows(org.springframework.http.converter
                         .HttpMessageNotReadableException.class,
-                () -> converter.read(KnowledgeBaseCommandDTO.class,
+                () -> converter.read(LlmModelCommandDTO.class,
                         json(smuggled)),
                 "A server-derived field must not bind into an AI carrier");
 
@@ -313,25 +290,6 @@ class AiCarrierContractTest {
                 body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         message.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         return message;
-    }
-
-    private static void assertGroupsDeclaredOnTransitionCarrier()
-            throws Exception {
-        assertTrue(Arrays.stream(WikiTransitionCommandDTO.class
-                        .getAnnotations())
-                .anyMatch(annotation -> annotation.annotationType()
-                        .isAnnotationPresent(Constraint.class)
-                        && groupsOf(annotation).contains(ExecuteGroup.class)),
-                "The transition carrier class constraint must belong to"
-                        + " ExecuteGroup");
-        Field eventField = WikiTransitionCommandDTO.class
-                .getDeclaredField("event");
-        assertTrue(Arrays.stream(eventField.getAnnotations())
-                        .anyMatch(annotation -> annotation.annotationType()
-                                .isAnnotationPresent(Constraint.class)
-                                && groupsOf(annotation).contains(ExecuteGroup.class)),
-                "The transition event field must be validated within"
-                        + " ExecuteGroup");
     }
 
     private static List<Class<?>> groupsOf(
@@ -395,7 +353,7 @@ class AiCarrierContractTest {
 
     private static List<Path> aiCarrierSources() throws IOException {
         List<Path> sources = new ArrayList<>();
-        for (String fragment : List.of("llm", "knowledge", "wiki")) {
+        for (String fragment : List.of("llm")) {
             collect(sources, adminPackage(fragment).resolve("domain"));
         }
         collect(sources, adminPackage("mcp").resolve("domain/enums"));

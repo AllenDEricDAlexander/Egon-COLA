@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import top.egon.cola.component.yuheng.admin.knowledge.domain.vo.KnowledgePageVO;
+import top.egon.cola.component.yuheng.admin.llm.domain.vo.LlmPageVO;
 import top.egon.cola.component.yuheng.admin.llm.domain.bo.LlmChannelBO;
 import top.egon.cola.component.yuheng.admin.llm.domain.bo.LlmModelBO;
 import top.egon.cola.component.yuheng.admin.llm.domain.dto.LlmChannelCommandDTO;
@@ -102,7 +102,7 @@ public class LlmConfigurationServiceImpl implements LlmConfigurationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public KnowledgePageVO<LlmChannelVO> listChannels(
+    public LlmPageVO<LlmChannelVO> listChannels(
             int page,
             int size) {
         long total = configuration.countChannels();
@@ -110,7 +110,7 @@ public class LlmConfigurationServiceImpl implements LlmConfigurationService {
                 .stream()
                 .map(this::channelView)
                 .toList();
-        return new KnowledgePageVO<>(items, page, size, total);
+        return new LlmPageVO<>(items, page, size, total);
     }
 
     /**
@@ -178,7 +178,7 @@ public class LlmConfigurationServiceImpl implements LlmConfigurationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public KnowledgePageVO<LlmModelVO> listModels(
+    public LlmPageVO<LlmModelVO> listModels(
             int page,
             int size) {
         long total = configuration.countModels();
@@ -186,7 +186,7 @@ public class LlmConfigurationServiceImpl implements LlmConfigurationService {
                 .stream()
                 .map(this::modelView)
                 .toList();
-        return new KnowledgePageVO<>(items, page, size, total);
+        return new LlmPageVO<>(items, page, size, total);
     }
 
     /**

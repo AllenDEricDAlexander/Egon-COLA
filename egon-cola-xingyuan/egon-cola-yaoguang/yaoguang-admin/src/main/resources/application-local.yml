@@ -1,0 +1,7 @@
+egon:
+  cola:
+    platform:
+      tianquan:
+        shoubing:
+          usage-observation:
+            allow-local-plaintext: true

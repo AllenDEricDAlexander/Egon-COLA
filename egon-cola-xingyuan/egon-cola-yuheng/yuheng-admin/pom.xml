@@ -18,23 +18,9 @@
 
     <properties>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <spring-ai.version>1.1.8</spring-ai.version>
         <maven.deploy.skip>true</maven.deploy.skip>
         <gpg.skip>true</gpg.skip>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <!-- The RAG starter publishes its document readers as optional, so admin owns the version. -->
-            <dependency>
-                <groupId>org.springframework.ai</groupId>
-                <artifactId>spring-ai-bom</artifactId>
-                <version>${spring-ai.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -96,18 +82,6 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-rag-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-pdf-document-reader</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-tika-document-reader</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>

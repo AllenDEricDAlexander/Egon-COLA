@@ -87,7 +87,7 @@ import top.egon.cola.component.yuheng.llm.proxy.service.OpenAiResponsesProtocolS
 /**
  * 中文说明：{@code LlmApiOpenApiContractTest} 是 Step 16 File 3 的模型入口合同闸门，固定 {@link LlmApiController}
  * 的四件事：① <b>原生面</b>恰好是 API-001/002/003/029/030 这五个「方法 + 路径 + operationId」三元组——注解视图与
- * 源码视图必须逐项相等，既没有第六个入口，也没有任何一个入口落在 admin 的 {@code /api/v1/yuheng/admin} 前缀下；
+ * 源码视图必须逐项相等，另有受保护的模型策略查询，不改变这五个原生入口，也没有任何一个入口落在 admin 的 {@code /api/v1/yuheng/admin} 前缀下；
  * ② {@code entryProtocols()} 覆盖这五个入口，且协议只取 {@link LlmProtocolEnum#wireValue()} 的四个批准字面量
  * （目录面按 Spec 走 OpenAI 面），数字形态的 {@code code}/{@code ordinal} 永不上 wire；
  * ③ <b>运行时错误 fixtures</b>：{@link LlmInvocationException} 的四个安全字段在 OpenAI 三面编码成
@@ -109,7 +109,7 @@ import top.egon.cola.component.yuheng.llm.proxy.service.OpenAiResponsesProtocolS
  * 不启动需要外部 PostgreSQL/ShardingSphere/Tianquan/Tianshu 配置的完整服务。
  * English summary: {@code LlmApiOpenApiContractTest} is the Step 16 File 3 gate over the model entry. It pins (1) that
  * the native surface is exactly the five {@code method + path + operationId} triples of API-001/002/003/029/030, with the
- * annotation view and the source view equal item by item, no sixth entry point and nothing mounted under admin's
+ * annotation view and the source view equal item by item, one separately verified policy query and nothing mounted under admin's
  * {@code /api/v1/yuheng/admin} prefix; (2) that {@code entryProtocols()} covers all five entries and speaks only the four
  * approved {@link LlmProtocolEnum#wireValue()} literals (the catalogue rides the OpenAI face per Spec), never a numeric
  * code or ordinal on the wire; (3) the runtime error fixtures — the four safe fields of {@link LlmInvocationException}
@@ -178,6 +178,45 @@ class LlmApiOpenApiContractTest {
     private static final ObjectMapper JSON = Jackson2ObjectMapperBuilder.json().build();
 
     @Test
+    void policyQueryProjectsOnlyAuthorizedFactsAndRejectsInvalidQueries() throws Exception {
+        Fixture fixture = fixture(gatewayProperties(), realFaces(gatewayProperties()));
+        LlmModelSnapshotBO snapshot = catalogAlias("chat-main", true, List.of(SUBJECT), Instant.now());
+        when(fixture.repository.findSnapshot("chat-main")).thenReturn(java.util.Optional.of(snapshot));
+        var response = fixture.mockMvc.perform(get("/v1/model-policies").param("model", "chat-main")
+                .principal(namedSubject(SUBJECT))).andReturn();
+        assertThat(response.getResponse().getStatus()).isEqualTo(200);
+        assertThat(response.getResponse().getHeader("Cache-Control")).contains("no-store");
+        var policy = JSON.readTree(response.getResponse().getContentAsString()).get(0);
+        assertThat(policy.get("modelKey").asText()).isEqualTo("chat-main");
+        assertThat(policy.get("revision").asLong()).isEqualTo(7);
+        assertThat(response.getResponse().getContentAsString()).doesNotContain("baseUrl", "secretRef", "allowedSubjects", "upstreamModel");
+        assertThat(fixture.mockMvc.perform(get("/v1/model-policies").param("model", "chat-main")
+                .principal(namedSubject("another-subject"))).andReturn().getResponse().getStatus()).isEqualTo(403);
+        assertThat(fixture.mockMvc.perform(get("/v1/model-policies").param("model", "chat-main", "chat-main")
+                .principal(namedSubject(SUBJECT))).andReturn().getResponse().getStatus()).isEqualTo(400);
+        assertThat(fixture.mockMvc.perform(get("/v1/model-policies").param("model", "chat-main").param("all", "true")
+                .principal(namedSubject(SUBJECT))).andReturn().getResponse().getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    void egressHeaderNarrowsRoutingAndCannotSmuggleAnUnknownPolicy() throws Exception {
+        Fixture fixture = fixture(gatewayProperties(), realFaces(gatewayProperties()));
+        when(fixture.service.invoke(any())).thenThrow(new CommonException(503, "LLM_NO_ELIGIBLE_ROUTE", "No route"));
+        fixture.mockMvc.perform(post("/v1/chat/completions").principal(namedSubject(SUBJECT))
+                .header("X-Egon-Llm-Egress-Policy", "LOCAL_ONLY").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"model\":\"chat-main\",\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]}"));
+        var captured = org.mockito.ArgumentCaptor.forClass(top.egon.cola.component.yuheng.llm.proxy.domain.dto.LlmInvocationCommandDTO.class);
+        verify(fixture.service).invoke(captured.capture());
+        assertThat(captured.getValue().getAllowedDeployments()).containsExactly(LlmDeploymentEnum.LOCAL);
+        reset(fixture.service);
+        assertThat(fixture.mockMvc.perform(post("/v1/chat/completions").principal(namedSubject(SUBJECT))
+                .header("X-Egon-Llm-Egress-Policy", "BYPASS").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"model\":\"chat-main\",\"messages\":[]}"))
+                .andReturn().getResponse().getStatus()).isEqualTo(400);
+        verifyNoInteractions(fixture.service);
+    }
+
+    @Test
     void generatedOpenApiDocumentsActualScopeAndNativeSecurityFailures() throws Exception {
         var properties = gatewayProperties();
         var fixture = fixture(properties, realFaces(properties));
@@ -226,7 +265,8 @@ class LlmApiOpenApiContractTest {
     @Test
     @DisplayName("原生面恰是五个「方法+路径+operationId」三元组：无第六入口，也无一落在 admin 前缀下")
     void theNativeSurfaceIsExactlyTheFiveContractEntriesAndNoneSitsUnderTheAdminPrefix() {
-        Map<String, String> annotated = annotatedEntries();
+        Map<String, String> annotated = new TreeMap<>(annotatedEntries());
+        assertThat(annotated.remove("GET /v1/model-policies")).isEqualTo("describeLlmModelPolicies");
         List<String> contract = ENTRIES.stream().map(EntryContract::route).sorted().toList();
 
         assertThat(annotated.keySet()).as("the five mapped routes of the model entry")
@@ -246,7 +286,8 @@ class LlmApiOpenApiContractTest {
     @DisplayName("每个入口都声明真实 operationId、响应状态和 bearerAuth 安全要求")
     void everyEntryHandlerDeclaresANonBlankOperationIdInItsOwnNameAndJavadoc() {
         String source = readControllerSource();
-        Map<String, String> annotated = annotatedEntries();
+        Map<String, String> annotated = new TreeMap<>(annotatedEntries());
+        assertThat(annotated.remove("GET /v1/model-policies")).isEqualTo("describeLlmModelPolicies");
 
         for (EntryContract entry : ENTRIES) {
             Method handler = handlerFor(entry);
@@ -879,7 +920,8 @@ class LlmApiOpenApiContractTest {
             for (String line : file.getValue()) {
                 String stripped = line.strip();
                 if (mapping.matcher(stripped).find()
-                        && ENTRIES.stream().noneMatch(entry -> entry.annotation().equals(stripped))) {
+                        && ENTRIES.stream().noneMatch(entry -> entry.annotation().equals(stripped))
+                        && !stripped.equals("@GetMapping(\"/v1/model-policies\")")) {
                     unexpected.add(file.getKey() + " " + stripped);
                 }
             }

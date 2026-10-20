@@ -8,6 +8,8 @@ provider-facing reporting starter, and an HTTP Provider lease runtime. The Admin
 publishes immutable rule releases through Tianshu; the Engine discovers providers,
 selects healthy instances, and forwards HTTP and unary RPC traffic.
 
+Knowledge base and LLM Wiki are owned by [Yaoguang](../egon-cola-yaoguang/README.md). The LLM Gateway and channel/model configuration remain in Yuheng; both workspaces use the existing Admin Web.
+
 ## Architecture
 
 ```text

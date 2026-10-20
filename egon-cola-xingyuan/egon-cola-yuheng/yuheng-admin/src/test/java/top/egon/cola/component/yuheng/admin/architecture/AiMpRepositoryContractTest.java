@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 class AiMpRepositoryContractTest {
 
-    /** The 49 managed tables of the migrated admin persistence, per the Plan. */
+    /** The 42 managed tables of the migrated admin persistence, per the Plan. */
     private static final List<String> MP_ROW_MODELS = List.of(
             "top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationRecordPO",
             "top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayBusinessDomainPO",
@@ -40,11 +40,6 @@ class AiMpRepositoryContractTest {
             "top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationRecordPO",
             "top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialRecordPO",
             "top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupRecordPO",
-            "top.egon.cola.component.yuheng.admin.knowledge.domain.po.KnowledgeBasePO",
-            "top.egon.cola.component.yuheng.admin.knowledge.domain.po.KnowledgeChunkPO",
-            "top.egon.cola.component.yuheng.admin.knowledge.domain.po.KnowledgeDocumentPO",
-            "top.egon.cola.component.yuheng.admin.knowledge.domain.po.KnowledgeDocumentRevisionPO",
-            "top.egon.cola.component.yuheng.admin.knowledge.domain.po.KnowledgeJobPO",
             "top.egon.cola.component.yuheng.admin.llm.domain.po.LlmChannelPO",
             "top.egon.cola.component.yuheng.admin.llm.domain.po.LlmModelPO",
             "top.egon.cola.component.yuheng.admin.mcp.domain.po.McpAppBindingDraftPO",
@@ -78,9 +73,7 @@ class AiMpRepositoryContractTest {
             "top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftRecordPO",
             "top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayPolicyDraftRecordPO",
             "top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayRouteDraftRecordPO",
-            "top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyRecordPO",
-            "top.egon.cola.component.yuheng.admin.wiki.domain.po.WikiPagePO",
-            "top.egon.cola.component.yuheng.admin.wiki.domain.po.WikiRevisionPO"
+            "top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyRecordPO"
     );
 
     private static final Path MAPPER_XML_ROOT =
@@ -94,8 +87,8 @@ class AiMpRepositoryContractTest {
 
     @Test
     void everyMigratedRowModelExtendsTheStarterModelAndMapsOneTable() {
-        assertEquals(49, MP_ROW_MODELS.size(),
-                "the migrated persistence covers 49 tables");
+        assertEquals(42, MP_ROW_MODELS.size(),
+                "the migrated persistence covers 42 tables");
         List<String> missing = new ArrayList<>();
         List<String> violations = new ArrayList<>();
         Map<String, String> tableOwners = new LinkedHashMap<>();
@@ -148,14 +141,14 @@ class AiMpRepositoryContractTest {
         assertTrue(missing.isEmpty(),
                 "MP row models are missing (Step 3 not implemented): " + missing);
         assertTrue(violations.isEmpty(), "Row model boundary violations: " + violations);
-        assertEquals(49, tableOwners.size(), "each table is owned by exactly one row model");
+        assertEquals(42, tableOwners.size(), "each table is owned by exactly one row model");
     }
 
     @Test
     void everyGuardedMapperXmlResolvesToItsAccessInterfaceAndFiltersActiveRows()
             throws IOException {
         List<Path> xmlFiles = mapperXmlFiles();
-        assertEquals(49, xmlFiles.size(),
+        assertEquals(42, xmlFiles.size(),
                 "one guarded mapper XML per migrated table, found: " + xmlFiles.size());
         List<String> violations = new ArrayList<>();
         for (Path xml : xmlFiles) {
@@ -326,8 +319,8 @@ class AiMpRepositoryContractTest {
         // Static-initialisation guard: the Plan's table set is the contract, so
         // a duplicate entry here must break before any assertion runs.
         assertTrue(MP_ROW_MODELS.stream().map(name -> name.substring(
-                        name.lastIndexOf('.') + 1)).distinct().count() == 49,
-                "the declared row models must be 49 distinct types");
+                        name.lastIndexOf('.') + 1)).distinct().count() == 42,
+                "the declared row models must be 42 distinct types");
         assertTrue(MP_ROW_MODELS.stream().allMatch(name -> name.endsWith("PO")),
                 "row models keep the PO suffix");
     }
